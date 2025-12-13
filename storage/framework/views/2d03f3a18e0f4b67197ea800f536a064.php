@@ -1,0 +1,336 @@
+<?php if (isset($component)) { $__componentOriginal9ac128a9029c0e4701924bd2d73d7f54 = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginal9ac128a9029c0e4701924bd2d73d7f54 = $attributes; } ?>
+<?php $component = App\View\Components\AppLayout::resolve([] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('app-layout'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\App\View\Components\AppLayout::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes([]); ?>
+
+
+     <?php $__env->slot('header', null, []); ?> 
+        <?php if (isset($component)) { $__componentOriginalf8d4ea307ab1e58d4e472a43c8548d8e = $component; } ?>
+<?php if (isset($attributes)) { $__attributesOriginalf8d4ea307ab1e58d4e472a43c8548d8e = $attributes; } ?>
+<?php $component = Illuminate\View\AnonymousComponent::resolve(['view' => 'components.page-header','data' => ['title' => '🔍 Tracking Pengujian Sampel','breadcrumbs' => [[ 'label' => 'Pelacakan' ]]]] + (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag ? $attributes->all() : [])); ?>
+<?php $component->withName('page-header'); ?>
+<?php if ($component->shouldRender()): ?>
+<?php $__env->startComponent($component->resolveView(), $component->data()); ?>
+<?php if (isset($attributes) && $attributes instanceof Illuminate\View\ComponentAttributeBag): ?>
+<?php $attributes = $attributes->except(\Illuminate\View\AnonymousComponent::ignoredParameterNames()); ?>
+<?php endif; ?>
+<?php $component->withAttributes(['title' => '🔍 Tracking Pengujian Sampel','breadcrumbs' => \Illuminate\View\Compilers\BladeCompiler::sanitizeComponentAttribute([[ 'label' => 'Pelacakan' ]])]); ?>
+<?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginalf8d4ea307ab1e58d4e472a43c8548d8e)): ?>
+<?php $attributes = $__attributesOriginalf8d4ea307ab1e58d4e472a43c8548d8e; ?>
+<?php unset($__attributesOriginalf8d4ea307ab1e58d4e472a43c8548d8e); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginalf8d4ea307ab1e58d4e472a43c8548d8e)): ?>
+<?php $component = $__componentOriginalf8d4ea307ab1e58d4e472a43c8548d8e; ?>
+<?php unset($__componentOriginalf8d4ea307ab1e58d4e472a43c8548d8e); ?>
+<?php endif; ?>
+     <?php $__env->endSlot(); ?>
+
+
+
+
+
+    <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+
+
+        <div class="bg-white shadow-sm sm:rounded-lg">
+
+
+            <div class="p-6 bg-white border-b border-gray-200">
+
+
+
+
+
+                <!-- Header Info -->
+
+
+                <div class="text-center mb-8">
+
+
+                    <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
+
+
+                        <svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+
+
+                        </svg>
+
+
+                    </div>
+
+
+                    <h3 class="text-2xl font-bold text-gray-900 mb-2">Lacak Status Pengujian</h3>
+
+
+                    <p class="text-gray-600 max-w-2xl mx-auto">
+
+
+                        Masukkan nomor permintaan (resi) pengujian Anda untuk melihat status terkini dan progress pengujian sampel di laboratorium Pusdokkes Polri.
+
+
+                    </p>
+
+
+                </div>
+
+
+
+
+
+                <!-- Tracking Form -->
+
+
+                <div class="max-w-md mx-auto">
+
+
+                    <?php if($errors->any()): ?>
+
+
+                        <div class="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+
+
+                            <div class="flex">
+
+
+                                <svg class="w-5 h-5 text-red-400 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+
+
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+
+
+                                </svg>
+
+
+                                <div>
+
+
+                                    <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+
+
+                                        <p class="text-sm"><?php echo e($error); ?></p>
+
+
+                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+
+
+                                </div>
+
+
+                            </div>
+
+
+                        </div>
+
+
+                    <?php endif; ?>
+
+
+
+
+
+                    <form action="<?php echo e(route('public.track')); ?>" method="POST" class="space-y-4">
+
+
+                        <?php echo csrf_field(); ?>
+
+
+
+
+
+                        <div>
+
+
+                            <label for="tracking_number" class="block text-sm font-medium text-gray-700 mb-2">
+
+
+                                Nomor Permintaan (Resi)
+
+
+                            </label>
+
+
+                            <div class="relative">
+
+
+                                <input type="text"
+
+
+                                       name="tracking_number"
+
+
+                                       id="tracking_number"
+
+
+                                       required
+
+
+                                       value="<?php echo e(old('tracking_number')); ?>"
+
+
+                                       placeholder="Contoh: REQ-000001"
+
+
+                                       class="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-lg">
+
+
+                                <div class="absolute inset-y-0 left-0 flex items-center pl-3">
+
+
+                                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path>
+
+
+                                    </svg>
+
+
+                                </div>
+
+
+                            </div>
+
+
+                            <p class="mt-2 text-sm text-gray-500">
+
+
+                                Nomor permintaan dapat ditemukan pada tanda terima yang diberikan saat penyerahan sampel.
+
+
+                            </p>
+
+
+                        </div>
+
+
+
+
+
+                        <button type="submit"
+
+
+                                class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-150 ease-in-out font-medium text-lg">
+
+
+                            🔍 Lacak Sekarang
+
+
+                        </button>
+
+
+                    </form>
+
+
+                </div>
+
+
+
+
+
+                <!-- Sample Numbers Info -->
+
+
+                <div class="mt-12 bg-gray-50 rounded-lg p-6">
+                <div class="mt-12 bg-white rounded-lg border border-gray-200 p-6">
+                    <h4 class="text-lg font-semibold text-gray-900 mb-3">🧭 Tahapan Proses Pengujian</h4>
+                    <ol class="list-decimal list-inside space-y-2 text-sm text-gray-700">
+                        <li><span class="font-medium">Penerimaan</span> &mdash; permintaan dan sampel dicatat oleh admin.</li>
+                        <li><span class="font-medium">Preparasi Sampel</span> &mdash; lab melakukan persiapan awal sebelum analisa.</li>
+                        <li><span class="font-medium">Pengujian pada Instrumen</span> &mdash; sampel dianalisis menggunakan peralatan laboratorium.</li>
+                        <li><span class="font-medium">Hasil selesai menunggu TTD pimpinan</span> &mdash; laporan disahkan pimpinan.</li>
+                        <li><span class="font-medium">Penyerahan</span> &mdash; hasil resmi diserahkan kepada penyidik.</li>
+                    </ol>
+                </div>
+
+
+
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4">📋 Contoh Nomor Permintaan</h4>
+
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+
+
+                        <div class="bg-white p-4 rounded-lg border">
+
+
+                            <div class="font-medium text-gray-900 mb-1">REQ-000001</div>
+
+
+                            <div class="text-gray-500">Status: 🧪 Sedang Diuji</div>
+
+
+                        </div>
+
+
+                        <div class="bg-white p-4 rounded-lg border">
+
+
+                            <div class="font-medium text-gray-900 mb-1">REQ-000002</div>
+
+
+                            <div class="text-gray-500">Status: 📋 Siap Diserahkan</div>
+
+
+                        </div>
+
+
+                        <div class="bg-white p-4 rounded-lg border">
+
+
+                            <div class="font-medium text-gray-900 mb-1">REQ-000003</div>
+
+
+                            <div class="text-gray-500">Status: 🎉 Sudah Diserahkan</div>
+
+
+                        </div>
+
+
+                    </div>
+
+
+                    <p class="text-xs text-gray-500 mt-4">
+
+
+                        * Contoh di atas hanya untuk demonstrasi. Gunakan nomor permintaan yang sebenarnya untuk tracking.
+
+
+                    </p>
+
+
+                </div>
+
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+ <?php echo $__env->renderComponent(); ?>
+<?php endif; ?>
+<?php if (isset($__attributesOriginal9ac128a9029c0e4701924bd2d73d7f54)): ?>
+<?php $attributes = $__attributesOriginal9ac128a9029c0e4701924bd2d73d7f54; ?>
+<?php unset($__attributesOriginal9ac128a9029c0e4701924bd2d73d7f54); ?>
+<?php endif; ?>
+<?php if (isset($__componentOriginal9ac128a9029c0e4701924bd2d73d7f54)): ?>
+<?php $component = $__componentOriginal9ac128a9029c0e4701924bd2d73d7f54; ?>
+<?php unset($__componentOriginal9ac128a9029c0e4701924bd2d73d7f54); ?>
+<?php endif; ?>
+
+
+<?php /**PATH C:\Users\Farma\pusdokkes-subunit\resources\views/tracking/index.blade.php ENDPATH**/ ?>

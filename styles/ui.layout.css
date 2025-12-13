@@ -1,0 +1,69 @@
+/*
+ Pusdokkes Layout Utilities (scoped)
+ - Opt-in only. Wrap your page or section in <div class="ui-shell"> to use.
+ - No global element resets.
+*/
+
+@layer ui.layout {
+  :where(html[data-ui]) :where(.ui-shell) {
+    min-height: 100dvh;
+    background: linear-gradient(180deg, color-mix(in oklab, var(--ui-color-bg), transparent 40%), var(--ui-color-bg));
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+  }
+
+  :where(html[data-ui]) :where(.ui-header) {
+    position: sticky;
+    top: 0;
+    z-index: var(--ui-z-nav);
+    backdrop-filter: saturate(1.2) blur(8px);
+    background: color-mix(in oklab, var(--ui-color-surface), transparent 30%);
+    border-bottom: 1px solid var(--ui-color-border);
+  }
+
+  :where(html[data-ui]) :where(.ui-container) {
+    max-width: 1100px;
+    margin-inline: auto;
+    padding-inline: var(--ui-space-4);
+  }
+
+  :where(html[data-ui]) :where(.ui-main) {
+    padding-block: var(--ui-space-8);
+  }
+
+  :where(html[data-ui]) :where(.ui-footer) {
+    border-top: 1px solid var(--ui-color-border);
+    background: color-mix(in oklab, var(--ui-color-surface), transparent 30%);
+  }
+
+  :where(html[data-ui]) :where(.ui-section) {
+    margin-block: var(--ui-space-8);
+  }
+  :where(html[data-ui]) :where(.ui-section__title) {
+    font-size: clamp(1.125rem, 1rem + 1vw, 1.75rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ui-color-text);
+    margin-bottom: var(--ui-space-2);
+  }
+  :where(html[data-ui]) :where(.ui-section__sub) {
+    color: var(--ui-color-muted);
+    margin-bottom: var(--ui-space-6);
+  }
+
+  :where(html[data-ui]) :where(.ui-grid) {
+    display: grid;
+    gap: var(--ui-space-6);
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  :where(html[data-ui]) :where(.ui-col-4) { grid-column: span 4 / span 4; }
+  :where(html[data-ui]) :where(.ui-col-6) { grid-column: span 6 / span 6; }
+  :where(html[data-ui]) :where(.ui-col-8) { grid-column: span 8 / span 8; }
+  :where(html[data-ui]) :where(.ui-col-12) { grid-column: 1 / -1; }
+
+  @media (max-width: 900px) {
+    :where(html[data-ui]) :where(.ui-col-4,
+    .ui-col-6,
+    .ui-col-8) { grid-column: 1 / -1; }
+  }
+}

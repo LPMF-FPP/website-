@@ -1,0 +1,4 @@
+/* Vite entry to bundle scoped UI CSS without global changes. */
+@import url("/styles/ui.tokens.css");
+@import url("/styles/ui.minimal.css");
+@import url("/styles/ui.layout.css");

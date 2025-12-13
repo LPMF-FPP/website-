@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 480">
+  <defs>
+    <linearGradient id="split" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#1b8c3a" />
+      <stop offset="0.5" stop-color="#1b8c3a" />
+      <stop offset="0.5" stop-color="#0c0c0c" />
+      <stop offset="1" stop-color="#0c0c0c" />
+    </linearGradient>
+  </defs>
+  <path d="M200 10 C260 30 320 70 360 130 C360 272 290 380 200 460 C110 380 40 272 40 130 C80 70 140 30 200 10 Z" fill="url(#split)" stroke="#111" stroke-width="8" />
+  <g fill="#f9ce2f">
+    <path d="M200 90 c-32 20-58 51-68 82h36c7-13 17-25 32-34 15 9 25 21 32 34h36c-10-31-36-62-68-82z"/>
+    <path d="M200 130c-16 10-27 25-32 44h24c3-7 5-11 8-14 3 3 5 7 8 14h24c-5-19-16-34-32-44z"/>
+    <rect x="188" y="174" width="24" height="170" rx="12"/>
+    <path d="M200 174c-24 12-40 30-40 52 0 20 12 35 32 46v24c-12 4-20 12-20 24 0 16 12 28 28 28s28-12 28-28c0-12-8-20-20-24v-24c20-11 32-26 32-46 0-22-16-40-40-52z"/>
+    <circle cx="200" cy="160" r="16"/>
+    <polygon points="200,52 210,74 234,74 214,88 222,110 200,96 178,110 186,88 166,74 190,74" />
+    <polygon points="126,240 100,230 124,222 132,198 142,222 166,230 140,240 132,264"/>
+    <polygon points="274,240 248,230 272,222 280,198 290,222 314,230 288,240 280,264"/>
+    <text x="200" y="430" font-family="Arial" font-size="34" text-anchor="middle" letter-spacing="3">KEDOKTERAN DAN KESEHATAN</text>
+  </g>
+</svg>

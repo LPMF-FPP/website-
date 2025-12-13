@@ -1,0 +1,103 @@
+/*
+ Pusdokkes UI Tokens (scoped)
+ - Fully opt-in: tokens only exist when html has [data-ui]
+ - No global resets, no Tailwind dependency
+ - Safe to include alongside existing CSS
+*/
+
+/* Light defaults (active only when [data-ui] is present) */
+:where(html[data-ui]) {
+  color-scheme: light dark;
+
+  /* Typography */
+  --ui-font-sans: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif;
+  --ui-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  /* Spacing scale */
+  --ui-space-1: 0.25rem;
+  --ui-space-2: 0.5rem;
+  --ui-space-3: 0.75rem;
+  --ui-space-4: 1rem;
+  --ui-space-5: 1.25rem;
+  --ui-space-6: 1.5rem;
+  --ui-space-8: 2rem;
+  --ui-space-10: 2.5rem;
+  --ui-space-12: 3rem;
+
+  /* Radii */
+  --ui-radius-sm: 6px;
+  --ui-radius-md: 10px;
+  --ui-radius-lg: 14px;
+  --ui-radius-pill: 9999px;
+
+  /* Shadows */
+  --ui-shadow-sm: 0 1px 2px rgba(0,0,0,0.06);
+  --ui-shadow-md: 0 4px 10px rgba(0,0,0,0.08);
+  --ui-shadow-lg: 0 10px 24px rgba(0,0,0,0.12);
+
+  /* Z-index */
+  --ui-z-nav: 50;
+  --ui-z-overlay: 1000;
+  --ui-z-modal: 1100;
+  --ui-z-toast: 1200;
+
+  /* Motion */
+  --ui-motion-fast: 120ms;
+  --ui-motion-base: 180ms;
+  --ui-motion-slow: 300ms;
+  --ui-motion-ease: cubic-bezier(0.2, 0.6, 0.2, 1);
+
+  /* Brand and semantic colors (light) */
+  --ui-color-bg: #0b1220; /* page background used by layout wrappers; components use surface */
+  --ui-color-surface: #ffffff;
+  --ui-color-surface-2: #f8fafc;
+  --ui-color-elev: #ffffff;
+  --ui-color-border: #e5e7eb;
+  --ui-color-text: #0f172a;
+  --ui-color-muted: #64748b;
+
+  --ui-color-primary: #10b981;
+  --ui-color-primary-contrast: #ffffff;
+
+  --ui-color-info: #3b82f6;
+  --ui-color-success: #16a34a;
+  --ui-color-warning: #f59e0b;
+  --ui-color-danger: #ef4444;
+
+  /* Focus ring */
+  --ui-focus-ring: 0 0 0 3px color-mix(in oklab, var(--ui-color-primary), transparent 70%);
+}
+
+/************************
+ Dark theme overrides
+*************************/
+:where(html[data-ui][data-theme="dark"]) {
+  --ui-color-bg: #060a12;
+  --ui-color-surface: #0b1220;
+  --ui-color-surface-2: #0f172a;
+  --ui-color-elev: #0f172a;
+  --ui-color-border: #1f2a3b;
+  --ui-color-text: #e5eaf3;
+  --ui-color-muted: #94a3b8;
+
+  --ui-color-primary: #22d3a3;
+  --ui-color-primary-contrast: #0b1220;
+
+  --ui-color-info: #60a5fa;
+  --ui-color-success: #22c55e;
+  --ui-color-warning: #fbbf24;
+  --ui-color-danger: #f87171;
+
+  --ui-focus-ring: 0 0 0 3px color-mix(in oklab, var(--ui-color-primary), transparent 70%);
+}
+
+/************************
+ Reduced motion
+*************************/
+@media (prefers-reduced-motion: reduce) {
+  :where(html[data-ui]) {
+    --ui-motion-fast: 0ms;
+    --ui-motion-base: 0ms;
+    --ui-motion-slow: 0ms;
+  }
+}

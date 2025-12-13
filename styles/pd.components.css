@@ -1,0 +1,612 @@
+/**
+ * Pusdokkes Component Patterns Library
+ * Complete set of UI components & layout patterns
+ * Safe overlay mode - visual-only properties, no layout disruption
+ *
+ * Components:
+ * - Navigation (header, sidebar, tab, breadcrumb)
+ * - Buttons (variants, sizes, icons)
+ * - Forms (input, select, checkbox, radio, textarea, labels, validation)
+ * - Cards & Containers (padding, shadow, radius, header/footer)
+ * - Tables & Data (zebra, sticky headers, pagination, empty states, skeleton)
+ * - Feedback (toast, badge, alert, loading, empty states)
+ * - Overlays (modal, drawer, popover, tooltip)
+ * - Charts (gridlines, points, legend, data palette)
+ */
+
+@layer pd.components;
+
+/* =========================
+   KEYFRAME ANIMATIONS
+   ========================= */
+@layer pd.components {
+  /* Spinner animation - used by loading indicators */
+  @keyframes pd-spin {
+    to { transform: rotate(360deg); }
+  }
+}
+
+/* =========================
+   NAVIGATION COMPONENTS
+   ========================= */
+@layer pd.components {
+
+  /* ===== HEADER & NAVBAR ===== */
+  html[data-pd-safe] .pd-header,
+  html[data-pd-safe] .pd-navbar {
+    background-color: var(--pd-surface);
+    border-bottom: var(--pd-border-width-1) var(--pd-border-style-solid) var(--pd-border);
+    box-shadow: var(--pd-elevation-1);
+    transition: background-color var(--pd-transition-input), border-color var(--pd-transition-input);
+  }
+
+  html[data-pd-safe] .pd-header-sticky {
+    background-color: var(--pd-surface);
+    backdrop-filter: var(--pd-backdrop-blur-md);
+    border-bottom: var(--pd-border-width-1) var(--pd-border-style-solid) var(--pd-border-subtle);
+    box-shadow: var(--pd-elevation-2);
+  }
+
+  html[data-pd-safe] .pd-nav-link {
+    color: var(--pd-text-secondary);
+    border-radius: var(--pd-radius-base);
+    transition: color var(--pd-transition-button), background-color var(--pd-transition-button);
+  }
+
+  html[data-pd-safe] .pd-nav-link:hover {
+    color: var(--pd-text-primary);
+    background-color: color-mix(in oklab, var(--pd-primary), transparent 90%);
+  }
+
+  html[data-pd-safe] .pd-nav-link.active,
+  html[data-pd-safe] .pd-nav-link[aria-current="page"] {
+    color: var(--pd-primary);
+    background-color: color-mix(in oklab, var(--pd-primary), transparent 85%);
+    border: var(--pd-border-width-1) var(--pd-border-style-solid) color-mix(in oklab, var(--pd-primary), transparent 70%);
+  }
+
+  /* ===== SIDEBAR ===== */
+  html[data-pd-safe] .pd-sidebar {
+    background-color: var(--pd-surface);
+    border-right: var(--pd-border-width-1) var(--pd-border-style-solid) var(--pd-border);
+    box-shadow: var(--pd-elevation-1);
+  }
+
+  html[data-pd-safe] .pd-sidebar-item {
+    color: var(--pd-text-secondary);
+    border-radius: var(--pd-radius-base);
+    transition: all var(--pd-transition-button);
+  }
+
+  html[data-pd-safe] .pd-sidebar-item:hover {
+    color: var(--pd-text-primary);
+    background-color: color-mix(in oklab, var(--pd-primary), transparent 92%);
+  }
+
+  html[data-pd-safe] .pd-sidebar-item.active {
+    color: var(--pd-primary);
+    background-color: color-mix(in oklab, var(--pd-primary), transparent 88%);
+    border-left: 3px var(--pd-border-style-solid) var(--pd-primary);
+  }
+
+  /* ===== TABS ===== */
+  html[data-pd-safe] .pd-tabs {
+    border-bottom: var(--pd-border-width-1) var(--pd-border-style-solid) var(--pd-border);
+  }
+
+  html[data-pd-safe] .pd-tab {
+    color: var(--pd-text-muted);
+    border-bottom: 2px var(--pd-border-style-solid) transparent;
+    transition: all var(--pd-transition-button);
+  }
+
+  html[data-pd-safe] .pd-tab:hover {
+    color: var(--pd-text-secondary);
+    border-bottom-color: color-mix(in oklab, var(--pd-border), transparent 50%);
+  }
+
+  html[data-pd-safe] .pd-tab.active,
+  html[data-pd-safe] .pd-tab[aria-selected="true"] {
+    color: var(--pd-primary);
+    border-bottom-color: var(--pd-primary);
+  }
+
+  /* ===== BREADCRUMBS ===== */
+  html[data-pd-safe] .pd-breadcrumb {
+    color: var(--pd-text-muted);
+  }
+
+  html[data-pd-safe] .pd-breadcrumb-link {
+    color: var(--pd-text-secondary);
+    transition: color var(--pd-transition-button);
+  }
+
+  html[data-pd-safe] .pd-breadcrumb-link:hover {
+    color: var(--pd-primary);
+  }
+
+  html[data-pd-safe] .pd-breadcrumb-current {
+    color: var(--pd-text-primary);
+  }
+
+  /* =========================
+     BUTTON COMPONENTS
+     ========================= */
+
+  /* ===== PRIMARY BUTTONS ===== */
+  html[data-pd-safe] .pd-btn,
+  html[data-pd-safe] .pd-btn-primary {
+    color: var(--pd-on-primary);
+    background-color: var(--pd-primary);
+    border: var(--pd-border-width-1) var(--pd-border-style-solid) var(--pd-primary);
+    border-radius: var(--pd-radius-button);
+    box-shadow: var(--pd-elevation-1);
+    transition: all var(--pd-transition-button);
+  }
+
+  html[data-pd-safe] .pd-btn:hover,
+  html[data-pd-safe] .pd-btn-primary:hover {
+    background-color: var(--pd-primary-hover);
+    border-color: var(--pd-primary-hover);
+    box-shadow: var(--pd-elevation-2);
+  }
+
+  html[data-pd-safe] .pd-btn:active,
+  html[data-pd-safe] .pd-btn-primary:active {
+    background-color: var(--pd-primary-active);
+    border-color: var(--pd-primary-active);
+    box-shadow: var(--pd-elevation-1);
+  }
+
+  /* ===== SECONDARY BUTTONS ===== */
+  html[data-pd-safe] .pd-btn-secondary {
+    color: var(--pd-secondary);
+    background-color: transparent;
+    border: var(--pd-border-width-1) var(--pd-border-style-solid) var(--pd-secondary);
+    border-radius: var(--pd-radius-button);
+    transition: all var(--pd-transition-button);
+  }
+
+  html[data-pd-safe] .pd-btn-secondary:hover {
+    color: var(--pd-on-secondary);
+    background-color: var(--pd-secondary);
+    box-shadow: var(--pd-elevation-1);
+  }
+
+  /* ===== TERTIARY BUTTONS ===== */
+  html[data-pd-safe] .pd-btn-tertiary,
+  html[data-pd-safe] .pd-btn-ghost {
+    color: var(--pd-primary);
+    background-color: transparent;
+    border: var(--pd-border-width-1) var(--pd-border-style-solid) transparent;
+    border-radius: var(--pd-radius-button);
+    transition: all var(--pd-transition-button);
+  }
+
+  html[data-pd-safe] .pd-btn-tertiary:hover,
+  html[data-pd-safe] .pd-btn-ghost:hover {
+    background-color: color-mix(in oklab, var(--pd-primary), transparent 90%);
+    border-color: color-mix(in oklab, var(--pd-primary), transparent 70%);
+  }
+
+  /* ===== BUTTON SIZES ===== */
+  html[data-pd-safe] .pd-btn-sm {
+    font-size: var(--pd-text-sm);
+    border-radius: var(--pd-radius-sm);
+  }
+
+  html[data-pd-safe] .pd-btn-md {
+    font-size: var(--pd-text-base);
+    border-radius: var(--pd-radius-base);
+  }
+
+  html[data-pd-safe] .pd-btn-lg {
+    font-size: var(--pd-text-lg);
+    border-radius: var(--pd-radius-md);
+  }
+
+  /* ===== BUTTON STATES ===== */
+  html[data-pd-safe] .pd-btn:disabled,
+  html[data-pd-safe] .pd-btn[aria-disabled="true"] {
+    opacity: var(--pd-opacity-50);
+    filter: saturate(0.8);
+  }
+
+  html[data-pd-safe] .pd-btn:focus-visible {
+    outline: 2px var(--pd-border-style-solid) var(--pd-primary);
+    outline-offset: 2px;
+  }
+
+  /* =========================
+     FORM COMPONENTS
+     ========================= */
+
+  /* ===== INPUT FIELDS ===== */
+  html[data-pd-safe] .pd-input,
+  html[data-pd-safe] .pd-select,
+  html[data-pd-safe] .pd-textarea {
+    color: var(--pd-text-primary);
+    background-color: var(--pd-surface);
+    border: var(--pd-border-width-1) var(--pd-border-style-solid) var(--pd-border);
+    border-radius: var(--pd-radius-input);
+    transition: all var(--pd-transition-input);
+  }
+
+  html[data-pd-safe] .pd-input:focus,
+  html[data-pd-safe] .pd-select:focus,
+  html[data-pd-safe] .pd-textarea:focus {
+    border-color: var(--pd-primary);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--pd-primary), transparent 85%);
+    outline: none;
+  }
+
+  html[data-pd-safe] .pd-input:invalid,
+  html[data-pd-safe] .pd-input.error {
+    border-color: var(--pd-error);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--pd-error), transparent 85%);
+  }
+
+  html[data-pd-safe] .pd-input:disabled {
+    background-color: var(--pd-surface-variant);
+    color: var(--pd-text-disabled);
+    border-color: var(--pd-border-subtle);
+  }
+
+  /* ===== CHECKBOX & RADIO ===== */
+  html[data-pd-safe] .pd-checkbox,
+  html[data-pd-safe] .pd-radio {
+    color: var(--pd-primary);
+    border-radius: var(--pd-radius-xs);
+    transition: all var(--pd-transition-fast);
+  }
+
+  html[data-pd-safe] .pd-checkbox:checked,
+  html[data-pd-safe] .pd-radio:checked {
+    background-color: var(--pd-primary);
+    border-color: var(--pd-primary);
+  }
+
+  html[data-pd-safe] .pd-checkbox:focus,
+  html[data-pd-safe] .pd-radio:focus {
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--pd-primary), transparent 85%);
+    outline: none;
+  }
+
+  /* ===== LABELS & VALIDATION ===== */
+  html[data-pd-safe] .pd-label {
+    color: var(--pd-text-primary);
+    font-weight: var(--pd-font-medium);
+    font-size: var(--pd-text-sm);
+  }
+
+  html[data-pd-safe] .pd-label-required::after {
+    color: var(--pd-error);
+  }
+
+  html[data-pd-safe] .pd-helper-text {
+    color: var(--pd-text-muted);
+    font-size: var(--pd-text-sm);
+  }
+
+  html[data-pd-safe] .pd-error-text {
+    color: var(--pd-error-text);
+    font-size: var(--pd-text-sm);
+  }
+
+  html[data-pd-safe] .pd-success-text {
+    color: var(--pd-success-text);
+    font-size: var(--pd-text-sm);
+  }
+
+  /* =========================
+     CARD & CONTAINER COMPONENTS
+     ========================= */
+
+  /* ===== CARDS ===== */
+  html[data-pd-safe] .pd-card {
+    background-color: var(--pd-surface);
+    border: var(--pd-border-width-1) var(--pd-border-style-solid) var(--pd-border);
+    border-radius: var(--pd-radius-card);
+    box-shadow: var(--pd-elevation-1);
+    transition: box-shadow var(--pd-transition-input), border-color var(--pd-transition-input);
+  }
+
+  html[data-pd-safe] .pd-card:hover {
+    box-shadow: var(--pd-elevation-2);
+    border-color: color-mix(in oklab, var(--pd-border), var(--pd-primary) 20%);
+  }
+
+  html[data-pd-safe] .pd-card-elevated {
+    box-shadow: var(--pd-elevation-3);
+  }
+
+  html[data-pd-safe] .pd-card-header {
+    border-bottom: var(--pd-border-width-1) var(--pd-border-style-solid) var(--pd-border);
+    background-color: var(--pd-surface-variant);
+  }
+
+  html[data-pd-safe] .pd-card-footer {
+    border-top: var(--pd-border-width-1) var(--pd-border-style-solid) var(--pd-border);
+    background-color: var(--pd-surface-variant);
+  }
+
+  /* ===== PANELS ===== */
+  html[data-pd-safe] .pd-panel {
+    background-color: var(--pd-surface);
+    border: var(--pd-border-width-1) var(--pd-border-style-solid) var(--pd-border);
+    border-radius: var(--pd-radius-lg);
+    box-shadow: var(--pd-elevation-1);
+  }
+
+  /* =========================
+     TABLE & DATA COMPONENTS
+     ========================= */
+
+  /* ===== TABLES ===== */
+  html[data-pd-safe] .pd-table {
+    background-color: var(--pd-surface);
+    border: var(--pd-border-width-1) var(--pd-border-style-solid) var(--pd-border);
+    border-radius: var(--pd-radius-lg);
+    box-shadow: var(--pd-elevation-1);
+  }
+
+  html[data-pd-safe] .pd-table th {
+    background-color: var(--pd-surface-variant);
+    color: var(--pd-text-primary);
+    font-weight: var(--pd-font-semibold);
+    border-bottom: var(--pd-border-width-2) var(--pd-border-style-solid) var(--pd-border);
+  }
+
+  html[data-pd-safe] .pd-table td {
+    border-bottom: var(--pd-border-width-1) var(--pd-border-style-solid) var(--pd-border-subtle);
+    color: var(--pd-text-primary);
+  }
+
+  /* ===== ZEBRA STRIPING ===== */
+  html[data-pd-safe] .pd-table-striped tbody tr:nth-child(even) {
+    background-color: color-mix(in oklab, var(--pd-surface-variant), transparent 50%);
+  }
+
+  html[data-pd-safe] .pd-table tbody tr:hover {
+    background-color: color-mix(in oklab, var(--pd-primary), transparent 95%);
+  }
+
+  /* ===== STICKY HEADERS ===== */
+  html[data-pd-safe] .pd-table-sticky th {
+    background-color: var(--pd-surface-variant);
+    backdrop-filter: var(--pd-backdrop-blur-base);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  /* ===== EMPTY STATES ===== */
+  html[data-pd-safe] .pd-empty-state {
+    color: var(--pd-text-muted);
+    background-color: var(--pd-surface-variant);
+    border: var(--pd-border-width-2) var(--pd-border-style-dashed) var(--pd-border);
+    border-radius: var(--pd-radius-lg);
+  }
+
+  /* ===== SKELETON LOADING ===== */
+  html[data-pd-safe] .pd-skeleton {
+    background-color: var(--pd-surface-variant);
+    border-radius: var(--pd-radius-base);
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklab, var(--pd-surface-variant), white 20%),
+      transparent
+    );
+    background-size: 200% 100%;
+    animation: pd-skeleton-shimmer 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pd-skeleton-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  /* =========================
+     FEEDBACK COMPONENTS
+     ========================= */
+
+  /* ===== ALERTS ===== */
+  html[data-pd-safe] .pd-alert {
+    border-radius: var(--pd-radius-md);
+    border: var(--pd-border-width-1) var(--pd-border-style-solid);
+  }
+
+  html[data-pd-safe] .pd-alert-success {
+    color: var(--pd-success-text);
+    background-color: var(--pd-success-bg);
+    border-color: var(--pd-success-border);
+  }
+
+  html[data-pd-safe] .pd-alert-warning {
+    color: var(--pd-warning-text);
+    background-color: var(--pd-warning-bg);
+    border-color: var(--pd-warning-border);
+  }
+
+  html[data-pd-safe] .pd-alert-error {
+    color: var(--pd-error-text);
+    background-color: var(--pd-error-bg);
+    border-color: var(--pd-error-border);
+  }
+
+  html[data-pd-safe] .pd-alert-info {
+    color: var(--pd-info-text);
+    background-color: var(--pd-info-bg);
+    border-color: var(--pd-info-border);
+  }
+
+  /* ===== BADGES ===== */
+  html[data-pd-safe] .pd-badge {
+    font-size: var(--pd-text-xs);
+    font-weight: var(--pd-font-medium);
+    border-radius: var(--pd-radius-badge);
+    border: var(--pd-border-width-1) var(--pd-border-style-solid) transparent;
+  }
+
+  html[data-pd-safe] .pd-badge-primary {
+    color: var(--pd-on-primary);
+    background-color: var(--pd-primary);
+  }
+
+  html[data-pd-safe] .pd-badge-success {
+    color: var(--pd-success-text);
+    background-color: var(--pd-success-bg);
+    border-color: var(--pd-success-border);
+  }
+
+  html[data-pd-safe] .pd-badge-warning {
+    color: var(--pd-warning-text);
+    background-color: var(--pd-warning-bg);
+    border-color: var(--pd-warning-border);
+  }
+
+  html[data-pd-safe] .pd-badge-error {
+    color: var(--pd-error-text);
+    background-color: var(--pd-error-bg);
+    border-color: var(--pd-error-border);
+  }
+
+  /* ===== TOAST/SNACKBAR ===== */
+  html[data-pd-safe] .pd-toast {
+    background-color: var(--pd-surface-elevated);
+    border: var(--pd-border-width-1) var(--pd-border-style-solid) var(--pd-border);
+    border-radius: var(--pd-radius-lg);
+    box-shadow: var(--pd-elevation-4);
+    backdrop-filter: var(--pd-backdrop-blur-md);
+  }
+
+  /* ===== LOADING INDICATORS ===== */
+  html[data-pd-safe] .pd-spinner {
+    border-color: color-mix(in oklab, var(--pd-primary), transparent 75%);
+    border-top-color: var(--pd-primary);
+    animation: pd-spin 1s linear infinite;
+  }
+
+  /* =========================
+     OVERLAY COMPONENTS
+     ========================= */
+
+  /* ===== MODAL ===== */
+  html[data-pd-safe] .pd-modal-backdrop {
+    background-color: var(--pd-overlay-backdrop);
+    backdrop-filter: var(--pd-backdrop-blur-sm);
+  }
+
+  html[data-pd-safe] .pd-modal {
+    background-color: var(--pd-surface);
+    border: var(--pd-border-width-1) var(--pd-border-style-solid) var(--pd-border);
+    border-radius: var(--pd-radius-modal);
+    box-shadow: var(--pd-elevation-5);
+  }
+
+  html[data-pd-safe] .pd-modal-header {
+    border-bottom: var(--pd-border-width-1) var(--pd-border-style-solid) var(--pd-border);
+  }
+
+  html[data-pd-safe] .pd-modal-footer {
+    border-top: var(--pd-border-width-1) var(--pd-border-style-solid) var(--pd-border);
+    background-color: var(--pd-surface-variant);
+  }
+
+  /* ===== DRAWER ===== */
+  html[data-pd-safe] .pd-drawer {
+    background-color: var(--pd-surface);
+    border-right: var(--pd-border-width-1) var(--pd-border-style-solid) var(--pd-border);
+    box-shadow: var(--pd-elevation-3);
+  }
+
+  /* ===== POPOVER ===== */
+  html[data-pd-safe] .pd-popover {
+    background-color: var(--pd-surface-elevated);
+    border: var(--pd-border-width-1) var(--pd-border-style-solid) var(--pd-border);
+    border-radius: var(--pd-radius-lg);
+    box-shadow: var(--pd-elevation-3);
+    backdrop-filter: var(--pd-backdrop-blur-sm);
+  }
+
+  /* ===== TOOLTIP ===== */
+  html[data-pd-safe] .pd-tooltip {
+    background-color: var(--pd-gray-800);
+    color: var(--pd-gray-50);
+    border-radius: var(--pd-radius-base);
+    font-size: var(--pd-text-sm);
+    box-shadow: var(--pd-elevation-2);
+    transition: opacity var(--pd-transition-tooltip);
+  }
+
+  /* =========================
+     CHART & DATA VIZ COMPONENTS
+     ========================= */
+
+  /* ===== CHART COLORS ===== */
+  html[data-pd-safe] .pd-chart {
+    background-color: var(--pd-surface);
+    border: var(--pd-border-width-1) var(--pd-border-style-solid) var(--pd-border);
+    border-radius: var(--pd-radius-lg);
+  }
+
+  /* Data Palette */
+  html[data-pd-safe] .pd-data-1 { color: var(--pd-blue-500); }
+  html[data-pd-safe] .pd-data-2 { color: var(--pd-green-500); }
+  html[data-pd-safe] .pd-data-3 { color: var(--pd-orange-500); }
+  html[data-pd-safe] .pd-data-4 { color: var(--pd-red-500); }
+  html[data-pd-safe] .pd-data-5 { color: var(--pd-cyan-500); }
+  html[data-pd-safe] .pd-data-6 { color: var(--pd-indigo-500); }
+
+  /* Grid Lines */
+  html[data-pd-safe] .pd-chart-grid {
+    stroke: var(--pd-border-subtle);
+    stroke-width: var(--pd-border-width-1);
+    opacity: var(--pd-opacity-60);
+  }
+
+  /* Legend */
+  html[data-pd-safe] .pd-chart-legend {
+    background-color: var(--pd-surface-variant);
+    border: var(--pd-border-width-1) var(--pd-border-style-solid) var(--pd-border);
+    border-radius: var(--pd-radius-base);
+    color: var(--pd-text-secondary);
+    font-size: var(--pd-text-sm);
+  }
+
+  /* =========================
+     MOTION & TRANSITIONS
+     ========================= */
+
+  /* ===== REDUCED MOTION ===== */
+  @media (prefers-reduced-motion: reduce) {
+    html[data-pd-safe] * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* ===== FOCUS MANAGEMENT ===== */
+  html[data-pd-safe] :focus-visible {
+    outline: 2px var(--pd-border-style-solid) var(--pd-primary);
+    outline-offset: 2px;
+    border-radius: var(--pd-radius-xs);
+  }
+
+  /* ===== HIGH CONTRAST SUPPORT ===== */
+  @media (prefers-contrast: high) {
+    html[data-pd-safe] {
+      --pd-border-width-1: 2px;
+      --pd-shadow-sm: none;
+      --pd-shadow-md: none;
+      --pd-shadow-lg: none;
+    }
+
+    html[data-pd-safe] .pd-btn,
+    html[data-pd-safe] .pd-input,
+    html[data-pd-safe] .pd-card {
+      border-width: var(--pd-border-width-2);
+    }
+  }
+}

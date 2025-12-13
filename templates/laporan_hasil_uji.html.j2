@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Laporan Hasil Uji — {{ report_number }}</title>
+    <style>
+        :root{
+            --ink:#0b1220;
+            --muted:#5b6779;
+            --border:#D8DEE9;
+            --paper:#ffffff;
+        }
+        html,body{margin:0;padding:0;background:#f6f8fb;color:var(--ink);font:14px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial,sans-serif;}
+        .page{
+            width:210mm; min-height:297mm;
+            margin: 12mm auto; padding: 16mm 14mm;
+            background:var(--paper); box-shadow:0 4px 12px rgba(0,0,0,.08); border:1px solid var(--border);
+            box-sizing:border-box;
+        }
+        header{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            border-bottom:2px solid var(--border);
+            padding-bottom:10px;
+            margin-bottom:12px;
+        }
+        header img{height:70px;}
+        .org{text-align:center;flex:1;padding:0 20px;}
+        .org h1{margin:0;font-size:20px;letter-spacing:.5px;text-transform:uppercase;}
+        .org .sub{margin:4px 0 0 0;font-size:14px;}
+        .org .contact{margin:4px 0 0 0;color:var(--muted);font-size:12px;}
+        .meta{margin:12px 0;font-weight:600;font-size:16px;}
+        .meta .number{font-family:ui-monospace,monospace;font-size:14px;font-weight:normal;margin-left:8px;}
+        h2{font-size:16px;margin:16px 0 8px 0;font-weight:600;}
+        table{width:100%;border-collapse:collapse;margin:10px 0;}
+        th,td{border:1px solid var(--border);padding:8px 10px;vertical-align:top;text-align:left;}
+        th{background:#f1f4f9;font-weight:600;}
+        .reference{font-size:12px;font-style:italic;color:var(--muted);margin-top:6px;}
+        .disclaimer{
+            font-size:12px;
+            color:var(--muted);
+            margin:12px 0;
+            padding:8px 12px;
+            background:#f9fafb;
+            border-left:3px solid var(--border);
+        }
+        footer{display:table;width:100%;margin-top:24px;border:none;}
+        footer > div{display:table-cell;vertical-align:top;padding:10px;}
+        footer .sign{width:50%;}
+        footer .verif{width:50%;}
+        .sign .title{font-weight:600;margin-bottom:8px;}
+        .sign .spacer{height:60px;margin:16px 0;}
+        .sign .signature{font-weight:600;}
+        .verif .title{font-weight:600;margin-bottom:8px;}
+        .verif table{margin:0;}
+        .verif td{padding:10px;min-height:50px;}
+        @media print{
+            html,body{background:#fff;}
+            .page{margin:0;box-shadow:none;border:none;width:auto;min-height:auto;}
+        }
+    </style>
+</head>
+<body>
+<section class="page">
+    <header>
+        {% if logo_tribrata %}
+        <img src="{{ logo_tribrata }}" alt="Logo Tribrata" />
+        {% else %}
+        <img src="data:image/svg+xml,%3Csvg width='70' height='70' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='70' height='70' fill='%23e5e7eb'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%239ca3af' font-size='10'%3ETribrata%3C/text%3E%3C/svg%3E" alt="Logo Tribrata" />
+        {% endif %}
+        <div class="org">
+            <h1>PUSAT KEDOKTERAN DAN KESEHATAN POLRI</h1>
+            <p class="sub">LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN</p>
+            <p class="contact">Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240 • Telp/Fax: 021-4700921 • Email: labmutufarmapol@gmail.com</p>
+        </div>
+        {% if logo_pusdokkes %}
+        <img src="{{ logo_pusdokkes }}" alt="Logo Pusdokkes Polri" />
+        {% else %}
+        <img src="data:image/svg+xml,%3Csvg width='70' height='70' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='70' height='70' fill='%23e5e7eb'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%239ca3af' font-size='10'%3EPusdokkes%3C/text%3E%3C/svg%3E" alt="Logo Pusdokkes Polri" />
+        {% endif %}
+    </header>
+
+    <div class="meta">
+        <strong>LAPORAN HASIL UJI</strong>
+        <br><strong>Nomor:</strong> <span class="number">{{ report_number }}</span>
+        <br><strong>Halaman:</strong> 1/1
+    </div>
+
+    <h2>Informasi Pelanggan &amp; Sampel</h2>
+    <table>
+        <tbody>
+            <tr><th style="width:280px;">Nama Pelanggan</th><td>{{ customer_name | default('-', true) }}</td></tr>
+            <tr><th>Alamat Pelanggan</th><td>{{ customer_unit | default('-', true) }}</td></tr>
+            <tr><th>Nama Sampel</th><td>{{ sample_name | default('-', true) }}</td></tr>
+            <tr><th>Jumlah Sampel</th><td>{{ quantity_display | default('-', true) }}</td></tr>
+            <tr><th>No Batch</th><td>{{ batch_number | default('-', true) }}</td></tr>
+            <tr><th>Exp. Date</th><td>{{ expiry_date | default('-', true) }}</td></tr>
+            <tr><th>Tanggal Penerimaan Sampel</th><td>{{ received_date | default('-', true) }}</td></tr>
+            <tr><th>Kode Sampel</th><td>{{ sample_code | default('-', true) }}</td></tr>
+        </tbody>
+    </table>
+
+    <h2>Hasil Pengujian</h2>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:200px;">Parameter Uji</th>
+                <th>Hasil</th>
+                <th style="width:200px;">Metode Uji</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Identifikasi</td>
+                <td>{{ test_result_text | default('Belum ditentukan', true) }}</td>
+                <td>{{ instrument_label | default('-', true) }}</td>
+            </tr>
+        </tbody>
+    </table>
+    <div class="reference">Referensi: Farmakope Indonesia Suplemen I Edisi VI Tahun 2022</div>
+
+    <div class="disclaimer">Hasil uji hanya berlaku untuk sampel yang diterima oleh laboratorium.</div>
+
+    <footer>
+        <div class="sign">
+            <div class="title">Jakarta, {{ report_date }}</div>
+            <div>Pusat Kedokteran dan Kesehatan Polri<br/>Laboratorium Pengujian Mutu Farmasi Kepolisian</div>
+            <div class="spacer"></div>
+            <div class="signature">
+                <strong>KAFARMAPOL</strong><br/>
+                KUSWARDANI, S.Si., Apt., M.Farm<br/>
+                KOMBES POL. NRP. 70040687
+            </div>
+        </div>
+        <div class="verif">
+            <div class="title">Paraf verifikator</div>
+            <table>
+                <tbody>
+                    <tr><td>1. Teknis:</td></tr>
+                    <tr><td>2. Mutu:</td></tr>
+                    <tr><td>3. Administrasi:</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </footer>
+</section>
+</body>
+</html>

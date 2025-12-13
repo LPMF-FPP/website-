@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="id" data-ui="minimal" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pusdokkes UI Styleguide (Scoped)</title>
+  <link rel="stylesheet" href="/styles/ui.tokens.css" />
+  <link rel="stylesheet" href="/styles/ui.minimal.css" />
+  <link rel="stylesheet" href="/styles/ui.layout.css" />
+  <style>
+    body { font-family: var(--ui-font-sans); }
+  </style>
+</head>
+<body>
+  <div class="ui-shell">
+    <header class="ui-header">
+      <div class="ui-container" style="display:flex;align-items:center;gap:1rem; height:64px;">
+        <strong>Pusdokkes UI</strong>
+        <span class="ui-text-muted">Scoped components demo</span>
+        <div style="margin-left:auto; display:flex; gap:.5rem; align-items:center;">
+          <button class="ui-btn ui-btn--ghost" id="btn-light">Light</button>
+          <button class="ui-btn ui-btn--ghost" id="btn-dark">Dark</button>
+          <button class="ui-btn ui-btn--primary" id="btn-toggle">Toggle</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="ui-main ui-container">
+      <section class="ui-section">
+        <h2 class="ui-section__title">Buttons</h2>
+        <p class="ui-section__sub">Use .ui-btn with variants.</p>
+        <div style="display:flex; gap: .75rem; flex-wrap:wrap;">
+          <button class="ui-btn">Default</button>
+          <button class="ui-btn ui-btn--primary">Primary</button>
+          <button class="ui-btn ui-btn--ghost">Ghost</button>
+        </div>
+      </section>
+
+      <section class="ui-section">
+        <h2 class="ui-section__title">Cards</h2>
+        <p class="ui-section__sub">Use .ui-card for elevated containers.</p>
+        <div class="ui-grid">
+          <div class="ui-col-6">
+            <div class="ui-card">
+              <h3 style="margin:0 0 .5rem;">Ringkasan Permintaan</h3>
+              <p class="ui-text-muted" style="margin:0;">Contoh card dengan teks sekunder.</p>
+            </div>
+          </div>
+          <div class="ui-col-6">
+            <div class="ui-card">
+              <h3 style="margin:0 0 .5rem;">Status</h3>
+              <div style="display:flex; gap:.5rem;">
+                <span class="ui-badge ui-badge--success">Selesai</span>
+                <span class="ui-badge ui-badge--warning">Menunggu</span>
+                <span class="ui-badge ui-badge--danger">Gagal</span>
+                <span class="ui-badge ui-badge--info">Info</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="ui-section">
+        <h2 class="ui-section__title">Form</h2>
+        <p class="ui-section__sub">Input dengan focus ring yang jelas.</p>
+        <div style="display:grid; gap: .75rem; max-width:520px;">
+          <input class="ui-input" placeholder="Nama" />
+          <input class="ui-input" placeholder="Nomor Permintaan" />
+          <div style="display:flex; gap:.5rem;">
+            <button class="ui-btn ui-btn--primary">Simpan</button>
+            <button class="ui-btn">Batal</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="ui-footer">
+      <div class="ui-container" style="height:64px; display:flex; align-items:center; justify-content:space-between;">
+        <small class="ui-text-muted">© 2025 Pusdokkes</small>
+        <a class="ui-link" href="#top">Kembali ke atas</a>
+      </div>
+    </footer>
+  </div>
+
+  <script src="/scripts/ui.theme-toggle.js" type="module"></script>
+  <script>
+    const html = document.documentElement;
+    document.getElementById('btn-light').onclick = () => { html.dataset.theme = 'light'; localStorage.setItem('ui-theme', 'light'); };
+    document.getElementById('btn-dark').onclick = () => { html.dataset.theme = 'dark'; localStorage.setItem('ui-theme', 'dark'); };
+    document.getElementById('btn-toggle').onclick = () => {
+      const next = html.dataset.theme === 'dark' ? 'light' : 'dark';
+      html.dataset.theme = next; localStorage.setItem('ui-theme', next);
+    };
+  </script>
+</body>
+</html>

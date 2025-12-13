@@ -1,0 +1,247 @@
+/* Safe CSS Overlay with Layers - Non-layout only */
+/* Order: tokens < base < components < a11y < utilities */
+@layer pd.tokens, pd.base, pd.components, pd.a11y, pd.utilities;
+
+/* =========================
+   TOKENS (Light/Dark)
+   ========================= */
+@layer pd.tokens {
+  html[data-pd-safe] {
+    /* Base colors */
+    --pd-bg: #ffffff;
+    --pd-surface: #f7f8fa;
+    --pd-text: #1b2128;
+    --pd-muted: #6b7280;
+    --pd-border: #e5e7eb;
+
+    --pd-primary: #1e40af;
+    --pd-on-primary: #ffffff;
+    --pd-success: #16a34a;
+    --pd-warning: #d97706;
+    --pd-danger: #dc2626;
+    --pd-info: #0284c7;
+
+    /* Typography & shape */
+    --pd-font-sans: ui-sans-serif, system-ui, "Inter", "Segoe UI", Roboto, Arial, sans-serif;
+    --pd-radius-sm: 6px;
+    --pd-radius-md: 10px;
+    --pd-radius-lg: 14px;
+    --pd-shadow-sm: 0 1px 2px rgba(0,0,0,.06);
+    --pd-shadow-md: 0 6px 18px rgba(0,0,0,.08);
+    --pd-shadow-lg: 0 18px 48px rgba(0,0,0,.12);
+
+    /* Motion */
+    --pd-dur-fast: 150ms;
+    --pd-dur: 200ms;
+    --pd-dur-slow: 300ms;
+    --pd-ease: cubic-bezier(.2,.8,.2,1);
+  }
+
+  html[data-pd-safe][data-theme="dark"] {
+    --pd-bg: #0b0c0f;
+    --pd-surface: #111318;
+    --pd-text: #edf0f3;
+    --pd-muted: #9aa3af;
+    --pd-border: #21242b;
+
+    --pd-primary: #4f7dff;
+    --pd-on-primary: #0b0c0f;
+    --pd-success: #2bb673;
+    --pd-warning: #f59e0b;
+    --pd-danger: #f43f5e;
+    --pd-info: #38bdf8;
+
+    --pd-shadow-sm: 0 1px 2px rgba(0,0,0,.25);
+    --pd-shadow-md: 0 6px 18px rgba(0,0,0,.28);
+    --pd-shadow-lg: 0 18px 48px rgba(0,0,0,.35);
+  }
+}
+
+/* =========================
+   BASE (no layout properties)
+   ========================= */
+@layer pd.base {
+  html[data-pd-safe] {
+    color: var(--pd-text);
+    background-color: var(--pd-bg);
+    font-family: var(--pd-font-sans);
+    line-height: 1.5; /* safe for minimal reflow */
+    -webkit-font-smoothing: antialiased;
+    color-scheme: light dark;
+    transition: color var(--pd-dur) var(--pd-ease), background-color var(--pd-dur) var(--pd-ease);
+  }
+
+  html[data-pd-safe] a {
+    color: var(--pd-primary);
+    text-decoration-thickness: .08em;
+    text-underline-offset: .15em;
+    transition: color var(--pd-dur) var(--pd-ease);
+  }
+
+  html[data-pd-safe] a:hover {
+    text-decoration: underline;
+  }
+
+  /* Border & divider colors only (no width/style changes) */
+  html[data-pd-safe] hr,
+  html[data-pd-safe] .divider,
+  html[data-pd-safe] table,
+  html[data-pd-safe] th,
+  html[data-pd-safe] td {
+    border-color: var(--pd-border);
+  }
+
+  html[data-pd-safe] h1,
+  html[data-pd-safe] h2,
+  html[data-pd-safe] h3,
+  html[data-pd-safe] h4,
+  html[data-pd-safe] h5,
+  html[data-pd-safe] h6 {
+    color: var(--pd-text);
+  }
+
+  html[data-pd-safe] p {
+    color: var(--pd-text);
+  }
+}
+
+/* =========================
+   COMPONENTS (visual only)
+   ONLY non-layout properties: color, background, border-color, radius, shadow, outline
+   ========================= */
+@layer pd.components {
+  /* Header/nav: colors & border only */
+  html[data-pd-safe] header,
+  html[data-pd-safe] .navbar,
+  html[data-pd-safe] nav[role="navigation"],
+  html[data-pd-safe] nav {
+    background-color: var(--pd-surface);
+    border-bottom-color: var(--pd-border);
+    box-shadow: var(--pd-shadow-sm);
+  }
+
+  /* Generic buttons (visual only) */
+  html[data-pd-safe] :where(button, [type="button"], [type="submit"], .btn):not(.btn-outline):not(.btn-secondary):not(.btn-ghost) {
+    color: var(--pd-on-primary);
+    background-color: var(--pd-primary);
+    border-color: color-mix(in oklab, var(--pd-primary), black 15%);
+    border-radius: var(--pd-radius-md);
+    box-shadow: var(--pd-shadow-sm);
+    transition: background-color var(--pd-dur) var(--pd-ease), box-shadow var(--pd-dur) var(--pd-ease);
+  }
+
+  html[data-pd-safe] :where(button, [type="button"], [type="submit"], .btn):not(.btn-outline):not(.btn-secondary):not(.btn-ghost):hover {
+    background-color: color-mix(in oklab, var(--pd-primary), white 10%);
+    box-shadow: var(--pd-shadow-md);
+  }
+
+  html[data-pd-safe] :where(button, [type="button"], [type="submit"], .btn):disabled {
+    filter: saturate(.2) opacity(.7);
+  }
+
+  /* Cards/panels/articles: surface colors + radius + shadow */
+  html[data-pd-safe] :where(.card, .panel, article, .list-item, .tile, .bg-white) {
+    background-color: var(--pd-surface);
+    border-color: var(--pd-border);
+    border-radius: var(--pd-radius-lg);
+    box-shadow: var(--pd-shadow-sm);
+  }
+
+  /* Form fields (visual only) */
+  html[data-pd-safe] :where(input, select, textarea) {
+    background-color: var(--pd-bg);
+    color: var(--pd-text);
+    border-color: var(--pd-border);
+    border-radius: var(--pd-radius-sm);
+    box-shadow: none;
+    transition: border-color var(--pd-dur) var(--pd-ease), box-shadow var(--pd-dur) var(--pd-ease);
+  }
+
+  html[data-pd-safe] :where(input, select, textarea):focus {
+    outline: 2px solid color-mix(in oklab, var(--pd-primary), white 10%);
+    outline-offset: 2px; /* safe; doesn't shift layout */
+    box-shadow: var(--pd-shadow-sm);
+    border-color: var(--pd-primary);
+  }
+
+  /* Alert/Status (colors only) */
+  html[data-pd-safe] .alert-success,
+  html[data-pd-safe] .bg-green-50 {
+    background-color: color-mix(in oklab, var(--pd-success), var(--pd-bg) 85%);
+    border-color: var(--pd-success);
+  }
+
+  html[data-pd-safe] .alert-warning,
+  html[data-pd-safe] .bg-yellow-50 {
+    background-color: color-mix(in oklab, var(--pd-warning), var(--pd-bg) 85%);
+    border-color: var(--pd-warning);
+  }
+
+  html[data-pd-safe] .alert-danger,
+  html[data-pd-safe] .bg-red-50 {
+    background-color: color-mix(in oklab, var(--pd-danger), var(--pd-bg) 85%);
+    border-color: var(--pd-danger);
+  }
+
+  html[data-pd-safe] .alert-info,
+  html[data-pd-safe] .bg-blue-50 {
+    background-color: color-mix(in oklab, var(--pd-info), var(--pd-bg) 85%);
+    border-color: var(--pd-info);
+  }
+
+  /* Text colors */
+  html[data-pd-safe] .text-gray-500,
+  html[data-pd-safe] .text-gray-600 {
+    color: var(--pd-muted);
+  }
+
+  html[data-pd-safe] .text-gray-800,
+  html[data-pd-safe] .text-gray-900 {
+    color: var(--pd-text);
+  }
+
+  html[data-pd-safe] .text-blue-500,
+  html[data-pd-safe] .text-blue-600,
+  html[data-pd-safe] .text-indigo-500,
+  html[data-pd-safe] .text-indigo-600 {
+    color: var(--pd-primary);
+  }
+}
+
+/* =========================
+   A11Y (focus & reduced motion)
+   ========================= */
+@layer pd.a11y {
+  html[data-pd-safe] :focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--pd-primary), white 10%);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html[data-pd-safe] * {
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Skip links */
+  html[data-pd-safe] .skip-link {
+    background-color: var(--pd-primary);
+    color: var(--pd-on-primary);
+    border-radius: var(--pd-radius-md);
+    box-shadow: var(--pd-shadow-md);
+  }
+}
+
+/* =========================
+   UTILITIES (optional, non-layout)
+   ========================= */
+@layer pd.utilities {
+  html[data-pd-safe] .pd-shadow-none { box-shadow: none !important; }
+  html[data-pd-safe] .pd-surface { background-color: var(--pd-surface) !important; }
+  html[data-pd-safe] .pd-text-muted { color: var(--pd-muted) !important; }
+  html[data-pd-safe] .pd-text-primary { color: var(--pd-primary) !important; }
+  html[data-pd-safe] .pd-bg-primary { background-color: var(--pd-primary) !important; color: var(--pd-on-primary) !important; }
+}

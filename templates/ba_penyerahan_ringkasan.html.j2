@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Berita Acara Penyerahan — {{ req_no }}</title>
+<style>
+  @page { size: A4; margin: 16mm; }
+  body { font-family: "Arial", sans-serif; font-size: 10.5pt; color: #000; margin: 0; line-height: 1.35; }
+  .header { display: grid; grid-template-columns: 80px 1fr 80px; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .header .center { text-align: center; line-height: 1.2; }
+  .instansi { font-weight: bold; text-transform: uppercase; }
+  .lab { font-weight: bold; text-transform: uppercase; }
+  .meta { font-size: 9pt; text-align: center; margin-top: 2px; }
+  .logo { height: 60px; width: auto; object-fit: contain; }
+  h1.title { text-align: center; font-size: 15pt; letter-spacing: 0.4px; margin: 6px 0; text-transform: uppercase; }
+  .grid { display: grid; grid-template-columns: 210px 8px 1fr; grid-row-gap: 3px; }
+  .grid div { padding: 0; }
+  .section { margin-top: 8px; }
+  .section h2 { font-size: 11pt; margin: 6px 0 4px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 9.8pt; table-layout: fixed; }
+  th, td { border: 1px solid #000; padding: 5px; vertical-align: top; }
+  th { text-align: center; }
+  .col-no { width: 28px; }
+  .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 8px; }
+  .sigbox { border: 1px solid #000; padding: 8px; height: 100px; }
+  .sigtitle { font-weight: bold; margin-bottom: 34px; }
+  .footer { position: fixed; bottom: 12mm; left: 16mm; right: 16mm; font-size: 9pt; display: flex; justify-content: space-between; }
+  .small { font-size: 9pt; }
+  .muted { color: #000; opacity: 0.85; }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="left"><img class="logo" src="{{ logo_tribrata_data_uri }}" alt="Logo Tribrata Polri"></div>
+    <div class="center">
+      <div class="instansi">PUSAT KEDOKTERAN DAN KESEHATAN POLRI</div>
+      <div class="lab">LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN</div>
+      <div class="meta">Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240 &nbsp; Telp/Fax: 021-4700921 &nbsp; | &nbsp; Email: <b>labmutufarmapol@gmail.com</b></div>
+    </div>
+    <div class="right" style="text-align:right;"><img class="logo" src="{{ logo_pusdokkes_data_uri }}" alt="Logo Pusdokkes Polri"></div>
+  </div>
+
+  <h1 class="title">Berita Acara Penyerahan</h1>
+
+  <div class="grid">
+    <div>Nomor Permintaan (Lab)</div><div>:</div><div><b>{{ req_no }}</b></div>
+    <div>Nomor BA</div><div>:</div><div>{{ ba_no or '—' }}</div>
+    <div>Pelanggan</div><div>:</div><div>{{ customer_rank_name }}{% if customer_no %} — NRP/NIP: {{ customer_no }}{% endif %}</div>
+    <div>Unit/Satuan</div><div>:</div><div>{{ unit }}</div>
+    <div>Nama Tersangka</div><div>:</div><div>{{ suspect_name or '—' }}</div>
+    <div>Kode Sampel</div><div>:</div><div>{{ sample_code_range or '—' }}</div>
+    <div>Nomor LHU</div><div>:</div><div>{{ report_no_range or '—' }}</div>
+    <div>Dasar Permohonan</div><div>:</div><div>{{ request_basis or surat_permintaan_no or '—' }}</div>
+    <div>Rujukan Dokumen Asal</div><div>:</div><div><b>Lihat FR/LPMF/7.8.1, FR/LPMF/7.8.2, dan Tanda Terima terkait</b></div>
+  </div>
+
+  <div class="section">
+    <h2>Daftar Sampel (Ringkas)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th class="col-no">No</th>
+          <th>Sampel — Uji</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in samples %}
+        <tr>
+          <td style="text-align:center;">{{ loop.index }}</td>
+          <td><b>{{ s.code or s.name }}</b>{% if s.desc %} — {{ s.desc }}{% endif %}{% if s.tests %} — Uji: {{ s.tests }}{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div class="small muted">Detail lengkap tiap sampel (zat aktif, kondisi, foto, dsb.) tersedia di dokumen asal/lampiran LHU.</div>
+  </div>
+
+  <div class="section">
+    <h2>Ringkasan Laporan Pengujian</h2>
+    <table>
+      <thead>
+        <tr>
+          <th class="col-no">No</th>
+          <th>Kode Sampel</th>
+          <th>Deskripsi Ringkas</th>
+          <th>Hasil Utama</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in samples %}
+        <tr>
+          <td style="text-align:center;">{{ loop.index }}</td>
+          <td>{{ s.code or '—' }}</td>
+          <td>{{ s.desc or s.name }}</td>
+          <td>{% if s.active %}(+){% endif %} {{ s.active or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Sisa Sampel Diserahkan</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Kode Sampel</th>
+          <th>Sisa</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in samples %}
+        <tr>
+          <td>{{ s.code or '—' }}</td>
+          <td>{{ s.leftover or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2>Chain of Custody</h2>
+    <div class="grid">
+      <div>Yang Menyerahkan</div><div>:</div><div>{{ submitted_by or 'apt. Gifari Muhammad Syaba, S.Farm — IPTU/97010966 (Pamin Subbid Produksi Farmapol)' }}</div>
+      <div>Yang Menerima</div><div>:</div><div>{{ received_by or '(............................................................)' }}</div>
+      <div>Tanggal/Waktu Penyerahan</div><div>:</div><div>{{ handover_datetime or 'Jakarta, ..........' }}</div>
+    </div>
+  </div>
+
+  <div class="signatures">
+    <div class="sigbox">
+      <div class="sigtitle">Yang Menyerahkan</div>
+      <div><b>{{ submitted_by_name or 'apt. Gifari Muhammad Syaba, S.Farm' }}</b></div>
+      <div class="small">{{ submitted_by_title or 'IPTU / 97010966 — Pamin Subbid Produksi Farmapol Pusdokkes Polri' }}</div>
+    </div>
+    <div class="sigbox">
+      <div class="sigtitle">Yang Menerima</div>
+      <div>(............................................................)</div>
+      <div class="small">Nama / Pangkat / Jabatan</div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="small">Kode Dokumen: BA-Penyerahan/{{ req_no }}</div>
+    <div class="small">Dicetak pada: {{ printed_at }}</div>
+    <div class="small">Halaman 1 dari 1</div>
+  </div>
+
+</body>
+</html>

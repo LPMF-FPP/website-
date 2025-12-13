@@ -1,0 +1,28 @@
+{
+  "name": "dokpol-style",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Design system and monorepo inspired by pusdokkes.polri.go.id",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "storybook": "turbo run storybook",
+    "test:e2e": "turbo run test:e2e",
+    "audit:a11y": "turbo run audit:a11y",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "@turbo/gen": "^2.3.3",
+    "turbo": "^2.3.3",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3"
+  },
+  "packageManager": "pnpm@9.15.4",
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}

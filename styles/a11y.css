@@ -1,0 +1,458 @@
+/**
+ * Accessibility Styles
+ * Focus management, reduced motion, screen reader utilities
+ * Ensures WCAG AA compliance and keyboard navigation support
+ */
+
+/* ===== SCREEN READER UTILITIES ===== */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.sr-only-focusable:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  padding: inherit;
+  margin: inherit;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* ===== FOCUS MANAGEMENT ===== */
+/* Enhanced focus rings for better visibility */
+:focus {
+  outline: 2px solid var(--pd-color-primary);
+  outline-offset: 2px;
+}
+
+/* Focus-visible support for modern browsers */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--pd-color-primary);
+  outline-offset: 2px;
+  border-radius: var(--pd-radius-sm);
+}
+
+/* Enhanced focus for interactive elements */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--pd-color-primary);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 1px var(--pd-color-bg),
+              0 0 0 4px rgba(var(--pd-color-primary-rgb), 0.2);
+}
+
+/* Focus for custom components */
+.pd-btn:focus-visible {
+  outline: 3px solid var(--pd-color-primary);
+  outline-offset: 2px;
+}
+
+.pd-card:focus-visible {
+  outline: 2px solid var(--pd-color-primary);
+  outline-offset: 4px;
+}
+
+/* ===== SKIP LINKS ===== */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: var(--pd-color-primary);
+  color: white;
+  padding: var(--pd-spacing-2) var(--pd-spacing-4);
+  text-decoration: none;
+  border-radius: var(--pd-radius-md);
+  font-weight: 600;
+  z-index: calc(var(--pd-z-modal) + 100);
+  transition: top var(--pd-motion-fast) var(--pd-motion-easing);
+}
+
+.skip-link:focus {
+  top: 6px;
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+/* Multiple skip links */
+.skip-links {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: calc(var(--pd-z-modal) + 100);
+}
+
+.skip-links a {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  background: var(--pd-color-primary);
+  color: white;
+  padding: var(--pd-spacing-2) var(--pd-spacing-4);
+  text-decoration: none;
+  border-radius: var(--pd-radius-md);
+  font-weight: 600;
+  transition: top var(--pd-motion-fast) var(--pd-motion-easing);
+}
+
+.skip-links a:focus {
+  top: 6px;
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+.skip-links a:nth-child(2):focus {
+  top: 50px;
+}
+
+.skip-links a:nth-child(3):focus {
+  top: 94px;
+}
+
+/* ===== HIGH CONTRAST SUPPORT ===== */
+@media (prefers-contrast: high) {
+  :root {
+    --pd-color-border: #000000;
+    --pd-color-text: #000000;
+    --pd-color-bg: #ffffff;
+    --pd-color-primary: #0000ff;
+  }
+
+  html[data-theme="dark"] {
+    --pd-color-border: #ffffff;
+    --pd-color-text: #ffffff;
+    --pd-color-bg: #000000;
+    --pd-color-primary: #00ffff;
+  }
+
+  /* Enhanced borders for high contrast */
+  .pd-card,
+  .pd-btn,
+  .pd-form-input,
+  .pd-alert {
+    border: 2px solid var(--pd-color-border);
+  }
+
+  /* Remove subtle effects in high contrast mode */
+  .pd-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+/* ===== REDUCED MOTION ===== */
+@media (prefers-reduced-motion: reduce) {
+  /* Disable all animations and transitions */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Remove transform animations */
+  .pd-card:hover,
+  .pd-news-item:hover,
+  .pd-btn:hover {
+    transform: none;
+  }
+
+  /* Remove parallax and complex animations */
+  .pd-hero::before,
+  .pd-hero::after {
+    animation: none;
+  }
+
+  /* Simplify focus indicators */
+  :focus-visible {
+    transition: none;
+  }
+
+  /* Keep essential animations for functionality */
+  .pd-modal-overlay,
+  .pd-toast {
+    transition-property: opacity, visibility;
+    transition-duration: 0.15s;
+  }
+}
+
+/* ===== KEYBOARD NAVIGATION ===== */
+/* Ensure interactive elements are reachable */
+[tabindex="-1"]:focus {
+  outline: none;
+}
+
+/* Enhance keyboard navigation for custom components */
+.pd-navbar-nav {
+  position: relative;
+}
+
+.pd-navbar-nav:focus-within .pd-mega-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/* Keyboard navigation for cards */
+.pd-card[tabindex] {
+  cursor: pointer;
+}
+
+.pd-card[tabindex]:focus {
+  transform: translateY(-2px);
+  box-shadow: var(--pd-shadow-md);
+}
+
+/* ===== ARIA LIVE REGIONS ===== */
+[aria-live] {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.pd-live-region {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* Show live regions when they have content */
+[aria-live]:not(:empty),
+.pd-live-region:not(:empty) {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  padding: var(--pd-spacing-2);
+  margin: var(--pd-spacing-2) 0;
+  background-color: var(--pd-color-surface);
+  border: 1px solid var(--pd-color-border);
+  border-radius: var(--pd-radius-sm);
+}
+
+/* ===== FORM ACCESSIBILITY ===== */
+/* Required field indicators */
+[aria-required="true"]::after,
+.required::after {
+  content: " *";
+  color: var(--pd-color-danger);
+  font-weight: bold;
+}
+
+/* Invalid field styling */
+[aria-invalid="true"],
+.pd-form-input.error {
+  border-color: var(--pd-color-danger);
+  border-width: 2px;
+}
+
+[aria-invalid="true"]:focus,
+.pd-form-input.error:focus {
+  outline-color: var(--pd-color-danger);
+  box-shadow: 0 0 0 2px rgba(var(--pd-color-danger), 0.2);
+}
+
+/* Form error announcements */
+.pd-form-error[role="alert"] {
+  padding: var(--pd-spacing-2);
+  border-radius: var(--pd-radius-sm);
+  background-color: rgba(var(--pd-color-danger), 0.1);
+  border-left: 3px solid var(--pd-color-danger);
+  margin-top: var(--pd-spacing-2);
+}
+
+/* ===== MODAL ACCESSIBILITY ===== */
+/* Modal focus trap */
+.pd-modal[role="dialog"] {
+  position: relative;
+}
+
+.pd-modal-overlay[aria-hidden="true"] {
+  display: none;
+}
+
+/* First focusable element in modal */
+.pd-modal .pd-modal-close:first-child {
+  position: absolute;
+  top: var(--pd-spacing-4);
+  right: var(--pd-spacing-4);
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--pd-color-muted);
+  padding: var(--pd-spacing-2);
+  border-radius: var(--pd-radius-sm);
+}
+
+.pd-modal .pd-modal-close:first-child:hover {
+  background-color: var(--pd-color-surface);
+  color: var(--pd-color-text);
+}
+
+/* ===== TOAST ACCESSIBILITY ===== */
+.pd-toast[role="alert"],
+.pd-toast[role="status"] {
+  pointer-events: auto;
+}
+
+.pd-toast[aria-hidden="true"] {
+  display: none;
+}
+
+/* ===== COLOR CONTRAST UTILITIES ===== */
+/* Ensure minimum contrast ratios */
+.pd-text-contrast-aa {
+  color: var(--pd-color-text);
+  background-color: var(--pd-color-bg);
+}
+
+.pd-text-contrast-aaa {
+  color: var(--pd-color-text);
+  background-color: var(--pd-color-bg);
+  font-weight: 600;
+}
+
+/* High contrast text */
+.pd-text-high-contrast {
+  color: var(--pd-color-text);
+  text-shadow: 0 0 2px rgba(var(--pd-color-bg-rgb), 0.8);
+}
+
+/* ===== FORCED COLORS MODE ===== */
+@media (forced-colors: active) {
+  /* Ensure components work in Windows High Contrast mode */
+  .pd-btn {
+    border: 1px solid ButtonText;
+  }
+
+  .pd-card {
+    border: 1px solid CanvasText;
+  }
+
+  .pd-form-input {
+    border: 1px solid CanvasText;
+  }
+
+  /* Remove custom focus styles in forced colors */
+  :focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
+    box-shadow: none;
+  }
+}
+
+/* ===== PRINT ACCESSIBILITY ===== */
+@media print {
+  /* Ensure focus indicators are visible in print */
+  :focus {
+    outline: 2px solid #000;
+  }
+
+  /* Show URL for links */
+  a[href^="http"]:after {
+    content: " (" attr(href) ")";
+    font-size: 0.8em;
+    color: #666;
+  }
+
+  /* Hide skip links in print */
+  .skip-link,
+  .skip-links {
+    display: none;
+  }
+
+  /* Ensure sufficient contrast in print */
+  .pd-text-muted {
+    color: #000 !important;
+  }
+}
+
+/* ===== TOUCH TARGET ACCESSIBILITY ===== */
+@media (pointer: coarse) {
+  /* Increase touch targets for mobile */
+  .pd-btn,
+  .pd-navbar-link,
+  .pd-form-input,
+  .pd-card[tabindex] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Increase spacing for easier touch interaction */
+  .pd-navbar-nav {
+    gap: var(--pd-spacing-4);
+  }
+
+  .pd-card-footer {
+    gap: var(--pd-spacing-4);
+  }
+}
+
+/* ===== ERROR PREVENTION ===== */
+/* Visual indication of destructive actions */
+.pd-btn-danger {
+  background-color: var(--pd-color-danger);
+  color: white;
+  position: relative;
+}
+
+.pd-btn-danger::before {
+  content: "⚠️";
+  margin-right: var(--pd-spacing-1);
+}
+
+/* Confirmation requirement for destructive actions */
+.pd-btn-danger[data-confirm]:not([data-confirmed]) {
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* ===== LANGUAGE AND READING DIRECTION ===== */
+/* RTL support */
+[dir="rtl"] .pd-alert {
+  border-left: none;
+  border-right: 4px solid;
+}
+
+[dir="rtl"] .pd-skip-link {
+  left: auto;
+  right: 6px;
+}
+
+[dir="rtl"] .pd-modal .pd-modal-close:first-child {
+  right: auto;
+  left: var(--pd-spacing-4);
+}
+
+/* Language-specific adjustments */
+[lang="ar"] {
+  font-family: "Noto Sans Arabic", var(--pd-font-sans);
+}
+
+[lang="zh"] {
+  font-family: "Noto Sans CJK", var(--pd-font-sans);
+}

@@ -1,0 +1,73 @@
+/* Dark theme overrides using data-theme="dark" or .dark root */
+:root.dark, [data-theme="dark"] {
+  /* Base surfaces */
+  --pd-color-bg: #0f172a; /* accent-900 */
+  --pd-color-surface: #1e293b; /* accent-800 */
+  --pd-color-border: #334155; /* accent-700 */
+  --pd-color-hover: #243554;
+  --pd-color-text: #f1f5f9; /* accent-100 */
+  --pd-color-text-muted: #94a3b8; /* accent-400 */
+  --pd-color-primary: #10b981; /* primary-500 reused */
+  --pd-focus-ring: 0 0 0 3px rgba(16,185,129,.35);
+
+  /* Shadows slightly stronger for dark */
+  --pd-shadow-sm: 0 1px 2px rgba(0,0,0,.5);
+  --pd-shadow-md: 0 4px 8px -1px rgba(0,0,0,.55),0 2px 4px -2px rgba(0,0,0,.45);
+  --pd-shadow-lg: 0 10px 15px -3px rgba(0,0,0,.6),0 4px 6px -4px rgba(0,0,0,.5);
+}
+
+[data-theme="dark"] body,
+:root.dark body {
+  background-color: var(--pd-color-bg);
+  color: var(--pd-color-text);
+}
+
+/* Component surface adjustments */
+[data-theme="dark"] .card,
+:root.dark .card,
+[data-theme="dark"] .card-pd,
+:root.dark .card-pd {
+  background-color: var(--pd-color-surface);
+  border-color: var(--pd-color-border);
+}
+
+[data-theme="dark"] .alert,
+:root.dark .alert {
+  background-color: #1f2937; /* slightly lighter than bg for separation */
+  border-color: #334155;
+  color: #e2e8f0;
+}
+
+/* Tabs underline variant */
+[data-theme="dark"] .tabs-underline a,
+:root.dark .tabs-underline a {
+  color: #94a3b8;
+}
+[data-theme="dark"] .tabs-underline a.border-primary-600,
+:root.dark .tabs-underline a.border-primary-600 {
+  color: #10b981;
+}
+
+/* KPI Card */
+[data-theme="dark"] .kpi-card,
+:root.dark .kpi-card {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+/* Empty State */
+[data-theme="dark"] .empty-state-icon { background-color: #1e293b; }
+
+/* Status badge subtle variant readability */
+[data-theme="dark"] .bg-primary-100 { background-color: rgba(16,185,129,.15) !important; }
+[data-theme="dark"] .bg-secondary-100 { background-color: rgba(251,191,36,.18) !important; }
+[data-theme="dark"] .bg-success-100 { background-color: rgba(16,185,129,.18) !important; }
+[data-theme="dark"] .bg-warning-100 { background-color: rgba(245,158,11,.18) !important; }
+[data-theme="dark"] .bg-danger-100 { background-color: rgba(239,68,68,.18) !important; }
+[data-theme="dark"] .bg-info-100 { background-color: rgba(59,130,246,.18) !important; }
+[data-theme="dark"] .bg-accent-100 { background-color: rgba(148,163,184,.15) !important; }
+
+/* Scrollbar (webkit) */
+[data-theme="dark"] ::-webkit-scrollbar-track { background: #1e293b; }
+[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #334155; }
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #475569; }

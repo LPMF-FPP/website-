@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Berita Acara Penerimaan Sampel — {{ request_no }}</title>
+<style>
+  @page { size: A4; margin: 16mm; }
+  body { font-family: "Arial", sans-serif; font-size: 11pt; color: #000; margin: 0; line-height: 1.4; }
+  .header { display: grid; grid-template-columns: 80px 1fr 80px; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .header .center { text-align: center; line-height: 1.2; }
+  .instansi { font-weight: bold; text-transform: uppercase; font-size: 12pt; }
+  .lab { font-weight: bold; text-transform: uppercase; font-size: 11pt; }
+  .meta { font-size: 9pt; text-align: center; margin-top: 2px; }
+  .logo { height: 60px; width: auto; object-fit: contain; }
+  h1.title { text-align: center; font-size: 16pt; letter-spacing: 0.4px; margin: 10px 0; text-transform: uppercase; text-decoration: underline; }
+  .grid { display: grid; grid-template-columns: 200px 8px 1fr; grid-row-gap: 4px; margin: 10px 0; }
+  .grid div { padding: 0; }
+  .section { margin-top: 12px; }
+  .section h2 { font-size: 12pt; margin: 8px 0 6px 0; font-weight: bold; }
+  table { width: 100%; border-collapse: collapse; font-size: 10pt; table-layout: fixed; margin-top: 6px; }
+  th, td { border: 1px solid #000; padding: 6px; vertical-align: top; }
+  th { text-align: center; font-weight: bold; background-color: #f0f0f0; }
+  .col-no { width: 35px; }
+  .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; page-break-inside: avoid; }
+  .sigbox { border: 1px solid #000; padding: 10px; min-height: 100px; }
+  .sigtitle { font-weight: bold; margin-bottom: 50px; text-align: center; }
+  .signame { text-align: center; margin-top: 8px; }
+  .footer { margin-top: 20px; font-size: 9pt; color: #666; }
+  .small { font-size: 9pt; }
+  .muted { color: #555; }
+  .text-center { text-align: center; }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="left"><img class="logo" src="{{ logo_tribrata_data_uri }}" alt="Logo Tribrata Polri"></div>
+    <div class="center">
+      <div class="instansi">PUSAT KEDOKTERAN DAN KESEHATAN POLRI</div>
+      <div class="lab">LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN</div>
+      <div class="meta">Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240 | Telp/Fax: 021-4700921 | Email: <b>labmutufarmapol@gmail.com</b></div>
+    </div>
+    <div class="right" style="text-align:right;"><img class="logo" src="{{ logo_pusdokkes_data_uri }}" alt="Logo Pusdokkes Polri"></div>
+  </div>
+
+  <h1 class="title">Berita Acara Penerimaan Sampel</h1>
+
+  <p style="margin: 12px 0;">
+    Pada hari ini, <b>{{ received_date }}</b>, telah diterima sampel untuk keperluan pengujian di Laboratorium Pengujian Mutu Farmasi Kepolisian, Pusat Kedokteran dan Kesehatan Polri, dengan rincian sebagai berikut:
+  </p>
+
+  <div class="grid">
+    <div>Nomor Permintaan</div><div>:</div><div><b>{{ request_no }}</b></div>
+    <div>Nomor Surat Permintaan</div><div>:</div><div>{{ surat_permintaan_no or '—' }}</div>
+    <div>Ditujukan Kepada</div><div>:</div><div>{{ addressed_to }}</div>
+    <div>Penyerah Sampel</div><div>:</div><div>{{ customer_rank_name }}{% if customer_no %} (NRP: {{ customer_no }}){% endif %}</div>
+    <div>Unit/Satuan</div><div>:</div><div>{{ unit }}</div>
+    <div>Jumlah Sampel</div><div>:</div><div><b>{{ sample_count }}</b> sampel</div>
+    <div>Jenis Pengujian</div><div>:</div><div>{{ tests_summary or '—' }}</div>
+  </div>
+
+  <div class="section">
+    <h2>Daftar Sampel yang Diterima</h2>
+    <table>
+      <thead>
+        <tr>
+          <th class="col-no">No</th>
+          <th>Nama Sampel</th>
+          <th>Jenis Pengujian</th>
+          <th>Zat Aktif</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in samples %}
+        <tr>
+          <td class="text-center">{{ loop.index }}</td>
+          <td><b>{{ s.name }}</b></td>
+          <td>{{ s.tests }}</td>
+          <td>{{ s.active or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <p style="margin: 12px 0;">
+      Demikian Berita Acara ini dibuat dengan sebenarnya untuk dapat dipergunakan sebagaimana mestinya.
+    </p>
+  </div>
+
+  <div class="signatures">
+    <div class="sigbox">
+      <div class="sigtitle">Yang Menyerahkan</div>
+      <div class="signame"><b>{{ submitted_by }}</b></div>
+    </div>
+    <div class="sigbox">
+      <div class="sigtitle">Yang Menerima</div>
+      <div class="signame"><b>{{ received_by }}</b></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="small muted">
+      Dokumen ini dibuat secara elektronik pada {{ generated_at }}
+      {% if source_printed_at %}— Sumber data: {{ source_printed_at }}{% endif %}
+    </div>
+  </div>
+
+</body>
+</html>

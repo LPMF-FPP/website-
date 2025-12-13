@@ -1,0 +1,24 @@
+/* Copied for public serving; keep in sync with styles/ui.minimal.css */
+@layer ui.base {
+  :where(html[data-ui]) { --ui-outline: 2px solid var(--ui-color-primary); }
+  :where(html[data-ui]) :where(.ui-link) { color: var(--ui-color-primary); text-decoration: none; }
+  :where(html[data-ui]) :where(.ui-link:hover) { text-decoration: underline; }
+  :where(html[data-ui]) :where(.ui-text-muted) { color: var(--ui-color-muted); }
+}
+@layer ui.components {
+  :where(html[data-ui]) :where(.ui-btn) { display:inline-flex; align-items:center; justify-content:center; gap:var(--ui-space-2); padding:var(--ui-space-3) var(--ui-space-5); border:1px solid transparent; border-radius:var(--ui-radius-md); background:var(--ui-color-surface); color:var(--ui-color-text); box-shadow:var(--ui-shadow-sm); transition:all var(--ui-motion-fast) var(--ui-motion-ease);}
+  :where(html[data-ui]) :where(.ui-btn:hover) { transform: translateY(-1px); box-shadow: var(--ui-shadow-md);}
+  :where(html[data-ui]) :where(.ui-btn:focus-visible) { outline: var(--ui-outline); outline-offset: 2px; }
+  :where(html[data-ui]) :where(.ui-btn--primary) { background: var(--ui-color-primary); color: var(--ui-color-primary-contrast); border-color: color-mix(in oklab, var(--ui-color-primary), black 12%);}
+  :where(html[data-ui]) :where(.ui-btn--ghost) { background: transparent; color: var(--ui-color-text); border-color: var(--ui-color-border);}
+  :where(html[data-ui]) :where(.ui-card) { background: var(--ui-color-surface); border: 1px solid var(--ui-color-border); border-radius: var(--ui-radius-lg); box-shadow: var(--ui-shadow-sm); padding: var(--ui-space-6);}
+  :where(html[data-ui]) :where(.ui-card:hover) { box-shadow: var(--ui-shadow-md); transform: translateY(-2px); transition: transform var(--ui-motion-base) var(--ui-motion-ease), box-shadow var(--ui-motion-base) var(--ui-motion-ease);}
+  :where(html[data-ui]) :where(.ui-input) { width:100%; padding: var(--ui-space-3) var(--ui-space-4); border-radius: var(--ui-radius-md); border: 1px solid var(--ui-color-border); background: var(--ui-color-surface); color: var(--ui-color-text); transition: border-color var(--ui-motion-fast) var(--ui-motion-ease), box-shadow var(--ui-motion-fast) var(--ui-motion-ease);}
+  :where(html[data-ui]) :where(.ui-input::placeholder) { color: var(--ui-color-muted);}
+  :where(html[data-ui]) :where(.ui-input:focus-visible) { outline:none; border-color: var(--ui-color-primary); box-shadow: var(--ui-focus-ring);}
+  :where(html[data-ui]) :where(.ui-badge) { display:inline-flex; align-items:center; gap: var(--ui-space-2); padding:0 var(--ui-space-2); height:1.75rem; font-size:.825rem; border:1px solid var(--ui-color-border); border-radius: var(--ui-radius-pill); background: var(--ui-color-surface-2); color: var(--ui-color-text); white-space:nowrap;}
+  :where(html[data-ui]) :where(.ui-badge--success) { border-color: color-mix(in oklab, var(--ui-color-success), transparent 65%); color: var(--ui-color-success);}
+  :where(html[data-ui]) :where(.ui-badge--warning) { border-color: color-mix(in oklab, var(--ui-color-warning), transparent 65%); color: var(--ui-color-warning);}
+  :where(html[data-ui]) :where(.ui-badge--danger) { border-color: color-mix(in oklab, var(--ui-color-danger), transparent 65%); color: var(--ui-color-danger);}
+  :where(html[data-ui]) :where(.ui-badge--info) { border-color: color-mix(in oklab, var(--ui-color-info), transparent 65%); color: var(--ui-color-info);}
+}

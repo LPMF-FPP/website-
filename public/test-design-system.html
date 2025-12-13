@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="id" data-pd-safe="true">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pusdokkes Design System - Production Test</title>
+
+    <!-- Design System Styles -->
+    <link rel="stylesheet" href="{{ asset('styles/pd.ultrasafe.tokens.css') }}">
+    <link rel="stylesheet" href="{{ asset('styles/pd.components.css') }}">
+    <link rel="stylesheet" href="{{ asset('styles/pd.framework-bridge.css') }}">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="pd-body">
+    <div class="min-h-screen bg-gray-50">
+        <!-- Navigation Test -->
+        <nav class="pd-nav-primary">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex">
+                        <div class="pd-nav-brand">
+                            <img src="/images/logo-pusdokkes-polri.png" alt="Logo" class="h-8 w-auto">
+                            <span class="pd-nav-brand-text">Farmapol Pusdokkes Polri</span>
+                        </div>
+
+                        <div class="pd-nav-links-desktop">
+                            <a href="#" class="pd-nav-link pd-nav-link-active">Dashboard</a>
+                            <a href="#" class="pd-nav-link">Permintaan</a>
+                            <a href="#" class="pd-nav-link">Pengujian</a>
+                            <a href="#" class="pd-nav-link">Tracking</a>
+                        </div>
+                    </div>
+
+                    <div class="pd-nav-user-menu">
+                        <div class="pd-theme-dropdown">
+                            <button data-theme-dropdown aria-expanded="false" class="pd-theme-toggle">
+                                💻 System
+                            </button>
+                            <div class="pd-theme-dropdown-menu">
+                                <button class="pd-theme-dropdown-item" data-theme="light">☀️ Light</button>
+                                <button class="pd-theme-dropdown-item" data-theme="dark">🌙 Dark</button>
+                                <button class="pd-theme-dropdown-item" data-theme="system">💻 System</button>
+                            </div>
+                        </div>
+
+                        <div class="pd-nav-guest-buttons">
+                            <a href="#" class="pd-btn pd-btn-sm pd-btn-ghost">Login</a>
+                            <a href="#" class="pd-btn pd-btn-sm pd-btn-primary">Register</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+            <div class="px-4 py-6 sm:px-0">
+                <!-- Page Header -->
+                <div class="pd-page-header">
+                    <h1 class="pd-page-title">Pusdokkes Design System Test</h1>
+                    <p class="pd-page-subtitle">Testing all components and tokens in production</p>
+                </div>
+
+                <!-- Alert Examples -->
+                <div class="pd-section">
+                    <h2 class="pd-section-title">Alerts & Feedback</h2>
+
+                    <div class="pd-alert pd-alert-success">
+                        <strong>Sukses!</strong> Design system berhasil dimuat.
+                    </div>
+
+                    <div class="pd-alert pd-alert-warning">
+                        <strong>Peringatan!</strong> Pastikan semua asset sudah ter-load dengan benar.
+                    </div>
+
+                    <div class="pd-alert pd-alert-error">
+                        <strong>Error!</strong> Jika ada masalah, periksa console browser.
+                    </div>
+
+                    <div class="pd-alert pd-alert-info">
+                        <strong>Info!</strong> Theme toggle berfungsi untuk mengubah tampilan.
+                    </div>
+                </div>
+
+                <!-- Button Examples -->
+                <div class="pd-section">
+                    <h2 class="pd-section-title">Buttons</h2>
+
+                    <div class="flex flex-wrap gap-4">
+                        <button class="pd-btn pd-btn-primary">Primary Button</button>
+                        <button class="pd-btn pd-btn-secondary">Secondary Button</button>
+                        <button class="pd-btn pd-btn-success">Success Button</button>
+                        <button class="pd-btn pd-btn-warning">Warning Button</button>
+                        <button class="pd-btn pd-btn-danger">Danger Button</button>
+                        <button class="pd-btn pd-btn-ghost">Ghost Button</button>
+                    </div>
+
+                    <div class="flex flex-wrap gap-4 mt-4">
+                        <button class="pd-btn pd-btn-primary pd-btn-sm">Small</button>
+                        <button class="pd-btn pd-btn-primary">Medium</button>
+                        <button class="pd-btn pd-btn-primary pd-btn-lg">Large</button>
+                    </div>
+                </div>
+
+                <!-- Form Examples -->
+                <div class="pd-section">
+                    <h2 class="pd-section-title">Forms</h2>
+
+                    <form class="pd-form">
+                        <div class="pd-form-group">
+                            <label class="pd-form-label">Nama Lengkap</label>
+                            <input type="text" class="pd-form-input" placeholder="Masukkan nama lengkap">
+                        </div>
+
+                        <div class="pd-form-group">
+                            <label class="pd-form-label">Email</label>
+                            <input type="email" class="pd-form-input" placeholder="nama@contoh.com">
+                        </div>
+
+                        <div class="pd-form-group">
+                            <label class="pd-form-label">Role</label>
+                            <select class="pd-form-select">
+                                <option>Pilih role</option>
+                                <option>Admin</option>
+                                <option>Supervisor</option>
+                                <option>Analyst</option>
+                                <option>Lab Analyst</option>
+                            </select>
+                        </div>
+
+                        <div class="pd-form-group">
+                            <label class="pd-form-label">Catatan</label>
+                            <textarea class="pd-form-textarea" rows="3" placeholder="Tambahkan catatan..."></textarea>
+                        </div>
+
+                        <div class="pd-form-group">
+                            <label class="pd-form-checkbox">
+                                <input type="checkbox">
+                                <span class="pd-form-checkbox-label">Saya setuju dengan syarat dan ketentuan</span>
+                            </label>
+                        </div>
+
+                        <div class="flex gap-4">
+                            <button type="submit" class="pd-btn pd-btn-primary">Submit</button>
+                            <button type="reset" class="pd-btn pd-btn-ghost">Reset</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Card Examples -->
+                <div class="pd-section">
+                    <h2 class="pd-section-title">Cards</h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="pd-card">
+                            <div class="pd-card-header">
+                                <h3 class="pd-card-title">Sample Analysis</h3>
+                                <span class="pd-badge pd-badge-success">Complete</span>
+                            </div>
+                            <div class="pd-card-body">
+                                <p>Analisis sampel telah selesai dilakukan dengan hasil yang memuaskan.</p>
+                            </div>
+                            <div class="pd-card-footer">
+                                <button class="pd-btn pd-btn-sm pd-btn-primary">View Details</button>
+                            </div>
+                        </div>
+
+                        <div class="pd-card">
+                            <div class="pd-card-header">
+                                <h3 class="pd-card-title">Request Processing</h3>
+                                <span class="pd-badge pd-badge-warning">In Progress</span>
+                            </div>
+                            <div class="pd-card-body">
+                                <p>Permintaan sedang dalam proses pengujian di laboratorium.</p>
+                            </div>
+                            <div class="pd-card-footer">
+                                <button class="pd-btn pd-btn-sm pd-btn-secondary">Track Progress</button>
+                            </div>
+                        </div>
+
+                        <div class="pd-card">
+                            <div class="pd-card-header">
+                                <h3 class="pd-card-title">Quality Control</h3>
+                                <span class="pd-badge pd-badge-error">Failed</span>
+                            </div>
+                            <div class="pd-card-body">
+                                <p>Sampel tidak memenuhi standar quality control yang ditetapkan.</p>
+                            </div>
+                            <div class="pd-card-footer">
+                                <button class="pd-btn pd-btn-sm pd-btn-danger">Review</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Table Example -->
+                <div class="pd-section">
+                    <h2 class="pd-section-title">Data Table</h2>
+
+                    <div class="pd-table-container">
+                        <table class="pd-table">
+                            <thead class="pd-table-header">
+                                <tr>
+                                    <th class="pd-table-th">ID</th>
+                                    <th class="pd-table-th">Sample Name</th>
+                                    <th class="pd-table-th">Status</th>
+                                    <th class="pd-table-th">Date</th>
+                                    <th class="pd-table-th">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="pd-table-body">
+                                <tr class="pd-table-row">
+                                    <td class="pd-table-td">SP-001</td>
+                                    <td class="pd-table-td">Tablet Paracetamol</td>
+                                    <td class="pd-table-td">
+                                        <span class="pd-badge pd-badge-success">Complete</span>
+                                    </td>
+                                    <td class="pd-table-td">2024-01-15</td>
+                                    <td class="pd-table-td">
+                                        <button class="pd-btn pd-btn-xs pd-btn-primary">View</button>
+                                    </td>
+                                </tr>
+                                <tr class="pd-table-row">
+                                    <td class="pd-table-td">SP-002</td>
+                                    <td class="pd-table-td">Kapsul Amoxicillin</td>
+                                    <td class="pd-table-td">
+                                        <span class="pd-badge pd-badge-warning">Testing</span>
+                                    </td>
+                                    <td class="pd-table-td">2024-01-16</td>
+                                    <td class="pd-table-td">
+                                        <button class="pd-btn pd-btn-xs pd-btn-secondary">Track</button>
+                                    </td>
+                                </tr>
+                                <tr class="pd-table-row">
+                                    <td class="pd-table-td">SP-003</td>
+                                    <td class="pd-table-td">Sirup Obat Batuk</td>
+                                    <td class="pd-table-td">
+                                        <span class="pd-badge pd-badge-info">Received</span>
+                                    </td>
+                                    <td class="pd-table-td">2024-01-17</td>
+                                    <td class="pd-table-td">
+                                        <button class="pd-btn pd-btn-xs pd-btn-ghost">Start</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Loading Examples -->
+                <div class="pd-section">
+                    <h2 class="pd-section-title">Loading States</h2>
+
+                    <div class="flex flex-wrap gap-4 items-center">
+                        <div class="pd-loading-spinner"></div>
+                        <div class="pd-loading-dots"></div>
+                        <div class="pd-loading-pulse">Loading content...</div>
+                    </div>
+                </div>
+
+                <!-- Modal Toggle Button -->
+                <div class="pd-section">
+                    <h2 class="pd-section-title">Modal</h2>
+                    <button class="pd-btn pd-btn-primary" onclick="openModal()">Open Modal</button>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Example -->
+    <div id="testModal" class="pd-modal">
+        <div class="pd-modal-overlay" onclick="closeModal()"></div>
+        <div class="pd-modal-content">
+            <div class="pd-modal-header">
+                <h3 class="pd-modal-title">Test Modal</h3>
+                <button class="pd-modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="pd-modal-body">
+                <p>This is a test modal demonstrating the Pusdokkes Design System modal component.</p>
+                <p>The design system provides consistent styling and behavior across all components.</p>
+            </div>
+            <div class="pd-modal-footer">
+                <button class="pd-btn pd-btn-ghost" onclick="closeModal()">Cancel</button>
+                <button class="pd-btn pd-btn-primary" onclick="closeModal()">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ asset('scripts/pd.theme.js') }}"></script>
+    <script src="{{ asset('scripts/pd.components.js') }}"></script>
+
+    <script>
+    function openModal() {
+        document.getElementById('testModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('testModal').style.display = 'none';
+    }
+
+    // Test theme functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🎨 Pusdokkes Design System Loaded');
+        console.log('📊 Testing all components...');
+
+        // Test if CSS custom properties are available
+        const testElement = document.createElement('div');
+        testElement.className = 'pd-btn pd-btn-primary';
+        document.body.appendChild(testElement);
+
+        const styles = getComputedStyle(testElement);
+        const primaryColor = styles.getPropertyValue('background-color');
+
+        console.log('✅ Primary button color:', primaryColor);
+
+        document.body.removeChild(testElement);
+
+        // Test theme toggle
+        const themeToggle = document.querySelector('[data-theme-dropdown]');
+        if (themeToggle) {
+            console.log('✅ Theme toggle found and functional');
+        }
+
+        console.log('🚀 Production test complete!');
+    });
+    </script>
+</body>
+</html>

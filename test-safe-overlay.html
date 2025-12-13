@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pusdokkes Safe Overlay Test</title>
+
+  <!-- Simulate existing site styles that shouldn't break -->
+  <style>
+    /* Simulate existing layout that must NOT be affected */
+    .existing-layout {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px;
+      margin: 10px 0;
+      background: #f0f0f0;
+      border: 1px solid #ccc;
+    }
+
+    .existing-grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr 1fr;
+      gap: 16px;
+      padding: 16px;
+      background: #fafafa;
+    }
+
+    .existing-absolute {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 200px;
+      height: 100px;
+      background: lightblue;
+      z-index: 999;
+    }
+
+    .existing-form {
+      max-width: 400px;
+      margin: 20px auto;
+      padding: 24px;
+      border: 1px solid #ddd;
+    }
+
+    .existing-form input, .existing-form select {
+      width: 100%;
+      padding: 8px 12px;
+      margin: 8px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    .existing-button {
+      display: inline-block;
+      padding: 10px 20px;
+      background: #007cba;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+
+  <!-- Our safe overlay (should NOT break existing layout) -->
+  <link rel="stylesheet" href="../styles/pd-safe-layers.css">
+</head>
+<body>
+  <!-- Theme Toggle -->
+  <div style="position: fixed; top: 20px; left: 20px; z-index: 1000;">
+    <button id="theme-toggle" class="existing-button">🌙 Toggle Theme</button>
+  </div>
+
+  <!-- Test: Positioned element (should stay in place) -->
+  <div class="existing-absolute">
+    <strong>Absolute positioned</strong><br>
+    Should NOT move when theme toggles
+  </div>
+
+  <div style="padding: 60px 20px;">
+    <h1>Safe Overlay Test</h1>
+    <p>This page tests that our theme overlay doesn't break existing layouts.</p>
+
+    <!-- Test: Flexbox layout (should stay intact) -->
+    <div class="existing-layout">
+      <div>Flex Item 1</div>
+      <div>Flex Item 2 (center)</div>
+      <div>Flex Item 3</div>
+    </div>
+
+    <!-- Test: Grid layout (should stay intact) -->
+    <div class="existing-grid">
+      <div style="background: lightcoral; padding: 12px;">Grid Cell 1</div>
+      <div style="background: lightgreen; padding: 12px;">Grid Cell 2 (wider)</div>
+      <div style="background: lightblue; padding: 12px;">Grid Cell 3</div>
+    </div>
+
+    <!-- Test: Form styling (colors should change, layout preserved) -->
+    <form class="existing-form">
+      <h3>Form Test</h3>
+      <p>Colors should change with theme, but layout must stay the same.</p>
+
+      <label for="name">Name:</label>
+      <input type="text" id="name" placeholder="Enter your name">
+
+      <label for="role">Role:</label>
+      <select id="role">
+        <option>Investigator</option>
+        <option>Lab Tech</option>
+        <option>Admin</option>
+      </select>
+
+      <button type="submit" class="existing-button">Submit</button>
+    </form>
+
+    <!-- Test: Card-like elements (should get themed colors) -->
+    <div style="display: flex; gap: 16px; margin-top: 24px;">
+      <article style="flex: 1; padding: 16px; border: 1px solid #ddd; border-radius: 8px; background: white;">
+        <h4>Sample Card 1</h4>
+        <p>This card should get theme colors applied without layout changes.</p>
+        <button class="existing-button">Action</button>
+      </article>
+
+      <article style="flex: 1; padding: 16px; border: 1px solid #ddd; border-radius: 8px; background: white;">
+        <h4>Sample Card 2</h4>
+        <p>Layout properties like flex, padding, margin should NOT be affected.</p>
+        <button class="existing-button">Action</button>
+      </article>
+    </div>
+
+    <!-- Test: Alerts/Status -->
+    <div style="margin-top: 24px;">
+      <div class="alert-success" style="padding: 12px; margin: 8px 0; border: 1px solid; border-radius: 4px;">
+        ✅ Success: Should get green theming
+      </div>
+      <div class="alert-warning" style="padding: 12px; margin: 8px 0; border: 1px solid; border-radius: 4px;">
+        ⚠️ Warning: Should get orange theming
+      </div>
+      <div class="alert-danger" style="padding: 12px; margin: 8px 0; border: 1px solid; border-radius: 4px;">
+        ❌ Error: Should get red theming
+      </div>
+    </div>
+
+    <!-- Test: Typography (should get theme colors) -->
+    <div style="margin-top: 24px;">
+      <h2>Typography Test</h2>
+      <p>This paragraph should change color with theme.</p>
+      <p class="text-gray-500">This muted text should also theme properly.</p>
+      <a href="#" class="text-blue-600">This link should be themed primary color</a>
+    </div>
+  </div>
+
+  <!-- Load our safe theme toggle script -->
+  <script src="../scripts/theme-toggle-safe.js"></script>
+
+  <script>
+    // Test that layout measurements don't change
+    let initialMeasurements = {};
+
+    function recordMeasurements() {
+      const elements = [
+        '.existing-layout',
+        '.existing-grid',
+        '.existing-form',
+        '.existing-absolute'
+      ];
+
+      elements.forEach(selector => {
+        const el = document.querySelector(selector);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          initialMeasurements[selector] = {
+            width: rect.width,
+            height: rect.height,
+            x: rect.x,
+            y: rect.y
+          };
+        }
+      });
+
+      console.log('Initial measurements:', initialMeasurements);
+    }
+
+    function checkMeasurements() {
+      Object.keys(initialMeasurements).forEach(selector => {
+        const el = document.querySelector(selector);
+        if (el) {
+          const rect = el.getBoundingClientRect();
+          const initial = initialMeasurements[selector];
+
+          const widthDiff = Math.abs(rect.width - initial.width);
+          const heightDiff = Math.abs(rect.height - initial.height);
+          const xDiff = Math.abs(rect.x - initial.x);
+          const yDiff = Math.abs(rect.y - initial.y);
+
+          if (widthDiff > 1 || heightDiff > 1 || xDiff > 1 || yDiff > 1) {
+            console.warn(`⚠️ Layout shift detected in ${selector}:`, {
+              width: `${initial.width} → ${rect.width}`,
+              height: `${initial.height} → ${rect.height}`,
+              x: `${initial.x} → ${rect.x}`,
+              y: `${initial.y} → ${rect.y}`
+            });
+          } else {
+            console.log(`✅ ${selector} layout preserved`);
+          }
+        }
+      });
+    }
+
+    // Record initial state
+    window.addEventListener('load', () => {
+      setTimeout(recordMeasurements, 100);
+    });
+
+    // Check after theme toggles
+    document.getElementById('theme-toggle').addEventListener('click', () => {
+      setTimeout(checkMeasurements, 300); // After transition
+    });
+  </script>
+</body>
+</html>

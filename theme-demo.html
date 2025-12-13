@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pusdokkes Design System Test</title>
+
+    <!-- Pusdokkes Design System -->
+    <link rel="stylesheet" href="styles/tokens.css">
+    <link rel="stylesheet" href="styles/base.css">
+    <link rel="stylesheet" href="styles/components.css">
+    <link rel="stylesheet" href="styles/a11y.css">
+
+    <style>
+        /* Test page specific styles */
+        .test-section {
+            margin: 2rem 0;
+            padding: 2rem;
+            border: 1px solid var(--pd-color-border);
+            border-radius: var(--pd-radius-lg);
+            background: var(--pd-color-surface);
+        }
+    </style>
+</head>
+<body>
+    <!-- Skip Links -->
+    <div class="skip-links">
+        <a href="#main-content" class="skip-link">Skip to main content</a>
+        <a href="#components" class="skip-link">Skip to components</a>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="pd-navbar">
+        <div class="pd-navbar-container">
+            <a href="#" class="pd-navbar-brand">🏥 Pusdokkes Design System</a>
+
+            <ul class="pd-navbar-nav">
+                <li class="pd-navbar-item">
+                    <a href="#" class="pd-navbar-link active">Home</a>
+                </li>
+                <li class="pd-navbar-item">
+                    <a href="#components" class="pd-navbar-link">Components</a>
+                </li>
+                <li class="pd-navbar-item">
+                    <a href="#theme" class="pd-navbar-link">Theme</a>
+                </li>
+            </ul>
+
+            <!-- Theme Toggle -->
+            <div class="pd-theme-dropdown">
+                <button data-theme-dropdown aria-expanded="false">
+                    💻 System
+                </button>
+                <div class="pd-theme-dropdown-menu">
+                    <button class="pd-theme-dropdown-item" data-theme="light">☀️ Light</button>
+                    <button class="pd-theme-dropdown-item" data-theme="dark">🌙 Dark</button>
+                    <button class="pd-theme-dropdown-item" data-theme="system">💻 System</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="pd-hero">
+        <div class="pd-hero-container">
+            <h1 class="pd-hero-title">Pusdokkes Design System</h1>
+            <p class="pd-hero-subtitle">
+                Sistem desain yang konsisten, accessible, dan responsive untuk aplikasi Pusdokkes Polri.
+                Mendukung light/dark theme dengan transisi yang smooth.
+            </p>
+            <div class="pd-hero-cta">
+                <button class="pd-btn pd-btn-primary">Get Started</button>
+                <button class="pd-btn pd-btn-outline">Documentation</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main id="main-content" class="pd-container pd-section">
+
+        <!-- Theme Demo -->
+        <section id="theme" class="test-section">
+            <h2>Theme System Demo</h2>
+            <p>Sistem tema mendukung 3 mode: Light, Dark, dan System (mengikuti preferensi OS).</p>
+
+            <div class="pd-theme-buttons">
+                <button class="pd-theme-button" data-theme="light">☀️ Light</button>
+                <button class="pd-theme-button" data-theme="dark">🌙 Dark</button>
+                <button class="pd-theme-button" data-theme="system">💻 System</button>
+            </div>
+
+            <div class="pd-alert pd-alert-info" style="margin-top: 1rem;">
+                <p><strong>Info:</strong> Tema tersimpan di localStorage dan akan diingat di session berikutnya.</p>
+            </div>
+        </section>
+
+        <!-- Component Showcase -->
+        <section id="components" class="test-section">
+            <h2>Component Showcase</h2>
+
+            <!-- Counters -->
+            <h3>Statistics Counters</h3>
+            <div class="pd-counter-grid">
+                <div class="pd-counter">
+                    <div class="pd-counter-value">1,234</div>
+                    <div class="pd-counter-label">Total Permintaan</div>
+                </div>
+                <div class="pd-counter">
+                    <div class="pd-counter-value">56</div>
+                    <div class="pd-counter-label">Pending</div>
+                </div>
+                <div class="pd-counter">
+                    <div class="pd-counter-value">98%</div>
+                    <div class="pd-counter-label">SLA Performance</div>
+                </div>
+                <div class="pd-counter">
+                    <div class="pd-counter-value">789</div>
+                    <div class="pd-counter-label">Completed</div>
+                </div>
+            </div>
+
+            <!-- Cards -->
+            <h3 style="margin-top: 2rem;">Cards</h3>
+            <div class="pd-grid pd-grid-3">
+                <div class="pd-card">
+                    <div class="pd-card-header">
+                        <h4 class="pd-card-title">Basic Card</h4>
+                        <p class="pd-card-description">This is a basic card component with header and content.</p>
+                    </div>
+                    <div class="pd-card-content">
+                        <p>Card content goes here. It adapts to both light and dark themes automatically.</p>
+                    </div>
+                    <div class="pd-card-footer">
+                        <button class="pd-btn pd-btn-primary">Primary</button>
+                        <button class="pd-btn pd-btn-outline">Secondary</button>
+                    </div>
+                </div>
+
+                <div class="pd-card pd-card-elevated">
+                    <div class="pd-card-header">
+                        <h4 class="pd-card-title">Elevated Card</h4>
+                        <p class="pd-card-description">This card has elevated shadow styling.</p>
+                    </div>
+                    <div class="pd-card-content">
+                        <p>Enhanced shadow makes this card stand out more.</p>
+                    </div>
+                </div>
+
+                <div class="pd-card pd-card-bordered">
+                    <div class="pd-card-header">
+                        <h4 class="pd-card-title">Bordered Card</h4>
+                        <p class="pd-card-description">This card has prominent borders.</p>
+                    </div>
+                    <div class="pd-card-content">
+                        <p>Stronger borders for better definition.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <h3 style="margin-top: 2rem;">Buttons</h3>
+            <div class="pd-flex pd-gap-4" style="flex-wrap: wrap;">
+                <button class="pd-btn pd-btn-primary">Primary</button>
+                <button class="pd-btn pd-btn-secondary">Secondary</button>
+                <button class="pd-btn pd-btn-outline">Outline</button>
+                <button class="pd-btn pd-btn-ghost">Ghost</button>
+                <button class="pd-btn pd-btn-primary pd-btn-sm">Small</button>
+                <button class="pd-btn pd-btn-primary pd-btn-lg">Large</button>
+            </div>
+
+            <!-- Alerts -->
+            <h3 style="margin-top: 2rem;">Alerts</h3>
+            <div class="pd-alert pd-alert-success">
+                <p><strong>Success!</strong> Your action was completed successfully.</p>
+            </div>
+            <div class="pd-alert pd-alert-warning">
+                <p><strong>Warning!</strong> Please check your input before proceeding.</p>
+            </div>
+            <div class="pd-alert pd-alert-danger">
+                <p><strong>Error!</strong> Something went wrong. Please try again.</p>
+            </div>
+            <div class="pd-alert pd-alert-info">
+                <p><strong>Info:</strong> Here's some helpful information for you.</p>
+            </div>
+
+            <!-- Forms -->
+            <h3 style="margin-top: 2rem;">Forms</h3>
+            <div class="pd-grid pd-grid-2">
+                <div>
+                    <div class="pd-form-group">
+                        <label class="pd-form-label" for="name">Name</label>
+                        <input class="pd-form-input" type="text" id="name" placeholder="Enter your name">
+                        <p class="pd-form-help">Please enter your full name</p>
+                    </div>
+                    <div class="pd-form-group">
+                        <label class="pd-form-label" for="email">Email</label>
+                        <input class="pd-form-input" type="email" id="email" placeholder="Enter your email">
+                    </div>
+                </div>
+                <div>
+                    <div class="pd-form-group">
+                        <label class="pd-form-label" for="message">Message</label>
+                        <textarea class="pd-form-input" id="message" rows="4" placeholder="Enter your message"></textarea>
+                    </div>
+                    <button class="pd-btn pd-btn-primary">Submit Form</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Accessibility Features -->
+        <section class="test-section">
+            <h2>Accessibility Features</h2>
+            <ul>
+                <li>✅ Skip links for keyboard navigation</li>
+                <li>✅ Enhanced focus indicators</li>
+                <li>✅ Screen reader announcements for theme changes</li>
+                <li>✅ High contrast mode support</li>
+                <li>✅ Reduced motion support</li>
+                <li>✅ Proper ARIA labels and states</li>
+                <li>✅ Keyboard navigation for all interactive elements</li>
+                <li>✅ Color contrast meets WCAG AA standards</li>
+            </ul>
+
+            <p style="margin-top: 1rem;">
+                Try navigating this page using only the keyboard (Tab, Enter, Space) or test with a screen reader.
+            </p>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer style="background: var(--pd-color-surface); padding: 2rem 0; margin-top: 4rem; border-top: 1px solid var(--pd-color-border);">
+        <div class="pd-container pd-text-center">
+            <p class="pd-text-muted">© 2025 Pusdokkes Design System. Made with ❤️ for accessibility and consistency.</p>
+        </div>
+    </footer>
+
+    <!-- Theme Toggle Script -->
+    <script src="scripts/theme-toggle.js" defer></script>
+
+    <!-- Simple demo script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Demo toast on page load
+            setTimeout(() => {
+                showToast('🎨 Design system loaded successfully!', 'success');
+            }, 1000);
+
+            // Add click handler for demo buttons
+            document.querySelectorAll('.pd-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    if (btn.textContent.includes('Submit')) {
+                        e.preventDefault();
+                        showToast('Form submitted! (This is just a demo)', 'info');
+                    }
+                });
+            });
+        });
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `pd-toast pd-alert-${type}`;
+            toast.innerHTML = `<p>${message}</p>`;
+            toast.style.position = 'fixed';
+            toast.style.top = '20px';
+            toast.style.right = '20px';
+            toast.style.zIndex = 'var(--pd-z-toast)';
+            toast.style.maxWidth = '300px';
+
+            document.body.appendChild(toast);
+
+            // Show toast
+            setTimeout(() => toast.classList.add('show'), 100);
+
+            // Hide toast
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => document.body.removeChild(toast), 300);
+            }, 4000);
+        }
+    </script>
+</body>
+</html>

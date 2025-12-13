@@ -1,0 +1,586 @@
+/**
+ * Pusdokkes Ultra-Safe Design Tokens
+ * Complete design system with comprehensive tokens
+ * Safe overlay mode - visual-only properties, no layout disruption
+ * 
+ * Structure:
+ * - Color Palettes (50-900 scale)
+ * - Typography (families, sizes, weights, spacing)
+ * - Spacing Scale (4px/8px based)
+ * - Radii & Shape
+ * - Shadows & Elevation
+ * - Borders
+ * - Opacity & Overlays
+ * - Breakpoints
+ * - Z-index Scale
+ * - Timing & Easing
+ */
+
+@layer pd.tokens;
+
+/* =========================
+   FOUNDATION TOKENS
+   ========================= */
+@layer pd.tokens {
+  html[data-pd-safe] {
+    /* ===== COLOR PALETTES ===== */
+    
+    /* Primary Blue Scale */
+    --pd-blue-50: #eff6ff;
+    --pd-blue-100: #dbeafe;
+    --pd-blue-200: #bfdbfe;
+    --pd-blue-300: #93c5fd;
+    --pd-blue-400: #60a5fa;
+    --pd-blue-500: #3b82f6;
+    --pd-blue-600: #2563eb;
+    --pd-blue-700: #1d4ed8;
+    --pd-blue-800: #1e40af;
+    --pd-blue-900: #1e3a8a;
+    
+    /* Secondary Indigo Scale */
+    --pd-indigo-50: #eef2ff;
+    --pd-indigo-100: #e0e7ff;
+    --pd-indigo-200: #c7d2fe;
+    --pd-indigo-300: #a5b4fc;
+    --pd-indigo-400: #818cf8;
+    --pd-indigo-500: #6366f1;
+    --pd-indigo-600: #4f46e5;
+    --pd-indigo-700: #4338ca;
+    --pd-indigo-800: #3730a3;
+    --pd-indigo-900: #312e81;
+    
+    /* Success Green Scale */
+    --pd-green-50: #f0fdf4;
+    --pd-green-100: #dcfce7;
+    --pd-green-200: #bbf7d0;
+    --pd-green-300: #86efac;
+    --pd-green-400: #4ade80;
+    --pd-green-500: #22c55e;
+    --pd-green-600: #16a34a;
+    --pd-green-700: #15803d;
+    --pd-green-800: #166534;
+    --pd-green-900: #14532d;
+    
+    /* Warning Orange Scale */
+    --pd-orange-50: #fff7ed;
+    --pd-orange-100: #ffedd5;
+    --pd-orange-200: #fed7aa;
+    --pd-orange-300: #fdba74;
+    --pd-orange-400: #fb923c;
+    --pd-orange-500: #f97316;
+    --pd-orange-600: #ea580c;
+    --pd-orange-700: #c2410c;
+    --pd-orange-800: #9a3412;
+    --pd-orange-900: #7c2d12;
+    
+    /* Error Red Scale */
+    --pd-red-50: #fef2f2;
+    --pd-red-100: #fee2e2;
+    --pd-red-200: #fecaca;
+    --pd-red-300: #fca5a5;
+    --pd-red-400: #f87171;
+    --pd-red-500: #ef4444;
+    --pd-red-600: #dc2626;
+    --pd-red-700: #b91c1c;
+    --pd-red-800: #991b1b;
+    --pd-red-900: #7f1d1d;
+    
+    /* Info Cyan Scale */
+    --pd-cyan-50: #ecfeff;
+    --pd-cyan-100: #cffafe;
+    --pd-cyan-200: #a5f3fc;
+    --pd-cyan-300: #67e8f9;
+    --pd-cyan-400: #22d3ee;
+    --pd-cyan-500: #06b6d4;
+    --pd-cyan-600: #0891b2;
+    --pd-cyan-700: #0e7490;
+    --pd-cyan-800: #155e75;
+    --pd-cyan-900: #164e63;
+    
+    /* Neutral Gray Scale */
+    --pd-gray-50: #f9fafb;
+    --pd-gray-100: #f3f4f6;
+    --pd-gray-200: #e5e7eb;
+    --pd-gray-300: #d1d5db;
+    --pd-gray-400: #9ca3af;
+    --pd-gray-500: #6b7280;
+    --pd-gray-600: #4b5563;
+    --pd-gray-700: #374151;
+    --pd-gray-800: #1f2937;
+    --pd-gray-900: #111827;
+    
+    /* Cool Gray Scale (alternative) */
+    --pd-slate-50: #f8fafc;
+    --pd-slate-100: #f1f5f9;
+    --pd-slate-200: #e2e8f0;
+    --pd-slate-300: #cbd5e1;
+    --pd-slate-400: #94a3b8;
+    --pd-slate-500: #64748b;
+    --pd-slate-600: #475569;
+    --pd-slate-700: #334155;
+    --pd-slate-800: #1e293b;
+    --pd-slate-900: #0f172a;
+    
+    /* ===== SEMANTIC COLOR TOKENS ===== */
+    
+    /* Core Semantics (Light Theme) */
+    --pd-background: var(--pd-gray-50);
+    --pd-surface: #ffffff;
+    --pd-surface-elevated: #ffffff;
+    --pd-surface-variant: var(--pd-gray-100);
+    
+    --pd-primary: var(--pd-blue-600);
+    --pd-primary-hover: var(--pd-blue-700);
+    --pd-primary-active: var(--pd-blue-800);
+    --pd-on-primary: #ffffff;
+    
+    --pd-secondary: var(--pd-indigo-600);
+    --pd-secondary-hover: var(--pd-indigo-700);
+    --pd-secondary-active: var(--pd-indigo-800);
+    --pd-on-secondary: #ffffff;
+    
+    --pd-text-primary: var(--pd-gray-900);
+    --pd-text-secondary: var(--pd-gray-600);
+    --pd-text-muted: var(--pd-gray-500);
+    --pd-text-disabled: var(--pd-gray-400);
+    --pd-text-inverse: #ffffff;
+    
+    --pd-border: var(--pd-gray-200);
+    --pd-border-subtle: var(--pd-gray-100);
+    --pd-border-strong: var(--pd-gray-300);
+    --pd-divider: var(--pd-gray-200);
+    
+    /* Status Colors */
+    --pd-success: var(--pd-green-600);
+    --pd-success-bg: var(--pd-green-50);
+    --pd-success-border: var(--pd-green-200);
+    --pd-success-text: var(--pd-green-800);
+    
+    --pd-warning: var(--pd-orange-500);
+    --pd-warning-bg: var(--pd-orange-50);
+    --pd-warning-border: var(--pd-orange-200);
+    --pd-warning-text: var(--pd-orange-800);
+    
+    --pd-error: var(--pd-red-600);
+    --pd-error-bg: var(--pd-red-50);
+    --pd-error-border: var(--pd-red-200);
+    --pd-error-text: var(--pd-red-800);
+    
+    --pd-info: var(--pd-cyan-600);
+    --pd-info-bg: var(--pd-cyan-50);
+    --pd-info-border: var(--pd-cyan-200);
+    --pd-info-text: var(--pd-cyan-800);
+    
+    /* ===== TYPOGRAPHY TOKENS ===== */
+    
+    /* Font Families */
+    --pd-font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    --pd-font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+    --pd-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    
+    /* Font Sizes (Scale) */
+    --pd-text-xs: 0.75rem;    /* 12px */
+    --pd-text-sm: 0.875rem;   /* 14px */
+    --pd-text-base: 1rem;     /* 16px */
+    --pd-text-lg: 1.125rem;   /* 18px */
+    --pd-text-xl: 1.25rem;    /* 20px */
+    --pd-text-2xl: 1.5rem;    /* 24px */
+    --pd-text-3xl: 1.875rem;  /* 30px */
+    --pd-text-4xl: 2.25rem;   /* 36px */
+    --pd-text-5xl: 3rem;      /* 48px */
+    --pd-text-6xl: 3.75rem;   /* 60px */
+    
+    /* Font Weights */
+    --pd-font-thin: 100;
+    --pd-font-light: 300;
+    --pd-font-normal: 400;
+    --pd-font-medium: 500;
+    --pd-font-semibold: 600;
+    --pd-font-bold: 700;
+    --pd-font-extrabold: 800;
+    --pd-font-black: 900;
+    
+    /* Line Heights */
+    --pd-leading-tight: 1.25;
+    --pd-leading-snug: 1.375;
+    --pd-leading-normal: 1.5;
+    --pd-leading-relaxed: 1.625;
+    --pd-leading-loose: 2;
+    
+    /* Letter Spacing */
+    --pd-tracking-tighter: -0.05em;
+    --pd-tracking-tight: -0.025em;
+    --pd-tracking-normal: 0em;
+    --pd-tracking-wide: 0.025em;
+    --pd-tracking-wider: 0.05em;
+    --pd-tracking-widest: 0.1em;
+    
+    /* Typography Hierarchy */
+    --pd-h1-size: var(--pd-text-4xl);
+    --pd-h1-weight: var(--pd-font-bold);
+    --pd-h1-leading: var(--pd-leading-tight);
+    --pd-h1-tracking: var(--pd-tracking-tight);
+    
+    --pd-h2-size: var(--pd-text-3xl);
+    --pd-h2-weight: var(--pd-font-semibold);
+    --pd-h2-leading: var(--pd-leading-tight);
+    --pd-h2-tracking: var(--pd-tracking-tight);
+    
+    --pd-h3-size: var(--pd-text-2xl);
+    --pd-h3-weight: var(--pd-font-semibold);
+    --pd-h3-leading: var(--pd-leading-snug);
+    --pd-h3-tracking: var(--pd-tracking-normal);
+    
+    --pd-h4-size: var(--pd-text-xl);
+    --pd-h4-weight: var(--pd-font-medium);
+    --pd-h4-leading: var(--pd-leading-snug);
+    --pd-h4-tracking: var(--pd-tracking-normal);
+    
+    --pd-h5-size: var(--pd-text-lg);
+    --pd-h5-weight: var(--pd-font-medium);
+    --pd-h5-leading: var(--pd-leading-normal);
+    --pd-h5-tracking: var(--pd-tracking-normal);
+    
+    --pd-h6-size: var(--pd-text-base);
+    --pd-h6-weight: var(--pd-font-medium);
+    --pd-h6-leading: var(--pd-leading-normal);
+    --pd-h6-tracking: var(--pd-tracking-wide);
+    
+    --pd-body-size: var(--pd-text-base);
+    --pd-body-weight: var(--pd-font-normal);
+    --pd-body-leading: var(--pd-leading-relaxed);
+    
+    --pd-caption-size: var(--pd-text-sm);
+    --pd-caption-weight: var(--pd-font-normal);
+    --pd-caption-leading: var(--pd-leading-normal);
+    
+    /* ===== SPACING SCALE (8px base) ===== */
+    --pd-space-0: 0;
+    --pd-space-px: 1px;
+    --pd-space-0_5: 0.125rem;  /* 2px */
+    --pd-space-1: 0.25rem;     /* 4px */
+    --pd-space-1_5: 0.375rem;  /* 6px */
+    --pd-space-2: 0.5rem;      /* 8px */
+    --pd-space-2_5: 0.625rem;  /* 10px */
+    --pd-space-3: 0.75rem;     /* 12px */
+    --pd-space-3_5: 0.875rem;  /* 14px */
+    --pd-space-4: 1rem;        /* 16px */
+    --pd-space-5: 1.25rem;     /* 20px */
+    --pd-space-6: 1.5rem;      /* 24px */
+    --pd-space-7: 1.75rem;     /* 28px */
+    --pd-space-8: 2rem;        /* 32px */
+    --pd-space-9: 2.25rem;     /* 36px */
+    --pd-space-10: 2.5rem;     /* 40px */
+    --pd-space-11: 2.75rem;    /* 44px */
+    --pd-space-12: 3rem;       /* 48px */
+    --pd-space-14: 3.5rem;     /* 56px */
+    --pd-space-16: 4rem;       /* 64px */
+    --pd-space-20: 5rem;       /* 80px */
+    --pd-space-24: 6rem;       /* 96px */
+    --pd-space-28: 7rem;       /* 112px */
+    --pd-space-32: 8rem;       /* 128px */
+    --pd-space-36: 9rem;       /* 144px */
+    --pd-space-40: 10rem;      /* 160px */
+    --pd-space-44: 11rem;      /* 176px */
+    --pd-space-48: 12rem;      /* 192px */
+    --pd-space-52: 13rem;      /* 208px */
+    --pd-space-56: 14rem;      /* 224px */
+    --pd-space-60: 15rem;      /* 240px */
+    --pd-space-64: 16rem;      /* 256px */
+    --pd-space-72: 18rem;      /* 288px */
+    --pd-space-80: 20rem;      /* 320px */
+    --pd-space-96: 24rem;      /* 384px */
+    
+    /* ===== RADIUS & SHAPE ===== */
+    --pd-radius-none: 0;
+    --pd-radius-xs: 0.125rem;   /* 2px */
+    --pd-radius-sm: 0.25rem;    /* 4px */
+    --pd-radius-base: 0.375rem; /* 6px */
+    --pd-radius-md: 0.5rem;     /* 8px */
+    --pd-radius-lg: 0.75rem;    /* 12px */
+    --pd-radius-xl: 1rem;       /* 16px */
+    --pd-radius-2xl: 1.5rem;    /* 24px */
+    --pd-radius-3xl: 2rem;      /* 32px */
+    --pd-radius-full: 9999px;   /* pill shape */
+    
+    /* Component-specific radius */
+    --pd-radius-button: var(--pd-radius-md);
+    --pd-radius-card: var(--pd-radius-lg);
+    --pd-radius-input: var(--pd-radius-base);
+    --pd-radius-chip: var(--pd-radius-full);
+    --pd-radius-badge: var(--pd-radius-full);
+    --pd-radius-modal: var(--pd-radius-xl);
+    
+    /* ===== SHADOWS & ELEVATION ===== */
+    --pd-shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --pd-shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    --pd-shadow-base: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    --pd-shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    --pd-shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    --pd-shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    --pd-shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    --pd-shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+    --pd-shadow-none: 0 0 #0000;
+    
+    /* Elevation levels */
+    --pd-elevation-0: none;
+    --pd-elevation-1: var(--pd-shadow-sm);
+    --pd-elevation-2: var(--pd-shadow-base);
+    --pd-elevation-3: var(--pd-shadow-md);
+    --pd-elevation-4: var(--pd-shadow-lg);
+    --pd-elevation-5: var(--pd-shadow-xl);
+    
+    /* ===== BORDERS ===== */
+    --pd-border-width-0: 0;
+    --pd-border-width-1: 1px;
+    --pd-border-width-2: 2px;
+    --pd-border-width-4: 4px;
+    --pd-border-width-8: 8px;
+    
+    --pd-border-style-solid: solid;
+    --pd-border-style-dashed: dashed;
+    --pd-border-style-dotted: dotted;
+    --pd-border-style-double: double;
+    --pd-border-style-none: none;
+    
+    /* ===== OPACITY & OVERLAYS ===== */
+    --pd-opacity-0: 0;
+    --pd-opacity-5: 0.05;
+    --pd-opacity-10: 0.1;
+    --pd-opacity-20: 0.2;
+    --pd-opacity-25: 0.25;
+    --pd-opacity-30: 0.3;
+    --pd-opacity-40: 0.4;
+    --pd-opacity-50: 0.5;
+    --pd-opacity-60: 0.6;
+    --pd-opacity-70: 0.7;
+    --pd-opacity-75: 0.75;
+    --pd-opacity-80: 0.8;
+    --pd-opacity-90: 0.9;
+    --pd-opacity-95: 0.95;
+    --pd-opacity-100: 1;
+    
+    /* Overlay specifics */
+    --pd-overlay-backdrop: rgba(0, 0, 0, 0.5);
+    --pd-overlay-glass: rgba(255, 255, 255, 0.8);
+    --pd-backdrop-blur-sm: blur(4px);
+    --pd-backdrop-blur-base: blur(8px);
+    --pd-backdrop-blur-md: blur(12px);
+    --pd-backdrop-blur-lg: blur(16px);
+    --pd-backdrop-blur-xl: blur(24px);
+    
+    /* ===== BREAKPOINTS ===== */
+    --pd-screen-xs: 475px;
+    --pd-screen-sm: 640px;
+    --pd-screen-md: 768px;
+    --pd-screen-lg: 1024px;
+    --pd-screen-xl: 1280px;
+    --pd-screen-2xl: 1536px;
+    
+    /* Container max-widths */
+    --pd-container-xs: 100%;
+    --pd-container-sm: 640px;
+    --pd-container-md: 768px;
+    --pd-container-lg: 1024px;
+    --pd-container-xl: 1280px;
+    --pd-container-2xl: 1536px;
+    
+    /* Grid system */
+    --pd-grid-columns: 12;
+    --pd-gutter-xs: var(--pd-space-4);   /* 16px */
+    --pd-gutter-sm: var(--pd-space-5);   /* 20px */
+    --pd-gutter-md: var(--pd-space-6);   /* 24px */
+    --pd-gutter-lg: var(--pd-space-8);   /* 32px */
+    --pd-gutter-xl: var(--pd-space-10);  /* 40px */
+    
+    /* ===== Z-INDEX SCALE ===== */
+    --pd-z-hide: -1;
+    --pd-z-auto: auto;
+    --pd-z-base: 0;
+    --pd-z-docked: 10;
+    --pd-z-dropdown: 1000;
+    --pd-z-sticky: 1020;
+    --pd-z-banner: 1030;
+    --pd-z-overlay: 1040;
+    --pd-z-modal: 1050;
+    --pd-z-popover: 1060;
+    --pd-z-skipLink: 1070;
+    --pd-z-toast: 1080;
+    --pd-z-tooltip: 1090;
+    --pd-z-max: 2147483647;
+    
+    /* ===== TIMING & EASING ===== */
+    
+    /* Durations */
+    --pd-duration-instant: 0ms;
+    --pd-duration-fast: 150ms;
+    --pd-duration-base: 200ms;
+    --pd-duration-slow: 300ms;
+    --pd-duration-slower: 500ms;
+    --pd-duration-slowest: 700ms;
+    
+    /* Easing curves */
+    --pd-ease-linear: linear;
+    --pd-ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --pd-ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --pd-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Custom easings */
+    --pd-ease-elastic: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --pd-ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --pd-ease-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --pd-ease-swift: cubic-bezier(0.4, 0.0, 0.2, 1);
+    
+    /* Component-specific timing */
+    --pd-transition-button: var(--pd-duration-fast) var(--pd-ease-out);
+    --pd-transition-input: var(--pd-duration-base) var(--pd-ease-out);
+    --pd-transition-modal: var(--pd-duration-slow) var(--pd-ease-in-out);
+    --pd-transition-tooltip: var(--pd-duration-fast) var(--pd-ease-swift);
+    --pd-transition-dropdown: var(--pd-duration-base) var(--pd-ease-smooth);
+    
+    /* ===== LEGACY COMPATIBILITY ===== */
+    /* Legacy aliases for existing code compatibility */
+    --pd-bg: var(--pd-background);
+    --pd-surface: var(--pd-surface);
+    --pd-text: var(--pd-text-primary);
+    --pd-muted: var(--pd-text-muted);
+    --pd-border: var(--pd-border);
+    --pd-primary: var(--pd-primary);
+    --pd-on-primary: var(--pd-on-primary);
+    --pd-success: var(--pd-success);
+    --pd-warning: var(--pd-warning);
+    --pd-danger: var(--pd-error);
+    --pd-info: var(--pd-info);
+
+    /* Border Radius */
+    --pd-radius-sm: 6px;
+    --pd-radius-md: 10px;
+    --pd-radius-lg: 14px;
+    --pd-radius-xl: 18px;
+
+    /* Shadows */
+    --pd-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+    --pd-shadow-md: 0 6px 18px rgba(0, 0, 0, 0.08);
+    --pd-shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.12);
+    --pd-shadow-xl: 0 24px 60px rgba(0, 0, 0, 0.16);
+
+    /* Animation */
+    --pd-dur-fast: 150ms;
+    --pd-dur: 200ms;
+    --pd-dur-slow: 300ms;
+    --pd-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+    /* Focus Ring */
+    --pd-focus-ring: 0 0 0 3px rgba(30, 64, 175, 0.1);
+
+    /* Hint browser untuk tema; tidak mengubah layout */
+    color-scheme: light dark;
+  }
+
+  html[data-pd-safe][data-theme="dark"] {
+    /* ===== Dark Theme Tokens ===== */
+    --pd-bg: #0b0c0f;
+    --pd-surface: #111318;
+    --pd-text: #edf0f3;
+    --pd-muted: #9aa3af;
+    --pd-border: #21242b;
+
+    --pd-primary: #4f7dff;
+    --pd-on-primary: #0b0c0f;
+    --pd-success: #2bb673;
+    --pd-warning: #f59e0b;
+    --pd-danger: #f43f5e;
+    --pd-info: #06b6d4;
+
+    /* Shadows (darker for dark theme) */
+    --pd-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.25);
+    --pd-shadow-md: 0 6px 18px rgba(0, 0, 0, 0.28);
+    --pd-shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.35);
+    --pd-shadow-xl: 0 24px 60px rgba(0, 0, 0, 0.45);
+
+    --pd-radius-sm: var(--pd-radius-sm);
+    --pd-radius-md: var(--pd-radius-md);
+    --pd-radius-lg: var(--pd-radius-lg);
+    --pd-shadow-sm: var(--pd-shadow-sm);
+    --pd-shadow-md: var(--pd-shadow-md);
+    --pd-shadow-lg: var(--pd-shadow-lg);
+    --pd-dur-fast: var(--pd-duration-fast);
+    --pd-dur: var(--pd-duration-base);
+    --pd-dur-slow: var(--pd-duration-slow);
+    --pd-ease: var(--pd-ease-out);
+    --pd-font-sans: var(--pd-font-sans);
+  }
+
+  /* =========================
+     DARK THEME OVERRIDES
+     ========================= */
+  html[data-pd-safe][data-theme="dark"] {
+    /* Core semantics (Dark Theme) */
+    --pd-background: var(--pd-gray-900);
+    --pd-surface: var(--pd-gray-800);
+    --pd-surface-elevated: var(--pd-gray-700);
+    --pd-surface-variant: var(--pd-gray-800);
+    
+    --pd-primary: var(--pd-blue-400);
+    --pd-primary-hover: var(--pd-blue-300);
+    --pd-primary-active: var(--pd-blue-200);
+    --pd-on-primary: var(--pd-gray-900);
+    
+    --pd-secondary: var(--pd-indigo-400);
+    --pd-secondary-hover: var(--pd-indigo-300);
+    --pd-secondary-active: var(--pd-indigo-200);
+    --pd-on-secondary: var(--pd-gray-900);
+    
+    --pd-text-primary: var(--pd-gray-50);
+    --pd-text-secondary: var(--pd-gray-300);
+    --pd-text-muted: var(--pd-gray-400);
+    --pd-text-disabled: var(--pd-gray-500);
+    --pd-text-inverse: var(--pd-gray-900);
+    
+    --pd-border: var(--pd-gray-700);
+    --pd-border-subtle: var(--pd-gray-800);
+    --pd-border-strong: var(--pd-gray-600);
+    --pd-divider: var(--pd-gray-700);
+    
+    /* Status colors (dark) */
+    --pd-success: var(--pd-green-400);
+    --pd-success-bg: color-mix(in oklab, var(--pd-green-900), var(--pd-background) 60%);
+    --pd-success-border: var(--pd-green-700);
+    --pd-success-text: var(--pd-green-200);
+    
+    --pd-warning: var(--pd-orange-400);
+    --pd-warning-bg: color-mix(in oklab, var(--pd-orange-900), var(--pd-background) 60%);
+    --pd-warning-border: var(--pd-orange-700);
+    --pd-warning-text: var(--pd-orange-200);
+    
+    --pd-error: var(--pd-red-400);
+    --pd-error-bg: color-mix(in oklab, var(--pd-red-900), var(--pd-background) 60%);
+    --pd-error-border: var(--pd-red-700);
+    --pd-error-text: var(--pd-red-200);
+    
+    --pd-info: var(--pd-cyan-400);
+    --pd-info-bg: color-mix(in oklab, var(--pd-cyan-900), var(--pd-background) 60%);
+    --pd-info-border: var(--pd-cyan-700);
+    --pd-info-text: var(--pd-cyan-200);
+    
+    /* Dark overlay adjustments */
+    --pd-overlay-backdrop: rgba(0, 0, 0, 0.8);
+    --pd-overlay-glass: rgba(0, 0, 0, 0.6);
+    
+    /* Enhanced shadows for dark mode */
+    --pd-shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --pd-shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.4);
+    --pd-shadow-base: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
+    --pd-shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.4), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+    --pd-shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+    --pd-shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    --pd-shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    
+    /* Legacy compatibility (dark overrides) */
+    --pd-bg: var(--pd-background);
+    --pd-text: var(--pd-text-primary);
+    --pd-muted: var(--pd-text-muted);
+    --pd-border: var(--pd-border);
+    --pd-danger: var(--pd-error);
+  }
+}

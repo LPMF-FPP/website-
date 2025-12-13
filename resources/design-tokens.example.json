@@ -1,0 +1,61 @@
+{
+  "$schema": "https://example.com/design-tokens.schema.json",
+  "version": 1,
+  "meta": {
+    "source": "Figma Tokens Export (placeholder)",
+    "updated": "2025-10-09"
+  },
+  "color": {
+    "neutral": {
+      "50": "#F8FAFC",
+      "100": "#F1F5F9",
+      "500": "#64748B",
+      "900": "#0F172A"
+    },
+    "primary": {
+      "50": "#EEF3FF",
+      "100": "#D9E6FF",
+      "500": "#1D4ED8",
+      "600": "#1E40AF",
+      "700": "#1E3A8A"
+    },
+    "success": { "50": "#F0FDF4", "500": "#16A34A", "600": "#15803D" },
+    "warning": { "50": "#FFFBEB", "500": "#F59E0B", "600": "#D97706" },
+    "danger": { "50": "#FEF2F2", "500": "#EF4444", "600": "#DC2626" },
+    "info": { "50": "#EFF6FF", "500": "#0EA5E9", "600": "#0284C7" }
+  },
+  "typography": {
+    "display-lg": { "fontSize": 40, "lineHeight": 48, "fontWeight": 600 },
+    "heading-xl": { "fontSize": 24, "lineHeight": 32, "fontWeight": 600 },
+    "heading-lg": { "fontSize": 20, "lineHeight": 28, "fontWeight": 600 },
+    "body-lg": { "fontSize": 16, "lineHeight": 24, "fontWeight": 400 },
+    "body-sm": { "fontSize": 14, "lineHeight": 20, "fontWeight": 400 },
+    "mono-sm": { "fontSize": 13, "lineHeight": 18, "fontWeight": 400, "fontFamily": "JetBrains Mono" },
+    "caption-xs": { "fontSize": 12, "lineHeight": 16, "fontWeight": 400 }
+  },
+  "radius": {
+    "xs": 2,
+    "sm": 4,
+    "md": 6,
+    "lg": 8,
+    "xl": 12,
+    "pill": 9999
+  },
+  "spacing": [2,4,6,8,12,16,20,24,32,40,48,56,64],
+  "elevation": {
+    "sm": "0 1px 2px rgba(0,0,0,.06)",
+    "md": "0 2px 4px rgba(0,0,0,.08)",
+    "lg": "0 4px 12px rgba(0,0,0,.12)",
+    "modal": "0 8px 24px rgba(0,0,0,.18)"
+  },
+  "opacity": {
+    "disabled": 0.45,
+    "muted": 0.65,
+    "overlay": 0.6
+  },
+  "motion": {
+    "fast": "150ms ease-in-out",
+    "menu": "120ms cubic-bezier(0.16,1,0.3,1)",
+    "skeleton": "1.2s linear infinite"
+  }
+}

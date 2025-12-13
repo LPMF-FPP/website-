@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="id" data-pd-safe>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pusdokkes Design System - Comprehensive Demo</title>
+
+  <!-- Base Styles -->
+  <style>
+    /* Reset & Base */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      line-height: 1.6;
+      background: #f8fafc;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 16px;
+    }
+
+    .section {
+      margin: 48px 0;
+      padding: 32px;
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .grid {
+      display: grid;
+      gap: 24px;
+    }
+
+    .grid-2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    .grid-3 { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+    .grid-4 { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+
+    .flex {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .color-swatch {
+      width: 80px;
+      height: 80px;
+      border-radius: 8px;
+      border: 1px solid #e5e7eb;
+      position: relative;
+      margin-bottom: 8px;
+    }
+
+    .color-label {
+      font-size: 12px;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    .token-display {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 13px;
+      margin: 4px 0;
+    }
+
+    h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 16px; }
+    h2 { font-size: 1.875rem; font-weight: 600; margin-bottom: 16px; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; }
+    h3 { font-size: 1.5rem; font-weight: 600; margin-bottom: 12px; }
+    h4 { font-size: 1.25rem; font-weight: 500; margin-bottom: 8px; }
+
+    .demo-button {
+      padding: 8px 16px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+
+    .demo-input {
+      padding: 8px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 14px;
+      width: 200px;
+    }
+
+    .demo-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      background: white;
+    }
+
+    .demo-alert {
+      padding: 12px 16px;
+      border-radius: 6px;
+      border: 1px solid;
+      margin: 8px 0;
+    }
+
+    .demo-badge {
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .demo-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .demo-table th,
+    .demo-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .demo-table th {
+      background: #f9fafb;
+      font-weight: 600;
+    }
+
+    .demo-nav {
+      background: white;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 16px 0;
+      margin-bottom: 32px;
+    }
+
+    .nav-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+    }
+
+    .nav-link {
+      color: #6b7280;
+      text-decoration: none;
+      font-weight: 500;
+      padding: 8px 12px;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+
+    .nav-link:hover,
+    .nav-link.active {
+      color: #1f2937;
+      background: #f3f4f6;
+    }
+
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      padding: 12px;
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 18px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+    }
+  </style>
+
+  <!-- Pusdokkes Design System -->
+  <link rel="stylesheet" href="styles/pd.ultrasafe.tokens.css">
+  <link rel="stylesheet" href="styles/pd.components.css">
+  <link rel="stylesheet" href="styles/pd.framework-bridge.css">
+</head>
+<body>
+  <!-- Theme Toggle -->
+  <button class="theme-toggle" onclick="toggleTheme()">🌙</button>
+
+  <!-- Navigation -->
+  <nav class="demo-nav">
+    <div class="container">
+      <div class="nav-content">
+        <div>
+          <h4>Pusdokkes Design System</h4>
+        </div>
+        <div class="nav-links">
+          <a href="#colors" class="nav-link">Colors</a>
+          <a href="#typography" class="nav-link">Typography</a>
+          <a href="#components" class="nav-link">Components</a>
+          <a href="#layout" class="nav-link">Layout</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <!-- Header -->
+    <header style="text-align: center; padding: 48px 0;">
+      <h1>Pusdokkes Design System</h1>
+      <p style="font-size: 1.125rem; color: #6b7280; max-width: 600px; margin: 0 auto;">
+        Sistem desain komprehensif dengan palet warna 50-900, tipografi yang terstruktur, spacing scale, dan komponen yang lengkap.
+      </p>
+    </header>
+
+    <!-- Color Palettes -->
+    <section id="colors" class="section">
+      <h2>🎨 Palet Warna (50-900 Scale)</h2>
+
+      <h3>Primary Blue</h3>
+      <div class="grid grid-4">
+        <div>
+          <div class="color-swatch" style="background: var(--pd-blue-50);"></div>
+          <div class="color-label">Blue 50</div>
+          <div class="token-display">--pd-blue-50</div>
+        </div>
+        <div>
+          <div class="color-swatch" style="background: var(--pd-blue-100);"></div>
+          <div class="color-label">Blue 100</div>
+          <div class="token-display">--pd-blue-100</div>
+        </div>
+        <div>
+          <div class="color-swatch" style="background: var(--pd-blue-200);"></div>
+          <div class="color-label">Blue 200</div>
+          <div class="token-display">--pd-blue-200</div>
+        </div>
+        <div>
+          <div class="color-swatch" style="background: var(--pd-blue-300);"></div>
+          <div class="color-label">Blue 300</div>
+          <div class="token-display">--pd-blue-300</div>
+        </div>
+        <div>
+          <div class="color-swatch" style="background: var(--pd-blue-400);"></div>
+          <div class="color-label">Blue 400</div>
+          <div class="token-display">--pd-blue-400</div>
+        </div>
+        <div>
+          <div class="color-swatch" style="background: var(--pd-blue-500);"></div>
+          <div class="color-label">Blue 500</div>
+          <div class="token-display">--pd-blue-500</div>
+        </div>
+        <div>
+          <div class="color-swatch" style="background: var(--pd-blue-600);"></div>
+          <div class="color-label">Blue 600 (Primary)</div>
+          <div class="token-display">--pd-primary</div>
+        </div>
+        <div>
+          <div class="color-swatch" style="background: var(--pd-blue-700);"></div>
+          <div class="color-label">Blue 700</div>
+          <div class="token-display">--pd-blue-700</div>
+        </div>
+        <div>
+          <div class="color-swatch" style="background: var(--pd-blue-800);"></div>
+          <div class="color-label">Blue 800</div>
+          <div class="token-display">--pd-blue-800</div>
+        </div>
+        <div>
+          <div class="color-swatch" style="background: var(--pd-blue-900);"></div>
+          <div class="color-label">Blue 900</div>
+          <div class="token-display">--pd-blue-900</div>
+        </div>
+      </div>
+
+      <h3>Status Colors</h3>
+      <div class="grid grid-4">
+        <div>
+          <div class="color-swatch" style="background: var(--pd-success);"></div>
+          <div class="color-label">Success</div>
+          <div class="token-display">--pd-success</div>
+        </div>
+        <div>
+          <div class="color-swatch" style="background: var(--pd-warning);"></div>
+          <div class="color-label">Warning</div>
+          <div class="token-display">--pd-warning</div>
+        </div>
+        <div>
+          <div class="color-swatch" style="background: var(--pd-error);"></div>
+          <div class="color-label">Error</div>
+          <div class="token-display">--pd-error</div>
+        </div>
+        <div>
+          <div class="color-swatch" style="background: var(--pd-info);"></div>
+          <div class="color-label">Info</div>
+          <div class="token-display">--pd-info</div>
+        </div>
+      </div>
+
+      <h3>Semantic Colors</h3>
+      <div class="grid grid-3">
+        <div>
+          <div class="color-swatch" style="background: var(--pd-background);"></div>
+          <div class="color-label">Background</div>
+          <div class="token-display">--pd-background</div>
+        </div>
+        <div>
+          <div class="color-swatch" style="background: var(--pd-surface);"></div>
+          <div class="color-label">Surface</div>
+          <div class="token-display">--pd-surface</div>
+        </div>
+        <div>
+          <div class="color-swatch" style="background: var(--pd-surface-variant);"></div>
+          <div class="color-label">Surface Variant</div>
+          <div class="token-display">--pd-surface-variant</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Typography -->
+    <section id="typography" class="section">
+      <h2>📝 Sistem Tipografi</h2>
+
+      <h3>Font Families</h3>
+      <div class="grid grid-2">
+        <div>
+          <h4 style="font-family: var(--pd-font-sans);">Sans Serif (Default)</h4>
+          <div class="token-display">--pd-font-sans</div>
+        </div>
+        <div>
+          <h4 style="font-family: var(--pd-font-mono);">Monospace</h4>
+          <div class="token-display">--pd-font-mono</div>
+        </div>
+      </div>
+
+      <h3>Typography Hierarchy</h3>
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div>
+          <h1 style="font-size: var(--pd-h1-size); font-weight: var(--pd-h1-weight); line-height: var(--pd-h1-leading);">Heading 1 - Judul Utama</h1>
+          <div class="token-display">font-size: var(--pd-h1-size); font-weight: var(--pd-h1-weight);</div>
+        </div>
+        <div>
+          <h2 style="font-size: var(--pd-h2-size); font-weight: var(--pd-h2-weight); line-height: var(--pd-h2-leading);">Heading 2 - Sub Judul</h2>
+          <div class="token-display">font-size: var(--pd-h2-size); font-weight: var(--pd-h2-weight);</div>
+        </div>
+        <div>
+          <h3 style="font-size: var(--pd-h3-size); font-weight: var(--pd-h3-weight); line-height: var(--pd-h3-leading);">Heading 3 - Section</h3>
+          <div class="token-display">font-size: var(--pd-h3-size); font-weight: var(--pd-h3-weight);</div>
+        </div>
+        <div>
+          <p style="font-size: var(--pd-body-size); font-weight: var(--pd-body-weight); line-height: var(--pd-body-leading);">Body Text - Ini adalah contoh teks body yang digunakan untuk paragraf utama dan konten deskriptif.</p>
+          <div class="token-display">font-size: var(--pd-body-size); line-height: var(--pd-body-leading);</div>
+        </div>
+        <div>
+          <small style="font-size: var(--pd-caption-size); font-weight: var(--pd-caption-weight);">Caption Text - Teks kecil untuk keterangan dan metadata</small>
+          <div class="token-display">font-size: var(--pd-caption-size);</div>
+        </div>
+      </div>
+
+      <h3>Font Sizes Scale</h3>
+      <div class="grid grid-4">
+        <div>
+          <div style="font-size: var(--pd-text-xs);">12px - Extra Small</div>
+          <div class="token-display">--pd-text-xs</div>
+        </div>
+        <div>
+          <div style="font-size: var(--pd-text-sm);">14px - Small</div>
+          <div class="token-display">--pd-text-sm</div>
+        </div>
+        <div>
+          <div style="font-size: var(--pd-text-base);">16px - Base</div>
+          <div class="token-display">--pd-text-base</div>
+        </div>
+        <div>
+          <div style="font-size: var(--pd-text-lg);">18px - Large</div>
+          <div class="token-display">--pd-text-lg</div>
+        </div>
+        <div>
+          <div style="font-size: var(--pd-text-xl);">20px - Extra Large</div>
+          <div class="token-display">--pd-text-xl</div>
+        </div>
+        <div>
+          <div style="font-size: var(--pd-text-2xl);">24px - 2X Large</div>
+          <div class="token-display">--pd-text-2xl</div>
+        </div>
+        <div>
+          <div style="font-size: var(--pd-text-3xl);">30px - 3X Large</div>
+          <div class="token-display">--pd-text-3xl</div>
+        </div>
+        <div>
+          <div style="font-size: var(--pd-text-4xl);">36px - 4X Large</div>
+          <div class="token-display">--pd-text-4xl</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Spacing Scale -->
+    <section id="spacing" class="section">
+      <h2>📏 Spacing Scale (8px Base)</h2>
+
+      <h3>Spacing Tokens</h3>
+      <div class="grid grid-4">
+        <div>
+          <div style="width: var(--pd-space-1); height: 16px; background: var(--pd-primary); border-radius: 2px;"></div>
+          <div class="color-label">4px</div>
+          <div class="token-display">--pd-space-1</div>
+        </div>
+        <div>
+          <div style="width: var(--pd-space-2); height: 16px; background: var(--pd-primary); border-radius: 2px;"></div>
+          <div class="color-label">8px</div>
+          <div class="token-display">--pd-space-2</div>
+        </div>
+        <div>
+          <div style="width: var(--pd-space-3); height: 16px; background: var(--pd-primary); border-radius: 2px;"></div>
+          <div class="color-label">12px</div>
+          <div class="token-display">--pd-space-3</div>
+        </div>
+        <div>
+          <div style="width: var(--pd-space-4); height: 16px; background: var(--pd-primary); border-radius: 2px;"></div>
+          <div class="color-label">16px</div>
+          <div class="token-display">--pd-space-4</div>
+        </div>
+        <div>
+          <div style="width: var(--pd-space-6); height: 16px; background: var(--pd-primary); border-radius: 2px;"></div>
+          <div class="color-label">24px</div>
+          <div class="token-display">--pd-space-6</div>
+        </div>
+        <div>
+          <div style="width: var(--pd-space-8); height: 16px; background: var(--pd-primary); border-radius: 2px;"></div>
+          <div class="color-label">32px</div>
+          <div class="token-display">--pd-space-8</div>
+        </div>
+        <div>
+          <div style="width: var(--pd-space-12); height: 16px; background: var(--pd-primary); border-radius: 2px;"></div>
+          <div class="color-label">48px</div>
+          <div class="token-display">--pd-space-12</div>
+        </div>
+        <div>
+          <div style="width: var(--pd-space-16); height: 16px; background: var(--pd-primary); border-radius: 2px;"></div>
+          <div class="color-label">64px</div>
+          <div class="token-display">--pd-space-16</div>
+        </div>
+      </div>
+
+      <h3>Border Radius & Shape</h3>
+      <div class="grid grid-4">
+        <div>
+          <div style="width: 60px; height: 60px; background: var(--pd-primary); border-radius: var(--pd-radius-xs);"></div>
+          <div class="color-label">XS (2px)</div>
+          <div class="token-display">--pd-radius-xs</div>
+        </div>
+        <div>
+          <div style="width: 60px; height: 60px; background: var(--pd-primary); border-radius: var(--pd-radius-sm);"></div>
+          <div class="color-label">SM (4px)</div>
+          <div class="token-display">--pd-radius-sm</div>
+        </div>
+        <div>
+          <div style="width: 60px; height: 60px; background: var(--pd-primary); border-radius: var(--pd-radius-md);"></div>
+          <div class="color-label">MD (8px)</div>
+          <div class="token-display">--pd-radius-md</div>
+        </div>
+        <div>
+          <div style="width: 60px; height: 60px; background: var(--pd-primary); border-radius: var(--pd-radius-lg);"></div>
+          <div class="color-label">LG (12px)</div>
+          <div class="token-display">--pd-radius-lg</div>
+        </div>
+        <div>
+          <div style="width: 60px; height: 60px; background: var(--pd-primary); border-radius: var(--pd-radius-xl);"></div>
+          <div class="color-label">XL (16px)</div>
+          <div class="token-display">--pd-radius-xl</div>
+        </div>
+        <div>
+          <div style="width: 60px; height: 60px; background: var(--pd-primary); border-radius: var(--pd-radius-full);"></div>
+          <div class="color-label">Full (Pill)</div>
+          <div class="token-display">--pd-radius-full</div>
+        </div>
+      </div>
+
+      <h3>Shadows & Elevation</h3>
+      <div class="grid grid-3">
+        <div>
+          <div style="width: 80px; height: 80px; background: white; border-radius: 8px; box-shadow: var(--pd-elevation-1);"></div>
+          <div class="color-label">Elevation 1</div>
+          <div class="token-display">--pd-elevation-1</div>
+        </div>
+        <div>
+          <div style="width: 80px; height: 80px; background: white; border-radius: 8px; box-shadow: var(--pd-elevation-2);"></div>
+          <div class="color-label">Elevation 2</div>
+          <div class="token-display">--pd-elevation-2</div>
+        </div>
+        <div>
+          <div style="width: 80px; height: 80px; background: white; border-radius: 8px; box-shadow: var(--pd-elevation-3);"></div>
+          <div class="color-label">Elevation 3</div>
+          <div class="token-display">--pd-elevation-3</div>
+        </div>
+        <div>
+          <div style="width: 80px; height: 80px; background: white; border-radius: 8px; box-shadow: var(--pd-elevation-4);"></div>
+          <div class="color-label">Elevation 4</div>
+          <div class="token-display">--pd-elevation-4</div>
+        </div>
+        <div>
+          <div style="width: 80px; height: 80px; background: white; border-radius: 8px; box-shadow: var(--pd-elevation-5);"></div>
+          <div class="color-label">Elevation 5</div>
+          <div class="token-display">--pd-elevation-5</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Components -->
+    <section id="components" class="section">
+      <h2>🧩 Komponen & Pola Layout</h2>
+
+      <h3>Navigasi</h3>
+      <div class="demo-card">
+        <h4>Header Sticky</h4>
+        <nav class="pd-header" style="padding: 12px 16px; margin-bottom: 16px;">
+          <div class="flex">
+            <div style="font-weight: 600;">Pusdokkes</div>
+            <div style="flex: 1;"></div>
+            <div class="flex">
+              <a href="#" class="pd-nav-link" style="padding: 8px 12px;">Dashboard</a>
+              <a href="#" class="pd-nav-link active" style="padding: 8px 12px;">Sampel</a>
+              <a href="#" class="pd-nav-link" style="padding: 8px 12px;">Laporan</a>
+            </div>
+          </div>
+        </nav>
+
+        <h4>Breadcrumb</h4>
+        <nav class="pd-breadcrumb" style="margin: 16px 0;">
+          <a href="#" class="pd-breadcrumb-link">Dashboard</a> /
+          <a href="#" class="pd-breadcrumb-link">Sampel</a> /
+          <span class="pd-breadcrumb-current">Detail</span>
+        </nav>
+
+        <h4>Tabs</h4>
+        <div class="pd-tabs" style="margin: 16px 0;">
+          <div class="flex">
+            <button class="pd-tab active" style="padding: 12px 16px;">Informasi</button>
+            <button class="pd-tab" style="padding: 12px 16px;">Hasil Uji</button>
+            <button class="pd-tab" style="padding: 12px 16px;">Dokumen</button>
+          </div>
+        </div>
+      </div>
+
+      <h3>Tombol (Varian & Ukuran)</h3>
+      <div class="demo-card">
+        <h4>Varian Tombol</h4>
+        <div class="flex">
+          <button class="pd-btn-primary" style="padding: 8px 16px;">Primary</button>
+          <button class="pd-btn-secondary" style="padding: 8px 16px;">Secondary</button>
+          <button class="pd-btn-tertiary" style="padding: 8px 16px;">Tertiary</button>
+          <button class="pd-btn-ghost" style="padding: 8px 16px;">Ghost</button>
+        </div>
+
+        <h4 style="margin-top: 24px;">Ukuran Tombol</h4>
+        <div class="flex">
+          <button class="pd-btn pd-btn-sm" style="padding: 6px 12px;">Small</button>
+          <button class="pd-btn pd-btn-md" style="padding: 8px 16px;">Medium</button>
+          <button class="pd-btn pd-btn-lg" style="padding: 12px 24px;">Large</button>
+        </div>
+
+        <h4 style="margin-top: 24px;">Tombol dengan Ikon</h4>
+        <div class="flex">
+          <button class="pd-btn" style="padding: 8px 16px;">📄 Download</button>
+          <button class="pd-btn-secondary" style="padding: 8px 16px;">✉️ Kirim Email</button>
+          <button class="pd-btn-tertiary" style="padding: 8px 16px;">🔄 Refresh</button>
+        </div>
+      </div>
+
+      <h3>Form</h3>
+      <div class="demo-card">
+        <form style="max-width: 400px;">
+          <div style="margin-bottom: 16px;">
+            <label class="pd-label" style="display: block; margin-bottom: 4px;">Nama Lengkap <span class="pd-label-required" style="color: var(--pd-error);">*</span></label>
+            <input type="text" class="pd-input" placeholder="Masukkan nama lengkap" style="width: 100%; padding: 8px 12px;">
+            <div class="pd-helper-text" style="margin-top: 4px; font-size: 12px;">Nama sesuai dengan identitas resmi</div>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <label class="pd-label" style="display: block; margin-bottom: 4px;">Peran</label>
+            <select class="pd-select" style="width: 100%; padding: 8px 12px;">
+              <option>Pilih peran...</option>
+              <option>Investigator</option>
+              <option>Teknisi Lab</option>
+              <option>Administrator</option>
+            </select>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <label class="pd-label" style="display: block; margin-bottom: 4px;">Catatan</label>
+            <textarea class="pd-textarea" placeholder="Tambahkan catatan..." style="width: 100%; padding: 8px 12px; min-height: 80px;"></textarea>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="checkbox" class="pd-checkbox">
+              <span>Saya setuju dengan <a href="#" style="color: var(--pd-primary);">syarat dan ketentuan</a></span>
+            </label>
+          </div>
+
+          <div style="margin-bottom: 16px;">
+            <div class="pd-label" style="margin-bottom: 8px;">Jenis Kelamin</div>
+            <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <input type="radio" name="gender" class="pd-radio">
+              <span>Laki-laki</span>
+            </label>
+            <label style="display: flex; align-items: center; gap: 8px;">
+              <input type="radio" name="gender" class="pd-radio">
+              <span>Perempuan</span>
+            </label>
+          </div>
+
+          <div class="flex">
+            <button type="submit" class="pd-btn" style="padding: 8px 24px;">Simpan</button>
+            <button type="button" class="pd-btn-secondary" style="padding: 8px 16px;">Batal</button>
+          </div>
+        </form>
+      </div>
+
+      <h3>Kartu & Kontainer</h3>
+      <div class="grid grid-2">
+        <div class="pd-card" style="padding: 20px;">
+          <div class="pd-card-header" style="margin: -20px -20px 16px -20px; padding: 16px 20px;">
+            <h4>Sampel #12345</h4>
+          </div>
+          <p style="margin-bottom: 12px; color: var(--pd-text-secondary);">Status: <span class="pd-badge-success" style="padding: 4px 8px; border-radius: 12px; background: var(--pd-success-bg); color: var(--pd-success-text);">Selesai</span></p>
+          <p style="margin-bottom: 16px;">Sampel darah untuk pemeriksaan rutin. Hasil sudah tersedia dan dapat diunduh.</p>
+          <div class="pd-card-footer" style="margin: 16px -20px -20px -20px; padding: 16px 20px;">
+            <div class="flex">
+              <button class="pd-btn-sm" style="padding: 6px 12px;">Lihat Detail</button>
+              <button class="pd-btn-tertiary pd-btn-sm" style="padding: 6px 12px;">Download</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="pd-panel" style="padding: 20px;">
+          <h4 style="margin-bottom: 12px;">Statistik Harian</h4>
+          <div style="margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between;">
+              <span>Sampel Masuk</span>
+              <strong>24</strong>
+            </div>
+          </div>
+          <div style="margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between;">
+              <span>Sampel Selesai</span>
+              <strong>18</strong>
+            </div>
+          </div>
+          <div style="margin-bottom: 8px;">
+            <div style="display: flex; justify-content: space-between;">
+              <span>Pending</span>
+              <strong>6</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <h3>Tabel & Data</h3>
+      <div class="demo-card">
+        <table class="pd-table demo-table">
+          <thead>
+            <tr>
+              <th>ID Sampel</th>
+              <th>Jenis</th>
+              <th>Tanggal</th>
+              <th>Status</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>#12345</code></td>
+              <td>Darah</td>
+              <td>15 Okt 2024</td>
+              <td><span class="pd-badge-success demo-badge" style="background: var(--pd-success-bg); color: var(--pd-success-text);">Selesai</span></td>
+              <td>
+                <button class="pd-btn-tertiary" style="padding: 4px 8px; font-size: 12px;">Detail</button>
+              </td>
+            </tr>
+            <tr>
+              <td><code>#12346</code></td>
+              <td>Urin</td>
+              <td>15 Okt 2024</td>
+              <td><span class="pd-badge-warning demo-badge" style="background: var(--pd-warning-bg); color: var(--pd-warning-text);">Proses</span></td>
+              <td>
+                <button class="pd-btn-tertiary" style="padding: 4px 8px; font-size: 12px;">Detail</button>
+              </td>
+            </tr>
+            <tr>
+              <td><code>#12347</code></td>
+              <td>Sputum</td>
+              <td>14 Okt 2024</td>
+              <td><span class="pd-badge-error demo-badge" style="background: var(--pd-error-bg); color: var(--pd-error-text);">Gagal</span></td>
+              <td>
+                <button class="pd-btn-tertiary" style="padding: 4px 8px; font-size: 12px;">Detail</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Umpan Balik</h3>
+      <div class="demo-card">
+        <h4>Alert</h4>
+        <div class="pd-alert pd-alert-success demo-alert" style="background: var(--pd-success-bg); border-color: var(--pd-success-border); color: var(--pd-success-text);">
+          ✅ Sampel berhasil disimpan dan akan diproses dalam 24 jam.
+        </div>
+        <div class="pd-alert pd-alert-warning demo-alert" style="background: var(--pd-warning-bg); border-color: var(--pd-warning-border); color: var(--pd-warning-text);">
+          ⚠️ Beberapa field belum diisi dengan lengkap.
+        </div>
+        <div class="pd-alert pd-alert-error demo-alert" style="background: var(--pd-error-bg); border-color: var(--pd-error-border); color: var(--pd-error-text);">
+          ❌ Terjadi kesalahan saat memproses data. Silakan coba lagi.
+        </div>
+        <div class="pd-alert pd-alert-info demo-alert" style="background: var(--pd-info-bg); border-color: var(--pd-info-border); color: var(--pd-info-text);">
+          💡 Sistem akan maintenance pada Minggu, 20 Oktober 2024.
+        </div>
+
+        <h4 style="margin-top: 24px;">Badge</h4>
+        <div class="flex">
+          <span class="pd-badge pd-badge-primary demo-badge" style="background: var(--pd-primary); color: var(--pd-on-primary);">Primary</span>
+          <span class="pd-badge pd-badge-success demo-badge" style="background: var(--pd-success); color: white;">Aktif</span>
+          <span class="pd-badge pd-badge-warning demo-badge" style="background: var(--pd-warning); color: white;">Pending</span>
+          <span class="pd-badge pd-badge-error demo-badge" style="background: var(--pd-error); color: white;">Error</span>
+        </div>
+
+        <h4 style="margin-top: 24px;">Loading</h4>
+        <div class="flex">
+          <div class="pd-spinner" style="width: 24px; height: 24px; border: 3px solid var(--pd-border); border-top-color: var(--pd-primary); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+          <span>Memproses data...</span>
+        </div>
+      </div>
+
+      <h3>Empty State</h3>
+      <div class="pd-empty-state" style="padding: 48px; text-align: center;">
+        <div style="font-size: 48px; margin-bottom: 16px;">📭</div>
+        <h4 style="margin-bottom: 8px;">Belum ada data sampel</h4>
+        <p style="color: var(--pd-text-muted); margin-bottom: 16px;">Mulai dengan menambahkan sampel pertama Anda.</p>
+        <button class="pd-btn" style="padding: 8px 16px;">Tambah Sampel</button>
+      </div>
+    </section>
+
+    <!-- Layout Patterns -->
+    <section id="layout" class="section">
+      <h2>📐 Pola Layout</h2>
+
+      <h3>Grid System (12 Kolom)</h3>
+      <div class="token-display" style="margin-bottom: 16px;">
+        --pd-grid-columns: 12;<br>
+        --pd-gutter-md: 24px;<br>
+        --pd-container-lg: 1024px;
+      </div>
+
+      <h3>Breakpoints</h3>
+      <div class="grid grid-3">
+        <div class="demo-card">
+          <h4>Mobile</h4>
+          <div class="token-display">--pd-screen-sm: 640px</div>
+        </div>
+        <div class="demo-card">
+          <h4>Tablet</h4>
+          <div class="token-display">--pd-screen-md: 768px</div>
+        </div>
+        <div class="demo-card">
+          <h4>Desktop</h4>
+          <div class="token-display">--pd-screen-lg: 1024px</div>
+        </div>
+      </div>
+
+      <h3>Z-Index Scale</h3>
+      <div class="grid grid-4">
+        <div class="demo-card">
+          <h4>Dropdown</h4>
+          <div class="token-display">--pd-z-dropdown: 1000</div>
+        </div>
+        <div class="demo-card">
+          <h4>Modal</h4>
+          <div class="token-display">--pd-z-modal: 1050</div>
+        </div>
+        <div class="demo-card">
+          <h4>Toast</h4>
+          <div class="token-display">--pd-z-toast: 1080</div>
+        </div>
+        <div class="demo-card">
+          <h4>Tooltip</h4>
+          <div class="token-display">--pd-z-tooltip: 1090</div>
+        </div>
+      </div>
+
+      <h3>Timing & Easing</h3>
+      <div class="grid grid-3">
+        <div class="demo-card">
+          <h4>Fast</h4>
+          <div class="token-display">--pd-duration-fast: 150ms</div>
+          <button class="demo-button" style="transition: all var(--pd-duration-fast) var(--pd-ease-out);" onmouseover="this.style.background='var(--pd-primary)'; this.style.color='white';" onmouseout="this.style.background='white'; this.style.color='inherit';">Hover me</button>
+        </div>
+        <div class="demo-card">
+          <h4>Base</h4>
+          <div class="token-display">--pd-duration-base: 200ms</div>
+          <button class="demo-button" style="transition: all var(--pd-duration-base) var(--pd-ease-out);" onmouseover="this.style.background='var(--pd-primary)'; this.style.color='white';" onmouseout="this.style.background='white'; this.style.color='inherit';">Hover me</button>
+        </div>
+        <div class="demo-card">
+          <h4>Slow</h4>
+          <div class="token-display">--pd-duration-slow: 300ms</div>
+          <button class="demo-button" style="transition: all var(--pd-duration-slow) var(--pd-ease-in-out);" onmouseover="this.style.background='var(--pd-primary)'; this.style.color='white';" onmouseout="this.style.background='white'; this.style.color='inherit';">Hover me</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer style="text-align: center; padding: 48px 0; color: var(--pd-text-muted);">
+      <p>Pusdokkes Design System - Sistem desain komprehensif untuk aplikasi laboratorium</p>
+      <p style="margin-top: 8px;">Dibuat dengan ❤️ untuk meningkatkan konsistensi dan pengalaman pengguna</p>
+    </footer>
+  </div>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const button = document.querySelector('.theme-toggle');
+
+      if (html.getAttribute('data-theme') === 'dark') {
+        html.removeAttribute('data-theme');
+        button.textContent = '🌙';
+      } else {
+        html.setAttribute('data-theme', 'dark');
+        button.textContent = '☀️';
+      }
+    }
+
+    // Smooth scrolling for navigation links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+        }
+      });
+    });
+
+    // Navigation active state
+    const navLinks = document.querySelectorAll('.nav-link');
+    const sections = document.querySelectorAll('section[id]');
+
+    function updateActiveNav() {
+      const scrollPos = window.scrollY + 100;
+
+      sections.forEach(section => {
+        const top = section.offsetTop;
+        const bottom = top + section.offsetHeight;
+        const id = section.getAttribute('id');
+
+        if (scrollPos >= top && scrollPos < bottom) {
+          navLinks.forEach(link => link.classList.remove('active'));
+          const activeLink = document.querySelector(`a[href="#${id}"]`);
+          if (activeLink) activeLink.classList.add('active');
+        }
+      });
+    }
+
+    window.addEventListener('scroll', updateActiveNav);
+
+    // Spin animation for loading indicator
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+</body>
+</html>
