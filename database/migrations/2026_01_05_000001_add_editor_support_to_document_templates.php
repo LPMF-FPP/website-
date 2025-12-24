@@ -14,20 +14,48 @@ return new class extends Migration
                 $table->string('storage_path')->nullable()->change();
             }
 
-            // render_engine column already added in 2025_02_13_000000_add_render_engine_to_document_templates
-            // Skip adding it again to prevent "Duplicate column" error
+            // Add render_engine column if not exists
+            if (!Schema::hasColumn('document_templates', 'render_engine')) {
+                $table->string('render_engine')
+                    ->default(DocumentRenderEngine::DOMPDF->value)
+                    ->after('storage_path');
+            }
 
-            $table->longText('content_html')->nullable()->after('storage_path');
-            $table->longText('content_css')->nullable()->after('content_html');
-            $table->json('editor_project')->nullable()->after('content_css');
+            // Add content columns if not exist
+            if (!Schema::hasColumn('document_templates', 'content_html')) {
+                $table->longText('content_html')->nullable()->after('storage_path');
+            }
+            if (!Schema::hasColumn('document_templates', 'content_css')) {
+                $table->longText('content_css')->nullable()->after('content_html');
+            }
+            if (!Schema::hasColumn('document_templates', 'editor_project')) {
+                $table->json('editor_project')->nullable()->after('content_css');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('document_templates', function (Blueprint $table) {
-            // Only drop columns added in this migration, render_engine is handled separately
-            $table->dropColumn(['content_html', 'content_css', 'editor_project']);
+            // Drop columns added in this migration
+            $columnsToDrop = [];
+            
+            if (Schema::hasColumn('document_templates', 'render_engine')) {
+                $columnsToDrop[] = 'render_engine';
+            }
+            if (Schema::hasColumn('document_templates', 'content_html')) {
+                $columnsToDrop[] = 'content_html';
+            }
+            if (Schema::hasColumn('document_templates', 'content_css')) {
+                $columnsToDrop[] = 'content_css';
+            }
+            if (Schema::hasColumn('document_templates', 'editor_project')) {
+                $columnsToDrop[] = 'editor_project';
+            }
+            
+            if (!empty($columnsToDrop)) {
+                $table->dropColumn($columnsToDrop);
+            }
 
             if (Schema::hasColumn('document_templates', 'storage_path')) {
                 $table->string('storage_path')->nullable(false)->change();
