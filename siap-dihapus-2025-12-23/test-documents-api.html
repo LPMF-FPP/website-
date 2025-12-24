@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documents API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button { padding: 8px 16px; margin: 5px; cursor: pointer; }
+        pre { background: #f4f4f4; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Documents API Test</h1>
+    <p>This tests the robustness of apiFetch when the backend returns errors or non-JSON responses.</p>
+    
+    <button onclick="testValidJson()">Test 1: Valid JSON Response</button>
+    <button onclick="testHtmlError()">Test 2: HTML Error (simulated)</button>
+    <button onclick="testMalformedJson()">Test 3: Malformed JSON (simulated)</button>
+    
+    <div id="results"></div>
+
+    <script type="module">
+        // Import the actual SettingsClient
+        import { SettingsClient } from '/build/assets/index-DDKuzNIO.js';
+        
+        const client = new SettingsClient();
+        window.client = client;
+        
+        window.testValidJson = async function() {
+            addResult('info', 'Testing valid JSON response from /api/settings/documents...');
+            try {
+                const data = await client.apiFetch('/api/settings/documents?per_page=5&page=1');
+                addResult('success', 'Valid JSON test passed! Response: ' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                addResult('error', 'Valid JSON test failed: ' + error.message);
+            }
+        };
+        
+        window.testHtmlError = async function() {
+            addResult('info', 'Testing HTML error response handling...');
+            try {
+                // This will likely return HTML login page due to auth
+                const data = await client.apiFetch('/nonexistent-endpoint');
+                addResult('error', 'Should have thrown an error for HTML response');
+            } catch (error) {
+                if (error.message.includes('non-JSON response') || error.message.includes('Failed to parse')) {
+                    addResult('success', 'HTML error handling works! Error: ' + error.message.substring(0, 200));
+                } else {
+                    addResult('error', 'Unexpected error: ' + error.message);
+                }
+            }
+        };
+        
+        window.testMalformedJson = function() {
+            addResult('info', 'Malformed JSON test: This would require backend to return invalid JSON.');
+            addResult('info', 'Skipping (requires manual backend modification)');
+        };
+        
+        function addResult(type, message) {
+            const div = document.createElement('div');
+            div.className = 'test-result ' + type;
+            div.innerHTML = '<strong>' + type.toUpperCase() + ':</strong> ' + escapeHtml(message);
+            document.getElementById('results').appendChild(div);
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        console.log('Test page loaded. Click buttons to run tests.');
+    </script>
+</body>
+</html>

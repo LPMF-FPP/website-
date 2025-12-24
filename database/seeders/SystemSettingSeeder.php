@@ -13,8 +13,8 @@ class SystemSettingSeeder extends Seeder
             [
                 'key' => 'numbering.sample_code',
                 'value' => [
-                    'pattern' => 'LPMF-{YYYY}{MM}-{INV}-{SEQ:4}',
-                    'reset' => 'monthly',
+                    'pattern' => 'W{SEQ:3}{RM}{YYYY}',
+                    'reset' => 'yearly',
                     'start_from' => 1,
                 ],
             ],
@@ -29,10 +29,25 @@ class SystemSettingSeeder extends Seeder
             [
                 'key' => 'numbering.lhu',
                 'value' => [
-                    'pattern' => 'LHU/{YYYY}/{MM}/{TEST}/{SEQ:4}',
+                    'pattern' => 'LHU-{YYYY}-{SEQ:4}',
+                    'reset' => 'yearly',
+                    'start_from' => 1,
+                ],
+            ],
+            [
+                'key' => 'numbering.ba_penyerahan',
+                'value' => [
+                    'pattern' => 'LPMF/BA/{SEQ:3}/Rah/{YYYY}',
+                    'reset' => 'yearly',
+                    'start_from' => 1,
+                ],
+            ],
+            [
+                'key' => 'numbering.tracking',
+                'value' => [
+                    'pattern' => 'LPMF{SEQ:3}{MM}{YY}',
                     'reset' => 'monthly',
                     'start_from' => 1,
-                    'per_test_type' => true,
                 ],
             ],
             [
@@ -77,10 +92,9 @@ class SystemSettingSeeder extends Seeder
             [
                 'key' => 'templates.active',
                 'value' => [
-                    'LHU' => null,
-                    'BA_PERMINTAAN' => null,
-                    'BA_PENYERAHAN' => null,
-                    'TANDA_TERIMA' => null,
+                    'lhu' => null,
+                    'ba_penerimaan' => null,
+                    'ba_penyerahan' => null,
                 ],
             ],
             [
@@ -97,29 +111,25 @@ class SystemSettingSeeder extends Seeder
                 'value' => [
                     'storage_driver' => 'local',
                     'base_path' => 'official_docs/',
+                    'storage_folder_path' => 'official_docs/',
                     'purge_after_days' => 1825,
                     'export_filename_pattern' => '{DOC}/{YYYY}/{MM}/{SEQ:4}.pdf',
                 ],
             ],
             [
-                'key' => 'automation',
+                'key' => 'notifications',
                 'value' => [
-                    'auto_generate_supporting_docs' => [
-                        'request_letter' => false,
-                        'handover_report' => false,
-                        'sample_receipt' => false,
-                        'test_report' => false,
+                    'email' => [
+                        'enabled' => true,
+                        'default_recipient' => 'lab@example.test',
+                        'subject' => '[LIMS] Pesan notifikasi',
+                        'body' => 'Pesan pengujian siap dikirim.',
                     ],
-                    'notify_on_issue' => [
-                        'email' => false,
-                        'whatsapp' => false,
-                        'templates' => [
-                            'subject' => '[LIMS] Nomor {SCOPE} {NUMBER} terbit',
-                            'body' => 'Nomor {SCOPE}: {NUMBER} untuk {REQ}',
-                            'whatsapp' => '*[LIMS]* Nomor {SCOPE} {NUMBER} terbit untuk {REQ}',
-                        ],
+                    'whatsapp' => [
+                        'enabled' => false,
+                        'default_target' => '',
+                        'message' => '*[LIMS]* Pesan percobaan notifikasi.',
                     ],
-                    'whatsapp_recipient' => '',
                 ],
             ],
             [
@@ -139,4 +149,3 @@ class SystemSettingSeeder extends Seeder
         }
     }
 }
-

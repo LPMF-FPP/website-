@@ -99,7 +99,7 @@ class DashboardController extends Controller
                 ->map(function ($request) {
                     return (object) [
                         'type' => 'new_request',
-                        'title' => 'Permintaan Baru: ' . $request->request_number,
+                        'title' => 'Permintaan Baru: ' . ($request->receipt_number ?? $request->request_number),
                         'description' => 'dari ' . ($request->investigator->name ?? 'Unknown'),
                         'time' => $request->created_at,
                         'icon' => '📋',

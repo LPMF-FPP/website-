@@ -18,7 +18,8 @@
         "audit:all": "npm-run-all -s audit:stylelint audit:eslint audit:cascade audit:guard audit:contrast audit:zindex audit:a11y audit:ui:a11y audit:coverage",
         "audit:critical": "npm-run-all -s audit:guard audit:cascade audit:contrast",
         "test:php": "php vendor/bin/pest --parallel --stop-on-failure",
-        "test:php:watch": "php vendor/bin/pest --watch"
+        "test:php:watch": "php vendor/bin/pest --watch",
+        "test:search": "node --test tests/js/search.test.js"
     },
     "devDependencies": {
         "@lhci/cli": "^0.14.0",

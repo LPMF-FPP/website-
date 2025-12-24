@@ -2,16 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\DocumentType;
 use App\Models\Document;
 use App\Models\Investigator;
 use App\Models\Sample;
 use App\Models\TestRequest;
 use App\Services\ActiveSubstanceService;
+use App\Services\DocumentGeneration\DocumentRenderService;
 use App\Services\DocumentService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -376,11 +379,13 @@ class RequestController extends Controller
             // Hapus semua file yang sudah diupload jika ada error (dari disk 'public')
 
             if ($letterDoc && $letterDoc->path) {
-                Storage::disk('public')->delete($letterDoc->path);
+                $disk = $letterDoc->storage_disk ?? 'public';
+                Storage::disk($disk)->delete($letterDoc->path);
             }
 
             if ($evidenceDoc && $evidenceDoc->path) {
-                Storage::disk('public')->delete($evidenceDoc->path);
+                $disk = $evidenceDoc->storage_disk ?? 'public';
+                Storage::disk($disk)->delete($evidenceDoc->path);
             }
 
             // Hapus sample photos jika ada yang sudah diupload
@@ -393,7 +398,8 @@ class RequestController extends Controller
                     
                 foreach ($samplePhotoDocs as $doc) {
                     if ($doc->path) {
-                        Storage::disk('public')->delete($doc->path);
+                        $disk = $doc->storage_disk ?? 'public';
+                        Storage::disk($disk)->delete($doc->path);
                     }
                 }
             }
@@ -554,22 +560,25 @@ class RequestController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function downloadDocument(TestRequest $request, string $type)
+    public function downloadDocument(TestRequest $testRequest, string $type)
     {
 
-        $document = $request->documents()->where('document_type', $type)->latest()->firstOrFail();
+        $document = $testRequest->documents()->where('document_type', $type)->latest()->firstOrFail();
 
-        if (! Storage::disk('documents')->exists($document->file_path)) {
+        $path = $document->file_path ?? $document->path;
+        $disk = $document->storage_disk ?? 'documents';
+
+        if (! $path || ! Storage::disk($disk)->exists($path)) {
 
             abort(404, 'Dokumen tidak ditemukan di penyimpanan.');
 
         }
 
-        return Storage::disk('documents')->download($document->file_path, $document->original_filename);
+        return Storage::disk($disk)->download($path, $document->original_filename);
 
     }
 
-    public function deleteDocument(TestRequest $request, string $type)
+    public function deleteDocument(TestRequest $testRequest, string $type)
     {
 
         // Validasi tipe dokumen yang diizinkan
@@ -606,7 +615,7 @@ class RequestController extends Controller
 
         // Cari dokumen berdasarkan type
 
-        $document = $request->documents()->where('document_type', $type)->latest()->first();
+        $document = $testRequest->documents()->where('document_type', $type)->latest()->first();
 
         if (! $document) {
 
@@ -624,10 +633,10 @@ class RequestController extends Controller
 
             // Hapus file dari storage jika ada
 
-            if ($document->file_path && Storage::disk('documents')->exists($document->file_path)) {
-
-                Storage::disk('documents')->delete($document->file_path);
-
+            $path = $document->file_path ?? $document->path;
+            $disk = $document->storage_disk ?? 'documents';
+            if ($path && Storage::disk($disk)->exists($path)) {
+                Storage::disk($disk)->delete($path);
             }
 
             // Simpan info untuk audit log
@@ -638,13 +647,13 @@ class RequestController extends Controller
 
                 'filename' => $document->original_filename,
 
-                'request_number' => $request->request_number,
+                'request_number' => $testRequest->request_number,
 
             ];
 
             // Hapus record dari database
 
-            $document->delete();
+            $document->forceDelete();
 
             // Log audit
 
@@ -654,9 +663,9 @@ class RequestController extends Controller
 
                 'user_name' => auth()->user()->name ?? 'Unknown',
 
-                'request_id' => $request->id,
+                'request_id' => $testRequest->id,
 
-                'request_number' => $request->request_number,
+                'request_number' => $testRequest->request_number,
 
                 'document_type' => $documentInfo['type'],
 
@@ -670,7 +679,7 @@ class RequestController extends Controller
 
                 'ok' => true,
 
-                'requestId' => $request->id,
+                'requestId' => $testRequest->id,
 
                 'removed' => $type,
 
@@ -711,13 +720,13 @@ class RequestController extends Controller
         DB::transaction(function () use ($testRequest) {
             // Hapus dokumen terkait terlebih dahulu
             foreach ($testRequest->documents as $doc) {
-                // Check both path and file_path attributes
-                if ($doc->file_path) {
-                    Storage::disk('public')->delete($doc->file_path);
-                } elseif ($doc->path) {
-                    Storage::disk('public')->delete($doc->path);
+                $path = $doc->file_path ?? $doc->path;
+                if ($path) {
+                    $disk = $doc->storage_disk ?? 'public';
+                    Storage::disk($disk)->delete($path);
                 }
-                $doc->delete();
+
+                $doc->forceDelete();
             }
 
             // Hapus sampel terkait
@@ -794,6 +803,10 @@ class RequestController extends Controller
 
             'document_type' => 'sample_receipt',
 
+            'source' => 'generated',
+
+            'storage_disk' => 'documents',
+
             'file_path' => $samplePath,
 
             'original_filename' => 'Tanda Terima Sampel '.$testRequest->request_number.'.pdf',
@@ -834,6 +847,10 @@ class RequestController extends Controller
 
             'document_type' => 'request_letter_receipt',
 
+            'source' => 'generated',
+
+            'storage_disk' => 'documents',
+
             'file_path' => $letterPath,
 
             'original_filename' => 'Tanda Terima Surat '.$testRequest->request_number.'.pdf',
@@ -872,6 +889,10 @@ class RequestController extends Controller
 
             'document_type' => 'handover_report',
 
+            'source' => 'generated',
+
+            'storage_disk' => 'documents',
+
             'file_path' => $handoverPath,
 
             'original_filename' => 'Berita Acara '.$testRequest->request_number.'.pdf',
@@ -904,31 +925,43 @@ class RequestController extends Controller
     /**
      * Check if Berita Acara exists for this request
      */
-    public function checkBeritaAcara(TestRequest $request)
+    public function checkBeritaAcara(TestRequest $testRequest)
     {
         // Check if document exists in documents table
-        $document = Document::where('test_request_id', $request->id)
+        $document = Document::where('test_request_id', $testRequest->id)
             ->where('document_type', 'ba_penerimaan')
             ->where('source', 'generated')
             ->first();
 
+        $documentService = app(DocumentService::class);
+        $exists = $document !== null && $documentService->fileExists($document);
+
         return response()->json([
-            'exists' => $document !== null && Storage::disk('public')->exists($document->path ?? ''),
+            'exists' => $exists,
             'filename' => $document->filename ?? null,
             'document_id' => $document->id ?? null,
-            'request_id' => $request->id,
+            'request_id' => $testRequest->id,
         ]);
     }
 
     /**
      * Generate Berita Acara Penerimaan
      */
-    public function generateBeritaAcara(TestRequest $request)
+    public function generateBeritaAcara(TestRequest $testRequest)
     {
         try {
+            $documentService = app(DocumentService::class);
+            $templateService = app(\App\Services\DocumentTemplateService::class);
+            $pdfRenderService = app(\App\Services\PdfRenderService::class);
+
             // Ambil relasi lengkap
-            $request->loadMissing(['investigator', 'samples']);
-            $inv = $request->investigator;
+            $testRequest->loadMissing(['investigator', 'samples']);
+            $inv = $testRequest->investigator;
+
+            // Validate investigator exists
+            if (!$inv) {
+                return back()->with('error', 'Investigator tidak ditemukan untuk test request ini.');
+            }
 
             // Pastikan folder_key ada (fallback kalau model belum auto-set)
             if (empty($inv->folder_key)) {
@@ -936,44 +969,127 @@ class RequestController extends Controller
                 $inv->save();
             }
 
-            // Generate PDF directly from view
-            $pdfBinary = \Barryvdh\DomPDF\Facade\Pdf::loadView(
-                'pdf.berita-acara-penerimaan',
-                ['request' => $request->loadMissing(['investigator','samples']), 'generatedAt' => now()]
-            )
-            ->setPaper('a4')
-            ->setOption('isRemoteEnabled', true)
-            ->setOption('isHtml5ParserEnabled', true)
-            ->setOption('dpi', 96)
-            ->output();
+            // Try to get active template for BA
+            $template = $templateService->getActiveTemplateByDocType('BA');
+            
+            $templateId = null;
+            $templateVersion = null;
+            $templateHash = null;
+            $html = null;
 
-            // Arsip ke storage/app/public/... via DocumentService
-            $doc = app(\App\Services\DocumentService::class)->storeGenerated(
+            if ($template) {
+                // Use template system
+                Log::info('Using active template for BA generation', [
+                    'template_id' => $template->id,
+                    'template_name' => $template->name,
+                    'request_id' => $testRequest->id,
+                ]);
+
+                // Prepare data for template rendering
+                $data = [
+                    'request_number' => $testRequest->request_number,
+                    'case_number' => $testRequest->case_number,
+                    'to_office' => $testRequest->to_office,
+                    'generated_at' => now()->format('d F Y'),
+                    'investigator_name' => $inv->name,
+                    'investigator_nrp' => $inv->nrp,
+                    'investigator_rank' => $inv->rank,
+                    'investigator_jurisdiction' => $inv->jurisdiction,
+                    'investigator_phone' => $inv->phone,
+                    'suspect_name' => $testRequest->suspect_name,
+                    'suspect_gender' => $testRequest->suspect_gender,
+                    'suspect_age' => $testRequest->suspect_age,
+                    'suspect_address' => $testRequest->suspect_address,
+                    'sample_count' => $testRequest->samples->count(),
+                    'lab_name' => 'Pusdokkes Polri',
+                    'lab_address' => 'Jakarta',
+                ];
+
+                // Render HTML from template
+                $html = $templateService->renderHtmlFromTemplate($template, $data);
+
+                // Track template metadata
+                $templateId = $template->id;
+                $templateVersion = $template->version;
+                $templateHash = $templateService->calculateTemplateHash($template);
+            } else {
+                // Fallback to legacy view
+                Log::warning('No active template found for BA, using legacy view', [
+                    'request_id' => $testRequest->id,
+                ]);
+
+                $renderService = app(DocumentRenderService::class);
+                $rendered = $renderService->render(
+                    type: DocumentType::BA_PENERIMAAN,
+                    contextId: $testRequest->id
+                );
+
+                // Return immediately with legacy system
+                $doc = $documentService->storeGenerated(
+                    binary:   $rendered->content,
+                    ext:      'pdf',
+                    inv:      $inv,
+                    req:      $testRequest,
+                    type:     'ba_penerimaan',
+                    baseName: 'BA-Penerimaan-'.$testRequest->request_number
+                );
+
+                if (request()->boolean('download')) {
+                    return $rendered->toDownloadResponse();
+                }
+
+                return $rendered->toInlineResponse();
+            }
+
+            // Generate PDF from HTML using PdfRenderService
+            $pdfBinary = $pdfRenderService->htmlToPdf($html, config('app.url'));
+
+            // Save PDF via DocumentService
+            $doc = $documentService->storeGenerated(
                 binary:   $pdfBinary,
                 ext:      'pdf',
                 inv:      $inv,
-                req:      $request,
+                req:      $testRequest,
                 type:     'ba_penerimaan',
-                baseName: 'BA-Penerimaan-'.$request->request_number
+                baseName: 'BA-Penerimaan-'.$testRequest->request_number
             );
+
+            // Update document metadata dengan template info
+            if ($doc && $templateId) {
+                $extra = $doc->extra ?? [];
+                $extra['template_id'] = $templateId;
+                $extra['template_version'] = $templateVersion;
+                $extra['template_hash'] = $templateHash;
+                $doc->extra = $extra;
+                $doc->save();
+
+                Log::info('BA generated with template metadata', [
+                    'document_id' => $doc->id,
+                    'template_id' => $templateId,
+                    'template_version' => $templateVersion,
+                    'request_id' => $testRequest->id,
+                ]);
+            }
 
             // Download atau inline view
             if (request()->boolean('download')) {
                 return response()->download(
-                    storage_path('app/public/'.$doc->path),
+                    storage_path('app/public/' . $doc->path),
                     $doc->filename,
                     ['Content-Type' => 'application/pdf']
                 );
             }
 
             return response($pdfBinary, 200, [
-                'Content-Type'        => 'application/pdf',
-                'Content-Disposition' => 'inline; filename="'.$doc->filename.'"',
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $doc->filename . '"',
             ]);
+
         } catch (\Throwable $e) {
-            \Log::error('Exception in generateBeritaAcara (Blade/PDF)', [
-                'request_id' => $request->id ?? null,
+            \Log::error('Exception in generateBeritaAcara', [
+                'request_id' => $testRequest->id ?? null,
                 'error'      => $e->getMessage(),
+                'trace'      => $e->getTraceAsString(),
             ]);
             // Fallback aman: kembali dengan error flash
             return back()->with('error', 'Gagal membuat Berita Acara: '.$e->getMessage());
@@ -983,20 +1099,21 @@ class RequestController extends Controller
     /**
      * Download Berita Acara Penerimaan
      */
-    public function downloadBeritaAcara(TestRequest $request)
+    public function downloadBeritaAcara(TestRequest $testRequest)
     {
+        $documentService = app(DocumentService::class);
         // Find the PDF document
-        $document = Document::where('test_request_id', $request->id)
+        $document = Document::where('test_request_id', $testRequest->id)
             ->where('document_type', 'ba_penerimaan')
             ->where('source', 'generated')
             ->latest()
             ->first();
 
-        if (!$document || !Storage::disk('public')->exists($document->path)) {
+        if (!$document || !$documentService->fileExists($document)) {
             return back()->with('error', 'Berita Acara belum di-generate. Silakan generate terlebih dahulu.');
         }
 
-        $filePath = Storage::disk('public')->path($document->path);
+        $filePath = $documentService->getFilePath($document);
         return response()->download($filePath, $document->filename, [
             'Content-Type' => 'application/pdf',
         ]);
@@ -1005,31 +1122,32 @@ class RequestController extends Controller
     /**
      * View Berita Acara Penerimaan in browser
      */
-    public function viewBeritaAcara(TestRequest $request)
+    public function viewBeritaAcara(TestRequest $testRequest)
     {
+        $documentService = app(DocumentService::class);
         // Find the HTML document first, fallback to PDF
-        $htmlDocument = Document::where('test_request_id', $request->id)
+        $htmlDocument = Document::where('test_request_id', $testRequest->id)
             ->where('document_type', 'ba_penerimaan_html')
             ->where('source', 'generated')
             ->latest()
             ->first();
 
-        if ($htmlDocument && Storage::disk('public')->exists($htmlDocument->path)) {
-            $filePath = Storage::disk('public')->path($htmlDocument->path);
+        if ($htmlDocument && $documentService->fileExists($htmlDocument)) {
+            $filePath = $documentService->getFilePath($htmlDocument);
             return response()->file($filePath, [
                 'Content-Type' => 'text/html',
             ]);
         }
 
         // Fallback to PDF if HTML not available
-        $pdfDocument = Document::where('test_request_id', $request->id)
+        $pdfDocument = Document::where('test_request_id', $testRequest->id)
             ->where('document_type', 'ba_penerimaan')
             ->where('source', 'generated')
             ->latest()
             ->first();
 
-        if ($pdfDocument && Storage::disk('public')->exists($pdfDocument->path)) {
-            $filePath = Storage::disk('public')->path($pdfDocument->path);
+        if ($pdfDocument && $documentService->fileExists($pdfDocument)) {
+            $filePath = $documentService->getFilePath($pdfDocument);
             return response()->file($filePath, [
                 'Content-Type' => 'application/pdf',
             ]);

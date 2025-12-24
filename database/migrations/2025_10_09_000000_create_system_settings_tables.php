@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('system_settings', function (Blueprint $table) {
+        Schema::create('settings', function (Blueprint $table) {
             $table->id();
             $table->string('key')->unique();
             $table->json('value');
@@ -52,7 +52,7 @@ return new class extends Migration
         Schema::dropIfExists('audit_logs');
         Schema::dropIfExists('document_templates');
         Schema::dropIfExists('sequences');
-        Schema::dropIfExists('system_settings');
+        Schema::dropIfExists('settings');
     }
 };
 

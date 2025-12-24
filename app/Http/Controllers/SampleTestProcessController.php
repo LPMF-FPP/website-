@@ -6,6 +6,7 @@ use App\Models\Sample;
 use App\Models\SampleTestProcess;
 use App\Services\WorkflowService;
 use App\Services\ActiveSubstanceService;
+use App\Services\NumberingService;
 use App\Enums\TestProcessStage;
 use App\Enums\SampleStatus;
 use Illuminate\Http\Request;
@@ -15,6 +16,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use App\Models\Document;
 
@@ -345,6 +347,13 @@ class SampleTestProcessController extends Controller
     {
         $sampleProcess->loadMissing(['sample.testRequest.investigator']);
 
+        $sample = $sampleProcess->sample;
+        $request = $sample?->testRequest;
+        $investigator = $request?->investigator;
+        if (!$sample || !$request || !$investigator) {
+            abort(422, 'Missing sample request data for form preparation.');
+        }
+
         $html = view('pdf.form-preparation', [
             'process'     => $sampleProcess,
             'generatedAt' => now(),
@@ -358,18 +367,22 @@ class SampleTestProcessController extends Controller
             ->output();
 
         $docs = app(\App\Services\DocumentService::class);
-        $reqNo = $sampleProcess->sample->testRequest->request_number;
-        $sampleCode = $sampleProcess->sample->sample_code ?? ('SAMPLE-'.$sampleProcess->sample_id);
+        $reqNo = $request->request_number ?? 'REQ-UNKNOWN';
+        $sampleCode = $sample->sample_code ?? ('SAMPLE-'.$sampleProcess->sample_id);
         $baseName = "Form-Preparasi-{$sampleCode}-{$reqNo}";
 
         $doc = $docs->storeForSampleProcess($sampleProcess, 'pdf', 'form_preparation', $baseName, $pdfBinary);
 
         if (request()->boolean('download')) {
-            return response()->download(
-                storage_path('app/public/'.$doc->path),
-                $doc->filename,
-                ['Content-Type' => 'application/pdf']
-            );
+            // Use Storage facade to get the file path, works with both real and fake storage
+            $disk = $doc->storage_disk ?? 'public';
+            $stream = Storage::disk($disk)->get($doc->path);
+            
+            return response($stream, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="'.$doc->filename.'"',
+                'Content-Length' => strlen($stream),
+            ]);
         }
 
         return response($pdfBinary, 200, [
@@ -543,49 +556,166 @@ class SampleTestProcessController extends Controller
             ->with('success', 'Proses pengujian berhasil diperbarui.');
     }
 
-    public function generateReport(SampleTestProcess $sampleProcess, \App\Services\DocumentService $docs)
+    public function generateReport(SampleTestProcess $sampleProcess, \App\Services\DocumentService $docs, NumberingService $numberingService)
     {
         $sampleProcess->load(['sample.testRequest.investigator']);
+        $templateService = app(\App\Services\DocumentTemplateService::class);
+        $pdfRenderService = app(\App\Services\PdfRenderService::class);
 
         // Validate that sample exists
         if (!$sampleProcess->sample) {
             abort(404, 'Sample not found for this process');
         }
 
-        // Set & persist nomor LHU if empty (stored in metadata)
+        // BUSINESS RULE: Issue LHU number ONCE and persist it. Regeneration reuses the same number.
         $metadata = $sampleProcess->metadata ?? [];
-        if (empty($metadata['report_number']) && empty($metadata['lab_report_no']) && empty($metadata['lhu_number'])) {
-            $metadata['report_number'] = $this->computeFLHUFromSampleCode($sampleProcess->sample);
-            $sampleProcess->metadata = $metadata;
-            $sampleProcess->save();
+        $lhuNumber = $metadata['lhu_number'] ?? $metadata['report_number'] ?? $metadata['lab_report_no'] ?? null;
+
+        if (empty($lhuNumber)) {
+            // No LHU number exists yet - issue a new one using the latest 'lhu' scope configuration
+            try {
+                $lhuNumber = $numberingService->issue('lhu', [
+                    'sample_id' => $sampleProcess->sample_id,
+                    'process_id' => $sampleProcess->id,
+                    'sample_code' => $sampleProcess->sample->sample_code ?? null,
+                ]);
+
+                // Persist the issued number
+                $metadata['lhu_number'] = $lhuNumber;
+                $sampleProcess->metadata = $metadata;
+                $sampleProcess->save();
+
+                Log::info('LHU number issued', [
+                    'scope' => 'lhu',
+                    'number' => $lhuNumber,
+                    'process_id' => $sampleProcess->id,
+                    'sample_id' => $sampleProcess->sample_id,
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Failed to issue LHU number', [
+                    'error' => $e->getMessage(),
+                    'process_id' => $sampleProcess->id,
+                ]);
+                throw $e;
+            }
+        } else {
+            // LHU number already exists - reuse it (regenerate PDF with same number)
+            Log::debug('Reusing existing LHU number', [
+                'number' => $lhuNumber,
+                'process_id' => $sampleProcess->id,
+            ]);
         }
 
-        // Force hasil dari ZAT AKTIF sampel
-        $forcedActive = $sampleProcess->sample->active_substance ?? null;
+        // Try to get active template for LHU
+        $template = $templateService->getActiveTemplateByDocType('LHU');
+        
+        $templateId = null;
+        $templateVersion = null;
+        $templateHash = null;
+        $html = null;
 
-        // Render HTML
-        $html = view('pdf.laporan-hasil-uji', [
-            'process'               => $sampleProcess,
-            'generatedAt'           => now(),
-            'noLHU'                 => ($metadata['report_number'] ?? $metadata['lab_report_no'] ?? $metadata['lhu_number'] ?? null),
-            'forcedActiveSubstance' => $forcedActive,
-        ])->render();
+        if ($template) {
+            // Use template system
+            Log::info('Using active template for LHU generation', [
+                'template_id' => $template->id,
+                'template_name' => $template->name,
+                'process_id' => $sampleProcess->id,
+            ]);
 
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)
-            ->setPaper('a4')
-            ->setOption('isRemoteEnabled', true)
-            ->setOption('isHtml5ParserEnabled', true)
-            ->setOption('dpi', 96)
-            ->output();
+            // Force hasil dari ZAT AKTIF sampel
+            $forcedActive = $sampleProcess->sample->active_substance ?? null;
+            $detectedSubstance = $metadata['detected_substance'] ?? $metadata['detection'] ?? $metadata['hasil'] ?? $forcedActive;
+            $testResult = $metadata['test_result'] ?? null;
+            $instrument = $metadata['instrument'] ?? $metadata['instrument_pengujian'] ?? null;
+
+            // Map test result to text
+            $testResultText = match ($testResult) {
+                'positive' => 'Positif',
+                'negative' => 'Negatif',
+                default => 'Belum ditentukan',
+            };
+
+            // Prepare data for template rendering
+            $data = [
+                'lhu_number' => $lhuNumber,
+                'report_number' => $lhuNumber,
+                'request_number' => $sampleProcess->sample->testRequest->request_number ?? 'N/A',
+                'case_number' => $sampleProcess->sample->testRequest->case_number ?? 'N/A',
+                'generated_at' => now()->format('d F Y'),
+                'investigator_name' => $sampleProcess->sample->testRequest->investigator->name ?? 'N/A',
+                'investigator_nrp' => $sampleProcess->sample->testRequest->investigator->nrp ?? 'N/A',
+                'investigator_rank' => $sampleProcess->sample->testRequest->investigator->rank ?? 'N/A',
+                'investigator_jurisdiction' => $sampleProcess->sample->testRequest->investigator->jurisdiction ?? 'N/A',
+                'sample_name' => $sampleProcess->sample->sample_name ?? 'N/A',
+                'sample_code' => $sampleProcess->sample->sample_code ?? 'N/A',
+                'sample_type' => $sampleProcess->sample->sample_form ?? 'N/A',
+                'sample_weight' => $sampleProcess->sample->sample_weight ?? 'N/A',
+                'package_quantity' => $sampleProcess->sample->package_quantity ?? 1,
+                'packaging_type' => $sampleProcess->sample->packaging_type ?? 'N/A',
+                'test_date' => $sampleProcess->completed_at?->format('d F Y') ?? now()->format('d F Y'),
+                'analyst_name' => $sampleProcess->analyst->name ?? 'N/A',
+                'active_substance' => $forcedActive ?? 'Belum dianalisis',
+                'detected_substance' => $detectedSubstance ?? 'Tidak terdeteksi',
+                'instrument' => $instrument ?? 'N/A',
+                'test_result' => $testResultText,
+                'test_result_text' => $testResultText,
+                'conclusion' => "Barang bukti mengandung {$detectedSubstance}",
+                'lab_name' => 'Pusdokkes Polri',
+                'lab_address' => 'Jakarta',
+            ];
+
+            // Render HTML from template
+            $html = $templateService->renderHtmlFromTemplate($template, $data);
+
+            // Track template metadata
+            $templateId = $template->id;
+            $templateVersion = $template->version;
+            $templateHash = $templateService->calculateTemplateHash($template);
+        } else {
+            // Fallback to legacy view
+            Log::warning('No active template found for LHU, using legacy view', [
+                'process_id' => $sampleProcess->id,
+            ]);
+
+            // Force hasil dari ZAT AKTIF sampel
+            $forcedActive = $sampleProcess->sample->active_substance ?? null;
+
+            // Render HTML from legacy view
+            $html = view('pdf.laporan-hasil-uji', [
+                'process'               => $sampleProcess,
+                'generatedAt'           => now(),
+                'noLHU'                 => $lhuNumber,
+                'forcedActiveSubstance' => $forcedActive,
+            ])->render();
+        }
+
+        // Generate PDF from HTML using PdfRenderService
+        $pdf = $pdfRenderService->htmlToPdf($html, config('app.url'));
 
         // SAVE via DocumentService (html + pdf)
         $reqNo = $sampleProcess->sample->testRequest->request_number ?? 'REQ-UNKNOWN';
         $code  = $sampleProcess->sample->sample_code ?? ('SAMPLE-'.$sampleProcess->sample_id);
-        $noLHU = $metadata['report_number'] ?? $metadata['lab_report_no'] ?? null;
-        $base  = trim("Laporan-Hasil-Uji-{$code}-{$reqNo}".($noLHU ? "-{$noLHU}" : ''));
+        $base  = trim("Laporan-Hasil-Uji-{$code}-{$reqNo}".($lhuNumber ? "-{$lhuNumber}" : ''));
 
         $docs->storeForSampleProcess($sampleProcess, 'html', 'laporan_hasil_uji_html', $base, $html);
         $docPdf = $docs->storeForSampleProcess($sampleProcess, 'pdf',  'laporan_hasil_uji',      $base, $pdf);
+
+        // Update document metadata dengan template info
+        if ($docPdf && $templateId) {
+            $extra = $docPdf->extra ?? [];
+            $extra['template_id'] = $templateId;
+            $extra['template_version'] = $templateVersion;
+            $extra['template_hash'] = $templateHash;
+            $docPdf->extra = $extra;
+            $docPdf->save();
+
+            Log::info('LHU generated with template metadata', [
+                'document_id' => $docPdf->id,
+                'template_id' => $templateId,
+                'template_version' => $templateVersion,
+                'process_id' => $sampleProcess->id,
+            ]);
+        }
 
         // respond inline or download
         if (request()->boolean('download')) {
@@ -602,6 +732,9 @@ class SampleTestProcessController extends Controller
         ]);
     }
 
+    /**
+     * @deprecated Use NumberingService::issue('lhu') instead
+     */
     private function computeFLHUFromSampleCode(?Sample $sample): string
     {
         $code = (string)($sample->sample_code ?? '');
@@ -617,6 +750,9 @@ class SampleTestProcessController extends Controller
         return 'FLHU001';
     }
 
+    /**
+     * @deprecated Use NumberingService::issue('lhu') instead
+     */
     protected function generateNextReportNumber(): string
     {
         $metadatas = SampleTestProcess::where('stage', TestProcessStage::INTERPRETATION->value)

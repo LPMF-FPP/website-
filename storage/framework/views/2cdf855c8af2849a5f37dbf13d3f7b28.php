@@ -1,0 +1,2 @@
+<a <?php echo e($attributes->merge(['class' => 'block w-full rounded-md px-4 py-2 text-start text-sm leading-5 text-primary-700 hover:bg-primary-50 focus-visible:outline-none focus-visible:bg-primary-100 focus-visible:text-primary-900 transition duration-150 ease-in-out'])); ?>><?php echo e($slot); ?></a>
+<?php /**PATH /home/lpmf-dev/website-/resources/views/components/dropdown-link.blade.php ENDPATH**/ ?>

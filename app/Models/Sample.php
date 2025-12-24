@@ -119,21 +119,13 @@ class Sample extends Model
 
 
         static::creating(function ($model) {
-
-
-
             if (!$model->sample_code) {
-
-
-
-                $model->sample_code = static::generateSampleCode();
-
-
-
+                // Use centralized NumberingService instead of manual generation
+                $numbering = app(\App\Services\NumberingService::class);
+                $model->sample_code = $numbering->issue('sample_code', [
+                    'investigator_id' => $model->investigator_id ?? null,
+                ]);
             }
-
-
-
         });
 
 
@@ -142,50 +134,19 @@ class Sample extends Model
 
 
 
+    /**
+     * @deprecated Use NumberingService instead
+     * Legacy method - kept for reference only
+     */
     protected static function generateSampleCode(): string
-
     {
-
-        $now = now();
-
-        $year = $now->year;
-
-        $romanMonth = static::toRoman($now->month);
-
-
-
-        return DB::transaction(function () use ($year, $romanMonth) {
-
-            $baseQuery = static::whereYear('created_at', $year);
-
-
-
-            $latest = (clone $baseQuery)
-
-                ->orderByDesc('id')
-
-                ->lockForUpdate()
-
-                ->first();
-
-
-
-            if ($latest && preg_match('/^W(?P<number>\d+)/', $latest->sample_code, $matches)) {
-
-                $sequence = (int) $matches['number'] + 1;
-
-            } else {
-
-                $sequence = (clone $baseQuery)->count() + 1;
-
-            }
-
-
-
-            return sprintf('W%03d%s%d', $sequence, $romanMonth, $year);
-
-        });
-
+        // This method is no longer used.
+        // Sample codes are now generated via NumberingService
+        // which uses settings from /settings page
+        
+        throw new \RuntimeException(
+            'generateSampleCode() is deprecated. Use NumberingService::issue() instead.'
+        );
     }
 
 

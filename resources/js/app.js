@@ -2,6 +2,8 @@ import './bootstrap';
 
 import Alpine from 'alpinejs';
 import { createListFetcher } from './utils/list-fetcher';
+import { initSearchPage } from './pages/search';
+import { registerSettingsComponent } from './pages/settings/alpine-component';
 
 // Theme manager
 (function() {
@@ -55,6 +57,9 @@ document.addEventListener('alpine:init', () => {
 	// For backward compat with earlier usage names, you can alias:
 	Alpine.data('sampleProcessesList', () => createListFetcher());
 	Alpine.data('deliveryList', () => createListFetcher());
+	
+	// Register settings page component
+	registerSettingsComponent();
 
 	// Dashboard stats with auto-refresh
 	Alpine.data('dashboardStats', (initialStats) => ({
@@ -85,7 +90,9 @@ document.addEventListener('alpine:init', () => {
 				this.loading = true;
 				this.error = null;
 
-				const response = await fetch('/api/dashboard-stats');
+				const response = await fetch('/api/dashboard-stats', {
+					credentials: 'same-origin',
+				});
 
 				if (!response.ok) {
 					throw new Error(`HTTP error! status: ${response.status}`);
@@ -111,3 +118,10 @@ document.addEventListener('alpine:init', () => {
 });
 
 Alpine.start();
+
+document.addEventListener('DOMContentLoaded', () => {
+	const searchRoot = document.querySelector('[data-search-page]');
+	if (searchRoot) {
+		initSearchPage(searchRoot);
+	}
+});

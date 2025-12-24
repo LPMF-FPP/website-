@@ -14,7 +14,7 @@ use Tests\TestCase;
 
 class BeritaAcaraPenerimaanTest extends TestCase
 {
-    use RefreshDatabase, WithoutMiddleware;
+    use RefreshDatabase;
 
     protected User $user;
     protected Investigator $investigator;
@@ -63,16 +63,17 @@ class BeritaAcaraPenerimaanTest extends TestCase
 
     public function test_generate_berita_acara_creates_pdf_document(): void
     {
-        // Ensure investigator and samples are properly loaded
-        $this->testRequest->refresh();
-        $this->testRequest->load(['investigator', 'samples']);
+        // Force fresh query to ensure data is in DB
+        $testRequest = TestRequest::with(['investigator', 'samples'])->find($this->testRequest->id);
         
         // Verify data is set up correctly
-        $this->assertNotNull($this->testRequest->investigator);
-        $this->assertGreaterThan(0, $this->testRequest->samples->count());
+        $this->assertNotNull($testRequest);
+        $this->assertNotNull($testRequest->investigator, 'Investigator should be loaded');
+        $this->assertNotNull($testRequest->investigator_id, 'Investigator ID should be set');
+        $this->assertGreaterThan(0, $testRequest->samples->count());
         
         $response = $this->actingAs($this->user)
-            ->post("/requests/{$this->testRequest->id}/berita-acara/generate");
+            ->post("/requests/{$testRequest->id}/berita-acara/generate");
 
         // Debug error if redirect
         if ($response->status() === 302) {

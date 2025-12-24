@@ -53,8 +53,8 @@ class DeliveryController extends Controller
             $query->where('status', 'ready_for_delivery')
                   ->orWhere('request_number', 'REQ-2025-0005');
         })
-    // Include suspect_name so the view can display the "Tersangka" column
-    ->select('id', 'request_number', 'investigator_id', 'suspect_name', 'status', 'completed_at')
+    // Include suspect_name and receipt_number for display
+    ->select('id', 'request_number', 'receipt_number', 'investigator_id', 'suspect_name', 'status', 'completed_at')
         ->orderByDesc('completed_at')
         ->get();
 

@@ -1,13 +1,13 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
+        <div class="d-flex align-items-center justify-content-between py-3 flex items-center justify-between">
             <div>
-                <x-breadcrumbs :items="[]" />
-                <h2 class="font-semibold text-xl text-primary-900 leading-tight">
+                <x-breadcrumbs :items="[]" class="small text-xs" navClass="mb-1" />
+                <h1 class="h4 mb-0 fw-semibold text-primary-900">
                     {{ __('Dashboard') }}
-                </h2>
+                </h1>
             </div>
-            <a href="{{ url()->current() }}" class="inline-flex items-center rounded border border-gray-300 px-3 py-1.5 text-sm font-semibold text-gray-700 hover:border-primary-500 hover:text-primary-700">
+            <a href="{{ url()->current() }}" class="btn btn-outline-secondary btn-sm px-3 inline-flex items-center rounded border border-gray-300 py-1.5 text-sm font-semibold text-gray-700 hover:border-primary-500 hover:text-primary-700">
                 Refresh
             </a>
         </div>
