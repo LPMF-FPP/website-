@@ -1,0 +1,1071 @@
+@php
+    $initialSettings = $settings ?? [];
+    $prefillSample = data_get($initialSettings, 'numbering.sample.pattern');
+    $prefillBA = data_get($initialSettings, 'numbering.berita_acara.pattern');
+    $prefillLHU = data_get($initialSettings, 'numbering.lhu.pattern');
+
+    if ($prefillSample) {
+        data_set($initialSettings, 'numbering.sample_code.pattern', $prefillSample);
+    }
+    if ($prefillBA) {
+        data_set($initialSettings, 'numbering.ba.pattern', $prefillBA);
+    }
+    if ($prefillLHU) {
+        data_set($initialSettings, 'numbering.lhu.pattern', $prefillLHU);
+    }
+
+    $initialRoles = data_get($initialSettings, 'security.roles', []);
+    $initialManageRoles = data_get($initialRoles, 'can_manage_settings', []);
+    $initialIssueRoles = data_get($initialRoles, 'can_issue_number', []);
+    $tz = data_get($initialSettings, 'locale.timezone', 'Asia/Jakarta');
+    $fmtTok = data_get($initialSettings, 'locale.date_format', 'DD/MM/YYYY');
+    $phpFmtMap = [
+        'DD/MM/YYYY' => 'd/m/Y',
+        'YYYY-MM-DD' => 'Y-m-d',
+        'DD-MM-YYYY' => 'd-m-Y',
+    ];
+    $phpFmt = $phpFmtMap[$fmtTok] ?? 'd/m/Y';
+    $initialNowPreview = \Carbon\Carbon::now($tz)->format($phpFmt . ' H:i:s');
+@endphp
+
+<x-app-layout>
+    <x-slot name="header">
+        <x-page-header
+            title="Pengaturan LIMS"
+            :breadcrumbs="[['label' => 'Settings']]"
+            description="Kelola penomoran, template dokumen, branding, otomasi, dan keamanan."
+        />
+    </x-slot>
+
+    <div x-data="settingsPage" x-init="init" class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+        <template x-if="pageLoading">
+            <div class="bg-white shadow-sm sm:rounded-lg p-8 text-center">
+                <div class="inline-flex items-center gap-3 text-primary-600">
+                    <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke-width="4"></circle>
+                        <path class="opacity-75" stroke-width="4" d="M4 12a8 8 0 018-8" stroke-linecap="round"></path>
+                    </svg>
+                    <span>Memuat pengaturan...</span>
+                </div>
+                <p class="text-sm text-red-600 mt-3" x-show="loadError" x-text="loadError"></p>
+            </div>
+        </template>
+
+        <div x-show="!pageLoading" x-cloak class="space-y-6">
+            <section class="bg-white shadow-sm sm:rounded-lg">
+                <header class="p-6 border-b border-primary-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <p class="text-xs font-semibold text-primary-500 uppercase tracking-wide">Penomoran Otomatis</p>
+                        <h2 class="text-xl font-semibold text-primary-900">Atur pola nomor Sample, BA, dan LHU</h2>
+                        <p class="text-sm text-primary-600">Lengkapi pola, reset, dan angka awal. Gunakan Test Preview sebelum simpan.</p>
+                    </div>
+                    <div class="flex flex-col md:items-end gap-2">
+                        <div class="text-xs font-semibold text-primary-500 uppercase">Penomoran Saat Ini</div>
+                        <div class="flex flex-wrap gap-3 text-sm text-primary-800">
+                            <span>Sample: <strong class="font-mono" x-text="currentNumbering.sample_code || '-' "></strong></span>
+                            <span>BA: <strong class="font-mono" x-text="currentNumbering.ba || '-' "></strong></span>
+                            <span>LHU: <strong class="font-mono" x-text="currentNumbering.lhu || '-' "></strong></span>
+                        </div>
+                        <button type="button" class="btn-secondary" :disabled="currentNumberingLoading" @click="refreshCurrentNumbering()">
+                            <span x-show="!currentNumberingLoading">Refresh</span>
+                            <span x-show="currentNumberingLoading">Menyegarkan...</span>
+                        </button>
+                    </div>
+                </header>
+                <div class="p-6 space-y-4">
+                    <template x-for="scope in ['sample_code','ba','lhu']" :key="scope">
+                        <div class="border border-primary-100 rounded-xl p-4 space-y-3">
+                            <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                                <div>
+                                    <h3 class="text-base font-semibold text-primary-900" x-text="labels[scope] ?? scope"></h3>
+                                    <p class="text-xs text-primary-600">Pattern aktif: <span class="font-mono" x-text="form.numbering[scope]?.pattern || 'Belum diset'"></span></p>
+                                </div>
+                                <div class="flex flex-wrap items-center gap-3 text-sm">
+                                    <label class="flex flex-col text-primary-700">
+                                        <span class="text-xs text-primary-500">Reset</span>
+                                        <select class="input-select" x-model="form.numbering[scope].reset">
+                                            <option value="never">Tidak Pernah</option>
+                                            <option value="yearly">Tahunan</option>
+                                            <option value="monthly">Bulanan</option>
+                                            <option value="daily">Harian</option>
+                                        </select>
+                                    </label>
+                                    <label class="flex flex-col text-primary-700">
+                                        <span class="text-xs text-primary-500">Mulai dari</span>
+                                        <input type="number" min="1" class="input" x-model.number="form.numbering[scope].start_from">
+                                    </label>
+                                    <button type="button"
+                                            class="btn-secondary disabled:opacity-60 disabled:cursor-not-allowed"
+                                            :disabled="isPreviewLoading(scope)"
+                                            @click="testPreview(scope)">
+                                        <span x-show="!isPreviewLoading(scope)">Test Preview</span>
+                                        <span x-show="isPreviewLoading(scope)">Memuat...</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <label class="block">
+                                <span class="text-sm text-primary-600">Pattern</span>
+                                <input class="input" x-model="form.numbering[scope].pattern" placeholder="{{'{PREFIX}/{YY}/{####}'}}">
+                            </label>
+                            <p class="text-xs text-primary-500" x-show="numberingPreview[scope]">
+                                Hasil preview: <span class="font-mono text-primary-800" x-text="numberingPreview[scope]"></span>
+                            </p>
+                        </div>
+                    </template>
+                </div>
+                <div class="flex flex-wrap items-center justify-between gap-3 border-t border-primary-100 bg-primary-25/60 px-6 py-4">
+                    <div>
+                        <p class="text-sm" :class="sectionStatus['numbering'].intentClass" x-text="sectionStatus['numbering'].message" x-show="sectionStatus['numbering'].message"></p>
+                        <p class="text-xs text-red-600" x-text="sectionErrors['numbering']" x-show="sectionErrors['numbering']"></p>
+                    </div>
+                    <button type="button"
+                            class="btn-primary disabled:opacity-60 disabled:cursor-not-allowed"
+                            :disabled="isSectionLoading('numbering')"
+                            @click="saveSection('numbering')">
+                        <span x-show="!isSectionLoading('numbering')">Simpan</span>
+                        <span x-show="isSectionLoading('numbering')">Menyimpan...</span>
+                    </button>
+                </div>
+            </section>
+
+            <section class="bg-white shadow-sm sm:rounded-lg">
+                <header class="p-6 border-b border-primary-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <p class="text-xs font-semibold text-primary-500 uppercase tracking-wide">Template Dokumen</p>
+                        <h2 class="text-xl font-semibold text-primary-900">Kelola template BA, LHU, dan dokumen pendukung</h2>
+                    </div>
+                    <button type="button" class="btn-secondary" :disabled="templatesLoading" @click="fetchTemplates">
+                        <span x-show="!templatesLoading">Refresh Daftar</span>
+                        <span x-show="templatesLoading">Memuat...</span>
+                    </button>
+                </header>
+                <div class="p-6 space-y-6">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="space-y-3">
+                            <label class="block">
+                                <span class="text-sm text-primary-600">Kode Template</span>
+                                <input class="input" x-model="templateForm.code" placeholder="LHU_STD">
+                            </label>
+                            <label class="block">
+                                <span class="text-sm text-primary-600">Nama Template</span>
+                                <input class="input" x-model="templateForm.name" placeholder="Template LHU Standar">
+                            </label>
+                            <label class="block">
+                                <span class="text-sm text-primary-600">File (.docx)</span>
+                                <input type="file" accept=".docx" x-ref="templateFile" @change="onTemplateFile($event)">
+                            </label>
+                            <button type="button"
+                                    class="btn-primary disabled:opacity-60 disabled:cursor-not-allowed"
+                                    :disabled="templateUploading"
+                                    @click="uploadTemplate">
+                                <span x-show="!templateUploading">Upload Template</span>
+                                <span x-show="templateUploading">Mengunggah...</span>
+                            </button>
+                            <p class="text-xs text-red-600" x-text="templateError" x-show="templateError"></p>
+                        </div>
+                        <div class="space-y-4">
+                            <h3 class="text-sm font-semibold text-primary-700">Template Aktif</h3>
+                            <template x-for="type in templateTypes" :key="type">
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border border-primary-100 rounded-xl px-4 py-3">
+                                    <div>
+                                        <p class="text-sm font-semibold text-primary-900" x-text="templateLabels[type]"></p>
+                                        <p class="text-xs text-primary-500" x-text="activeTemplates[type]?.name || 'Belum dipilih'"></p>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" class="btn-secondary text-xs" @click="promptActivate(type)">Pilih</button>
+                                        <button type="button"
+                                                class="btn-outline text-xs disabled:opacity-60 disabled:cursor-not-allowed"
+                                                :disabled="!canPreviewTemplate(type)"
+                                                @click="previewActiveTemplate(type)">
+                                            Preview Aktif
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="text-sm font-semibold text-primary-700">Daftar Template</h3>
+                            <p class="text-xs text-primary-500" x-show="templatesLoading">Memuat template...</p>
+                        </div>
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <template x-for="tpl in templates" :key="tpl.id">
+                                <div class="border border-primary-100 rounded-xl p-4 space-y-3">
+                                    <div>
+                                        <p class="text-sm font-semibold text-primary-900" x-text="tpl.name"></p>
+                                        <p class="text-xs text-primary-500" x-text="tpl.code"></p>
+                                        <p class="text-xs text-primary-500" x-text="templateLabels[tpl.type] || tpl.type"></p>
+                                    </div>
+                                    <div class="flex flex-wrap gap-3 text-sm">
+                                        <button type="button"
+                                                class="btn-secondary flex-1 disabled:opacity-60 disabled:cursor-not-allowed"
+                                                :disabled="isTemplateActionLoading(tpl.id)"
+                                                @click="activateTemplate(tpl)">
+                                            <span x-show="!isTemplateActionLoading(tpl.id)">Aktifkan</span>
+                        <span x-show="isTemplateActionLoading(tpl.id)">Memproses...</span>
+                                        </button>
+                                        <button type="button"
+                                                class="text-red-600 text-xs hover:underline disabled:opacity-60 disabled:cursor-not-allowed"
+                                                :disabled="isTemplateActionLoading(tpl.id)"
+                                                @click="deleteTemplate(tpl)">
+                                            Hapus
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                            <p class="text-sm text-primary-500" x-show="!templates.length && !templatesLoading">Belum ada template diunggah.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center justify-between gap-3 border-t border-primary-100 bg-primary-25/60 px-6 py-4">
+                    <div>
+                        <p class="text-sm" :class="sectionStatus['templates'].intentClass" x-text="sectionStatus['templates'].message" x-show="sectionStatus['templates'].message"></p>
+                        <p class="text-xs text-red-600" x-text="sectionErrors['templates']" x-show="sectionErrors['templates']"></p>
+                    </div>
+                    <button type="button"
+                            class="btn-primary disabled:opacity-60 disabled:cursor-not-allowed"
+                            :disabled="isSectionLoading('templates')"
+                            @click="saveSection('templates')">
+                        <span x-show="!isSectionLoading('templates')">Simpan</span>
+                        <span x-show="isSectionLoading('templates')">Menyimpan...</span>
+                    </button>
+                </div>
+            </section>
+
+            <section class="bg-white shadow-sm sm:rounded-lg">
+                <header class="p-6 border-b border-primary-100 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <p class="text-xs font-semibold text-primary-500 uppercase tracking-wide">Branding &amp; PDF</p>
+                        <h2 class="text-xl font-semibold text-primary-900">Identitas Instansi dan Watermark PDF</h2>
+                    </div>
+                    <button type="button"
+                            class="btn-secondary disabled:opacity-60 disabled:cursor-not-allowed"
+                            :disabled="pdfPreviewLoading"
+                            @click="previewPdf">
+                        <span x-show="!pdfPreviewLoading">Preview PDF</span>
+                        <span x-show="pdfPreviewLoading">Menyiapkan...</span>
+                    </button>
+                </header>
+                <div class="p-6 space-y-6">
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <label class="block">
+                            <span class="text-sm text-primary-600">Kode Lab</span>
+                            <input class="input" x-model="form.branding.lab_code">
+                        </label>
+                        <label class="block">
+                            <span class="text-sm text-primary-600">Nama Instansi</span>
+                            <input class="input" x-model="form.branding.org_name">
+                        </label>
+                        <label class="block">
+                            <span class="text-sm text-primary-600">Alamat</span>
+                            <input class="input" x-model="form.pdf.header.address">
+                        </label>
+                        <label class="block">
+                            <span class="text-sm text-primary-600">Kontak</span>
+                            <input class="input" x-model="form.pdf.header.contact">
+                        </label>
+                        <label class="block">
+                            <span class="text-sm text-primary-600">Preset Watermark</span>
+                            <select class="input-select" x-model="form.pdf.header.watermark">
+                                <option value="none">Tidak ada</option>
+                                <option value="diagonal">Diagonal</option>
+                                <option value="center">Tengah</option>
+                            </select>
+                        </label>
+                        <label class="block">
+                            <span class="text-sm text-primary-600">Footer</span>
+                            <input class="input" x-model="form.pdf.footer.text">
+                        </label>
+                        <label class="inline-flex items-center gap-2 text-sm text-primary-700">
+                            <input type="checkbox" x-model="form.pdf.qr.enabled">
+                            <span>Tampilkan QR pada PDF</span>
+                        </label>
+                    </div>
+                    <div class="border border-primary-100 rounded-xl p-4">
+                        <p class="text-sm text-primary-600 mb-3">Preview PDF</p>
+                        <p class="text-xs text-red-600 mb-3" x-text="pdfPreviewError" x-show="pdfPreviewError"></p>
+                        <div class="relative">
+                            <div class="absolute inset-0 flex items-center justify-center bg-white bg-opacity-80" x-show="pdfPreviewLoading">
+                                <div class="flex items-center gap-2 text-primary-600">
+                                    <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke-width="4"></circle>
+                                        <path class="opacity-75" stroke-width="4" d="M4 12a8 8 0 018-8" stroke-linecap="round"></path>
+                                    </svg>
+                                    <span>Menyiapkan preview...</span>
+                                </div>
+                            </div>
+                            <div x-show="pdfPreviewUrl" class="aspect-[8.5/11] border border-primary-200 rounded-lg overflow-hidden">
+                                <iframe :src="pdfPreviewUrl" class="w-full h-full" title="Preview PDF"></iframe>
+                            </div>
+                            <p class="text-sm text-primary-500" x-show="!pdfPreviewUrl">
+                                Belum ada preview. Klik "Preview PDF" untuk melihat hasil terbaru.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center justify-between gap-3 border-t border-primary-100 bg-primary-25/60 px-6 py-4">
+                    <div>
+                        <p class="text-sm" :class="sectionStatus['branding'].intentClass" x-text="sectionStatus['branding'].message" x-show="sectionStatus['branding'].message"></p>
+                        <p class="text-xs text-red-600" x-text="sectionErrors['branding']" x-show="sectionErrors['branding']"></p>
+                    </div>
+                    <button type="button"
+                            class="btn-primary disabled:opacity-60 disabled:cursor-not-allowed"
+                            :disabled="isSectionLoading('branding')"
+                            @click="saveSection('branding')">
+                        <span x-show="!isSectionLoading('branding')">Simpan</span>
+                        <span x-show="isSectionLoading('branding')">Menyimpan...</span>
+                    </button>
+                </div>
+            </section>
+
+            <section class="bg-white shadow-sm sm:rounded-lg">
+                <header class="p-6 border-b border-primary-100">
+                    <p class="text-xs font-semibold text-primary-500 uppercase tracking-wide">Lokalisasi &amp; Retensi</p>
+                    <h2 class="text-xl font-semibold text-primary-900">Zona waktu, format tanggal, dan retensi arsip</h2>
+                </header>
+                <div class="p-6 space-y-4">
+                    <div class="text-sm text-primary-700">
+                        <span>Sekarang di </span>
+                        <span class="font-semibold" x-text="form.locale.timezone || 'Asia/Jakarta'"></span>
+                        <span>: </span>
+                        <span class="font-mono text-primary-900" x-text="nowPreview || '{{ $initialNowPreview }}'"></span>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <label class="block">
+                            <span class="text-sm text-primary-600">Zona Waktu</span>
+                            <select class="input-select" x-model="form.locale.timezone">
+                                <template x-for="tz in timezones" :key="tz">
+                                    <option :value="tz" x-text="tz"></option>
+                                </template>
+                            </select>
+                        </label>
+                        <label class="block">
+                            <span class="text-sm text-primary-600">Format Tanggal</span>
+                            <select class="input-select" x-model="form.locale.date_format">
+                                <template x-for="fmt in dateFormats" :key="fmt">
+                                    <option :value="fmt" x-text="fmt"></option>
+                                </template>
+                            </select>
+                        </label>
+                        <label class="block">
+                            <span class="text-sm text-primary-600">Format Angka</span>
+                            <select class="input-select" x-model="form.locale.number_format">
+                                <template x-for="fmt in numberFormats" :key="fmt.value">
+                                    <option :value="fmt.value" x-text="fmt.label"></option>
+                                </template>
+                            </select>
+                        </label>
+                        <label class="block">
+                            <span class="text-sm text-primary-600">Bahasa</span>
+                            <select class="input-select" x-model="form.locale.language">
+                                <template x-for="lang in languages" :key="lang.value">
+                                    <option :value="lang.value" x-text="lang.label"></option>
+                                </template>
+                            </select>
+                        </label>
+                        <label class="block">
+                            <span class="text-sm text-primary-600">Driver Penyimpanan</span>
+                            <select class="input-select" x-model="form.retention.storage_driver">
+                                <template x-for="drv in storageDrivers" :key="drv">
+                                    <option :value="drv" x-text="drv"></option>
+                                </template>
+                            </select>
+                        </label>
+                        <label class="block">
+                            <span class="text-sm text-primary-600">Folder Path Penyimpanan</span>
+                            <input class="input" x-model="form.retention.storage_folder_path" placeholder="/lims/storage">
+                        </label>
+                        <label class="block">
+                            <span class="text-sm text-primary-600">Base Path</span>
+                            <input class="input" x-model="form.retention.base_path">
+                        </label>
+                        <label class="block">
+                            <span class="text-sm text-primary-600">Purge Setelah (hari)</span>
+                            <input type="number" min="30" class="input" x-model.number="form.retention.purge_after_days">
+                        </label>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center justify-between gap-3 border-t border-primary-100 bg-primary-25/60 px-6 py-4">
+                    <div>
+                        <p class="text-sm" :class="sectionStatus['localization'].intentClass" x-text="sectionStatus['localization'].message" x-show="sectionStatus['localization'].message"></p>
+                        <p class="text-xs text-red-600" x-text="sectionErrors['localization']" x-show="sectionErrors['localization']"></p>
+                    </div>
+                    <button type="button"
+                            class="btn-primary disabled:opacity-60 disabled:cursor-not-allowed"
+                            :disabled="isSectionLoading('localization')"
+                            @click="saveSection('localization')">
+                        <span x-show="!isSectionLoading('localization')">Simpan</span>
+                        <span x-show="isSectionLoading('localization')">Menyimpan...</span>
+                    </button>
+                </div>
+            </section>
+
+            <section class="bg-white shadow-sm sm:rounded-lg">
+                <header class="p-6 border-b border-primary-100">
+                    <p class="text-xs font-semibold text-primary-500 uppercase tracking-wide">Notifikasi &amp; Security</p>
+                    <h2 class="text-xl font-semibold text-primary-900">Kirim notifikasi otomatis dan atur hak akses</h2>
+                </header>
+                <div class="p-6 space-y-6">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="space-y-4">
+                            <div class="border border-primary-100 rounded-xl p-4 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-semibold text-primary-900">Email</p>
+                                        <p class="text-xs text-primary-500">Kirim notifikasi issue number via email</p>
+                                    </div>
+                                    <label class="inline-flex items-center gap-2 text-sm text-primary-700">
+                                        <input type="checkbox" x-model="form.notifications.email.enabled">
+                                        <span>Aktif</span>
+                                    </label>
+                                </div>
+                                <label class="block text-sm text-primary-600">
+                                    Alamat Email Default
+                                    <input type="email" class="input mt-1" x-model="form.notifications.email.address" placeholder="ops@lab.go.id">
+                                </label>
+                                <div class="flex flex-col gap-2 text-sm">
+                                    <label>Target Test Email</label>
+                                    <input type="email" class="input" x-model="notificationsTest.email.target" placeholder="tester@lab.go.id">
+                                    <button type="button"
+                                            class="btn-secondary disabled:opacity-60 disabled:cursor-not-allowed"
+                                            :disabled="notificationsTest.email.loading"
+                                            @click="testNotification('email')">
+                                        <span x-show="!notificationsTest.email.loading">Test Email</span>
+                                        <span x-show="notificationsTest.email.loading">Mengirim...</span>
+                                    </button>
+                                    <p class="text-xs" :class="notificationsTest.email.intentClass" x-text="notificationsTest.email.message" x-show="notificationsTest.email.message"></p>
+                                </div>
+                            </div>
+                            <div class="border border-primary-100 rounded-xl p-4 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-semibold text-primary-900">WhatsApp</p>
+                                        <p class="text-xs text-primary-500">Kirim notifikasi issue number via WA</p>
+                                    </div>
+                                    <label class="inline-flex items-center gap-2 text-sm text-primary-700">
+                                        <input type="checkbox" x-model="form.notifications.whatsapp.enabled">
+                                        <span>Aktif</span>
+                                    </label>
+                                </div>
+                                <label class="block text-sm text-primary-600">
+                                    Nomor Default (62xxxx)
+                                    <input type="text" class="input mt-1" x-model="form.notifications.whatsapp.number" placeholder="6281234567890">
+                                </label>
+                                <div class="flex flex-col gap-2 text-sm">
+                                    <label>Target Test WhatsApp</label>
+                                    <input type="text" class="input" x-model="notificationsTest.whatsapp.target" placeholder="6281234567890">
+                                    <button type="button"
+                                            class="btn-secondary disabled:opacity-60 disabled:cursor-not-allowed"
+                                            :disabled="notificationsTest.whatsapp.loading"
+                                            @click="testNotification('whatsapp')">
+                                        <span x-show="!notificationsTest.whatsapp.loading">Test WhatsApp</span>
+                                        <span x-show="notificationsTest.whatsapp.loading">Mengirim...</span>
+                                    </button>
+                                    <p class="text-xs" :class="notificationsTest.whatsapp.intentClass" x-text="notificationsTest.whatsapp.message" x-show="notificationsTest.whatsapp.message"></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-semibold text-primary-700 mb-3">Role yang Boleh Mengelola</h3>
+                            <div class="grid grid-cols-2 gap-3">
+                                <template x-for="role in availableRoles" :key="'manage-'+role">
+                                    <label class="inline-flex items-center gap-2 text-sm">
+                                        <input type="checkbox" :value="role" x-model="roles.manage">
+                                        <span x-text="roleLabels[role] || role"></span>
+                                    </label>
+                                </template>
+                            </div>
+                            <h3 class="text-sm font-semibold text-primary-700 mt-6 mb-3">Role yang Boleh Issue Number</h3>
+                            <div class="grid grid-cols-2 gap-3">
+                                <template x-for="role in availableRoles" :key="'issue-'+role">
+                                    <label class="inline-flex items-center gap-2 text-sm">
+                                        <input type="checkbox" :value="role" x-model="roles.issue">
+                                        <span x-text="roleLabels[role] || role"></span>
+                                    </label>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex flex-wrap items-center justify-between gap-3 border-t border-primary-100 bg-primary-25/60 px-6 py-4">
+                    <div>
+                        <p class="text-sm" :class="sectionStatus['notifications'].intentClass" x-text="sectionStatus['notifications'].message" x-show="sectionStatus['notifications'].message"></p>
+                        <p class="text-xs text-red-600" x-text="sectionErrors['notifications']" x-show="sectionErrors['notifications']"></p>
+                    </div>
+                    <button type="button"
+                            class="btn-primary disabled:opacity-60 disabled:cursor-not-allowed"
+                            :disabled="isSectionLoading('notifications')"
+                            @click="saveSection('notifications')">
+                        <span x-show="!isSectionLoading('notifications')">Simpan</span>
+                        <span x-show="isSectionLoading('notifications')">Menyimpan...</span>
+                    </button>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            const initialForm = @js($initialSettings);
+            const initialTemplates = @js($templates ?? []);
+            const optionValues = @js($options ?? []);
+            const initialManageRoles = @js($initialManageRoles ?? []);
+            const initialIssueRoles = @js($initialIssueRoles ?? []);
+
+            Alpine.data('settingsPage', () => ({
+                api: {
+                    settings: '/api/settings',
+                    numberingCurrent: '/api/settings/numbering/current',
+                    numbering: '/api/settings/numbering',
+                    numberingPreview: '/api/settings/numbering/preview',
+                    templates: '/api/settings/templates',
+                    templateUpload: '/api/settings/templates/upload',
+                    branding: '/api/settings/branding',
+                    pdfPreview: '/api/settings/pdf/preview',
+                    localization: '/api/settings/localization-retention',
+                    notificationsSecurity: '/api/settings/notifications-security',
+                    notificationsTest: '/api/settings/notifications/test',
+                },
+                CSRF: document.querySelector('meta[name=csrf-token]')?.content ?? '',
+                pageLoading: true,
+                loadError: '',
+                form: {},
+                currentNumbering: { sample_code: '', ba: '', lhu: '' },
+                currentNumberingLoading: false,
+                numberingPreview: { sample_code: '', ba: '', lhu: '' },
+                previewState: {},
+                sectionStatus: {
+                    numbering: { message: '', intentClass: 'text-primary-600' },
+                    templates: { message: '', intentClass: 'text-primary-600' },
+                    branding: { message: '', intentClass: 'text-primary-600' },
+                    localization: { message: '', intentClass: 'text-primary-600' },
+                    notifications: { message: '', intentClass: 'text-primary-600' },
+                },
+                sectionErrors: {
+                    numbering: '',
+                    templates: '',
+                    branding: '',
+                    localization: '',
+                    notifications: '',
+                },
+                loadingSections: {
+                    numbering: false,
+                    templates: false,
+                    branding: false,
+                    localization: false,
+                    notifications: false,
+                },
+                templates: Array.isArray(initialTemplates) ? initialTemplates : [],
+                templateTypes: ['sample_code', 'ba', 'lhu'],
+                templateLabels: {
+                    sample_code: 'Template Sample',
+                    ba: 'Template Berita Acara',
+                    lhu: 'Template LHU',
+                },
+                // Labels for numbering scopes (fix "labels is not defined" error)
+                labels: {
+                    sample_code: 'Kode Sampel',
+                    ba: 'Berita Acara',
+                    lhu: 'Laporan Hasil Uji',
+                },
+                activeTemplates: {},
+                templateForm: { code: '', name: '', file: null },
+                templateError: '',
+                templateUploading: false,
+                templatesLoading: false,
+                templateActionLoading: {},
+                pdfPreviewUrl: '',
+                pdfPreviewLoading: false,
+                pdfPreviewError: '',
+                pdfPreviewObjectUrl: null,
+                roles: {
+                    manage: [...initialManageRoles],
+                    issue: [...initialIssueRoles],
+                },
+                availableRoles: ['admin', 'supervisor', 'analyst', 'lab_analyst', 'petugas_lab'],
+                roleLabels: {
+                    admin: 'Admin',
+                    supervisor: 'Supervisor',
+                    analyst: 'Analis',
+                    lab_analyst: 'Petugas Lab (Analis)',
+                    petugas_lab: 'Petugas Lab',
+                },
+                timezones: Array.isArray(optionValues.timezones) && optionValues.timezones.length ? optionValues.timezones : ['Asia/Jakarta', 'Asia/Makassar', 'Asia/Jayapura', 'UTC'],
+                dateFormats: Array.isArray(optionValues.date_formats) && optionValues.date_formats.length ? optionValues.date_formats : ['DD/MM/YYYY', 'YYYY-MM-DD', 'DD-MM-YYYY'],
+                numberFormats: (Array.isArray(optionValues.number_formats) && optionValues.number_formats.length ? optionValues.number_formats : ['1.234,56', '1,234.56']).map((fmt) => ({ value: fmt, label: fmt })),
+                languages: (Array.isArray(optionValues.languages) && optionValues.languages.length ? optionValues.languages : ['id', 'en']).map((code) => ({ value: code, label: code === 'id' ? 'Bahasa Indonesia' : (code === 'en' ? 'English' : code.toUpperCase()) })),
+                storageDrivers: Array.isArray(optionValues.storage_drivers) && optionValues.storage_drivers.length ? optionValues.storage_drivers : ['local', 'public', 's3'],
+                nowPreview: '{{ $initialNowPreview }}',
+                watchersBound: false,
+                notificationsTest: {
+                    email: { target: '', loading: false, message: '', intentClass: 'text-primary-600' },
+                    whatsapp: { target: '', loading: false, message: '', intentClass: 'text-primary-600' },
+                },
+                init() {
+                    this.form = this.mergeDefaults(this.clone(initialForm));
+                    this.ensureLocaleDefaults();
+                    this.loadAll();
+                    if (!this.watchersBound) {
+                        this.$watch('form.locale.timezone', () => this.updateNowPreview());
+                        this.$watch('form.locale.date_format', () => this.updateNowPreview());
+                        this.watchersBound = true;
+                    }
+                },
+                async loadAll() {
+                    this.pageLoading = true;
+                    this.loadError = '';
+                    try {
+                        await Promise.all([
+                            this.fetchSettings(),
+                            this.fetchTemplates(),
+                            this.fetchCurrentNumbering(),
+                        ]);
+                    } catch (error) {
+                        this.loadError = error.message || 'Gagal memuat data awal.';
+                    } finally {
+                        this.pageLoading = false;
+                    }
+                },
+                async fetchSettings() {
+                    const data = await this.request(this.api.settings).catch((error) => {
+                        this.loadError = error.message || 'Gagal memuat pengaturan.';
+                        throw error;
+                    });
+                    this.applyServerData(data);
+                },
+                async fetchTemplates() {
+                    this.templatesLoading = true;
+                    try {
+                        const data = await this.request(this.api.templates);
+                        this.templates = Array.isArray(data) ? data : (Array.isArray(data.list) ? data.list : (data.data || []));
+                        this.hydrateActiveTemplates(data.active ?? this.activeTemplates);
+                    } catch (error) {
+                        this.templateError = error.message || 'Gagal memuat template.';
+                    } finally {
+                        this.templatesLoading = false;
+                    }
+                },
+                async fetchCurrentNumbering() {
+                    this.currentNumberingLoading = true;
+                    try {
+                        const data = await this.request(this.api.numberingCurrent);
+                        this.currentNumbering = {
+                            sample_code: data.sample_code ?? data.sample ?? '-',
+                            ba: data.ba ?? '-',
+                            lhu: data.lhu ?? '-',
+                        };
+                    } catch (error) {
+                        this.setSectionError('numbering', error.message || 'Gagal memuat penomoran saat ini.');
+                    } finally {
+                        this.currentNumberingLoading = false;
+                    }
+                },
+                refreshCurrentNumbering() {
+                    this.fetchCurrentNumbering();
+                },
+                applyServerData(payload) {
+                    const data = (payload && (payload.settings || payload.data)) || payload || {};
+                    this.form = this.mergeDefaults(this.clone(data));
+                    this.ensureLocaleDefaults();
+                    this.hydrateActiveTemplates(data.templates?.active ?? this.activeTemplates);
+                    const security = data.security ?? data.roles ?? {};
+                    if (Array.isArray(security.can_manage_settings)) {
+                        this.roles.manage = [...security.can_manage_settings];
+                    }
+                    if (Array.isArray(security.can_issue_number)) {
+                        this.roles.issue = [...security.can_issue_number];
+                    }
+                    const notifications = data.notifications ?? data.automation ?? null;
+                    if (notifications) {
+                        this.form.notifications = this.mergeNotifications(notifications);
+                    }
+                    this.updateNowPreview();
+                },
+                mergeDefaults(form) {
+                    form.numbering ??= {};
+                    ['sample_code', 'ba', 'lhu'].forEach((scope) => {
+                        form.numbering[scope] ??= { pattern: '', reset: 'never', start_from: 1 };
+                        form.numbering[scope].pattern ??= '';
+                        form.numbering[scope].reset ??= 'never';
+                        form.numbering[scope].start_from ??= 1;
+                    });
+                    form.branding ??= {};
+                    form.pdf ??= { header: {}, footer: {}, qr: {} };
+                    form.pdf.header ??= {};
+                    form.pdf.footer ??= {};
+                    form.pdf.qr ??= { enabled: false };
+                    form.locale ??= {};
+                    form.retention ??= {};
+                    form.retention.storage_driver ??= 'local';
+                    form.retention.storage_folder_path ??= '';
+                    form.retention.purge_after_days ??= 365;
+                    form.retention.export_filename_pattern ??= '';
+                    form.notifications = this.mergeNotifications(form.notifications ?? form.automation ?? {});
+                    form.security ??= { roles: { can_manage_settings: [], can_issue_number: [] } };
+                    return form;
+                },
+                hydrateActiveTemplates(source) {
+                    const normalized = {};
+                    if (source && typeof source === 'object') {
+                        Object.entries(source).forEach(([type, value]) => {
+                            if (value && typeof value === 'object') {
+                                normalized[type] = this.clone(value);
+                            } else if (value) {
+                                const match = this.templates.find((tpl) => tpl.id === value || (tpl.code && tpl.code === value));
+                                normalized[type] = match ? this.clone(match) : { code: value };
+                            }
+                        });
+                    }
+                    this.activeTemplates = normalized;
+                },
+                mergeNotifications(source) {
+                    const notif = {
+                        email: {
+                            enabled: !!source?.email?.enabled,
+                            address: source?.email?.address || '',
+                        },
+                        whatsapp: {
+                            enabled: !!source?.whatsapp?.enabled,
+                            number: source?.whatsapp?.number || '',
+                        },
+                    };
+                    return notif;
+                },
+                ensureLocaleDefaults() {
+                    this.form.locale ??= {};
+                    if (!this.form.locale.timezone) this.form.locale.timezone = this.timezones[0] ?? 'Asia/Jakarta';
+                    if (!this.form.locale.date_format) this.form.locale.date_format = this.dateFormats[0] ?? 'DD/MM/YYYY';
+                    if (!this.form.locale.number_format) this.form.locale.number_format = this.numberFormats[0]?.value ?? '1.234,56';
+                    if (!this.form.locale.language) this.form.locale.language = this.languages[0]?.value ?? 'id';
+                    this.form.retention ??= {};
+                    if (!this.form.retention.storage_driver) this.form.retention.storage_driver = this.storageDrivers[0] ?? 'local';
+                    if (!this.form.retention.storage_folder_path) this.form.retention.storage_folder_path = '';
+                    if (!this.form.retention.purge_after_days) this.form.retention.purge_after_days = 365;
+                    if (!this.form.retention.export_filename_pattern) this.form.retention.export_filename_pattern = '';
+                },
+                sectionEndpoint(key) {
+                    switch (key) {
+                        case 'numbering':
+                            return { url: this.api.numbering, method: 'PUT', body: { numbering: this.clone(this.form.numbering) } };
+                        case 'templates':
+                            return { url: this.api.templates, method: 'PUT', body: { active: this.serializeActiveTemplates() } };
+                        case 'branding':
+                            return { url: this.api.branding, method: 'PUT', body: { branding: this.clone(this.form.branding), pdf: this.clone(this.form.pdf) } };
+                        case 'localization':
+                            // Only send fields that validator expects (exclude base_path - it's computed by backend)
+                            return { 
+                                url: this.api.localization, 
+                                method: 'PUT', 
+                                body: { 
+                                    localization: this.clone(this.form.locale),
+                                    retention: {
+                                        storage_driver: this.form.retention.storage_driver,
+                                        storage_folder_path: this.form.retention.storage_folder_path,
+                                        purge_after_days: this.form.retention.purge_after_days,
+                                        export_filename_pattern: this.form.retention.export_filename_pattern || '',
+                                    }
+                                } 
+                            };
+                        case 'notifications':
+                            return {
+                                url: this.api.notificationsSecurity,
+                                method: 'PUT',
+                                body: {
+                                    notifications: this.clone(this.form.notifications),
+                                    security: {
+                                        roles: {
+                                            can_manage_settings: [...this.roles.manage],
+                                            can_issue_number: [...this.roles.issue],
+                                        },
+                                    },
+                                },
+                            };
+                        default:
+                            return null;
+                    }
+                },
+                async saveSection(key) {
+                    const config = this.sectionEndpoint(key);
+                    if (!config) return;
+                    this.setSectionError(key, '');
+                    this.setSectionStatus(key, '', 'text-primary-600');
+                    this.setSectionLoading(key, true);
+                    try {
+                        await this.request(config.url, { method: config.method, body: config.body });
+                        this.setSectionStatus(key, 'Pengaturan tersimpan.', 'text-emerald-600');
+                        if (key === 'templates') {
+                            await this.fetchTemplates();
+                        } else {
+                            await this.fetchSettings();
+                        }
+                    } catch (error) {
+                        this.setSectionError(key, error.message || 'Gagal menyimpan pengaturan.');
+                        this.setSectionStatus(key, 'Gagal menyimpan.', 'text-red-600');
+                    } finally {
+                        this.setSectionLoading(key, false);
+                    }
+                },
+                setSectionLoading(key, state) {
+                    this.loadingSections = { ...this.loadingSections, [key]: !!state };
+                },
+                isSectionLoading(key) {
+                    return !!this.loadingSections[key];
+                },
+                setSectionStatus(key, message, intentClass) {
+                    this.sectionStatus = { ...this.sectionStatus, [key]: { message, intentClass } };
+                },
+                setSectionError(key, message) {
+                    this.sectionErrors = { ...this.sectionErrors, [key]: message };
+                },
+                serializeActiveTemplates() {
+                    const payload = {};
+                    Object.entries(this.activeTemplates || {}).forEach(([type, tpl]) => {
+                        if (!tpl) return;
+                        payload[type] = tpl.code || tpl.id || tpl;
+                    });
+                    return payload;
+                },
+                canPreviewTemplate(type) {
+                    const tpl = this.activeTemplates?.[type];
+                    if (!tpl) return false;
+                    if (tpl.id) return true;
+                    if (!tpl.code) return false;
+                    return this.templates.some((item) => item.code === tpl.code && item.id);
+                },
+                isPreviewLoading(scope) {
+                    return !!this.previewState[scope];
+                },
+                async testPreview(scope) {
+                    this.previewState = { ...this.previewState, [scope]: true };
+                    try {
+                        const data = await this.request(this.api.numberingPreview, {
+                            method: 'POST',
+                            body: {
+                                scope,
+                                config: {
+                                    numbering: this.clone(this.form.numbering),
+                                    locale: this.clone(this.form.locale),
+                                },
+                            },
+                        });
+                        this.numberingPreview = { ...this.numberingPreview, [scope]: data.preview ?? data.example ?? '-' };
+                    } catch (error) {
+                        this.setSectionError('numbering', error.message || 'Gagal melakukan preview penomoran.');
+                    } finally {
+                        this.previewState = { ...this.previewState, [scope]: false };
+                    }
+                },
+                onTemplateFile(event) {
+                    this.templateForm.file = event?.target?.files?.[0] ?? null;
+                },
+                async uploadTemplate() {
+                    if (!this.templateForm.file) {
+                        this.templateError = 'Pilih file .docx terlebih dahulu.';
+                        return;
+                    }
+                    this.templateUploading = true;
+                    this.templateError = '';
+                    try {
+                        const formData = new FormData();
+                        formData.append('code', this.templateForm.code || '');
+                        formData.append('name', this.templateForm.name || '');
+                        formData.append('file', this.templateForm.file);
+                        await this.request(this.api.templateUpload, { method: 'POST', body: formData });
+                        this.templateForm = { code: '', name: '', file: null };
+                        if (this.$refs.templateFile) {
+                            this.$refs.templateFile.value = '';
+                        }
+                        await this.fetchTemplates();
+                    } catch (error) {
+                        this.templateError = error.message || 'Gagal mengunggah template.';
+                    } finally {
+                        this.templateUploading = false;
+                    }
+                },
+                setTemplateActionLoading(id, state) {
+                    this.templateActionLoading = { ...this.templateActionLoading, [id]: !!state };
+                },
+                isTemplateActionLoading(id) {
+                    return !!this.templateActionLoading[id];
+                },
+                async activateTemplate(template) {
+                    if (!template?.id) return;
+                    this.setTemplateActionLoading(template.id, true);
+                    try {
+                        const body = template.type ? { type: template.type } : {};
+                        const data = await this.request(`${this.api.templates}/${template.id}/activate`, { method: 'PUT', body });
+                        if (data?.active) {
+                            this.activeTemplates = this.clone(data.active);
+                        }
+                        await this.fetchTemplates();
+                    } catch (error) {
+                        this.setSectionError('templates', error.message || 'Gagal mengaktifkan template.');
+                    } finally {
+                        this.setTemplateActionLoading(template.id, false);
+                    }
+                },
+                promptActivate(type) {
+                    if (!this.templates.length) {
+                        this.setSectionError('templates', 'Belum ada template diunggah.');
+                        return;
+                    }
+                    const code = prompt(`Masukkan kode template untuk ${this.templateLabels[type] || type}`, this.activeTemplates[type]?.code || '');
+                    if (!code) return;
+                    const tpl = this.templates.find((t) => (t.code || '').toLowerCase() === code.toLowerCase());
+                    if (!tpl) {
+                        this.setSectionError('templates', 'Template tidak ditemukan.');
+                        return;
+                    }
+                    tpl.type = type;
+                    this.activateTemplate(tpl);
+                },
+                previewActiveTemplate(type) {
+                    const tpl = this.activeTemplates[type];
+                    if (!tpl) {
+                        this.setSectionError('templates', 'Tidak ada template aktif untuk tipe ini.');
+                        return;
+                    }
+                    let targetId = tpl.id;
+                    if (!targetId && tpl.code) {
+                        const match = this.templates.find((item) => item.code === tpl.code && item.id);
+                        if (match) {
+                            targetId = match.id;
+                            this.activeTemplates = { ...this.activeTemplates, [type]: this.clone(match) };
+                        }
+                    }
+                    if (!targetId) {
+                        this.setSectionError('templates', 'Template aktif belum memiliki file.');
+                        return;
+                    }
+                    const url = `/api/settings/templates/${targetId}/preview`;
+                    window.open(url, '_blank');
+                },
+                async deleteTemplate(template) {
+                    if (!template?.id) return;
+                    if (!confirm(`Yakin hapus template ${template.name}?`)) return;
+                    this.setTemplateActionLoading(template.id, true);
+                    try {
+                        await this.request(`${this.api.templates}/${template.id}`, { method: 'DELETE' });
+                        await this.fetchTemplates();
+                    } catch (error) {
+                        this.setSectionError('templates', error.message || 'Gagal menghapus template.');
+                    } finally {
+                        this.setTemplateActionLoading(template.id, false);
+                    }
+                },
+                async previewPdf() {
+                    this.pdfPreviewLoading = true;
+                    this.pdfPreviewError = '';
+                    if (this.pdfPreviewObjectUrl) {
+                        URL.revokeObjectURL(this.pdfPreviewObjectUrl);
+                        this.pdfPreviewObjectUrl = null;
+                    }
+                    try {
+                        const response = await fetch(this.api.pdfPreview, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': this.CSRF,
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/pdf,application/json',
+                                'Content-Type': 'application/json',
+                            },
+                            credentials: 'same-origin', // Send session cookies for authentication
+                            body: JSON.stringify({ branding: this.form.branding, pdf: this.form.pdf }),
+                        });
+                        if (!response.ok) {
+                            const errorData = await response.json().catch(() => ({}));
+                            throw new Error(errorData.message || 'Gagal membuat preview PDF.');
+                        }
+                        const contentType = response.headers.get('Content-Type') || '';
+                        if (contentType.includes('application/json')) {
+                            const data = await response.json();
+                            this.pdfPreviewUrl = data.url || '';
+                        } else {
+                            const blob = await response.blob();
+                            this.pdfPreviewObjectUrl = URL.createObjectURL(blob);
+                            this.pdfPreviewUrl = this.pdfPreviewObjectUrl;
+                        }
+                    } catch (error) {
+                        this.pdfPreviewError = error.message || 'Gagal membuat preview PDF.';
+                    } finally {
+                        this.pdfPreviewLoading = false;
+                    }
+                },
+                async testNotification(channel) {
+                    const controller = this.notificationsTest[channel];
+                    if (!controller) return;
+                    if (!controller.target) {
+                        controller.message = 'Isi target test terlebih dahulu.';
+                        controller.intentClass = 'text-red-600';
+                        return;
+                    }
+                    controller.loading = true;
+                    controller.message = '';
+                    try {
+                        const data = await this.request(this.api.notificationsTest, {
+                            method: 'POST',
+                            body: { channel, target: controller.target },
+                        });
+                        controller.message = data.message || 'Pengiriman test berhasil.';
+                        controller.intentClass = 'text-emerald-600';
+                    } catch (error) {
+                        controller.message = error.message || 'Pengiriman test gagal.';
+                        controller.intentClass = 'text-red-600';
+                    } finally {
+                        controller.loading = false;
+                    }
+                },
+                updateNowPreview() {
+                    try {
+                        const tz = this.form?.locale?.timezone || 'Asia/Jakarta';
+                        const fmt = this.form?.locale?.date_format || 'DD/MM/YYYY';
+                        const now = new Date();
+                        const options = { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+                        const formatter = new Intl.DateTimeFormat('en-GB', options);
+                        const parts = formatter.formatToParts(now).reduce((acc, part) => { acc[part.type] = part.value; return acc; }, {});
+                        let datePart;
+                        if (fmt === 'YYYY-MM-DD') {
+                            datePart = `${parts.year}-${parts.month}-${parts.day}`;
+                        } else if (fmt === 'DD-MM-YYYY') {
+                            datePart = `${parts.day}-${parts.month}-${parts.year}`;
+                        } else {
+                            datePart = `${parts.day}/${parts.month}/${parts.year}`;
+                        }
+                        this.nowPreview = `${datePart} ${parts.hour}:${parts.minute}:${parts.second}`;
+                    } catch (e) {
+                        // ignore
+                    }
+                },
+                async request(url, { method = 'GET', body = null } = {}) {
+                    const headers = { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' };
+                    const upper = method.toUpperCase();
+                    const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+                    if (!isFormData && body !== null) {
+                        headers['Content-Type'] = 'application/json';
+                    }
+                    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(upper)) {
+                        headers['X-CSRF-TOKEN'] = this.CSRF;
+                    }
+                    const options = { 
+                        method: upper, 
+                        headers,
+                        credentials: 'same-origin' // Send session cookies for authentication
+                    };
+                    if (body !== null) {
+                        options.body = isFormData ? body : JSON.stringify(body);
+                    }
+                    const response = await fetch(url, options);
+                    const data = await response.json().catch(() => ({}));
+                    if (!response.ok) {
+                        throw new Error(data.message || 'Permintaan gagal.');
+                    }
+                    return data;
+                },
+                clone(value) {
+                    return JSON.parse(JSON.stringify(value ?? {}));
+                },
+            }));
+        });
+    </script>
+</x-app-layout>

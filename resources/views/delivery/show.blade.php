@@ -205,7 +205,10 @@
                                             this.loading = true;
                                             try {
                                                 const url = @json(route('delivery.handover.status', $request));
-                                                const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                                                const res = await fetch(url, { 
+                                                    headers: { 'Accept': 'application/json' },
+                                                    credentials: 'same-origin'
+                                                });
                                                 if (res.ok) {
                                                     const data = await res.json();
                                                     this.existsPdf = !!(data && data.pdf && data.pdf.exists);

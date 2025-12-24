@@ -16,10 +16,13 @@ class SendIssueNotification implements ShouldQueue
 
     public function handle(NumberIssued $event): void
     {
-        $config = settings('automation.notify_on_issue');
+        $config = settings('notifications');
         if (!$config) {
             return;
         }
+
+        $emailConfig = $config['email'] ?? [];
+        $whatsappConfig = $config['whatsapp'] ?? [];
 
         $replace = static fn (string $value): string => strtr($value, [
             '{SCOPE}' => strtoupper($event->scope),
@@ -27,23 +30,24 @@ class SendIssueNotification implements ShouldQueue
             '{REQ}' => (string) ($event->ctx['request_short'] ?? '-'),
         ]);
 
-        if (!empty($config['email'])) {
-            $subject = $replace(data_get($config, 'templates.subject', 'Number {NUMBER}'));
-            $body = $replace(data_get($config, 'templates.body', 'Number {NUMBER} issued'));
+        if (!empty($emailConfig['enabled'])) {
+            $subject = $replace($emailConfig['subject'] ?? 'Nomor {NUMBER}');
+            $body = $replace($emailConfig['body'] ?? 'Nomor {NUMBER} telah diterbitkan.');
+            $recipient = $emailConfig['default_recipient'] ?? config('mail.to.address', config('mail.from.address'));
 
-            Mail::raw($body, function ($message) use ($subject) {
-                $message->to(config('mail.to.address', config('mail.from.address')))
-                    ->subject($subject);
-            });
+            if ($recipient) {
+                Mail::raw($body, function ($message) use ($subject, $recipient) {
+                    $message->to($recipient)->subject($subject);
+                });
+            }
         }
 
-        if (!empty($config['whatsapp'])) {
-            $message = $replace(data_get($config, 'templates.whatsapp', '{SCOPE} {NUMBER} issued'));
-            $recipient = settings('automation.whatsapp_recipient');
+        if (!empty($whatsappConfig['enabled'])) {
+            $message = $replace($whatsappConfig['message'] ?? '{SCOPE} {NUMBER} issued');
+            $recipient = $whatsappConfig['default_target'] ?? null;
 
-            if (empty($recipient)) {
+            if (!$recipient) {
                 Log::warning('[LIMS] WhatsApp recipient not configured');
-
                 return;
             }
 
@@ -58,4 +62,3 @@ class SendIssueNotification implements ShouldQueue
         }
     }
 }
-

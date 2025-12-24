@@ -125,7 +125,12 @@
 
         <!-- Request Info Cards -->
         <div class="surface-sem shadow-sm sm:rounded-lg p-6 border-sem">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-center">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 text-center">
+                <div class="surface-sem-alt p-4 rounded-lg">
+                    <div class="text-2xl mb-2">🔖</div>
+                    <div class="text-sm text-sem-dim">Nomor Resi</div>
+                    <div class="font-semibold text-sem-high">{{ $trackingData['receipt_number'] ?? 'N/A' }}</div>
+                </div>
                 <div class="surface-sem-alt p-4 rounded-lg">
                     <div class="text-2xl mb-2">📝</div>
                     <div class="text-sm text-sem-dim">{{ __('tracking.labels.request_number') }}</div>

@@ -99,7 +99,7 @@ class InvestigatorDocumentController extends Controller
     }
 
     /**
-     * Download a document
+     * Download a document as attachment
      */
     public function download(Document $document)
     {
@@ -109,22 +109,37 @@ class InvestigatorDocumentController extends Controller
             abort(404, 'Document file not found');
         }
 
-        $filePath = $this->documentService->getFilePath($document);
-        
-        return response()->download($filePath, $document->filename);
+        $path = $document->file_path ?? $document->path ?? '';
+        $filename = $document->original_filename ?? $document->filename ?? ($path ? basename($path) : 'document');
+
+        return response()->download(
+            $this->documentService->getFilePath($document),
+            $filename
+        );
     }
 
     /**
-     * Display the specified document details
+     * Preview a document inline (for PDFs, images, etc.)
      */
     public function show(Document $document)
     {
         Gate::authorize('view', $document);
 
-        return view('investigators.documents.show', [
-            'document' => $document->load(['investigator', 'testRequest']),
-            'fileExists' => $this->documentService->fileExists($document),
-        ]);
+        if (!$this->documentService->fileExists($document)) {
+            abort(404, 'Document file not found');
+        }
+
+        $path = $document->file_path ?? $document->path ?? '';
+        $filename = $document->original_filename ?? $document->filename ?? ($path ? basename($path) : 'document');
+        $mimeType = $document->mime_type ?? 'application/octet-stream';
+
+        return response()->file(
+            $this->documentService->getFilePath($document),
+            [
+                'Content-Type' => $mimeType,
+                'Content-Disposition' => 'inline; filename="' . $filename . '"',
+            ]
+        );
     }
 
     /**

@@ -56,12 +56,5 @@ class AppServiceProvider extends ServiceProvider
             $allowed = settings('security.roles.can_issue_number', ['admin']);
             return in_array($user->role ?? null, $allowed, true);
         });
-
-        Gate::define('view-database', function ($user) {
-            // Allow admin, supervisor, and analyst to view database
-            $defaultRoles = ['admin', 'supervisor', 'analyst', 'user'];
-            $allowed = settings('security.roles.can_view_database', $defaultRoles);
-            return in_array($user->role ?? null, $allowed, true);
-        });
     }
 }

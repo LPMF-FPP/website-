@@ -10,13 +10,12 @@ use App\Models\TestRequest;
 use App\Models\User;
 use App\Enums\TestProcessStage;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class FormPreparationArchiveTest extends TestCase
 {
-    use RefreshDatabase, WithoutMiddleware;
+    use RefreshDatabase;
 
     protected User $user;
 

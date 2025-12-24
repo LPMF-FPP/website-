@@ -1,0 +1,17 @@
+[90m= [39m[34;4mApp\Models\User[39;24m {#6238
+    [34mid[39m: [35m1[39m,
+    [34mname[39m: "[32mLPMF[39m",
+    [34memail[39m: "[32mlabmutufarmapol@gmail.com[39m",
+    [34memail_verified_at[39m: [36mnull[39m,
+    #[33mpassword[39m: "[32m$2y$12$pNNuO9SC0GgYo7O3coMWO.iNwhTbH8pDSSp7NjUA6E9lo0p2IygjK[39m",
+    [34mrole[39m: "[32minvestigator[39m",
+    #[33mremember_token[39m: [36mnull[39m,
+    [34mcreated_at[39m: "[32m2025-12-17 10:33:22[39m",
+    [34mupdated_at[39m: "[32m2025-12-17 10:33:22[39m",
+    [34mtitle_prefix[39m: [36mnull[39m,
+    [34mtitle_suffix[39m: [36mnull[39m,
+    [34mrank[39m: [36mnull[39m,
+    [34mnrp[39m: [36mnull[39m,
+    [34mnip[39m: [36mnull[39m,
+  }
+

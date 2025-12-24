@@ -69,7 +69,7 @@
                     $readyOptions = [];
                     foreach ($processes as $p) {
                         if (in_array($p->sample_id, $samplesReadyForDelivery ?? [])) {
-                            $label = ($p->sample->sample_name ?? 'Sampel') . ' (' . ($p->sample->testRequest?->request_number ?? '-') . ')';
+                            $label = ($p->sample->sample_name ?? 'Sampel') . ' (' . ($p->sample->testRequest?->receipt_number ?? '-') . ')';
                             $readyOptions[$p->sample_id] = $label;
                         }
                     }

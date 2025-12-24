@@ -66,6 +66,18 @@
     $signRel     = $cfg['head_signature'] ?? 'images/ttd-kafarmapol.png'; // public/
     $signPath    = public_path($signRel);
     $hasSign     = file_exists($signPath);
+
+    // Pre-encode all images to base64 once at the top to avoid multiple file reads
+    $leftLogoPath = public_path('images/logo-tribrata-polri.png');
+    $leftLogoBase64 = file_exists($leftLogoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($leftLogoPath)) : '';
+    
+    $rightLogoPath = public_path('images/logo-pusdokkes-polri.png');
+    $rightLogoBase64 = file_exists($rightLogoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($rightLogoPath)) : '';
+    
+    $signBase64 = '';
+    if ($hasSign) {
+        $signBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($signPath));
+    }
 @endphp
 <!DOCTYPE html>
 <html lang="id">
@@ -127,8 +139,8 @@
   <table class="hdr avoid">
     <tr>
       <td style="width:78px">
-        @if(file_exists(public_path('images/logo-tribrata-polri.png')))
-          <img src="{{ public_path('images/logo-tribrata-polri.png') }}" style="height:54px">
+        @if($leftLogoBase64)
+          <img src="{{ $leftLogoBase64 }}" style="height:54px">
         @endif
       </td>
       <td class="c">
@@ -137,8 +149,8 @@
         <div class="addr">Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240 • Telp/Fax: 021-4700921 • Email: labmutufarmapol@gmail.com</div>
       </td>
       <td style="width:78px; text-align:right">
-        @if(file_exists(public_path('images/logo-pusdokkes-polri.png')))
-          <img src="{{ public_path('images/logo-pusdokkes-polri.png') }}" style="height:54px">
+        @if($rightLogoBase64)
+          <img src="{{ $rightLogoBase64 }}" style="height:54px">
         @endif
       </td>
     </tr>
@@ -202,7 +214,9 @@
       <td class="lcol" style="text-align:center;">
         <div class="headtitle">{{ $headTitle }}</div>
         <div style="height:60px; margin: 2px 0;">
-          @if($hasSign)<img src="{{ $signPath }}" style="height:58px">@endif
+          @if($signBase64)
+            <img src="{{ $signBase64 }}" style="height:58px">
+          @endif
         </div>
         <div class="headname">{{ $headName }}</div>
         <div class="small">{{ $headRankNrp }}</div>

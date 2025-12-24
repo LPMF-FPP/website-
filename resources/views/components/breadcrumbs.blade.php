@@ -1,7 +1,8 @@
 @props([
     // items: [['label' => 'Dashboard', 'href' => route('dashboard')], ['label' => 'Permintaan']]
     'items' => [],
-    'class' => ''
+    'class' => '',
+    'navClass' => 'mb-4'
 ])
 
 @php
@@ -9,7 +10,7 @@
     if (!empty($class)) { $classes .= ' ' . $class; }
 @endphp
 
-<nav class="mb-4" aria-label="Breadcrumb">
+<nav class="{{ $navClass }}" aria-label="Breadcrumb">
     <ol class="flex items-center space-x-2 text-sm text-accent-600 {{ $classes }}">
         <li>
             <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-1 hover:text-primary-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400 rounded">

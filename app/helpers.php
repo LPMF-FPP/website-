@@ -20,7 +20,7 @@ if (!function_exists('settings')) {
     function settings(?string $key = null, $default = null)
     {
         $all = cache()->remember('sys_settings_all', 60, function () {
-            if (!Schema::hasTable('system_settings')) {
+            if (!Schema::hasTable('settings')) {
                 return [];
             }
 
@@ -99,13 +99,37 @@ if (!function_exists('settings_nest')) {
 if (!function_exists('settings_flatten')) {
     /**
      * Flatten nested arrays into dot-notated keys.
+     * Preserves non-associative arrays as values instead of flattening them.
      *
      * @param  array<string, mixed>  $nested
+     * @param  string  $prepend
      * @return array<string, mixed>
      */
-    function settings_flatten(array $nested): array
+    function settings_flatten(array $nested, string $prepend = ''): array
     {
-        return Arr::dot($nested);
+        $result = [];
+
+        foreach ($nested as $key => $value) {
+            $newKey = $prepend === '' ? $key : $prepend . '.' . $key;
+
+            if (is_array($value) && !empty($value)) {
+                // Check if it's an associative array (has string keys)
+                $isAssociative = array_keys($value) !== range(0, count($value) - 1);
+
+                if ($isAssociative) {
+                    // Recursively flatten associative arrays
+                    $result = array_merge($result, settings_flatten($value, $newKey));
+                } else {
+                    // Keep indexed arrays as-is (e.g., ['admin', 'supervisor'])
+                    $result[$newKey] = $value;
+                }
+            } else {
+                // Scalar or empty array
+                $result[$newKey] = $value;
+            }
+        }
+
+        return $result;
     }
 }
 

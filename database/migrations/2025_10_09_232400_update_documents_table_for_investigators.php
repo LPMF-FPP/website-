@@ -17,6 +17,11 @@ return new class extends Migration
                 $table->foreignId('investigator_id')->nullable()->after('id')->constrained()->onDelete('cascade');
             }
             
+            // Make test_request_id nullable (for investigator uploads without request)
+            if (Schema::hasColumn('documents', 'test_request_id')) {
+                $table->foreignId('test_request_id')->nullable()->change();
+            }
+            
             // Add source column (upload or generated)
             if (!Schema::hasColumn('documents', 'source')) {
                 $table->enum('source', ['upload', 'generated'])->default('upload')->after('document_type');

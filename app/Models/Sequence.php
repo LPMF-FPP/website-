@@ -9,10 +9,12 @@ class Sequence extends Model
 {
     use HasFactory;
 
+    protected $table = 'number_sequences';
+
     protected $fillable = [
         'scope',
         'bucket',
         'current_value',
+        'reset_period',
     ];
 }
-

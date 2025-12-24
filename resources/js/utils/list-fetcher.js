@@ -39,7 +39,10 @@ export function createListFetcher() {
     async fetchList(url, opts = { push: true }) {
       try {
         this.loading = true;
-        const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const res = await fetch(url, { 
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+          credentials: 'same-origin'
+        });
         const html = await res.text();
         const doc = new DOMParser().parseFromString(html, 'text/html');
         const newContainer = doc.querySelector('[x-ref="listContainer"]') || doc.querySelector('table')?.closest('div');

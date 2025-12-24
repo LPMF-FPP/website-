@@ -83,6 +83,50 @@ class NumberingService
     }
 
     /**
+     * Retrieve the current and next numbers for a scope.
+     *
+     * @param  array<string, mixed>  $context
+     * @return array{current:?string,next:string,pattern:string}
+     */
+    public function currentSnapshot(string $scope, array $context = []): array
+    {
+        try {
+            $config = $this->getConfig($scope);
+            $pattern = $config['pattern'];
+            $reset = $config['reset'] ?? 'never';
+            $startFrom = (int) ($config['start_from'] ?? 1);
+            $contextWithNow = $this->contextWithNow($context);
+            $bucket = $this->makeBucket($scope, $reset, $contextWithNow, $config);
+
+            $currentValue = Sequence::query()
+                ->where('scope', $scope)
+                ->where('bucket', $bucket)
+                ->value('current_value');
+
+            $issuedValue = $currentValue ?? ($startFrom - 1);
+            $currentNumber = $issuedValue >= $startFrom
+                ? $this->render($pattern, $issuedValue, $contextWithNow)
+                : null;
+
+            $nextValue = max($issuedValue, $startFrom - 1) + 1;
+            $nextNumber = $this->render($pattern, $nextValue, $contextWithNow);
+
+            return [
+                'current' => $currentNumber,
+                'next' => $nextNumber,
+                'pattern' => $pattern,
+            ];
+        } catch (\Exception $e) {
+            // Return safe defaults if anything fails
+            return [
+                'current' => null,
+                'next' => 'N/A',
+                'pattern' => '{YYYY}-{MM}-{DD}-{SEQ:4}',
+            ];
+        }
+    }
+
+    /**
      * Generate an example number based on the provided or stored pattern.
      *
      * @param  array<string, mixed>  $context
@@ -121,6 +165,8 @@ class NumberingService
             '{YYYY}' => $now->format('Y'),
             '{YY}' => $now->format('y'),
             '{MM}' => $now->format('m'),
+            // Roman numeral month (I..XII)
+            '{RM}' => $this->intToRoman((int) $now->format('m')),
             '{DD}' => $now->format('d'),
             '{INV}' => str_pad((string) ($context['investigator_id'] ?? 0), 2, '0', STR_PAD_LEFT),
             '{TEST}' => $sanitizer($context['test_code'] ?? 'GEN'),
@@ -137,6 +183,43 @@ class NumberingService
         }, $pattern);
 
         return strtr($output, $map);
+    }
+
+    /**
+     * Convert an integer to uppercase Roman numerals.
+     * Intended for month numbers (1..12). Returns empty string for invalid values.
+     */
+    protected function intToRoman(int $number): string
+    {
+        if ($number <= 0) {
+            return '';
+        }
+
+        $map = [
+            1000 => 'M',
+            900 => 'CM',
+            500 => 'D',
+            400 => 'CD',
+            100 => 'C',
+            90 => 'XC',
+            50 => 'L',
+            40 => 'XL',
+            10 => 'X',
+            9 => 'IX',
+            5 => 'V',
+            4 => 'IV',
+            1 => 'I',
+        ];
+
+        $result = '';
+        foreach ($map as $value => $symbol) {
+            while ($number >= $value) {
+                $result .= $symbol;
+                $number -= $value;
+            }
+        }
+
+        return $result;
     }
 
     /**
@@ -187,12 +270,32 @@ class NumberingService
 
     protected function getConfig(string $scope): array
     {
-        $config = settings("numbering.$scope");
+        // First try reading from individual dot-notated keys
+        $pattern = settings("numbering.$scope.pattern");
+        $reset = settings("numbering.$scope.reset");
+        $startFrom = settings("numbering.$scope.start_from");
 
-        if (!$config || empty($config['pattern'])) {
-            throw new \RuntimeException("Numbering config for [$scope] not found.");
+        // If individual keys exist, use them
+        if ($pattern !== null && $pattern !== '') {
+            return [
+                'pattern' => $pattern,
+                'reset' => $reset ?? 'never',
+                'start_from' => (int) ($startFrom ?? 1),
+            ];
         }
 
-        return $config;
+        // Fall back to legacy array format (numbering.{scope} as array)
+        $config = settings("numbering.$scope");
+
+        if (is_array($config) && !empty($config['pattern'])) {
+            return $config;
+        }
+
+        // Return safe defaults
+        return [
+            'pattern' => '{YYYY}-{MM}-{DD}-{SEQ:4}',
+            'reset' => 'never',
+            'start_from' => 1,
+        ];
     }
 }
