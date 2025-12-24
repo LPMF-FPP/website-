@@ -14,10 +14,8 @@ return new class extends Migration
                 $table->string('storage_path')->nullable()->change();
             }
 
-            $table->string('render_engine')
-                ->default(DocumentRenderEngine::DOMPDF->value)
-                ->after('format')
-                ->index();
+            // render_engine column already added in 2025_02_13_000000_add_render_engine_to_document_templates
+            // Skip adding it again to prevent "Duplicate column" error
 
             $table->longText('content_html')->nullable()->after('storage_path');
             $table->longText('content_css')->nullable()->after('content_html');
@@ -28,7 +26,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('document_templates', function (Blueprint $table) {
-            $table->dropColumn(['render_engine', 'content_html', 'content_css', 'editor_project']);
+            // Only drop columns added in this migration, render_engine is handled separately
+            $table->dropColumn(['content_html', 'content_css', 'editor_project']);
 
             if (Schema::hasColumn('document_templates', 'storage_path')) {
                 $table->string('storage_path')->nullable(false)->change();
