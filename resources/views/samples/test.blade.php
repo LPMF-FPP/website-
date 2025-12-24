@@ -63,7 +63,7 @@
                                 <option value="">-- pilih --</option>
                                 @foreach($requests as $req)
                                     <option value="{{ $req->id }}" @selected($selectedId == $req->id)>
-                                        {{ $req->request_number }} - {{ $req->investigator->name ?? 'Tanpa Penyidik' }}
+                                        {{ $req->receipt_number ?? $req->request_number }} - {{ $req->investigator->name ?? 'Tanpa Penyidik' }}
                                     </option>
                                 @endforeach
                             </select>

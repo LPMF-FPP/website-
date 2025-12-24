@@ -209,6 +209,8 @@
             </div>
         </div>
 
+        <div class="bg-white shadow-sm sm:rounded-lg" x-data="requestDocuments({{ $request->id }})" x-init="init()" id="request-documents">
+            <div class="border-b border-primary-100 px-6 py-4">
         <div class="flex justify-end space-x-2">
             <a href="{{ route('requests.edit', $request) }}" class="inline-flex items-center px-4 py-2 border border-indigo-600 text-indigo-600 text-sm font-medium rounded-md hover:bg-indigo-50">
                 Edit Permintaan
@@ -227,6 +229,115 @@
     <script>
         const requestId = {{ $request->id }};
         const csrfToken = '{{ csrf_token() }}';
+
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('requestDocuments', (requestIdParam) => ({
+                requestId: requestIdParam,
+                csrf: csrfToken,
+                documents: [],
+                loading: true,
+                error: '',
+                deleting: {},
+                selectedDocument: null,
+                previewUrl: '',
+                init() {
+                    this.fetchDocuments();
+                },
+                async fetchDocuments() {
+                    this.loading = true;
+                    this.error = '';
+                    try {
+                        const response = await fetch(`/api/requests/${this.requestId}/documents`, {
+                            headers: { 'Accept': 'application/json' },
+                            credentials: 'same-origin',
+                        });
+                        const payload = await response.json().catch(() => ({}));
+                        if (!response.ok) {
+                            throw new Error(payload.message || 'Gagal memuat dokumen.');
+                        }
+                        const list = Array.isArray(payload?.documents)
+                            ? payload.documents
+                            : (Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []));
+                        this.documents = list;
+                        if (this.selectedDocument) {
+                            const updated = this.documents.find((doc) => doc.id === this.selectedDocument.id);
+                            if (!updated) {
+                                this.clearPreview();
+                            } else {
+                                this.selectDocument(updated);
+                            }
+                        }
+                    } catch (error) {
+                        this.error = error.message || 'Gagal memuat dokumen.';
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                selectDocument(doc) {
+                    this.selectedDocument = doc;
+                    this.previewUrl = doc?.preview_url || doc?.url || doc?.download_url || '';
+                },
+                clearPreview() {
+                    this.selectedDocument = null;
+                    this.previewUrl = '';
+                },
+                documentType(doc) {
+                    return doc?.type_label || doc?.type || (doc?.is_generated ? 'generated' : 'upload');
+                },
+                documentIsPdf(doc) {
+                    if (!doc) return false;
+                    const mime = (doc.mime_type || doc.mime || doc.content_type || '').toLowerCase();
+                    const name = (doc.name || '').toLowerCase();
+                    const ext = (doc.extension || '').toLowerCase();
+                    return mime.includes('pdf') || name.endsWith('.pdf') || ext === 'pdf';
+                },
+                documentIsImage(doc) {
+                    if (!doc) return false;
+                    const mime = (doc.mime_type || doc.mime || doc.content_type || '').toLowerCase();
+                    const name = (doc.name || '').toLowerCase();
+                    const ext = (doc.extension || '').toLowerCase();
+                    return mime.startsWith('image/') || ['.png', '.jpg', '.jpeg', '.gif'].some((suffix) => name.endsWith(suffix)) || ['png', 'jpg', 'jpeg', 'gif'].includes(ext);
+                },
+                async deleteDocument(doc) {
+                    if (!doc?.id) return;
+                    if (!confirm('Yakin hapus dokumen ini?')) return;
+                    this.deleting = { ...this.deleting, [doc.id]: true };
+                    this.error = '';
+                    try {
+                        const response = await fetch(`/api/documents/${doc.id}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': this.csrf,
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json',
+                            },
+                            credentials: 'same-origin',
+                        });
+                        if (!response.ok) {
+                            const data = await response.json().catch(() => ({}));
+                            throw new Error(data.message || 'Gagal menghapus dokumen.');
+                        }
+                        this.documents = this.documents.filter((item) => item.id !== doc.id);
+                        if (this.selectedDocument && this.selectedDocument.id === doc.id) {
+                            this.clearPreview();
+                        }
+                    } catch (error) {
+                        this.error = error.message || 'Gagal menghapus dokumen.';
+                    } finally {
+                        this.deleting = { ...this.deleting, [doc.id]: false };
+                    }
+                },
+                isDeleting(id) {
+                    return !!this.deleting[id];
+                },
+                openDocument(doc) {
+                    const target = doc?.preview_url || doc?.url || doc?.download_url;
+                    if (target) {
+                        window.open(target, '_blank');
+                    }
+                },
+            }));
+        });
 
         function showNotification(type, message) {
             const toast = document.getElementById('notification-toast');

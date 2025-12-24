@@ -50,7 +50,8 @@ class SettingsController extends Controller
             'pdf' => Arr::get($settings, 'pdf', []),
             'locale' => Arr::get($settings, 'locale', []),
             'retention' => Arr::get($settings, 'retention', []),
-            'automation' => Arr::get($settings, 'automation', []),
+            'automation' => Arr::get($settings, 'notifications', Arr::get($settings, 'automation', [])),
+            'notifications' => Arr::get($settings, 'notifications', Arr::get($settings, 'automation', [])),
             'templates' => [
                 'active' => Arr::get($settings, 'templates.active', []),
                 'list' => $templates,
@@ -110,8 +111,12 @@ class SettingsController extends Controller
         }
 
         try {
+            if (isset($incoming['automation']) && !isset($incoming['notifications'])) {
+                $incoming['notifications'] = $incoming['automation'];
+            }
+
             $allowedRoots = [
-                'numbering', 'branding', 'pdf', 'locale', 'retention', 'automation', 'templates', 'security',
+                'numbering', 'branding', 'pdf', 'locale', 'retention', 'notifications', 'automation', 'templates', 'security',
             ];
 
             $flat = settings_flatten($incoming);
@@ -330,7 +335,7 @@ class SettingsController extends Controller
 
         // Only allow specific root keys
         $allowedRoots = [
-            'numbering', 'branding', 'pdf', 'locale', 'retention', 'automation', 'templates', 'security',
+            'numbering', 'branding', 'pdf', 'locale', 'retention', 'notifications', 'automation', 'templates', 'security',
         ];
 
         $filtered = [];

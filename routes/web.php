@@ -8,11 +8,11 @@ use App\Http\Controllers\AnalystController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\TrackingController;
 use App\Http\Controllers\StatisticsController;
-use App\Http\Controllers\DatabaseController;
+use App\Http\Controllers\SearchController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SettingsPageController;
-use App\Http\Controllers\Settings\TemplateController;
+use App\Http\Controllers\Settings\TemplateController as SettingsTemplateController;
 use App\Http\Controllers\Settings\NumberingController;
 use App\Http\Controllers\LocaleController;
 use Illuminate\Support\Facades\Route;
@@ -41,6 +41,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/api/dashboard-stats', [DashboardController::class, 'getStats'])->name('dashboard.stats');
+    
+    // Search
+    Route::view('/search', 'search.index')->name('search.index');
+    Route::get('/search/data', [SearchController::class, 'data'])->name('search.data');
+    Route::get('/search/suggest', [SearchController::class, 'suggest'])->name('search.suggest');
 
     // Profile
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
@@ -51,18 +56,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Requests
     Route::resource('requests', RequestController::class);
-    // Disabled: receipt document download/delete endpoints (sample_receipt, handover_report, request_letter_receipt)
-    // Route::get('/requests/{request}/documents/{type}', [RequestController::class, 'downloadDocument'])->name('requests.documents.download');
-    // Route::delete('/requests/{request}/documents/{type}', [RequestController::class, 'deleteDocument'])->name('requests.documents.delete');
+    
+    // Request document endpoints (sample_receipt, handover_report, request_letter_receipt)
+    Route::get('/requests/{testRequest}/documents/{type}', [RequestController::class, 'downloadDocument'])->name('requests.documents.download');
+    Route::delete('/requests/{testRequest}/documents/{type}', [RequestController::class, 'deleteDocument'])->name('requests.documents.delete');
 
     // Berita Acara Penerimaan
-    Route::get('/requests/{request}/berita-acara/check', [RequestController::class, 'checkBeritaAcara'])
+    Route::get('/requests/{testRequest}/berita-acara/check', [RequestController::class, 'checkBeritaAcara'])
         ->name('requests.berita-acara.check');
-    Route::post('/requests/{request}/berita-acara/generate', [RequestController::class, 'generateBeritaAcara'])
+    Route::post('/requests/{testRequest}/berita-acara/generate', [RequestController::class, 'generateBeritaAcara'])
         ->name('requests.berita-acara.generate');
-    Route::get('/requests/{request}/berita-acara/download', [RequestController::class, 'downloadBeritaAcara'])
+    Route::get('/requests/{testRequest}/berita-acara/download', [RequestController::class, 'downloadBeritaAcara'])
         ->name('requests.berita-acara.download');
-    Route::get('/requests/{request}/berita-acara/view', [RequestController::class, 'viewBeritaAcara'])
+    Route::get('/requests/{testRequest}/berita-acara/view', [RequestController::class, 'viewBeritaAcara'])
         ->name('requests.berita-acara.view');
 
     // Sample Testing
@@ -126,35 +132,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/test', [SettingsController::class, 'test'])->name('test');
         Route::post('/brand-asset', [SettingsController::class, 'uploadBrandAsset'])->name('brand.upload');
 
-        Route::get('/templates', [TemplateController::class, 'index'])->name('templates.index');
-        Route::post('/templates', [TemplateController::class, 'store'])->name('templates.store');
-        Route::post('/templates/activate', [TemplateController::class, 'activate'])->name('templates.activate');
+        Route::get('/templates', [SettingsTemplateController::class, 'index'])->name('templates.index');
+        Route::post('/templates', [SettingsTemplateController::class, 'store'])->name('templates.store');
+        Route::post('/templates/activate', [SettingsTemplateController::class, 'activate'])->name('templates.activate');
+
+        // Blade Template Editor
+        Route::get('/blade-templates', function () {
+            return view('settings.blade-templates');
+        })->name('blade-templates');
+
+        // Document Templates (New unified system) - Redirected to /settings
+        Route::get('/document-templates', function () {
+            return redirect()->route('settings.blade-templates');
+        })->name('document-templates');
     });
 
     Route::prefix('numbering')->name('numbering.')->group(function () {
         Route::post('/{scope}/preview', [NumberingController::class, 'preview'])->name('preview');
         Route::post('/{scope}/issue', [NumberingController::class, 'issue'])->name('issue');
-    });
-
-    // Database Documentation / Summary
-    Route::middleware('can:view-database')->group(function () {
-        Route::get('/database', [DatabaseController::class, 'index'])->name('database.index');
-        Route::get('/database/suggest', [DatabaseController::class, 'suggest'])->name('database.suggest');
-        // Separate routes for generated vs database documents
-        Route::get('/database/docs/generated/download', [DatabaseController::class, 'download'])
-            ->middleware('signed')
-            ->name('database.docs.download.generated');
-        Route::get('/database/docs/generated/preview', [DatabaseController::class, 'preview'])
-            ->middleware('signed')
-            ->name('database.docs.preview.generated');
-        Route::get('/database/docs/{doc}/download', [DatabaseController::class, 'download'])
-            ->middleware('signed')
-            ->name('database.docs.download');
-        Route::get('/database/docs/{doc}/preview', [DatabaseController::class, 'preview'])
-            ->middleware('signed')
-            ->name('database.docs.preview');
-        Route::get('/database/request/{testRequest}/bundle', [DatabaseController::class, 'bundle'])
-            ->name('database.request.bundle');
     });
 
     // Investigator Documents
@@ -200,53 +195,8 @@ if (app()->isLocal() || env('APP_DEBUG') === true) {
                 'raw_files' => request()->allFiles(),
             ]);
         })->name('debug.file-keys');
-
-        // QA: Debug route to test BA generation
-        Route::get('/ba/{id}', function ($id) {
-            $testRequest = \App\Models\TestRequest::findOrFail($id);
-            $controller = app(\App\Http\Controllers\RequestController::class);
-            request()->merge(['download' => false]);
-            return $controller->generateBeritaAcara($testRequest);
-        })->name('debug.ba');
-
-        // QA: Debug route to test DocumentService for SampleTestProcess
-        Route::get('/process/{id}', function ($id) {
-            $process = \App\Models\SampleTestProcess::with(['sample.testRequest.investigator'])
-                ->findOrFail($id);
-
-            $binary = "%PDF-1.7\n%DEBUG-TEST-DOCUMENT\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Count 0/Kids[]>>endobj\nxref\n0 3\n0000000000 65535 f\n0000000009 00000 n\n0000000058 00000 n\ntrailer<</Size 3/Root 1 0 R>>\nstartxref\n110\n%%EOF";
-
-            $docs = app(\App\Services\DocumentService::class);
-            $doc = $docs->storeForSampleProcess(
-                $process,
-                'pdf',
-                'instrument_result',
-                'DEBUG-' . $process->id,
-                $binary
-            );
-
-            $info = [
-                'success' => true,
-                'process_id' => $process->id,
-                'sample_id' => $process->sample->id,
-                'sample_code' => $process->sample->sample_code,
-                'request_id' => $process->sample->testRequest->id,
-                'request_number' => $process->sample->testRequest->request_number,
-                'investigator_id' => $process->sample->testRequest->investigator->id,
-                'investigator_folder_key' => $process->sample->testRequest->investigator->folder_key,
-                'document_id' => $doc->id,
-                'document_type' => $doc->document_type,
-                'document_filename' => $doc->filename,
-                'document_path' => $doc->path,
-                'storage_full_path' => storage_path('app/public/' . $doc->path),
-                'file_exists' => \Illuminate\Support\Facades\Storage::disk('public')->exists($doc->path),
-                'file_size' => strlen($binary),
-            ];
-
-            return response(json_encode($info, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES), 200, [
-                'Content-Type' => 'application/json',
-            ]);
-        })->name('debug.process');
+        
+        // QA debug routes for BA generation and document testing have been removed
     });
 }
 

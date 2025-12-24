@@ -153,7 +153,7 @@
                                        value="{{ old('tracking_number') }}"
 
 
-                                       placeholder="Contoh: REQ-000001"
+                                       placeholder="Contoh: LPMF0011225"
 
 
                                        class="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-lg">
@@ -239,7 +239,7 @@
                         <div class="bg-white p-4 rounded-lg border">
 
 
-                            <div class="font-medium text-gray-900 mb-1">REQ-000001</div>
+                            <div class="font-medium text-gray-900 mb-1">LPMF0011225</div>
 
 
                             <div class="text-gray-500">Status: 🧪 Sedang Diuji</div>
@@ -251,7 +251,7 @@
                         <div class="bg-white p-4 rounded-lg border">
 
 
-                            <div class="font-medium text-gray-900 mb-1">REQ-000002</div>
+                            <div class="font-medium text-gray-900 mb-1">LPMF0021225</div>
 
 
                             <div class="text-gray-500">Status: 📋 Siap Diserahkan</div>
@@ -263,7 +263,7 @@
                         <div class="bg-white p-4 rounded-lg border">
 
 
-                            <div class="font-medium text-gray-900 mb-1">REQ-000003</div>
+                            <div class="font-medium text-gray-900 mb-1">LPMF0031225</div>
 
 
                             <div class="text-gray-500">Status: 🎉 Sudah Diserahkan</div>

@@ -20,6 +20,7 @@ class User extends Authenticatable
         'rank',
         'nrp',
         'nip',
+        'investigator_id',
     ];
 
     protected $hidden = [

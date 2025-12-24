@@ -1,8 +1,8 @@
-<nav class="bg-gradient-to-r from-primary-50 to-white dark:from-accent-900 dark:to-accent-800 shadow-lg border-b border-primary-200 dark:border-accent-700 relative z-[200]" aria-label="Site navigation">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center h-20">
+<nav class="navbar py-2 bg-gradient-to-r from-primary-50 to-white dark:from-accent-900 dark:to-accent-800 shadow-lg border-b border-primary-200 dark:border-accent-700 relative z-[200]" aria-label="Site navigation">
+    <div class="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center">
             <!-- Logo Section -->
-            <div class="flex items-center space-x-4">
+            <div class="flex items-center space-x-4 d-flex align-items-center gap-2 me-4">
                 <div class="shrink-0 flex items-center space-x-3 mr-2 xl:mr-4">
                     <img src="/images/logo-pusdokkes-polri.png" alt="Logo Pusdokkes Polri" class="h-12 w-auto">
                     <div class="hidden lg:block">
@@ -17,7 +17,7 @@
             </div>
 
             <!-- Center Navigation -->
-            <div class="hidden xl:flex xl:items-center flex-1 min-w-0 justify-center gap-3 xl:gap-4 2xl:gap-6 whitespace-nowrap">
+            <div class="hidden xl:flex xl:items-center flex-1 min-w-0 justify-center gap-2 whitespace-nowrap navbar-nav align-items-center">
                 @auth
                     @php
                         $user = Auth::user();
@@ -49,7 +49,7 @@
 
                     @php
                         $referensiActive = request()->routeIs('tracking.*')
-                            || request()->routeIs('database.*')
+                            || request()->routeIs('search.*')
                             || request()->routeIs('statistics.*')
                             || request()->routeIs('analysts.*')
                             || request()->routeIs('settings.*');
@@ -83,13 +83,13 @@
                                         </div>
                                     </a>
 
-                                    <a href="{{ route('database.index') }}" class="group flex items-start gap-3 p-3 rounded-xl border border-primary-100 hover:border-primary-200 hover:bg-primary-50 transition">
+                                    <a href="{{ route('search.index') }}" class="group flex items-start gap-3 p-3 rounded-xl border border-primary-100 hover:border-primary-200 hover:bg-primary-50 transition">
                                         <div class="shrink-0 inline-flex w-10 h-10 items-center justify-center rounded-xl bg-primary-100 text-primary-600">
-                                            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C7.58 2 4 3.79 4 6v12c0 2.21 3.58 4 8 4s8-1.79 8-4V6c0-2.21-3.58-4-8-4zm6 14c0 .99-2.69 2-6 2s-6-1.01-6-2V9.97C7.61 10.61 9.68 11 12 11s4.39-.39 6-1.03V16zm0-8c0 .99-2.69 2-6 2s-6-1.01-6-2 2.69-2 6-2 6 1.01 6 2z"/></svg>
+                                            <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd"/></svg>
                                         </div>
                                         <div class="min-w-0">
-                                            <div class="font-semibold text-primary-900">Database</div>
-                                            <div class="text-sm text-primary-600/80">Data ringkas &amp; pencarian</div>
+                                            <div class="font-semibold text-primary-900">Pencarian</div>
+                                            <div class="text-sm text-primary-600/80">Cari data &amp; dokumen</div>
                                         </div>
                                     </a>
 
@@ -151,7 +151,7 @@
             </div>
 
             <!-- User Menu - Right Side -->
-            <div class="flex items-center">
+            <div class="flex items-center ms-auto d-flex align-items-center gap-3">
                 <button type="button" onclick="window.__toggleTheme()" class="mr-4 inline-flex items-center justify-center w-9 h-9 rounded-md border border-primary-200 dark:border-accent-600 text-primary-600 dark:text-accent-200 hover:bg-primary-50 dark:hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-primary-500" aria-label="Toggle theme">
                     <svg class="h-5 w-5 dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2m10-10h-2M4 12H2m15.07 6.07-1.42-1.42M8.35 8.35 6.93 6.93m10.12 0-1.42 1.42M8.35 15.65l-1.42 1.42"/></svg>
                     <svg class="h-5 w-5 hidden dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>
@@ -263,8 +263,8 @@
                         <x-responsive-nav-link href="{{ route('tracking.index') }}" :active="request()->routeIs('tracking.*')">
                             Tracking
                         </x-responsive-nav-link>
-                        <x-responsive-nav-link href="{{ route('database.index') }}" :active="request()->routeIs('database.*')">
-                            Database
+                        <x-responsive-nav-link href="{{ route('search.index') }}" :active="request()->routeIs('search.*')">
+                            Pencarian
                         </x-responsive-nav-link>
                         <x-responsive-nav-link href="{{ route('statistics.index') }}" :active="request()->routeIs('statistics.*')">
                             Statistik

@@ -28,7 +28,12 @@ class InvestigatorDocumentPolicy
     public function view(User $user, Document $document): bool
     {
         // Admin and analyst can view all documents
-        if (in_array($user->role, ['admin', 'analyst'])) {
+        if (in_array($user->role, ['admin', 'analyst', 'supervisor'])) {
+            return true;
+        }
+
+        // Investigators can view documents for their own investigator
+        if ($user->role === 'investigator' && $user->investigator_id === $document->investigator_id) {
             return true;
         }
 
@@ -54,7 +59,12 @@ class InvestigatorDocumentPolicy
     public function download(User $user, Document $document): bool
     {
         // Admin and analyst can download all documents
-        if (in_array($user->role, ['admin', 'analyst'])) {
+        if (in_array($user->role, ['admin', 'analyst', 'supervisor'])) {
+            return true;
+        }
+
+        // Investigators can download their own documents
+        if ($user->role === 'investigator' && $user->investigator_id === $document->investigator_id) {
             return true;
         }
 
@@ -73,6 +83,13 @@ class InvestigatorDocumentPolicy
 
         // Analysts can delete uploaded documents (not generated)
         if ($user->role === 'analyst' && $document->source === 'upload') {
+            return true;
+        }
+
+        // Investigators can delete their own uploaded documents
+        if ($user->role === 'investigator' && 
+            $user->investigator_id === $document->investigator_id &&
+            $document->source === 'upload') {
             return true;
         }
 

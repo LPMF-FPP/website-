@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Document;
 use App\Models\DocumentTemplate;
 use App\Models\SystemSetting;
+use App\Support\DocumentTypes;
 use Illuminate\Support\Facades\Gate;
 
 class SettingsPageController extends Controller
@@ -26,6 +28,15 @@ class SettingsPageController extends Controller
             'languages' => ['id', 'en'],
             'storage_drivers' => ['local', 's3'],
         ];
+
+        $documentTypes = Document::query()
+            ->select('document_type')
+            ->distinct()
+            ->orderBy('document_type')
+            ->pluck('document_type')
+            ->toArray();
+
+        $options['document_types'] = DocumentTypes::mapOptions($documentTypes);
 
         $templates = DocumentTemplate::orderBy('name')->get();
 

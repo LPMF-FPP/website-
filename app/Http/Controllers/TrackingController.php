@@ -47,26 +47,22 @@ class TrackingController extends Controller
 
     private function normalizeTrackingNumber(string $input): string
     {
-        $clean = strtoupper(trim($input));
-        $clean = preg_replace('/[^A-Z0-9]/', '', $clean);
-
-        if (preg_match('/^REQ(\d{4})(\d{4,})$/', $clean, $matches)) {
-            return sprintf('REQ-%s-%s', $matches[1], str_pad($matches[2], 4, '0', STR_PAD_LEFT));
-        }
-
-        if (preg_match('/^REQ-(\d{4})-(\d{4,})$/', strtoupper($input))) {
-            return strtoupper($input);
-        }
-
-        return $clean;
+        // Just trim whitespace - case-insensitive search is handled in the query
+        // This allows searching with any format: LPMF/BA/001/Rim/2025, lpmf/ba/001/rim/2025, etc.
+        return trim($input);
     }
 
     private function getTrackingData(string $trackingNumber)
     {
         if (class_exists(TestRequest::class) && Schema::hasTable('test_requests')) {
             try {
+                // Search by receipt_number (nomor resi) first, then by request_number (nomor BA)
+                // Use case-insensitive search to handle different input formats
                 $testRequest = TestRequest::with(['investigator', 'samples'])
-                    ->where('request_number', $trackingNumber)
+                    ->where(function ($query) use ($trackingNumber) {
+                        $query->whereRaw('UPPER(receipt_number) = UPPER(?)', [$trackingNumber])
+                              ->orWhereRaw('UPPER(request_number) = UPPER(?)', [$trackingNumber]);
+                    })
                     ->first();
 
                 if ($testRequest) {
@@ -169,6 +165,7 @@ class TrackingController extends Controller
 
         return [
             'request_number' => $testRequest->request_number,
+            'receipt_number' => $testRequest->receipt_number,
             'investigator' => [
                 'name' => optional($investigator)->name,
                 'rank' => optional($investigator)->rank,

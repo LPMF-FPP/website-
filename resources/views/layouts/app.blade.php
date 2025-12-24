@@ -54,7 +54,11 @@
         <!-- Page Content -->
         <main id="main-content" class="flex-1 @if(!isset($header)) pt-6 @endif">
             <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
-                {{ $slot }}
+                @isset($slot)
+                    {{ $slot }}
+                @else
+                    @yield('content')
+                @endisset
             </div>
         </main>
 

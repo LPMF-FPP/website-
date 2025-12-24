@@ -9,7 +9,7 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<title>Formulir Preparasi — {{ $sample->sample_name ?? 'Sampel' }}</title>
+<title>Formulir Preparasi — {{ $sample?->sample_name ?? 'Sampel' }}</title>
 <style>
   /* DOMPDF-safe styles */
   @page { size: A4; margin: 16mm; }
@@ -35,9 +35,9 @@
   <h1><strong>Preparasi Sampel Tablet untuk Analisis GC&ndash;MS</strong></h1>
 
   <div class="meta">
-    <div><strong>Sampel:</strong> {{ $sample->sample_name ?? '-' }}</div>
-    <div><strong>Kode Sampel:</strong> {{ $sample->sample_code ?? ($sample->id ?? '-') }}</div>
-    <div><strong>Nomor Permintaan:</strong> {{ $req->request_number ?? '-' }}</div>
+    <div><strong>Sampel:</strong> {{ $sample?->sample_name ?? '-' }}</div>
+    <div><strong>Kode Sampel:</strong> {{ $sample?->sample_code ?? ($sample?->id ?? '-') }}</div>
+    <div><strong>Nomor Permintaan:</strong> {{ $req?->request_number ?? '-' }}</div>
     <div><strong>Tanggal:</strong> {{ $now->translatedFormat('l, d F Y') }}</div>
   </div>
 

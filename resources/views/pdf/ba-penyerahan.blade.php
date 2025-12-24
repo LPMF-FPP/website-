@@ -17,6 +17,21 @@
   $allSampleCodesStr = $sampleCodes->isNotEmpty() ? $sampleCodes->join(', ') : $mainSampleCode;
   $invName = trim(($inv?->rank).' '.($inv?->name));
   $invNrp = $inv?->nrp ?? null;
+  // BA Penyerahan number - try from settings/numbering service
+  $numberingService = app(\App\Services\NumberingService::class);
+  $baPenyerahanNumber = '—';
+  try {
+    // Try to get from request metadata first
+    $baPenyerahanNumber = $meta['ba_penyerahan_number'] ?? null;
+    if (!$baPenyerahanNumber) {
+      // Generate using numbering service with pattern: LPMF/BA/{SEQ:3}/Rah/{YYYY}
+      $baPenyerahanNumber = $numberingService->preview('ba_penyerahan', [
+        'investigator_id' => $req->investigator_id ?? null,
+      ]);
+    }
+  } catch (\Throwable $e) {
+    $baPenyerahanNumber = '—';
+  }
   // Robust fallbacks from DB relations/fields
   $baNumber = $req->ba_number
     ?? ($req->ba->number ?? null)
@@ -57,22 +72,21 @@
   } else {
     $meta = (array)$metaRaw;
   }
-  // Build combined LHU numbers per sample (unique, comma-separated). Fallback: derive from sample_code as FLHUXXX.
-  $computeFLHUFromSampleCode = function($code){
+  // Build combined LHU numbers per sample (unique, comma-separated). Fallback: derive from sample_code as LHU-LPMF-XXX.
+  $computeLHUFromSampleCode = function($code){
     if (!$code || !is_string($code)) return null;
     $c = strtoupper($code);
-    // Rule: ambil deretan angka pertama (1-3 digit) setelah awalan 'W' jika ada,
-    // lalu pad menjadi 3 digit. Jika tidak ada 'W', ambil deretan angka pertama (1-3 digit)
-    // yang bukan kandidat tahun (4 digit).
-    if (preg_match('/W.*?(\d{1,3})(?!\d)/i', $c, $m)) {
-      return 'FLHU'.str_pad($m[1], 3, '0', STR_PAD_LEFT);
+    // Rule: ambil deretan angka pertama (1-3 digit) dari kode sampel format W{SEQ:3}{RM}{YYYY}
+    // lalu pad menjadi 3 digit untuk format LHU-LPMF-{SEQ:3}
+    if (preg_match('/W(\d{1,3})/i', $c, $m)) {
+      return 'LHU-LPMF-'.str_pad($m[1], 3, '0', STR_PAD_LEFT);
     }
     if (preg_match('/(\d{1,3})(?!\d)/', $c, $m)) {
-      return 'FLHU'.str_pad($m[1], 3, '0', STR_PAD_LEFT);
+      return 'LHU-LPMF-'.str_pad($m[1], 3, '0', STR_PAD_LEFT);
     }
     return null;
   };
-  $perSampleLhus = collect($samples)->map(function($s) use ($computeFLHUFromSampleCode){
+  $perSampleLhus = collect($samples)->map(function($s) use ($computeLHUFromSampleCode){
     $cand = $s->lhu_number ?? $s->flhu_number ?? null;
     if (!$cand) {
       $mraw = $s->metadata ?? null;
@@ -83,7 +97,7 @@
       $cand = $metaS['report_number'] ?? $metaS['lhu_number'] ?? $metaS['flhu_number'] ?? null;
     }
     if (!$cand) {
-      $cand = $computeFLHUFromSampleCode($s->sample_code ?? $s->sample_name ?? '');
+      $cand = $computeLHUFromSampleCode($s->sample_code ?? $s->sample_name ?? '');
     }
     return $cand ? strtoupper($cand) : null;
   })->filter()->unique()->values();
@@ -133,11 +147,14 @@
         usort($candidates, function($a,$b){ return filemtime($b) <=> filemtime($a); });
         $latest = $candidates[0];
         $base = pathinfo($latest, PATHINFO_FILENAME);
-        // Prefer strict token like FLHU### or FLHU-###; fallback to generic
+        // Prefer strict token like LHU-LPMF-### or LHU-LPMF-###; fallback to generic
         $lhuFromFile = null;
-        if (preg_match('/(?i)(?:^|[_\-])(?:F?LHU)[_\-]?(\d{1,})\b/', $base, $m)) {
+        if (preg_match('/(?i)LHU[_\-]LPMF[_\-](\d{1,})\b/', $base, $m)) {
           $digits = $m[1];
-          $lhuFromFile = 'FLHU'.str_pad($digits, 3, '0', STR_PAD_LEFT);
+          $lhuFromFile = 'LHU-LPMF-'.str_pad($digits, 3, '0', STR_PAD_LEFT);
+        } elseif (preg_match('/(?i)(?:^|[_\-])(?:F?LHU)[_\-]?(\d{1,})\b/', $base, $m)) {
+          $digits = $m[1];
+          $lhuFromFile = 'LHU-LPMF-'.str_pad($digits, 3, '0', STR_PAD_LEFT);
         } elseif (preg_match('/(?i)laporan[\-_]hasil[\-_]uji[\-_]([A-Za-z0-9\-]+)/', $base, $m)) {
           $lhuFromFile = $m[1];
         }
@@ -275,10 +292,10 @@
   </div>
 
   <h1 class="title">Berita Acara Penyerahan</h1>
+  <div style="text-align:center; margin:4px 0 8px; font-weight:700; font-size:11pt;">{{ $baPenyerahanNumber }}</div>
 
   <table class="meta-table">
-    <tr><td class="label">Nomor Permintaan (Lab)</td><td class="sep">:</td><td class="value nowrap"><strong>{{ $req->request_number }}</strong></td></tr>
-    <tr><td class="label">Nomor BA</td><td class="sep">:</td><td class="value">{{ $baNumber }}</td></tr>
+    <tr><td class="label">Nomor Resi</td><td class="sep">:</td><td class="value nowrap"><strong>{{ $req->receipt_number ?? $req->request_number }}</strong></td></tr>
     <tr><td class="label">Pelanggan</td><td class="sep">:</td><td class="value">{{ $invName ?: '—' }} @if($invNrp) — NRP/NIP: {{ $invNrp }} @endif</td></tr>
     <tr><td class="label">Unit/Satuan</td><td class="sep">:</td><td class="value">{{ $inv?->jurisdiction ?? $req->unit ?? '—' }}</td></tr>
     <tr><td class="label">Nama Tersangka</td><td class="sep">:</td><td class="value">{{ $req->suspect_name ?? '—' }}</td></tr>
@@ -296,7 +313,7 @@
       <tbody>
         @forelse($samples as $i => $s)
           @php
-            $methods = $s->test_methods;
+            $methods = $s->test_methods ?? [];
             if (is_string($methods)) { $methods = json_decode($methods, true) ?? []; }
             $map = ['uv_vis'=>'Identifikasi Spektrofotometri UV-VIS','gc_ms'=>'Identifikasi GC-MS','lc_ms'=>'Identifikasi LC-MS'];
             $methodsStr = collect($methods)->map(fn($m)=>$map[$m] ?? $m)->join('; ');

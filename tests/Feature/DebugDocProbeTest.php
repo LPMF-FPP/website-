@@ -2,16 +2,21 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class DebugDocProbeTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_debug_doc_probe_route_works(): void
     {
+        $user = User::factory()->create();
+
         // Use real storage for this test
-        $response = $this->get('/debug/doc-probe');
+        $response = $this->actingAs($user)->get('/debug/doc-probe');
 
         // Assert response is successful
         $response->assertStatus(200);
@@ -50,6 +55,7 @@ class DebugDocProbeTest extends TestCase
 
     public function test_debug_doc_probe_creates_investigators_folder(): void
     {
+        $user = User::factory()->create();
         $disk = Storage::disk('public');
         
         // Delete folder if exists (for clean test)
@@ -58,7 +64,7 @@ class DebugDocProbeTest extends TestCase
         }
 
         // Call the probe route
-        $response = $this->get('/debug/doc-probe');
+        $response = $this->actingAs($user)->get('/debug/doc-probe');
         
         // Assert folder was created
         $response->assertStatus(200);
@@ -70,7 +76,8 @@ class DebugDocProbeTest extends TestCase
 
     public function test_debug_doc_probe_returns_correct_config_root(): void
     {
-        $response = $this->get('/debug/doc-probe');
+        $user = User::factory()->create();
+        $response = $this->actingAs($user)->get('/debug/doc-probe');
         
         $response->assertStatus(200);
         

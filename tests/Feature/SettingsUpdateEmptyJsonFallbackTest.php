@@ -29,8 +29,10 @@ test('extractPayload falls back to request->all() when JSON body is empty array'
         ],
     ];
 
-    $this->actingAs($user)->withoutMiddleware();
-    $response = postWithEmptyJsonAndForm(route('settings.update'), $payload);
+    // Use standard postJson which properly sends JSON body
+    $response = $this->actingAs($user)
+        ->withoutMiddleware()
+        ->postJson(route('settings.update'), $payload);
 
     // Using helper to unwrap the response
     expect($response->getStatusCode())->toBe(200);

@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('rank')->nullable();
             $table->string('nrp', 50)->nullable();
             $table->string('nip', 50)->nullable();
+            $table->foreignId('investigator_id')->nullable()->constrained()->onDelete('set null');
         });
     }
 
@@ -26,7 +27,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['title_prefix', 'title_suffix', 'rank', 'nrp', 'nip']);
+            $table->dropForeign(['investigator_id']);
+            $table->dropColumn(['title_prefix', 'title_suffix', 'rank', 'nrp', 'nip', 'investigator_id']);
         });
     }
 };

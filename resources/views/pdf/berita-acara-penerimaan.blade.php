@@ -5,6 +5,17 @@
     $receivedAt = $request->received_at ? Carbon::parse($request->received_at) : now();
     $printedAt  = isset($generatedAt) ? Carbon::parse($generatedAt) : now();
 
+    // Use receipt number from database (generated when request was created)
+    // If not available (old records), generate one for display only
+    $receiptNumber = $request->receipt_number;
+    if (!$receiptNumber) {
+        $numberingService = app(\App\Services\NumberingService::class);
+        $receiptNumber = $numberingService->preview('tracking', [
+            'investigator_id' => $request->investigator_id,
+            'now' => $receivedAt instanceof \Carbon\CarbonImmutable ? $receivedAt : \Carbon\CarbonImmutable::parse($receivedAt),
+        ]);
+    }
+
     $methodMap = [
         'uv_vis' => 'Identifikasi Spektrofotometri UV-VIS',
         'gc_ms'  => 'Identifikasi GC-MS',
@@ -17,7 +28,7 @@
         return collect($arr)->map(fn($m) => $methodMap[$m] ?? $m)->unique()->join('; ');
     };
 
-    $testsSummary = $request->samples->map(fn($s) => $formatMethods($s->test_methods))->filter()->unique()->join('; ');
+    $testsSummary = $request->samples->map(fn($s) => $formatMethods($s->test_methods ?? []))->filter()->unique()->join('; ');
 @endphp
 <!DOCTYPE html>
 <html lang="id">
@@ -30,7 +41,8 @@
   body { font-family: DejaVu Sans, Arial, Helvetica, sans-serif; font-size: 11pt; color: #000; line-height: 1.4; }
 
   .meta { font-size: 9pt; color:#000; }
-  .title { text-align:center; font-size:16pt; font-weight:bold; text-transform:uppercase; margin: 10px 0 8px; }
+  .title { text-align:center; font-size:16pt; font-weight:bold; text-transform:uppercase; margin: 10px 0 4px; }
+  .subtitle { text-align:center; font-size:11pt; margin: 0 0 8px; }
 
   table { border-collapse: collapse; width:100%; }
   .header-table td { vertical-align:middle; }
@@ -85,6 +97,7 @@
   </table>
 
   <div class="title">BERITA ACARA PENERIMAAN SAMPEL</div>
+  <div class="subtitle">Nomor Permintaan: <b>{{ $request->request_number }}</b></div>
 
   <p>
     Pada hari ini, <b>{{ $receivedAt->translatedFormat('l, d F Y') }}</b>,
@@ -93,7 +106,7 @@
   </p>
 
   <table class="kv-table">
-    <tr><td class="kv-label">Nomor Permintaan</td><td class="kv-sep">:</td><td class="kv-value"><b>{{ $request->request_number }}</b></td></tr>
+    <tr><td class="kv-label">Nomor Resi</td><td class="kv-sep">:</td><td class="kv-value"><b>{{ $receiptNumber }}</b></td></tr>
     <tr><td class="kv-label">Nomor Surat Permintaan</td><td class="kv-sep">:</td><td class="kv-value">{{ $request->case_number ?? '-' }}</td></tr>
     <tr><td class="kv-label">Ditujukan Kepada</td><td class="kv-sep">:</td><td class="kv-value">{{ $request->to_office ?? 'Kepala Sub Satker Farmapol Pusdokkes Polri' }}</td></tr>
     <tr><td class="kv-label">Penyerah Sampel</td><td class="kv-sep">:</td><td class="kv-value">{{ trim(($request->investigator->rank ?? '').' '.($request->investigator->name ?? '')) }} (NRP: {{ $request->investigator->nrp ?? '-' }})</td></tr>
@@ -115,7 +128,7 @@
       @foreach($request->samples as $i => $sample)
       <tr>
         <td class="col-name"><b>{{ $sample->sample_name }}</b></td>
-        <td class="col-tests">{{ $formatMethods($sample->test_methods) }}</td>
+        <td class="col-tests">{{ $formatMethods($sample->test_methods ?? []) }}</td>
         <td class="col-act">{{ $sample->active_substance ?? '-' }}</td>
       </tr>
       @endforeach

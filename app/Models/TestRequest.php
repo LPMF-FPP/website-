@@ -24,7 +24,7 @@ class TestRequest extends Model
 
     protected $fillable = [
 
-        'request_number', 'investigator_id', 'user_id', 'to_office', 'suspect_name',
+        'request_number', 'receipt_number', 'investigator_id', 'user_id', 'to_office', 'suspect_name',
 
         'suspect_gender', 'suspect_age', 'suspect_address', 'case_number', 'case_description', 'incident_date',
 
@@ -63,25 +63,33 @@ class TestRequest extends Model
 
 
         static::creating(function ($model) {
-
+            $numbering = app(\App\Services\NumberingService::class);
+            
             if (!$model->request_number) {
-
-                $model->request_number = static::generateRequestNumber();
-
+                // Generate Berita Acara (BA) number for the request
+                $model->request_number = $numbering->issue('ba', [
+                    'investigator_id' => $model->investigator_id ?? null,
+                ]);
             }
-
+            
+            if (!$model->receipt_number) {
+                // Generate receipt/tracking number (nomor resi)
+                $model->receipt_number = $numbering->issue('tracking', [
+                    'investigator_id' => $model->investigator_id ?? null,
+                ]);
+            }
         });
 
 
 
         $clear = function (self $model) {
-
+            // Clear cache for both request_number and receipt_number
             if ($model->request_number) {
-
                 Cache::forget('track:condensed:' . $model->request_number);
-
             }
-
+            if ($model->receipt_number) {
+                Cache::forget('track:condensed:' . $model->receipt_number);
+            }
         };
 
         static::saved($clear);
@@ -92,38 +100,19 @@ class TestRequest extends Model
 
 
 
+    /**
+     * @deprecated Use NumberingService instead
+     * Legacy method - kept for reference only
+     */
     protected static function generateRequestNumber(): string
-
     {
-
-        $year = now()->year;
-
-
-
-        return DB::transaction(function () use ($year) {
-
-            $latest = static::whereYear('created_at', $year)
-
-                ->lockForUpdate()
-
-                ->orderByDesc('request_number')
-
-                ->first();
-
-
-
-            $sequence = $latest
-
-                ? (int) substr($latest->request_number, -4) + 1
-
-                : 1;
-
-
-
-            return sprintf('REQ-%s-%04d', $year, $sequence);
-
-        });
-
+        // This method is no longer used.
+        // Request numbers (BA Penerimaan) are now generated via NumberingService
+        // which uses settings from /settings page
+        
+        throw new \RuntimeException(
+            'generateRequestNumber() is deprecated. Use NumberingService::issue() instead.'
+        );
     }
 
 

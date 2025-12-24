@@ -44,7 +44,7 @@
                         <table class="min-w-full divide-y divide-primary-100">
                             <thead class="bg-primary-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-700">No. Permintaan</th>
+                                    <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-700">No. Resi</th>
                                     <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-700">Penyidik</th>
                                     <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-700">Tersangka</th>
                                     <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-primary-700">Status</th>
@@ -56,7 +56,7 @@
                                 @foreach($requests as $request)
                                     <tr class="transition hover:bg-primary-50">
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-primary-900">
-                                            {{ $request->request_number }}
+                                            {{ $request->receipt_number ?? $request->request_number }}
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-primary-800">
                                             {{ $request->investigator->name }} ({{ $request->investigator->rank }})

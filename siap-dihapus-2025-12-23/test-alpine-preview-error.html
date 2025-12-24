@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alpine.js previewError Test</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .error-box { background: #fee; border: 1px solid #f88; padding: 10px; margin: 10px 0; }
+        .success-box { background: #efe; border: 1px solid #8f8; padding: 10px; margin: 10px 0; }
+        button { margin: 5px; padding: 10px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Alpine.js previewError Null Safety Test</h1>
+    
+    <div x-data="{
+        previewError: {},
+        previewLoading: false,
+        
+        testInitialState() {
+            console.log('Initial previewError:', this.previewError);
+            console.log('Type:', typeof this.previewError);
+            console.log('Is object:', typeof this.previewError === 'object');
+            console.log('Has keys:', Object.keys(this.previewError || {}).length);
+        },
+        
+        testSet422Error() {
+            this.previewError = {
+                message: 'Template memiliki error syntax',
+                error: 'Undefined variable $test',
+                line: 45,
+                hint: 'Periksa sintaks Blade',
+                slug: 'test-template'
+            };
+            console.log('Set 422 error:', this.previewError);
+        },
+        
+        testClearError() {
+            this.previewError = {};
+            console.log('Cleared error:', this.previewError);
+        },
+        
+        testNetworkError() {
+            this.previewError = {
+                message: 'Gagal menghubungi server',
+                error: 'Network timeout',
+                hint: 'Periksa koneksi jaringan'
+            };
+            console.log('Set network error:', this.previewError);
+        }
+    }">
+        <h2>Controls</h2>
+        <button @click="testInitialState()">Test Initial State</button>
+        <button @click="testSet422Error()">Simulate 422 Error</button>
+        <button @click="testClearError()">Clear Error</button>
+        <button @click="testNetworkError()">Simulate Network Error</button>
+        
+        <h2>Display Tests</h2>
+        
+        <h3>Error Display (with safe access)</h3>
+        <div x-show="previewError?.message || Object.keys(previewError || {}).length > 0" class="error-box">
+            <strong>Preview Gagal</strong>
+            <p x-text="previewError?.message || 'Terjadi kesalahan'"></p>
+            <template x-if="previewError?.error">
+                <div style="background: #fdd; padding: 5px; margin: 5px 0; font-family: monospace;">
+                    <p x-text="previewError.error"></p>
+                    <template x-if="previewError?.line != null">
+                        <p>Baris: <span x-text="previewError.line"></span></p>
+                    </template>
+                </div>
+            </template>
+            <template x-if="previewError?.hint">
+                <p style="font-style: italic; font-size: 0.9em;" x-text="previewError.hint"></p>
+            </template>
+        </div>
+        
+        <h3>Preview Content (shown when no error)</h3>
+        <div x-show="!previewLoading && (!previewError?.message && Object.keys(previewError || {}).length === 0)" class="success-box">
+            <p>✅ Preview content would show here (no errors)</p>
+        </div>
+        
+        <h3>Debug Info</h3>
+        <pre x-text="JSON.stringify(previewError, null, 2)"></pre>
+    </div>
+    
+    <h2>Expected Behavior</h2>
+    <ul>
+        <li>✅ Initial state: No error shown, preview content visible</li>
+        <li>✅ After 422 error: Error box shown with message, error details, line number, hint</li>
+        <li>✅ After clear: Back to no error, preview content visible</li>
+        <li>✅ Network error: Error box shown with message and hint (no line number)</li>
+        <li>✅ No "cannot access property of null" errors in console</li>
+    </ul>
+</body>
+</html>

@@ -13,6 +13,16 @@ use Illuminate\Support\Str;
 class DocumentService
 {
     protected string $disk = 'public';
+    protected array $candidateDisks = [];
+
+    public function __construct()
+    {
+        // Only include local disks to avoid trying S3/remote storage during resolution
+        $this->candidateDisks = collect(config('filesystems.disks', []))
+            ->filter(fn ($disk) => ($disk['driver'] ?? '') === 'local')
+            ->keys()
+            ->all();
+    }
 
     /**
      * Type-to-subdirectory mapping
@@ -103,6 +113,7 @@ class DocumentService
                 'test_request_id' => $req?->id,
                 'document_type' => $type,
                 'source' => 'upload',
+                'storage_disk' => $this->disk,
                 'filename' => $originalFilename,
                 'original_filename' => $originalFilename,
                 'file_path' => $filePath,
@@ -167,6 +178,7 @@ class DocumentService
                 'test_request_id' => $req?->id,
                 'document_type' => $type,
                 'source' => 'generated',
+                'storage_disk' => $this->disk,
                 'filename' => $originalFilename,
                 'original_filename' => $originalFilename,
                 'file_path' => $relPath,
@@ -249,15 +261,17 @@ class DocumentService
      */
     public function delete(Document $document): bool
     {
-        return DB::transaction(function () use ($document) {
-            // Delete file from storage
-            if ($document->file_path && Storage::disk($this->disk)->exists($document->file_path)) {
-                Storage::disk($this->disk)->delete($document->file_path);
-            }
+        // Get the disk and path first, outside of the delete transaction
+        $disk = $document->storage_disk ?: $this->disk;
+        $path = $document->file_path ?? $document->path;
+        
+        // Delete file from storage if it exists
+        if ($path && Storage::disk($disk)->exists($path)) {
+            Storage::disk($disk)->delete($path);
+        }
 
-            // Delete record
-            return $document->delete();
-        });
+        // Delete record
+        return $document->delete();
     }
 
     /**
@@ -306,7 +320,13 @@ class DocumentService
      */
     public function getFilePath(Document $document): string
     {
-        return Storage::disk($this->disk)->path($document->file_path);
+        [$disk, $path] = $this->resolveDiskAndPath($document, true);
+
+        if (!$path) {
+            throw new \RuntimeException('Document path is not defined.');
+        }
+
+        return Storage::disk($disk)->path($path);
     }
 
     /**
@@ -317,7 +337,26 @@ class DocumentService
      */
     public function fileExists(Document $document): bool
     {
-        return Storage::disk($this->disk)->exists($document->file_path);
+        [$disk, $path] = $this->resolveDiskAndPath($document);
+        if (!$path) {
+            return false;
+        }
+
+        if (Storage::disk($disk)->exists($path)) {
+            return true;
+        }
+
+        foreach ($this->candidateDisks as $candidate) {
+            if ($candidate === $disk) {
+                continue;
+            }
+
+            if (Storage::disk($candidate)->exists($path)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -344,5 +383,46 @@ class DocumentService
         ];
 
         return $mimeTypes[strtolower($ext)] ?? 'application/octet-stream';
+    }
+
+    /**
+     * Resolve disk/path for a document.
+     *
+     * @return array{0:string,1:?string}
+     */
+    private function resolveDiskAndPath(Document $document, bool $updateDisk = false): array
+    {
+        $path = $document->file_path ?? $document->path;
+        $disk = $document->storage_disk ?: $this->disk;
+
+        if (!$path) {
+            return [$disk, null];
+        }
+
+        if (Storage::disk($disk)->exists($path)) {
+            return [$disk, $path];
+        }
+
+        foreach ($this->candidateDisks as $candidate) {
+            if ($candidate === $disk) {
+                continue;
+            }
+
+            if (Storage::disk($candidate)->exists($path)) {
+                if ($updateDisk && $document->storage_disk !== $candidate) {
+                    $document->storage_disk = $candidate;
+                    $document->save();
+                }
+
+                return [$candidate, $path];
+            }
+        }
+
+        if ($updateDisk && !$document->storage_disk) {
+            $document->storage_disk = $disk;
+            $document->save();
+        }
+
+        return [$disk, $path];
     }
 }
