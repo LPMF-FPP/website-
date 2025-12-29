@@ -165,5 +165,10 @@ class TestRequest extends Model
 
     }
 
+    public function evidenceUnits(): HasMany
+    {
+        return $this->hasMany(EvidenceUnit::class, 'request_id');
+    }
+
 }
 

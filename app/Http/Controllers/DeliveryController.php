@@ -110,6 +110,8 @@ class DeliveryController extends Controller
 
             'samples.testProcesses.analyst',
 
+            'evidenceUnits.remainingUnits', // Load data for labels
+
         ]);
 
 

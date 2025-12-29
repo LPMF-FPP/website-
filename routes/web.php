@@ -117,6 +117,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/tracking', [TrackingController::class, 'index'])->name('tracking.index');
     Route::post('/tracking', [TrackingController::class, 'store'])->name('tracking.store');
 
+    // Changelogs
+    Route::view('/changelogs', 'changelogs.index')->name('changelogs.index');
+
     // Statistics
     Route::prefix('statistics')->group(function () {
         Route::get('/', [StatisticsController::class, 'index'])->name('statistics.index');
@@ -170,6 +173,57 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/documents/{document}', [App\Http\Controllers\InvestigatorDocumentController::class, 'destroy'])
         ->name('investigator.documents.destroy');
 
+});
+
+// Inventory Module Routes
+Route::prefix('referensi/inventori')->name('inventory.')->middleware(['auth', 'verified'])->group(function () {
+    Route::get('/', [App\Http\Controllers\Inventory\DashboardController::class, 'index'])->name('dashboard');
+    
+    // Items CRUD
+    Route::resource('items', App\Http\Controllers\Inventory\ItemController::class)->except(['show', 'destroy']);
+    Route::get('items/{item}/lots', [App\Http\Controllers\Inventory\LotController::class, 'index'])->name('items.lots');
+    Route::post('lots', [App\Http\Controllers\Inventory\LotController::class, 'store'])->name('lots.store');
+    
+    // Locations CRUD
+    Route::resource('locations', App\Http\Controllers\Inventory\LocationController::class)->except(['show', 'destroy']);
+    
+    // Stock Card
+    Route::get('kartu-stok', [App\Http\Controllers\Inventory\StockCardController::class, 'index'])->name('stock-card');
+    
+    // Transactions
+    Route::prefix('transaksi')->name('transaction.')->group(function () {
+        Route::get('receipt', [App\Http\Controllers\Inventory\TransactionController::class, 'receiptForm'])->name('receipt');
+        Route::post('receipt', [App\Http\Controllers\Inventory\TransactionController::class, 'receiptSubmit']);
+        Route::get('issue', [App\Http\Controllers\Inventory\TransactionController::class, 'issueForm'])->name('issue');
+        Route::post('issue', [App\Http\Controllers\Inventory\TransactionController::class, 'issueSubmit']);
+        Route::get('transfer', [App\Http\Controllers\Inventory\TransactionController::class, 'transferForm'])->name('transfer');
+        Route::post('transfer', [App\Http\Controllers\Inventory\TransactionController::class, 'transferSubmit']);
+        Route::get('stocktake', [App\Http\Controllers\Inventory\TransactionController::class, 'stocktakeForm'])->name('stocktake');
+        Route::post('stocktake', [App\Http\Controllers\Inventory\TransactionController::class, 'stocktakeSubmit']);
+        Route::get('dispose', [App\Http\Controllers\Inventory\TransactionController::class, 'disposeForm'])->name('dispose');
+        Route::post('dispose', [App\Http\Controllers\Inventory\TransactionController::class, 'disposeSubmit']);
+    });
+    
+    // AJAX helpers
+    Route::get('ajax/lots', [App\Http\Controllers\Inventory\TransactionController::class, 'getLotsForItem'])->name('ajax.lots');
+    Route::get('ajax/balance', [App\Http\Controllers\Inventory\TransactionController::class, 'getBalanceForSelection'])->name('ajax.balance');
+});
+
+// Label PDF Routes
+Route::prefix('labels')->middleware(['auth'])->group(function () {
+    // Evidence labels
+    Route::get('evidence/request/{requestId}/sheet', [App\Http\Controllers\LabelController::class, 'evidenceSheet'])->name('labels.evidence.sheet');
+    Route::get('evidence/{id}/single', [App\Http\Controllers\LabelController::class, 'evidenceSingle'])->name('labels.evidence.single');
+    
+    // Remaining labels
+    Route::get('remaining/request/{requestId}/sheet', [App\Http\Controllers\LabelController::class, 'remainingSheet'])->name('labels.remaining.sheet');
+    Route::get('remaining/{evidenceUnit}/all', [App\Http\Controllers\LabelController::class, 'remainingForEvidence'])->name('labels.remaining.all');
+    Route::get('remaining/{id}/single', [App\Http\Controllers\LabelController::class, 'remainingSingle'])->name('labels.remaining.single');
+
+    // Creation endpoints (AJAX)
+    Route::post('evidence-units', [App\Http\Controllers\LabelController::class, 'createEvidenceUnits']);
+    Route::post('remaining-units', [App\Http\Controllers\LabelController::class, 'createRemainingUnit']);
+    Route::delete('remaining-units/{id}', [App\Http\Controllers\LabelController::class, 'destroyRemainingUnit']);
 });
 
 // Debug Routes (ONLY IN DEVELOPMENT)

@@ -3,205 +3,268 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>LIMS Farmapol Pusdokkes Polri</title>
-    <meta name="description" content="Laboratory Information Management System (LIMS) Farmapol Pusdokkes Polri – Transparansi, kecepatan, dan akurasi pengelolaan pengujian forensik farmasi kepolisian.">
+    <title>LIMS Farmapol — Pusdokkes Polri</title>
+    <meta name="description" content="Sistem Informasi Laboratorium Farmasi Forensik Pusdokkes Polri.">
     <script>(function(){try{var ls=localStorage.getItem('ui.theme');var m=window.matchMedia('(prefers-color-scheme: dark)').matches;if(ls==='dark'||(!ls&&m)){document.documentElement.classList.add('dark');document.documentElement.setAttribute('data-theme','dark');}}catch(e){}})();</script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    {{-- Font Adjustments for Authority --}}
+    <style>
+        .font-feature-settings { font-feature-settings: "cv11", "ss01"; }
+    </style>
 </head>
-<body class="antialiased font-body bg-white text-accent-900 dark:bg-accent-900 dark:text-accent-100">
-    <!-- Hero -->
-    <header class="relative overflow-hidden bg-gradient-to-b from-primary-50 to-white dark:from-accent-900 dark:to-accent-800">
-        <div class="absolute inset-0 pointer-events-none" aria-hidden="true"></div>
-        <nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
-            <div class="flex items-center gap-3">
-                <img src="/images/logo-pusdokkes-polri.png" alt="Logo Pusdokkes" class="h-10 w-10" loading="lazy">
-                <span class="font-display text-lg font-semibold tracking-tight text-primary-800 dark:text-primary-300">Farmapol LIMS</span>
-            </div>
-            <div class="flex items-center gap-4">
-                <button type="button" onclick="window.__toggleTheme()" class="inline-flex items-center justify-center w-9 h-9 rounded-md border border-primary-200 dark:border-accent-600 text-primary-600 dark:text-accent-200 hover:bg-primary-50 dark:hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-primary-500" aria-label="Toggle theme">
-                    <svg class="h-5 w-5 dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2m10-10h-2M4 12H2m15.07 6.07-1.42-1.42M8.35 8.35 6.93 6.93m10.12 0-1.42 1.42M8.35 15.65l-1.42 1.42"/></svg>
-                    <svg class="h-5 w-5 hidden dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>
-                </button>
-                <a href="{{ route('public.tracking') }}" class="text-sm font-medium text-accent-600 hover:text-primary-700 dark:text-accent-300 dark:hover:text-primary-300">Pelacakan</a>
-                @if (Route::has('login'))
-                    @auth
-                        <a href="{{ route('dashboard') }}" class="inline-flex items-center rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500">Dashboard</a>
-                    @else
-                        <a href="{{ route('login') }}" class="inline-flex items-center rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500">Masuk</a>
-                        @if (Route::has('register'))
-                            <a href="{{ route('register') }}" class="text-sm font-medium text-primary-700 hover:text-primary-900 dark:text-primary-300 dark:hover:text-primary-200">Daftar</a>
-                        @endif
-                    @endauth
-                @endif
-            </div>
-        </nav>
-        <div class="mx-auto max-w-7xl px-6 py-16 sm:py-24 lg:flex lg:items-center lg:gap-16 lg:px-8">
-            <div class="max-w-2xl">
-                <h1 class="text-3xl font-bold tracking-tight text-accent-900 sm:text-4xl md:text-5xl">
-                    Modernisasi Manajemen Pengujian <span class="text-primary-600">Farmasi Forensik</span>
-                </h1>
-                <p class="mt-6 text-base leading-7 text-accent-600 max-w-xl">
-                    Sistem terpadu untuk permintaan, proses laboratorium, pelacakan status, dokumentasi, dan pelaporan hasil uji – meningkatkan akurasi, kecepatan, dan transparansi pelayanan Pusdokkes Polri.
-                </p>
-                <div class="mt-8 flex flex-wrap gap-4">
-                    <a href="{{ route('login') }}" class="inline-flex items-center gap-2 rounded-md bg-primary-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500">
-                        <span>Mulai Gunakan</span>
-                        <x-icon name="arrow-right" size="sm" />
-                    </a>
-                    <a href="#fitur" class="inline-flex items-center gap-2 rounded-md border border-primary-200 px-6 py-3 text-sm font-semibold text-primary-700 hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-500">Lihat Fitur</a>
+<body class="antialiased font-body bg-white text-accent-900 dark:bg-accent-900 dark:text-accent-100 selection:bg-primary-500 selection:text-white">
+
+    <!-- Navbar (Sticky, solid white/glass) -->
+    <nav class="sticky top-0 z-50 bg-white/98 dark:bg-accent-900/98 backdrop-blur-md border-b border-accent-100 dark:border-accent-800 shadow-sm">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+            <div class="flex h-20 items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <img src="/images/logo-pusdokkes-polri.png" alt="Logo Pusdokkes" class="h-10 w-10" loading="lazy">
+                    <div class="hidden sm:block">
+                        <p class="font-display text-lg font-bold text-accent-900 dark:text-white leading-tight">LIMS Farmapol</p>
+                        <p class="text-xs font-semibold text-primary-600 dark:text-primary-400 tracking-wider">PUSDOKKES POLRI</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-8">
+                    <div class="hidden md:flex gap-8">
+                        <a href="#tentang" class="text-sm font-semibold text-accent-600 hover:text-primary-700 dark:text-accent-300 transition-colors">Tentang</a>
+                        <a href="#layanan" class="text-sm font-semibold text-accent-600 hover:text-primary-700 dark:text-accent-300 transition-colors">Layanan</a>
+                        <a href="#faq" class="text-sm font-semibold text-accent-600 hover:text-primary-700 dark:text-accent-300 transition-colors">FAQ</a>
+                        <a href="{{ route('public.tracking') }}" class="text-sm font-semibold text-accent-600 hover:text-primary-700 dark:text-accent-300 transition-colors">Pelacakan</a>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <button type="button" onclick="window.__toggleTheme()" class="text-accent-500 hover:text-accent-900 dark:text-accent-400 dark:hover:text-white transition-colors p-2" aria-label="Toggle theme">
+                            <x-icon name="moon" class="h-5 w-5 dark:hidden" />
+                            <x-icon name="sun" class="h-5 w-5 hidden dark:block" />
+                        </button>
+                        @auth
+                            <a href="{{ route('dashboard') }}" class="inline-flex items-center rounded-full bg-primary-700 px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-primary-800 transition-transform active:scale-95">Dashboard</a>
+                        @else
+                            <a href="{{ route('login') }}" class="inline-flex items-center rounded-full bg-primary-700 px-6 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-primary-800 transition-transform active:scale-95">Masuk</a>
+                        @endauth
+                    </div>
                 </div>
             </div>
-            <div class="mt-12 lg:mt-0 flex-1">
-                <div class="relative rounded-xl border bg-white p-4 shadow-md ring-1 ring-primary-100">
-                    <div class="grid grid-cols-2 gap-3 text-xs">
-                        <div class="rounded-lg bg-primary-50 p-3">
-                            <p class="font-semibold text-primary-700">Permintaan</p>
-                            <p class="mt-1 text-accent-600">Pengajuan & validasi terstruktur</p>
-                        </div>
-                        <div class="rounded-lg bg-secondary-50 p-3">
-                            <p class="font-semibold text-secondary-700">Pengujian</p>
-                            <p class="mt-1 text-accent-600">Proses laboratorium terdokumentasi</p>
-                        </div>
-                        <div class="rounded-lg bg-success-50 p-3">
-                            <p class="font-semibold text-success-700">Pelacakan</p>
-                            <p class="mt-1 text-accent-600">Status transparan realtime</p>
-                        </div>
-                        <div class="rounded-lg bg-warning-50 p-3">
-                            <p class="font-semibold text-warning-700">Pelaporan</p>
-                            <p class="mt-1 text-accent-600">Dokumen BA & LHU otomatis</p>
-                        </div>
-                    </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section (Solid Primary Background) -->
+    <!-- INA Digital style: Solid bold background, left aligned text -->
+    <header class="bg-primary-700 dark:bg-accent-800 relative overflow-hidden">
+        <!-- Abstract Decoration -->
+        <div class="absolute inset-0 opacity-5 pattern-grid-lg text-white"></div>
+        <div class="absolute right-0 top-0 -mt-20 -mr-20 h-[500px] w-[500px] rounded-full bg-primary-500 blur-3xl opacity-10"></div>
+        
+        <div class="relative mx-auto max-w-7xl px-6 py-20 sm:py-28 lg:px-8">
+            <div class="max-w-2xl">
+                <div class="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-sm font-medium text-white ring-1 ring-inset ring-white/20 mb-6 backdrop-blur-sm">
+                    <span class="mr-2 h-2 w-2 rounded-full bg-green-400"></span>
+                    Sistem Terintegrasi v1.0
+                </div>
+                <h1 class="text-4xl font-bold tracking-tight text-white sm:text-6xl font-display leading-[1.1]">
+                    Modernisasi Pengujian <br> <span class="text-primary-200">Farmasi Forensik.</span>
+                </h1>
+                <p class="mt-6 text-lg leading-8 text-primary-50 max-w-xl text-balance">
+                    Platform digital Pusdokkes Polri untuk manajemen laboratorium yang transparan, akuntabel, dan presisi. Mendukung penegakan hukum berbasis scientific crime investigation.
+                </p>
+                <div class="mt-10 flex items-center gap-x-6">
+                    <a href="{{ route('login') }}" class="rounded-full bg-white px-8 py-3.5 text-sm font-bold text-primary-700 shadow-sm hover:bg-primary-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white transition-all">Mulai Sekarang</a>
+                    <a href="#tentang" class="text-sm font-semibold leading-6 text-white flex items-center gap-2 hover:gap-3 transition-all">
+                        Pelajari Lebih Lanjut <span aria-hidden="true">→</span>
+                    </a>
                 </div>
             </div>
         </div>
     </header>
 
-    <!-- Value Props -->
-    <section id="fitur" class="mx-auto max-w-7xl px-6 py-20 lg:px-8">
-        <div class="mx-auto max-w-2xl text-center">
-            <h2 class="text-2xl font-bold tracking-tight text-accent-900 sm:text-3xl">Fitur Inti</h2>
-            <p class="mt-3 text-accent-600">Dirancang untuk alur kerja laboratorium kepolisian yang akurat, terukur, dan cepat.</p>
-        </div>
-        <div class="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            @php $features = [
-                ['icon' => 'document', 'title' => 'Manajemen Permintaan', 'desc' => 'Pengajuan terstruktur dengan nomor otomatis dan validasi.'],
-                ['icon' => 'check', 'title' => 'Proses Tahap Uji', 'desc' => 'Tracking tiap tahap: preparasi, instrumen, verifikasi.'],
-                ['icon' => 'search', 'title' => 'Pelacakan Publik', 'desc' => 'Masyarakat / penyidik dapat memantau status secara aman.'],
-                ['icon' => 'shield', 'title' => 'Kontrol & Audit', 'desc' => 'Jejak audit & kontrol akses berbasis peran.'],
-                ['icon' => 'download', 'title' => 'Dokumen Otomatis', 'desc' => 'BA Penyerahan & Laporan Hasil Uji (HTML/PDF).'],
-                ['icon' => 'settings', 'title' => 'Konfigurasi Fleksibel', 'desc' => 'Template, penomoran, branding, dan lokalitas.'],
-            ]; @endphp
-            @foreach($features as $f)
-                <div class="relative flex flex-col rounded-xl border border-accent-200 bg-white p-6 shadow-sm hover:shadow-md transition">
-                    <div class="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
-                        <x-icon :name="$f['icon']" size="md" />
-                    </div>
-                    <h3 class="text-sm font-semibold text-accent-900">{{ $f['title'] }}</h3>
-                    <p class="mt-2 text-sm leading-6 text-accent-600">{{ $f['desc'] }}</p>
-                </div>
-            @endforeach
-        </div>
-    </section>
-
-    <!-- Workflow Illustration -->
-    <section class="bg-accent-50 py-20">
-        <div class="mx-auto max-w-6xl px-6 lg:px-8">
-            <div class="grid items-center gap-12 lg:grid-cols-2">
-                <div>
-                    <h2 class="text-2xl font-bold tracking-tight text-accent-900 sm:text-3xl">Alur Terintegrasi</h2>
-                    <p class="mt-4 text-sm leading-6 text-accent-600">Mulai dari permintaan masuk hingga dokumen akhir diserahkan – semua terdokumentasi, terstandardisasi, dan mudah diaudit.</p>
-                    <ul class="mt-6 space-y-3 text-sm text-accent-700">
-                        <li class="flex gap-2"><span class="text-primary-600">1.</span> Pengajuan Permintaan & Validasi</li>
-                        <li class="flex gap-2"><span class="text-primary-600">2.</span> Preparasi & Uji Instrumen</li>
-                        <li class="flex gap-2"><span class="text-primary-600">3.</span> Analisis & Verifikasi</li>
-                        <li class="flex gap-2"><span class="text-primary-600">4.</span> Pelacakan & Monitoring Publik</li>
-                        <li class="flex gap-2"><span class="text-primary-600">5.</span> Dokumen BA & Laporan Hasil Uji</li>
-                        <li class="flex gap-2"><span class="text-primary-600">6.</span> Penyerahan & Survey Kepuasan</li>
-                    </ul>
-                </div>
-                <div class="relative rounded-2xl border border-accent-200 bg-white p-6 shadow-md">
-                    <div class="grid gap-4">
-                        <div class="flex items-center gap-3"><span class="h-6 w-6 rounded-full bg-primary-600 text-[10px] font-bold text-white flex items-center justify-center">1</span><p class="text-xs font-medium">Permintaan masuk (validasi otom.)</p></div>
-                        <div class="flex items-center gap-3"><span class="h-6 w-6 rounded-full bg-primary-600 text-[10px] font-bold text-white flex items-center justify-center">2</span><p class="text-xs font-medium">Preparasi sampel & chain-of-custody</p></div>
-                        <div class="flex items-center gap-3"><span class="h-6 w-6 rounded-full bg-primary-600 text-[10px] font-bold text-white flex items-center justify-center">3</span><p class="text-xs font-medium">Pengujian instrumen & logging</p></div>
-                        <div class="flex items-center gap-3"><span class="h-6 w-6 rounded-full bg-primary-600 text-[10px] font-bold text-white flex items-center justify-center">4</span><p class="text-xs font-medium">Analisis, verifikasi & QA</p></div>
-                        <div class="flex items-center gap-3"><span class="h-6 w-6 rounded-full bg-primary-600 text-[10px] font-bold text-white flex items-center justify-center">5</span><p class="text-xs font-medium">Dokumen otomatis (BA, LHU)</p></div>
-                        <div class="flex items-center gap-3"><span class="h-6 w-6 rounded-full bg-primary-600 text-[10px] font-bold text-white flex items-center justify-center">6</span><p class="text-xs font-medium">Penyerahan & survey kepuasan</p></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- KPI / Stats -->
-    <section class="py-20">
+    <!-- About / Value Props (Split Layout) -->
+    <!-- INA Digital style: Clean white section, structured grid -->
+    <section id="tentang" class="bg-white dark:bg-accent-900 py-24 sm:py-32">
         <div class="mx-auto max-w-7xl px-6 lg:px-8">
-            <div class="mx-auto max-w-2xl text-center">
-                <h2 class="text-2xl font-bold tracking-tight text-accent-900 sm:text-3xl">Dampak Operasional</h2>
-                <p class="mt-3 text-accent-600">Meningkatkan efisiensi dan visibilitas kinerja laboratorium.</p>
-            </div>
-            <dl class="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-                @php $stats = [
-                    ['value' => '98%', 'label' => 'Ketepatan Waktu Dokumen'],
-                    ['value' => '40%', 'label' => 'Percepatan Siklus Uji'],
-                    ['value' => '100%', 'label' => 'Jejak Audit Tahapan'],
-                    ['value' => '24/7', 'label' => 'Akses Pelacakan Publik'],
-                ]; @endphp
-                @foreach($stats as $s)
-                    <div class="flex flex-col items-center rounded-xl border border-accent-200 bg-white p-6 shadow-sm">
-                        <dt class="text-sm font-medium text-accent-600">{{ $s['label'] }}</dt>
-                        <dd class="mt-2 text-2xl font-semibold text-primary-700">{{ $s['value'] }}</dd>
-                    </div>
-                @endforeach
-            </dl>
-        </div>
-    </section>
-
-    <!-- Testimonials Placeholder -->
-    <section class="bg-white py-20 border-t border-accent-100">
-        <div class="mx-auto max-w-5xl px-6 lg:px-8 text-center">
-            <h2 class="text-2xl font-bold tracking-tight text-accent-900 sm:text-3xl">Kepercayaan & Kualitas</h2>
-            <p class="mt-3 text-accent-600 max-w-2xl mx-auto">Fokus pada integritas data, keamanan, dan keandalan proses untuk mendukung penegakan hukum berbasis evidensi.</p>
-            <div class="mt-10 grid gap-8 md:grid-cols-3">
-                @foreach([1,2,3] as $i)
-                    <div class="rounded-xl border border-accent-200 bg-white p-6 shadow-sm">
-                        <p class="text-sm leading-6 text-accent-700">“Platform ini membantu mempercepat koordinasi dan memastikan setiap tahap tercatat jelas dan akuntabel.”</p>
-                        <div class="mt-4 flex items-center justify-center gap-3">
-                            <span class="h-10 w-10 rounded-full bg-accent-200"></span>
-                            <div class="text-left">
-                                <p class="text-sm font-semibold text-accent-900">Pengguna Internal {{ $i }}</p>
-                                <p class="text-xs text-accent-600">Laboratorium Forensik</p>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+                <div>
+                    <h2 class="text-base font-bold leading-7 text-primary-600 dark:text-primary-400 uppercase tracking-wide">Tentang Sistem</h2>
+                    <p class="mt-2 text-3xl font-bold tracking-tight text-accent-900 dark:text-white sm:text-4xl font-display">
+                        Standar Baru dalam <br>Manajemen Barang Bukti.
+                    </p>
+                    <p class="mt-6 text-lg leading-8 text-accent-600 dark:text-accent-300">
+                        LIMS Farmapol memastikan seluruh rantai pengujian (Chain of Custody) terdokumentasi secara digital. Menghilangkan proses manual yang rentan kesalahan dan meningkatkan kecepatan layanan teknis kepolisian.
+                    </p>
+                    <div class="mt-8 pt-8 border-t border-accent-100 dark:border-accent-800">
+                        <div class="flex gap-4">
+                            <div class="flex-none">
+                                <div class="h-10 w-1 bg-primary-600 rounded-full"></div>
                             </div>
+                            <blockquote class="text-base italic text-accent-800 dark:text-accent-200 font-medium">
+                                "Integritas data adalah kunci dalam pembuktian forensik. Sistem ini adalah wujud komitmen kami terhadap transparansi."
+                            </blockquote>
                         </div>
                     </div>
+                </div>
+                
+                <!-- 2x2 Grid Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div class="rounded-2xl bg-accent-50 dark:bg-accent-800/50 p-8 hover:bg-accent-100 dark:hover:bg-accent-800 transition-colors">
+                        <div class="h-10 w-10 rounded-lg bg-white dark:bg-accent-700 flex items-center justify-center shadow-sm mb-4">
+                            <x-icon name="document-text" class="h-6 w-6 text-primary-600" />
+                        </div>
+                        <h3 class="font-bold text-accent-900 dark:text-white text-lg">Terdokumentasi</h3>
+                        <p class="mt-2 text-sm text-accent-600 dark:text-accent-400 leading-relaxed">Pencatatan otomatis seluruh aktivitas pengujian dalam satu database terpusat.</p>
+                    </div>
+                    <div class="rounded-2xl bg-accent-50 dark:bg-accent-800/50 p-8 hover:bg-accent-100 dark:hover:bg-accent-800 transition-colors">
+                        <div class="h-10 w-10 rounded-lg bg-white dark:bg-accent-700 flex items-center justify-center shadow-sm mb-4">
+                            <x-icon name="shield-check" class="h-6 w-6 text-primary-600" />
+                        </div>
+                        <h3 class="font-bold text-accent-900 dark:text-white text-lg">Audit Trail</h3>
+                        <p class="mt-2 text-sm text-accent-600 dark:text-accent-400 leading-relaxed">Jejak digital yang tidak dapat diubah untuk menjamin keaslian data.</p>
+                    </div>
+                    <div class="rounded-2xl bg-accent-50 dark:bg-accent-800/50 p-8 hover:bg-accent-100 dark:hover:bg-accent-800 transition-colors">
+                        <div class="h-10 w-10 rounded-lg bg-white dark:bg-accent-700 flex items-center justify-center shadow-sm mb-4">
+                            <x-icon name="clock" class="h-6 w-6 text-primary-600" />
+                        </div>
+                        <h3 class="font-bold text-accent-900 dark:text-white text-lg">Real-time</h3>
+                        <p class="mt-2 text-sm text-accent-600 dark:text-accent-400 leading-relaxed">Pemantauan progres pengujian secara langsung oleh pihak berwenang.</p>
+                    </div>
+                    <div class="rounded-2xl bg-accent-50 dark:bg-accent-800/50 p-8 hover:bg-accent-100 dark:hover:bg-accent-800 transition-colors">
+                        <div class="h-10 w-10 rounded-lg bg-white dark:bg-accent-700 flex items-center justify-center shadow-sm mb-4">
+                            <x-icon name="check-circle" class="h-6 w-6 text-primary-600" />
+                        </div>
+                        <h3 class="font-bold text-accent-900 dark:text-white text-lg">Terstandar</h3>
+                        <p class="mt-2 text-sm text-accent-600 dark:text-accent-400 leading-relaxed">Penerapan SOP ISO 17025 dalam setiap langkah kerja sistem.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Services / Workflow Grid -->
+    <!-- INA Digital style: Light colored background, card grid -->
+    <section id="layanan" class="bg-primary-50/50 dark:bg-accent-800 py-24 sm:py-32">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+            <div class="mx-auto max-w-2xl text-center mb-16">
+                <h2 class="text-3xl font-bold tracking-tight text-accent-900 dark:text-white sm:text-4xl font-display">Lingkup Layanan</h2>
+                <p class="mt-4 text-lg text-accent-600 dark:text-accent-300">Modul komprehensif untuk mendukung operasional harian.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                @php
+                $services = [
+                    ['title' => 'Manajemen Permintaan', 'desc' => 'Registrasi barang bukti masuk dengan validasi dokumen dan penomoran perkara otomatis.', 'icon' => 'folder-open'],
+                    ['title' => 'Pengujian Laboratorium', 'desc' => 'Pencatatan parameter uji, metode analisis, dan hasil raw data instrumen.', 'icon' => 'beaker'],
+                    ['title' => 'Penerbitan Dokumen', 'desc' => 'Generate otomatis Berita Acara (BA) dan Laporan Hasil Uji (LHU) format pro-justitia.', 'icon' => 'document-duplicate'],
+                    ['title' => 'Verifikasi Berjenjang', 'desc' => 'Alur persetujuan bertingkat dari Analis, Supervisor, hingga Kepala Laboratorium.', 'icon' => 'user-group'],
+                    ['title' => 'Manajemen Stok', 'desc' => 'Monitoring ketersediaan reagen dan bahan habis pakai secara real-time.', 'icon' => 'cube'],
+                    ['title' => 'Pelacakan Publik', 'desc' => 'Portal khusus bagi penyidik untuk memantau status penyelesaian sampel.', 'icon' => 'search-circle'],
+                ];
+                @endphp
+                
+                @foreach($services as $svc)
+                <div class="bg-white dark:bg-accent-900 rounded-3xl p-8 shadow-sm ring-1 ring-accent-100 dark:ring-accent-700/50 hover:shadow-md transition-shadow">
+                    <div class="w-12 h-12 bg-primary-50 dark:bg-primary-900/20 rounded-2xl flex items-center justify-center text-primary-600 dark:text-primary-400 mb-6">
+                        <x-icon :name="$svc['icon']" class="w-6 h-6" />
+                    </div>
+                    <h3 class="text-xl font-bold text-accent-900 dark:text-white mb-3">{{ $svc['title'] }}</h3>
+                    <p class="text-base text-accent-600 dark:text-accent-400 leading-relaxed">{{ $svc['desc'] }}</p>
+                </div>
                 @endforeach
             </div>
         </div>
     </section>
 
-    <!-- CTA -->
-    <section class="relative isolate overflow-hidden bg-primary-700 py-20">
-        <div class="mx-auto max-w-3xl px-6 text-center">
-            <h2 class="text-2xl font-bold tracking-tight text-white sm:text-3xl">Siap meningkatkan kualitas operasional?</h2>
-            <p class="mt-4 text-sm leading-6 text-primary-100">Masuk sekarang dan kelola alur pengujian dengan lebih efektif.</p>
-            <div class="mt-8 flex flex-wrap justify-center gap-4">
-                <a href="{{ route('login') }}" class="inline-flex items-center rounded-md bg-white px-6 py-3 text-sm font-semibold text-primary-700 shadow-sm hover:bg-primary-50">Masuk Sistem</a>
-                <a href="{{ route('public.tracking') }}" class="inline-flex items-center rounded-md border border-primary-100 bg-primary-600/20 px-6 py-3 text-sm font-semibold text-white hover:bg-primary-600/30">Pelacakan Publik</a>
+    <!-- FAQ Section -->
+    <section id="faq" class="bg-white dark:bg-accent-900 py-24 sm:py-32">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                <div>
+                    <h2 class="text-3xl font-bold tracking-tight text-accent-900 dark:text-white sm:text-4xl font-display">Pertanyaan Umum</h2>
+                    <p class="mt-4 text-base text-accent-600 dark:text-accent-300 leading-relaxed">
+                        Jawaban atas pertanyaan yang sering diajukan mengenai penggunaan LIMS Farmapol.
+                    </p>
+                    <div class="mt-8">
+                        <a href="#" class="text-sm font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-2">
+                            Hubungi Bantuan Teknis <span aria-hidden="true">&rarr;</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="lg:col-span-2 space-y-6">
+                    @php
+                    $faqs = [
+                        ['q' => 'Siapa yang dapat mengakses sistem ini?', 'a' => 'Akses sistem dibatasi hanya untuk personel internal Pusdokkes Polri dan Satwil yang telah terdaftar dan diverifikasi.'],
+                        ['q' => 'Bagaimana cara mendapatkan akun?', 'a' => 'Pendaftaran akun dilakukan melalui admin pusat. Silakan hubungi bagian administrasi untuk permohonan akses.'],
+                        ['q' => 'Apakah data aman?', 'a' => 'Ya, kami menggunakan enkripsi end-to-end dan server internal Polri untuk menjamin kerahasiaan data investigasi.'],
+                        ['q' => 'Bagaimana melacak progres sampel?', 'a' => 'Gunakan fitur "Pelacakan Publik" di menu atas, masukkan nomor registrasi sampel yang tertera pada tanda terima.'],
+                    ];
+                    @endphp
+                    
+                    @foreach($faqs as $faq)
+                    <div class="group border-b border-accent-100 dark:border-accent-800 pb-6 last:border-0 last:pb-0">
+                        <details class="group">
+                            <summary class="flex items-center justify-between cursor-pointer list-none">
+                                <h3 class="text-lg font-semibold text-accent-900 dark:text-white group-hover:text-primary-600 transition-colors">
+                                    {{ $faq['q'] }}
+                                </h3>
+                                <span class="bg-accent-50 dark:bg-accent-800 p-2 rounded-lg text-accent-400 group-open:text-primary-600 transition-colors">
+                                    <svg class="w-5 h-5 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </span>
+                            </summary>
+                            <div class="mt-4 text-base text-accent-600 dark:text-accent-400 leading-relaxed pl-1">
+                                {{ $faq['a'] }}
+                            </div>
+                        </details>
+                    </div>
+                    @endforeach
+                </div>
             </div>
         </div>
     </section>
 
-    <footer class="border-t border-accent-100 bg-white">
-        <div class="mx-auto max-w-7xl px-6 py-10 lg:px-8">
-            <div class="flex flex-wrap items-center justify-between gap-4 text-sm text-accent-500">
-                <p>&copy; {{ date('Y') }} Pusdokkes Polri. Semua hak dilindungi.</p>
-                <nav class="flex gap-4">
-                    <a href="#fitur" class="hover:text-accent-700">Fitur</a>
-                    <a href="#" class="hover:text-accent-700">Kebijakan</a>
-                    <a href="#" class="hover:text-accent-700">Kontak</a>
-                </nav>
+    <!-- Footer -->
+    <!-- INA Digital style: Dark background, solid structure -->
+    <footer class="bg-accent-900 text-white py-16">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-12 border-b border-accent-800 pb-12 mb-12">
+                <div class="col-span-1 md:col-span-1">
+                    <img src="/images/logo-pusdokkes-polri.png" alt="Logo" class="h-12 w-auto mb-6 grayscale brightness-200">
+                    <p class="text-sm leading-relaxed text-accent-300">
+                        Pusat Kedokteran dan Kesehatan Polri.<br>
+                        Laboratorium Farmasi Forensik.
+                    </p>
+                </div>
+                <div>
+                    <h3 class="text-sm font-semibold uppercase tracking-wider text-accent-400 mb-4">Sistem</h3>
+                    <ul class="space-y-3">
+                        <li><a href="#tentang" class="text-sm text-accent-300 hover:text-white transition-colors">Tentang LIMS</a></li>
+                        <li><a href="#layanan" class="text-sm text-accent-300 hover:text-white transition-colors">Fitur & Layanan</a></li>
+                        <li><a href="{{ route('login') }}" class="text-sm text-accent-300 hover:text-white transition-colors">Login Staff</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-sm font-semibold uppercase tracking-wider text-accent-400 mb-4">Bantuan</h3>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-sm text-accent-300 hover:text-white transition-colors">Panduan Pengguna</a></li>
+                        <li><a href="#" class="text-sm text-accent-300 hover:text-white transition-colors">FAQ</a></li>
+                        <li><a href="#" class="text-sm text-accent-300 hover:text-white transition-colors">Kontak Support</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-sm font-semibold uppercase tracking-wider text-accent-400 mb-4">Legal</h3>
+                    <ul class="space-y-3">
+                        <li><a href="#" class="text-sm text-accent-300 hover:text-white transition-colors">Kebijakan Privasi</a></li>
+                        <li><a href="#" class="text-sm text-accent-300 hover:text-white transition-colors">Syarat Penggunaan</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="flex flex-col md:flex-row justify-between items-center text-sm text-accent-500">
+                <p>&copy; {{ date('Y') }} Pusdokkes Polri. All rights reserved.</p>
+                <div class="flex items-center gap-2 mt-4 md:mt-0">
+                    <span class="h-2 w-2 rounded-full bg-green-500"></span>
+                    <span>System Operational</span>
+                </div>
             </div>
         </div>
     </footer>
+
 </body>
 </html>

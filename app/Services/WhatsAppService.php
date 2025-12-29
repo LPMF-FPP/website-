@@ -7,12 +7,12 @@ use Illuminate\Support\Facades\Log;
 
 class WhatsAppService
 {
-    protected string $baseUrl;
+    protected ?string $baseUrl;
     protected ?string $apiKey;
 
     public function __construct()
     {
-        $this->baseUrl = config('services.whatsapp.base_url', '');
+        $this->baseUrl = config('services.whatsapp.base_url') ?: null;
         $this->apiKey = config('services.whatsapp.api_key');
     }
 

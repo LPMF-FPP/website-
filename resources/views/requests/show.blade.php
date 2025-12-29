@@ -156,6 +156,8 @@
                     <p class="text-sm text-gray-500">Belum ada sampel terdaftar.</p>
                 @endif
 
+                @include('partials.label-section')
+
                 {{-- Berita Acara Penerimaan --}}
                 <h3 class="text-lg font-semibold text-gray-900 mb-4 mt-6">Berita Acara Penerimaan</h3>
 

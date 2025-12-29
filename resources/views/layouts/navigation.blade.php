@@ -51,6 +51,7 @@
                         $referensiActive = request()->routeIs('tracking.*')
                             || request()->routeIs('search.*')
                             || request()->routeIs('statistics.*')
+                            || request()->routeIs('inventory.*')
                             || request()->routeIs('analysts.*')
                             || request()->routeIs('settings.*');
                     @endphp
@@ -99,7 +100,30 @@
                                         </div>
                                         <div class="min-w-0">
                                             <div class="font-semibold text-primary-900">Statistik</div>
-                                            <div class="text-sm text-primary-600/80">Insight &amp; ringkasan</div>
+                                        </div>
+                                    </a>
+
+                                    <a href="{{ route('changelogs.index') }}" class="group flex items-start gap-3 p-3 rounded-xl border border-primary-100 hover:border-primary-200 hover:bg-primary-50 transition {{ request()->routeIs('changelogs.*') ? 'border-primary-300 bg-primary-50' : '' }}">
+                                        <div class="shrink-0 inline-flex w-10 h-10 items-center justify-center rounded-xl bg-primary-100 text-primary-600">
+                                            <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3a1 1 0 00.293.707l2 2a1 1 0 101.414-1.414L11 9.586V7z" clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <div class="font-semibold text-primary-900">Changelogs</div>
+                                            <div class="text-sm text-primary-600/80">Riwayat perubahan sistem</div>
+                                        </div>
+                                    </a>
+
+                                    <a href="{{ route('inventory.dashboard') }}" class="group flex items-start gap-3 p-3 rounded-xl border border-amber-100 hover:border-amber-200 hover:bg-amber-50 transition {{ request()->routeIs('inventory.*') ? 'border-amber-300 bg-amber-50' : '' }}">
+                                        <div class="shrink-0 inline-flex w-10 h-10 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
+                                            <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 0v12h8V4H6zm2 2h4v2H8V6zm0 4h4v2H8v-2z" clip-rule="evenodd"/>
+                                            </svg>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <div class="font-semibold text-amber-900">Inventori</div>
+                                            <div class="text-sm text-amber-700/80">Stok reagen & BHP</div>
                                         </div>
                                     </a>
                                 </div>
@@ -268,6 +292,12 @@
                         </x-responsive-nav-link>
                         <x-responsive-nav-link href="{{ route('statistics.index') }}" :active="request()->routeIs('statistics.*')">
                             Statistik
+                        </x-responsive-nav-link>
+                        <x-responsive-nav-link href="{{ route('changelogs.index') }}" :active="request()->routeIs('changelogs.*')">
+                            Changelogs
+                        </x-responsive-nav-link>
+                        <x-responsive-nav-link href="{{ route('inventory.dashboard') }}" :active="request()->routeIs('inventory.*')">
+                            Inventori
                         </x-responsive-nav-link>
                         @if(in_array($user->role, $supervisorRoles, true))
                             <x-responsive-nav-link href="{{ route('analysts.index') }}" :active="request()->routeIs('analysts.*')">

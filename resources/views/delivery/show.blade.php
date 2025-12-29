@@ -139,6 +139,11 @@
                 </div>
             </div>
 
+            {{-- Label Sisa Section --}}
+            <div class="rounded-lg bg-white shadow-sm">
+                 @include('partials.remaining-label-section')
+            </div>
+
             <div class="rounded-lg bg-white shadow-sm">
                 <div class="px-6 py-5 text-sm text-gray-700 space-y-4">
                     <x-page-section title="Berita Acara Penyerahan">

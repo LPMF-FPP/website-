@@ -95,6 +95,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/documents/{document}', DocumentDeleteController::class);
 });
 
+// Label Management API
+Route::middleware(['auth', 'verified'])->prefix('labels')->group(function () {
+    Route::post('evidence-units', [\App\Http\Controllers\Api\LabelController::class, 'createEvidenceUnits']);
+    Route::post('remaining-units', [\App\Http\Controllers\Api\LabelController::class, 'createRemainingUnit']);
+    Route::get('evidence-units/{requestId}', [\App\Http\Controllers\Api\LabelController::class, 'getEvidenceUnits']);
+    Route::get('remaining-units/{evidenceUnitId}', [\App\Http\Controllers\Api\LabelController::class, 'getRemainingUnits']);
+    Route::get('available-samples/{requestId}', [\App\Http\Controllers\Api\LabelController::class, 'getAvailableSamples']);
+});
+
 // API endpoint untuk generator Berita Acara
 Route::get('/requests/{requestNumber}', function($requestNumber) {
     $request = TestRequest::with(['investigator', 'samples', 'user'])

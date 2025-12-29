@@ -131,10 +131,25 @@
   .headtitle { font-weight:700; margin-bottom:52px; } /* ruang ttd */
   .headname  { text-decoration:underline; font-weight:700; }
   .small { font-size:9pt; color:#333; }
+
+  .watermark {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    font-size: 100pt;
+    color: rgba(0, 0, 0, 0.08);
+    z-index: -1000;
+    pointer-events: none;
+    font-weight: bold;
+    text-transform: uppercase;
+    width: 100%;
+    text-align: center;
+  }
 </style>
 </head>
 <body>
-
+<div class="watermark avoid">RAHASIA</div>
   <!-- HEADER -->
   <table class="hdr avoid">
     <tr>
