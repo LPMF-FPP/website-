@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Settings;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
@@ -269,7 +270,7 @@ class BladeTemplateEditorController extends Controller
     /**
      * Preview template with sample data
      */
-    public function preview(Request $request, string $templateKey): JsonResponse
+    public function preview(Request $request, string $templateKey): JsonResponse|Response
     {
         if (!isset(self::EDITABLE_TEMPLATES[$templateKey])) {
             return response()->json([
@@ -279,7 +280,7 @@ class BladeTemplateEditorController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'content' => 'required|string',
+            'content' => 'required|string|max:200000',
         ]);
 
         if ($validator->fails()) {
@@ -306,16 +307,13 @@ class BladeTemplateEditorController extends Controller
             ], 422);
         }
 
-        $tempPath = null;
-        $disk = Storage::disk('local');
-
         try {
             // Get sample data for the template
             $sampleData = $this->buildPreviewDataFor($templateKey);
 
-            // Create temporary view file with unique name in resources/views
-            $tempPath = 'temp-preview-' . uniqid() . '-' . time();
-            $tempFile = resource_path("views/{$tempPath}.blade.php");
+            // Create temporary view file in storage where PHP has write access
+            $tempDir = storage_path('framework/views');
+            $tempFile = $tempDir . '/tmp_preview_' . uniqid() . '_' . time() . '.blade.php';
             
             \Log::info('Creating preview for template', [
                 'template' => $templateKey,
@@ -326,10 +324,8 @@ class BladeTemplateEditorController extends Controller
             file_put_contents($tempFile, $content);
 
             // Render the view
-            $viewPath = $tempPath;
-            
             try {
-                $html = view($viewPath, $sampleData)->render();
+                $html = view()->file($tempFile, $sampleData)->render();
             } catch (\Throwable $renderError) {
                 // Log render error details
                 \Log::error('Blade template render error', [
@@ -346,6 +342,7 @@ class BladeTemplateEditorController extends Controller
                 }
 
                 // Clear view cache
+                \Illuminate\Support\Facades\View::flushState();
                 \Artisan::call('view:clear');
 
                 // Return user-friendly error
@@ -366,6 +363,7 @@ class BladeTemplateEditorController extends Controller
             }
 
             // Clear view cache to remove compiled temp file
+            \Illuminate\Support\Facades\View::flushState();
             \Artisan::call('view:clear');
 
             \Log::info('Preview generated successfully', [
@@ -373,10 +371,7 @@ class BladeTemplateEditorController extends Controller
                 'html_length' => strlen($html),
             ]);
 
-            return response()->json([
-                'success' => true,
-                'html' => $html,
-            ]);
+            return response($html, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
 
         } catch (\Throwable $e) {
             // Clean up temp file if it exists
@@ -893,10 +888,17 @@ class BladeTemplateEditorController extends Controller
         // Check for dangerous Blade directives
         $dangerousDirectives = ['@php', '@endphp'];
         foreach ($dangerousDirectives as $directive) {
-            // Allow @php at start of file for variable declarations only
-            if ($directive === '@php' && preg_match('/@php\s*$/m', $content)) {
-                continue; // This is typically safe for declarations
+            if (stripos($content, $directive) !== false) {
+                $errors[] = "Directive Blade berbahaya terdeteksi: {$directive}";
             }
+        }
+
+        if (stripos($content, '<?php') !== false || stripos($content, '<?=') !== false) {
+            $errors[] = 'Tag PHP tidak diizinkan dalam template.';
+        }
+
+        if (preg_match('/file_get_contents\s*\(\s*[\'"]https?:\/\//i', $content)) {
+            $errors[] = 'Akses HTTP via file_get_contents tidak diizinkan.';
         }
 
         return [

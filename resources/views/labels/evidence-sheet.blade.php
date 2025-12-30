@@ -20,25 +20,15 @@
         .page-break {
             page-break-after: always;
         }
-        .label-container {
-            width: 100%;
-        }
-        .label-row {
-            width: 100%;
-            overflow: hidden;
-            margin-bottom: 2mm;
-        }
         .label {
-            float: left;
             border: 1px solid #333;
             padding: 3mm;
             height: 46mm;
             width: 92mm;
-            margin-right: 4mm;
-            margin-bottom: 2mm;
             position: relative;
             background: #fff;
             overflow: hidden;
+            page-break-inside: avoid;
         }
         .label-header {
             text-align: center;
@@ -147,66 +137,75 @@
     @endphp
 
     @foreach($chunks as $chunkIndex => $chunk)
-        <div class="label-container">
-            @foreach($chunk as $label)
-                <div class="label">
-                    <div class="label-header">
-                        <h1>Label Barang Bukti</h1>
-                        <div class="subtitle">LPMF - Laboratorium Farmapol Pusdokkes Polri</div>
-                    </div>
-                    
-                    <div class="label-body">
-                        <div class="label-content">
-                            <div class="field">
-                                <div class="field-label">Resi</div>
-                                <div class="field-value">{{ $label['resi'] }}</div>
+        <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+            @foreach($chunk->chunk(2) as $row)
+                <tr>
+                    @foreach($row as $label)
+                        <td style="width:50%; vertical-align:top; padding-right:4mm; padding-bottom:2mm;">
+                            <div class="label">
+                                <div class="label-header">
+                                    <h1>Label Barang Bukti</h1>
+                                    <div class="subtitle">LPMF - Laboratorium Farmapol Pusdokkes Polri</div>
+                                </div>
+
+                                <div class="label-body">
+                                    <div class="label-content">
+                                        <div class="field">
+                                            <div class="field-label">Resi</div>
+                                            <div class="field-value">{{ $label['resi'] }}</div>
+                                        </div>
+
+                                        <div class="field">
+                                            <div class="field-label">Kode Sampel</div>
+                                            <div class="field-value large">{{ $label['kode_sampel'] }}</div>
+                                        </div>
+
+                                        <div class="field">
+                                            <div class="field-label">Tanggal Terima</div>
+                                            <div class="field-value">{{ $label['tanggal_terima'] }}</div>
+                                        </div>
+
+                                        <div class="field">
+                                            <div class="field-label">Penyidik</div>
+                                            <div class="field-value clamp2">{{ $label['penyidik'] }}</div>
+                                        </div>
+
+                                        <div class="field">
+                                            <div class="field-label">Satuan Kerja</div>
+                                            <div class="field-value clamp2">{{ $label['satuan_kerja'] }}</div>
+                                        </div>
+
+                                        <div class="field">
+                                            <div class="field-label">Satuan</div>
+                                            <div class="field-value">{{ $label['satuan'] }}</div>
+                                        </div>
+
+                                        @if($label['jenis'] && $label['jenis'] !== '-')
+                                        <div class="field">
+                                            <div class="field-label">Jenis</div>
+                                            <div class="field-value small">{{ $label['jenis'] }}</div>
+                                        </div>
+                                        @endif
+                                    </div>
+
+                                    <div class="label-qr">
+                                        <img src="{{ $label['qr'] }}" alt="QR Code">
+                                        <div class="qr-text">{{ $label['qr_text'] }}</div>
+                                    </div>
+                                </div>
+
+                                <div class="label-footer">
+                                    Dicetak: {{ $printDate }}
+                                </div>
                             </div>
-                            
-                            <div class="field">
-                                <div class="field-label">Kode Sampel</div>
-                                <div class="field-value large">{{ $label['kode_sampel'] }}</div>
-                            </div>
-                            
-                            <div class="field">
-                                <div class="field-label">Tanggal Terima</div>
-                                <div class="field-value">{{ $label['tanggal_terima'] }}</div>
-                            </div>
-                            
-                            <div class="field">
-                                <div class="field-label">Penyidik</div>
-                                <div class="field-value clamp2">{{ $label['penyidik'] }}</div>
-                            </div>
-                            
-                            <div class="field">
-                                <div class="field-label">Satuan Kerja</div>
-                                <div class="field-value clamp2">{{ $label['satuan_kerja'] }}</div>
-                            </div>
-                            
-                            <div class="field">
-                                <div class="field-label">Satuan</div>
-                                <div class="field-value">{{ $label['satuan'] }}</div>
-                            </div>
-                            
-                            @if($label['jenis'] && $label['jenis'] !== '-')
-                            <div class="field">
-                                <div class="field-label">Jenis</div>
-                                <div class="field-value small">{{ $label['jenis'] }}</div>
-                            </div>
-                            @endif
-                        </div>
-                        
-                        <div class="label-qr">
-                            <img src="{{ $label['qr'] }}" alt="QR Code">
-                            <div class="qr-text">{{ $label['qr_text'] }}</div>
-                        </div>
-                    </div>
-                    
-                    <div class="label-footer">
-                        Dicetak: {{ $printDate }}
-                    </div>
-                </div>
+                        </td>
+                    @endforeach
+                    @if($row->count() === 1)
+                        <td style="width:50%; vertical-align:top;"></td>
+                    @endif
+                </tr>
             @endforeach
-        </div>
+        </table>
         
         @if(!$loop->last)
             <div class="page-break"></div>

@@ -443,6 +443,7 @@ function bladeTemplateEditor() {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'text/html, application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                     },
                     body: JSON.stringify({
@@ -450,14 +451,15 @@ function bladeTemplateEditor() {
                     })
                 });
 
-                const data = await response.json();
-                
-                if (response.ok && data.success) {
-                    // Write HTML to iframe
+                const contentType = response.headers.get('content-type') || '';
+                const isHtml = contentType.includes('text/html');
+
+                if (response.ok && isHtml) {
+                    const html = await response.text();
                     const iframe = this.$refs.previewFrame;
                     const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
                     iframeDoc.open();
-                    iframeDoc.write(data.html);
+                    iframeDoc.write(html);
                     iframeDoc.close();
                     
                     // Auto-resize iframe to content
@@ -469,25 +471,28 @@ function bladeTemplateEditor() {
                             iframe.style.height = '600px';
                         }
                     }, 100);
-                } else if (response.status === 422) {
-                    // Validation or compilation error
-                    console.error('Preview validation error:', data);
-                    this.previewError = {
-                        message: data.message || 'Template tidak valid',
-                        error: data.error || '',
-                        line: data.line,
-                        file: data.file,
-                        hint: data.hint || '',
-                        slug: data.slug
-                    };
                 } else {
-                    // Other errors
-                    console.error('Preview failed:', data);
-                    this.previewError = {
-                        message: data.message || 'Gagal membuat preview',
-                        error: data.error || '',
-                        hint: data.hint || ''
-                    };
+                    const data = await response.json();
+                    if (response.status === 422) {
+                        // Validation or compilation error
+                        console.error('Preview validation error:', data);
+                        this.previewError = {
+                            message: data.message || 'Template tidak valid',
+                            error: data.error || '',
+                            line: data.line,
+                            file: data.file,
+                            hint: data.hint || '',
+                            slug: data.slug
+                        };
+                    } else {
+                        // Other errors
+                        console.error('Preview failed:', data);
+                        this.previewError = {
+                            message: data.message || 'Gagal membuat preview',
+                            error: data.error || '',
+                            hint: data.hint || ''
+                        };
+                    }
                 }
             } catch (error) {
                 console.error('Preview request failed:', error);
