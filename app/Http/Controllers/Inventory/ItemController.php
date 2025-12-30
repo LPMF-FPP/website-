@@ -7,6 +7,7 @@ use App\Models\InventoryItem;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 class ItemController extends Controller
 {
@@ -108,5 +109,37 @@ class ItemController extends Controller
             'min_stock' => ['nullable', 'numeric', 'min:0'],
             'is_active' => ['boolean'],
         ]);
+    }
+
+    /**
+     * Force delete an inventory item (Admin only).
+     * This will delete ALL related data (movements, balances, lots).
+     */
+    public function destroy(InventoryItem $item): RedirectResponse
+    {
+        // Only admin can delete items
+        if (auth()->user()->role !== 'admin') {
+            abort(Response::HTTP_FORBIDDEN, 'Hanya admin yang dapat menghapus item.');
+        }
+
+        $itemName = $item->name;
+
+        // Force delete: Remove all related data first
+        // 1. Delete all movements for this item's lots
+        $lotIds = $item->lots()->pluck('id');
+        \App\Models\InventoryMovement::whereIn('lot_id', $lotIds)->delete();
+        
+        // 2. Delete all balances for this item
+        $item->balances()->delete();
+        
+        // 3. Delete all lots for this item
+        $item->lots()->delete();
+        
+        // 4. Delete the item itself
+        $item->delete();
+
+        return redirect()
+            ->route('inventory.items.index')
+            ->with('success', "Item '{$itemName}' dan semua data terkait berhasil dihapus.");
     }
 }

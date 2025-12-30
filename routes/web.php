@@ -180,7 +180,7 @@ Route::prefix('referensi/inventori')->name('inventory.')->middleware(['auth', 'v
     Route::get('/', [App\Http\Controllers\Inventory\DashboardController::class, 'index'])->name('dashboard');
     
     // Items CRUD
-    Route::resource('items', App\Http\Controllers\Inventory\ItemController::class)->except(['show', 'destroy']);
+    Route::resource('items', App\Http\Controllers\Inventory\ItemController::class)->except(['show']);
     Route::get('items/{item}/lots', [App\Http\Controllers\Inventory\LotController::class, 'index'])->name('items.lots');
     Route::post('lots', [App\Http\Controllers\Inventory\LotController::class, 'store'])->name('lots.store');
     
@@ -189,6 +189,7 @@ Route::prefix('referensi/inventori')->name('inventory.')->middleware(['auth', 'v
     
     // Stock Card
     Route::get('kartu-stok', [App\Http\Controllers\Inventory\StockCardController::class, 'index'])->name('stock-card');
+    Route::get('kartu-stok/cetak', [App\Http\Controllers\Inventory\StockCardController::class, 'print'])->name('stock-card.print');
     
     // Transactions
     Route::prefix('transaksi')->name('transaction.')->group(function () {

@@ -17,10 +17,19 @@ class BladeTemplateEditorController extends Controller
      * Security: Only these specific templates are editable
      */
     private const EDITABLE_TEMPLATES = [
+        // PDF Documents
         'berita-acara-penerimaan' => 'resources/views/pdf/berita-acara-penerimaan.blade.php',
         'ba-penyerahan' => 'resources/views/pdf/ba-penyerahan.blade.php',
         'laporan-hasil-uji' => 'resources/views/pdf/laporan-hasil-uji.blade.php',
         'form-preparation' => 'resources/views/pdf/form-preparation.blade.php',
+        // Labels - Evidence (Barang Bukti)
+        'label-barang-bukti-sheet' => 'resources/views/labels/evidence-sheet.blade.php',
+        'label-barang-bukti-single' => 'resources/views/labels/evidence-single.blade.php',
+        // Labels - Remaining (Sisa Barang Bukti)
+        'label-sisa-bukti-sheet' => 'resources/views/labels/remaining-sheet.blade.php',
+        'label-sisa-bukti-single' => 'resources/views/labels/remaining-single.blade.php',
+        // Inventory - Stock Card (Kartu Stok)
+        'kartu-stok' => 'resources/views/inventory/pdf/stock-card.blade.php',
     ];
 
     /**
@@ -411,6 +420,11 @@ class BladeTemplateEditorController extends Controller
             'ba-penyerahan' => $this->getBaPenyerahanData($now),
             'laporan-hasil-uji' => $this->getLaporanHasilUjiData($now),
             'form-preparation' => $this->getFormPreparationData($now),
+            'label-barang-bukti-sheet' => $this->getLabelEvidenceSheetData($now),
+            'label-barang-bukti-single' => $this->getLabelEvidenceSingleData($now),
+            'label-sisa-bukti-sheet' => $this->getLabelRemainingSheetData($now),
+            'label-sisa-bukti-single' => $this->getLabelRemainingSingleData($now),
+            'kartu-stok' => $this->getKartuStokData($now),
             default => [],
         };
     }
@@ -547,6 +561,249 @@ class BladeTemplateEditorController extends Controller
                 ],
             ],
             'generatedAt' => $now,
+        ];
+    }
+
+    /**
+     * Get sample data for Label Evidence Sheet (Barang Bukti - Multiple) template
+     */
+    private function getLabelEvidenceSheetData(\Illuminate\Support\Carbon $now): array
+    {
+        $evidenceUnits = collect([
+            (object) [
+                'receipt_code' => 'RESI-2025-0001',
+                'sample_code' => 'BB-2025-001',
+                'received_at_formatted' => $now->copy()->subDays(3)->format('d/m/Y'),
+                'investigator_name' => 'IPDA Budi Santoso',
+                'investigator_unit' => 'Polres Metro Jakarta Selatan',
+                'sample_type' => 'Narkotika',
+                'seal_status_received' => 'Tersegel',
+                'qr_content' => 'BB-2025-001',
+            ],
+            (object) [
+                'receipt_code' => 'RESI-2025-0001',
+                'sample_code' => 'BB-2025-002',
+                'received_at_formatted' => $now->copy()->subDays(3)->format('d/m/Y'),
+                'investigator_name' => 'IPDA Budi Santoso',
+                'investigator_unit' => 'Polres Metro Jakarta Selatan',
+                'sample_type' => 'Psikotropika',
+                'seal_status_received' => 'Tersegel',
+                'qr_content' => 'BB-2025-002',
+            ],
+        ]);
+
+        return [
+            'evidenceUnits' => $evidenceUnits,
+            'printDate' => $now->format('d/m/Y H:i'),
+        ];
+    }
+
+    /**
+     * Get sample data for Label Evidence Single (Barang Bukti - Single) template
+     */
+    private function getLabelEvidenceSingleData(\Illuminate\Support\Carbon $now): array
+    {
+        $evidenceUnit = (object) [
+            'receipt_code' => 'RESI-2025-0001',
+            'sample_code' => 'BB-2025-001',
+            'received_at_formatted' => $now->copy()->subDays(3)->format('d/m/Y'),
+            'investigator_name' => 'IPDA Budi Santoso',
+            'investigator_unit' => 'Polres Metro Jakarta Selatan',
+            'sample_type' => 'Narkotika',
+            'seal_status_received' => 'Tersegel',
+            'qr_content' => 'BB-2025-001',
+        ];
+
+        return [
+            'evidenceUnit' => $evidenceUnit,
+            'printDate' => $now->format('d/m/Y H:i'),
+        ];
+    }
+
+    /**
+     * Get sample data for Label Remaining Sheet (Sisa Barang Bukti - Multiple) template
+     */
+    private function getLabelRemainingSheetData(\Illuminate\Support\Carbon $now): array
+    {
+        // Create mock evidenceUnit for nested reference
+        $evidenceUnit1 = (object) [
+            'receipt_code' => 'RESI-2025-0001',
+            'sample_code' => 'BB-2025-001',
+            'received_at_formatted' => $now->copy()->subDays(3)->format('d/m/Y'),
+            'investigator_name' => 'IPDA Budi Santoso',
+            'investigator_unit' => 'Polres Metro Jakarta Selatan',
+        ];
+
+        $evidenceUnit2 = (object) [
+            'receipt_code' => 'RESI-2025-0001',
+            'sample_code' => 'BB-2025-002',
+            'received_at_formatted' => $now->copy()->subDays(3)->format('d/m/Y'),
+            'investigator_name' => 'IPDA Budi Santoso',
+            'investigator_unit' => 'Polres Metro Jakarta Selatan',
+        ];
+
+        $remainingUnits = collect([
+            (object) [
+                'remaining_code' => 'SISA-BB-2025-001',
+                'qty_with_uom' => '1.5 gram',
+                'seal_status_delivered' => 'Tersegel',
+                'delivered_at_formatted' => $now->copy()->subDays(1)->format('d/m/Y'),
+                'handover_doc_no' => 'BA-SERAH-001/LPMF/2025',
+                'qr_content' => 'SISA-BB-2025-001',
+                'evidenceUnit' => $evidenceUnit1,
+            ],
+            (object) [
+                'remaining_code' => 'SISA-BB-2025-002',
+                'qty_with_uom' => '50 butir',
+                'seal_status_delivered' => 'Tersegel',
+                'delivered_at_formatted' => $now->copy()->subDays(1)->format('d/m/Y'),
+                'handover_doc_no' => 'BA-SERAH-001/LPMF/2025',
+                'qr_content' => 'SISA-BB-2025-002',
+                'evidenceUnit' => $evidenceUnit2,
+            ],
+        ]);
+
+        return [
+            'remainingUnits' => $remainingUnits,
+            'printDate' => $now->format('d/m/Y H:i'),
+        ];
+    }
+
+    /**
+     * Get sample data for Label Remaining Single (Sisa Barang Bukti - Single) template
+     */
+    private function getLabelRemainingSingleData(\Illuminate\Support\Carbon $now): array
+    {
+        // Create mock evidenceUnit for nested reference
+        $evidenceUnit = (object) [
+            'receipt_code' => 'RESI-2025-0001',
+            'sample_code' => 'BB-2025-001',
+            'received_at_formatted' => $now->copy()->subDays(3)->format('d/m/Y'),
+            'investigator_name' => 'IPDA Budi Santoso',
+            'investigator_unit' => 'Polres Metro Jakarta Selatan',
+        ];
+
+        $remainingUnit = (object) [
+            'remaining_code' => 'SISA-BB-2025-001',
+            'qty_with_uom' => '1.5 gram',
+            'seal_status_delivered' => 'Tersegel',
+            'delivered_at_formatted' => $now->copy()->subDays(1)->format('d/m/Y'),
+            'handover_doc_no' => 'BA-SERAH-001/LPMF/2025',
+            'qr_content' => 'SISA-BB-2025-001',
+            'evidenceUnit' => $evidenceUnit,
+        ];
+
+        return [
+            'remainingUnit' => $remainingUnit,
+            'printDate' => $now->format('d/m/Y H:i'),
+        ];
+    }
+
+    /**
+     * Get sample data for Kartu Stok (Stock Card) template
+     */
+    private function getKartuStokData(\Illuminate\Support\Carbon $now): array
+    {
+        // Create mock item object
+        $item = (object) [
+            'id' => 1,
+            'name' => 'Marquis Reagent',
+            'item_type' => 'REAGENT',
+            'item_type_label' => 'Reagent',
+            'brand' => 'Sigma-Aldrich',
+            'manufacturer' => 'Merck KGaA',
+            'uom' => 'mL',
+        ];
+
+        // Create mock lot
+        $lot = (object) [
+            'lot_no' => 'MRQ-2024-001',
+        ];
+
+        // Create mock location
+        $location = (object) [
+            'name' => 'Lemari Reagent Lab 1',
+        ];
+
+        // Create mock movements for stock card
+        $stockCard = [
+            [
+                'movement' => (object) [
+                    'movement_type' => 'RECEIPT',
+                    'movement_type_label' => 'Penerimaan',
+                    'performed_at' => $now->copy()->subDays(30),
+                    'lot' => $lot,
+                    'fromLocation' => null,
+                    'toLocation' => $location,
+                    'notes' => 'PO dari Merck',
+                    'reason_code' => 'NEW_STOCK',
+                ],
+                'change' => 100,
+                'running_balance' => 100,
+            ],
+            [
+                'movement' => (object) [
+                    'movement_type' => 'ISSUE',
+                    'movement_type_label' => 'Pengeluaran',
+                    'performed_at' => $now->copy()->subDays(20),
+                    'lot' => $lot,
+                    'fromLocation' => $location,
+                    'toLocation' => null,
+                    'notes' => 'Pengujian sampel BB-001',
+                    'reason_code' => 'TESTING',
+                ],
+                'change' => -5,
+                'running_balance' => 95,
+            ],
+            [
+                'movement' => (object) [
+                    'movement_type' => 'ISSUE',
+                    'movement_type_label' => 'Pengeluaran',
+                    'performed_at' => $now->copy()->subDays(10),
+                    'lot' => $lot,
+                    'fromLocation' => $location,
+                    'toLocation' => null,
+                    'notes' => 'Pengujian sampel BB-002',
+                    'reason_code' => 'TESTING',
+                ],
+                'change' => -3,
+                'running_balance' => 92,
+            ],
+            [
+                'movement' => (object) [
+                    'movement_type' => 'ADJUST',
+                    'movement_type_label' => 'Penyesuaian',
+                    'performed_at' => $now->copy()->subDays(5),
+                    'lot' => $lot,
+                    'fromLocation' => null,
+                    'toLocation' => $location,
+                    'notes' => 'Stock opname Desember',
+                    'reason_code' => 'OPNAME',
+                ],
+                'change' => -2,
+                'running_balance' => 90,
+            ],
+        ];
+
+        // Create mock user
+        $generatedBy = (object) [
+            'name' => 'Admin LPMF',
+        ];
+
+        return [
+            'stockCard' => $stockCard,
+            'item' => $item,
+            'lot' => $lot,
+            'location' => $location,
+            'filters' => [
+                'item_id' => 1,
+                'lot_id' => 1,
+                'location_id' => 1,
+                'date_from' => $now->copy()->subDays(30)->format('Y-m-d'),
+                'date_to' => $now->format('Y-m-d'),
+            ],
+            'generatedAt' => $now,
+            'generatedBy' => $generatedBy,
         ];
     }
 

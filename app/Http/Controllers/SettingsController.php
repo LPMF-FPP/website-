@@ -62,7 +62,8 @@ class SettingsController extends Controller
                 'date_formats' => self::ALLOWED_DATE_FORMATS,
                 'number_formats' => self::ALLOWED_NUMBER_FORMATS,
                 'languages' => self::ALLOWED_LANGUAGES,
-                'storage_drivers' => ['local', 's3'],
+                'storage_drivers' => ['public'],
+                'storage_path_info' => 'storage/app/public/investigators/{investigator}/{request}/',
             ],
         ]);
     }

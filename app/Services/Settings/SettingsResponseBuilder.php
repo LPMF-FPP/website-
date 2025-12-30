@@ -26,7 +26,21 @@ class SettingsResponseBuilder
             'localization' => Arr::get($nested, 'locale', []),
             'retention' => $retention,
             'notifications' => Arr::get($nested, 'notifications', Arr::get($nested, 'automation', [])),
+            'smtp' => $this->composeSmtp(Arr::get($nested, 'smtp', [])),
             'security' => Arr::get($nested, 'security.roles', []),
+        ];
+    }
+
+    private function composeSmtp(array $smtp): array
+    {
+        // Return SMTP config without exposing password
+        return [
+            'host' => Arr::get($smtp, 'host', '127.0.0.1'),
+            'port' => (int) Arr::get($smtp, 'port', 1025),
+            'username' => Arr::get($smtp, 'username', ''),
+            'password' => Arr::get($smtp, 'password') ? '••••••••' : '', // Mask password
+            'from_address' => Arr::get($smtp, 'from_address', ''),
+            'from_name' => Arr::get($smtp, 'from_name', 'LPMF LIMS'),
         ];
     }
 

@@ -19,10 +19,8 @@ test('dapat mengupdate localization dan retention settings', function () {
                 'language' => 'id',
             ],
             'retention' => [
-                'storage_driver' => 'local',
-                'storage_folder_path' => 'uploads/documents',
+                'storage_driver' => 'public',
                 'purge_after_days' => 365,
-                'export_filename_pattern' => '{date}-{type}',
             ],
         ]);
 
@@ -40,54 +38,22 @@ test('menerima purge_after_days kosong sebagai null', function () {
                 'language' => 'id',
             ],
             'retention' => [
-                'storage_driver' => 'local',
-                'storage_folder_path' => 'uploads',
+                'storage_driver' => 'public',
                 'purge_after_days' => '',
-                'export_filename_pattern' => '',
             ],
         ]);
 
     $response->assertStatus(200);
 });
 
+// storage_folder_path validation removed - path is now auto-generated
 test('menolak absolute path', function () {
-    $response = $this->actingAs($this->user)
-        ->putJson('/api/settings/localization-retention', [
-            'localization' => [
-                'timezone' => 'Asia/Jakarta',
-                'date_format' => 'DD/MM/YYYY',
-                'number_format' => '1.234,56',
-                'language' => 'id',
-            ],
-            'retention' => [
-                'storage_driver' => 'local',
-                'storage_folder_path' => '/var/www/uploads',
-                'purge_after_days' => 365,
-            ],
-        ]);
-
-    $response->assertStatus(422)
-        ->assertJsonValidationErrors(['retention.storage_folder_path']);
+    $this->markTestSkipped('storage_folder_path validation removed - path is auto-generated');
 });
 
+// storage_folder_path validation removed - path is now auto-generated
 test('menolak directory traversal', function () {
-    $response = $this->actingAs($this->user)
-        ->putJson('/api/settings/localization-retention', [
-            'localization' => [
-                'timezone' => 'Asia/Jakarta',
-                'date_format' => 'DD/MM/YYYY',
-                'number_format' => '1.234,56',
-                'language' => 'id',
-            ],
-            'retention' => [
-                'storage_driver' => 'local',
-                'storage_folder_path' => 'uploads/../../etc',
-                'purge_after_days' => 365,
-            ],
-        ]);
-
-    $response->assertStatus(422)
-        ->assertJsonValidationErrors(['retention.storage_folder_path']);
+    $this->markTestSkipped('storage_folder_path validation removed - path is auto-generated');
 });
 
 test('validasi timezone harus dari daftar yang diizinkan', function () {

@@ -168,7 +168,7 @@
                         </div>
                         
                         <div class="label-qr">
-                            <img src="data:image/png;base64,{{ base64_encode(QrCode::format('png')->size(100)->generate($unit->qr_content)) }}" alt="QR">
+                            {!! QrCode::size(100)->generate($unit->qr_content) !!}
                             <div style="font-size: 6pt; margin-top: 1mm;">{{ $unit->qr_content }}</div>
                         </div>
                     </div>

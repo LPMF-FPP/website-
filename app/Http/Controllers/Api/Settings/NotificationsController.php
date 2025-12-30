@@ -31,6 +31,21 @@ class NotificationsController extends Controller
             $payload['notifications'] = $data['notifications'];
         }
         
+        if (isset($data['smtp'])) {
+            // Store SMTP config in settings (excluding password from plain storage)
+            $smtp = $data['smtp'];
+            $payload['smtp.host'] = $smtp['host'] ?? null;
+            $payload['smtp.port'] = $smtp['port'] ?? null;
+            $payload['smtp.username'] = $smtp['username'] ?? null;
+            $payload['smtp.from_address'] = $smtp['from_address'] ?? null;
+            $payload['smtp.from_name'] = $smtp['from_name'] ?? null;
+            
+            // Only store password if provided (non-empty)
+            if (!empty($smtp['password'])) {
+                $payload['smtp.password'] = encrypt($smtp['password']);
+            }
+        }
+        
         if (isset($data['security']['roles'])) {
             $payload['security.roles'] = $data['security']['roles'];
         }
@@ -41,6 +56,7 @@ class NotificationsController extends Controller
 
         return response()->json([
             'notifications' => Arr::get($snapshot, 'notifications', []),
+            'smtp' => Arr::get($snapshot, 'smtp', []),
             'security' => Arr::get($snapshot, 'security', []),
         ]);
     }

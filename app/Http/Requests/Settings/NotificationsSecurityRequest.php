@@ -71,6 +71,15 @@ class NotificationsSecurityRequest extends FormRequest
             'notifications.whatsapp.default_target' => ['sometimes', 'nullable', 'string', 'max:50'],
             'notifications.whatsapp.message' => ['sometimes', 'nullable', 'string'],
             
+            // SMTP Configuration
+            'smtp' => ['sometimes', 'array'],
+            'smtp.host' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'smtp.port' => ['sometimes', 'nullable', 'integer', 'min:1', 'max:65535'],
+            'smtp.username' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'smtp.password' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'smtp.from_address' => ['sometimes', 'nullable', 'email', 'max:255'],
+            'smtp.from_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            
             'security' => ['sometimes', 'required', 'array'],
             'security.roles' => ['sometimes', 'required', 'array'],
             'security.roles.can_manage_settings' => ['sometimes', 'required', 'array'],

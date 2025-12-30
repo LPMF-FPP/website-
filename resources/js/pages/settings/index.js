@@ -724,6 +724,7 @@ export class SettingsClient {
                     method: 'PUT',
                     body: {
                         notifications: this.clone(this.state.form.notifications),
+                        smtp: this.clone(this.state.form.smtp),
                         security: {
                             roles: {
                                 can_manage_settings: [...this.state.roles.manage],
@@ -773,6 +774,13 @@ export class SettingsClient {
 
     applyServerData(payload) {
         const data = (payload && (payload.settings || payload.data)) || payload || {};
+        
+        // Map backend keys to frontend keys before merging
+        // Backend returns 'localization', frontend uses 'locale'
+        if (data.localization && !data.locale) {
+            data.locale = data.localization;
+        }
+        
         // Merge form data instead of replacing to preserve default state structure
         this.state.form = { ...this.state.form, ...this.mergeDefaults(this.clone(data)) };
         this.hydrateActiveTemplates(data.templates?.active ?? this.state.activeTemplates);
@@ -820,6 +828,7 @@ export class SettingsClient {
         if (!('purge_after_days' in form.retention)) form.retention.purge_after_days = 365;
         if (!('export_filename_pattern' in form.retention)) form.retention.export_filename_pattern = '';
         form.notifications = this.mergeNotifications(form.notifications ?? form.automation ?? {});
+        form.smtp = this.mergeSmtp(form.smtp ?? {});
         form.security ??= { roles: { can_manage_settings: [], can_issue_number: [] } };
 
         return form;
@@ -835,6 +844,17 @@ export class SettingsClient {
                 enabled: !!source?.whatsapp?.enabled,
                 number: source?.whatsapp?.number || '',
             },
+        };
+    }
+
+    mergeSmtp(source) {
+        return {
+            host: source?.host || '127.0.0.1',
+            port: source?.port || 1025,
+            username: source?.username || '',
+            password: source?.password || '',
+            from_address: source?.from_address || '',
+            from_name: source?.from_name || 'LPMF LIMS',
         };
     }
 

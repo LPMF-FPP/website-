@@ -1,20 +1,17 @@
 # Copilot Instructions for This Codebase
 
 ## Big Picture Architecture
-- **Monorepo**: Contains Laravel (PHP) backend, frontend assets, and a separate `dokpol-style` design system (Next.js/NestJS/Storybook/Playwright).
+- **Laravel App**: Contains Laravel 12 (PHP 8.3+) backend with Blade + Alpine.js + Tailwind CSS frontend.
 - **Frontend Audit System**: Automated audits for CSS, JS, accessibility, and performance. All reports output to `report/`.
-- **Design System**: Shared UI components and configs in `dokpol-style/packages/ui` and `dokpol-style/packages/config`.
 - **App Structure**: Main Laravel app in `app/`, with supporting config, routes, resources, and public assets. See `patcher/` for deployment and audit documentation.
 
 ## Developer Workflows
-- **Install dependencies**: `npm install` (root), `pnpm install` (dokpol-style)
+- **Install dependencies**: `npm install`
 - **Run Laravel server**: `php artisan serve` (required for audits)
 - **Run all audits**: `npm run audit:all` (see `report/README.md` for details)
 - **Run critical audits**: `npm run audit:critical` (CI, pre-commit)
-- **Run design system dev**: `pnpm dev` (dokpol-style)
-- **Build**: `pnpm build` (dokpol-style)
-- **Test**: `pnpm test` (dokpol-style), `npm run test` (root)
-- **Storybook**: `pnpm storybook` (dokpol-style)
+- **Build frontend**: `npm run build`
+- **Test**: `npm run test`
 
 ## Project-Specific Conventions
 - **Safe Mode v2**: Overlay CSS (pd-*.css) must not use layout properties. Violations fail audits (`audit:guard`).
@@ -25,25 +22,57 @@
 - **Pre-commit**: Run `npm run audit:guard` before commit (see `report/README.md`).
 
 ## Integration Points & Dependencies
-- **Node.js**: Required for all audits and design system work (Node 20+, pnpm 9+ for dokpol-style).
+- **Node.js**: Required for audits (Node 20+).
 - **Puppeteer**: Downloads Chromium for coverage/a11y audits (see troubleshooting in `report/README.md`).
 - **Lighthouse**: Performance/SEO audits, config in `lighthouserc.json`.
 - **axe-core**: Accessibility scanning.
-- **Playwright**: e2e tests for design system.
+- **DomPDF**: PDF generation (barryvdh/laravel-dompdf ^3.1).
 
 ## Key Files & Directories
 - `report/README.md`: Full audit system guide and troubleshooting
-- `dokpol-style/README.md`: Design system architecture and workflows
 - `patcher/`: Deployment, audit, and design documentation
 - `app/`, `resources/`, `routes/`, `public/`: Laravel app core
-- `dokpol-style/apps/`, `dokpol-style/packages/`: Design system apps and shared packages
 
 ## Examples
 - To run all audits before deploy: `npm run audit:critical`
-- To develop the design system: `cd dokpol-style && pnpm dev`
 - To fix CSS lint errors: `npx stylelint "resources/**/*.css" --fix`
 - To run accessibility audit: `npm run audit:a11y` (Laravel server must be running)
 
 ---
 
-For more, see `report/README.md`, `dokpol-style/README.md`, and docs in `patcher/`.
+## Documentation Rules (IMPORTANT)
+
+**⚠️ DO NOT CREATE NEW .md FILES FOR DOCUMENTATION**
+
+All project documentation is consolidated in `WALKTHROUGH.md`. When completing a coding task:
+
+1. **DO NOT** create new `.md` files to document changes, fixes, or features
+2. **INSTEAD**, append or update the relevant section in `WALKTHROUGH.md`
+3. If you need to document a new feature or fix:
+   - Find the appropriate section in `WALKTHROUGH.md`
+   - Add your documentation there
+   - Use proper markdown heading hierarchy
+
+### How to Update WALKTHROUGH.md
+
+```markdown
+## 📄 [Category]/[Feature Name]
+
+```
+Source: Updated on YYYY-MM-DD
+```
+
+[Your documentation content here]
+```
+
+### Exception Files
+These standalone .md files are allowed to exist separately:
+- `README.md` (root, for GitHub)
+- `PRE_PULL_CHECKLIST.md`
+- `PRE_PUSH_CHECKLIST.md`
+- `report/README.md`
+- `.github/copilot-instructions.md`
+
+---
+
+For more, see `report/README.md` and docs in `patcher/`.

@@ -7,7 +7,9 @@ use App\Models\InventoryItem;
 use App\Models\InventoryLocation;
 use App\Models\InventoryLot;
 use App\Services\InventoryMovementService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
 
 class StockCardController extends Controller
@@ -49,5 +51,46 @@ class StockCardController extends Controller
             'filters' => $filters,
             'selectedItem' => $selectedItem,
         ]);
+    }
+
+    /**
+     * Generate PDF for stock card.
+     */
+    public function print(Request $request): Response
+    {
+        $request->validate([
+            'item_id' => 'required|exists:inventory_items,id',
+        ]);
+
+        $filters = $request->only(['item_id', 'lot_id', 'location_id', 'date_from', 'date_to']);
+        $stockCard = $this->movementService->getStockCard($filters);
+        
+        $item = InventoryItem::findOrFail($filters['item_id']);
+        
+        $lot = null;
+        if (!empty($filters['lot_id'])) {
+            $lot = InventoryLot::find($filters['lot_id']);
+        }
+        
+        $location = null;
+        if (!empty($filters['location_id'])) {
+            $location = InventoryLocation::find($filters['location_id']);
+        }
+
+        $pdf = Pdf::loadView('inventory.pdf.stock-card', [
+            'stockCard' => $stockCard,
+            'item' => $item,
+            'lot' => $lot,
+            'location' => $location,
+            'filters' => $filters,
+            'generatedAt' => now(),
+            'generatedBy' => auth()->user(),
+        ]);
+
+        $pdf->setPaper('A4', 'landscape');
+
+        $filename = 'kartu-stok-' . str_replace(' ', '-', strtolower($item->name)) . '-' . now()->format('Ymd') . '.pdf';
+
+        return $pdf->stream($filename);
     }
 }

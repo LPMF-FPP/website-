@@ -76,14 +76,24 @@
                     <h3 class="text-lg font-semibold text-primary-900">{{ $selectedItem->name }}</h3>
                     <p class="text-sm text-primary-700">{{ $selectedItem->brand ?? '' }} · {{ $selectedItem->item_type_label }} · {{ $selectedItem->uom }}</p>
                 </div>
-                @if(!empty($stockCard))
-                <div class="text-right">
-                    <div class="text-sm text-primary-700">Saldo Akhir</div>
-                    <div class="text-2xl font-bold text-primary-900">
-                        {{ number_format(end($stockCard)['running_balance'] ?? 0, 2) }} {{ $selectedItem->uom }}
+                <div class="flex items-center gap-4">
+                    @if(!empty($stockCard))
+                    <div class="text-right">
+                        <div class="text-sm text-primary-700">Saldo Akhir</div>
+                        <div class="text-2xl font-bold text-primary-900">
+                            {{ number_format(end($stockCard)['running_balance'] ?? 0, 2) }} {{ $selectedItem->uom }}
+                        </div>
                     </div>
+                    @endif
+                    <a href="{{ route('inventory.stock-card.print', $filters) }}" 
+                       target="_blank"
+                       class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-primary-300 text-primary-700 rounded-md hover:bg-primary-100 font-medium shadow-sm transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>
+                        </svg>
+                        Cetak PDF
+                    </a>
                 </div>
-                @endif
             </div>
         </div>
         @endif

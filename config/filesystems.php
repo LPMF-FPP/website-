@@ -38,6 +38,19 @@ return [
             'report' => false,
         ],
 
+        /*
+        |----------------------------------------------------------------------
+        | LIMS Document Storage (Primary Disk)
+        |----------------------------------------------------------------------
+        | All documents (PDF, images, uploads) are stored here under a unified
+        | structure: storage/app/public/investigators/{folder_key}/{request}/
+        |
+        | Subdirectories:
+        | - uploads/          → request_letter, sample_photo, evidence_photo
+        | - generated/        → LHU, BA penerimaan, BA penyerahan (PDF/HTML)
+        | - test-results/     → chromatograms, spektrum, lampiran hasil lab
+        |
+        */
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
@@ -47,66 +60,28 @@ return [
             'report' => false,
         ],
 
-        // Custom disk untuk dokumen sensitif Lidik Sidik
+        /*
+        |----------------------------------------------------------------------
+        | Alias Disks (untuk backward compatibility)
+        |----------------------------------------------------------------------
+        | Alias ke 'public' disk agar kode lama tetap berjalan.
+        | DEPRECATED: Gunakan 'public' disk langsung.
+        |
+        */
         'documents' => [
             'driver' => 'local',
-            'root' => storage_path('app/private/documents'),
-            'serve' => true,
-            'throw' => false,
-            'report' => false,
-        ],
-
-        // Custom disk untuk hasil pengujian lab
-        'test_results' => [
-            'driver' => 'local',
-            'root' => storage_path('app/private/test_results'),
-            'serve' => true,
-            'throw' => false,
-            'report' => false,
-        ],
-
-        // Custom disk untuk foto sampel (public access)
-        'samples' => [
-            'driver' => 'local',
-            'root' => storage_path('app/public/samples'),
-            'url' => env('APP_URL').'/storage/samples',
+            'root' => storage_path('app/public'),
+            'url' => env('APP_URL').'/storage',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,
         ],
 
-        // Custom disk untuk surat resmi dan dokumen upload
-        'official_docs' => [
+        'samples' => [
             'driver' => 'local',
-            'root' => storage_path('app/private/official_docs'),
-            'serve' => true,
-            'throw' => false,
-            'report' => false,
-        ],
-
-        // Custom disk untuk dokumen yang digenerate (laporan, sertifikat)
-        'generated_docs' => [
-            'driver' => 'local',
-            'root' => storage_path('app/private/generated_docs'),
-            'serve' => true,
-            'throw' => false,
-            'report' => false,
-        ],
-
-        // Custom disk untuk chromatogram dan spektrum hasil lab
-        'lab_images' => [
-            'driver' => 'local',
-            'root' => storage_path('app/private/lab_images'),
-            'serve' => true,
-            'throw' => false,
-            'report' => false,
-        ],
-
-        // Custom disk untuk backup dan archive
-        'archives' => [
-            'driver' => 'local',
-            'root' => storage_path('app/private/archives'),
-            'serve' => true,
+            'root' => storage_path('app/public/samples'),
+            'url' => env('APP_URL').'/storage/samples',
+            'visibility' => 'public',
             'throw' => false,
             'report' => false,
         ],

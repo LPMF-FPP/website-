@@ -1,37 +1,39 @@
-*.log
+
+*$py.class
+# Audit Reports (keep README only)
+/auth.json
+# Documentation backup folders
+# Document Generator
 .DS_Store
 .env
 .env.backup
 .env.production
-.phpactor.json
-.phpunit.result.cache
 /.fleet
+Homestead.json
+Homestead.yaml
 /.idea
-/.nova
-/.phpunit.cache
-/.vscode
-/.zed
-/auth.json
+*.log
+markdown-backup-*/
+md-backup-*/
 /node_modules
+/.nova
+/output/*.html
+/output/*.pdf
+.phpactor.json
+/.phpunit.cache
+.phpunit.result.cache
 /public/build
 /public/hot
 /public/storage
-/storage/*.key
-/storage/pail
-/vendor
-Homestead.json
-Homestead.yaml
-Thumbs.db
-
-# Document Generator
-/output/*.html
-/output/*.pdf
 __pycache__/
 *.py[cod]
-*$py.class
-
-# Audit Reports (keep README only)
 /report/*.json
+/report/lighthouse/
 /report/*.md
 !/report/README.md
-/report/lighthouse/
+/storage/*.key
+/storage/pail
+Thumbs.db
+/vendor
+/.vscode
+/.zed

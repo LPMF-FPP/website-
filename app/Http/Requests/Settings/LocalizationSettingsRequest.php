@@ -66,22 +66,9 @@ class LocalizationSettingsRequest extends FormRequest
             
             // Retention rules - support partial updates and nullable values
             'retention' => ['sometimes', 'required', 'array'],
-            'retention.storage_driver' => ['sometimes', 'required', 'string', 'max:50'],
-            'retention.storage_folder_path' => [
-                'sometimes', 
-                'string', 
-                'max:255',
-                // Prevent absolute paths and directory traversal
-                'regex:/^[a-zA-Z0-9_\-\/]*$/',
-                function ($attribute, $value, $fail) {
-                    if (str_contains($value, '..')) {
-                        $fail('Path tidak boleh mengandung ".." (directory traversal).');
-                    }
-                    if (str_starts_with($value, '/')) {
-                        $fail('Path tidak boleh absolute (dimulai dengan "/").');
-                    }
-                },
-            ],
+            'retention.storage_driver' => ['sometimes', 'required', 'string', Rule::in(['public'])],
+            // storage_folder_path deprecated - path otomatis berdasarkan investigator/request
+            'retention.storage_folder_path' => ['sometimes', 'nullable', 'string', 'max:255'],
             'retention.purge_after_days' => ['sometimes', 'nullable', 'integer', 'min:30', 'max:3650'],
             'retention.export_filename_pattern' => ['sometimes', 'nullable', 'string', 'max:255'],
         ];

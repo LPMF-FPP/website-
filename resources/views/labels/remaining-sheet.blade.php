@@ -118,7 +118,7 @@
                                 @endif
                             </td>
                             <td style="width: 35%; vertical-align: top; text-align: center; padding-top: 2mm;">
-                                <img src="data:image/png;base64,{{ base64_encode(QrCode::format('png')->size(100)->generate($unit->qr_content)) }}" alt="QR" style="width: 25mm; height: 25mm;">
+                                <div style="width: 25mm; height: 25mm; margin: 0 auto;">{!! QrCode::size(100)->generate($unit->qr_content) !!}</div>
                                 <div style="font-size: 6pt; margin-top: 1mm;">{{ $unit->qr_content }}</div>
                             </td>
                         </tr>

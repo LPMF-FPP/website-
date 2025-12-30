@@ -161,7 +161,35 @@ export function registerSettingsComponent() {
                 })),
             storageDrivers: Array.isArray(optionValues.storage_drivers) && optionValues.storage_drivers.length 
                 ? optionValues.storage_drivers 
-                : ['local', 'public', 's3'],
+                : ['public'],
+            storagePathInfo: optionValues.storage_path_info || 'storage/app/public/investigators/{investigator}/{request}/',
+            
+            // SMTP Preset
+            smtpPreset: 'mailpit',
+            smtpPresets: {
+                mailpit: { host: '127.0.0.1', port: 1025 },
+                gmail: { host: 'smtp.gmail.com', port: 587 },
+                custom: { host: '', port: 587 },
+            },
+            applySmtpPreset() {
+                const preset = this.smtpPresets[this.smtpPreset];
+                if (preset && this.client?.state?.form?.smtp) {
+                    this.client.state.form.smtp.host = preset.host;
+                    this.client.state.form.smtp.port = preset.port;
+                }
+            },
+            detectSmtpPreset() {
+                const smtp = this.client?.state?.form?.smtp;
+                if (!smtp) return;
+                if (smtp.host === '127.0.0.1' && smtp.port === 1025) {
+                    this.smtpPreset = 'mailpit';
+                } else if (smtp.host === 'smtp.gmail.com') {
+                    this.smtpPreset = 'gmail';
+                } else {
+                    this.smtpPreset = 'custom';
+                }
+            },
+            
             availableRoles: ['admin', 'supervisor', 'analyst', 'lab_analyst', 'petugas_lab'],
             roleLabels: {
                 admin: 'Admin',
@@ -269,10 +297,14 @@ export function registerSettingsComponent() {
                 if (!this.client.state.form.locale.number_format) this.client.state.form.locale.number_format = this.numberFormats[0]?.value ?? '1.234,56';
                 if (!this.client.state.form.locale.language) this.client.state.form.locale.language = this.languages[0]?.value ?? 'id';
                 this.client.state.form.retention ??= {};
-                if (!this.client.state.form.retention.storage_driver) this.client.state.form.retention.storage_driver = this.storageDrivers[0] ?? 'local';
-                if (!this.client.state.form.retention.storage_folder_path) this.client.state.form.retention.storage_folder_path = '';
-                if (!this.client.state.form.retention.purge_after_days) this.client.state.form.retention.purge_after_days = 365;
-                if (!this.client.state.form.retention.export_filename_pattern) this.client.state.form.retention.export_filename_pattern = '';
+                if (!this.client.state.form.retention.storage_driver) this.client.state.form.retention.storage_driver = this.storageDrivers[0] ?? 'public';
+                // SMTP defaults
+                this.client.state.form.smtp ??= {};
+                if (!this.client.state.form.smtp.host) this.client.state.form.smtp.host = '127.0.0.1';
+                if (!this.client.state.form.smtp.port) this.client.state.form.smtp.port = 1025;
+                if (!this.client.state.form.smtp.from_name) this.client.state.form.smtp.from_name = 'LPMF LIMS';
+                // Detect preset based on current values
+                this.detectSmtpPreset();
             },
 
             updateNowPreview() {

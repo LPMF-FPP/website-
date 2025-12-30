@@ -53,17 +53,15 @@ class SettingsApiTest extends TestCase
                 'language' => 'id',
             ],
             'retention' => [
-                'storage_driver' => 'local',
-                'storage_folder_path' => 'official_docs/archive',
+                'storage_driver' => 'public',
                 'purge_after_days' => 90,
-                'export_filename_pattern' => '{DOC}/{YYYY}/{SEQ:4}.pdf',
             ],
         ];
 
         $response = $this->actingAs($user)->putJson('/api/settings/localization-retention', $payload);
 
         $response->assertOk()
-            ->assertJsonPath('retention.storage_folder_path', 'official_docs/archive');
+            ->assertJsonPath('retention.storage_driver', 'public');
     }
 
     public function test_branding_update_and_pdf_preview(): void

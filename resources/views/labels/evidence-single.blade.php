@@ -129,7 +129,7 @@
             </div>
             
             <div class="label-qr">
-                <img src="data:image/png;base64,{{ base64_encode(QrCode::format('png')->size(80)->generate($evidenceUnit->qr_content)) }}" alt="QR">
+                {!! QrCode::size(80)->generate($evidenceUnit->qr_content) !!}
                 <div style="font-size: 5pt; margin-top: 1mm;">{{ $evidenceUnit->qr_content }}</div>
             </div>
         </div>

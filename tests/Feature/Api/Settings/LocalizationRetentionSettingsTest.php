@@ -50,17 +50,15 @@ class LocalizationRetentionSettingsTest extends TestCase
 
         $payload = [
             'retention' => [
-                'storage_driver' => 'local',
-                'storage_folder_path' => 'storage/app/farmapol',
+                'storage_driver' => 'public',
                 'purge_after_days' => 365,
-                'export_filename_pattern' => '{DATE}-{TYPE}.pdf',
             ],
         ];
 
         $response = $this->putJson('/api/settings/localization-retention', $payload);
 
         $response->assertOk()
-            ->assertJsonPath('retention.storage_driver', 'local')
+            ->assertJsonPath('retention.storage_driver', 'public')
             ->assertJsonPath('retention.purge_after_days', 365);
 
         $setting = SystemSetting::where('key', 'retention.purge_after_days')->first();
@@ -92,51 +90,28 @@ class LocalizationRetentionSettingsTest extends TestCase
         }
     }
 
+    /**
+     * @deprecated storage_folder_path validation removed - path is now auto-generated
+     */
     public function test_storage_folder_path_rejects_absolute_paths(): void
     {
-        $this->actingAs($this->admin);
-
-        $payload = [
-            'retention' => [
-                'storage_folder_path' => '/absolute/path/not/allowed',
-            ],
-        ];
-
-        $response = $this->putJson('/api/settings/localization-retention', $payload);
-
-        $response->assertUnprocessable()
-            ->assertJsonValidationErrors(['retention.storage_folder_path']);
+        $this->markTestSkipped('storage_folder_path validation removed - path is auto-generated');
     }
 
+    /**
+     * @deprecated storage_folder_path validation removed - path is now auto-generated
+     */
     public function test_storage_folder_path_rejects_directory_traversal(): void
     {
-        $this->actingAs($this->admin);
-
-        $payload = [
-            'retention' => [
-                'storage_folder_path' => 'uploads/../../../etc/passwd',
-            ],
-        ];
-
-        $response = $this->putJson('/api/settings/localization-retention', $payload);
-
-        $response->assertUnprocessable()
-            ->assertJsonValidationErrors(['retention.storage_folder_path']);
+        $this->markTestSkipped('storage_folder_path validation removed - path is auto-generated');
     }
 
+    /**
+     * @deprecated storage_folder_path validation removed - path is now auto-generated
+     */
     public function test_storage_folder_path_is_normalized(): void
     {
-        $this->actingAs($this->admin);
-
-        $payload = [
-            'retention' => [
-                'storage_folder_path' => '/storage/app/farmapol/',
-            ],
-        ];
-
-        $response = $this->putJson('/api/settings/localization-retention', $payload);
-
-        $response->assertUnprocessable(); // Should fail validation (absolute path)
+        $this->markTestSkipped('storage_folder_path validation removed - path is auto-generated');
     }
 
     public function test_partial_update_localization_only(): void
@@ -234,9 +209,8 @@ class LocalizationRetentionSettingsTest extends TestCase
 
         $payload = [
             'retention' => [
-                'storage_driver' => 'local',
+                'storage_driver' => 'public',
                 'purge_after_days' => '',  // empty string
-                'export_filename_pattern' => '',  // empty string
             ],
         ];
 
@@ -246,10 +220,8 @@ class LocalizationRetentionSettingsTest extends TestCase
 
         // Should not store empty strings
         $purge = SystemSetting::where('key', 'retention.purge_after_days')->first();
-        $pattern = SystemSetting::where('key', 'retention.export_filename_pattern')->first();
 
         $this->assertTrue($purge === null || $purge->value === null);
-        $this->assertTrue($pattern === null || $pattern->value === null);
     }
 
     public function test_requires_authentication(): void
