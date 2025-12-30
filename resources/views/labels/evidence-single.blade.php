@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>Label Barang Bukti - {{ $evidenceUnit->sample_code }}</title>
+    <title>Label Barang Bukti - {{ $label['kode_sampel'] }}</title>
     <style>
         @page {
             margin: 0;
@@ -15,74 +15,97 @@
         }
         body {
             font-family: 'DejaVu Sans', Arial, sans-serif;
-            font-size: 8pt;
-            line-height: 1.3;
+            font-size: 7pt;
+            line-height: 1.2;
         }
         .label {
             width: 100mm;
             height: 50mm;
-            padding: 3mm;
+            padding: 2.5mm;
             position: relative;
             background: #fff;
+            overflow: hidden;
         }
         .label-header {
             text-align: center;
             border-bottom: 1px solid #333;
-            padding-bottom: 2mm;
-            margin-bottom: 2mm;
+            padding-bottom: 1.5mm;
+            margin-bottom: 1.5mm;
         }
         .label-header h1 {
-            font-size: 10pt;
+            font-size: 9pt;
             font-weight: bold;
             text-transform: uppercase;
+            margin: 0;
         }
         .label-header .subtitle {
-            font-size: 6pt;
+            font-size: 5pt;
             color: #555;
+            margin-top: 0.5mm;
         }
         .label-body {
-            overflow: hidden;
+            display: table;
+            width: 100%;
+            table-layout: fixed;
         }
         .label-content {
-            float: left;
-            width: 60%;
+            display: table-cell;
+            width: 62%;
+            vertical-align: top;
+            padding-right: 2mm;
         }
         .label-qr {
-            float: right;
-            width: 35%;
+            display: table-cell;
+            width: 38%;
+            vertical-align: top;
             text-align: center;
         }
         .label-qr img {
-            width: 22mm;
-            height: 22mm;
+            width: 20mm;
+            height: 20mm;
+            display: block;
+            margin: 0 auto;
+        }
+        .qr-text {
+            font-size: 4pt;
+            color: #666;
+            margin-top: 1mm;
+            word-break: break-all;
+            overflow: hidden;
+            max-height: 6mm;
         }
         .field {
-            margin-bottom: 1mm;
+            margin-bottom: 0.8mm;
+            overflow: hidden;
         }
         .field-label {
-            font-size: 6pt;
+            font-size: 5pt;
             color: #666;
             text-transform: uppercase;
         }
         .field-value {
-            font-size: 7pt;
+            font-size: 6.5pt;
             font-weight: bold;
+            word-wrap: break-word;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            overflow: hidden;
+            max-height: 6mm;
         }
         .field-value.large {
-            font-size: 10pt;
+            font-size: 9pt;
+        }
+        .clamp2 {
+            max-height: 5mm;
+            overflow: hidden;
         }
         .label-footer {
             position: absolute;
             bottom: 1mm;
-            left: 3mm;
-            right: 3mm;
-            font-size: 5pt;
+            left: 2.5mm;
+            right: 2.5mm;
+            font-size: 4pt;
             color: #999;
-        }
-        .clearfix::after {
-            content: "";
-            display: block;
-            clear: both;
         }
     </style>
 </head>
@@ -93,44 +116,42 @@
             <div class="subtitle">LPMF - Pusdokkes Polri</div>
         </div>
         
-        <div class="label-body clearfix">
+        <div class="label-body">
             <div class="label-content">
                 <div class="field">
                     <div class="field-label">Resi</div>
-                    <div class="field-value">{{ $evidenceUnit->receipt_code ?? '-' }}</div>
+                    <div class="field-value">{{ $label['resi'] }}</div>
                 </div>
                 
                 <div class="field">
                     <div class="field-label">Kode Sampel</div>
-                    <div class="field-value large">{{ $evidenceUnit->sample_code }}</div>
+                    <div class="field-value large">{{ $label['kode_sampel'] }}</div>
                 </div>
                 
                 <div class="field">
                     <div class="field-label">Tanggal Terima</div>
-                    <div class="field-value">{{ $evidenceUnit->received_at_formatted ?? '-' }}</div>
+                    <div class="field-value">{{ $label['tanggal_terima'] }}</div>
                 </div>
                 
                 <div class="field">
                     <div class="field-label">Penyidik</div>
-                    <div class="field-value">{{ $evidenceUnit->investigator_name ?? '-' }}</div>
+                    <div class="field-value clamp2">{{ $label['penyidik'] }}</div>
+                </div>
+                
+                <div class="field">
+                    <div class="field-label">Satuan Kerja</div>
+                    <div class="field-value clamp2">{{ $label['satuan_kerja'] }}</div>
                 </div>
                 
                 <div class="field">
                     <div class="field-label">Satuan</div>
-                    <div class="field-value">{{ $evidenceUnit->investigator_unit ?? '-' }}</div>
+                    <div class="field-value">{{ $label['satuan'] }}</div>
                 </div>
-                
-                @if($evidenceUnit->seal_status_received)
-                <div class="field">
-                    <div class="field-label">Segel</div>
-                    <div class="field-value">{{ $evidenceUnit->seal_status_received }}</div>
-                </div>
-                @endif
             </div>
             
             <div class="label-qr">
-                {!! QrCode::size(80)->generate($evidenceUnit->qr_content) !!}
-                <div style="font-size: 5pt; margin-top: 1mm;">{{ $evidenceUnit->qr_content }}</div>
+                <img src="{{ $label['qr'] }}" alt="QR Code">
+                <div class="qr-text">{{ $label['qr_text'] }}</div>
             </div>
         </div>
         

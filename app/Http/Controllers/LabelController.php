@@ -9,6 +9,8 @@ use App\Services\LabelService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Carbon;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class LabelController extends Controller
 {
@@ -16,6 +18,53 @@ class LabelController extends Controller
         protected LabelService $labelService
     ) {
         $this->middleware(['auth']);
+    }
+
+    /**
+     * Build explicit label payload from EvidenceUnit for DOMPDF.
+     * Returns array with all fields explicitly mapped and QR as base64 PNG.
+     */
+    private function buildLabelPayload(EvidenceUnit $unit): array
+    {
+        // Get related sample for additional data
+        $sample = $unit->sample;
+
+        // Format received_at with safe fallback
+        $receivedAt = $unit->received_at
+            ?? $sample?->received_at
+            ?? $unit->created_at;
+        $receivedAtFormatted = $receivedAt
+            ? Carbon::parse($receivedAt)->translatedFormat('d M Y H:i')
+            : '-';
+
+        // Get satuan (unit of measurement) from sample
+        $satuan = $sample?->quantity_unit
+            ?? $sample?->packaging_type
+            ?? '-';
+
+        // Generate QR as SVG base64 data URI (DOMPDF compatible, no imagick required)
+        $qrContent = $unit->qr_content;
+        $qrSvg = QrCode::size(200)
+            ->margin(0)
+            ->errorCorrection('M')
+            ->generate($qrContent);
+        $qrDataUri = 'data:image/svg+xml;base64,' . base64_encode($qrSvg);
+
+        return [
+            'id' => $unit->id,
+            'resi' => $unit->receipt_code ?? '-',
+            'kode_sampel' => $unit->sample_code ?? '-',
+            'tanggal_terima' => $receivedAtFormatted,
+            'penyidik' => $unit->investigator_name ?? '-',
+            'satuan_kerja' => $unit->investigator_unit ?? '-',
+            'satuan' => $satuan,
+            'jenis' => $unit->sample_type ?? '-',
+            'deskripsi' => $unit->sample_desc ?? '-',
+            'segel' => $unit->seal_status_received ?? null,
+            'kondisi' => $unit->condition_received ?? '-',
+            'qr' => $qrDataUri,
+            'qr_text' => $qrContent,
+        ];
     }
 
     /**
@@ -38,9 +87,15 @@ class LabelController extends Controller
             $this->labelService->logPrint('evidence', $eu, $format, $reason);
         }
 
+        // Build explicit label payloads with QR as base64 PNG
+        $labels = $evidenceUnits->map(fn($unit) => $this->buildLabelPayload($unit))->values();
+
+        // Debug log first label payload (remove after verification)
+        logger()->info('Label payload sample', $labels->take(1)->toArray());
+
         $pdf = Pdf::loadView('labels.evidence-sheet', [
-            'evidenceUnits' => $evidenceUnits,
-            'printDate' => now()->format('d M Y H:i'),
+            'labels' => $labels,
+            'printDate' => now()->translatedFormat('d M Y H:i'),
         ]);
 
         $pdf->setPaper('a4', 'portrait');
@@ -54,15 +109,18 @@ class LabelController extends Controller
      */
     public function evidenceSingle(Request $request, int $id)
     {
-        $evidenceUnit = EvidenceUnit::findOrFail($id);
+        $evidenceUnit = EvidenceUnit::with('sample')->findOrFail($id);
         $reason = $request->query('reason', 'first_print');
 
         // Log the print
         $this->labelService->logPrint('evidence', $evidenceUnit, 'single', $reason);
 
+        // Build explicit label payload with QR as base64 PNG
+        $label = $this->buildLabelPayload($evidenceUnit);
+
         $pdf = Pdf::loadView('labels.evidence-single', [
-            'evidenceUnit' => $evidenceUnit,
-            'printDate' => now()->format('d M Y H:i'),
+            'label' => $label,
+            'printDate' => now()->translatedFormat('d M Y H:i'),
         ]);
 
         $pdf->setPaper([0, 0, 283.46, 141.73], 'landscape'); // ~100x50mm

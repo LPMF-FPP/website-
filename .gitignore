@@ -6,6 +6,7 @@
 # Document Generator
 .DS_Store
 .env
+.env.testing
 .env.backup
 .env.production
 /.fleet
