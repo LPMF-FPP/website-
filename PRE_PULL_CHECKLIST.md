@@ -1,7 +1,22 @@
 # Pre-Pull Gate Checklist
 
 > **Tujuan**: Memastikan `git pull` berjalan aman tanpa konflik atau kehilangan perubahan lokal.  
-> **Last Updated**: 2025-12-30
+> **Last Updated**: 2025-12-30  
+> **Last Verified**: ✅ Production-Ready
+
+---
+
+## 🔍 Current Environment Status
+
+| Item | Status | Version/Value |
+|------|--------|---------------|
+| Laravel | ✅ | 12.31.1 |
+| PHP | ✅ | 8.3.29 |
+| Node.js/NPM | ✅ | 11.7.0 |
+| Git Branch | ✅ | `main` (up to date) |
+| Latest Commit | ✅ | `af8ba25` - storage consolidation, SMTP config |
+| Tests | ✅ | 240 passed, 9 skipped |
+| Working Tree | ✅ | Clean |
 
 ---
 
@@ -274,3 +289,28 @@ git stash pop  # if stashed
 - Jika diverged, diskusikan strategi dengan tim
 - Untuk production, selalu backup database sebelum migrate
 - File di `storage/framework/` boleh di-restore karena auto-generated
+
+---
+
+## 🚨 Production Deployment Notes
+
+### Recent Changes (December 30, 2025)
+1. **Storage Consolidation**: Single `public` disk untuk semua dokumen
+2. **SMTP Configuration**: Dapat dikonfigurasi via Settings UI
+3. **Dummy Data Seeder**: `php artisan db:seed --class=DummyDataSeeder` (DEV only)
+
+### Pre-Production Checklist
+- [ ] Backup database sebelum migrate
+- [ ] Set `APP_ENV=production` dan `APP_DEBUG=false`
+- [ ] Run `php artisan config:cache` dan `php artisan route:cache`
+- [ ] Verify SMTP credentials di Settings → Notifikasi & Security
+- [ ] Test email delivery dengan tombol "Test Email"
+
+### Environment Variables Required
+```env
+APP_ENV=production
+APP_DEBUG=false
+APP_KEY=base64:... (generated)
+DB_CONNECTION=pgsql
+MAIL_MAILER=smtp
+```
