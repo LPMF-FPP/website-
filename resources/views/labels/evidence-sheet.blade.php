@@ -131,12 +131,7 @@
     </style>
 </head>
 <body>
-    @php
-        $labelsPerPage = 10;
-        $chunks = $labels->chunk($labelsPerPage);
-    @endphp
-
-    @foreach($chunks as $chunkIndex => $chunk)
+    @foreach($labels->chunk(10) as $chunkIndex => $chunk)
         <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
             @foreach($chunk->chunk(2) as $row)
                 <tr>

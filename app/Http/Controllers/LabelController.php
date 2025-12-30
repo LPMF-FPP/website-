@@ -42,13 +42,9 @@ class LabelController extends Controller
             ?? $sample?->packaging_type
             ?? '-';
 
-        // Generate QR as SVG base64 data URI (DOMPDF compatible, no imagick required)
+        // Generate QR as PNG data URI for stable rendering in DOMPDF and previews
         $qrContent = $unit->qr_content;
-        $qrSvg = QrCode::size(200)
-            ->margin(0)
-            ->errorCorrection('M')
-            ->generate($qrContent);
-        $qrDataUri = 'data:image/svg+xml;base64,' . base64_encode($qrSvg);
+        $qrDataUri = $this->qrPngDataUri($qrContent);
 
         return [
             'id' => $unit->id,
@@ -65,6 +61,34 @@ class LabelController extends Controller
             'qr' => $qrDataUri,
             'qr_text' => $qrContent,
         ];
+    }
+
+    /**
+     * Generate a QR PNG data URI for a given text.
+     */
+    private function qrPngDataUri(?string $text): string
+    {
+        if (!$text) {
+            return '';
+        }
+
+        try {
+            $png = QrCode::format('png')
+                ->size(200)
+                ->margin(0)
+                ->errorCorrection('M')
+                ->generate($text);
+
+            return 'data:image/png;base64,' . base64_encode($png);
+        } catch (\Throwable $e) {
+            $svg = QrCode::format('svg')
+                ->size(200)
+                ->margin(0)
+                ->errorCorrection('M')
+                ->generate($text);
+
+            return 'data:image/svg+xml;base64,' . base64_encode($svg);
+        }
     }
 
     /**
@@ -148,6 +172,10 @@ class LabelController extends Controller
             $this->labelService->logPrint('remaining', $ru, $format, $reason);
         }
 
+        $remainingUnits->each(function ($unit) {
+            $unit->qr_png = $this->qrPngDataUri($unit->qr_content);
+        });
+
         $pdf = Pdf::loadView('labels.remaining-sheet', [
             'remainingUnits' => $remainingUnits,
             'printDate' => now()->format('d M Y H:i'),
@@ -177,6 +205,10 @@ class LabelController extends Controller
             $this->labelService->logPrint('remaining', $ru, $format, $reason);
         }
 
+        $remainingUnits->each(function ($unit) {
+            $unit->qr_png = $this->qrPngDataUri($unit->qr_content);
+        });
+
         $pdf = Pdf::loadView('labels.remaining-sheet', [
             'remainingUnits' => $remainingUnits,
             'printDate' => now()->format('d M Y H:i'),
@@ -198,6 +230,8 @@ class LabelController extends Controller
 
         // Log the print
         $this->labelService->logPrint('remaining', $remainingUnit, 'single', $reason);
+
+        $remainingUnit->qr_png = $this->qrPngDataUri($remainingUnit->qr_content);
 
         $pdf = Pdf::loadView('labels.remaining-single', [
             'remainingUnit' => $remainingUnit,

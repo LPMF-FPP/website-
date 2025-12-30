@@ -149,7 +149,7 @@
                     @endif
                 </td>
                 <td style="width: 35%; vertical-align: top; text-align: center; padding-top: 1mm;">
-                    <div style="width: 20mm; height: 20mm; margin: 0 auto;">{!! QrCode::size(80)->generate($remainingUnit->qr_content) !!}</div>
+                    <img src="{{ $remainingUnit->qr_png ?? '' }}" style="width:20mm;height:20mm;display:block;margin:0 auto;" alt="QR">
                     <div style="font-size: 5pt; margin-top: 1mm; text-align: center; width: 20mm; margin-left: auto; margin-right: auto;">{{ $remainingUnit->qr_content }}</div>
                 </td>
             </tr>

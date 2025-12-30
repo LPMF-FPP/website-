@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class BladeTemplateEditorController extends Controller
 {
@@ -564,31 +565,33 @@ class BladeTemplateEditorController extends Controller
      */
     private function getLabelEvidenceSheetData(\Illuminate\Support\Carbon $now): array
     {
-        $evidenceUnits = collect([
-            (object) [
-                'receipt_code' => 'RESI-2025-0001',
-                'sample_code' => 'BB-2025-001',
-                'received_at_formatted' => $now->copy()->subDays(3)->format('d/m/Y'),
-                'investigator_name' => 'IPDA Budi Santoso',
-                'investigator_unit' => 'Polres Metro Jakarta Selatan',
-                'sample_type' => 'Narkotika',
-                'seal_status_received' => 'Tersegel',
-                'qr_content' => 'BB-2025-001',
+        $labels = collect([
+            [
+                'resi' => 'RESI-2025-0001',
+                'kode_sampel' => 'BB-2025-001',
+                'tanggal_terima' => $now->copy()->subDays(3)->format('d/m/Y'),
+                'penyidik' => 'IPDA Budi Santoso',
+                'satuan_kerja' => 'Polres Metro Jakarta Selatan',
+                'satuan' => 'Tablet',
+                'jenis' => 'Narkotika',
+                'qr' => $this->qrPngDataUri('BB-2025-001'),
+                'qr_text' => 'BB-2025-001',
             ],
-            (object) [
-                'receipt_code' => 'RESI-2025-0001',
-                'sample_code' => 'BB-2025-002',
-                'received_at_formatted' => $now->copy()->subDays(3)->format('d/m/Y'),
-                'investigator_name' => 'IPDA Budi Santoso',
-                'investigator_unit' => 'Polres Metro Jakarta Selatan',
-                'sample_type' => 'Psikotropika',
-                'seal_status_received' => 'Tersegel',
-                'qr_content' => 'BB-2025-002',
+            [
+                'resi' => 'RESI-2025-0001',
+                'kode_sampel' => 'BB-2025-002',
+                'tanggal_terima' => $now->copy()->subDays(3)->format('d/m/Y'),
+                'penyidik' => 'IPDA Budi Santoso',
+                'satuan_kerja' => 'Polres Metro Jakarta Selatan',
+                'satuan' => 'Tablet',
+                'jenis' => 'Psikotropika',
+                'qr' => $this->qrPngDataUri('BB-2025-002'),
+                'qr_text' => 'BB-2025-002',
             ],
         ]);
 
         return [
-            'evidenceUnits' => $evidenceUnits,
+            'labels' => $labels,
             'printDate' => $now->format('d/m/Y H:i'),
         ];
     }
@@ -598,19 +601,20 @@ class BladeTemplateEditorController extends Controller
      */
     private function getLabelEvidenceSingleData(\Illuminate\Support\Carbon $now): array
     {
-        $evidenceUnit = (object) [
-            'receipt_code' => 'RESI-2025-0001',
-            'sample_code' => 'BB-2025-001',
-            'received_at_formatted' => $now->copy()->subDays(3)->format('d/m/Y'),
-            'investigator_name' => 'IPDA Budi Santoso',
-            'investigator_unit' => 'Polres Metro Jakarta Selatan',
-            'sample_type' => 'Narkotika',
-            'seal_status_received' => 'Tersegel',
-            'qr_content' => 'BB-2025-001',
+        $label = [
+            'resi' => 'RESI-2025-0001',
+            'kode_sampel' => 'BB-2025-001',
+            'tanggal_terima' => $now->copy()->subDays(3)->format('d/m/Y'),
+            'penyidik' => 'IPDA Budi Santoso',
+            'satuan_kerja' => 'Polres Metro Jakarta Selatan',
+            'satuan' => 'Tablet',
+            'jenis' => 'Narkotika',
+            'qr' => $this->qrPngDataUri('BB-2025-001'),
+            'qr_text' => 'BB-2025-001',
         ];
 
         return [
-            'evidenceUnit' => $evidenceUnit,
+            'label' => $label,
             'printDate' => $now->format('d/m/Y H:i'),
         ];
     }
@@ -645,6 +649,7 @@ class BladeTemplateEditorController extends Controller
                 'delivered_at_formatted' => $now->copy()->subDays(1)->format('d/m/Y'),
                 'handover_doc_no' => 'BA-SERAH-001/LPMF/2025',
                 'qr_content' => 'SISA-BB-2025-001',
+                'qr_png' => $this->qrPngDataUri('SISA-BB-2025-001'),
                 'evidenceUnit' => $evidenceUnit1,
             ],
             (object) [
@@ -654,6 +659,7 @@ class BladeTemplateEditorController extends Controller
                 'delivered_at_formatted' => $now->copy()->subDays(1)->format('d/m/Y'),
                 'handover_doc_no' => 'BA-SERAH-001/LPMF/2025',
                 'qr_content' => 'SISA-BB-2025-002',
+                'qr_png' => $this->qrPngDataUri('SISA-BB-2025-002'),
                 'evidenceUnit' => $evidenceUnit2,
             ],
         ]);
@@ -685,6 +691,7 @@ class BladeTemplateEditorController extends Controller
             'delivered_at_formatted' => $now->copy()->subDays(1)->format('d/m/Y'),
             'handover_doc_no' => 'BA-SERAH-001/LPMF/2025',
             'qr_content' => 'SISA-BB-2025-001',
+            'qr_png' => $this->qrPngDataUri('SISA-BB-2025-001'),
             'evidenceUnit' => $evidenceUnit,
         ];
 
@@ -800,6 +807,30 @@ class BladeTemplateEditorController extends Controller
             'generatedAt' => $now,
             'generatedBy' => $generatedBy,
         ];
+    }
+
+    /**
+     * Generate a QR PNG data URI for preview templates.
+     */
+    private function qrPngDataUri(string $text): string
+    {
+        try {
+            $png = QrCode::format('png')
+                ->size(180)
+                ->margin(0)
+                ->errorCorrection('M')
+                ->generate($text);
+
+            return 'data:image/png;base64,' . base64_encode($png);
+        } catch (\Throwable $e) {
+            $svg = QrCode::format('svg')
+                ->size(180)
+                ->margin(0)
+                ->errorCorrection('M')
+                ->generate($text);
+
+            return 'data:image/svg+xml;base64,' . base64_encode($svg);
+        }
     }
 
     /**
