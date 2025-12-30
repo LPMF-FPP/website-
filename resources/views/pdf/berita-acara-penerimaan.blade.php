@@ -36,67 +36,63 @@
 <meta charset="utf-8">
 <title>Berita Acara Penerimaan — {{ $request->request_number }}</title>
 <style>
-  /* DOMPDF-SAFE CSS (NO grid/flex) */
-  @page { size: A4; margin: 16mm; }
-  body { font-family: DejaVu Sans, Arial, Helvetica, sans-serif; font-size: 11pt; color: #000; line-height: 1.4; }
+  @page { size: A4; margin: 12mm; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #000; line-height: 1.28; margin:0; padding-bottom: 24mm; }
 
-  .meta { font-size: 9pt; color:#000; }
-  .title { text-align:center; font-size:16pt; font-weight:bold; text-transform:uppercase; margin: 10px 0 4px; }
-  .subtitle { text-align:center; font-size:11pt; margin: 0 0 8px; }
+  .header { position: relative; margin:0 0 6px; min-height:52px; padding:0 72px; border-bottom:1px solid #000; padding-bottom:4px; }
+  .logo { height:52px; position:absolute; top:0; }
+  .logo-left{left:0;} .logo-right{right:0;}
+  .center { text-align:center; line-height:1.18; }
+  .instansi, .lab { font-weight:700; text-transform:uppercase; margin:0; }
+  .meta { font-size: 8.8pt; margin:1px 0 0; }
+
+  h1.title { text-align:center; font-size:14.5pt; margin:4px 0 4px; text-transform:uppercase; }
+  .subtitle { text-align:center; font-size:11pt; font-weight:700; margin: 0 0 8px; }
 
   table { border-collapse: collapse; width:100%; }
-  .header-table td { vertical-align:middle; }
-  .header-center { text-align:center; line-height:1.2; }
-  .instansi { font-weight:bold; text-transform:uppercase; font-size:12pt; }
-  .lab { font-weight:bold; text-transform:uppercase; font-size:11pt; }
 
-  .kv-table { margin: 10px 0; }
-  .kv-table td { padding:4px 6px; }
-  .kv-label { white-space:nowrap; width: 200px; }
-  .kv-sep   { width: 12px; }
-  .kv-value { width: auto; }
+  .meta-table{ width:100%; border-collapse:collapse; table-layout:auto; margin:8px 0 10px; }
+  .meta-table td{ padding:1px 2px; border:none; vertical-align:top; }
+  .meta-table td.label{ width:34%; white-space:nowrap; }
+  .meta-table td.sep{ width:1%; text-align:center; padding:0; }
+  .meta-table td.value{ width:65%; white-space:normal; word-break:break-word; }
+  .meta-table .nowrap{ white-space:nowrap; }
 
-  .section-title { font-size:12pt; font-weight:bold; margin: 12px 0 6px; }
+  .section-title { font-size:11.5pt; font-weight:700; margin: 10px 0 6px; }
 
-  .list-table { font-size:10pt; table-layout: fixed; margin-top: 6px; }
+  .list-table { font-size:9.8pt; table-layout: fixed; margin-top: 6px; }
   .list-table th, .list-table td { border:1px solid #000; padding:6px 8px; vertical-align:top; }
   .list-table th { text-align:center; background:#f0f0f0; }
   .col-name  { width: 46%; }
   .col-tests { width: 34%; }
   .col-act   { width: 20%; }
 
-  .sign-table { width:100%; margin-top:22px; border:0; border-collapse:separate; }
+  .sign-table { width:100%; margin-top:18px; border:0; border-collapse:separate; }
   .sign-table td { width:50%; vertical-align:top; border:0; }
   .sigcell { padding:6px 8px; }
-  .sigtitle { text-align:center; font-weight:bold; margin-bottom:56px; }
-  .signame { text-align:center; text-decoration: underline; font-weight:bold; }
+  .sigtitle { text-align:center; font-weight:700; margin-bottom:56px; }
+  .signame { text-align:center; text-decoration: underline; font-weight:700; }
 
-  .footer { margin-top: 18px; font-size:9pt; color:#555; }
+  .footer { margin-top: 16px; font-size:9pt; color:#555; }
 </style>
 </head>
 <body>
 
-  <table class="header-table">
-    <tr>
-      <td style="width:80px; text-align:left;">
-        @if(file_exists(public_path('images/logo-tribrata-polri.png')))
-          <img src="{{ public_path('images/logo-tribrata-polri.png') }}" alt="Logo Polri" style="height:60px;">
-        @endif
-      </td>
-      <td class="header-center">
-        <div class="instansi">PUSAT KEDOKTERAN DAN KESEHATAN POLRI</div>
-        <div class="lab">LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN</div>
-        <div class="meta">Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240 | Telp/Fax: 021-4700921 | Email: labmutufarmapol@gmail.com</div>
-      </td>
-      <td style="width:80px; text-align:right;">
-        @if(file_exists(public_path('images/logo-pusdokkes-polri.png')))
-          <img src="{{ public_path('images/logo-pusdokkes-polri.png') }}" alt="Logo Pusdokkes" style="height:60px;">
-        @endif
-      </td>
-    </tr>
-  </table>
+  <div class="header">
+    @if(file_exists(public_path('images/logo-tribrata-polri.png')))
+      <img class="logo logo-left" src="{{ public_path('images/logo-tribrata-polri.png') }}" alt="Logo Polri">
+    @endif
+    <div class="center">
+      <div class="instansi">PUSAT KEDOKTERAN DAN KESEHATAN POLRI</div>
+      <div class="lab">LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN</div>
+      <div class="meta">Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240 • Telp/Fax: 021-4700921 • Email: labmutufarmapol@gmail.com</div>
+    </div>
+    @if(file_exists(public_path('images/logo-pusdokkes-polri.png')))
+      <img class="logo logo-right" src="{{ public_path('images/logo-pusdokkes-polri.png') }}" alt="Logo Pusdokkes">
+    @endif
+  </div>
 
-  <div class="title">BERITA ACARA PENERIMAAN SAMPEL</div>
+  <h1 class="title">Berita Acara Penerimaan Sampel</h1>
   <div class="subtitle">Nomor Permintaan: <b>{{ $request->request_number }}</b></div>
 
   <p>
@@ -105,14 +101,14 @@
     Pusat Kedokteran dan Kesehatan Polri, dengan rincian sebagai berikut:
   </p>
 
-  <table class="kv-table">
-    <tr><td class="kv-label">Nomor Resi</td><td class="kv-sep">:</td><td class="kv-value"><b>{{ $receiptNumber }}</b></td></tr>
-    <tr><td class="kv-label">Nomor Surat Permintaan</td><td class="kv-sep">:</td><td class="kv-value">{{ $request->case_number ?? '-' }}</td></tr>
-    <tr><td class="kv-label">Ditujukan Kepada</td><td class="kv-sep">:</td><td class="kv-value">{{ $request->to_office ?? 'Kepala Sub Satker Farmapol Pusdokkes Polri' }}</td></tr>
-    <tr><td class="kv-label">Penyerah Sampel</td><td class="kv-sep">:</td><td class="kv-value">{{ trim(($request->investigator->rank ?? '').' '.($request->investigator->name ?? '')) }} (NRP: {{ $request->investigator->nrp ?? '-' }})</td></tr>
-    <tr><td class="kv-label">Unit/Satuan</td><td class="kv-sep">:</td><td class="kv-value">{{ $request->investigator->jurisdiction ?? '-' }}</td></tr>
-    <tr><td class="kv-label">Jumlah Sampel</td><td class="kv-sep">:</td><td class="kv-value"><b>{{ $request->samples->count() }}</b> sampel</td></tr>
-    <tr><td class="kv-label">Jenis Pengujian</td><td class="kv-sep">:</td><td class="kv-value">{{ $testsSummary ?: '-' }}</td></tr>
+  <table class="meta-table">
+    <tr><td class="label">Nomor Resi</td><td class="sep">:</td><td class="value nowrap"><strong>{{ $receiptNumber }}</strong></td></tr>
+    <tr><td class="label">Nomor Surat Permintaan</td><td class="sep">:</td><td class="value">{{ $request->case_number ?? '-' }}</td></tr>
+    <tr><td class="label">Ditujukan Kepada</td><td class="sep">:</td><td class="value">{{ $request->to_office ?? 'Kepala Sub Satker Farmapol Pusdokkes Polri' }}</td></tr>
+    <tr><td class="label">Penyerah Sampel</td><td class="sep">:</td><td class="value">{{ trim(($request->investigator->rank ?? '').' '.($request->investigator->name ?? '')) }} (NRP: {{ $request->investigator->nrp ?? '-' }})</td></tr>
+    <tr><td class="label">Unit/Satuan</td><td class="sep">:</td><td class="value">{{ $request->investigator->jurisdiction ?? '-' }}</td></tr>
+    <tr><td class="label">Jumlah Sampel</td><td class="sep">:</td><td class="value"><strong>{{ $request->samples->count() }}</strong> sampel</td></tr>
+    <tr><td class="label">Jenis Pengujian</td><td class="sep">:</td><td class="value">{{ $testsSummary ?: '-' }}</td></tr>
   </table>
 
   <div class="section-title">Daftar Sampel yang Diterima</div>

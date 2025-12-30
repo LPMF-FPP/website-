@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Settings;
 
 use App\Http\Controllers\Controller;
+use App\Support\TemplatePreviewData;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Illuminate\Http\Request;
@@ -281,7 +282,7 @@ class BladeTemplateEditorController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'content' => 'required|string|max:200000',
+            'content' => 'required|string|max:400000',
         ]);
 
         if ($validator->fails()) {
@@ -308,99 +309,39 @@ class BladeTemplateEditorController extends Controller
             ], 422);
         }
 
-        try {
-            // Get sample data for the template
-            $sampleData = $this->buildPreviewDataFor($templateKey);
+        $tempFile = null;
+        $tempDir = storage_path('framework/views');
 
-            // Create temporary view file in storage where PHP has write access
-            $tempDir = storage_path('framework/views');
+        try {
+            if (!File::isDirectory($tempDir)) {
+                File::makeDirectory($tempDir, 0755, true);
+            }
             $tempFile = $tempDir . '/tmp_preview_' . uniqid() . '_' . time() . '.blade.php';
-            
-            \Log::info('Creating preview for template', [
-                'template' => $templateKey,
-                'temp_file' => $tempFile,
-                'content_length' => strlen($content),
-            ]);
 
             file_put_contents($tempFile, $content);
 
-            // Render the view
-            try {
-                $html = view()->file($tempFile, $sampleData)->render();
-            } catch (\Throwable $renderError) {
-                // Log render error details
-                \Log::error('Blade template render error', [
-                    'template' => $templateKey,
-                    'error' => $renderError->getMessage(),
-                    'file' => $renderError->getFile(),
-                    'line' => $renderError->getLine(),
-                    'trace' => $renderError->getTraceAsString(),
-                ]);
-
-                // Clean up temp file
-                if ($tempFile && file_exists($tempFile)) {
-                    unlink($tempFile);
-                }
-
-                // Clear view cache
-                \Illuminate\Support\Facades\View::flushState();
-                \Artisan::call('view:clear');
-
-                // Return user-friendly error
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Template memiliki error syntax atau runtime.',
-                    'error' => $renderError->getMessage(),
-                    'slug' => $templateKey,
-                    'line' => $renderError->getLine(),
-                    'file' => basename($renderError->getFile()),
-                    'hint' => 'Periksa sintaks Blade dan pastikan semua variabel yang digunakan tersedia.',
-                ], 422);
-            }
-
-            // Clean up temp file
-            if (file_exists($tempFile)) {
-                unlink($tempFile);
-            }
-
-            // Clear view cache to remove compiled temp file
-            \Illuminate\Support\Facades\View::flushState();
-            \Artisan::call('view:clear');
-
-            \Log::info('Preview generated successfully', [
-                'template' => $templateKey,
-                'html_length' => strlen($html),
-            ]);
+            $viewData = TemplatePreviewData::forKey($templateKey);
+            $html = view()->file($tempFile, $viewData)->render();
 
             return response($html, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
-
         } catch (\Throwable $e) {
-            // Clean up temp file if it exists
-            if (isset($tempFile) && file_exists($tempFile)) {
-                try {
-                    unlink($tempFile);
-                } catch (\Exception $cleanupError) {
-                    // Ignore cleanup errors
-                }
-            }
-
-            // Log the error
-            \Log::error('Preview generation failed', [
-                'template' => $templateKey,
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-
-            // Return proper error response
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal membuat preview.',
+                'message' => 'Preview render gagal.',
                 'error' => $e->getMessage(),
-                'slug' => $templateKey,
-                'hint' => 'Periksa log aplikasi untuk detail lengkap.',
+                'file' => basename($e->getFile()),
+                'line' => $e->getLine(),
             ], 422);
+        } finally {
+            if ($tempFile && file_exists($tempFile)) {
+                @unlink($tempFile);
+            }
+            try {
+                \Illuminate\Support\Facades\View::flushState();
+                \Artisan::call('view:clear');
+            } catch (\Throwable $e) {
+                // ignore cache clear errors
+            }
         }
     }
 
@@ -906,21 +847,13 @@ class BladeTemplateEditorController extends Controller
         // Check for dangerous PHP functions
         $dangerousFunctions = [
             'exec', 'shell_exec', 'system', 'passthru', 'proc_open', 'popen',
-            'eval', 'assert', 'create_function', 'file_put_contents', 'file_get_contents',
+            'eval', 'assert', 'create_function', 'file_put_contents',
             'unlink', 'rmdir', 'chmod', 'chown', 'curl_exec', 'curl_multi_exec',
         ];
 
         foreach ($dangerousFunctions as $func) {
             if (preg_match('/\b' . preg_quote($func, '/') . '\s*\(/i', $content)) {
                 $errors[] = "Fungsi PHP berbahaya terdeteksi: {$func}()";
-            }
-        }
-
-        // Check for dangerous Blade directives
-        $dangerousDirectives = ['@php', '@endphp'];
-        foreach ($dangerousDirectives as $directive) {
-            if (stripos($content, $directive) !== false) {
-                $errors[] = "Directive Blade berbahaya terdeteksi: {$directive}";
             }
         }
 
