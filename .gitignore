@@ -5,10 +5,13 @@
 # Documentation backup folders
 # Document Generator
 .DS_Store
+
+# Environment files - NEVER commit real env files
 .env
-.env.testing
-.env.backup
-.env.production
+.env.*
+!.env.example
+!.env.testing.example
+
 /.fleet
 Homestead.json
 Homestead.yaml
