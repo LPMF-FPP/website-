@@ -2,9 +2,9 @@
 
 use App\Models\SystemSetting;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 
-uses(RefreshDatabase::class);
+uses(DatabaseTransactions::class);
 
 test('settings.update accepts form-url-encoded and flattens keys', function () {
     $user = User::factory()->create(['role' => 'admin']);

@@ -7,14 +7,14 @@ use App\Enums\DocumentRenderEngine;
 use App\Enums\DocumentType;
 use App\Models\DocumentTemplate;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Gate;
 use Mockery;
 use Tests\TestCase;
 
 class DocumentTemplateWorkflowTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private User $admin;
 

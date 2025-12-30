@@ -3,9 +3,9 @@
 use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\Settings\SettingsWriter;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 
-uses(RefreshDatabase::class);
+uses(DatabaseTransactions::class);
 
 beforeEach(function () {
     $this->user = User::factory()->create();

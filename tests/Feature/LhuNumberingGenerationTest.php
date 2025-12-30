@@ -9,12 +9,12 @@ use App\Models\SystemSetting;
 use App\Models\TestRequest;
 use App\Models\User;
 use Database\Seeders\SystemSettingSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class LhuNumberingGenerationTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     protected User $admin;
     protected Investigator $investigator;

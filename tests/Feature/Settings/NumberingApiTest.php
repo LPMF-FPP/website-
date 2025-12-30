@@ -4,12 +4,12 @@ namespace Tests\Feature\Settings;
 
 use App\Models\User;
 use Database\Seeders\SystemSettingSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class NumberingApiTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     protected function setUp(): void
     {

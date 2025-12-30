@@ -2,9 +2,9 @@
 
 use App\Models\SystemSetting;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 
-uses(RefreshDatabase::class);
+uses(DatabaseTransactions::class);
 
 function postWithEmptyJsonAndForm($url, array $form)
 {

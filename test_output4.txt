@@ -1,0 +1,130 @@
+
+   WARN  Metadata found in doc-comment for method Tests\Unit\Services\DocumentTemplateActivationTest::activating_ba_template_deactivates_other_ba_templates(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Unit\Services\DocumentTemplateActivationTest::activating_template_deactivates_same_type_only(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Unit\Services\DocumentTemplateActivationTest::creating_active_template_deactivates_existing(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Unit\Services\DocumentTemplateActivationTest::multiple_templates_can_be_inactive(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Unit\Services\DocumentTemplateActivationTest::can_deactivate_template(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\Api\Settings\DocumentTemplateDefaultsTest::it_returns_default_templates_when_no_uploads_exist(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\Api\Settings\DocumentTemplateDefaultsTest::it_shows_uploaded_template_instead_of_default_when_exists(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\Api\Settings\DocumentTemplateDefaultsTest::it_maintains_only_one_active_template_per_type_format(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\Api\Settings\DocumentTemplateDefaultsTest::it_includes_preview_urls_for_all_templates(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\Api\Settings\DocumentTemplatePreviewTest::it_returns_404_for_invalid_format(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\Api\Settings\DocumentTemplatePreviewTest::it_returns_422_for_unsupported_format_by_type(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\Api\Settings\DocumentTemplatePreviewTest::it_returns_422_for_invalid_document_type(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\Api\Settings\DocumentTemplatePreviewTest::it_returns_pdf_for_valid_ba_penerimaan_request(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\Api\Settings\DocumentTemplatePreviewTest::it_returns_html_for_valid_lhu_html_request(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\Api\Settings\DocumentTemplatePreviewTest::it_returns_pdf_for_valid_ba_penyerahan_request(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\Api\Settings\DocumentTemplatePreviewTest::it_requires_authentication(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\Api\Settings\DocumentTemplatePreviewTest::it_requires_manage_settings_permission(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\Api\Settings\DocumentTemplatePreviewTest::it_handles_case_sensitivity_in_format(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\Api\Settings\DocumentTemplatePreviewTest::it_includes_proper_error_messages_for_invalid_requests(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\Api\Settings\DocumentTemplatePreviewTest::it_can_preview_specific_template_html(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\Api\Settings\DocumentTemplatePreviewTest::it_can_preview_specific_template_pdf(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\Api\Settings\DocumentTemplateWorkflowTest::complete_template_workflow_with_html_payload(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\Api\Settings\DocumentTemplateWorkflowTest::preview_html_returns_correct_content_type(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\Api\Settings\DocumentTemplateWorkflowTest::general_preview_endpoint_returns_pdf(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\DocumentDeletionTest::authenticated_user_can_delete_document(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\DocumentDeletionTest::unauthenticated_user_cannot_delete_document(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\DocumentDeletionTest::cannot_delete_document_with_invalid_type(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\DocumentDeletionTest::returns_404_when_document_not_found(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\DocumentDeletionTest::can_delete_all_document_types(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\DocumentDeletionTest::deletion_is_idempotent_when_file_already_deleted(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\TrackingJsonCacheTest::json_endpoint_sets_cached_flag_and_reuses_cache(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\TrackingJsonNotFoundTest::not_found_tracking_number_returns_404_without_cached_flag(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\TrackingJsonTest::it_returns_404_for_unknown_tracking_number(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   WARN  Metadata found in doc-comment for method Tests\Feature\TrackingJsonTest::it_returns_condensed_payload_structure(). Metadata in doc-comments is deprecated and will no longer be supported in PHPUnit 12. Update your test code to use attributes instead.
+
+   PASS  Tests\Unit\ExampleTest
+  Γ£ô that trueΓÇª 0.01s  
+
+   PASS  Tests\Unit\Repositories\DocumentTemplateRepositoryTest
+  Γ£ô can creatΓÇª 0.42s  
+  Γ£ô version iΓÇª 0.11s  
+  Γ£ô only oneΓÇª  0.11s  
+  Γ£ô can activΓÇª 0.11s  
+  Γ£ô can get aΓÇª 0.11s  
+  Γ£ô differentΓÇª 0.10s  
+  Γ£ô has activΓÇª 0.21s  
+
+   PASS  Tests\Unit\Services\DocumentTemplateActivationTest
+  Γ£ô activatinΓÇª 0.10s  
+  Γ£ô activatinΓÇª 0.09s  
+  Γ£ô creatingΓÇª  0.09s  
+  Γ£ô multipleΓÇª  0.09s  
+  Γ£ô can deactΓÇª 0.11s  
+
+   PASS  Tests\Feature\Api\DocumentsTest
+  Γ£ô can listΓÇª  0.55s  
+  Γ£ô lists onlΓÇª 0.19s  
+  Γ£ô can deletΓÇª 0.16s  
+  Γ£ô admin canΓÇª 0.13s  
+  Γ£ô cannot deΓÇª 0.23s  
+  Γ£ô delete loΓÇª 0.14s  
+  Γ£ô list docuΓÇª 0.11s  
+  Γ£ô list docuΓÇª 0.22s  
+  Γ£ô delete doΓÇª 0.12s  
+  Γ£ô delete haΓÇª 0.14s  
+  Γ£ô returns tΓÇª 0.24s  
+
+   FAIL  Tests\Feature\Api\GroupedSearchTest
+  Γ£ô 401 whenΓÇª  0.28s  
+  Γ£ô 422 for iΓÇª 0.24s  
+  Γ£ô 422 for iΓÇª 0.13s  
+  Γ£ô 422 for iΓÇª 0.13s  
+  Γ£ô 422 for pΓÇª 0.14s  
+  Γ£ô 200 shapeΓÇª 0.87s  
+  Γ¿» filter doΓÇª 0.18s  
+  ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ  
+   FAILED  Tests\FΓÇª   
+  Failed asserting that 3 is identical to 2.
+
+  at tests\Feature\Api\GroupedSearchTest.php:243
+    239Γûò         $this->actingAs($u);
+    240Γûò 
+    241Γûò         // Search for documents with 'BA' in filename/title - should find 2 documents
+    242Γûò         $all = $this->getJson('/api/search?q=BA-&doc_type=all')->assertOk();
+  Γ₧£ 243Γûò         $this->assertSame(2, (int) $all->json('summary.documents_total'));
+    244Γûò 
+    245Γûò         // Search with doc_type filter matching document_type 'ba_penerimaan' 
+    246Γûò         // First update one document to have ba_penerimaan type
+    247Γûò         DB::table('documents')->where('id', 100)->update(['document_type' => 'ba_penerimaan']);
+
+  1   tests\Feature\Api\GroupedSearchTest.php:243
+
+
+  Tests:    1 failed, 30 passed, [2m218 pending[22m (112 assertions)
+  Duration: 6.17s
+

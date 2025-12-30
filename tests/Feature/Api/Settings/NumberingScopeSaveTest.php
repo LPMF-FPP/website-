@@ -3,12 +3,12 @@
 namespace Tests\Feature\Api\Settings;
 
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class NumberingScopeSaveTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     public function test_can_save_single_numbering_scope()
     {

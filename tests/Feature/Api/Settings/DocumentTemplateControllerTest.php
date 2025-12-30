@@ -7,7 +7,7 @@ use App\Enums\DocumentRenderEngine;
 use App\Enums\DocumentType;
 use App\Models\DocumentTemplate;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Gate;
@@ -15,7 +15,7 @@ use Tests\TestCase;
 
 class DocumentTemplateControllerTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private User $admin;
 

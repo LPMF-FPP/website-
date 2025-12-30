@@ -6,12 +6,12 @@ use App\Enums\DocumentFormat;
 use App\Enums\DocumentType;
 use App\Models\DocumentTemplate;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class DocumentTemplateDefaultsTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private User $admin;
 

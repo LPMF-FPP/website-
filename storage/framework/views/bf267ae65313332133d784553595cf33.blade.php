@@ -1,0 +1,1 @@
+<div class="document"><h1>Berita Acara Penerimaan Barang Bukti</h1><p>Nomor: BA-002</p><p>Tanggal: 22 Desember 2025</p></div>

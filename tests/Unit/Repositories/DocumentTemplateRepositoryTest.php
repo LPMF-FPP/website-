@@ -7,12 +7,12 @@ use App\Enums\DocumentType;
 use App\Models\DocumentTemplate;
 use App\Models\User;
 use App\Repositories\DocumentTemplateRepository;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class DocumentTemplateRepositoryTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private DocumentTemplateRepository $repository;
     private User $user;

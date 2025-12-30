@@ -6,12 +6,12 @@ use App\Enums\DocumentFormat;
 use App\Enums\DocumentType;
 use App\Models\DocumentTemplate;
 use App\Repositories\DocumentTemplateRepository;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class DocumentTemplateActivationTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private DocumentTemplateRepository $repository;
 

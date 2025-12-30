@@ -7,13 +7,13 @@ use App\Models\User;
 use App\Models\TestRequest;
 use App\Models\Document;
 use App\Models\Investigator;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\UploadedFile;
 
 class DocumentDeletionTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     protected $user;
     protected $testRequest;

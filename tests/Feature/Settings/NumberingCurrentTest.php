@@ -4,12 +4,12 @@ namespace Tests\Feature\Settings;
 
 use App\Models\User;
 use App\Models\SystemSetting;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
 class NumberingCurrentTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     protected function setUp(): void
     {

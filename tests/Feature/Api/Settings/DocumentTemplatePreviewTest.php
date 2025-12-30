@@ -7,13 +7,13 @@ use App\Enums\DocumentRenderEngine;
 use App\Enums\DocumentType;
 use App\Models\DocumentTemplate;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Gate;
 use Tests\TestCase;
 
 class DocumentTemplatePreviewTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     private User $user;
 

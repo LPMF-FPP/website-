@@ -2,9 +2,9 @@
 
 use App\Models\User;
 use App\Models\SystemSetting;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 
-uses(RefreshDatabase::class);
+uses(DatabaseTransactions::class);
 
 beforeEach(function () {
     SystemSetting::updateOrCreate(['key' => 'branding.lab_code'], ['value' => 'LPMF']);
