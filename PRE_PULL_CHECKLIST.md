@@ -1,7 +1,7 @@
 # Pre-Pull Gate Checklist
 
 > **Tujuan**: Memastikan `git pull` berjalan aman tanpa konflik atau kehilangan perubahan lokal.  
-> **Last Updated**: 2025-12-30  
+> **Last Updated**: 2025-12-31  
 > **Last Verified**: ✅ Production-Ready
 
 ---
@@ -14,8 +14,8 @@
 | PHP | ✅ | 8.3.29 |
 | Node.js/NPM | ✅ | 11.7.0 |
 | Git Branch | ✅ | `main` (up to date) |
-| Latest Commit | ✅ | `af8ba25` - storage consolidation, SMTP config |
-| Tests | ✅ | 240 passed, 9 skipped |
+| Latest Commit | ✅ | `091bf53` - fix test isolation issues |
+| Tests | ✅ | 240 passed (all test isolation fixes applied) |
 | Working Tree | ✅ | Clean |
 
 ---
@@ -294,7 +294,16 @@ git stash pop  # if stashed
 
 ## 🚨 Production Deployment Notes
 
-### Recent Changes (December 30, 2025)
+### Recent Changes (December 31, 2025)
+1. **Test Isolation Fixes**: Fixed 6 failing tests with proper database cleanup
+   - `SettingsWriterNullTest`: Clean seeded settings in beforeEach
+   - `LhuNumberingGenerationTest`: Use dot-notated settings keys
+   - `RegistrationTest` / `ProfileTest`: Use unique emails
+   - `SamplePhotoUploadTest`: Re-enable middleware for validation tests
+2. **App Branding**: Updated app title to "LIMS" with Pusdokkes Polri logo
+3. **Timezone Settings**: Added WIB timezone configuration
+
+### Previous Changes (December 30, 2025)
 1. **Storage Consolidation**: Single `public` disk untuk semua dokumen
 2. **SMTP Configuration**: Dapat dikonfigurasi via Settings UI
 3. **Dummy Data Seeder**: `php artisan db:seed --class=DummyDataSeeder` (DEV only)
