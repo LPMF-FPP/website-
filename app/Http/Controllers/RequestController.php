@@ -613,7 +613,10 @@ class RequestController extends Controller
 
         // Cari dokumen berdasarkan type
 
-        $document = $testRequest->documents()->where('document_type', $type)->latest()->first();
+        $document = $testRequest->documents()
+            ->where('document_type', $type)
+            ->orderByDesc('id')
+            ->first();
 
         if (! $document) {
 

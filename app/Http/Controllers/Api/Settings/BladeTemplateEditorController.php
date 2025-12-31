@@ -5,11 +5,11 @@ namespace App\Http\Controllers\Api\Settings;
 use App\Http\Controllers\Controller;
 use App\Support\TemplatePreviewData;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Response;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
@@ -272,7 +272,7 @@ class BladeTemplateEditorController extends Controller
     /**
      * Preview template with sample data
      */
-    public function preview(Request $request, string $templateKey): JsonResponse|Response
+    public function preview(Request $request, string $templateKey): JsonResponse
     {
         if (!isset(self::EDITABLE_TEMPLATES[$templateKey])) {
             return response()->json([
@@ -310,35 +310,52 @@ class BladeTemplateEditorController extends Controller
         }
 
         $tempFile = null;
+        $compiledPath = null;
         $tempDir = storage_path('framework/views');
+        $viewFactory = app('view');
+        $bladeCompiler = app('blade.compiler');
 
         try {
             if (!File::isDirectory($tempDir)) {
                 File::makeDirectory($tempDir, 0755, true);
             }
-            $tempFile = $tempDir . '/tmp_preview_' . uniqid() . '_' . time() . '.blade.php';
+            $tempFile = $tempDir . '/tmp_preview_' . Str::uuid()->toString() . '.blade.php';
 
-            file_put_contents($tempFile, $content);
+            if (File::put($tempFile, $content) === false) {
+                throw new \RuntimeException('Gagal menulis template sementara.');
+            }
 
-            $viewData = TemplatePreviewData::forKey($templateKey);
+            $compiledPath = $bladeCompiler->getCompiledPath($tempFile);
+            $viewData = TemplatePreviewData::forSlug($templateKey);
             $html = view()->file($tempFile, $viewData)->render();
 
-            return response($html, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
+            return response()->json([
+                'success' => true,
+                'html' => $html,
+            ], 200);
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Preview render gagal.',
+                'message' => 'Template memiliki error syntax atau runtime.',
                 'error' => $e->getMessage(),
-                'file' => basename($e->getFile()),
+                'slug' => $templateKey,
                 'line' => $e->getLine(),
+                'hint' => class_basename($e),
             ], 422);
         } finally {
             if ($tempFile && file_exists($tempFile)) {
                 @unlink($tempFile);
             }
+            if ($compiledPath && file_exists($compiledPath)) {
+                @unlink($compiledPath);
+            }
             try {
-                \Illuminate\Support\Facades\View::flushState();
-                \Artisan::call('view:clear');
+                if (method_exists($viewFactory, 'flushFinderCache')) {
+                    $viewFactory->flushFinderCache();
+                }
+                if (method_exists($viewFactory, 'flushState')) {
+                    $viewFactory->flushState();
+                }
             } catch (\Throwable $e) {
                 // ignore cache clear errors
             }

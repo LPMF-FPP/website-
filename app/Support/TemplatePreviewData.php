@@ -16,11 +16,17 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class TemplatePreviewData
 {
+    public static function forSlug(string $slug): array
+    {
+        return self::forKey($slug);
+    }
+
     public static function forKey(string $key): array
     {
         $now = now();
 
-        return match ($key) {
+        $base = self::baseData($now);
+        $specific = match ($key) {
             'berita-acara-penerimaan' => self::beritaAcaraPenerimaan($now),
             'ba-penyerahan', 'berita-acara-penyerahan' => self::baPenyerahan($now),
             'laporan-hasil-uji' => self::laporanHasilUji($now),
@@ -32,6 +38,20 @@ class TemplatePreviewData
             'kartu-stok' => self::kartuStok($now),
             default => [],
         };
+
+        return array_merge($base, $specific);
+    }
+
+    private static function baseData(Carbon $now): array
+    {
+        $request = self::resolveRequest($now);
+
+        return [
+            'request' => $request,
+            'generatedAt' => $now,
+            'printDate' => $now->format('d/m/Y H:i'),
+            'meta' => self::resolveMeta($request),
+        ];
     }
 
     private static function beritaAcaraPenerimaan(Carbon $now): array
