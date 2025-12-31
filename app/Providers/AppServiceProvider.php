@@ -4,9 +4,11 @@ namespace App\Providers;
 
 use App\Events\NumberIssued;
 use App\Listeners\SendIssueNotification;
+use App\Support\AppTimezone;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Queue;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,12 +27,8 @@ class AppServiceProvider extends ServiceProvider
     {
         // Apply runtime locale/timezone from settings (also for CLI/queue)
         try {
-            $tz = settings('locale.timezone', config('app.timezone', 'UTC'));
-            $lg = settings('locale.language', config('app.locale', 'en'));
-            if ($tz) {
-                config(['app.timezone' => $tz]);
-                @date_default_timezone_set($tz);
-            }
+            AppTimezone::apply();
+            $lg = settings('localization.language', settings('locale.language', config('app.locale', 'en')));
             if ($lg) {
                 app()->setLocale($lg);
                 \Carbon\Carbon::setLocale($lg);
@@ -40,6 +38,9 @@ class AppServiceProvider extends ServiceProvider
         }
 
         Event::listen(NumberIssued::class, SendIssueNotification::class);
+        Queue::before(function () {
+            AppTimezone::apply();
+        });
 
         Gate::define('manage-settings', function ($user) {
             // Allow admin and supervisor by default

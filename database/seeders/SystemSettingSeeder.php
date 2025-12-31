@@ -109,7 +109,7 @@ class SystemSettingSeeder extends Seeder
             [
                 'key' => 'retention',
                 'value' => [
-                    'storage_driver' => 'local',
+                    'storage_driver' => 'public',
                     'base_path' => 'official_docs/',
                     'storage_folder_path' => 'official_docs/',
                     'purge_after_days' => 1825,

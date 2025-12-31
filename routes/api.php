@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Settings\BrandingController;
 use App\Http\Controllers\Api\Settings\DocumentMaintenanceController;
 use App\Http\Controllers\Api\Settings\DocumentTemplateController;
 use App\Http\Controllers\Api\Settings\LocalizationRetentionController;
+use App\Http\Controllers\Api\Settings\SettingsLocalizationController;
 use App\Http\Controllers\Api\Settings\NotificationsController;
 use App\Http\Controllers\Api\Settings\NumberingController;
 use App\Http\Controllers\Api\Settings\TemplateController as ApiTemplateController;
@@ -63,6 +64,7 @@ Route::middleware(['auth', 'verified'])->prefix('settings')->group(function () {
     Route::post('/pdf/preview', [BrandingController::class, 'previewPdf']);
 
     Route::put('/localization-retention', [LocalizationRetentionController::class, 'update']);
+    Route::get('/localization/time-preview', [SettingsLocalizationController::class, 'timePreview']);
     Route::put('/notifications-security', [NotificationsController::class, 'update']);
     Route::post('/notifications/test', [NotificationsController::class, 'test']);
     Route::get('/documents', [DocumentMaintenanceController::class, 'index']);

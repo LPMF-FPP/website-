@@ -73,7 +73,7 @@
                         <td style="width:50%; vertical-align:top; padding-right:5mm; padding-bottom:3mm;">
                             <div class="label">
                                 <div class="label-header">
-                                    <h1>Label Sisa <span class="sisa-badge">SISA</span></h1>
+                                    <h1><span class="sisa-badge">SISA</span></h1>
                                     <div class="subtitle">LPMF - Laboratorium Farmapol Pusdokkes Polri</div>
                                 </div>
                                 

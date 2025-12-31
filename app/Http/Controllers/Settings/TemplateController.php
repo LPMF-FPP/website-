@@ -32,16 +32,15 @@ class TemplateController extends Controller
             'file' => ['required', 'file', 'mimes:docx,html,htm', 'max:5120'],
         ]);
 
-        $disk = settings('retention.storage_driver', 'local');
-        $base = trim(settings('retention.base_path', 'official_docs/'), '/');
-        $storedPath = $request->file('file')->store($base.'/templates', $disk);
+        $disk = 'local';
+        $storedPath = $request->file('file')->store('templates', $disk);
 
         $template = DocumentTemplate::updateOrCreate(
             ['code' => Str::upper($validated['code'])],
             [
                 'name' => $validated['name'],
                 'storage_path' => $storedPath,
-                'meta' => ['uploaded_at' => now()->toISOString()],
+                'meta' => ['uploaded_at' => now()->toISOString(), 'disk' => $disk],
                 'updated_by' => $request->user()->id,
             ]
         );

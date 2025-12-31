@@ -5,6 +5,7 @@ namespace App\Services\Settings;
 use App\Repositories\SettingsRepository;
 use App\Support\Audit;
 use Illuminate\Contracts\Auth\Authenticatable;
+use Illuminate\Support\Facades\DB;
 
 class SettingsWriter
 {
@@ -36,20 +37,22 @@ class SettingsWriter
         // Then, filter out nulls to prevent constraint violations
         $flattened = $this->flattenPairs($this->removeNullLeaves($pairs));
 
-        foreach ($flattened as $key => $value) {
-            $before[$key] = $this->repository->get($key);
-            $this->repository->put($key, $value, $userId);
-            $after[$key] = $value;
-        }
-        
-        // Delete keys that were explicitly set to null
-        foreach ($keysToDelete as $key) {
-            if ($this->repository->has($key)) {
+        DB::transaction(function () use ($flattened, $keysToDelete, $userId, &$before, &$after): void {
+            foreach ($flattened as $key => $value) {
                 $before[$key] = $this->repository->get($key);
-                $this->repository->forget($key);
-                $after[$key] = null;
+                $this->repository->put($key, $value, $userId);
+                $after[$key] = $value;
             }
-        }
+
+            // Delete keys that were explicitly set to null
+            foreach ($keysToDelete as $key) {
+                if ($this->repository->has($key)) {
+                    $before[$key] = $this->repository->get($key);
+                    $this->repository->forget($key);
+                    $after[$key] = null;
+                }
+            }
+        });
 
         settings_forget_cache();
 
@@ -97,6 +100,13 @@ class SettingsWriter
             }
             
             if (is_array($value)) {
+                $isAssociative = array_keys($value) !== range(0, count($value) - 1);
+                if (!$isAssociative) {
+                    // Preserve list arrays as values (even if empty).
+                    $result[$key] = $value;
+                    continue;
+                }
+
                 // Check if this array contains ANY non-null values (recursively)
                 $cleaned = $this->removeNullLeaves($value);
                 

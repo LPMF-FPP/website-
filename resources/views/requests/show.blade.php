@@ -80,21 +80,50 @@
                 </div>
 
                 <div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Informasi Kasus</h3>
-                    <dl class="space-y-2 text-sm text-gray-700">
-                        <div>
-                            <dt class="font-medium text-gray-600">Nama Tersangka</dt>
-                            <dd>{{ $request->suspect_name ?? '-' }}</dd>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-3">Informasi Tersangka</h3>
+                    @if($request->suspects && $request->suspects->count() > 0)
+                        <div class="space-y-3">
+                            @foreach($request->suspects as $idx => $suspect)
+                                <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-600 text-white text-xs font-bold">{{ $idx + 1 }}</span>
+                                        <span class="font-medium text-gray-900">{{ $suspect->name }}</span>
+                                    </div>
+                                    <dl class="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                                        <div>
+                                            <dt class="text-gray-500">Jenis Kelamin</dt>
+                                            <dd>{{ $suspect->gender === 'male' ? 'Laki-laki' : ($suspect->gender === 'female' ? 'Perempuan' : '-') }}</dd>
+                                        </div>
+                                        <div>
+                                            <dt class="text-gray-500">Umur</dt>
+                                            <dd>{{ $suspect->age ? $suspect->age . ' tahun' : '-' }}</dd>
+                                        </div>
+                                    </dl>
+                                </div>
+                            @endforeach
                         </div>
-                        <div>
-                            <dt class="font-medium text-gray-600">Jenis Kelamin Tersangka</dt>
-                            <dd>{{ $request->suspect_gender === 'male' ? 'Laki-laki' : ($request->suspect_gender === 'female' ? 'Perempuan' : '-') }}</dd>
-                        </div>
-                        <div>
-                            <dt class="font-medium text-gray-600">Umur Tersangka</dt>
-                            <dd>{{ $request->suspect_age !== null ? $request->suspect_age . ' tahun' : '-' }}</dd>
-                        </div>
-                    </dl>
+                        @if($request->suspect_address)
+                            <div class="mt-3 text-sm">
+                                <dt class="font-medium text-gray-600">Alamat Tersangka</dt>
+                                <dd class="text-gray-700 mt-1">{{ $request->suspect_address }}</dd>
+                            </div>
+                        @endif
+                    @else
+                        <dl class="space-y-2 text-sm text-gray-700">
+                            <div>
+                                <dt class="font-medium text-gray-600">Nama Tersangka</dt>
+                                <dd>{{ $request->suspect_name ?? '-' }}</dd>
+                            </div>
+                            <div>
+                                <dt class="font-medium text-gray-600">Jenis Kelamin</dt>
+                                <dd>{{ $request->suspect_gender === 'male' ? 'Laki-laki' : ($request->suspect_gender === 'female' ? 'Perempuan' : '-') }}</dd>
+                            </div>
+                            <div>
+                                <dt class="font-medium text-gray-600">Umur</dt>
+                                <dd>{{ $request->suspect_age !== null ? $request->suspect_age . ' tahun' : '-' }}</dd>
+                            </div>
+                        </dl>
+                    @endif
                 </div>
             </div>
         </div>

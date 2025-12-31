@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'Pusdokkes Sub-Satker') }}</title>
+    <title>{{ config('app.name', 'LPMF LIMS') }}</title>
+    <link rel="icon" type="image/png" href="{{ asset('images/logo-pusdokkes-polri.png') }}">
 
     <!-- Preload theme (no-flash) -->
     <script>
@@ -65,7 +66,7 @@
         <!-- Footer -->
         <footer class="border-t border-primary-100 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60">
             <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 text-sm text-primary-600 flex flex-col sm:flex-row items-center justify-between gap-2">
-                <div class="opacity-90">&copy; {{ date('Y') }} Pusdokkes Polri · Sub-Satker Farmapol</div>
+                <div class="opacity-90">&copy; {{ date('Y') }} Pusdokkes Polri · Farmasi Kepolisian</div>
                 <div class="flex items-center gap-3">
                     <span class="hidden sm:inline">•</span>
                     <a href="{{ url('/track') }}" class="hover:text-primary-800">Lacak Permintaan</a>

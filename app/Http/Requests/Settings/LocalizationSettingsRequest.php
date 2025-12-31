@@ -19,6 +19,24 @@ class LocalizationSettingsRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $payload = $this->all();
+
+        if (!empty($payload['settings']) && is_array($payload['settings'])) {
+            $payload = array_merge($payload, $payload['settings']);
+            unset($payload['settings']);
+        }
+
+        if (isset($payload['locale']) && !isset($payload['localization'])) {
+            $payload['localization'] = $payload['locale'];
+        }
+
+        if (isset($payload['localization_retention']) && is_array($payload['localization_retention'])) {
+            $payload = array_merge($payload, $payload['localization_retention']);
+            unset($payload['localization_retention']);
+        }
+
+        $this->replace($payload);
+
         // Normalize localization fields
         if ($this->has('localization')) {
             $localization = $this->input('localization', []);
@@ -54,23 +72,49 @@ class LocalizationSettingsRequest extends FormRequest
         }
     }
 
+    public static function timezones(): array
+    {
+        $zones = timezone_identifiers_list();
+        if (!is_array($zones)) {
+            $zones = [];
+        }
+
+        return array_values(array_unique(array_merge(self::TIMEZONES, $zones)));
+    }
+
     public function rules(): array
     {
         return [
             // Localization rules - support partial updates
-            'localization' => ['sometimes', 'required', 'array'],
-            'localization.timezone' => ['sometimes', 'required', 'string', Rule::in(self::TIMEZONES)],
+            'localization' => ['sometimes', 'array'],
+            'localization.timezone' => ['sometimes', 'required', 'string', function ($attribute, $value, $fail) {
+                if (!in_array($value, timezone_identifiers_list(), true)) {
+                    $fail('Invalid timezone');
+                }
+            }],
             'localization.date_format' => ['sometimes', 'required', 'string', Rule::in(self::DATE_FORMATS)],
             'localization.number_format' => ['sometimes', 'required', 'string', Rule::in(self::NUMBER_FORMATS)],
             'localization.language' => ['sometimes', 'required', 'string', Rule::in(self::LANGUAGES)],
             
             // Retention rules - support partial updates and nullable values
-            'retention' => ['sometimes', 'required', 'array'],
+            'retention' => ['sometimes', 'array'],
             'retention.storage_driver' => ['sometimes', 'required', 'string', Rule::in(['public'])],
             // storage_folder_path deprecated - path otomatis berdasarkan investigator/request
             'retention.storage_folder_path' => ['sometimes', 'nullable', 'string', 'max:255'],
             'retention.purge_after_days' => ['sometimes', 'nullable', 'integer', 'min:30', 'max:3650'],
             'retention.export_filename_pattern' => ['sometimes', 'nullable', 'string', 'max:255'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'localization.timezone.required' => 'Timezone wajib diisi.',
+            'localization.timezone.string' => 'Timezone harus berupa string.',
+            'localization.date_format.in' => 'Format tanggal tidak valid.',
+            'localization.number_format.in' => 'Format angka tidak valid.',
+            'localization.language.in' => 'Bahasa tidak valid.',
+            'retention.storage_driver.in' => 'Storage driver tidak valid.',
         ];
     }
 }

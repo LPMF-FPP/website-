@@ -101,7 +101,7 @@ export function registerSettingsComponent() {
             set activeSection(value) {
                 const previousSection = this._activeSection;
                 this._activeSection = value;
-                
+
                 // Load document templates when switching to templates section
                 if (value === 'templates') {
                     if (!this.documentTemplatesLoading && this.documentTemplateState.templates.length === 0) {
@@ -144,26 +144,26 @@ export function registerSettingsComponent() {
             getTemplatesByType(type) {
                 return (this.client.state.templates || []).filter(tpl => tpl.type === type);
             },
-            timezones: Array.isArray(optionValues.timezones) && optionValues.timezones.length 
-                ? optionValues.timezones 
+            timezones: Array.isArray(optionValues.timezones) && optionValues.timezones.length
+                ? optionValues.timezones
                 : ['Asia/Jakarta', 'Asia/Makassar', 'Asia/Jayapura', 'UTC'],
-            dateFormats: Array.isArray(optionValues.date_formats) && optionValues.date_formats.length 
-                ? optionValues.date_formats 
+            dateFormats: Array.isArray(optionValues.date_formats) && optionValues.date_formats.length
+                ? optionValues.date_formats
                 : ['DD/MM/YYYY', 'YYYY-MM-DD', 'DD-MM-YYYY'],
-            numberFormats: (Array.isArray(optionValues.number_formats) && optionValues.number_formats.length 
-                ? optionValues.number_formats 
+            numberFormats: (Array.isArray(optionValues.number_formats) && optionValues.number_formats.length
+                ? optionValues.number_formats
                 : ['1.234,56', '1,234.56']).map((fmt) => ({ value: fmt, label: fmt })),
-            languages: (Array.isArray(optionValues.languages) && optionValues.languages.length 
-                ? optionValues.languages 
-                : ['id', 'en']).map((code) => ({ 
-                    value: code, 
-                    label: code === 'id' ? 'Bahasa Indonesia' : (code === 'en' ? 'English' : code.toUpperCase()) 
+            languages: (Array.isArray(optionValues.languages) && optionValues.languages.length
+                ? optionValues.languages
+                : ['id', 'en']).map((code) => ({
+                    value: code,
+                    label: code === 'id' ? 'Bahasa Indonesia' : (code === 'en' ? 'English' : code.toUpperCase())
                 })),
-            storageDrivers: Array.isArray(optionValues.storage_drivers) && optionValues.storage_drivers.length 
-                ? optionValues.storage_drivers 
+            storageDrivers: Array.isArray(optionValues.storage_drivers) && optionValues.storage_drivers.length
+                ? optionValues.storage_drivers
                 : ['public'],
             storagePathInfo: optionValues.storage_path_info || 'storage/app/public/investigators/{investigator}/{request}/',
-            
+
             // SMTP Preset
             smtpPreset: 'mailpit',
             smtpPresets: {
@@ -189,7 +189,7 @@ export function registerSettingsComponent() {
                     this.smtpPreset = 'custom';
                 }
             },
-            
+
             availableRoles: ['admin', 'supervisor', 'analyst', 'lab_analyst', 'petugas_lab'],
             roleLabels: {
                 admin: 'Admin',
@@ -199,6 +199,11 @@ export function registerSettingsComponent() {
                 petugas_lab: 'Petugas Lab',
             },
             nowPreview: initialNowPreview,
+            timePreview: {
+                loading: false,
+                error: '',
+                data: null,
+            },
             get selectedDocType() {
                 return this.documentTemplateState.selectedDocumentType;
             },
@@ -253,11 +258,11 @@ export function registerSettingsComponent() {
                     return;
                 }
                 this._initialized = true;
-                
+
                 console.log('🚀 [Alpine] settingsPageAlpine init started');
                 console.log('📊 Initial state.numberingPreview:', this.client.state.numberingPreview);
                 console.log('📊 Initial state.previewLoading:', this.client.state.previewLoading);
-                
+
                 // Client is already initialized above
                 this.client.onTemplateSelected = async () => {
                     await this.onTemplateSelected();
@@ -265,7 +270,7 @@ export function registerSettingsComponent() {
                 this.client.refreshTemplatePreview = async () => {
                     await this.refreshTemplatePreview();
                 };
-                
+
                 // Inject template types and labels
                 this.client.state.templateTypes = ['sample_code', 'ba', 'lhu'];
                 this.client.state.templateLabels = {
@@ -279,10 +284,12 @@ export function registerSettingsComponent() {
                 this.ensureLocaleDefaults();
 
                 console.log('✅ [Alpine] State initialized, loading data...');
-                
+
                 // Load all data
-                this.client.loadAll();
-                
+                this.client.loadAll().finally(() => {
+                    this.fetchTimePreview();
+                });
+
                 // Backward-compatible deep link: /settings#template-dokumen -> /settings/blade-templates
                 if (window.location.hash === '#template-dokumen') {
                     window.location.replace('/settings/blade-templates');
@@ -291,13 +298,20 @@ export function registerSettingsComponent() {
             },
 
             ensureLocaleDefaults() {
-                this.client.state.form.locale ??= {};
+                // Ensure locale is an object, not an array (server may return empty array)
+                if (!this.client.state.form.locale || Array.isArray(this.client.state.form.locale) || typeof this.client.state.form.locale !== 'object') {
+                    this.client.state.form.locale = {};
+                }
                 if (!this.client.state.form.locale.timezone) this.client.state.form.locale.timezone = this.timezones[0] ?? 'Asia/Jakarta';
                 if (!this.client.state.form.locale.date_format) this.client.state.form.locale.date_format = this.dateFormats[0] ?? 'DD/MM/YYYY';
                 if (!this.client.state.form.locale.number_format) this.client.state.form.locale.number_format = this.numberFormats[0]?.value ?? '1.234,56';
                 if (!this.client.state.form.locale.language) this.client.state.form.locale.language = this.languages[0]?.value ?? 'id';
                 this.client.state.form.retention ??= {};
-                if (!this.client.state.form.retention.storage_driver) this.client.state.form.retention.storage_driver = this.storageDrivers[0] ?? 'public';
+                const driver = this.client.state.form.retention.storage_driver;
+                const allowedDrivers = new Set(this.storageDrivers || []);
+                if (!driver || (allowedDrivers.size && !allowedDrivers.has(driver))) {
+                    this.client.state.form.retention.storage_driver = this.storageDrivers[0] ?? 'public';
+                }
                 // SMTP defaults
                 this.client.state.form.smtp ??= {};
                 if (!this.client.state.form.smtp.host) this.client.state.form.smtp.host = '127.0.0.1';
@@ -312,20 +326,20 @@ export function registerSettingsComponent() {
                     const tz = this.client.state.form?.locale?.timezone || 'Asia/Jakarta';
                     const fmt = this.client.state.form?.locale?.date_format || 'DD/MM/YYYY';
                     const now = new Date();
-                    const options = { 
-                        timeZone: tz, 
-                        year: 'numeric', 
-                        month: '2-digit', 
-                        day: '2-digit', 
-                        hour: '2-digit', 
-                        minute: '2-digit', 
-                        second: '2-digit', 
-                        hour12: false 
+                    const options = {
+                        timeZone: tz,
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
                     };
                     const formatter = new Intl.DateTimeFormat('en-GB', options);
-                    const parts = formatter.formatToParts(now).reduce((acc, part) => { 
-                        acc[part.type] = part.value; 
-                        return acc; 
+                    const parts = formatter.formatToParts(now).reduce((acc, part) => {
+                        acc[part.type] = part.value;
+                        return acc;
                     }, {});
                     let datePart;
                     if (fmt === 'YYYY-MM-DD') {
@@ -340,6 +354,27 @@ export function registerSettingsComponent() {
                     // ignore
                 }
             },
+            async saveLocalizationSection() {
+                const ok = await this.client.saveSection('localization');
+                if (ok) {
+                    await this.fetchTimePreview();
+                }
+            },
+
+            async fetchTimePreview() {
+                this.timePreview.loading = true;
+                this.timePreview.error = '';
+
+                try {
+                    const response = await this.client.apiFetch(this.client.api.localizationTimePreview);
+                    this.timePreview.data = response || null;
+                } catch (error) {
+                    this.timePreview.error = 'Preview waktu gagal dimuat.';
+                    this.timePreview.data = null;
+                } finally {
+                    this.timePreview.loading = false;
+                }
+            },
 
             // Template helpers
             promptActivate(type) {
@@ -348,7 +383,7 @@ export function registerSettingsComponent() {
                     return;
                 }
                 const code = prompt(
-                    `Masukkan kode template untuk ${this.client.state.templateLabels[type] || type}`, 
+                    `Masukkan kode template untuk ${this.client.state.templateLabels[type] || type}`,
                     this.client.state.activeTemplates[type]?.code || ''
                 );
                 if (!code) return;
@@ -372,9 +407,9 @@ export function registerSettingsComponent() {
                     const match = this.client.state.templates.find((item) => item.code === tpl.code && item.id);
                     if (match) {
                         targetId = match.id;
-                        this.client.state.activeTemplates = { 
-                            ...this.client.state.activeTemplates, 
-                            [type]: this.client.clone(match) 
+                        this.client.state.activeTemplates = {
+                            ...this.client.state.activeTemplates,
+                            [type]: this.client.clone(match)
                         };
                     }
                 }
@@ -399,9 +434,9 @@ export function registerSettingsComponent() {
                 console.log('🔍 [Alpine Wrapper] testPreview called', { scope });
                 console.log('📊 Current preview state:', this.client.state.numberingPreview);
                 console.log('⚙️ Current form config:', this.client.state.form.numbering?.[scope]);
-                
+
                 const result = this.client.testPreview(scope);
-                
+
                 // Log after call initiated
                 console.log('▶️ testPreview promise initiated for scope:', scope);
                 return result;
@@ -420,17 +455,17 @@ export function registerSettingsComponent() {
             // Helper method for displaying preview text with better error handling
             getPreviewText(scope) {
                 const value = this.client.state.numberingPreview?.[scope];
-                
+
                 // null = error state
                 if (value === null) {
                     return '❌ Preview gagal dibuat';
                 }
-                
+
                 // undefined = not yet tested
                 if (value === undefined || value === '') {
                     return 'Click Test Preview';
                 }
-                
+
                 // Valid preview
                 return value;
             },
@@ -578,16 +613,16 @@ export function registerSettingsComponent() {
                         },
                         credentials: 'same-origin',
                     });
-                    
+
                     if (!response.ok) {
                         const errorText = await response.text();
                         console.error('API Error:', response.status, errorText);
                         throw new Error(`Gagal memuat template (${response.status})`);
                     }
-                    
+
                     const data = await response.json();
                     console.log('✅ Templates loaded:', data);
-                    
+
                     // Handle both old and new response formats
                     const normalized = this.normalizeTemplateResponse(data);
                     const groups = data.groups || {};
@@ -689,7 +724,7 @@ export function registerSettingsComponent() {
                     }
 
                     this.documentTemplateSuccess = 'Template uploaded successfully!';
-                    
+
                     // Reset form
                     this.documentTemplateForm = {
                         type: '',
@@ -848,7 +883,7 @@ export function registerSettingsComponent() {
                 }
 
                 this.documentTemplateState.selectedTemplateId = targetId ? String(targetId) : '';
-                
+
                 // ✅ Only create new template if explicitly requested (e.g. user clicks "+ New Template")
                 // Do NOT auto-create during load/sync operations
                 if (this.documentTemplateState.selectedTemplateId) {
@@ -897,7 +932,7 @@ export function registerSettingsComponent() {
                     this.templateEditorInstance.setComponents(html);
                     this.templateEditorInstance.setStyle(css || '');
                     refreshTemplateEditor('modal');
-                }).catch(() => {});
+                }).catch(() => { });
                 this.templateEditorDirty = false;
             },
 
@@ -934,7 +969,7 @@ export function registerSettingsComponent() {
 
                 // Wait for container to be visible (x-show renders it)
                 const container = this.$refs.templateEditorModalCanvas;
-                
+
                 if (!container) {
                     this.templateEditorModal.loading = false;
                     this.templateEditorModal.error = 'Container editor tidak ditemukan.';
@@ -948,7 +983,7 @@ export function registerSettingsComponent() {
                     await new Promise(resolve => setTimeout(resolve, 50));
                     attempts++;
                 }
-                
+
                 if (container.offsetParent === null) {
                     this.templateEditorModal.loading = false;
                     this.templateEditorModal.error = 'Container editor belum visible setelah ' + attempts + ' attempts.';
@@ -1235,17 +1270,17 @@ export function registerSettingsComponent() {
                 // If HTML contains <html>, <head>, <body> tags, extract body content
                 const hasHtmlTag = /<html[^>]*>/i.test(html);
                 const hasBodyTag = /<body[^>]*>/i.test(html);
-                
+
                 if (hasHtmlTag || hasBodyTag) {
                     console.log('🔧 Normalizing HTML with <html>/<body> tags...');
-                    
+
                     try {
                         const parser = new DOMParser();
                         const doc = parser.parseFromString(html, 'text/html');
-                        
+
                         // Extract body content
                         const bodyContent = doc.body ? doc.body.innerHTML : html;
-                        
+
                         // Extract <style> tags from head if CSS is empty
                         let finalCss = css || '';
                         if (!finalCss) {
@@ -1256,14 +1291,14 @@ export function registerSettingsComponent() {
                                 console.log('📝 Extracted CSS from <style> tags:', styles.length, 'chars');
                             }
                         }
-                        
+
                         return { html: bodyContent, css: finalCss };
                     } catch (e) {
                         console.warn('Failed to parse HTML, using as-is:', e);
                         return { html, css: css || '' };
                     }
                 }
-                
+
                 return { html, css: css || '' };
             },
 
@@ -1522,10 +1557,10 @@ export function registerSettingsComponent() {
 
                 // Wait for x-show to keep the editor container mounted before init.
                 await this.$nextTick();
-                
+
                 // ✅ Try multiple ways to get container
                 const container = this.$refs.documentTemplateEditorCanvas;
-                
+
                 if (!container) {
                     const errorMsg = 'Container element tidak ditemukan. Pastikan section Template Dokumen aktif.';
                     console.error('❌', errorMsg, {
@@ -1541,7 +1576,7 @@ export function registerSettingsComponent() {
                     console.warn('⚠️ Container hidden, waiting...');
                     // Container is hidden, wait a bit for x-show transition
                     await new Promise(resolve => setTimeout(resolve, 150));
-                    
+
                     // Check again after delay
                     if (container.offsetParent === null) {
                         const errorMsg = 'Container harus visible sebelum init editor.';
@@ -1550,7 +1585,7 @@ export function registerSettingsComponent() {
                         return null;
                     }
                 }
-                
+
                 console.log('✅ Container found and visible:', {
                     element: container.tagName,
                     id: container.id,
@@ -1676,13 +1711,13 @@ export function registerSettingsComponent() {
                         // Additional delay for x-show transition
                         await new Promise(resolve => setTimeout(resolve, 50));
                     }
-                    
+
                     const editor = await this.ensureTemplateEditor();
                     if (!editor) {
                         console.error('❌ Failed to ensure editor for new template');
                         return;
                     }
-                    
+
                     const type = this.documentTemplateState.selectedDocumentType;
                     const typeLabel = formatDocumentType(type);
                     const meta = this.getDocumentTypeMeta(type);
@@ -1694,7 +1729,7 @@ export function registerSettingsComponent() {
                     this.documentTemplateEditor.error = '';
                     this.documentTemplateEditor.success = '';
                     this.setEditorContent('', '');
-                    
+
                     console.log('✅ New template draft ready');
                 } catch (error) {
                     console.error('❌ Error starting new template:', error);
@@ -1706,7 +1741,7 @@ export function registerSettingsComponent() {
                 if (!templateId) {
                     return;
                 }
-                
+
                 // ✅ CRITICAL: Ensure section is active first so container exists
                 if (this.activeSection !== 'templates') {
                     console.log('🔄 Activating templates section for template load...');
@@ -1716,7 +1751,7 @@ export function registerSettingsComponent() {
                     // Additional delay for x-show transition
                     await new Promise(resolve => setTimeout(resolve, 50));
                 }
-                
+
                 await this.ensureTemplateEditor();
                 this.documentTemplateEditor.loading = true;
                 this.documentTemplateEditor.error = '';

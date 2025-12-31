@@ -80,125 +80,159 @@
                             </div>
                         </div>
 
-                        {{-- Section 2: Info Tersangka --}}
-                        <div class="space-y-4">
-                            <h3 class="text-lg font-semibold text-gray-900 border-b pb-2">
-                                Informasi Tersangka
-                            </h3>
+                        {{-- Is Investigator Toggle --}}
+                        @php
+                            $isPolri = $request->investigator->is_polri ?? true;
+                        @endphp
+                        <div class="bg-indigo-50 p-4 rounded-lg border border-indigo-200">
+                            <h4 class="text-md font-semibold text-indigo-900 mb-3">Apakah Anda penyidik?</h4>
+                            <div class="flex gap-6">
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="radio" name="is_investigator" value="1" 
+                                           {{ old('is_investigator', $isPolri ? '1' : '0') == '1' ? 'checked' : '' }}
+                                           class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                    <span class="text-gray-700 font-medium">Ya, saya penyidik/anggota Polri</span>
+                                </label>
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="radio" name="is_investigator" value="0"
+                                           {{ old('is_investigator', $isPolri ? '1' : '0') == '0' ? 'checked' : '' }}
+                                           class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                    <span class="text-gray-700 font-medium">Bukan anggota Polri</span>
+                                </label>
+                            </div>
+                        </div>
 
+                        {{-- Investigator Section (Polri) --}}
+                        <div class="block-investigator space-y-4" style="{{ $isPolri ? '' : 'display: none;' }}">
+                            <h3 class="text-lg font-semibold text-gray-900 border-b pb-2">Informasi Penyidik</h3>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {{-- Nama Tersangka --}}
                                 <div>
-                                    <label for="suspect_name" class="block text-sm font-medium text-gray-700 mb-2">
-                                        Nama Tersangka <span class="text-red-500">*</span>
-                                    </label>
-                     <input type="text"
-                         name="suspect_name"
-                         id="suspect_name"
-                         required
-                         value="{{ old('suspect_name', $request->suspect_name) }}"
-                         class="@class(['w-full px-3 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500', $errors->has('suspect_name') ? 'border-red-500' : 'border-gray-300'])">
-                                    @error('suspect_name')
-                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                    @enderror
+                                    <label for="investigator_rank" class="block text-sm font-medium text-gray-700 mb-2">Pangkat</label>
+                                    <input type="text" name="investigator_rank" id="investigator_rank"
+                                           value="{{ old('investigator_rank', $request->investigator->rank) }}"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
                                 </div>
-
-                                {{-- Jenis Kelamin --}}
                                 <div>
-                                    <label for="suspect_gender" class="block text-sm font-medium text-gray-700 mb-2">
-                                        Jenis Kelamin
-                                    </label>
-                                    <select name="suspect_gender"
-                                            id="suspect_gender"
-                                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                                        <option value="">- Pilih -</option>
-                                        <option value="male" {{ old('suspect_gender', $request->suspect_gender) == 'male' ? 'selected' : '' }}>Laki-laki</option>
-                                        <option value="female" {{ old('suspect_gender', $request->suspect_gender) == 'female' ? 'selected' : '' }}>Perempuan</option>
-                                    </select>
+                                    <label for="investigator_name" class="block text-sm font-medium text-gray-700 mb-2">Nama</label>
+                                    <input type="text" name="investigator_name" id="investigator_name"
+                                           value="{{ old('investigator_name', $request->investigator->name) }}"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
                                 </div>
-
-                                {{-- Umur --}}
                                 <div>
-                                    <label for="suspect_age" class="block text-sm font-medium text-gray-700 mb-2">
-                                        Umur (tahun)
-                                    </label>
-                                    <input type="number"
-                                           name="suspect_age"
-                                           id="suspect_age"
-                                           min="0"
-                                           max="120"
-                                           value="{{ old('suspect_age', $request->suspect_age) }}"
+                                    <label for="investigator_nrp" class="block text-sm font-medium text-gray-700 mb-2">NRP</label>
+                                    <input type="text" name="investigator_nrp" id="investigator_nrp"
+                                           value="{{ old('investigator_nrp', $request->investigator->nrp) }}"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label for="investigator_jurisdiction" class="block text-sm font-medium text-gray-700 mb-2">Satuan</label>
+                                    <input type="text" name="investigator_jurisdiction" id="investigator_jurisdiction"
+                                           value="{{ old('investigator_jurisdiction', $request->investigator->jurisdiction) }}"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label for="investigator_phone" class="block text-sm font-medium text-gray-700 mb-2">No. HP</label>
+                                    <input type="text" name="investigator_phone" id="investigator_phone"
+                                           value="{{ old('investigator_phone', $request->investigator->phone) }}"
                                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
                                 </div>
                             </div>
                         </div>
 
-                        {{-- Info Penyidik --}}
-                        <div class="space-y-4">
-                            <h3 class="text-lg font-semibold text-gray-900 border-b pb-2">
-                                Informasi Penyidik
-                            </h3>
-
+                        {{-- External Section (Non-Polri) --}}
+                        <div class="block-external space-y-4" style="{{ $isPolri ? 'display: none;' : '' }}">
+                            <h3 class="text-lg font-semibold text-gray-900 border-b pb-2">Informasi Pemohon</h3>
                             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {{-- Pangkat --}}
                                 <div>
-                                    <label for="investigator_rank" class="block text-sm font-medium text-gray-700 mb-2">
-                                        Pangkat
-                                    </label>
-                                    <input type="text"
-                                           name="investigator_rank"
-                                           id="investigator_rank"
-                                           value="{{ old('investigator_rank', $request->investigator->rank) }}"
+                                    <label for="external_name" class="block text-sm font-medium text-gray-700 mb-2">Nama <span class="text-red-500">*</span></label>
+                                    <input type="text" name="external_name" id="external_name"
+                                           value="{{ old('external_name', !$isPolri ? $request->investigator->name : '') }}"
                                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
                                 </div>
+                                <div>
+                                    <label for="external_phone" class="block text-sm font-medium text-gray-700 mb-2">Nomor Telepon <span class="text-red-500">*</span></label>
+                                    <input type="tel" name="external_phone" id="external_phone"
+                                           value="{{ old('external_phone', !$isPolri ? $request->investigator->alt_phone : '') }}"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label for="external_institution" class="block text-sm font-medium text-gray-700 mb-2">Instansi <span class="text-red-500">*</span></label>
+                                    <input type="text" name="external_institution" id="external_institution"
+                                           value="{{ old('external_institution', !$isPolri ? $request->investigator->institution : '') }}"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                                <div>
+                                    <label for="external_hp" class="block text-sm font-medium text-gray-700 mb-2">Nomor HP <span class="text-red-500">*</span></label>
+                                    <input type="tel" name="external_hp" id="external_hp"
+                                           value="{{ old('external_hp', !$isPolri ? $request->investigator->phone : '') }}"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                                <div class="md:col-span-2">
+                                    <label for="external_occupation" class="block text-sm font-medium text-gray-700 mb-2">Pekerjaan <span class="text-red-500">*</span></label>
+                                    <input type="text" name="external_occupation" id="external_occupation"
+                                           value="{{ old('external_occupation', !$isPolri ? $request->investigator->occupation : '') }}"
+                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                </div>
+                            </div>
+                        </div>
 
-                                {{-- Nama --}}
-                                <div>
-                                    <label for="investigator_name" class="block text-sm font-medium text-gray-700 mb-2">
-                                        Nama
-                                    </label>
-                                    <input type="text"
-                                           name="investigator_name"
-                                           id="investigator_name"
-                                           value="{{ old('investigator_name', $request->investigator->name) }}"
-                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        {{-- Multi-Suspect Section --}}
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center border-b pb-2">
+                                <h3 class="text-lg font-semibold text-gray-900">Informasi Tersangka</h3>
+                                <button type="button" id="add-suspect"
+                                        class="inline-flex items-center px-3 py-1.5 border border-yellow-600 text-sm font-medium rounded-md text-yellow-700 bg-yellow-100 hover:bg-yellow-200">
+                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Tambah Tersangka
+                                </button>
+                            </div>
+                            <div id="suspects-container">
+                                @php
+                                    $suspects = old('suspects') 
+                                        ?? ($request->suspects->count() > 0 
+                                            ? $request->suspects->map(fn($s) => ['name' => $s->name, 'gender' => $s->gender, 'age' => $s->age])->toArray() 
+                                            : [['name' => $request->suspect_name, 'gender' => $request->suspect_gender, 'age' => $request->suspect_age]]);
+                                @endphp
+                                @foreach($suspects as $idx => $suspect)
+                                <div class="suspect-row bg-gray-50 p-4 rounded-lg border border-gray-200 mb-3" data-index="{{ $idx }}">
+                                    <div class="flex justify-between items-start mb-3">
+                                        <h5 class="font-medium text-gray-800">Tersangka #{{ $idx + 1 }}</h5>
+                                        @if($idx > 0)
+                                        <button type="button" class="remove-suspect text-red-600 hover:text-red-800 text-sm font-medium">✕ Hapus</button>
+                                        @endif
+                                    </div>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Nama Tersangka <span class="text-red-500">*</span></label>
+                                            <input type="text" name="suspects[{{ $idx }}][name]" required
+                                                   value="{{ $suspect['name'] ?? '' }}"
+                                                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Kelamin</label>
+                                            <select name="suspects[{{ $idx }}][gender]"
+                                                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                                <option value="">- Pilih -</option>
+                                                <option value="male" {{ ($suspect['gender'] ?? '') == 'male' ? 'selected' : '' }}>Laki-laki</option>
+                                                <option value="female" {{ ($suspect['gender'] ?? '') == 'female' ? 'selected' : '' }}>Perempuan</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-1">Umur (tahun)</label>
+                                            <input type="number" name="suspects[{{ $idx }}][age]" min="0" max="120"
+                                                   value="{{ $suspect['age'] ?? '' }}"
+                                                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                        </div>
+                                    </div>
                                 </div>
-
-                                {{-- NRP --}}
-                                <div>
-                                    <label for="investigator_nrp" class="block text-sm font-medium text-gray-700 mb-2">
-                                        NRP
-                                    </label>
-                                    <input type="text"
-                                           name="investigator_nrp"
-                                           id="investigator_nrp"
-                                           value="{{ old('investigator_nrp', $request->investigator->nrp) }}"
-                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                                </div>
-
-                                {{-- Satuan --}}
-                                <div>
-                                    <label for="investigator_jurisdiction" class="block text-sm font-medium text-gray-700 mb-2">
-                                        Satuan
-                                    </label>
-                                    <input type="text"
-                                           name="investigator_jurisdiction"
-                                           id="investigator_jurisdiction"
-                                           value="{{ old('investigator_jurisdiction', $request->investigator->jurisdiction) }}"
-                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                                </div>
-
-                                {{-- No. HP --}}
-                                <div>
-                                    <label for="investigator_phone" class="block text-sm font-medium text-gray-700 mb-2">
-                                        No. HP
-                                    </label>
-                                    <input type="text"
-                                           name="investigator_phone"
-                                           id="investigator_phone"
-                                           value="{{ old('investigator_phone', $request->investigator->phone) }}"
-                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                                </div>
+                                @endforeach
+                            </div>
+                            <div>
+                                <label for="suspect_address" class="block text-sm font-medium text-gray-700 mb-2">Alamat Tersangka</label>
+                                <textarea name="suspect_address" id="suspect_address" rows="2"
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">{{ old('suspect_address', $request->suspect_address) }}</textarea>
                             </div>
                         </div>
 
@@ -367,4 +401,7 @@
             </div>
         </div>
     </div>
+
+@vite('resources/js/pages/requests-form.js')
+
 </x-app-layout>

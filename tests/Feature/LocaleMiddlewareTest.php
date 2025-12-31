@@ -17,7 +17,7 @@ class LocaleMiddlewareTest extends TestCase
     public function test_applies_timezone_and_locale_from_settings(): void
     {
         settings_fake([
-            'locale.timezone' => 'Asia/Jayapura',
+            'localization.timezone' => 'Asia/Jayapura',
             'locale.language' => 'id',
         ], replace: true);
 
@@ -25,6 +25,7 @@ class LocaleMiddlewareTest extends TestCase
         $this->get('/_locale-test')->assertOk();
 
         // Middleware should have run via bootstrap; ensure fallback by manual invocation too
+        (new \App\Http\Middleware\ApplyTimezone())->handle(request(), fn($r) => $r);
         (new \App\Http\Middleware\ApplyLocaleFromSettings())->handle(request(), fn($r) => $r);
 
         $this->assertSame('Asia/Jayapura', config('app.timezone'));

@@ -51,12 +51,10 @@ class LhuNumberingGenerationTest extends TestCase
 
     public function test_lhu_generation_uses_latest_numbering_settings_for_new_report(): void
     {
-        // Configure LHU numbering settings
-        SystemSetting::updateOrCreate(['key' => 'numbering.lhu'], ['value' => [
-            'pattern' => 'LHU-{YYYY}-{SEQ:4}',
-            'reset' => 'yearly',
-            'start_from' => 1,
-        ]]);
+        // Configure LHU numbering settings using dot-notated keys
+        SystemSetting::updateOrCreate(['key' => 'numbering.lhu.pattern'], ['value' => 'LHU-{YYYY}-{SEQ:4}']);
+        SystemSetting::updateOrCreate(['key' => 'numbering.lhu.reset'], ['value' => 'yearly']);
+        SystemSetting::updateOrCreate(['key' => 'numbering.lhu.start_from'], ['value' => 1]);
         settings_forget_cache();
 
         $data = $this->createSampleWithProcess();
@@ -84,12 +82,10 @@ class LhuNumberingGenerationTest extends TestCase
 
     public function test_lhu_generation_reuses_stored_number_on_regeneration(): void
     {
-        // Configure LHU settings
-        SystemSetting::updateOrCreate(['key' => 'numbering.lhu'], ['value' => [
-            'pattern' => 'LHU-{YYYY}-{NNNN}',
-            'reset' => 'yearly',
-            'start_from' => 100,
-        ]]);
+        // Configure LHU settings using dot-notated keys
+        SystemSetting::updateOrCreate(['key' => 'numbering.lhu.pattern'], ['value' => 'LHU-{YYYY}-{SEQ:4}']);
+        SystemSetting::updateOrCreate(['key' => 'numbering.lhu.reset'], ['value' => 'yearly']);
+        SystemSetting::updateOrCreate(['key' => 'numbering.lhu.start_from'], ['value' => 100]);
         settings_forget_cache();
 
         $data = $this->createSampleWithProcess();
@@ -117,12 +113,10 @@ class LhuNumberingGenerationTest extends TestCase
 
     public function test_lhu_generation_uses_updated_settings_for_new_process(): void
     {
-        // Initial settings
-        SystemSetting::updateOrCreate(['key' => 'numbering.lhu'], ['value' => [
-            'pattern' => 'OLD-{NNNN}',
-            'reset' => 'never',
-            'start_from' => 1,
-        ]]);
+        // Initial settings using dot-notated keys
+        SystemSetting::updateOrCreate(['key' => 'numbering.lhu.pattern'], ['value' => 'OLD-{SEQ:4}']);
+        SystemSetting::updateOrCreate(['key' => 'numbering.lhu.reset'], ['value' => 'never']);
+        SystemSetting::updateOrCreate(['key' => 'numbering.lhu.start_from'], ['value' => 1]);
         settings_forget_cache();
 
         // Create first process and generate LHU
@@ -135,12 +129,10 @@ class LhuNumberingGenerationTest extends TestCase
         $firstNumber = $process1->metadata['lhu_number'] ?? null;
         $this->assertStringStartsWith('OLD-', $firstNumber);
 
-        // Update settings to new pattern
-        SystemSetting::updateOrCreate(['key' => 'numbering.lhu'], ['value' => [
-            'pattern' => 'NEW-{YYYY}-{NNNN}',
-            'reset' => 'never',
-            'start_from' => 1,
-        ]]);
+        // Update settings to new pattern using dot-notated keys
+        SystemSetting::updateOrCreate(['key' => 'numbering.lhu.pattern'], ['value' => 'NEW-{YYYY}-{SEQ:4}']);
+        SystemSetting::updateOrCreate(['key' => 'numbering.lhu.reset'], ['value' => 'never']);
+        SystemSetting::updateOrCreate(['key' => 'numbering.lhu.start_from'], ['value' => 1]);
         settings_forget_cache();
 
         // Create second process - should use new pattern
@@ -222,12 +214,10 @@ class LhuNumberingGenerationTest extends TestCase
 
     public function test_concurrent_lhu_generation_is_safe(): void
     {
-        // Configure settings
-        SystemSetting::updateOrCreate(['key' => 'numbering.lhu'], ['value' => [
-            'pattern' => 'CONCURRENT-{SEQ:4}',
-            'reset' => 'never',
-            'start_from' => 1,
-        ]]);
+        // Configure settings using dot-notated keys
+        SystemSetting::updateOrCreate(['key' => 'numbering.lhu.pattern'], ['value' => 'CONCURRENT-{SEQ:4}']);
+        SystemSetting::updateOrCreate(['key' => 'numbering.lhu.reset'], ['value' => 'never']);
+        SystemSetting::updateOrCreate(['key' => 'numbering.lhu.start_from'], ['value' => 1]);
         settings_forget_cache();
 
         // Create multiple processes

@@ -1,1 +1,0 @@
-<div class="document"><h1>Berita Acara Penerimaan Barang Bukti</h1><p>Nomor: BA-002</p><p>Tanggal: 22 Desember 2025</p></div><?php /**PATH C:\Users\Farma\pusdokkes-subunit\storage\framework\views/bf267ae65313332133d784553595cf33.blade.php ENDPATH**/ ?>

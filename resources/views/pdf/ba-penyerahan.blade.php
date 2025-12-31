@@ -6,6 +6,23 @@
   $inv = $req->investigator;
   $samples = $req->samples ?? collect();
   $today = isset($generatedAt) ? Carbon::parse($generatedAt) : now();
+  $isPreview = $isPreview ?? false;
+  $leftLogoPath = public_path('images/logo-tribrata-polri.png');
+  $rightLogoPath = public_path('images/logo-pusdokkes-polri.png');
+  $leftLogoSrc = $isPreview ? asset('images/logo-tribrata-polri.png') : $leftLogoPath;
+  $rightLogoSrc = $isPreview ? asset('images/logo-pusdokkes-polri.png') : $rightLogoPath;
+
+  $toArray = function ($value) {
+    if ($value instanceof \Illuminate\Support\Collection) return $value->toArray();
+    if (is_string($value)) {
+      $decoded = json_decode($value, true);
+      return (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) ? $decoded : [];
+    }
+    if (is_array($value)) return $value;
+    if (is_object($value) && method_exists($value, 'toArray')) return $value->toArray();
+    if (is_object($value)) return (array) $value;
+    return [];
+  };
 
   // Derived fields to match the displayed structure
   $firstSample = $samples->first();
@@ -17,6 +34,10 @@
   $allSampleCodesStr = $sampleCodes->isNotEmpty() ? $sampleCodes->join(', ') : $mainSampleCode;
   $invName = trim(($inv?->rank).' '.($inv?->name));
   $invNrp = $inv?->nrp ?? null;
+
+  // Normalize request metadata early (used by BA number and LHU fallbacks)
+  $meta = $toArray($req->metadata ?? []);
+
   // BA Penyerahan number - try from settings/numbering service
   $numberingService = app(\App\Services\NumberingService::class);
   $baPenyerahanNumber = '—';
@@ -60,48 +81,65 @@
     ?? $req->surat_permintaan
     ?? $req->notes
     ?? '—';
-  // Look into metadata bag if present (handle array/stdClass/JSON string)
-  $metaRaw = $req->metadata ?? [];
-  if (is_string($metaRaw)) {
-    $decoded = json_decode($metaRaw, true);
-    $meta = (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) ? $decoded : [];
-  } elseif (is_array($metaRaw)) {
-    $meta = $metaRaw;
-  } elseif ($metaRaw instanceof \Illuminate\Support\Collection) {
-    $meta = $metaRaw->toArray();
-  } else {
-    $meta = (array)$metaRaw;
-  }
-  // Build combined LHU numbers per sample (unique, comma-separated). Fallback: derive from sample_code as LHU-LPMF-XXX.
-  $computeLHUFromSampleCode = function($code){
+  // Build combined LHU numbers per sample (unique, comma-separated). Fallback: derive from sample_code using active LHU format.
+  $renderLHUFromSequence = function($seq) use ($numberingService, $req) {
+    $seq = is_numeric($seq) ? (int) $seq : 0;
+    if ($seq <= 0) return null;
+    try {
+      return $numberingService->preview('lhu', [
+        'investigator_id' => $req->investigator_id ?? null,
+        'request_short' => $req->request_number ?? null,
+        'doc_code' => 'LHU',
+      ], $seq);
+    } catch (\Throwable $e) {
+      return null;
+    }
+  };
+  $computeLHUFromSampleCode = function($code) use ($renderLHUFromSequence){
     if (!$code || !is_string($code)) return null;
     $c = strtoupper($code);
-    // Rule: ambil deretan angka pertama (1-3 digit) dari kode sampel format W{SEQ:3}{RM}{YYYY}
-    // lalu pad menjadi 3 digit untuk format LHU-LPMF-{SEQ:3}
-    if (preg_match('/W(\d{1,3})/i', $c, $m)) {
-      return 'LHU-LPMF-'.str_pad($m[1], 3, '0', STR_PAD_LEFT);
+    // Rule: ambil deretan angka 1-3 digit setelah prefix W (W001, W-001, W_001, W 001)
+    if (preg_match('/\bW[\s\-_]*0*(\d{1,4})\b/i', $c, $m)) {
+      return $renderLHUFromSequence($m[1]);
     }
-    if (preg_match('/(\d{1,3})(?!\d)/', $c, $m)) {
-      return 'LHU-LPMF-'.str_pad($m[1], 3, '0', STR_PAD_LEFT);
+    // Fallback: ambil 1-3 digit terakhir
+    if (preg_match('/(\d{1,4})(?!\d)/', $c, $m)) {
+      return $renderLHUFromSequence($m[1]);
     }
     return null;
   };
-  $perSampleLhus = collect($samples)->map(function($s) use ($computeLHUFromSampleCode){
+  $perSampleLhus = collect($samples)->map(function($s) use ($computeLHUFromSampleCode, $toArray){
     $cand = $s->lhu_number ?? $s->flhu_number ?? null;
     if (!$cand) {
-      $mraw = $s->metadata ?? null;
-      if (is_string($mraw)) { $dec = json_decode($mraw, true); $metaS = (json_last_error()===JSON_ERROR_NONE && is_array($dec)) ? $dec : []; }
-      elseif (is_array($mraw)) { $metaS = $mraw; }
-      elseif ($mraw instanceof \Illuminate\Support\Collection) { $metaS = $mraw->toArray(); }
-      else { $metaS = (array)$mraw; }
-      $cand = $metaS['report_number'] ?? $metaS['lhu_number'] ?? $metaS['flhu_number'] ?? null;
+      $metaS = $toArray($s->metadata ?? null);
+      $cand = $metaS['report_number'] ?? $metaS['lab_report_no'] ?? $metaS['lhu_number'] ?? $metaS['flhu_number'] ?? null;
+    }
+    if (!$cand) {
+      $procObjs = [ $s->process ?? null, $s->test_process ?? null, $s->latest_process ?? null, $s->interpretation_process ?? null, $s->sample_test_process ?? null ];
+      foreach ($procObjs as $p) {
+        if (!$p) continue;
+        $pmArr = $toArray($p->metadata ?? null);
+        $cand = $p->report_number
+          ?? $p->lhu_number
+          ?? ($pmArr['report_number'] ?? $pmArr['lab_report_no'] ?? $pmArr['lhu_number'] ?? null);
+        if ($cand) break;
+      }
+    }
+    if (!$cand && !empty($s->testProcesses)) {
+      foreach ($s->testProcesses as $p) {
+        if (!$p) continue;
+        $pmArr = $toArray($p->metadata ?? null);
+        $cand = $p->report_number
+          ?? $p->lhu_number
+          ?? ($pmArr['report_number'] ?? $pmArr['lab_report_no'] ?? $pmArr['lhu_number'] ?? null);
+        if ($cand) break;
+      }
     }
     if (!$cand) {
       $cand = $computeLHUFromSampleCode($s->sample_code ?? $s->short_description ?? '');
     }
     return $cand ? strtoupper($cand) : null;
-  })->filter()->unique()->values();
-  $allLhuNumbersStr = $perSampleLhus->isNotEmpty() ? $perSampleLhus->join(', ') : $lhuNumber;
+  })->filter()->values();
   if ($lhuNumber === '—' || empty($lhuNumber)) {
       $lhuNumber = $meta['report_number']
         ?? $meta['lab_report_no']
@@ -119,78 +157,84 @@
         ?? $meta['surat_permintaan']
         ?? $basisText;
   }
-  // Try to derive LHU number from generated folder: storage/app/public/investigators/{nrp-name-slug or nrp}/{REQ}/generated/(laporan_hasil_uji|laporan_hasil_uji_html)
-  try {
-    $invSlug = isset($invName) && strlen(trim($invName)) ? Str::slug(trim($inv?->name ?? '')) : null;
-    $invKey = $invNrp ? trim($invNrp).($invSlug ? ('-'. $invSlug) : '') : null;
-    $candidateDirs = [];
-    if ($invKey) {
-      $basePath = storage_path('app'.DIRECTORY_SEPARATOR.'public'.DIRECTORY_SEPARATOR.'investigators'.DIRECTORY_SEPARATOR.$invKey.DIRECTORY_SEPARATOR.($req->request_number).DIRECTORY_SEPARATOR.'generated');
-      $candidateDirs[] = $basePath.DIRECTORY_SEPARATOR.'laporan_hasil_uji';
-      $candidateDirs[] = $basePath.DIRECTORY_SEPARATOR.'laporan_hasil_uji_html';
-    }
-    if ($invNrp) {
-      $basePath = storage_path('app'.DIRECTORY_SEPARATOR.'public'.DIRECTORY_SEPARATOR.'investigators'.DIRECTORY_SEPARATOR.trim($invNrp).DIRECTORY_SEPARATOR.($req->request_number).DIRECTORY_SEPARATOR.'generated');
-      $candidateDirs[] = $basePath.DIRECTORY_SEPARATOR.'laporan_hasil_uji';
-      $candidateDirs[] = $basePath.DIRECTORY_SEPARATOR.'laporan_hasil_uji_html';
-    }
-    foreach ($candidateDirs as $lhuDir) {
-      if (!is_dir($lhuDir)) continue;
-      $candidates = array_merge(
-        glob($lhuDir.DIRECTORY_SEPARATOR.'Laporan_Hasil_Uji_*.*') ?: [],
-        glob($lhuDir.DIRECTORY_SEPARATOR.'laporan_hasil_uji_*.*') ?: [],
-        glob($lhuDir.DIRECTORY_SEPARATOR.'laporan-hasil-uji*.*') ?: [],
-        glob($lhuDir.DIRECTORY_SEPARATOR.'LAPORAN_HASIL_UJI_*.*') ?: [],
-        glob($lhuDir.DIRECTORY_SEPARATOR.'*laporan*hasil*uji*.*') ?: []
-      );
-      if (!empty($candidates)) {
-        usort($candidates, function($a,$b){ return filemtime($b) <=> filemtime($a); });
-        $latest = $candidates[0];
-        $base = pathinfo($latest, PATHINFO_FILENAME);
-        // Prefer strict token like LHU-LPMF-### or LHU-LPMF-###; fallback to generic
-        $lhuFromFile = null;
-        if (preg_match('/(?i)LHU[_\-]LPMF[_\-](\d{1,})\b/', $base, $m)) {
-          $digits = $m[1];
-          $lhuFromFile = 'LHU-LPMF-'.str_pad($digits, 3, '0', STR_PAD_LEFT);
-        } elseif (preg_match('/(?i)(?:^|[_\-])(?:F?LHU)[_\-]?(\d{1,})\b/', $base, $m)) {
-          $digits = $m[1];
-          $lhuFromFile = 'LHU-LPMF-'.str_pad($digits, 3, '0', STR_PAD_LEFT);
-        } elseif (preg_match('/(?i)laporan[\-_]hasil[\-_]uji[\-_]([A-Za-z0-9\-]+)/', $base, $m)) {
-          $lhuFromFile = $m[1];
-        }
-        if (!empty($lhuFromFile)) { $lhuNumber = strtoupper(str_replace([' ','_'], ['','-'], $lhuFromFile)); break; }
-      }
-    }
-  } catch (\Throwable $e) {
-    // Ignore folder parse errors; keep previous fallbacks
-  }
   // As another fallback, try to read from samples and their processes' metadata
   if ($lhuNumber === '—' || empty($lhuNumber)) {
     foreach ($samples as $s) {
       $cand = $s->lhu_number ?? $s->flhu_number ?? $s->report_number ?? null;
       if (!$cand) {
-        $mraw = $s->metadata ?? null;
-        if (is_string($mraw)) { $dec = json_decode($mraw, true); $metaS = (json_last_error() === JSON_ERROR_NONE && is_array($dec)) ? $dec : []; }
-        elseif (is_array($mraw)) { $metaS = $mraw; }
-        elseif ($mraw instanceof \Illuminate\Support\Collection) { $metaS = $mraw->toArray(); }
-        else { $metaS = (array)$mraw; }
+        $metaS = $toArray($s->metadata ?? null);
         $cand = $metaS['report_number'] ?? $metaS['lab_report_no'] ?? $metaS['lhu_number'] ?? $cand;
       }
       // Probe common process relations for metadata
       $procObjs = [ $s->process ?? null, $s->test_process ?? null, $s->latest_process ?? null, $s->interpretation_process ?? null, $s->sample_test_process ?? null ];
       foreach ($procObjs as $p) {
         if (!$p) continue;
-        $pm = $p->metadata ?? [];
-        if (is_string($pm)) { $pd = json_decode($pm, true); $pmArr = (json_last_error() === JSON_ERROR_NONE && is_array($pd)) ? $pd : []; }
-        elseif (is_array($pm)) { $pmArr = $pm; }
-        elseif ($pm instanceof \Illuminate\Support\Collection) { $pmArr = $pm->toArray(); }
-        else { $pmArr = (array)$pm; }
+        $pmArr = $toArray($p->metadata ?? null);
         $cand = $cand ?? $p->report_number ?? ($pmArr['report_number'] ?? $pmArr['lab_report_no'] ?? $pmArr['lhu_number'] ?? null);
         if ($cand) break;
+      }
+      if (!$cand && !empty($s->testProcesses)) {
+        foreach ($s->testProcesses as $p) {
+          if (!$p) continue;
+          $pmArr = $toArray($p->metadata ?? null);
+          $cand = $cand ?? $p->report_number ?? ($pmArr['report_number'] ?? $pmArr['lab_report_no'] ?? $pmArr['lhu_number'] ?? null);
+          if ($cand) break;
+        }
       }
       if ($cand) { $lhuNumber = $cand; break; }
     }
   }
+  // Try to derive LHU number from generated folder: storage/app/public/investigators/{nrp-name-slug or nrp}/{REQ}/generated/(laporan_hasil_uji|laporan_hasil_uji_html)
+  if ($perSampleLhus->isEmpty() && ($lhuNumber === '—' || empty($lhuNumber))) {
+    try {
+      $invSlug = isset($invName) && strlen(trim($invName)) ? Str::slug(trim($inv?->name ?? '')) : null;
+      $invKey = $invNrp ? trim($invNrp).($invSlug ? ('-'. $invSlug) : '') : null;
+      $candidateDirs = [];
+      if ($invKey) {
+        $basePath = storage_path('app'.DIRECTORY_SEPARATOR.'public'.DIRECTORY_SEPARATOR.'investigators'.DIRECTORY_SEPARATOR.$invKey.DIRECTORY_SEPARATOR.($req->request_number).DIRECTORY_SEPARATOR.'generated');
+        $candidateDirs[] = $basePath.DIRECTORY_SEPARATOR.'laporan_hasil_uji';
+        $candidateDirs[] = $basePath.DIRECTORY_SEPARATOR.'laporan_hasil_uji_html';
+      }
+      if ($invNrp) {
+        $basePath = storage_path('app'.DIRECTORY_SEPARATOR.'public'.DIRECTORY_SEPARATOR.'investigators'.DIRECTORY_SEPARATOR.trim($invNrp).DIRECTORY_SEPARATOR.($req->request_number).DIRECTORY_SEPARATOR.'generated');
+        $candidateDirs[] = $basePath.DIRECTORY_SEPARATOR.'laporan_hasil_uji';
+        $candidateDirs[] = $basePath.DIRECTORY_SEPARATOR.'laporan_hasil_uji_html';
+      }
+      foreach ($candidateDirs as $lhuDir) {
+        if (!is_dir($lhuDir)) continue;
+        $candidates = array_merge(
+          glob($lhuDir.DIRECTORY_SEPARATOR.'Laporan_Hasil_Uji_*.*') ?: [],
+          glob($lhuDir.DIRECTORY_SEPARATOR.'laporan_hasil_uji_*.*') ?: [],
+          glob($lhuDir.DIRECTORY_SEPARATOR.'laporan-hasil-uji*.*') ?: [],
+          glob($lhuDir.DIRECTORY_SEPARATOR.'LAPORAN_HASIL_UJI_*.*') ?: [],
+          glob($lhuDir.DIRECTORY_SEPARATOR.'*laporan*hasil*uji*.*') ?: []
+        );
+        if (!empty($candidates)) {
+          usort($candidates, function($a,$b){ return filemtime($b) <=> filemtime($a); });
+          $latest = $candidates[0];
+          $base = pathinfo($latest, PATHINFO_FILENAME);
+          // Prefer strict token like LHU-LPMF-### or LHU-LPMF-###; fallback to generic
+          $lhuFromFile = null;
+          if (preg_match('/(?i)LHU[_\-]LPMF[_\-](\d{1,})\b/', $base, $m)) {
+            $digits = $m[1];
+            $lhuFromFile = 'LHU-LPMF-'.str_pad($digits, 3, '0', STR_PAD_LEFT);
+          } elseif (preg_match('/(?i)(?:^|[_\-])(?:F?LHU)[_\-]?(\d{1,})\b/', $base, $m)) {
+            $digits = $m[1];
+            $lhuFromFile = 'LHU-LPMF-'.str_pad($digits, 3, '0', STR_PAD_LEFT);
+          } elseif (preg_match('/(?i)laporan[\-_]hasil[\-_]uji[\-_]([A-Za-z0-9\-]+)/', $base, $m)) {
+            $lhuFromFile = $m[1];
+          }
+          if (!empty($lhuFromFile)) { $lhuNumber = strtoupper(str_replace([' ','_'], ['','-'], $lhuFromFile)); break; }
+        }
+      }
+    } catch (\Throwable $e) {
+      // Ignore folder parse errors; keep previous fallbacks
+    }
+  }
+  if ($lhuNumber && $lhuNumber !== '—') {
+    $lhuNumber = strtoupper($lhuNumber);
+  }
+  $allLhuNumbersStr = $perSampleLhus->isNotEmpty() ? $perSampleLhus->join(', ') : ($lhuNumber ?: '—');
   // Helpers untuk menyamakan perhitungan Sisa dengan halaman Delivery
   $formatQuantity = static function ($value): ?string {
       if ($value === null || $value === '') {
@@ -278,16 +322,16 @@
 <body>
 
   <div class="header">
-    @if(file_exists(public_path('images/logo-tribrata-polri.png')))
-      <img class="logo logo-left" src="{{ public_path('images/logo-tribrata-polri.png') }}" alt="">
+    @if(file_exists($leftLogoPath))
+      <img class="logo logo-left" src="{{ $leftLogoSrc }}" alt="">
     @endif
     <div class="center">
       <div class="instansi">PUSAT KEDOKTERAN DAN KESEHATAN POLRI</div>
       <div class="lab">LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN</div>
       <div class="meta">Jl. Cipinang Baru Raya No.3B, Jakarta Timur 13240 • Telp/Fax: 021-4700921 • Email: labmutufarmapol@gmail.com</div>
     </div>
-    @if(file_exists(public_path('images/logo-pusdokkes-polri.png')))
-      <img class="logo logo-right" src="{{ public_path('images/logo-pusdokkes-polri.png') }}" alt="">
+    @if(file_exists($rightLogoPath))
+      <img class="logo logo-right" src="{{ $rightLogoSrc }}" alt="">
     @endif
   </div>
 

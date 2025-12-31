@@ -15,6 +15,7 @@ export class SettingsClient {
             branding: '/api/settings/branding',
             pdfPreview: '/api/settings/pdf/preview',
             localization: '/api/settings/localization-retention',
+            localizationTimePreview: '/api/settings/localization/time-preview',
             notificationsSecurity: '/api/settings/notifications-security',
             notificationsTest: '/api/settings/notifications/test',
             documents: '/api/settings/documents',
@@ -128,7 +129,7 @@ export class SettingsClient {
      */
     async apiFetch(url, options = {}) {
         const { method = 'GET', body = null, headers = {} } = options;
-        
+
         const requestHeaders = {
             'Accept': 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
@@ -164,7 +165,7 @@ export class SettingsClient {
             if (response.ok) {
                 return response; // Return raw response for blob/pdf handling
             }
-            
+
             // For error responses with non-JSON content (like HTML error pages),
             // read text and create a meaningful error message
             const textBody = await response.text().catch(() => '');
@@ -212,7 +213,7 @@ export class SettingsClient {
     async loadAll() {
         this.state.pageLoading = true;
         this.state.loadError = '';
-        
+
         try {
             await Promise.all([
                 this.fetchSettings(),
@@ -248,7 +249,7 @@ export class SettingsClient {
         this.state.currentNumberingLoading = true;
         try {
             const data = await this.apiFetch(this.api.numberingCurrent);
-            
+
             // Backend now returns plain strings { sample_code: "W001XII2025", ba: "BA/2025/12/0001", ... }
             // No need for complex extraction logic
             this.state.currentNumbering = {
@@ -286,10 +287,10 @@ export class SettingsClient {
      */
     async testPreview(scope) {
         console.log('SettingsClient.testPreview called', { scope, currentForm: this.state.form.numbering?.[scope] });
-        
+
         // Ensure previewState exists
         this.state.previewState = this.state.previewState || { numbering: false };
-        
+
         // Special case: 'numbering' means test all scopes
         if (scope === 'numbering') {
             this.state.previewState.numbering = true;
@@ -304,19 +305,19 @@ export class SettingsClient {
             }
             return;
         }
-        
+
         // Individual scope preview
         // Use object spread to trigger Alpine reactivity
         this.state.previewLoading = { ...this.state.previewLoading, [scope]: true };
         this.clearScopeError(scope);
-        
+
         try {
             // CRITICAL: Deep clone to plain object (avoid Alpine Proxy serialization issues)
             const scopeConfig = this.toPlainObject(this.state.form.numbering?.[scope]) || {};
-            
+
             console.log('🔍 [testPreview] Starting preview for scope:', scope);
             console.log('📋 Config from state:', scopeConfig);
-            
+
             // Backend expects: { scope: string, config: { numbering: { [scope]: {...} } } }
             // OR simpler: { scope: string, pattern: string }
             const payload = {
@@ -331,37 +332,37 @@ export class SettingsClient {
                     }
                 }
             };
-            
+
             console.log('→ POST /api/settings/numbering/preview', JSON.stringify(payload, null, 2));
-            
+
             const data = await this.apiFetch(this.api.numberingPreview, {
                 method: 'POST',
                 body: payload,
             });
-            
+
             // Backend returns: { example: "..." }
             const previewValue = data.example ?? data.preview ?? data.value ?? data.data?.example ?? '';
-            
+
             console.log('✓ Preview response:', data);
             console.log('✓ Extracted preview value:', previewValue);
-            
+
             if (!previewValue || previewValue === '') {
                 throw new Error('Preview kosong. Periksa pattern penomoran.');
             }
-            
+
             // CRITICAL: Reassign entire object to trigger Alpine reactivity
             this.state.numberingPreview = {
                 ...this.state.numberingPreview,
                 [scope]: previewValue
             };
-            
+
             console.log('✓ State updated:', { scope, value: this.state.numberingPreview[scope] });
             this.setScopeStatus(scope, 'Preview berhasil!', 'text-green-600');
         } catch (error) {
             console.error('✗ Preview error:', error);
             const errorMessage = error.message || 'Gagal melakukan preview penomoran.';
             this.setScopeError(scope, errorMessage);
-            
+
             // Set explicit error marker (not empty string)
             this.state.numberingPreview = {
                 ...this.state.numberingPreview,
@@ -468,7 +469,7 @@ export class SettingsClient {
      */
     async previewPdf() {
         console.log('SettingsClient.previewPdf called', { branding: this.state.form.branding, pdf: this.state.form.pdf });
-        
+
         this.state.pdfPreviewLoading = true;
         this.state.pdfPreviewError = '';
 
@@ -479,7 +480,7 @@ export class SettingsClient {
 
         try {
             console.log('→ POST /api/settings/pdf/preview', { branding: this.state.form.branding, pdf: this.state.form.pdf });
-            
+
             const response = await fetch(this.api.pdfPreview, {
                 method: 'POST',
                 headers: {
@@ -598,7 +599,7 @@ export class SettingsClient {
         } catch (error) {
             // Parse validation errors if available
             const errorMessage = error.message || 'Gagal menyimpan pengaturan penomoran.';
-            
+
             // Check if it's a validation error with field-specific messages
             if (errorMessage.includes(':')) {
                 // Parse field:message format
@@ -626,7 +627,7 @@ export class SettingsClient {
      */
     async saveSection(key) {
         const config = this.sectionEndpoint(key);
-        if (!config) return;
+        if (!config) return false;
 
         this.setSectionError(key, '');
         this.setSectionStatus(key, '', 'text-primary-600');
@@ -645,9 +646,11 @@ export class SettingsClient {
             } else {
                 await this.fetchSettings();
             }
+            return true;
         } catch (error) {
             this.setSectionError(key, error.message || 'Gagal menyimpan pengaturan.');
             this.setSectionStatus(key, 'Gagal menyimpan.', 'text-red-600');
+            return false;
         } finally {
             this.setSectionLoading(key, false);
         }
@@ -774,13 +777,13 @@ export class SettingsClient {
 
     applyServerData(payload) {
         const data = (payload && (payload.settings || payload.data)) || payload || {};
-        
+
         // Map backend keys to frontend keys before merging
         // Backend returns 'localization', frontend uses 'locale'
         if (data.localization && !data.locale) {
             data.locale = data.localization;
         }
-        
+
         // Merge form data instead of replacing to preserve default state structure
         this.state.form = { ...this.state.form, ...this.mergeDefaults(this.clone(data)) };
         this.hydrateActiveTemplates(data.templates?.active ?? this.state.activeTemplates);
@@ -821,9 +824,13 @@ export class SettingsClient {
         form.pdf.footer ??= {};
         form.pdf.qr ??= { enabled: false };
         form.locale ??= {};
+        // Ensure locale is an object, not an array (server may return empty array)
+        if (Array.isArray(form.locale) || typeof form.locale !== 'object') {
+            form.locale = {};
+        }
         form.retention ??= {};
         // Only set defaults if field doesn't exist, preserve server values including empty strings
-        if (!('storage_driver' in form.retention)) form.retention.storage_driver = 'local';
+        if (!('storage_driver' in form.retention)) form.retention.storage_driver = 'public';
         if (!('storage_folder_path' in form.retention)) form.retention.storage_folder_path = '';
         if (!('purge_after_days' in form.retention)) form.retention.purge_after_days = 365;
         if (!('export_filename_pattern' in form.retention)) form.retention.export_filename_pattern = '';
@@ -994,8 +1001,8 @@ export class SettingsClient {
     }
 
     get allDocumentsSelected() {
-        return this.state.documents.length > 0 && 
-               this.state.selectedDocuments.length === this.state.documents.length;
+        return this.state.documents.length > 0 &&
+            this.state.selectedDocuments.length === this.state.documents.length;
     }
 
     async bulkDeleteDocuments() {
@@ -1008,7 +1015,7 @@ export class SettingsClient {
         this.setSectionError('documents', '');
 
         const selectedPaths = [...this.state.selectedDocuments];
-        const documents = this.state.documents.filter(doc => 
+        const documents = this.state.documents.filter(doc =>
             selectedPaths.includes(doc.path)
         );
 
@@ -1038,7 +1045,7 @@ export class SettingsClient {
         if (successCount > 0) {
             this.setSectionStatus(
                 'documents',
-                `${successCount} dokumen berhasil dihapus.` + 
+                `${successCount} dokumen berhasil dihapus.` +
                 (failCount > 0 ? ` ${failCount} gagal.` : ''),
                 failCount > 0 ? 'text-amber-600' : 'text-emerald-600'
             );
@@ -1077,8 +1084,8 @@ export class SettingsClient {
     }
 
     get allDocumentsSelected() {
-        return this.state.documents.length > 0 && 
-               this.state.selectedDocuments.length === this.state.documents.length;
+        return this.state.documents.length > 0 &&
+            this.state.selectedDocuments.length === this.state.documents.length;
     }
 
     async bulkDeleteDocuments() {
@@ -1091,7 +1098,7 @@ export class SettingsClient {
         this.setSectionError('documents', '');
 
         const selectedPaths = [...this.state.selectedDocuments];
-        const documents = this.state.documents.filter(doc => 
+        const documents = this.state.documents.filter(doc =>
             selectedPaths.includes(doc.path)
         );
 
@@ -1121,7 +1128,7 @@ export class SettingsClient {
         if (successCount > 0) {
             this.setSectionStatus(
                 'documents',
-                `${successCount} dokumen berhasil dihapus.` + 
+                `${successCount} dokumen berhasil dihapus.` +
                 (failCount > 0 ? ` ${failCount} gagal.` : ''),
                 failCount > 0 ? 'text-amber-600' : 'text-emerald-600'
             );
@@ -1184,7 +1191,7 @@ export class SettingsClient {
      */
     toPlainObject(obj) {
         if (obj === null || obj === undefined) return {};
-        
+
         // Use structuredClone if available (modern browsers)
         if (typeof structuredClone === 'function') {
             try {
@@ -1193,7 +1200,7 @@ export class SettingsClient {
                 // Fallback to JSON method
             }
         }
-        
+
         // Fallback: JSON stringify/parse
         try {
             return JSON.parse(JSON.stringify(obj));

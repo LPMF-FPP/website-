@@ -112,7 +112,7 @@
 <body>
     <div class="label">
         <div class="label-header">
-            <h1>Label Barang Bukti</h1>
+            <h1>Barang Bukti</h1>
             <div class="subtitle">LPMF - Pusdokkes Polri</div>
         </div>
         

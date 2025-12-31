@@ -38,238 +38,187 @@
 
                     @csrf
 
-                    <!-- 1. Data Penyidik Section (Direvisi) -->
-
-                    <div class="bg-blue-50 p-6 rounded-lg border border-blue-200">
-
-                        <h3 class="text-lg font-semibold text-blue-900 mb-4 flex items-center">
-
+                    {{-- Investigator Type Question --}}
+                    <div class="bg-indigo-50 p-6 rounded-lg border border-indigo-200 mb-6">
+                        <h3 class="text-lg font-semibold text-indigo-900 mb-4 flex items-center">
                             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-
-                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
-
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path>
                             </svg>
-
-                            Data Penyidik
-
+                            Apakah Anda penyidik?
                         </h3>
-
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-                            <!-- Nama Penyidik -->
-
-                            <div>
-
-                                <label for="investigator_name" class="block text-sm font-medium text-gray-700 mb-2">
-
-                                    Nama Penyidik <span class="text-red-500">*</span>
-
-                                </label>
-
-                                <input type="text"
-
-                                       name="investigator_name"
-
-                                       id="investigator_name"
-
-                                       required
-
-                                       value="{{ old('investigator_name') }}"
-
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('investigator_name') border-red-500 @enderror"
-
-                                       placeholder="Masukkan nama penyidik">
-
-                                @error('investigator_name')
-
-                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-
-                                @enderror
-
-                            </div>
-
-                            <!-- NRP Penyidik (BARU) -->
-
-                            <div>
-
-                                <label for="investigator_nrp" class="block text-sm font-medium text-gray-700 mb-2">
-
-                                    NRP Penyidik <span class="text-red-500">*</span>
-
-                                </label>
-
-                                <input type="text"
-
-                                       name="investigator_nrp"
-
-                                       id="investigator_nrp"
-
-                                       required
-
-                                       value="{{ old('investigator_nrp') }}"
-
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('investigator_nrp') border-red-500 @enderror"
-
-                                       placeholder="Contoh: 87010123"
-
-                                       pattern="[0-9]{8}"
-
-                                       maxlength="8">
-
-                                @error('investigator_nrp')
-
-                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-
-                                @enderror
-
-                                <p class="mt-1 text-xs text-gray-500">Format: 8 digit angka</p>
-
-                            </div>
-
-                            <!-- Pangkat -->
-
-                            <div>
-
-                                <label for="investigator_rank" class="block text-sm font-medium text-gray-700 mb-2">
-
-                                    Pangkat <span class="text-red-500">*</span>
-
-                                </label>
-
-                                <select name="investigator_rank"
-
-                                        id="investigator_rank"
-
-                                        required
-
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('investigator_rank') border-red-500 @enderror">
-
-                                    <option value="">Pilih Pangkat</option>
-
-                                    <option value="BRIPDA" {{ old('investigator_rank') == 'BRIPDA' ? 'selected' : '' }}>BRIPDA</option>
-
-                                    <option value="BRIPTU" {{ old('investigator_rank') == 'BRIPTU' ? 'selected' : '' }}>BRIPTU</option>
-
-                                    <option value="BRIGADIR" {{ old('investigator_rank') == 'BRIGADIR' ? 'selected' : '' }}>BRIGADIR</option>
-
-                                    <option value="BRIPKA" {{ old('investigator_rank') == 'BRIPKA' ? 'selected' : '' }}>BRIPKA</option>
-
-                                    <option value="AIPDA" {{ old('investigator_rank') == 'AIPDA' ? 'selected' : '' }}>AIPDA</option>
-                                    <option value="AIPTU" {{ old('investigator_rank') == 'AIPTU' ? 'selected' : '' }}>AIPTU</option>
-
-                                    <option value="IPDA" {{ old('investigator_rank') == 'IPDA' ? 'selected' : '' }}>IPDA</option>
-
-                                    <option value="IPTU" {{ old('investigator_rank') == 'IPTU' ? 'selected' : '' }}>IPTU</option>
-                                    <option value="AKP" {{ old('investigator_rank') == 'AKP' ? 'selected' : '' }}>AKP</option>
-
-                                    <option value="KOMPOL" {{ old('investigator_rank') == 'KOMPOL' ? 'selected' : '' }}>KOMPOL</option>
-
-                                </select>
-
-                                @error('investigator_rank')
-
-                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-
-                                @enderror
-
-                            </div>
-
-                            <!-- Satuan / Wilayah Hukum -->
-
-                            <div>
-
-                                <label for="investigator_jurisdiction" class="block text-sm font-medium text-gray-700 mb-2">
-
-                                    Satuan / Wilayah Hukum <span class="text-red-500">*</span>
-
-                                </label>
-
-                                <input type="text"
-
-                                       name="investigator_jurisdiction"
-
-                                       id="investigator_jurisdiction"
-
-                                       required
-
-                                       value="{{ old('investigator_jurisdiction') }}"
-
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('investigator_jurisdiction') border-red-500 @enderror"
-
-                                       placeholder="Contoh: Polres Jakarta Pusat">
-
-                                @error('investigator_jurisdiction')
-
-                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-
-                                @enderror
-
-                            </div>
-
-                            <!-- Alamat Penyidik (BARU) -->
-
-                            <div class="md:col-span-2">
-
-                                <label for="investigator_address" class="block text-sm font-medium text-gray-700 mb-2">
-
-                                    Alamat Penyidik <span class="text-red-500">*</span>
-
-                                </label>
-
-                                <textarea name="investigator_address"
-
-                                          id="investigator_address"
-
-                                          rows="3"
-
-                                          required
-
-                                          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('investigator_address') border-red-500 @enderror"
-
-                                          placeholder="Alamat lengkap penyidik">{{ old('investigator_address') }}</textarea>
-
-                                @error('investigator_address')
-
-                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-
-                                @enderror
-
-                            </div>
-
-                            <!-- Nomor Telepon -->
-
-                            <div>
-
-                                <label for="investigator_phone" class="block text-sm font-medium text-gray-700 mb-2">
-
-                                    Nomor Telepon <span class="text-red-500">*</span>
-
-                                </label>
-
-                                <input type="tel"
-
-                                       name="investigator_phone"
-
-                                       id="investigator_phone"
-
-                                       required
-
-                                       value="{{ old('investigator_phone') }}"
-
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('investigator_phone') border-red-500 @enderror"
-
-                                       placeholder="08XX-XXXX-XXXX">
-
-                                @error('investigator_phone')
-
-                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-
-                                @enderror
-
-                            </div>
-
+                        <div class="flex gap-6">
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="radio" name="is_investigator" value="1" 
+                                       {{ old('is_investigator', '1') == '1' ? 'checked' : '' }}
+                                       class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="text-gray-700 font-medium">Ya, saya penyidik/anggota Polri</span>
+                            </label>
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="radio" name="is_investigator" value="0"
+                                       {{ old('is_investigator') == '0' ? 'checked' : '' }}
+                                       class="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500">
+                                <span class="text-gray-700 font-medium">Bukan anggota Polri</span>
+                            </label>
                         </div>
+                    </div>
 
+                    {{-- Investigator Section (Polri) --}}
+                    <div class="block-investigator bg-blue-50 p-6 rounded-lg border border-blue-200">
+                        <h3 class="text-lg font-semibold text-blue-900 mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                            </svg>
+                            Data Penyidik
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <label for="investigator_name" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Nama Penyidik <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text" name="investigator_name" id="investigator_name"
+                                       value="{{ old('investigator_name') }}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('investigator_name') border-red-500 @enderror"
+                                       placeholder="Masukkan nama penyidik">
+                                @error('investigator_name')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            <div>
+                                <label for="investigator_nrp" class="block text-sm font-medium text-gray-700 mb-2">
+                                    NRP Penyidik <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text" name="investigator_nrp" id="investigator_nrp"
+                                       value="{{ old('investigator_nrp') }}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('investigator_nrp') border-red-500 @enderror"
+                                       placeholder="Contoh: 87010123" pattern="[0-9]{8}" maxlength="8">
+                                @error('investigator_nrp')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                                <p class="mt-1 text-xs text-gray-500">Format: 8 digit angka</p>
+                            </div>
+                            <div>
+                                <label for="investigator_rank" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Pangkat <span class="text-red-500">*</span>
+                                </label>
+                                <select name="investigator_rank" id="investigator_rank"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('investigator_rank') border-red-500 @enderror">
+                                    <option value="">Pilih Pangkat</option>
+                                    @foreach(['BRIPDA', 'BRIPTU', 'BRIGADIR', 'BRIPKA', 'AIPDA', 'AIPTU', 'IPDA', 'IPTU', 'AKP', 'KOMPOL'] as $rank)
+                                        <option value="{{ $rank }}" {{ old('investigator_rank') == $rank ? 'selected' : '' }}>{{ $rank }}</option>
+                                    @endforeach
+                                </select>
+                                @error('investigator_rank')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            <div>
+                                <label for="investigator_jurisdiction" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Satuan / Wilayah Hukum <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text" name="investigator_jurisdiction" id="investigator_jurisdiction"
+                                       value="{{ old('investigator_jurisdiction') }}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('investigator_jurisdiction') border-red-500 @enderror"
+                                       placeholder="Contoh: Polres Jakarta Pusat">
+                                @error('investigator_jurisdiction')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="investigator_address" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Alamat Penyidik
+                                </label>
+                                <textarea name="investigator_address" id="investigator_address" rows="2"
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('investigator_address') border-red-500 @enderror"
+                                          placeholder="Alamat lengkap penyidik">{{ old('investigator_address') }}</textarea>
+                                @error('investigator_address')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            <div>
+                                <label for="investigator_phone" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Nomor Telepon <span class="text-red-500">*</span>
+                                </label>
+                                <input type="tel" name="investigator_phone" id="investigator_phone"
+                                       value="{{ old('investigator_phone') }}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('investigator_phone') border-red-500 @enderror"
+                                       placeholder="08XX-XXXX-XXXX">
+                                @error('investigator_phone')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- External Section (Non-Polri) - Hidden by default --}}
+                    <div class="block-external bg-green-50 p-6 rounded-lg border border-green-200" style="display: none;">
+                        <h3 class="text-lg font-semibold text-green-900 mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                            </svg>
+                            Data Pemohon
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="external_name" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Nama <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text" name="external_name" id="external_name"
+                                       value="{{ old('external_name') }}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('external_name') border-red-500 @enderror"
+                                       placeholder="Nama lengkap">
+                                @error('external_name')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            <div>
+                                <label for="external_phone" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Nomor Telepon <span class="text-red-500">*</span>
+                                </label>
+                                <input type="tel" name="external_phone" id="external_phone"
+                                       value="{{ old('external_phone') }}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('external_phone') border-red-500 @enderror"
+                                       placeholder="Nomor telepon kantor/instansi">
+                                @error('external_phone')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            <div>
+                                <label for="external_institution" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Instansi <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text" name="external_institution" id="external_institution"
+                                       value="{{ old('external_institution') }}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('external_institution') border-red-500 @enderror"
+                                       placeholder="Nama instansi">
+                                @error('external_institution')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            <div>
+                                <label for="external_hp" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Nomor HP <span class="text-red-500">*</span>
+                                </label>
+                                <input type="tel" name="external_hp" id="external_hp"
+                                       value="{{ old('external_hp') }}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('external_hp') border-red-500 @enderror"
+                                       placeholder="08XX-XXXX-XXXX">
+                                @error('external_hp')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="external_occupation" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Pekerjaan <span class="text-red-500">*</span>
+                                </label>
+                                <input type="text" name="external_occupation" id="external_occupation"
+                                       value="{{ old('external_occupation') }}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('external_occupation') border-red-500 @enderror"
+                                       placeholder="Pekerjaan/jabatan">
+                                @error('external_occupation')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        </div>
                     </div>
 
                     <!-- 2. Informasi Surat Section (Direvisi) -->
@@ -376,117 +325,106 @@
 
                                 @enderror
 
-                            </div>
-
-                            <!-- Tersangka (BARU) -->
-
-                            <div>
-
-                                <label for="suspect_name" class="block text-sm font-medium text-gray-700 mb-2">
-
-                                    Nama Tersangka <span class="text-red-500">*</span>
-
-                                </label>
-
-                                <input type="text"
-
-                                       name="suspect_name"
-
-                                       id="suspect_name"
-
-                                       required
-
-                                       value="{{ old('suspect_name') }}"
-
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('suspect_name') border-red-500 @enderror"
-
-                                       placeholder="Nama lengkap tersangka">
-
-                                @error('suspect_name')
-
-                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-
-                                @enderror
-
-                            </div>
-
-                            <!-- Jenis Kelamin Tersangka -->
-
-                            <div>
-
-                                <label for="suspect_gender" class="block text-sm font-medium text-gray-700 mb-2">
-
-                                    Jenis Kelamin Tersangka
-
-                                </label>
-
-                                <select name="suspect_gender"
-
-                                        id="suspect_gender"
-
-                                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('suspect_gender') border-red-500 @enderror">
-
-                                    <option value="">Pilih Jenis Kelamin</option>
-
-                                    <option value="male" {{ old('suspect_gender') == 'male' ? 'selected' : '' }}>Laki-laki</option>
-
-                                    <option value="female" {{ old('suspect_gender') == 'female' ? 'selected' : '' }}>Perempuan</option>
-
-                                </select>
-
-                                @error('suspect_gender')
-
-                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-
-                                @enderror
-
-                            </div>
-
-                            <!-- Umur Tersangka -->
-
-                            <div>
-
-                                <label for="suspect_age" class="block text-sm font-medium text-gray-700 mb-2">
-
-                                    Umur Tersangka
-
-                                </label>
-
-                                <input type="number"
-
-                                       name="suspect_age"
-
-                                       id="suspect_age"
-
-                                       min="0"
-
-                                       max="120"
-
-                                       value="{{ old('suspect_age') }}"
-
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('suspect_age') border-red-500 @enderror"
-
-                                       placeholder="Contoh: 35">
-
-                                @error('suspect_age')
-
-                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-
-                                @enderror
-
-                            </div>
-
                         </div>
 
-                        <!-- Upload Surat Permintaan -->
+                            </div> {{-- End grid --}}
+                        </div> {{-- End Informasi Surat Section --}}
 
-                        <div class="mt-6">
+                    {{-- 3. Data Tersangka Section --}}
+                    <div class="bg-orange-50 p-6 rounded-lg border border-orange-200">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-semibold text-orange-900 flex items-center">
+                                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path>
+                                </svg>
+                                Data Tersangka
+                            </h3>
+                            <button type="button" id="add-suspect"
+                                    class="inline-flex items-center px-3 py-1.5 border border-orange-600 text-sm font-medium rounded-md text-orange-700 bg-orange-100 hover:bg-orange-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition">
+                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path>
+                                </svg>
+                                Tambah Tersangka
+                            </button>
+                        </div>
+                        <div id="suspects-container" class="space-y-4">
+                            @php
+                                $suspects = old('suspects', [['name' => '', 'gender' => '', 'age' => '']]);
+                            @endphp
+                            @foreach($suspects as $idx => $suspect)
+                            <div class="suspect-row bg-white p-4 rounded-lg border border-gray-200 shadow-sm" data-index="{{ $idx }}">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h4 class="font-semibold text-gray-800 flex items-center">
+                                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-orange-600 text-white text-sm font-bold mr-2">{{ $idx + 1 }}</span>
+                                        Tersangka {{ $idx + 1 }}
+                                    </h4>
+                                    @if($idx > 0)
+                                    <button type="button" class="remove-suspect inline-flex items-center px-2 py-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded text-sm font-medium transition">
+                                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Hapus
+                                    </button>
+                                    @endif
+                                </div>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div class="md:col-span-1">
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            Nama Lengkap <span class="text-red-500">*</span>
+                                        </label>
+                                        <input type="text"
+                                               name="suspects[{{ $idx }}][name]"
+                                               required
+                                               value="{{ $suspect['name'] ?? '' }}"
+                                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500"
+                                               placeholder="Nama lengkap tersangka">
+                                        @error("suspects.{$idx}.name")
+                                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                        @enderror
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            Jenis Kelamin
+                                        </label>
+                                        <select name="suspects[{{ $idx }}][gender]"
+                                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500">
+                                            <option value="">Pilih</option>
+                                            <option value="male" {{ ($suspect['gender'] ?? '') == 'male' ? 'selected' : '' }}>Laki-laki</option>
+                                            <option value="female" {{ ($suspect['gender'] ?? '') == 'female' ? 'selected' : '' }}>Perempuan</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                                            Umur (tahun)
+                                        </label>
+                                        <input type="number"
+                                               name="suspects[{{ $idx }}][age]"
+                                               min="0"
+                                               max="120"
+                                               value="{{ $suspect['age'] ?? '' }}"
+                                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500"
+                                               placeholder="Umur">
+                                    </div>
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
 
-                            <label for="request_letter" class="block text-sm font-medium text-gray-700 mb-2">
-
-                                Surat Permintaan Pengujian <span class="text-red-500">*</span>
-
-                            </label>
+                    {{-- 4. Upload Dokumen Section --}}
+                    <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
+                            </svg>
+                            Upload Dokumen
+                        </h3>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label for="request_letter" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Surat Permintaan Pengujian <span class="text-red-500">*</span>
+                                </label>
 
                             <div id="request_letter_dropzone" class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-blue-400 transition-colors duration-200">
 
@@ -1081,5 +1019,7 @@ function checkRemoveButtons() {
     }
 }
 </script>
+
+@vite('resources/js/pages/requests-form.js')
 
 </x-app-layout>

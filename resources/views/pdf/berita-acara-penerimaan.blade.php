@@ -80,6 +80,12 @@
         }
         return '—';
     };
+
+    $isPreview = $isPreview ?? false;
+    $leftLogoPath = public_path('images/logo-tribrata-polri.png');
+    $rightLogoPath = public_path('images/logo-pusdokkes-polri.png');
+    $leftLogoSrc = $isPreview ? asset('images/logo-tribrata-polri.png') : $leftLogoPath;
+    $rightLogoSrc = $isPreview ? asset('images/logo-pusdokkes-polri.png') : $rightLogoPath;
 @endphp
 <!DOCTYPE html>
 <html lang="id">
@@ -132,16 +138,16 @@
 <body>
 
   <div class="header">
-    @if(file_exists(public_path('images/logo-tribrata-polri.png')))
-      <img class="logo logo-left" src="{{ public_path('images/logo-tribrata-polri.png') }}" alt="Logo Polri">
+    @if(file_exists($leftLogoPath))
+      <img class="logo logo-left" src="{{ $leftLogoSrc }}" alt="Logo Polri">
     @endif
     <div class="center">
       <div class="instansi">PUSAT KEDOKTERAN DAN KESEHATAN POLRI</div>
       <div class="lab">LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN</div>
       <div class="meta">Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240 • Telp/Fax: 021-4700921 • Email: labmutufarmapol@gmail.com</div>
     </div>
-    @if(file_exists(public_path('images/logo-pusdokkes-polri.png')))
-      <img class="logo logo-right" src="{{ public_path('images/logo-pusdokkes-polri.png') }}" alt="Logo Pusdokkes">
+    @if(file_exists($rightLogoPath))
+      <img class="logo logo-right" src="{{ $rightLogoSrc }}" alt="Logo Pusdokkes">
     @endif
   </div>
 

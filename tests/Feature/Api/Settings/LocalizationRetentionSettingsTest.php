@@ -42,6 +42,27 @@ class LocalizationRetentionSettingsTest extends TestCase
         $setting = SystemSetting::where('key', 'locale.timezone')->first();
         $this->assertNotNull($setting);
         $this->assertEquals('Asia/Jakarta', $setting->value);
+
+        $setting = SystemSetting::where('key', 'localization.timezone')->first();
+        $this->assertNotNull($setting);
+        $this->assertEquals('Asia/Jakarta', $setting->value);
+    }
+
+    public function test_rejects_invalid_timezone(): void
+    {
+        $this->actingAs($this->admin);
+
+        $payload = [
+            'localization' => [
+                'timezone' => 'Invalid/Zone',
+            ],
+        ];
+
+        $response = $this->putJson('/api/settings/localization-retention', $payload);
+
+        $response->assertUnprocessable()
+            ->assertJsonValidationErrors(['localization.timezone'])
+            ->assertJsonFragment(['Invalid timezone']);
     }
 
     public function test_can_update_retention_settings(): void

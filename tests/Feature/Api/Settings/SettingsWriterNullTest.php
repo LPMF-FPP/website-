@@ -9,6 +9,27 @@ uses(DatabaseTransactions::class);
 
 beforeEach(function () {
     $this->user = User::factory()->create();
+    
+    // Clean up any seeded settings that might conflict with test assertions
+    SystemSetting::whereIn('key', [
+        'retention.purge_after_days',
+        'retention.storage_driver',
+        'retention.storage_folder_path',
+        'retention.export_filename_pattern',
+        'retention.base_path',
+        'locale.timezone',
+        'locale.date_format',
+        'locale.language',
+        'notifications.email_enabled',
+        'notifications.whatsapp_enabled',
+    ])->delete();
+    
+    // Also delete nested format keys
+    SystemSetting::where('key', 'LIKE', 'retention.%')->delete();
+    SystemSetting::where('key', 'LIKE', 'locale.%')->delete();
+    SystemSetting::where('key', 'LIKE', 'notifications.%')->delete();
+    
+    settings_forget_cache();
 });
 
 it('handles null values in retention settings without database constraint violation', function () {

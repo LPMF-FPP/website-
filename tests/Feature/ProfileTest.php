@@ -24,12 +24,13 @@ class ProfileTest extends TestCase
     public function test_profile_information_can_be_updated(): void
     {
         $user = User::factory()->create();
+        $newEmail = 'updated-' . uniqid() . '@example.com';
 
         $response = $this
             ->actingAs($user)
             ->patch('/profile', [
                 'name' => 'Test User',
-                'email' => 'test@example.com',
+                'email' => $newEmail,
             ]);
 
         $response
@@ -39,7 +40,7 @@ class ProfileTest extends TestCase
         $user->refresh();
 
         $this->assertSame('Test User', $user->name);
-        $this->assertSame('test@example.com', $user->email);
+        $this->assertSame($newEmail, $user->email);
         $this->assertNull($user->email_verified_at);
     }
 

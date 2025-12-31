@@ -170,5 +170,10 @@ class TestRequest extends Model
         return $this->hasMany(EvidenceUnit::class, 'request_id');
     }
 
+    public function suspects(): HasMany
+    {
+        return $this->hasMany(Suspect::class)->orderBy('order_no');
+    }
+
 }
 

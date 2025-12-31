@@ -14,14 +14,8 @@ class ApplyLocaleFromSettings
      */
     public function handle(Request $request, Closure $next)
     {
-        $tz = settings('locale.timezone', config('app.timezone', 'UTC'));
         $sessionLocale = session('app_locale');
-        $lang = $sessionLocale ?: settings('locale.language', config('app.locale', 'en'));
-
-        if ($tz) {
-            config(['app.timezone' => $tz]);
-            @date_default_timezone_set($tz);
-        }
+        $lang = $sessionLocale ?: settings('localization.language', settings('locale.language', config('app.locale', 'en')));
 
         if ($lang) {
             config(['app.locale' => $lang]);

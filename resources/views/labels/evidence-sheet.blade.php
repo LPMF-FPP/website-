@@ -139,7 +139,7 @@
                         <td style="width:50%; vertical-align:top; padding-right:4mm; padding-bottom:2mm;">
                             <div class="label">
                                 <div class="label-header">
-                                    <h1>Label Barang Bukti</h1>
+                                    <h1>Barang Bukti</h1>
                                     <div class="subtitle">LPMF - Laboratorium Farmapol Pusdokkes Polri</div>
                                 </div>
 

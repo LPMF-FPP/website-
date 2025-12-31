@@ -61,8 +61,17 @@
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-primary-800">
                                             {{ $request->investigator->name }} ({{ $request->investigator->rank }})
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-primary-800">
-                                            {{ $request->suspect_name }}
+                                        <td class="px-6 py-4 text-sm text-primary-800">
+                                            @if($request->suspects->count() > 0)
+                                                <div class="flex flex-col gap-1">
+                                                    <span class="font-medium">{{ $request->suspects->first()->name }}</span>
+                                                    @if($request->suspects->count() > 1)
+                                                        <span class="text-xs text-primary-500">+{{ $request->suspects->count() - 1 }} tersangka lainnya</span>
+                                                    @endif
+                                                </div>
+                                            @else
+                                                {{ $request->suspect_name ?? '-' }}
+                                            @endif
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <x-status-badge :status="$request->status" />

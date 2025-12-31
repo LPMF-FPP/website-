@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Global middleware additions
+        $middleware->prepend(\App\Http\Middleware\ApplyTimezone::class);
         $middleware->append(\App\Http\Middleware\ApplyLocaleFromSettings::class);
         
         // Replace API middleware to include session support

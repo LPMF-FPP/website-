@@ -21,30 +21,40 @@ class TemplatePreviewData
         return self::forKey($slug);
     }
 
-    public static function forKey(string $key): array
+    public static function forSlugDeterministic(string $slug): array
     {
-        $now = now();
+        return self::forKey($slug, self::fixedNow(), true);
+    }
 
-        $base = self::baseData($now);
+    public static function forKey(string $key, ?Carbon $now = null, bool $forceDummy = false): array
+    {
+        $now = $now ?: now();
+
+        $base = self::baseData($now, $forceDummy);
         $specific = match ($key) {
-            'berita-acara-penerimaan' => self::beritaAcaraPenerimaan($now),
-            'ba-penyerahan', 'berita-acara-penyerahan' => self::baPenyerahan($now),
-            'laporan-hasil-uji' => self::laporanHasilUji($now),
-            'form-preparation' => self::formPreparation($now),
-            'label-barang-bukti-sheet' => self::labelEvidenceSheet($now),
-            'label-barang-bukti-single' => self::labelEvidenceSingle($now),
-            'label-sisa-bukti-sheet', 'label-sisa-sampel-sheet' => self::labelRemainingSheet($now),
-            'label-sisa-bukti-single', 'label-sisa-sampel-single' => self::labelRemainingSingle($now),
-            'kartu-stok' => self::kartuStok($now),
+            'berita-acara-penerimaan' => self::beritaAcaraPenerimaan($now, $forceDummy),
+            'ba-penyerahan', 'berita-acara-penyerahan' => self::baPenyerahan($now, $forceDummy),
+            'laporan-hasil-uji' => self::laporanHasilUji($now, $forceDummy),
+            'form-preparation' => self::formPreparation($now, $forceDummy),
+            'label-barang-bukti-sheet' => self::labelEvidenceSheet($now, $forceDummy),
+            'label-barang-bukti-single' => self::labelEvidenceSingle($now, $forceDummy),
+            'label-sisa-bukti-sheet', 'label-sisa-sampel-sheet' => self::labelRemainingSheet($now, $forceDummy),
+            'label-sisa-bukti-single', 'label-sisa-sampel-single' => self::labelRemainingSingle($now, $forceDummy),
+            'kartu-stok' => self::kartuStok($now, $forceDummy),
             default => [],
         };
 
         return array_merge($base, $specific);
     }
 
-    private static function baseData(Carbon $now): array
+    private static function fixedNow(): Carbon
     {
-        $request = self::resolveRequest($now);
+        return Carbon::create(2025, 1, 15, 10, 0, 0, 'Asia/Jakarta');
+    }
+
+    private static function baseData(Carbon $now, bool $forceDummy): array
+    {
+        $request = self::resolveRequest($now, $forceDummy);
 
         return [
             'request' => $request,
@@ -54,9 +64,9 @@ class TemplatePreviewData
         ];
     }
 
-    private static function beritaAcaraPenerimaan(Carbon $now): array
+    private static function beritaAcaraPenerimaan(Carbon $now, bool $forceDummy): array
     {
-        $request = self::resolveRequest($now);
+        $request = self::resolveRequest($now, $forceDummy);
 
         return [
             'request' => $request,
@@ -64,9 +74,9 @@ class TemplatePreviewData
         ];
     }
 
-    private static function baPenyerahan(Carbon $now): array
+    private static function baPenyerahan(Carbon $now, bool $forceDummy): array
     {
-        $request = self::resolveRequest($now);
+        $request = self::resolveRequest($now, $forceDummy);
         $meta = self::resolveMeta($request);
 
         return [
@@ -76,8 +86,16 @@ class TemplatePreviewData
         ];
     }
 
-    private static function laporanHasilUji(Carbon $now): array
+    private static function laporanHasilUji(Carbon $now, bool $forceDummy): array
     {
+        if ($forceDummy) {
+            return [
+                'process' => self::dummyProcess($now),
+                'noLHU' => 'FLHU-001/LPMF/I/2025',
+                'generatedAt' => $now,
+            ];
+        }
+
         $process = SampleTestProcess::with(['sample.testRequest.investigator'])->latest('id')->first();
 
         if ($process) {
@@ -89,7 +107,7 @@ class TemplatePreviewData
             }
 
             if (!$process->sample->testRequest) {
-                $request = self::resolveRequest($now);
+                $request = self::resolveRequest($now, $forceDummy);
                 if (method_exists($process->sample, 'setRelation')) {
                     $process->sample->setRelation('testRequest', $request);
                 } else {
@@ -116,17 +134,25 @@ class TemplatePreviewData
             ];
         }
 
-        $dummyProcess = self::dummyProcess($now);
-
         return [
-            'process' => $dummyProcess,
+            'process' => self::dummyProcess($now),
             'noLHU' => 'FLHU-001/LPMF/I/2025',
             'generatedAt' => $now,
         ];
     }
 
-    private static function formPreparation(Carbon $now): array
+    private static function formPreparation(Carbon $now, bool $forceDummy): array
     {
+        if ($forceDummy) {
+            $dummyProcess = self::dummyProcess($now);
+            $dummyProcess->analyst_name = $dummyProcess->analyst_name ?? 'Dr. Ahmad Fauzi, S.Si., Apt.';
+
+            return [
+                'process' => $dummyProcess,
+                'generatedAt' => $now,
+            ];
+        }
+
         $process = SampleTestProcess::with(['sample.testRequest'])->latest('id')->first();
 
         if ($process) {
@@ -135,7 +161,7 @@ class TemplatePreviewData
                 $process->sample = self::dummySample($now);
             }
             if (!$process->sample->testRequest) {
-                $request = self::resolveRequest($now);
+                $request = self::resolveRequest($now, $forceDummy);
                 if (method_exists($process->sample, 'setRelation')) {
                     $process->sample->setRelation('testRequest', $request);
                 } else {
@@ -159,9 +185,9 @@ class TemplatePreviewData
         ];
     }
 
-    private static function labelEvidenceSheet(Carbon $now): array
+    private static function labelEvidenceSheet(Carbon $now, bool $forceDummy): array
     {
-        $units = EvidenceUnit::with('sample')->latest('id')->take(10)->get();
+        $units = $forceDummy ? collect() : EvidenceUnit::with('sample')->latest('id')->take(10)->get();
 
         if ($units->isEmpty()) {
             $labels = self::dummyEvidenceLabels($now);
@@ -175,9 +201,9 @@ class TemplatePreviewData
         ];
     }
 
-    private static function labelEvidenceSingle(Carbon $now): array
+    private static function labelEvidenceSingle(Carbon $now, bool $forceDummy): array
     {
-        $data = self::labelEvidenceSheet($now);
+        $data = self::labelEvidenceSheet($now, $forceDummy);
         $label = $data['labels']->first() ?? self::dummyEvidenceLabels($now)->first();
 
         return [
@@ -186,9 +212,9 @@ class TemplatePreviewData
         ];
     }
 
-    private static function labelRemainingSheet(Carbon $now): array
+    private static function labelRemainingSheet(Carbon $now, bool $forceDummy): array
     {
-        $units = RemainingUnit::with('evidenceUnit')->latest('id')->take(10)->get();
+        $units = $forceDummy ? collect() : RemainingUnit::with('evidenceUnit')->latest('id')->take(10)->get();
 
         if ($units->isEmpty()) {
             $remainingUnits = self::dummyRemainingUnits($now);
@@ -205,9 +231,9 @@ class TemplatePreviewData
         ];
     }
 
-    private static function labelRemainingSingle(Carbon $now): array
+    private static function labelRemainingSingle(Carbon $now, bool $forceDummy): array
     {
-        $data = self::labelRemainingSheet($now);
+        $data = self::labelRemainingSheet($now, $forceDummy);
         $remainingUnit = $data['remainingUnits']->first() ?? self::dummyRemainingUnits($now)->first();
 
         return [
@@ -216,8 +242,12 @@ class TemplatePreviewData
         ];
     }
 
-    private static function kartuStok(Carbon $now): array
+    private static function kartuStok(Carbon $now, bool $forceDummy): array
     {
+        if ($forceDummy) {
+            return self::dummyKartuStok($now);
+        }
+
         $movements = InventoryMovement::with(['item', 'lot', 'fromLocation', 'toLocation', 'performedByUser'])
             ->latest('performed_at')
             ->take(10)
@@ -274,8 +304,12 @@ class TemplatePreviewData
         ];
     }
 
-    private static function resolveRequest(Carbon $now): object
+    private static function resolveRequest(Carbon $now, bool $forceDummy): object
     {
+        if ($forceDummy) {
+            return self::dummyRequest($now);
+        }
+
         $request = TestRequest::with(['investigator', 'samples'])->latest('id')->first();
 
         if ($request) {

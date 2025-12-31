@@ -23,7 +23,7 @@ class SettingsController extends Controller
         return response()->json([
             'settings' => $payload,
             'options' => [
-                'timezones' => LocalizationSettingsRequest::TIMEZONES,
+                'timezones' => LocalizationSettingsRequest::timezones(),
                 'date_formats' => LocalizationSettingsRequest::DATE_FORMATS,
                 'number_formats' => LocalizationSettingsRequest::NUMBER_FORMATS,
                 'languages' => LocalizationSettingsRequest::LANGUAGES,

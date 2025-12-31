@@ -452,48 +452,86 @@ function bladeTemplateEditor() {
                 });
 
                 const contentType = response.headers.get('content-type') || '';
-                const isHtml = contentType.includes('text/html');
+                let data = null;
+                let html = null;
 
-                if (response.ok && isHtml) {
-                    const html = await response.text();
-                    const iframe = this.$refs.previewFrame;
-                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                    iframeDoc.open();
-                    iframeDoc.write(html);
-                    iframeDoc.close();
-                    
-                    // Auto-resize iframe to content
-                    setTimeout(() => {
-                        try {
-                            const contentHeight = iframeDoc.body.scrollHeight;
-                            iframe.style.height = Math.max(contentHeight, 600) + 'px';
-                        } catch (e) {
-                            iframe.style.height = '600px';
-                        }
-                    }, 100);
+                if (contentType.includes('application/json')) {
+                    data = await response.json().catch(() => null);
+                } else if (contentType.includes('text/html')) {
+                    html = await response.text();
                 } else {
-                    const data = await response.json();
+                    const responseClone = response.clone();
+                    data = await responseClone.json().catch(() => null);
+                    if (!data) {
+                        html = await response.text();
+                    }
+                }
+
+                if (!response.ok) {
                     if (response.status === 422) {
-                        // Validation or compilation error
-                        console.error('Preview validation error:', data);
+                        console.error('Preview validation error:', data || { status: response.status });
                         this.previewError = {
-                            message: data.message || 'Template tidak valid',
-                            error: data.error || '',
-                            line: data.line,
-                            file: data.file,
-                            hint: data.hint || '',
-                            slug: data.slug
+                            message: data?.message || 'Template tidak valid',
+                            error: data?.error || '',
+                            line: data?.line,
+                            file: data?.file,
+                            hint: data?.hint || '',
+                            slug: data?.slug
                         };
                     } else {
-                        // Other errors
+                        console.error('Preview failed:', data || { status: response.status });
+                        this.previewError = {
+                            message: data?.message || 'Gagal membuat preview',
+                            error: data?.error || '',
+                            hint: data?.hint || ''
+                        };
+                    }
+                    return;
+                }
+
+                if (data) {
+                    if (data.success !== true || !data.html) {
                         console.error('Preview failed:', data);
                         this.previewError = {
                             message: data.message || 'Gagal membuat preview',
                             error: data.error || '',
                             hint: data.hint || ''
                         };
+                        return;
                     }
+                    html = data.html;
                 }
+
+                if (!html) {
+                    console.error('Preview failed: missing html');
+                    this.previewError = {
+                        message: 'Gagal membuat preview',
+                        error: 'Konten preview kosong',
+                        hint: ''
+                    };
+                    return;
+                }
+
+                const iframe = this.$refs.previewFrame;
+                if ('srcdoc' in iframe) {
+                    iframe.srcdoc = html;
+                } else {
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    iframeDoc.open();
+                    iframeDoc.write(html);
+                    iframeDoc.close();
+                }
+
+                // Auto-resize iframe to content
+                setTimeout(() => {
+                    try {
+                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                        const contentHeight = iframeDoc.body?.scrollHeight || 0;
+                        iframe.style.height = Math.max(contentHeight, 600) + 'px';
+                    } catch (e) {
+                        iframe.style.height = '600px';
+                    }
+                }, 100);
             } catch (error) {
                 console.error('Preview request failed:', error);
                 this.previewError = {

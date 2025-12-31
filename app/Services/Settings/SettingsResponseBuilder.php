@@ -23,7 +23,7 @@ class SettingsResponseBuilder
             ],
             'branding' => Arr::get($nested, 'branding', []),
             'pdf' => Arr::get($nested, 'pdf', []),
-            'localization' => Arr::get($nested, 'locale', []),
+            'localization' => Arr::get($nested, 'localization', Arr::get($nested, 'locale', [])),
             'retention' => $retention,
             'notifications' => Arr::get($nested, 'notifications', Arr::get($nested, 'automation', [])),
             'smtp' => $this->composeSmtp(Arr::get($nested, 'smtp', [])),
@@ -49,7 +49,7 @@ class SettingsResponseBuilder
         $storagePath = Arr::get($retention, 'storage_folder_path', Arr::get($retention, 'base_path', ''));
         $retention['storage_folder_path'] = $storagePath;
 
-        $disk = Arr::get($retention, 'storage_driver', 'local');
+        $disk = Arr::get($retention, 'storage_driver', 'public');
         $relative = trim($storagePath ?: Arr::get($retention, 'base_path', ''), '/');
 
         try {

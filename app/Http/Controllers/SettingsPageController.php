@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Document;
 use App\Models\DocumentTemplate;
 use App\Models\SystemSetting;
+use App\Http\Requests\Settings\LocalizationSettingsRequest;
 use App\Support\DocumentTypes;
 use Illuminate\Support\Facades\Gate;
 
@@ -22,11 +23,11 @@ class SettingsPageController extends Controller
         $settings = settings_nest($flat);
 
         $options = [
-            'timezones' => ['Asia/Jakarta', 'Asia/Makassar', 'Asia/Jayapura'],
+            'timezones' => LocalizationSettingsRequest::timezones(),
             'date_formats' => ['DD/MM/YYYY', 'YYYY-MM-DD', 'DD-MM-YYYY'],
             'number_formats' => ['1.234,56', '1,234.56'],
             'languages' => ['id', 'en'],
-            'storage_drivers' => ['local', 's3'],
+            'storage_drivers' => ['public'],
         ];
 
         $documentTypes = Document::query()

@@ -13,7 +13,8 @@ class Investigator extends Model
 
     protected $fillable = [
         'name', 'rank', 'nrp', 'jurisdiction',
-        'phone', 'email', 'address', 'folder_key'
+        'phone', 'email', 'address', 'folder_key',
+        'is_polri', 'institution', 'occupation', 'alt_phone'
     ];
 
     protected static function boot()

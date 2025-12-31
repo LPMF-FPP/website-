@@ -270,25 +270,32 @@ class NumberingService
 
     protected function getConfig(string $scope): array
     {
-        // First try reading from individual dot-notated keys
+        // Prefer explicit dot-notated keys for latest updates.
         $pattern = settings("numbering.$scope.pattern");
         $reset = settings("numbering.$scope.reset");
         $startFrom = settings("numbering.$scope.start_from");
+        $perTestType = settings("numbering.$scope.per_test_type");
 
-        // If individual keys exist, use them
-        if ($pattern !== null && $pattern !== '') {
+        if (is_string($pattern) && $pattern !== '') {
             return [
                 'pattern' => $pattern,
                 'reset' => $reset ?? 'never',
                 'start_from' => (int) ($startFrom ?? 1),
+                'per_test_type' => $perTestType ?? null,
             ];
         }
 
-        // Fall back to legacy array format (numbering.{scope} as array)
-        $config = settings("numbering.$scope");
+        $nested = settings_nest(settings());
+        $config = data_get($nested, "numbering.$scope", []);
+        $pattern = is_array($config) ? ($config['pattern'] ?? null) : null;
 
-        if (is_array($config) && !empty($config['pattern'])) {
-            return $config;
+        if (is_string($pattern) && $pattern !== '') {
+            return [
+                'pattern' => $pattern,
+                'reset' => $config['reset'] ?? 'never',
+                'start_from' => (int) ($config['start_from'] ?? 1),
+                'per_test_type' => $config['per_test_type'] ?? null,
+            ];
         }
 
         // Return safe defaults

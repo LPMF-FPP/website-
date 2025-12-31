@@ -10,9 +10,106 @@
     $today = isset($generatedAt) ? Carbon::parse($generatedAt) : now();
 
     // Nomor LHU (prioritas: dari controller, lalu dari metadata, lalu fallback)
-    $meta = $proc->metadata ?? [];
+    $metaRaw = $proc->metadata ?? [];
+    if (is_string($metaRaw)) {
+        $decoded = json_decode($metaRaw, true);
+        $meta = is_array($decoded) ? $decoded : [];
+    } elseif (is_array($metaRaw)) {
+        $meta = $metaRaw;
+    } elseif (is_object($metaRaw) && method_exists($metaRaw, 'toArray')) {
+        $meta = $metaRaw->toArray();
+    } elseif (is_object($metaRaw)) {
+        $meta = (array) $metaRaw;
+    } else {
+        $meta = [];
+    }
     $noLHU = $noLHU
           ?? ($meta['report_number'] ?? $meta['lab_report_no'] ?? $meta['lhu_number'] ?? $meta['report_no'] ?? '—');
+
+    // Nomor Resi (prioritas: request, metadata, fallback)
+    $receiptNumber = $req?->receipt_number
+        ?? ($meta['receipt_number'] ?? $meta['receipt_no'] ?? $meta['resi'] ?? null)
+        ?? $req?->request_number
+        ?? '—';
+    if ($receiptNumber === '') {
+        $receiptNumber = '—';
+    }
+
+    // Audit dokumen (defensive)
+    $docGeneratedAt = now();
+    if (isset($generatedAt)) {
+        try { $docGeneratedAt = Carbon::parse($generatedAt); }
+        catch (\Throwable $e) { $docGeneratedAt = now(); }
+    }
+
+    $procMetaRaw = $proc?->metadata ?? [];
+    if (is_string($procMetaRaw)) {
+        $decoded = json_decode($procMetaRaw, true);
+        $procMeta = is_array($decoded) ? $decoded : [];
+    } elseif ($procMetaRaw instanceof \Illuminate\Support\Collection) {
+        $procMeta = $procMetaRaw->toArray();
+    } elseif (is_array($procMetaRaw)) {
+        $procMeta = $procMetaRaw;
+    } elseif (is_object($procMetaRaw) && method_exists($procMetaRaw, 'toArray')) {
+        $procMeta = $procMetaRaw->toArray();
+    } elseif (is_object($procMetaRaw)) {
+        $procMeta = (array) $procMetaRaw;
+    } else {
+        $procMeta = [];
+    }
+
+    $normalizeString = function ($value) {
+        if (is_string($value)) {
+            $value = trim($value);
+            return $value !== '' ? $value : null;
+        }
+        if (is_scalar($value)) {
+            $value = trim((string) $value);
+            return $value !== '' ? $value : null;
+        }
+        return null;
+    };
+
+    $docGeneratedBy = $normalizeString($generatedBy ?? null);
+    if (!$docGeneratedBy) {
+        try {
+            $user = auth()->user();
+            $docGeneratedBy = $normalizeString($user?->name ?? $user?->username ?? $user?->email ?? null);
+        } catch (\Throwable $e) {
+            $docGeneratedBy = null;
+        }
+    }
+    if (!$docGeneratedBy) {
+        $docGeneratedBy = $normalizeString(
+            $procMeta['generated_by']
+            ?? $procMeta['printed_by']
+            ?? $procMeta['created_by']
+            ?? $procMeta['user_name']
+            ?? null
+        );
+    }
+    $docGeneratedBy = $docGeneratedBy ?: 'System';
+
+    $docGeneratedUnit = $normalizeString($generatedUnit ?? null);
+    if (!$docGeneratedUnit) {
+        try {
+            $user = $user ?? auth()->user();
+            $docGeneratedUnit = $normalizeString($user?->unit ?? $user?->department ?? null);
+            if (!$docGeneratedUnit) {
+                $docGeneratedUnit = $normalizeString($user?->role?->name ?? null);
+            }
+        } catch (\Throwable $e) {
+            $docGeneratedUnit = null;
+        }
+    }
+    if (!$docGeneratedUnit) {
+        $docGeneratedUnit = $normalizeString(
+            $procMeta['generated_by_unit']
+            ?? $procMeta['generated_unit']
+            ?? $procMeta['printed_unit']
+            ?? null
+        );
+    }
 
   // Metode/Instrumen & Hasil uji: gunakan metadata (utama + multi_interpretations)
   $methodMap = [
@@ -119,6 +216,8 @@
   .res .c2 { width:26%; text-align:center; }
   .res .c3 { width:40%; }
 
+  .doc-audit { font-size:9pt; color:#555; margin-top:6px; }
+
   /* Paraf & TTD */
   .signrow td { vertical-align:top; }
   .lcol { width:55%; padding-right:8px; }
@@ -184,10 +283,10 @@
   </table>
 
   <!-- INFORMASI -->
-  <div class="avoid" style="margin-top:5px; font-weight:700">Informasi Pelanggan & Sampel</div>
+  <div class="avoid" style="margin-top:5px; font-weight:700">Informasi & Sampel</div>
   <table class="kv avoid">
-    <tr><th>Nama Pelanggan</th><td>{{ trim(($inv?->rank).' '.($inv?->name)) }}</td></tr>
-    <tr><th>Alamat Pelanggan</th><td>{{ $inv?->jurisdiction }}</td></tr>
+    <tr><th>Nomor Resi</th><td><b>{{ $receiptNumber }}</b></td></tr>
+    <tr><th>Alamat</th><td>{{ $inv?->jurisdiction ?: '—' }}</td></tr>
     <tr><th>Deskripsi Singkat</th><td>{{ $samp?->short_description ?? '—' }}</td></tr>
     <tr><th>Jumlah Sampel</th><td>{{ ($samp?->package_quantity ?? $samp?->quantity ?? 1) }} {{ $samp?->unit ?? 'Unit' }}</td></tr>
     <tr><th>No Batch</th><td>{{ $batchNo }}</td></tr>
@@ -220,6 +319,11 @@
   <div class="avoid" style="margin-top:6px">
     <div class="muted small"><em>Referensi: Farmakope Indonesia Suplemen I Edisi VI Tahun 2022</em></div>
     <div class="small">Hasil uji hanya berlaku untuk sampel yang diterima oleh laboratorium.</div>
+  </div>
+
+  <div class="doc-audit avoid">
+    Dokumen ini dibuat secara elektronis pada {{ $docGeneratedAt->translatedFormat('d F Y') }}
+    pukul {{ $docGeneratedAt->format('H:i') }} WIB oleh {{ $docGeneratedBy }}@if(!empty($docGeneratedUnit)) — {{ $docGeneratedUnit }}@endif
   </div>
 
   <!-- KIRI: TTD KAFARMAPOL | KANAN: PARAF VERIFIKATOR -->

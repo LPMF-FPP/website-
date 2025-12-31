@@ -17,7 +17,7 @@ class PurgeOldFiles extends Command
     {
         $days = (int) settings('retention.purge_after_days', 1825);
         $basePath = rtrim(settings('retention.base_path', 'official_docs/'), '/') . '/';
-        $disk = settings('retention.storage_driver', 'local');
+        $disk = settings('retention.storage_driver', 'public');
         $threshold = CarbonImmutable::now()->subDays($days);
 
         $storage = Storage::disk($disk);

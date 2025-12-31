@@ -6,6 +6,7 @@ use App\Enums\DocumentType;
 use App\Models\Document;
 use App\Models\Investigator;
 use App\Models\Sample;
+use App\Models\Suspect;
 use App\Models\TestRequest;
 use App\Services\ActiveSubstanceService;
 use App\Services\DocumentGeneration\DocumentRenderService;
@@ -38,7 +39,7 @@ class RequestController extends Controller
         // AMBIL DATA DARI DATABASE, kecuali yang sudah selesai
         // Hanya tampilkan request yang masih dalam proses (belum diserahkan)
 
-        $requests = TestRequest::with(['investigator', 'samples'])
+        $requests = TestRequest::with(['investigator', 'samples', 'suspects'])
             ->whereNotIn('status', ['completed', 'ready_for_delivery'])
             ->orderBy('created_at', 'desc')
             ->paginate(10);
@@ -88,114 +89,98 @@ class RequestController extends Controller
      */
     public function store(Request $request)
     {
+        if (!$request->has('suspects') && $request->filled('suspect_name')) {
+            $request->merge([
+                'suspects' => [[
+                    'name' => $request->input('suspect_name'),
+                    'gender' => $request->input('suspect_gender'),
+                    'age' => $request->input('suspect_age'),
+                ]],
+            ]);
+        }
 
-        // Validasi - FIELD DIHILANGKAN KEWAJIBAN ISINYA
+        // Determine investigator type
+        $isInvestigator = $request->boolean('is_investigator', true);
 
-        $validated = $request->validate([
-
-            // Data Penyidik (tetap required)
-
-            'investigator_name' => 'required|string|min:3|max:255',
-
-            'investigator_nrp' => 'required|string|max:50',
-
-            'investigator_rank' => 'required|string',
-
-            'investigator_jurisdiction' => 'required|string|max:255',
-
-            'investigator_phone' => 'required|string|max:20',
-
-            'investigator_email' => 'nullable|email',
-
-            'investigator_address' => 'nullable|string',
-
-            // Data Kasus - UBAH MENJADI NULLABLE (TIDAK WAJIB DIISI)
-
-            'case_number' => 'nullable|string|max:255',          // Nomor Surat Permintaan
-
-            'case_description' => 'nullable|string',             // DIHILANGKAN required
-
-            'to_office' => 'required|string|max:255',            // Ditujukan Kepada
-
-            'suspect_name' => 'required|string|max:255',
-
-            'suspect_gender' => 'nullable|in:male,female',
-
-            'suspect_age' => 'nullable|integer|min:0|max:120',
-
-            'suspect_address' => 'nullable|string',
-
+        // Build validation rules dynamically
+        $rules = [
+            'is_investigator' => 'sometimes|boolean',
+            // Data Kasus
+            'case_number' => 'nullable|string|max:255',
+            'case_description' => 'nullable|string',
+            'to_office' => 'required|string|max:255',
             // File upload
-
             'request_letter' => 'required|file|mimes:pdf|max:10240',
-
             'evidence_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
-
-            // Sampel - HILANGKAN KEWAJIBAN PILIH JENIS
-
+            // Suspect address (single field)
+            'suspect_address' => 'nullable|string',
+            // Samples
             'samples' => 'required|array|min:1',
-
             'samples.*.short_description' => 'required|string|max:255',
-
-            'samples.*.type' => 'nullable|string|in:tablet,powder,liquid,plant,other', // UBAH ke nullable
-
+            'samples.*.type' => 'nullable|string|in:tablet,powder,liquid,plant,other',
             'samples.*.description' => 'nullable|string',
-
             'samples.*.weight' => 'nullable|numeric|min:0',
-
             'samples.*.package_quantity' => 'required|integer|min:1',
-
             'samples.*.unit' => 'required|string|max:50',
-
             'samples.*.test_types' => 'required|array|min:1',
-
             'samples.*.test_types.*' => 'in:uv_vis,gc_ms,lc_ms',
-
             'samples.*.active_substance' => 'required|string|max:255',
-
             'samples.*.photos' => 'nullable|array',
-
             'samples.*.photos.*' => 'image|mimes:jpg,jpeg,png|max:5120',
-
             'samples.*.photo' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
-
             'samples.*.images' => 'nullable|array',
-
             'samples.*.images.*' => 'image|mimes:jpg,jpeg,png|max:5120',
+        ];
 
-        ], [
+        // Investigator-specific rules
+        if ($isInvestigator) {
+            $rules['investigator_name'] = 'required|string|min:3|max:255';
+            $rules['investigator_nrp'] = 'required|string|max:50';
+            $rules['investigator_rank'] = 'required|string';
+            $rules['investigator_jurisdiction'] = 'required|string|max:255';
+            $rules['investigator_phone'] = 'required|string|max:20';
+            $rules['investigator_email'] = 'nullable|email';
+            $rules['investigator_address'] = 'nullable|string';
+        } else {
+            // External (non-Polri) fields
+            $rules['external_name'] = 'required|string|min:3|max:255';
+            $rules['external_phone'] = 'required|string|max:20';
+            $rules['external_institution'] = 'required|string|max:255';
+            $rules['external_hp'] = 'required|string|max:20';
+            $rules['external_occupation'] = 'required|string|max:255';
+        }
 
-            // Custom error messages - HANYA UNTUK FIELD YANG MASIH REQUIRED
+        // Suspects array validation (new multi-suspect input)
+        $rules['suspects'] = 'sometimes|array|min:1';
+        $rules['suspects.*.name'] = 'required|string|max:255';
+        $rules['suspects.*.gender'] = 'nullable|in:male,female';
+        $rules['suspects.*.age'] = 'nullable|integer|min:0|max:120';
 
+        $messages = [
             'investigator_name.required' => 'Nama penyidik harus diisi',
-
             'investigator_nrp.required' => 'NRP penyidik harus diisi',
-
             'investigator_rank.required' => 'Pangkat penyidik harus diisi',
-
             'investigator_jurisdiction.required' => 'Satuan/wilayah hukum harus diisi',
-
             'investigator_phone.required' => 'No. HP penyidik harus diisi',
-
-            'suspect_name.required' => 'Nama tersangka harus diisi',
-
+            'external_name.required' => 'Nama harus diisi',
+            'external_phone.required' => 'Nomor telepon harus diisi',
+            'external_institution.required' => 'Instansi harus diisi',
+            'external_hp.required' => 'Nomor HP harus diisi',
+            'external_occupation.required' => 'Pekerjaan harus diisi',
+            'suspects.required' => 'Minimal 1 tersangka harus diisi',
+            'suspects.*.name.required' => 'Nama tersangka harus diisi',
             'request_letter.required' => 'Surat permintaan harus diupload',
-
             'samples.required' => 'Minimal 1 sampel harus diisi',
-
             'samples.*.short_description.required' => 'Deskripsi singkat harus diisi',
-
             'samples.*.test_types.required' => 'Pilih minimal satu jenis pengujian',
-
             'samples.*.test_types.*.in' => 'Jenis pengujian tidak valid',
-
             'samples.*.active_substance.required' => 'Zat aktif harus diisi',
-
             'samples.*.package_quantity.required' => 'Jumlah yang diserahkan harus diisi',
-
             'samples.*.package_quantity.min' => 'Jumlah yang diserahkan minimal 1',
+        ];
 
-        ]);
+        $validated = $request->validate($rules, $messages);
+        $suspects = $validated['suspects'] ?? [];
 
         \Log::info('FILES KEYS', ['keys' => array_keys(Arr::dot($request->allFiles()))]);
 
@@ -206,69 +191,80 @@ class RequestController extends Controller
         DB::beginTransaction();
 
         try {
+            // 1. Create or find investigator based on type
+            if ($isInvestigator) {
+                $investigator = Investigator::firstOrCreate(
+                    ['nrp' => $validated['investigator_nrp']],
+                    [
+                        'is_polri' => true,
+                        'name' => $validated['investigator_name'],
+                        'rank' => $validated['investigator_rank'],
+                        'jurisdiction' => $validated['investigator_jurisdiction'],
+                        'phone' => $validated['investigator_phone'],
+                        'email' => $validated['investigator_email'] ?? null,
+                        'address' => $validated['investigator_address'] ?? null,
+                    ]
+                );
+            } else {
+                // Generate synthetic NRP for external user
+                $syntheticNrp = 'EXT-' . strtoupper(Str::random(8));
+                
+                // Ensure uniqueness
+                while (Investigator::where('nrp', $syntheticNrp)->exists()) {
+                    $syntheticNrp = 'EXT-' . strtoupper(Str::random(8));
+                }
 
-            // 1. Buat atau cari investigator
+                $investigator = Investigator::create([
+                    'is_polri' => false,
+                    'nrp' => $syntheticNrp,
+                    'name' => $validated['external_name'],
+                    'rank' => 'NON-POLRI',
+                    'jurisdiction' => $validated['external_institution'],
+                    'phone' => $validated['external_hp'],
+                    'alt_phone' => $validated['external_phone'],
+                    'institution' => $validated['external_institution'],
+                    'occupation' => $validated['external_occupation'],
+                ]);
+            }
 
-            $investigator = Investigator::firstOrCreate(
-
-                ['nrp' => $validated['investigator_nrp']], // cari berdasarkan NRP
-
-                [
-
-                    'name' => $validated['investigator_name'],
-
-                    'rank' => $validated['investigator_rank'],
-
-                    'jurisdiction' => $validated['investigator_jurisdiction'],
-
-                    'phone' => $validated['investigator_phone'],
-
-                    'email' => $validated['investigator_email'] ?? null,
-
-                    'address' => $validated['investigator_address'] ?? null,
-
-                ]
-
-            );
-
-            // Ensure folder_key is set (NRP + slug nama)
+            // Ensure folder_key is set
             if (empty($investigator->folder_key)) {
                 $investigator->folder_key = trim(($investigator->nrp ? $investigator->nrp.'-' : '').Str::slug($investigator->name ?? 'noname'));
                 $investigator->save();
             }
 
-            // 2. Buat test request dulu (diperlukan untuk path DocumentService)
+            // 2. Extract first suspect for legacy columns
+            $firstSuspect = $suspects[0] ?? null;
+
+            // 3. Create test request
             $testRequest = TestRequest::create([
-
                 'investigator_id' => $investigator->id,
-
                 'user_id' => auth()->id(),
-
                 'to_office' => $validated['to_office'],
-
                 'case_number' => $validated['case_number'] ?? null,
-
-                'suspect_name' => $validated['suspect_name'],
-
-                'suspect_gender' => $validated['suspect_gender'] ?? null,
-
-                'suspect_age' => $validated['suspect_age'] ?? null,
-
+                'suspect_name' => $firstSuspect['name'] ?? '',
+                'suspect_gender' => $firstSuspect['gender'] ?? null,
+                'suspect_age' => $firstSuspect['age'] ?? null,
                 'suspect_address' => $validated['suspect_address'] ?? null,
-
-                'case_description' => $validated['case_description'] ?? null, // Bisa null
-
-                'official_letter_path' => null, // Will be updated after upload
-
-                'evidence_photo_path' => null, // Will be updated after upload
-
+                'case_description' => $validated['case_description'] ?? null,
+                'official_letter_path' => null,
+                'evidence_photo_path' => null,
                 'status' => 'submitted',
-
                 'submitted_at' => now(),
-
             ]);
 
-            // 3. Upload file surat permintaan via DocumentService
+            // 4. Create suspect records
+            foreach ($suspects as $index => $suspectData) {
+                Suspect::create([
+                    'test_request_id' => $testRequest->id,
+                    'name' => $suspectData['name'],
+                    'gender' => $suspectData['gender'] ?? null,
+                    'age' => $suspectData['age'] ?? null,
+                    'order_no' => $index + 1,
+                ]);
+            }
+
+            // 5. Upload file surat permintaan via DocumentService
             $documentService = app(DocumentService::class);
 
             if ($request->hasFile('request_letter')) {
@@ -278,12 +274,10 @@ class RequestController extends Controller
                     $testRequest,
                     'request_letter'
                 );
-                
-                // Update TestRequest dengan path dari Document
                 $testRequest->official_letter_path = $letterDoc->path;
             }
 
-            // 4. Upload foto barang bukti (optional) via DocumentService
+            // 6. Upload foto barang bukti (optional) via DocumentService
             if ($request->hasFile('evidence_photo')) {
                 $evidenceDoc = $documentService->storeUpload(
                     $request->file('evidence_photo'),
@@ -291,51 +285,36 @@ class RequestController extends Controller
                     $testRequest,
                     'evidence_photo'
                 );
-                
-                // Update TestRequest dengan path dari Document
                 $testRequest->evidence_photo_path = $evidenceDoc->path;
             }
 
             // Save updated paths
             $testRequest->save();
 
-            // 5. Buat samples - DENGAN DEFAULT TYPE JIKA TIDAK DIPILIH
+            // 7. Create samples
             $docs = app(\App\Services\DocumentService::class);
 
             foreach ($validated['samples'] as $i => $sampleData) {
-
                 $sample = Sample::create([
-
                     'test_request_id' => $testRequest->id,
-
                     'short_description' => $sampleData['short_description'],
-
-                    'sample_form' => $sampleData['type'] ?? 'other', // Default 'other' jika tidak dipilih
-
+                    'sample_form' => $sampleData['type'] ?? 'other',
                     'sample_description' => $sampleData['description'] ?? null,
-
                     'sample_weight' => $sampleData['weight'] ?? null,
-
                     'package_quantity' => (int) $sampleData['package_quantity'],
-
                     'unit' => $sampleData['unit'],
-
                     'test_methods' => json_encode(array_values($sampleData['test_types'])),
-
                     'active_substance' => $sampleData['active_substance'],
-
-                    'condition' => 'baik', // default
-
+                    'condition' => 'baik',
                     'sample_status' => 'received',
-
                 ]);
 
-                // === FOTO SAMPEL (multi/single, robust) ===
+                // Sample photos handling
                 $possibleKeys = [
-                    "samples.$i.photos",   // array
-                    "samples.$i.photo",    // single
-                    "samples.$i.images",   // array
-                    "samples.$i.image",    // single
+                    "samples.$i.photos",
+                    "samples.$i.photo",
+                    "samples.$i.images",
+                    "samples.$i.image",
                 ];
 
                 $collected = [];
@@ -354,16 +333,12 @@ class RequestController extends Controller
                 foreach ($collected as $photo) {
                     $doc = $docs->storeUpload($photo, $investigator, $testRequest, 'sample_photo');
                     $doc->extra = array_merge($doc->extra ?? [], [
-                        'sample_id'   => $sample->id,
+                        'sample_id' => $sample->id,
                         'short_description' => $sample->short_description,
                     ]);
                     $doc->save();
                 }
-
             }
-
-            // Receipt generation disabled per request: sample_receipt, handover_report, request_letter_receipt
-            // $this->generateRequestReceipts($testRequest);
 
             DB::commit();
 
@@ -371,11 +346,9 @@ class RequestController extends Controller
                 ->with('success', 'Permintaan pengujian berhasil dibuat dengan nomor: '.$testRequest->request_number.'. Lanjutkan untuk mengisi data pengujian sampel.');
 
         } catch (\Exception $e) {
-
             DB::rollback();
 
-            // Hapus semua file yang sudah diupload jika ada error (dari disk 'public')
-
+            // Cleanup uploaded files on error
             if ($letterDoc && $letterDoc->path) {
                 $disk = $letterDoc->storage_disk ?? 'public';
                 Storage::disk($disk)->delete($letterDoc->path);
@@ -386,9 +359,6 @@ class RequestController extends Controller
                 Storage::disk($disk)->delete($evidenceDoc->path);
             }
 
-            // Hapus sample photos jika ada yang sudah diupload
-            // Note: Karena rollback DB, Document records tidak akan tersimpan
-            // tapi file fisik sudah ada di storage, jadi perlu dihapus manual
             if (isset($testRequest) && $testRequest->id) {
                 $samplePhotoDocs = Document::where('test_request_id', $testRequest->id)
                     ->where('document_type', 'sample_photo')
@@ -404,7 +374,6 @@ class RequestController extends Controller
 
             return back()->withInput()
                 ->withErrors(['error' => 'Terjadi kesalahan: '.$e->getMessage()]);
-
         }
 
     }
@@ -427,11 +396,9 @@ class RequestController extends Controller
      */
     public function edit(string $id)
     {
-
-        $request = TestRequest::with(['investigator', 'samples', 'documents'])->findOrFail($id);
+        $request = TestRequest::with(['investigator', 'samples', 'documents', 'suspects'])->findOrFail($id);
 
         return view('requests.edit', compact('request'));
-
     }
 
     /**
@@ -439,23 +406,16 @@ class RequestController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        $testRequest = TestRequest::findOrFail($id);
+        $testRequest = TestRequest::with(['investigator', 'suspects'])->findOrFail($id);
+        
+        // Determine investigator type
+        $isInvestigator = $request->boolean('is_investigator', $testRequest->investigator->is_polri ?? true);
 
-        // Validation
-        $validated = $request->validate([
+        // Build validation rules dynamically
+        $rules = [
             'case_number' => 'nullable|string|max:255',
             'to_office' => 'required|string|max:255',
-            'suspect_name' => 'required|string|max:255',
-            'suspect_gender' => 'nullable|in:male,female',
-            'suspect_age' => 'nullable|integer|min:0|max:120',
-
-            // Investigator fields
-            'investigator_rank' => 'required|string|max:255',
-            'investigator_name' => 'required|string|max:255',
-            'investigator_nrp' => 'required|string|max:50',
-            'investigator_jurisdiction' => 'required|string|max:255',
-            'investigator_phone' => 'required|string|max:20',
-
+            'suspect_address' => 'nullable|string',
             // Samples
             'samples' => 'required|array|min:1',
             'samples.*.id' => 'nullable|exists:samples,id',
@@ -463,35 +423,88 @@ class RequestController extends Controller
             'samples.*.active_substance' => 'required|string|max:255',
             'samples.*.package_quantity' => 'required|numeric|min:0',
             'samples.*.unit' => 'required|string|max:50',
-        ]);
+            // Suspects array
+            'suspects' => 'required|array|min:1',
+            'suspects.*.name' => 'required|string|max:255',
+            'suspects.*.gender' => 'nullable|in:male,female',
+            'suspects.*.age' => 'nullable|integer|min:0|max:120',
+        ];
+
+        // Investigator-specific rules
+        if ($isInvestigator) {
+            $rules['investigator_rank'] = 'required|string|max:255';
+            $rules['investigator_name'] = 'required|string|max:255';
+            $rules['investigator_nrp'] = 'required|string|max:50';
+            $rules['investigator_jurisdiction'] = 'required|string|max:255';
+            $rules['investigator_phone'] = 'required|string|max:20';
+        } else {
+            $rules['external_name'] = 'required|string|min:3|max:255';
+            $rules['external_phone'] = 'required|string|max:20';
+            $rules['external_institution'] = 'required|string|max:255';
+            $rules['external_hp'] = 'required|string|max:20';
+            $rules['external_occupation'] = 'required|string|max:255';
+        }
+
+        $validated = $request->validate($rules);
 
         DB::beginTransaction();
 
         try {
-            // Update investigator
-            $testRequest->investigator->update([
-                'rank' => $validated['investigator_rank'],
-                'name' => $validated['investigator_name'],
-                'nrp' => $validated['investigator_nrp'],
-                'jurisdiction' => $validated['investigator_jurisdiction'],
-                'phone' => $validated['investigator_phone'],
-            ]);
+            // Update investigator based on type
+            $inv = $testRequest->investigator;
+            
+            if ($isInvestigator) {
+                $inv->update([
+                    'is_polri' => true,
+                    'rank' => $validated['investigator_rank'],
+                    'name' => $validated['investigator_name'],
+                    'nrp' => $validated['investigator_nrp'],
+                    'jurisdiction' => $validated['investigator_jurisdiction'],
+                    'phone' => $validated['investigator_phone'],
+                ]);
+            } else {
+                $inv->update([
+                    'is_polri' => false,
+                    'name' => $validated['external_name'],
+                    'rank' => 'NON-POLRI',
+                    'jurisdiction' => $validated['external_institution'],
+                    'phone' => $validated['external_hp'],
+                    'alt_phone' => $validated['external_phone'],
+                    'institution' => $validated['external_institution'],
+                    'occupation' => $validated['external_occupation'],
+                ]);
+            }
+
+            // Extract first suspect for legacy columns
+            $firstSuspect = $validated['suspects'][0] ?? null;
 
             // Update test request
             $testRequest->update([
                 'case_number' => $validated['case_number'],
                 'to_office' => $validated['to_office'],
-                'suspect_name' => $validated['suspect_name'],
-                'suspect_gender' => $validated['suspect_gender'],
-                'suspect_age' => $validated['suspect_age'],
+                'suspect_name' => $firstSuspect['name'] ?? '',
+                'suspect_gender' => $firstSuspect['gender'] ?? null,
+                'suspect_age' => $firstSuspect['age'] ?? null,
+                'suspect_address' => $validated['suspect_address'] ?? null,
             ]);
+
+            // Replace all suspects (delete old, insert new)
+            Suspect::where('test_request_id', $testRequest->id)->delete();
+            foreach ($validated['suspects'] as $index => $suspectData) {
+                Suspect::create([
+                    'test_request_id' => $testRequest->id,
+                    'name' => $suspectData['name'],
+                    'gender' => $suspectData['gender'] ?? null,
+                    'age' => $suspectData['age'] ?? null,
+                    'order_no' => $index + 1,
+                ]);
+            }
 
             // Update samples
             $submittedSampleIds = [];
 
             foreach ($validated['samples'] as $sampleData) {
                 if (!empty($sampleData['id'])) {
-                    // Update existing sample
                     $sample = Sample::find($sampleData['id']);
                     if ($sample && $sample->test_request_id == $testRequest->id) {
                         $sample->update([
@@ -503,7 +516,6 @@ class RequestController extends Controller
                         $submittedSampleIds[] = $sample->id;
                     }
                 } else {
-                    // Create new sample
                     $newSample = Sample::create([
                         'test_request_id' => $testRequest->id,
                         'short_description' => $sampleData['short_description'],
@@ -694,7 +706,7 @@ class RequestController extends Controller
 
                 'user_id' => auth()->id(),
 
-                'request_id' => $request->id,
+                'request_id' => $testRequest->id,
 
                 'document_type' => $type,
 

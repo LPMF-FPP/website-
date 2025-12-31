@@ -30,6 +30,7 @@ class RequestStoreDocumentServiceTest extends TestCase
     {
         // Arrange: Prepare request data
         $requestData = [
+            'is_investigator' => true,
             'investigator_nrp' => '87010123',
             'investigator_name' => 'Andri Wibowo',
             'investigator_rank' => 'AKP',
@@ -38,9 +39,13 @@ class RequestStoreDocumentServiceTest extends TestCase
             'investigator_email' => 'andri@polri.go.id',
             'to_office' => 'Pusdokkes Polri',
             'case_number' => 'BP/001/2025',
-            'suspect_name' => 'Test Suspect',
-            'suspect_gender' => 'male',
-            'suspect_age' => 30,
+            'suspects' => [
+                [
+                    'name' => 'Test Suspect',
+                    'gender' => 'male',
+                    'age' => 30,
+                ]
+            ],
             'samples' => [
                 [
                     'short_description' => 'Sample A',
@@ -120,13 +125,20 @@ class RequestStoreDocumentServiceTest extends TestCase
     {
         // Arrange: Prepare request data without evidence photo
         $requestData = [
+            'is_investigator' => true,
             'investigator_nrp' => '88020456',
             'investigator_name' => 'Budi Santoso',
             'investigator_rank' => 'IPDA',
             'investigator_jurisdiction' => 'Polres Jakarta Pusat',
             'investigator_phone' => '082345678901',
             'to_office' => 'Pusdokkes Polri',
-            'suspect_name' => 'Test Suspect 2',
+            'suspects' => [
+                [
+                    'name' => 'Test Suspect 2',
+                    'gender' => null,
+                    'age' => null,
+                ]
+            ],
             'samples' => [
                 [
                     'short_description' => 'Sample B',
@@ -185,13 +197,20 @@ class RequestStoreDocumentServiceTest extends TestCase
 
         // Arrange: Prepare request
         $requestData = [
+            'is_investigator' => true,
             'investigator_nrp' => '89030789', // Will match existing investigator
             'investigator_name' => 'Test Investigator',
             'investigator_rank' => 'IPTU',
             'investigator_jurisdiction' => 'Test Jurisdiction',
             'investigator_phone' => '083456789012',
             'to_office' => 'Pusdokkes Polri',
-            'suspect_name' => 'Test Suspect 3',
+            'suspects' => [
+                [
+                    'name' => 'Test Suspect 3',
+                    'gender' => null,
+                    'age' => null,
+                ]
+            ],
             'samples' => [
                 [
                     'short_description' => 'Sample C',

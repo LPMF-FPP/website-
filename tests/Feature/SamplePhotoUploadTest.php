@@ -255,16 +255,24 @@ class SamplePhotoUploadTest extends TestCase
 
     public function test_sample_photos_cleanup_on_transaction_rollback(): void
     {
+        // Re-enable middleware for this test since we're testing validation
+        $this->withMiddleware();
+        
+        // Capture initial count of sample_photo documents
+        $initialPhotoCount = Document::where('document_type', 'sample_photo')->count();
+        
         // Arrange: Prepare request data with INVALID data (to trigger validation error)
-        // Missing required field 'suspect_name'
+        // Missing required field 'investigator_name' (which is required for investigator type)
         $requestData = [
+            'is_investigator' => true,
             'investigator_nrp' => '99040999',
-            'investigator_name' => 'Invalid Test',
+            // Missing 'investigator_name' - THIS IS A REQUIRED FIELD
             'investigator_rank' => 'IPTU',
             'investigator_jurisdiction' => 'Polda Test',
             'investigator_phone' => '084567890123',
             'to_office' => 'Pusdokkes Polri',
-            // Missing 'suspect_name' - REQUIRED FIELD
+            'suspect_name' => 'Test Suspect',
+            'suspect_gender' => 'male',
             'samples' => [
                 [
                     'short_description' => 'Test Sample',
@@ -285,12 +293,16 @@ class SamplePhotoUploadTest extends TestCase
         $response = $this->actingAs($this->user)
             ->post(route('requests.store'), $requestData);
 
-        // Assert: Request failed validation
-        $response->assertSessionHasErrors('suspect_name');
+        // Assert: Request failed validation (investigator_name is required)
+        $response->assertSessionHasErrors('investigator_name');
 
-        // Assert: No documents were created in database (due to validation failure)
-        $photoDocs = Document::where('document_type', 'sample_photo')->get();
-        $this->assertCount(0, $photoDocs, 'No sample photo documents should be created on validation failure');
+        // Assert: No NEW documents were created in database (due to validation failure)
+        $finalPhotoCount = Document::where('document_type', 'sample_photo')->count();
+        $this->assertEquals(
+            $initialPhotoCount, 
+            $finalPhotoCount, 
+            'No new sample photo documents should be created on validation failure'
+        );
 
         // Note: Physical files might still exist in storage during test
         // but in real scenario, validation happens BEFORE file processing

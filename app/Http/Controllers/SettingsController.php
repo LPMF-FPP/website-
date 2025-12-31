@@ -6,6 +6,7 @@ use App\Models\DocumentTemplate;
 use App\Models\SystemSetting;
 use App\Services\NumberingService;
 use App\Support\Audit;
+use App\Http\Requests\Settings\LocalizationSettingsRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Gate;
@@ -18,7 +19,6 @@ use function settings_nest;
 
 class SettingsController extends Controller
 {
-    private const ALLOWED_TIMEZONES = ['Asia/Jakarta', 'Asia/Makassar', 'Asia/Jayapura', 'UTC'];
     private const ALLOWED_DATE_FORMATS = ['DD/MM/YYYY', 'YYYY-MM-DD', 'DD-MM-YYYY'];
     private const ALLOWED_NUMBER_FORMATS = ['1.234,56', '1,234.56'];
     private const ALLOWED_LANGUAGES = ['id', 'en'];
@@ -58,7 +58,7 @@ class SettingsController extends Controller
             ],
             'security' => Arr::get($settings, 'security.roles', []),
             'options' => [
-                'timezones' => self::ALLOWED_TIMEZONES,
+                'timezones' => LocalizationSettingsRequest::timezones(),
                 'date_formats' => self::ALLOWED_DATE_FORMATS,
                 'number_formats' => self::ALLOWED_NUMBER_FORMATS,
                 'languages' => self::ALLOWED_LANGUAGES,
@@ -97,8 +97,9 @@ class SettingsController extends Controller
         // Light validation for locale keys
         if (isset($incoming['locale']) && is_array($incoming['locale'])) {
             $l =& $incoming['locale'];
-            if (isset($l['timezone']) && !in_array($l['timezone'], self::ALLOWED_TIMEZONES, true)) {
-                $l['timezone'] = self::ALLOWED_TIMEZONES[0];
+            $allowedTimezones = LocalizationSettingsRequest::timezones();
+            if (isset($l['timezone']) && !in_array($l['timezone'], $allowedTimezones, true)) {
+                $l['timezone'] = $allowedTimezones[0] ?? 'UTC';
             }
             if (isset($l['date_format']) && !in_array($l['date_format'], self::ALLOWED_DATE_FORMATS, true)) {
                 $l['date_format'] = self::ALLOWED_DATE_FORMATS[0];
@@ -245,7 +246,7 @@ class SettingsController extends Controller
             'file' => ['required', 'file', 'max:2048'],
         ]);
 
-        $disk = settings('retention.storage_driver', 'local');
+        $disk = settings('retention.storage_driver', 'public');
         $path = $request->file('file')->store('settings', $disk);
 
         // Determine dot-notated key based on type

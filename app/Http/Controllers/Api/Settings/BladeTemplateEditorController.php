@@ -326,7 +326,8 @@ class BladeTemplateEditorController extends Controller
             }
 
             $compiledPath = $bladeCompiler->getCompiledPath($tempFile);
-            $viewData = TemplatePreviewData::forSlug($templateKey);
+            $viewData = TemplatePreviewData::forSlugDeterministic($templateKey);
+            $viewData['isPreview'] = true;
             $html = view()->file($tempFile, $viewData)->render();
 
             return response()->json([

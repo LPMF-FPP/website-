@@ -1,9 +1,81 @@
-# WALKTHROUGH - LPMF LIMS v1.0.0
+# WALKTHROUGH - LPMF LIMS v1.0.1
 
 > **Laboratory Information Management System untuk Laboratorium Pengujian Mutu Farmasi**
 > **Dokumen ini menggabungkan PRD (Product Requirements) dan ERD (Entity Relationship)**
 
 ---
+
+## 📝 Changelog
+
+### v1.0.1 (31 Desember 2025)
+
+#### 🆕 Fitur Baru
+
+**1. Multi-Suspect Support**
+- Mendukung multi tersangka per permohonan (tidak lagi terbatas 1 tersangka)
+- Tabel `suspects` baru dengan relasi ke `test_requests`
+- Dynamic add/remove tersangka di form create dan edit
+- Backward compatibility: tersangka pertama tetap disimpan ke kolom legacy `test_requests.suspect_*`
+
+**2. Non-Polri Investigator Support**
+- Pertanyaan "Apakah Anda penyidik?" toggle antara form Polri dan non-Polri
+- Kolom baru di `investigators`: `is_polri`, `institution`, `occupation`, `alt_phone`
+- Synthetic NRP untuk non-Polri dengan format `EXT-XXXXXXXX`
+
+**3. Improved Suspect Display**
+- Halaman index: Menampilkan tersangka pertama + "+N tersangka lainnya"
+- Halaman detail: Card-style display untuk semua tersangka dengan badge nomor urut
+
+#### 🐛 Bug Fixes
+
+- Fixed `deleteDocument()` method using undefined `$request->id` instead of `$testRequest->id`
+
+#### 🎨 UI Improvements
+
+- Form Data Tersangka di-redesign dengan styling oranye dan numbered badges
+- Section tersangka sekarang full-width (tidak lagi cramped di grid)
+- Tombol Hapus dengan icon SVG yang lebih jelas
+- Removed: Kolom "Alamat Tersangka" dari form
+
+#### 📦 Database Changes
+
+```sql
+-- Migration: add_external_fields_to_investigators
+ALTER TABLE investigators ADD COLUMN is_polri BOOLEAN DEFAULT TRUE;
+ALTER TABLE investigators ADD COLUMN institution VARCHAR(255);
+ALTER TABLE investigators ADD COLUMN occupation VARCHAR(255);
+ALTER TABLE investigators ADD COLUMN alt_phone VARCHAR(50);
+
+-- Migration: create_suspects_table
+CREATE TABLE suspects (
+    id BIGSERIAL PRIMARY KEY,
+    test_request_id BIGINT REFERENCES test_requests(id) ON DELETE CASCADE,
+    name VARCHAR(255) NOT NULL,
+    gender VARCHAR(20),
+    age SMALLINT,
+    order_no INT DEFAULT 1,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+```
+
+#### 📁 Files Changed
+
+| File | Change |
+|------|--------|
+| `app/Models/Suspect.php` | **NEW** - Multi-suspect model |
+| `app/Models/TestRequest.php` | Added `suspects()` relationship |
+| `app/Models/Investigator.php` | Added external fields |
+| `app/Http/Controllers/RequestController.php` | Updated store/update/edit methods |
+| `resources/views/requests/create.blade.php` | New suspect UI, external form |
+| `resources/views/requests/edit.blade.php` | Same updates as create |
+| `resources/views/requests/index.blade.php` | Multi-suspect display |
+| `resources/views/requests/show.blade.php` | Card-style suspect display |
+| `resources/js/pages/requests-form.js` | **NEW** - Dynamic suspect handling |
+| `vite.config.js` | Added new JS entry |
+
+---
+
 
 ## 📋 Daftar Isi
 
@@ -572,4 +644,4 @@ Untuk menambah dokumentasi baru, tambahkan section di bagian bawah file ini.
 
 ---
 
-*Dokumen ini terakhir diperbarui: 30 Desember 2025*
+*Dokumen ini terakhir diperbarui: 31 Desember 2025*

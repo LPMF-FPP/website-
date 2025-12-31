@@ -1,1 +1,0 @@
-<html><body><h1>Test</h1></body></html><?php /**PATH /home/lpmf-dev/website-/storage/framework/views/eb108759df74a136c6287341aed24664.blade.php ENDPATH**/ ?>

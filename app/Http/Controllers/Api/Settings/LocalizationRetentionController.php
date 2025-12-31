@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\LocalizationSettingsRequest;
 use App\Services\Settings\SettingsResponseBuilder;
 use App\Services\Settings\SettingsWriter;
+use App\Support\AppTimezone;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 
 class LocalizationRetentionController extends Controller
@@ -36,12 +38,18 @@ class LocalizationRetentionController extends Controller
         $payload = [];
         if (isset($data['localization'])) {
             $payload['locale'] = $data['localization'];
+            $payload['localization'] = $data['localization'];
         }
         if (isset($data['retention'])) {
             $payload['retention'] = $data['retention'];
         }
 
         $this->writer->put($payload, 'UPDATE_LOCALE_RETENTION', $request->user());
+
+        if (isset($data['localization']['timezone'])) {
+            Cache::forget(AppTimezone::CACHE_KEY);
+            AppTimezone::apply($data['localization']['timezone']);
+        }
 
         $snapshot = $this->builder->build();
 
