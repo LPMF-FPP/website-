@@ -125,13 +125,13 @@ class DocumentTemplateService
             'suspect_address',
             
             // Sample
-            'sample_name',
+            'short_description',
             'sample_code',
             'sample_type',
             'sample_weight',
             'sample_count',
             'package_quantity',
-            'packaging_type',
+            'unit',
             
             // Test/Results
             'test_date',

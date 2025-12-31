@@ -43,9 +43,10 @@ class RequestStoreDocumentServiceTest extends TestCase
             'suspect_age' => 30,
             'samples' => [
                 [
-                    'name' => 'Sample A',
+                    'short_description' => 'Sample A',
                     'type' => 'powder',
-                    'quantity' => 10,
+                    'package_quantity' => 10,
+                    'unit' => 'serbuk',
                     'test_types' => ['uv_vis', 'gc_ms'],
                     'active_substance' => 'Methamphetamine',
                 ]
@@ -128,10 +129,11 @@ class RequestStoreDocumentServiceTest extends TestCase
             'suspect_name' => 'Test Suspect 2',
             'samples' => [
                 [
-                    'name' => 'Sample B',
+                    'short_description' => 'Sample B',
                     'test_types' => ['uv_vis'],
                     'active_substance' => 'Cannabis',
-                    'quantity' => 5,
+                    'package_quantity' => 5,
+                    'unit' => 'serbuk',
                 ]
             ],
             'request_letter' => UploadedFile::fake()->create('surat.pdf', 50, 'application/pdf'),
@@ -192,10 +194,11 @@ class RequestStoreDocumentServiceTest extends TestCase
             'suspect_name' => 'Test Suspect 3',
             'samples' => [
                 [
-                    'name' => 'Sample C',
+                    'short_description' => 'Sample C',
                     'test_types' => ['gc_ms'],
                     'active_substance' => 'Heroin',
-                    'quantity' => 3,
+                    'package_quantity' => 3,
+                    'unit' => 'serbuk',
                 ]
             ],
             'request_letter' => UploadedFile::fake()->create('surat.pdf', 50, 'application/pdf'),

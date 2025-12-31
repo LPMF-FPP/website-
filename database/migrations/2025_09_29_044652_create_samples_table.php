@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('sample_code')->unique();
             $table->foreignId('test_request_id')->constrained();
-            $table->string('sample_name');
+            $table->string('short_description');
             $table->text('sample_description')->nullable();
             $table->enum('sample_form', ['powder', 'pill', 'liquid', 'plant', 'crystal', 'paste', 'capsule', 'other'])->default('other');
             $table->enum('sample_category', [
@@ -22,6 +22,7 @@ return new class extends Migration
             $table->string('sample_color')->nullable();
             $table->decimal('sample_weight', 10, 2)->nullable();
             $table->integer('package_quantity')->default(1);
+            $table->string('unit', 50)->nullable();
             $table->string('net_weight')->nullable();
             $table->string('packaging_type')->nullable();
             $table->text('storage_location')->nullable();

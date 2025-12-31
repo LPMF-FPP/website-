@@ -21,17 +21,17 @@
                 </div>
 
                 <div>
-                    <label for="filter_sample_name" class="block text-xs font-medium text-gray-600 uppercase tracking-wide">
-                        Nama Sampel
+                    <label for="filter_short_description" class="block text-xs font-medium text-gray-600 uppercase tracking-wide">
+                        Deskripsi Singkat
                         <span class="text-gray-400 normal-case">(pilih dari yang tersedia)</span>
                     </label>
-                    <select id="filter_sample_name" name="sample_name"
+                    <select id="filter_short_description" name="short_description"
                         class="mt-1 block w-56 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                        <option value="">Semua Nama</option>
+                        <option value="">Semua Deskripsi</option>
                         @forelse($sampleNames as $name)
-                            <option value="{{ $name }}" @selected(($filters['sample_name'] ?? '') === $name)>{{ $name }}</option>
+                            <option value="{{ $name }}" @selected(($filters['short_description'] ?? '') === $name)>{{ $name }}</option>
                         @empty
-                            <option disabled>Tidak ada nama sampel</option>
+                            <option disabled>Tidak ada deskripsi sampel</option>
                         @endforelse
                     </select>
                 </div>
@@ -69,7 +69,7 @@
                     $readyOptions = [];
                     foreach ($processes as $p) {
                         if (in_array($p->sample_id, $samplesReadyForDelivery ?? [])) {
-                            $label = ($p->sample->sample_name ?? 'Sampel') . ' (' . ($p->sample->testRequest?->receipt_number ?? '-') . ')';
+                            $label = ($p->sample->short_description ?? 'Sampel') . ' (' . ($p->sample->testRequest?->receipt_number ?? '-') . ')';
                             $readyOptions[$p->sample_id] = $label;
                         }
                     }
@@ -135,7 +135,7 @@
                             <tr class="hover:bg-gray-50/60 {{ $isReadyForDelivery ? 'bg-blue-50/30' : '' }}">
                                 <td class="px-4 py-3">
                                     <div class="font-semibold text-gray-900">
-                                        {{ $process->sample->sample_name }}
+                                        {{ $process->sample->short_description ?? '—' }}
                                         @if($isReadyForDelivery)
                                             <span class="ml-2 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">Siap Diserahkan</span>
                                         @endif

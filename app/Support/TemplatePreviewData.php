@@ -313,22 +313,22 @@ class TemplatePreviewData
 
         $samples = collect([
             (object) [
-                'sample_name' => 'Pil Ekstasi Warna Biru',
+                'short_description' => 'Pil Ekstasi Warna Biru',
                 'sample_code' => 'W-001-2025',
                 'test_methods' => json_encode(['gc_ms', 'uv_vis']),
                 'active_substance' => 'MDMA',
                 'package_quantity' => 100,
                 'quantity' => 10,
-                'packaging_type' => 'butir',
+                'unit' => 'butir',
             ],
             (object) [
-                'sample_name' => 'Bubuk Putih Kristal',
+                'short_description' => 'Bubuk Putih Kristal',
                 'sample_code' => 'W-002-2025',
                 'test_methods' => json_encode(['gc_ms']),
                 'active_substance' => 'Metamfetamina',
                 'package_quantity' => 50,
                 'quantity' => 5,
-                'packaging_type' => 'gram',
+                'unit' => 'gram',
             ],
         ]);
 
@@ -355,12 +355,12 @@ class TemplatePreviewData
         $request = self::dummyRequest($now);
 
         return (object) [
-            'sample_name' => 'Pil Ekstasi Warna Biru',
+            'short_description' => 'Pil Ekstasi Warna Biru',
             'sample_code' => 'W-001-2025',
             'batch_no' => 'BATCH-001',
             'exp_date' => $now->copy()->addYears(2),
             'package_quantity' => 100,
-            'packaging_type' => 'butir',
+            'unit' => 'butir',
             'active_substance' => 'MDMA',
             'testRequest' => $request,
         ];
@@ -561,7 +561,7 @@ class TemplatePreviewData
             ? Carbon::parse($receivedAt)->translatedFormat('d M Y H:i')
             : '-';
 
-        $satuan = $sample?->quantity_unit ?? $sample?->packaging_type ?? '-';
+        $satuan = $sample?->quantity_unit ?? $sample?->unit ?? '-';
         $qrContent = $unit->qr_content;
 
         return [

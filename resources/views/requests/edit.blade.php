@@ -221,14 +221,15 @@
                                         <input type="hidden" name="samples[{{ $index }}][id]" value="{{ $sample->id }}">
 
                                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {{-- Nama Sampel --}}
+                                            {{-- Deskripsi Singkat --}}
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700 mb-2">
-                                                    Nama Sampel
+                                                    Deskripsi Singkat
                                                 </label>
                                                 <input type="text"
-                                                       name="samples[{{ $index }}][sample_name]"
-                                                       value="{{ old('samples.'.$index.'.sample_name', $sample->sample_name) }}"
+                                                       name="samples[{{ $index }}][short_description]"
+                                                       value="{{ old('samples.'.$index.'.short_description', $sample->short_description) }}"
+                                                       required
                                                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
                                             </div>
 
@@ -243,27 +244,29 @@
                                                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
                                             </div>
 
-                                            {{-- Jumlah --}}
+                                            {{-- Jumlah yang Diserahkan --}}
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700 mb-2">
-                                                    Jumlah
+                                                    Jumlah yang Diserahkan
                                                 </label>
                                                 <input type="number"
-                                                       name="samples[{{ $index }}][quantity]"
-                                                       value="{{ old('samples.'.$index.'.quantity', $sample->quantity) }}"
+                                                       name="samples[{{ $index }}][package_quantity]"
+                                                       value="{{ old('samples.'.$index.'.package_quantity', $sample->package_quantity) }}"
+                                                       required
                                                        min="0"
                                                        step="0.01"
                                                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
                                             </div>
 
-                                            {{-- Jumlah dalam Kemasan --}}
+                                            {{-- Satuan --}}
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700 mb-2">
-                                                    Jumlah dalam Kemasan
+                                                    Satuan
                                                 </label>
                                                 <input type="text"
-                                                       name="samples[{{ $index }}][packaging_type]"
-                                                       value="{{ old('samples.'.$index.'.packaging_type', $sample->packaging_type) }}"
+                                                       name="samples[{{ $index }}][unit]"
+                                                       value="{{ old('samples.'.$index.'.unit', $sample->unit) }}"
+                                                       required
                                                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
                                             </div>
                                         </div>
@@ -296,10 +299,11 @@
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-2">
-                                                Nama Sampel
+                                                Deskripsi Singkat
                                             </label>
                                             <input type="text"
-                                                   name="samples[${sampleIndex}][sample_name]"
+                                                   name="samples[${sampleIndex}][short_description]"
+                                                   required
                                                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
                                         </div>
 
@@ -314,10 +318,11 @@
 
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-2">
-                                                Jumlah
+                                                Jumlah yang Diserahkan
                                             </label>
                                             <input type="number"
-                                                   name="samples[${sampleIndex}][quantity]"
+                                                   name="samples[${sampleIndex}][package_quantity]"
+                                                   required
                                                    min="0"
                                                    step="0.01"
                                                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
@@ -325,10 +330,11 @@
 
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-2">
-                                                Jumlah dalam Kemasan
+                                                Satuan
                                             </label>
                                             <input type="text"
-                                                   name="samples[${sampleIndex}][packaging_type]"
+                                                   name="samples[${sampleIndex}][unit]"
+                                                   required
                                                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
                                         </div>
                                     </div>

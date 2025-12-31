@@ -27,8 +27,8 @@
         <h2>Informasi Sampel</h2>
         <div class="grid">
             <div class="grid-item">
-                <div class="label">Nama Sampel</div>
-                <div class="value">{{ $sampleProcess->sample?->sample_name ?? '-' }}</div>
+                <div class="label">Deskripsi Singkat</div>
+                <div class="value">{{ $sampleProcess->sample?->short_description ?? '-' }}</div>
             </div>
             <div class="grid-item">
                 <div class="label">Kode Sampel</div>

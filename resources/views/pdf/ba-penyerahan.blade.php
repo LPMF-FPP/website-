@@ -9,10 +9,10 @@
 
   // Derived fields to match the displayed structure
   $firstSample = $samples->first();
-  $mainSampleCode = $firstSample->sample_code ?? $firstSample->sample_name ?? '-';
+  $mainSampleCode = $firstSample->sample_code ?? $firstSample->short_description ?? '-';
   // Build combined sample codes string (unique, comma-separated)
   $sampleCodes = collect($samples)->map(function($s){
-      return $s->sample_code ?? $s->sample_name ?? null;
+      return $s->sample_code ?? $s->short_description ?? null;
   })->filter()->unique()->values();
   $allSampleCodesStr = $sampleCodes->isNotEmpty() ? $sampleCodes->join(', ') : $mainSampleCode;
   $invName = trim(($inv?->rank).' '.($inv?->name));
@@ -97,7 +97,7 @@
       $cand = $metaS['report_number'] ?? $metaS['lhu_number'] ?? $metaS['flhu_number'] ?? null;
     }
     if (!$cand) {
-      $cand = $computeLHUFromSampleCode($s->sample_code ?? $s->sample_name ?? '');
+      $cand = $computeLHUFromSampleCode($s->sample_code ?? $s->short_description ?? '');
     }
     return $cand ? strtoupper($cand) : null;
   })->filter()->unique()->values();
@@ -225,7 +225,7 @@
       }
       $display = $appendUnit(
           $formatQuantity($leftoverQty),
-          $s->packaging_type ?? $s->quantity_unit
+          $s->unit ?? $s->quantity_unit
       );
       return $display ?? '0';
   };
@@ -317,7 +317,7 @@
             if (is_string($methods)) { $methods = json_decode($methods, true) ?? []; }
             $map = ['uv_vis'=>'Identifikasi Spektrofotometri UV-VIS','gc_ms'=>'Identifikasi GC-MS','lc_ms'=>'Identifikasi LC-MS'];
             $methodsStr = collect($methods)->map(fn($m)=>$map[$m] ?? $m)->join('; ');
-            $code = $s->sample_code ?? $s->sample_name ?? '—';
+            $code = $s->sample_code ?? $s->short_description ?? '—';
           @endphp
           <tr><td class="col-no">{{ $i+1 }}</td><td><strong>{{ $code }}</strong> — Uji: {{ $methodsStr }}</td></tr>
         @empty
@@ -336,7 +336,7 @@
       <thead><tr><th>Kode Sampel</th><th>Sisa</th></tr></thead>
       <tbody>
         @forelse($samples as $s)
-          @php $code = $s->sample_code ?? $s->sample_name ?? '—'; @endphp
+          @php $code = $s->sample_code ?? $s->short_description ?? '—'; @endphp
           <tr><td>{{ $code }}</td><td>{{ $calcSisa($s) }}</td></tr>
         @empty
           <tr><td colspan="2" style="text-align:center;font-style:italic;">Tidak ada data sisa sampel.</td></tr>
@@ -376,4 +376,3 @@
 
 </body>
 </html>
-

@@ -93,7 +93,7 @@
         <tbody>
             <tr><th style="width:280px;">Nama Pelanggan</th><td>{{ customer_name | default('-', true) }}</td></tr>
             <tr><th>Alamat Pelanggan</th><td>{{ customer_unit | default('-', true) }}</td></tr>
-            <tr><th>Nama Sampel</th><td>{{ sample_name | default('-', true) }}</td></tr>
+            <tr><th>Deskripsi Singkat</th><td>{{ short_description | default('-', true) }}</td></tr>
             <tr><th>Jumlah Sampel</th><td>{{ quantity_display | default('-', true) }}</td></tr>
             <tr><th>No Batch</th><td>{{ batch_number | default('-', true) }}</td></tr>
             <tr><th>Exp. Date</th><td>{{ expiry_date | default('-', true) }}</td></tr>

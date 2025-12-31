@@ -169,7 +169,7 @@ class BladeTemplatePreviewTest extends TestCase
     <p>{{ $request->investigator->rank }} {{ $request->investigator->name }}</p>
     <p>{{ $request->investigator->nrp }}</p>
     @foreach($request->samples as $sample)
-        <li>{{ $sample->sample_name }} - {{ $sample->active_substance }}</li>
+        <li>{{ $sample->short_description }} - {{ $sample->active_substance }}</li>
     @endforeach
     <p>{{ $generatedAt->format('d/m/Y H:i:s') }}</p>
 </body>

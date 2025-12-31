@@ -53,7 +53,7 @@ class FormPreparationArchiveTest extends TestCase
         $sample = Sample::create([
             'test_request_id' => $testRequest->id,
             'sample_code' => 'SP-001',
-            'sample_name' => 'Tablet Putih Test',
+            'short_description' => 'Tablet Putih Test',
             'sample_form' => 'pill',
             'test_methods' => json_encode(['uv_vis']),
             'active_substance' => 'MDMA',
@@ -135,7 +135,7 @@ class FormPreparationArchiveTest extends TestCase
         $sample = Sample::create([
             'test_request_id' => $testRequest->id,
             'sample_code' => 'SP-001',
-            'sample_name' => 'Test Sample',
+            'short_description' => 'Test Sample',
             'sample_form' => 'powder',
             'test_methods' => json_encode(['uv_vis']),
             'active_substance' => 'Test',

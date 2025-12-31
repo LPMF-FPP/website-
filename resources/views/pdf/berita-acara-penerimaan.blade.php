@@ -29,6 +29,57 @@
     };
 
     $testsSummary = $request->samples->map(fn($s) => $formatMethods($s->test_methods ?? []))->filter()->unique()->join('; ');
+
+    $getQty = function($sample) {
+        $keys = [
+            'package_quantity',
+            'quantity_delivered',
+            'delivered_quantity',
+            'jumlah_yang_diserahkan',
+            'jumlah_diserahkan',
+            'submitted_quantity',
+            'quantity_submitted',
+            'qty',
+            'quantity',
+        ];
+        foreach ($keys as $key) {
+            $value = data_get($sample, $key);
+            if ($value !== null && $value !== '') {
+                return $value;
+            }
+        }
+        return null;
+    };
+
+    $getUnit = function($sample) {
+        $keys = ['unit', 'satuan', 'pack_unit', 'packaging_unit'];
+        foreach ($keys as $key) {
+            $value = data_get($sample, $key);
+            if ($value !== null && $value !== '') {
+                return $value;
+            }
+        }
+        return null;
+    };
+
+    $formatQtyUnit = function($sample) use ($getQty, $getUnit) {
+        $qty = $getQty($sample);
+        $unit = $getUnit($sample);
+
+        $hasQty = $qty !== null && $qty !== '';
+        $hasUnit = $unit !== null && $unit !== '';
+
+        if ($hasQty && $hasUnit) {
+            return trim($qty.' '.$unit);
+        }
+        if ($hasQty) {
+            return $qty;
+        }
+        if ($hasUnit) {
+            return $unit;
+        }
+        return '—';
+    };
 @endphp
 <!DOCTYPE html>
 <html lang="id">
@@ -62,10 +113,12 @@
 
   .list-table { font-size:9.8pt; table-layout: fixed; margin-top: 6px; }
   .list-table th, .list-table td { border:1px solid #000; padding:6px 8px; vertical-align:top; }
-  .list-table th { text-align:center; background:#f0f0f0; }
-  .col-name  { width: 46%; }
-  .col-tests { width: 34%; }
-  .col-act   { width: 20%; }
+  .list-table th { text-align:center; background:#f0f0f0; white-space: normal !important; overflow-wrap:anywhere; word-break:break-word; hyphens:auto; line-height:1.2; }
+  .list-table td { overflow-wrap:anywhere; word-break:break-word; hyphens:auto; }
+  .col-name  { width: 30%; }
+  .col-qty   { width: 20%; text-align:center; }
+  .col-tests { width: 32%; }
+  .col-act   { width: 18%; }
 
   .sign-table { width:100%; margin-top:18px; border:0; border-collapse:separate; }
   .sign-table td { width:50%; vertical-align:top; border:0; }
@@ -115,7 +168,8 @@
   <table class="list-table">
     <thead>
       <tr>
-        <th class="col-name">Nama Sampel</th>
+        <th class="col-name">Deskripsi Singkat</th>
+        <th class="col-qty">Jumlah Sampel yang Diterima</th>
         <th class="col-tests">Jenis Pengujian</th>
         <th class="col-act">Zat Aktif</th>
       </tr>
@@ -123,7 +177,8 @@
     <tbody>
       @foreach($request->samples as $i => $sample)
       <tr>
-        <td class="col-name"><b>{{ $sample->sample_name }}</b></td>
+        <td class="col-name"><b>{{ $sample->short_description ?? '—' }}</b></td>
+        <td class="col-qty">{{ $formatQtyUnit($sample) }}</td>
         <td class="col-tests">{{ $formatMethods($sample->test_methods ?? []) }}</td>
         <td class="col-act">{{ $sample->active_substance ?? '-' }}</td>
       </tr>

@@ -116,7 +116,7 @@ class DashboardController extends Controller
                     ->map(function ($result) {
                         return (object) [
                             'type' => 'test_result',
-                            'title' => 'Hasil Test: ' . $result->sample->sample_name,
+                            'title' => 'Hasil Test: ' . $result->sample->short_description,
                             'description' => 'Status: ' . $result->result_status,
                             'time' => $result->created_at,
                             'icon' => '🧪',

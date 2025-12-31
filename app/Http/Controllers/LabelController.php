@@ -39,7 +39,7 @@ class LabelController extends Controller
 
         // Get satuan (unit of measurement) from sample
         $satuan = $sample?->quantity_unit
-            ?? $sample?->packaging_type
+            ?? $sample?->unit
             ?? '-';
 
         // Generate QR as PNG data URI for stable rendering in DOMPDF and previews

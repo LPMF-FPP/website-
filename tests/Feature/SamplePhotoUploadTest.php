@@ -44,9 +44,10 @@ class SamplePhotoUploadTest extends TestCase
             'suspect_age' => 25,
             'samples' => [
                 [
-                    'name' => 'Serbuk Putih Sampel 1',
+                    'short_description' => 'Serbuk Putih Sampel 1',
                     'type' => 'powder',
-                    'quantity' => 10,
+                    'package_quantity' => 10,
+                    'unit' => 'serbuk',
                     'test_types' => ['uv_vis', 'gc_ms'],
                     'active_substance' => 'MDMA',
                 ]
@@ -82,7 +83,7 @@ class SamplePhotoUploadTest extends TestCase
         // Assert: Sample was created
         $sample = Sample::where('test_request_id', $testRequest->id)->first();
         $this->assertNotNull($sample);
-        $this->assertEquals('Serbuk Putih Sampel 1', $sample->sample_name);
+        $this->assertEquals('Serbuk Putih Sampel 1', $sample->short_description);
 
         // Assert: Sample photo documents were created
         $samplePhotoDocs = Document::where('test_request_id', $testRequest->id)
@@ -108,9 +109,9 @@ class SamplePhotoUploadTest extends TestCase
             // Assert: Document has sample linkage in extra field
             $this->assertNotNull($doc->extra, 'Document extra field should not be null');
             $this->assertArrayHasKey('sample_id', $doc->extra, 'Document extra should have sample_id');
-            $this->assertArrayHasKey('sample_name', $doc->extra, 'Document extra should have sample_name');
+            $this->assertArrayHasKey('short_description', $doc->extra, 'Document extra should have short_description');
             $this->assertEquals($sample->id, $doc->extra['sample_id'], 'Document extra sample_id should match sample');
-            $this->assertEquals($sample->sample_name, $doc->extra['sample_name'], 'Document extra sample_name should match sample');
+            $this->assertEquals($sample->short_description, $doc->extra['short_description'], 'Document extra short_description should match sample');
         }
     }
 
@@ -127,9 +128,10 @@ class SamplePhotoUploadTest extends TestCase
             'suspect_name' => 'Tersangka Test 2',
             'samples' => [
                 [
-                    'name' => 'Serbuk Putih',
+                    'short_description' => 'Serbuk Putih',
                     'type' => 'powder',
-                    'quantity' => 5,
+                    'package_quantity' => 5,
+                    'unit' => 'serbuk',
                     'test_types' => ['uv_vis'],
                     'active_substance' => 'Heroin',
                 ]
@@ -173,16 +175,18 @@ class SamplePhotoUploadTest extends TestCase
             'suspect_name' => 'Tersangka Test 3',
             'samples' => [
                 [
-                    'name' => 'Sampel A',
+                    'short_description' => 'Sampel A',
                     'type' => 'powder',
-                    'quantity' => 10,
+                    'package_quantity' => 10,
+                    'unit' => 'serbuk',
                     'test_types' => ['uv_vis'],
                     'active_substance' => 'Ecstasy',
                 ],
                 [
-                    'name' => 'Sampel B',
+                    'short_description' => 'Sampel B',
                     'type' => 'liquid',
-                    'quantity' => 5,
+                    'package_quantity' => 5,
+                    'unit' => 'ml',
                     'test_types' => ['gc_ms'],
                     'active_substance' => 'Cocaine',
                 ]
@@ -215,8 +219,8 @@ class SamplePhotoUploadTest extends TestCase
         // Should have 2 samples
         $this->assertCount(2, $samples);
 
-        $sampleA = $samples->where('sample_name', 'Sampel A')->first();
-        $sampleB = $samples->where('sample_name', 'Sampel B')->first();
+        $sampleA = $samples->where('short_description', 'Sampel A')->first();
+        $sampleB = $samples->where('short_description', 'Sampel B')->first();
 
         // Should have 3 total sample photo documents
         $allPhotoDocs = Document::where('test_request_id', $testRequest->id)
@@ -240,12 +244,12 @@ class SamplePhotoUploadTest extends TestCase
         // Verify all photos have correct linkage
         foreach ($sampleAPhotos as $photo) {
             $this->assertEquals($sampleA->id, $photo->extra['sample_id']);
-            $this->assertEquals('Sampel A', $photo->extra['sample_name']);
+            $this->assertEquals('Sampel A', $photo->extra['short_description']);
         }
 
         foreach ($sampleBPhotos as $photo) {
             $this->assertEquals($sampleB->id, $photo->extra['sample_id']);
-            $this->assertEquals('Sampel B', $photo->extra['sample_name']);
+            $this->assertEquals('Sampel B', $photo->extra['short_description']);
         }
     }
 
@@ -263,8 +267,9 @@ class SamplePhotoUploadTest extends TestCase
             // Missing 'suspect_name' - REQUIRED FIELD
             'samples' => [
                 [
-                    'name' => 'Test Sample',
-                    'quantity' => 1,
+                    'short_description' => 'Test Sample',
+                    'package_quantity' => 1,
+                    'unit' => 'tablet',
                     'test_types' => ['uv_vis'],
                     'active_substance' => 'Test',
                 ]

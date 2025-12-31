@@ -49,7 +49,7 @@ class Sample extends Model
 
         'test_request_id',
         'sample_code',
-        'sample_name',
+        'short_description',
         'sample_description',
         'sample_form',
         'sample_category',
@@ -57,7 +57,7 @@ class Sample extends Model
         'sample_weight',
         'package_quantity',
         'net_weight',
-        'packaging_type',
+        'unit',
         'storage_location',
         'condition',
         'photo_path',
@@ -363,4 +363,3 @@ class Sample extends Model
 
 
 }
-

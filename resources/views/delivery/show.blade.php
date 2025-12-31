@@ -241,7 +241,7 @@
             <div class="divide-y divide-gray-100">
                 @foreach($request->samples as $sample)
                     <div class="px-6 py-5">
-                        <x-page-section :title="$sample->sample_name">
+                        <x-page-section :title="$sample->short_description ?? '—'">
                             <p class="text-sm text-gray-500">Kode Sampel: {{ $sample->sample_code }}</p>
                             @php
                                 $sampleBadges = [

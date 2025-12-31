@@ -52,7 +52,7 @@
     $customerAddress = $testRequest?->delivery_address ?? '-';
     $requestNumber = $testRequest?->request_number ?? '-';
     $caseNumber = $testRequest?->case_number ?? '-';
-    $sampleName = $sample?->sample_name ?? '-';
+    $sampleName = $sample?->short_description ?? '-';
     $sampleCode = $sample?->sample_code ?? '-';
     $sampleQuantity = $sample?->quantity;
     $sampleQuantityUnit = $sample?->quantity_unit;
@@ -99,7 +99,7 @@
         <div class="field"><div class="label">Nama Kontak</div><div class="value">{{ $customerName ?: '-' }}</div></div>
         <div class="field"><div class="label">Nomor Permintaan</div><div class="value">{{ $requestNumber }}</div></div>
         <div class="field"><div class="label">Nomor Surat / Dasar</div><div class="value">{{ $caseNumber }}</div></div>
-        <div class="field"><div class="label">Nama Sampel</div><div class="value">{{ $sampleName }}</div></div>
+        <div class="field"><div class="label">Deskripsi Singkat</div><div class="value">{{ $sampleName }}</div></div>
         <div class="field"><div class="label">Jumlah Sampel</div><div class="value">{{ $quantityDisplay }}</div></div>
         <div class="field"><div class="label">No Batch</div><div class="value">{{ $batchNumber }}</div></div>
         <div class="field"><div class="label">Exp. Date</div><div class="value">{{ $expiryDate }}</div></div>

@@ -151,7 +151,7 @@ class LabelController extends Controller
         $samples = \App\Models\Sample::where('test_request_id', $requestId)
             ->whereNotIn('id', $existingSampleIds)
             ->orderBy('sample_code')
-            ->get(['id', 'sample_code', 'sample_name', 'sample_description']);
+            ->get(['id', 'sample_code', 'short_description', 'sample_description']);
 
         return response()->json([
             'success' => true,

@@ -188,8 +188,8 @@
   <table class="kv avoid">
     <tr><th>Nama Pelanggan</th><td>{{ trim(($inv?->rank).' '.($inv?->name)) }}</td></tr>
     <tr><th>Alamat Pelanggan</th><td>{{ $inv?->jurisdiction }}</td></tr>
-    <tr><th>Nama Sampel</th><td>{{ $samp?->sample_name }}</td></tr>
-    <tr><th>Jumlah Sampel</th><td>{{ ($samp?->package_quantity ?? $samp?->quantity ?? 1) }} {{ $samp?->packaging_type ?? 'Unit' }}</td></tr>
+    <tr><th>Deskripsi Singkat</th><td>{{ $samp?->short_description ?? '—' }}</td></tr>
+    <tr><th>Jumlah Sampel</th><td>{{ ($samp?->package_quantity ?? $samp?->quantity ?? 1) }} {{ $samp?->unit ?? 'Unit' }}</td></tr>
     <tr><th>No Batch</th><td>{{ $batchNo }}</td></tr>
     <tr><th>Exp. Date</th><td>{{ $expDate }}</td></tr>
     <tr><th>Tanggal Penerimaan Sampel</th><td>{{ $tglTerima }}</td></tr>

@@ -85,7 +85,7 @@ LPMF LIMS adalah sistem manajemen informasi laboratorium yang dirancang untuk:
 │ id               │       │ id               │       │ id               │
 │ name             │──┐    │ request_number   │    ┌──│ test_request_id  │
 │ rank             │  │    │ receipt_number   │    │  │ sample_code      │
-│ nrp              │  └───>│ investigator_id  │<───┘  │ sample_name      │
+│ nrp              │  └───>│ investigator_id  │<───┘  │ short_description │
 │ jurisdiction     │       │ user_id          │       │ sample_category  │
 │ phone            │       │ suspect_name     │       │ sample_form      │
 │ email            │       │ case_number      │       │ sample_weight    │
@@ -573,4 +573,3 @@ Untuk menambah dokumentasi baru, tambahkan section di bagian bawah file ini.
 ---
 
 *Dokumen ini terakhir diperbarui: 30 Desember 2025*
-

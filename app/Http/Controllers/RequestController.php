@@ -135,7 +135,7 @@ class RequestController extends Controller
 
             'samples' => 'required|array|min:1',
 
-            'samples.*.name' => 'required|string|max:255',
+            'samples.*.short_description' => 'required|string|max:255',
 
             'samples.*.type' => 'nullable|string|in:tablet,powder,liquid,plant,other', // UBAH ke nullable
 
@@ -143,11 +143,9 @@ class RequestController extends Controller
 
             'samples.*.weight' => 'nullable|numeric|min:0',
 
-            'samples.*.quantity' => 'required|integer|min:1',
+            'samples.*.package_quantity' => 'required|integer|min:1',
 
-            'samples.*.package_quantity' => 'nullable|integer|min:1',
-
-            'samples.*.packaging_type' => 'nullable|string',
+            'samples.*.unit' => 'required|string|max:50',
 
             'samples.*.test_types' => 'required|array|min:1',
 
@@ -185,7 +183,7 @@ class RequestController extends Controller
 
             'samples.required' => 'Minimal 1 sampel harus diisi',
 
-            'samples.*.name.required' => 'Nama sampel harus diisi',
+            'samples.*.short_description.required' => 'Deskripsi singkat harus diisi',
 
             'samples.*.test_types.required' => 'Pilih minimal satu jenis pengujian',
 
@@ -193,9 +191,9 @@ class RequestController extends Controller
 
             'samples.*.active_substance.required' => 'Zat aktif harus diisi',
 
-            'samples.*.quantity.required' => 'Jumlah sampel harus diisi',
+            'samples.*.package_quantity.required' => 'Jumlah yang diserahkan harus diisi',
 
-            'samples.*.quantity.min' => 'Jumlah sampel minimal 1',
+            'samples.*.package_quantity.min' => 'Jumlah yang diserahkan minimal 1',
 
         ]);
 
@@ -310,7 +308,7 @@ class RequestController extends Controller
 
                     'test_request_id' => $testRequest->id,
 
-                    'sample_name' => $sampleData['name'],
+                    'short_description' => $sampleData['short_description'],
 
                     'sample_form' => $sampleData['type'] ?? 'other', // Default 'other' jika tidak dipilih
 
@@ -318,9 +316,9 @@ class RequestController extends Controller
 
                     'sample_weight' => $sampleData['weight'] ?? null,
 
-                    'package_quantity' => isset($sampleData['package_quantity']) ? (int) $sampleData['package_quantity'] : (isset($sampleData['quantity']) ? (int) $sampleData['quantity'] : 1),
+                    'package_quantity' => (int) $sampleData['package_quantity'],
 
-                    'packaging_type' => $sampleData['packaging_type'] ?? null,
+                    'unit' => $sampleData['unit'],
 
                     'test_methods' => json_encode(array_values($sampleData['test_types'])),
 
@@ -357,7 +355,7 @@ class RequestController extends Controller
                     $doc = $docs->storeUpload($photo, $investigator, $testRequest, 'sample_photo');
                     $doc->extra = array_merge($doc->extra ?? [], [
                         'sample_id'   => $sample->id,
-                        'sample_name' => $sample->sample_name,
+                        'short_description' => $sample->short_description,
                     ]);
                     $doc->save();
                 }
@@ -461,10 +459,10 @@ class RequestController extends Controller
             // Samples
             'samples' => 'required|array|min:1',
             'samples.*.id' => 'nullable|exists:samples,id',
-            'samples.*.sample_name' => 'required|string|max:255',
+            'samples.*.short_description' => 'required|string|max:255',
             'samples.*.active_substance' => 'required|string|max:255',
-            'samples.*.quantity' => 'required|numeric|min:0',
-            'samples.*.packaging_type' => 'nullable|string|max:100',
+            'samples.*.package_quantity' => 'required|numeric|min:0',
+            'samples.*.unit' => 'required|string|max:50',
         ]);
 
         DB::beginTransaction();
@@ -497,10 +495,10 @@ class RequestController extends Controller
                     $sample = Sample::find($sampleData['id']);
                     if ($sample && $sample->test_request_id == $testRequest->id) {
                         $sample->update([
-                            'sample_name' => $sampleData['sample_name'],
+                            'short_description' => $sampleData['short_description'],
                             'active_substance' => $sampleData['active_substance'],
-                            'package_quantity' => $sampleData['quantity'],
-                            'packaging_type' => $sampleData['packaging_type'],
+                            'package_quantity' => $sampleData['package_quantity'],
+                            'unit' => $sampleData['unit'],
                         ]);
                         $submittedSampleIds[] = $sample->id;
                     }
@@ -508,10 +506,10 @@ class RequestController extends Controller
                     // Create new sample
                     $newSample = Sample::create([
                         'test_request_id' => $testRequest->id,
-                        'sample_name' => $sampleData['sample_name'],
+                        'short_description' => $sampleData['short_description'],
                         'active_substance' => $sampleData['active_substance'],
-                        'package_quantity' => $sampleData['quantity'],
-                        'packaging_type' => $sampleData['packaging_type'],
+                        'package_quantity' => $sampleData['package_quantity'],
+                        'unit' => $sampleData['unit'],
                         'sample_form' => 'other',
                         'test_methods' => json_encode(['uv_vis']),
                         'condition' => 'baik',

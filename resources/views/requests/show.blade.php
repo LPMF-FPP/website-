@@ -109,7 +109,7 @@
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th class="px-4 py-2 text-left font-medium text-gray-500 uppercase">Kode</th>
-                                    <th class="px-4 py-2 text-left font-medium text-gray-500 uppercase">Nama</th>
+                                    <th class="px-4 py-2 text-left font-medium text-gray-500 uppercase">Deskripsi Singkat</th>
                                     <th class="px-4 py-2 text-left font-medium text-gray-500 uppercase">Jenis Pengujian</th>
                                     <th class="px-4 py-2 text-left font-medium text-gray-500 uppercase">Zat Aktif</th>
                                     <th class="px-4 py-2 text-left font-medium text-gray-500 uppercase">Hasil Pengujian</th>
@@ -127,7 +127,7 @@
                                     @endphp
                                     <tr class="hover:bg-gray-50">
                                         <td class="px-4 py-2 font-medium text-gray-900">{{ $sample->sample_code }}</td>
-                                        <td class="px-4 py-2 text-gray-700">{{ $sample->sample_name }}</td>
+                                        <td class="px-4 py-2 text-gray-700">{{ $sample->short_description ?? '—' }}</td>
                                         <td class="px-4 py-2 text-gray-700">
                                             @if ($methods->isNotEmpty())
                                                 <ul class="list-disc list-inside space-y-1 text-gray-700">

@@ -49,7 +49,7 @@ class LabelService
                     'receipt_code' => $request->receipt_number,
                     'sample_code' => $sample->sample_code,
                     'sample_type' => $sample->sample_category ?? $sample->sample_form,
-                    'sample_desc' => $sample->sample_description ?? $sample->sample_name,
+                    'sample_desc' => $sample->short_description ?? $sample->sample_description,
                     'investigator_name' => $request->investigator?->name ?? $request->investigator?->rank_name,
                     'investigator_unit' => $request->investigator?->satuan_kerja ?? $request->investigator?->unit,
                     'seal_status_received' => null, // To be filled during physical receipt

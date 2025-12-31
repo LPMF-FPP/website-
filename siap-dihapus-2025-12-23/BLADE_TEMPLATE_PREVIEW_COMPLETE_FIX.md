@@ -63,7 +63,7 @@ Fixed all issues related to Blade template preview endpoint (422/500 errors, nul
 'samples' => collect([
     (object) [
         'sample_code' => 'W-001-2025',
-        'sample_name' => 'Pil Ekstasi',
+        'short_description' => 'Pil Ekstasi',
         'package_quantity' => 100,
         'quantity' => 10,
         'packaging_type' => 'butir',
@@ -74,7 +74,7 @@ Fixed all issues related to Blade template preview endpoint (422/500 errors, nul
 'samples' => collect([
     (object) [
         'sample_code' => 'W-001-2025',
-        'sample_name' => 'Pil Ekstasi',
+        'short_description' => 'Pil Ekstasi',
         'package_quantity' => 100,
         'quantity' => 10,
         'packaging_type' => 'butir',
@@ -82,7 +82,7 @@ Fixed all issues related to Blade template preview endpoint (422/500 errors, nul
     ],
     (object) [
         'sample_code' => 'W-002-2025',
-        'sample_name' => 'Bubuk Putih',
+        'short_description' => 'Bubuk Putih',
         'package_quantity' => 50,
         'quantity' => 5,
         'packaging_type' => 'gram',

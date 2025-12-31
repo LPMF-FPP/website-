@@ -146,25 +146,23 @@
 
                                     <option value="">Pilih Pangkat</option>
 
-                                    <option value="BRIPKA" {{ old('investigator_rank') == 'BRIPKA' ? 'selected' : '' }}>BRIPKA</option>
-
                                     <option value="BRIPDA" {{ old('investigator_rank') == 'BRIPDA' ? 'selected' : '' }}>BRIPDA</option>
+
+                                    <option value="BRIPTU" {{ old('investigator_rank') == 'BRIPTU' ? 'selected' : '' }}>BRIPTU</option>
 
                                     <option value="BRIGADIR" {{ old('investigator_rank') == 'BRIGADIR' ? 'selected' : '' }}>BRIGADIR</option>
 
-                                    <option value="AIPDA" {{ old('investigator_rank') == 'AIPDA' ? 'selected' : '' }}>AIPDA</option>
+                                    <option value="BRIPKA" {{ old('investigator_rank') == 'BRIPKA' ? 'selected' : '' }}>BRIPKA</option>
 
+                                    <option value="AIPDA" {{ old('investigator_rank') == 'AIPDA' ? 'selected' : '' }}>AIPDA</option>
                                     <option value="AIPTU" {{ old('investigator_rank') == 'AIPTU' ? 'selected' : '' }}>AIPTU</option>
 
                                     <option value="IPDA" {{ old('investigator_rank') == 'IPDA' ? 'selected' : '' }}>IPDA</option>
 
                                     <option value="IPTU" {{ old('investigator_rank') == 'IPTU' ? 'selected' : '' }}>IPTU</option>
-
                                     <option value="AKP" {{ old('investigator_rank') == 'AKP' ? 'selected' : '' }}>AKP</option>
 
                                     <option value="KOMPOL" {{ old('investigator_rank') == 'KOMPOL' ? 'selected' : '' }}>KOMPOL</option>
-
-                                    <option value="AKBP" {{ old('investigator_rank') == 'AKBP' ? 'selected' : '' }}>AKBP</option>
 
                                 </select>
 
@@ -310,7 +308,7 @@
 
                                        required
 
-                                       value="{{ old('to_office', 'Kepala Sub Satker Farmapol Pusdokkes Polri') }}"
+                                       value="{{ old('to_office', 'KaPusdokkes Polri') }}"
 
                                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('to_office') border-red-500 @enderror">
 
@@ -572,25 +570,25 @@
 
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-                                    <!-- Nama Sampel -->
+                                    <!-- Deskripsi Singkat -->
 
                                     <div>
 
                                         <label class="block text-sm font-medium text-gray-700 mb-1">
 
-                                            Nama Sampel <span class="text-red-500">*</span>
+                                            Deskripsi Singkat <span class="text-red-500">*</span>
 
                                         </label>
 
                                         <input type="text"
 
-                                               name="samples[0][name]"
+                                               name="samples[0][short_description]"
 
                                                required
 
                                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
 
-                                               placeholder="Contoh: Tablet Putih">
+                                               placeholder="Contoh: Tablet putih">
 
                                     </div>
 
@@ -606,7 +604,7 @@
 
                                         <input type="number"
 
-                                               name="samples[0][quantity]"
+                                               name="samples[0][package_quantity]"
 
                                                required
 
@@ -618,25 +616,27 @@
 
                                     </div>
 
-                                    <!-- Jumlah dalam Kemasan -->
+                                    <!-- Satuan -->
 
                                     <div>
 
                                         <label class="block text-sm font-medium text-gray-700 mb-1">
 
-                                            Jumlah dalam Kemasan
+                                            Satuan <span class="text-red-500">*</span>
 
                                         </label>
 
-                                        <input type="number"
+                                        <input type="text"
 
-                                               name="samples[0][package_quantity]"
+                                               name="samples[0][unit]"
 
-                                               min="1"
+                                               required
 
                                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
 
-                                               placeholder="Contoh: 10">
+                                               placeholder="Contoh: tablet/kapsul/serbuk">
+
+                                        <p class="text-xs text-gray-500 mt-1">Gunakan satuan yang konsisten untuk setiap sampel.</p>
 
                                     </div>
 

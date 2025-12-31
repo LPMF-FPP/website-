@@ -33,7 +33,7 @@ class NumberingIntegrationTest extends TestCase
         $sample = Sample::create([
             'test_request_id' => $testRequest->id,
             'investigator_id' => $investigator->id,
-            'sample_name' => 'Test Sample',
+            'short_description' => 'Test Sample',
             'matrix_type' => 'solid',
             'sample_type' => 'drug',
             'material' => 'Test Material',
@@ -59,7 +59,7 @@ class NumberingIntegrationTest extends TestCase
         $sample1 = Sample::create([
             'test_request_id' => $testRequest->id,
             'investigator_id' => $investigator->id,
-            'sample_name' => 'Sample 1',
+            'short_description' => 'Sample 1',
             'matrix_type' => 'solid',
             'sample_type' => 'drug',
             'material' => 'Material 1',
@@ -70,7 +70,7 @@ class NumberingIntegrationTest extends TestCase
         $sample2 = Sample::create([
             'test_request_id' => $testRequest->id,
             'investigator_id' => $investigator->id,
-            'sample_name' => 'Sample 2',
+            'short_description' => 'Sample 2',
             'matrix_type' => 'solid',
             'sample_type' => 'drug',
             'material' => 'Material 2',

@@ -91,7 +91,7 @@
                                     <div class="rounded-lg border border-gray-200 p-5 shadow-sm">
                                         <div class="flex flex-col gap-2 border-b border-gray-100 pb-3 md:flex-row md:items-center md:justify-between">
                                             <div>
-                                                <h3 class="text-lg font-semibold text-gray-900">{{ $sample->sample_name }}</h3>
+                                                <h3 class="text-lg font-semibold text-gray-900">{{ $sample->short_description ?? '—' }}</h3>
                                                 <p class="text-sm text-gray-500">Kode Sampel: <span class="font-medium text-primary-700">{{ $sample->sample_code }}</span></p>
                                             </div>
                                                 <div class="mt-2">
@@ -254,5 +254,4 @@
         </script>
     @endpush
 </x-app-layout>
-
 

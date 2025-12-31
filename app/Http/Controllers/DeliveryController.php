@@ -37,7 +37,7 @@ class DeliveryController extends Controller
         $requests = TestRequest::with([
             'investigator:id,name,jurisdiction,rank',
             'samples' => function ($query) {
-                $query->select('id', 'test_request_id', 'sample_name', 'sample_code')
+                $query->select('id', 'test_request_id', 'short_description', 'sample_code')
                     ->with(['testProcesses' => function ($q) {
                         $q->select('id', 'sample_id', 'stage', 'completed_at')
                             ->whereNotNull('completed_at')
@@ -169,11 +169,11 @@ class DeliveryController extends Controller
                 }
             }
 
-            $deliveredDisplay = $appendUnit($formatQuantity($deliveredQty), $sample->packaging_type);
+            $deliveredDisplay = $appendUnit($formatQuantity($deliveredQty), $sample->unit);
             $testingDisplay = $appendUnit($formatQuantity($testingQty), $sample->quantity_unit);
             $leftoverDisplay = $appendUnit(
                 $formatQuantity($leftoverQty),
-                $sample->packaging_type ?? $sample->quantity_unit
+                $sample->unit ?? $sample->quantity_unit
             );
 
             $sample->setAttribute('delivered_quantity_value', $deliveredQty);
@@ -387,24 +387,12 @@ class DeliveryController extends Controller
                 'sample_code_range' => $sampleCodeRange,
                 'report_no_range' => $reportNoRange,
                 'samples' => $request->samples->map(function ($sample) use ($formatTestMethods, $formatQuantity, $appendUnit) {
-                    // package_quantity = jumlah kemasan yang diserahkan (e.g., 1 botol)
-                    // packaging_type = jumlah isi dalam 1 kemasan (e.g., 10 tablet per botol)
+                    // package_quantity = jumlah yang diserahkan
                     // quantity = jumlah yang diuji (e.g., 5 tablet)
-
-                    $packageCount = is_numeric($sample->package_quantity) ? (float) $sample->package_quantity : null;
-                    $contentPerPackage = is_numeric($sample->packaging_type) ? (float) $sample->packaging_type : null;
+                    $deliveredQty = is_numeric($sample->package_quantity) ? (float) $sample->package_quantity : null;
                     $testingQty = is_numeric($sample->quantity) ? (float) $sample->quantity : null;
 
-                    // Total yang diserahkan = package_quantity × packaging_type
-                    $deliveredQty = null;
-                    if ($packageCount !== null && $contentPerPackage !== null) {
-                        $deliveredQty = $packageCount * $contentPerPackage;
-                    } elseif ($packageCount !== null) {
-                        // Fallback jika packaging_type kosong
-                        $deliveredQty = $packageCount;
-                    }
-
-                    // Rumus: SISA = (package_quantity × packaging_type) - quantity
+                    // Rumus: SISA = jumlah yang diserahkan - quantity
                     $leftoverQty = null;
                     if ($deliveredQty !== null) {
                         if ($testingQty !== null) {
@@ -415,8 +403,8 @@ class DeliveryController extends Controller
                         }
                     }
 
-                    // Display format for delivered quantity (use quantity_unit, not packaging_type)
-                    $deliveredDisplay = $appendUnit($formatQuantity($deliveredQty), $sample->quantity_unit);
+                    // Display format for delivered quantity (use unit if available)
+                    $deliveredDisplay = $appendUnit($formatQuantity($deliveredQty), $sample->unit ?? $sample->quantity_unit);
                     $testingDisplay = $appendUnit($formatQuantity($testingQty), $sample->quantity_unit);
                     $leftoverDisplay = $appendUnit($formatQuantity($leftoverQty), $sample->quantity_unit);
 
@@ -430,13 +418,13 @@ class DeliveryController extends Controller
 
                     return [
                         'code' => $sample->sample_code ?? null,
-                        'name' => $sample->sample_name,
-                        'desc' => $sample->sample_description ?? null,
+                        'short_description' => $sample->short_description,
+                        'desc' => $sample->short_description ?? $sample->sample_description,
                         'tests' => $formatTestMethods($sample->test_methods),
                         'active' => $sample->active_substance ?? '',
                         'quantity' => $deliveredQty,
                         'quantity_display' => $deliveredDisplay,
-                        'packaging_type' => $sample->packaging_type ?? null,
+                        'unit' => $sample->unit ?? null,
                         'testing_quantity' => $testingDisplay,
                         'leftover' => $leftoverDisplay,
                         'report_number' => $reportNumber,

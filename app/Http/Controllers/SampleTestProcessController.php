@@ -45,11 +45,11 @@ class SampleTestProcessController extends Controller
             $query->where('stage', $request->string('stage'));
         }
 
-        // Filter by exact sample_name if provided (dropdown)
-        if ($request->filled('sample_name')) {
-            $name = $request->string('sample_name');
+        // Filter by exact short_description if provided (dropdown)
+        if ($request->filled('short_description')) {
+            $name = $request->string('short_description');
             $query->whereHas('sample', function($q) use ($name) {
-                $q->where('sample_name', $name);
+                $q->where('short_description', $name);
             });
         }
 
@@ -74,7 +74,7 @@ class SampleTestProcessController extends Controller
             ->get();
 
         // Build dropdown options from eligible samples only
-        $sampleNames = $samples->pluck('sample_name')
+        $sampleNames = $samples->pluck('short_description')
             ->filter()
             ->unique()
             ->sort()
@@ -98,7 +98,7 @@ class SampleTestProcessController extends Controller
             'processes' => $processes,
             'samples' => $samples,
             'stages' => TestProcessStage::cases(),
-            'filters' => $request->only(['stage', 'sample_name', 'request_number']),
+            'filters' => $request->only(['stage', 'short_description', 'request_number']),
             'samplesReadyForDelivery' => $samplesReadyForDelivery,
             'sampleNames' => $sampleNames,
             'requestNumbers' => $requestNumbers,
@@ -646,12 +646,12 @@ class SampleTestProcessController extends Controller
                 'investigator_nrp' => $sampleProcess->sample->testRequest->investigator->nrp ?? 'N/A',
                 'investigator_rank' => $sampleProcess->sample->testRequest->investigator->rank ?? 'N/A',
                 'investigator_jurisdiction' => $sampleProcess->sample->testRequest->investigator->jurisdiction ?? 'N/A',
-                'sample_name' => $sampleProcess->sample->sample_name ?? 'N/A',
+                'short_description' => $sampleProcess->sample->short_description ?? 'N/A',
                 'sample_code' => $sampleProcess->sample->sample_code ?? 'N/A',
                 'sample_type' => $sampleProcess->sample->sample_form ?? 'N/A',
                 'sample_weight' => $sampleProcess->sample->sample_weight ?? 'N/A',
                 'package_quantity' => $sampleProcess->sample->package_quantity ?? 1,
-                'packaging_type' => $sampleProcess->sample->packaging_type ?? 'N/A',
+                'unit' => $sampleProcess->sample->unit ?? 'N/A',
                 'test_date' => $sampleProcess->completed_at?->format('d F Y') ?? now()->format('d F Y'),
                 'analyst_name' => $sampleProcess->analyst->name ?? 'N/A',
                 'active_substance' => $forcedActive ?? 'Belum dianalisis',

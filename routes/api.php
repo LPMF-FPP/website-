@@ -140,7 +140,8 @@ Route::get('/requests/{requestNumber}', function($requestNumber) {
         'sample_count' => $request->samples->count(),
         'samples' => $request->samples->map(function($sample) use ($formatTestMethods) {
             return [
-                'name' => $sample->sample_name,
+                'short_description' => $sample->short_description,
+                'name' => $sample->short_description,
                 'tests' => $formatTestMethods($sample->test_methods),
                 'active' => $sample->active_substance ?? ''
             ];
@@ -210,7 +211,7 @@ Route::get('/sample-processes/{processId}', function($processId) {
         'customer_address' => $testRequest?->delivery_address ?? '-',
         'request_number' => $testRequest?->request_number ?? '-',
         'case_number' => $testRequest?->case_number ?? '-',
-        'sample_name' => $sample?->sample_name ?? '-',
+        'short_description' => $sample?->short_description ?? '-',
         'sample_code' => $sample?->sample_code ?? '-',
         'quantity_display' => $quantityDisplay,
         'batch_number' => $sample?->batch_number ?? '-',

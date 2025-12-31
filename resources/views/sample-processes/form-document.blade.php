@@ -63,8 +63,8 @@
                 <div class="font-medium text-gray-900">{{ $process->sample->testRequest->request_number ?? '-' }}</div>
             </div>
             <div>
-                <div class="text-gray-500">Nama Sampel</div>
-                <div class="font-medium text-gray-900">{{ $process->sample->sample_name }}</div>
+                <div class="text-gray-500">Deskripsi Singkat</div>
+                <div class="font-medium text-gray-900">{{ $process->sample->short_description ?? '—' }}</div>
             </div>
             <div>
                 <div class="text-gray-500">

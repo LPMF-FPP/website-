@@ -116,7 +116,7 @@
 
         <div class="rounded-lg bg-white p-6 shadow-sm space-y-6">
             <x-page-section title="Sampel">
-                <p class="mt-1 text-lg font-semibold text-gray-900">{{ $sampleProcess->sample->sample_name }}</p>
+                <p class="mt-1 text-lg font-semibold text-gray-900">{{ $sampleProcess->sample->short_description ?? '—' }}</p>
                 <p class="text-sm text-gray-500">Permintaan: {{ $sampleProcess->sample->testRequest?->request_number ?? '-' }}</p>
             </x-page-section>
 

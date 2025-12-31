@@ -42,7 +42,7 @@ class LabelTestSeeder extends Seeder
         // Create samples
         $sample1 = Sample::create([
             'test_request_id' => $request->id,
-            'sample_name' => 'Sabu Kristal',
+            'short_description' => 'Sabu Kristal',
             'sample_description' => 'Kristal putih dalam plastik klip',
             'sample_category' => 'narkotika',
             'sample_form' => 'crystal',
@@ -53,7 +53,7 @@ class LabelTestSeeder extends Seeder
 
         $sample2 = Sample::create([
             'test_request_id' => $request->id,
-            'sample_name' => 'Pil Ekstasi',
+            'short_description' => 'Pil Ekstasi',
             'sample_description' => 'Tablet warna hijau dengan logo',
             'sample_category' => 'psikotropika',
             'sample_form' => 'pill',
