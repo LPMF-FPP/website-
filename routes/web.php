@@ -12,6 +12,7 @@ use App\Http\Controllers\SearchController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SettingsPageController;
+use App\Http\Controllers\ProcessController;
 use App\Http\Controllers\Settings\TemplateController as SettingsTemplateController;
 use App\Http\Controllers\Settings\NumberingController;
 use App\Http\Controllers\LocaleController;
@@ -81,15 +82,70 @@ Route::middleware(['auth', 'verified'])->group(function () {
         })->name('samples.index');
     });
 
-    Route::resource('sample-processes', SampleTestProcessController::class);
-    Route::get('sample-processes/{sample_process}/form/{stage}', [SampleTestProcessController::class, 'generateForm'])
-        ->where('stage', '^(preparation|instrumentation)$')
-        ->name('sample-processes.generate-form');
-    Route::get('sample-processes/{sample_process}/lab-report', [SampleTestProcessController::class, 'generateReport'])
-        ->name('sample-processes.lab-report');
+    Route::prefix('proses')->name('process.')->group(function () {
+        Route::get('/', [ProcessController::class, 'index'])->name('index');
+
+        Route::prefix('processes')->name('processes.')->group(function () {
+            Route::get('create', [SampleTestProcessController::class, 'create'])->name('create');
+            Route::post('/', [SampleTestProcessController::class, 'store'])->name('store');
+            Route::get('{sample_process}/edit', [SampleTestProcessController::class, 'edit'])->name('edit');
+            Route::match(['put', 'patch'], '{sample_process}', [SampleTestProcessController::class, 'update'])->name('update');
+            Route::delete('{sample_process}', [SampleTestProcessController::class, 'destroy'])->name('destroy');
+            Route::get('{sample_process}/form/{stage}', [SampleTestProcessController::class, 'generateForm'])
+                ->where('stage', '^(preparation|instrumentation)$')
+                ->name('generate-form');
+            Route::get('{sample_process}/lab-report', [SampleTestProcessController::class, 'generateReport'])
+                ->name('lab-report');
+            Route::get('{sample_process}', [SampleTestProcessController::class, 'show'])->name('show');
+        });
+
+        Route::post('{testRequest}/recent', [ProcessController::class, 'storeRecent'])->name('recent');
+        Route::post('{testRequest}/processes', [ProcessController::class, 'storeProcess'])->name('request-processes.store');
+        Route::get('{testRequest}', [ProcessController::class, 'show'])->name('show');
+    });
+
+    Route::prefix('sample-processes')->name('sample-processes.')->group(function () {
+        Route::get('/', function () {
+            return redirect()->route('process.index', request()->query());
+        })->name('index');
+
+        Route::get('create', function () {
+            return redirect()->route('process.processes.create', request()->query());
+        })->name('create');
+
+        Route::get('{sample_process}/form/{stage}', function ($sample_process, $stage) {
+            return redirect()->route('process.processes.generate-form', [
+                'sample_process' => $sample_process,
+                'stage' => $stage,
+            ] + request()->query());
+        })->name('generate-form');
+
+        Route::get('{sample_process}/lab-report', function ($sample_process) {
+            return redirect()->route('process.processes.lab-report', [
+                'sample_process' => $sample_process,
+            ] + request()->query());
+        })->name('lab-report');
+
+        Route::get('{sample_process}/edit', function ($sample_process) {
+            return redirect()->route('process.processes.edit', [
+                'sample_process' => $sample_process,
+            ] + request()->query());
+        })->name('edit');
+
+        Route::get('{sample_process}', function ($sample_process) {
+            return redirect()->route('process.processes.show', [
+                'sample_process' => $sample_process,
+            ] + request()->query());
+        })->name('show');
+
+        Route::post('/', [SampleTestProcessController::class, 'store'])->name('store');
+        Route::match(['put', 'patch'], '{sample_process}', [SampleTestProcessController::class, 'update'])->name('update');
+        Route::delete('{sample_process}', [SampleTestProcessController::class, 'destroy'])->name('destroy');
+    });
     Route::post('samples/{sample}/ready-for-delivery', [SampleTestProcessController::class, 'markAsReadyForDelivery'])
         ->name('samples.ready-for-delivery');
     Route::resource('analysts', AnalystController::class)->except(['show']);
+
 
     // Delivery
     Route::prefix('delivery')->group(function () {

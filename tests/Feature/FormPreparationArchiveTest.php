@@ -70,9 +70,9 @@ class FormPreparationArchiveTest extends TestCase
             'metadata' => json_encode(['method' => 'uv_vis']),
         ]);
 
-        // Act: Hit GET /sample-processes/{id}/form/preparation
+        // Act: Hit GET /proses/processes/{id}/form/preparation
         $response = $this->actingAs($this->user)
-            ->get(route('sample-processes.generate-form', [
+            ->get(route('process.processes.generate-form', [
                 'sample_process' => $sampleProcess->id,
                 'stage' => 'preparation'
             ]));
@@ -154,7 +154,7 @@ class FormPreparationArchiveTest extends TestCase
 
         // Act: Request with ?download=1 parameter
         $response = $this->actingAs($this->user)
-            ->get(route('sample-processes.generate-form', [
+            ->get(route('process.processes.generate-form', [
                 'sample_process' => $sampleProcess->id,
                 'stage' => 'preparation'
             ]) . '?download=1');

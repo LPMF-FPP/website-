@@ -87,7 +87,7 @@
                                                     Pengujian
                                                 </a>
                                                 @if($firstSampleId)
-                                                    <a href="{{ route('sample-processes.index', ['sample_id' => $firstSampleId]) }}"
+                                                    <a href="{{ route('process.show', $request) }}"
                                                        class="inline-flex items-center rounded-lg border border-primary-200 px-3 py-1 text-sm font-semibold text-primary-700 transition hover:border-primary-500 hover:text-primary-600">
                                                         Proses
                                                     </a>

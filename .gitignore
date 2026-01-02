@@ -41,3 +41,5 @@ Thumbs.db
 /vendor
 /.vscode
 /.zed
+/storage/framework/views/*.php
+/storage/framework/views/*.blade.php

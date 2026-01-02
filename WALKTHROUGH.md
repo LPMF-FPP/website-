@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v1.0.1
+# WALKTHROUGH - LPMF LIMS v1.0.2
 
 > **Laboratory Information Management System untuk Laboratorium Pengujian Mutu Farmasi**
 > **Dokumen ini menggabungkan PRD (Product Requirements) dan ERD (Entity Relationship)**
@@ -6,6 +6,57 @@
 ---
 
 ## 📝 Changelog
+
+### v1.0.2 (2 Januari 2026)
+
+#### 🆕 Fitur Baru
+
+**1. Process Controller Refactor**
+- New dedicated `ProcessController.php` for unified sample process workflows
+- Improved route organization in `routes/web.php`
+- Better separation of concerns between test and process controllers
+
+**2. Recent Requests Tracking**
+- New `RecentRequest` model untuk tracking aktivitas terbaru
+- Tabel `recent_requests` baru untuk menyimpan riwayat akses
+- Enhanced `TestRequest` model dengan relationships baru
+
+**3. Sample Process UI Improvements**
+- Improved create, edit, index, and show views untuk sample-processes
+- Enhanced navigation layout
+
+#### 📦 Database Changes
+
+```sql
+-- Migration: 2026_01_07_000000_create_recent_requests_table
+CREATE TABLE recent_requests (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT REFERENCES users(id) ON DELETE CASCADE,
+    test_request_id BIGINT REFERENCES test_requests(id) ON DELETE CASCADE,
+    accessed_at TIMESTAMP,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+```
+
+#### 📁 Files Changed
+
+| File | Change |
+|------|--------|
+| `app/Http/Controllers/ProcessController.php` | **NEW** - Process workflow controller |
+| `app/Http/Controllers/SampleTestController.php` | Updated process handling |
+| `app/Http/Controllers/SampleTestProcessController.php` | Updated process handling |
+| `app/Models/RecentRequest.php` | **NEW** - Recent request tracking model |
+| `app/Models/TestRequest.php` | Added recent requests relationship |
+| `resources/views/layouts/navigation.blade.php` | Enhanced navigation |
+| `resources/views/requests/index.blade.php` | UI improvements |
+| `resources/views/requests/show.blade.php` | UI improvements |
+| `resources/views/sample-processes/*.blade.php` | Updated all views |
+| `resources/views/samples/test.blade.php` | UI improvements |
+| `routes/web.php` | New process routes |
+| `vite.config.js` | Build configuration updates |
+
+---
 
 ### v1.0.1 (31 Desember 2025)
 
@@ -644,4 +695,4 @@ Untuk menambah dokumentasi baru, tambahkan section di bagian bawah file ini.
 
 ---
 
-*Dokumen ini terakhir diperbarui: 31 Desember 2025*
+*Dokumen ini terakhir diperbarui: 2 Januari 2026*

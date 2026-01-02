@@ -21,7 +21,7 @@
                class="inline-flex items-center rounded-md border border-primary-600 bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700">
                 Pengujian Sampel
             </a>
-            <a href="{{ $firstSampleId ? route('sample-processes.index', ['sample_id' => $firstSampleId]) : route('sample-processes.index') }}"
+            <a href="{{ route('process.index') }}"
                class="inline-flex items-center rounded-md border border-transparent bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm transition hover:text-primary-700">
                 Proses Pengujian
             </a>
@@ -174,13 +174,25 @@
                                             </div>
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700">Jumlah Sampel untuk Pengujian</label>
-                                                <div class="mt-1 flex items-center gap-2">
-                                                    <input type="number" name="samples[{{ $sampleIndex }}][quantity]" step="0.01" min="0.01" required
-                                                        value="{{ old('samples.$sampleIndex.quantity', $sample->quantity) }}"
-                                                        class="block w-1/2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                                                    <input type="text" name="samples[{{ $sampleIndex }}][quantity_unit]" placeholder="satuan"
-                                                        value="{{ old('samples.$sampleIndex.quantity_unit', $sample->quantity_unit) }}"
-                                                        class="block w-1/2 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                                <div class="mt-1 text-sm text-gray-500">
+                                                    Jumlah sampel yang diberikan (input pada permintaan): 
+                                                    <span class="font-medium text-gray-700">{{ $sample->package_quantity ?? '—' }} {{ $sample->unit ?? '' }}</span>
+                                                </div>
+                                                <div class="mt-2 grid grid-cols-2 gap-3">
+                                                    <div>
+                                                        <input type="number" name="samples[{{ $sampleIndex }}][quantity]" step="0.01" min="0.01" required
+                                                            value="{{ old("samples.$sampleIndex.quantity", $sample->quantity) }}"
+                                                            placeholder="Jumlah"
+                                                            class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                                    </div>
+                                                    <div>
+                                                        <input type="text" 
+                                                            value="{{ $sample->unit ?? '—' }}"
+                                                            readonly
+                                                            tabindex="-1"
+                                                            class="block w-full rounded-md border-gray-300 bg-gray-50 text-gray-600 shadow-sm cursor-not-allowed">
+                                                        <input type="hidden" name="samples[{{ $sampleIndex }}][quantity_unit]" value="{{ $sample->unit ?? '' }}">
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div>
@@ -254,4 +266,3 @@
         </script>
     @endpush
 </x-app-layout>
-

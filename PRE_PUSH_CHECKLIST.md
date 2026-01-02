@@ -2,7 +2,7 @@
 
 Use this checklist before pushing commits to GitHub. Run each step and verify the criteria.
 
-**Last Verified:** December 30, 2025 (branch: `chore/update-dependencies`)
+**Last Verified:** January 2, 2026 (branch: `main`)
 
 ---
 
@@ -16,7 +16,7 @@ git diff --cached --stat
 
 **Criteria:**
 - [x] No temporary/log/cache files staged
-- [x] Staged changes match intended push (145 files: settings consolidation, storage, SMTP config, dummy data)
+- [x] Staged changes match intended push (Process Controller refactor, Recent Requests, UI improvements)
 
 ---
 
@@ -30,7 +30,7 @@ php artisan route:list --name=changelogs
 ```
 
 **Criteria:**
-- [x] Test suite passes: **240 passed, 9 skipped** ✅
+- [x] Test suite passes: **245 passed, 9 skipped** ✅
 - [x] Critical routes exist and not broken
 
 ---
@@ -56,7 +56,7 @@ npm run build
 ```
 
 **Criteria:**
-- [x] Build succeeds ✅ (2.27s)
+- [x] Build succeeds ✅ (2.54s)
 - [x] `node_modules` not in git
 - [x] `public/build` only if required by repo policy
 
@@ -115,8 +115,8 @@ grep -r "document-templates" routes/web.php
 
 ```bash
 git add -A
-git commit -m "feat: storage consolidation, SMTP config, dummy data seeder"
-git push origin chore/update-dependencies
+git commit -m "feat: process controller refactor, recent requests table, UI improvements"
+git push origin main
 ```
 
 **Criteria:**
@@ -125,25 +125,26 @@ git push origin chore/update-dependencies
 
 ---
 
-## Changes Summary (December 30, 2025)
+## Changes Summary (January 2, 2026)
 
-### Storage Consolidation
-- Simplified `filesystems.php` from 8 disks to 4
-- Storage driver fixed to `public` only
-- Path: `storage/app/public/investigators/{investigator}/{request}/`
+### Process Controller Refactor
+- New `ProcessController.php` for sample process workflows
+- Updated `SampleTestController.php` and `SampleTestProcessController.php`
+- Improved navigation routes in `routes/web.php`
 
-### SMTP Configuration
-- Added SMTP settings to Notifikasi & Security section
-- Presets: Mailpit (dev), Gmail, Custom
-- Password stored encrypted in database
+### Recent Requests Table
+- New `RecentRequest` model for tracking recent activity
+- Migration: `2026_01_07_000000_create_recent_requests_table`
+- Enhanced `TestRequest` model relationships
 
-### Dummy Data
-- Created `DummyDataSeeder.php`
-- 3 investigators, 12 test requests, 19 samples
-- 8 inventory items, 12 lots, 12 balances
+### UI Improvements
+- Updated navigation layout (`layouts/navigation.blade.php`)
+- Improved requests index and show pages
+- Enhanced sample-processes views (create, edit, index, show)
+- Updated samples test page
 
 ### Tests
-- All 240 tests passing
+- All 245 tests passing
 - 9 tests skipped (deprecated features)
 
 ---

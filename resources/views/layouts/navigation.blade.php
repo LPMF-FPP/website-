@@ -38,7 +38,7 @@
                             Pengujian
                         </x-nav-link>
 
-                        <x-nav-link href="{{ route('sample-processes.index') }}" :active="request()->routeIs('sample-processes.*')">
+                        <x-nav-link href="{{ route('process.index') }}" :active="request()->routeIs('process.*')">
                             Proses
                         </x-nav-link>
 
@@ -265,7 +265,7 @@
                         Pengujian
                     </x-responsive-nav-link>
 
-                    <x-responsive-nav-link href="{{ route('sample-processes.index') }}" :active="request()->routeIs('sample-processes.*')">
+                    <x-responsive-nav-link href="{{ route('process.index') }}" :active="request()->routeIs('process.*')">
                         Proses
                     </x-responsive-nav-link>
 

@@ -73,7 +73,8 @@ class SampleTestController extends Controller
             'samples.*.test_methods.*' => ['string', Rule::in(array_map(fn($method) => $method->value, TestMethod::cases()))],
             'samples.*.physical_identification' => ['required', 'string'],
             'samples.*.quantity' => ['required', 'numeric', 'min:0.01'],
-            'samples.*.quantity_unit' => ['required', 'string', 'max:50'],
+            // quantity_unit is now optional - server will use sample.unit from database
+            'samples.*.quantity_unit' => ['nullable', 'string', 'max:50'],
             'samples.*.batch_number' => ['nullable', 'string', 'max:100'],
             'samples.*.expiry_date' => ['nullable', 'date'],
             'samples.*.test_type' => ['nullable', 'string', 'max:100'],
@@ -114,7 +115,8 @@ class SampleTestController extends Controller
                     'test_type' => $sampleData['test_type'] ?? null,
                     'physical_identification' => $sampleData['physical_identification'],
                     'quantity' => $sampleData['quantity'],
-                    'quantity_unit' => $sampleData['quantity_unit'],
+                    // Use unit from sample (set during request creation), not from user input
+                    'quantity_unit' => $sample->unit ?? $sampleData['quantity_unit'] ?? null,
                     'batch_number' => $sampleData['batch_number'] ?? null,
                     'expiry_date' => $sampleData['expiry_date'] ?? null,
                     'test_date' => $validated['test_date'],
@@ -165,14 +167,8 @@ class SampleTestController extends Controller
                 ->update(['status' => 'in_testing']);
         });
 
-        $redirectParams = $firstSampleId ? ['sample_id' => $firstSampleId] : [];
-
-
-
         return redirect()
-
-            ->route('sample-processes.index', $redirectParams)
-
+            ->route('process.show', $validated['request_id'])
             ->with('success', 'Data pengujian sampel berhasil diperbarui. Lanjutkan pengelolaan proses pengujian.');
     }
 

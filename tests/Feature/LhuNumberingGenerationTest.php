@@ -62,7 +62,7 @@ class LhuNumberingGenerationTest extends TestCase
 
         // Generate LHU report (first time - should issue new number)
         $response = $this->actingAs($this->admin)
-            ->get("/sample-processes/{$process->id}/lab-report");
+            ->get(route('process.processes.lab-report', ['sample_process' => $process->id]));
 
         $response->assertStatus(200);
         $response->assertHeader('Content-Type', 'application/pdf');
@@ -92,14 +92,14 @@ class LhuNumberingGenerationTest extends TestCase
         $process = $data['process'];
 
         // First generation
-        $this->actingAs($this->admin)->get("/sample-processes/{$process->id}/lab-report")->assertStatus(200);
+        $this->actingAs($this->admin)->get(route('process.processes.lab-report', ['sample_process' => $process->id]))->assertStatus(200);
 
         $process->refresh();
         $firstLhuNumber = $process->metadata['lhu_number'] ?? null;
         $this->assertNotEmpty($firstLhuNumber);
 
         // Second generation (regenerate) - should reuse same number
-        $this->actingAs($this->admin)->get("/sample-processes/{$process->id}/lab-report")->assertStatus(200);
+        $this->actingAs($this->admin)->get(route('process.processes.lab-report', ['sample_process' => $process->id]))->assertStatus(200);
 
         $process->refresh();
         $secondLhuNumber = $process->metadata['lhu_number'] ?? null;
@@ -123,7 +123,7 @@ class LhuNumberingGenerationTest extends TestCase
         $data1 = $this->createSampleWithProcess();
         $process1 = $data1['process'];
 
-        $this->actingAs($this->admin)->get("/sample-processes/{$process1->id}/lab-report")->assertStatus(200);
+        $this->actingAs($this->admin)->get(route('process.processes.lab-report', ['sample_process' => $process1->id]))->assertStatus(200);
 
         $process1->refresh();
         $firstNumber = $process1->metadata['lhu_number'] ?? null;
@@ -139,7 +139,7 @@ class LhuNumberingGenerationTest extends TestCase
         $data2 = $this->createSampleWithProcess();
         $process2 = $data2['process'];
 
-        $this->actingAs($this->admin)->get("/sample-processes/{$process2->id}/lab-report")->assertStatus(200);
+        $this->actingAs($this->admin)->get(route('process.processes.lab-report', ['sample_process' => $process2->id]))->assertStatus(200);
 
         $process2->refresh();
         $secondNumber = $process2->metadata['lhu_number'] ?? null;
@@ -164,7 +164,7 @@ class LhuNumberingGenerationTest extends TestCase
         ]);
 
         // Generate report - should reuse legacy number
-        $this->actingAs($this->admin)->get("/sample-processes/{$process->id}/lab-report")->assertStatus(200);
+        $this->actingAs($this->admin)->get(route('process.processes.lab-report', ['sample_process' => $process->id]))->assertStatus(200);
 
         $process->refresh();
         $lhuNumber = $process->metadata['lhu_number'] ?? $process->metadata['report_number'] ?? null;
@@ -205,7 +205,7 @@ class LhuNumberingGenerationTest extends TestCase
         $data = $this->createSampleWithProcess();
         $process = $data['process'];
 
-        $this->actingAs($this->admin)->get("/sample-processes/{$process->id}/lab-report")->assertStatus(200);
+        $this->actingAs($this->admin)->get(route('process.processes.lab-report', ['sample_process' => $process->id]))->assertStatus(200);
 
         $process->refresh();
         $lhuNumber = $process->metadata['lhu_number'] ?? null;
@@ -231,7 +231,7 @@ class LhuNumberingGenerationTest extends TestCase
         $lhuNumbers = [];
         foreach ($processes as $process) {
             $this->actingAs($this->admin)
-                ->get("/sample-processes/{$process->id}/lab-report")
+                ->get(route('process.processes.lab-report', ['sample_process' => $process->id]))
                 ->assertStatus(200);
 
             $process->refresh();

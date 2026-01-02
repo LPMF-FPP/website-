@@ -105,15 +105,20 @@ class SampleTestProcessController extends Controller
         ]);
     }
 
-    public function create(): View
+    public function create(Request $request): View
     {
         // Hanya tampilkan sampel yang sudah diinput data pengujiannya DAN belum ready_for_delivery
-        $samples = Sample::with('testRequest')
+        $samplesQuery = Sample::with('testRequest')
             ->whereNotNull('assigned_analyst_id')
             ->whereNotNull('test_date')
             ->where('status', '!=', SampleStatus::READY_FOR_DELIVERY->value)
-            ->latest()
-            ->get();
+            ->latest();
+
+        if ($request->filled('request_id')) {
+            $samplesQuery->where('test_request_id', $request->integer('request_id'));
+        }
+
+        $samples = $samplesQuery->get();
 
         $analysts = \App\Models\User::where('role', 'analyst')
             ->orWhere('role', 'admin')
@@ -182,7 +187,7 @@ class SampleTestProcessController extends Controller
         ]);
 
         return redirect()
-            ->route('sample-processes.show', $sampleProcess)
+            ->route('process.processes.show', $sampleProcess)
             ->with('success', 'Proses pengujian berhasil dibuat.');
     }
 
@@ -552,7 +557,7 @@ class SampleTestProcessController extends Controller
         ]);
 
         return redirect()
-            ->route('sample-processes.show', $sampleProcess)
+            ->route('process.processes.show', $sampleProcess)
             ->with('success', 'Proses pengujian berhasil diperbarui.');
     }
 
@@ -810,11 +815,15 @@ class SampleTestProcessController extends Controller
 
     public function destroy(SampleTestProcess $sampleProcess): RedirectResponse
     {
-        $sampleId = $sampleProcess->sample_id;
+        $sampleProcess->load('sample.testRequest');
+        $testRequest = $sampleProcess->sample?->testRequest;
         $sampleProcess->delete();
 
-        return redirect()
-            ->route('sample-processes.index')
+        $redirect = $testRequest
+            ? redirect()->route('process.show', $testRequest)
+            : redirect()->route('process.index');
+
+        return $redirect
             ->with('success', 'Proses pengujian berhasil dihapus.');
     }
 

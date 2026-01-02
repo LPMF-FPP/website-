@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 
 use Illuminate\Support\Facades\DB;
 
@@ -135,6 +136,21 @@ class TestRequest extends Model
 
     }
 
+    public function testProcesses(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            SampleTestProcess::class,
+            Sample::class,
+            'test_request_id',
+            'sample_id'
+        );
+    }
+
+    public function recentViews(): HasMany
+    {
+        return $this->hasMany(RecentRequest::class, 'test_request_id');
+    }
+
 
 
     public function user(): BelongsTo
@@ -176,4 +192,3 @@ class TestRequest extends Model
     }
 
 }
-
