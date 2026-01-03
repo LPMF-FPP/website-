@@ -293,8 +293,13 @@ class DocumentMaintenanceController extends Controller
             }
         }
 
-        // Duplicate documents
-        $duplicates = Document::select(
+        // Duplicate documents - check both database AND filesystem
+        $totalDuplicates = 0;
+        $duplicateSize = 0;
+        $duplicateGroups = 0;
+
+        // First check database duplicates
+        $dbDuplicates = Document::select(
             'test_request_id',
             'document_type',
             \Illuminate\Support\Facades\DB::raw('COUNT(*) as count')
@@ -305,10 +310,7 @@ class DocumentMaintenanceController extends Controller
             ->having(\Illuminate\Support\Facades\DB::raw('COUNT(*)'), '>', 1)
             ->get();
 
-        $totalDuplicates = 0;
-        $duplicateSize = 0;
-
-        foreach ($duplicates as $dup) {
+        foreach ($dbDuplicates as $dup) {
             $docsToRemove = Document::where('test_request_id', $dup->test_request_id)
                 ->where('document_type', $dup->document_type)
                 ->where('source', 'generated')
@@ -329,6 +331,13 @@ class DocumentMaintenanceController extends Controller
                 }
             }
         }
+        $duplicateGroups = $dbDuplicates->count();
+
+        // Also check filesystem duplicates (files not tracked in database)
+        $filesystemDuplicates = $this->findFilesystemDuplicates($disk);
+        $totalDuplicates += $filesystemDuplicates['count'];
+        $duplicateSize += $filesystemDuplicates['size'];
+        $duplicateGroups += $filesystemDuplicates['groups'];
 
         return response()->json([
             'orphaned_folders' => [
@@ -341,9 +350,91 @@ class DocumentMaintenanceController extends Controller
                 'count' => $totalDuplicates,
                 'size' => $duplicateSize,
                 'size_label' => $this->formatFileSize($duplicateSize),
-                'groups' => $duplicates->count(),
+                'groups' => $duplicateGroups,
             ],
         ]);
+    }
+
+    /**
+     * Find duplicate files in filesystem that are not tracked in database.
+     * Groups files by request folder + base document type (ignoring _html suffix).
+     *
+     * @return array{count: int, size: int, groups: int, files: array}
+     */
+    private function findFilesystemDuplicates($disk): array
+    {
+        $allFiles = collect($disk->allFiles())
+            ->filter(fn ($f) => Str::endsWith($f, ['.pdf', '.html', '.docx', '.doc', '.xlsx', '.xls']))
+            ->values();
+
+        // Get files that are tracked in database
+        $trackedPaths = Document::pluck('file_path')
+            ->merge(Document::pluck('path'))
+            ->filter()
+            ->map(fn ($p) => ltrim($p, '/'))
+            ->unique()
+            ->toArray();
+
+        // Group files by request folder + base document type + file extension
+        // Pattern: investigators/FOLDER_KEY/DATE-REQUEST_ID/generated/DOC_TYPE/filename
+        // Normalize doc type by removing _html suffix to group PDF and HTML together
+        $grouped = $allFiles->groupBy(function ($path) {
+            if (preg_match('#investigators/[^/]+/(\d{4}-\d{2}-\d{2}-\d+)/generated/([^/]+)/#', $path, $matches)) {
+                $requestId = $matches[1];
+                $docType = $matches[2];
+                // Normalize: laporan_hasil_uji_html -> laporan_hasil_uji
+                $baseDocType = preg_replace('/_html$/', '', $docType);
+                // Include file extension in grouping so PDF and HTML are separate groups
+                $ext = pathinfo($path, PATHINFO_EXTENSION);
+
+                return $requestId.'|'.$baseDocType.'|'.$ext;
+            }
+
+            return null;
+        })->filter();
+
+        $duplicateCount = 0;
+        $duplicateSize = 0;
+        $duplicateGroups = 0;
+        $filesToDelete = [];
+
+        foreach ($grouped as $key => $files) {
+            // Filter out files that are already tracked in database
+            $untrackedFiles = $files->filter(fn ($f) => ! in_array(ltrim($f, '/'), $trackedPaths))->values();
+
+            if ($untrackedFiles->count() <= 1) {
+                continue;
+            }
+
+            // Sort by filename (which includes timestamp) to keep the newest
+            $sorted = $untrackedFiles->sort()->values();
+
+            // Keep the last one (newest based on timestamp in filename), mark others as duplicates
+            $duplicates = $sorted->slice(0, -1)->values();
+
+            if ($duplicates->isEmpty()) {
+                continue;
+            }
+
+            $duplicateGroups++;
+
+            foreach ($duplicates as $file) {
+                $duplicateCount++;
+                $filesToDelete[] = $file;
+                try {
+                    $duplicateSize += $disk->size($file);
+                } catch (\Throwable $e) {
+                    // Ignore
+                }
+            }
+        }
+
+        return [
+            'count' => $duplicateCount,
+            'size' => $duplicateSize,
+            'groups' => $duplicateGroups,
+            'files' => $filesToDelete,
+        ];
     }
 
     /**
@@ -378,6 +469,7 @@ class DocumentMaintenanceController extends Controller
 
         if (empty($orphanedFolders)) {
             return response()->json([
+                'success' => true,
                 'message' => 'Tidak ada folder orphan yang ditemukan.',
                 'deleted' => 0,
                 'failed' => 0,
@@ -415,6 +507,7 @@ class DocumentMaintenanceController extends Controller
         }
 
         return response()->json([
+            'success' => true,
             'message' => "Berhasil menghapus {$deleted} folder orphan.",
             'deleted' => $deleted,
             'failed' => $failed,
@@ -433,7 +526,8 @@ class DocumentMaintenanceController extends Controller
         $dryRun = $request->boolean('dry_run', false);
         $disk = Storage::disk('public');
 
-        $duplicates = Document::select(
+        // Collect database duplicates
+        $dbDuplicates = Document::select(
             'test_request_id',
             'document_type',
             \Illuminate\Support\Facades\DB::raw('COUNT(*) as count'),
@@ -445,20 +539,10 @@ class DocumentMaintenanceController extends Controller
             ->having(\Illuminate\Support\Facades\DB::raw('COUNT(*)'), '>', 1)
             ->get();
 
-        if ($duplicates->isEmpty()) {
-            return response()->json([
-                'message' => 'Tidak ada dokumen duplikat yang ditemukan.',
-                'deleted' => 0,
-                'failed' => 0,
-                'size_reclaimed' => 0,
-                'size_label' => '0 B',
-            ]);
-        }
-
         $documentsToDelete = collect();
         $totalSize = 0;
 
-        foreach ($duplicates as $dup) {
+        foreach ($dbDuplicates as $dup) {
             $docsToRemove = Document::where('test_request_id', $dup->test_request_id)
                 ->where('document_type', $dup->document_type)
                 ->where('source', 'generated')
@@ -478,20 +562,40 @@ class DocumentMaintenanceController extends Controller
             }
         }
 
+        // Also collect filesystem duplicates not tracked in database
+        $filesystemDuplicates = $this->findFilesystemDuplicates($disk);
+        $filesToDelete = $filesystemDuplicates['files'];
+        $totalSize += $filesystemDuplicates['size'];
+
+        $totalCount = $documentsToDelete->count() + count($filesToDelete);
+        $totalGroups = $dbDuplicates->count() + $filesystemDuplicates['groups'];
+
+        if ($totalCount === 0) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Tidak ada dokumen duplikat yang ditemukan.',
+                'deleted' => 0,
+                'failed' => 0,
+                'size_reclaimed' => 0,
+                'size_label' => '0 B',
+            ]);
+        }
+
         if ($dryRun) {
             return response()->json([
                 'dry_run' => true,
-                'message' => $documentsToDelete->count().' dokumen duplikat akan dihapus.',
-                'count' => $documentsToDelete->count(),
+                'message' => $totalCount.' dokumen duplikat akan dihapus.',
+                'count' => $totalCount,
                 'size' => $totalSize,
                 'size_label' => $this->formatFileSize($totalSize),
-                'groups' => $duplicates->count(),
+                'groups' => $totalGroups,
             ]);
         }
 
         $deleted = 0;
         $failed = 0;
 
+        // Delete database documents
         foreach ($documentsToDelete as $doc) {
             try {
                 $path = $doc->file_path ?? $doc->path;
@@ -505,7 +609,20 @@ class DocumentMaintenanceController extends Controller
             }
         }
 
+        // Delete filesystem-only duplicates
+        foreach ($filesToDelete as $filePath) {
+            try {
+                if ($disk->exists($filePath)) {
+                    $disk->delete($filePath);
+                    $deleted++;
+                }
+            } catch (\Throwable $e) {
+                $failed++;
+            }
+        }
+
         return response()->json([
+            'success' => true,
             'message' => "Berhasil menghapus {$deleted} dokumen duplikat.",
             'deleted' => $deleted,
             'failed' => $failed,

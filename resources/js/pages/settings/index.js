@@ -1231,14 +1231,19 @@ export class SettingsClient {
 
     /**
      * Fetch cleanup statistics (orphaned folders and duplicate documents)
+     * @param {boolean} preserveResult - If true, don't reset cleanupResult (used after cleanup actions)
      */
-    async fetchCleanupStats() {
+    async fetchCleanupStats(preserveResult = false) {
         this.state.cleanupLoading = true;
         this.state.cleanupStats = null;
-        this.state.cleanupResult = null;
+        if (!preserveResult) {
+            this.state.cleanupResult = null;
+        }
 
         try {
-            const data = await this.apiFetch(this.api.cleanupStats);
+            // Add cache-busting timestamp to prevent stale data
+            const url = `${this.api.cleanupStats}?_t=${Date.now()}`;
+            const data = await this.apiFetch(url);
             this.state.cleanupStats = data;
         } catch (error) {
             this.state.cleanupResult = {
@@ -1273,8 +1278,8 @@ export class SettingsClient {
                 message: data.message || `Berhasil menghapus ${data.deleted} folder.`,
                 size_label: data.size_label,
             };
-            // Refresh stats after cleanup
-            await this.fetchCleanupStats();
+            // Refresh stats after cleanup (preserve the success message)
+            await this.fetchCleanupStats(true);
         } catch (error) {
             this.state.cleanupResult = {
                 success: false,
@@ -1308,8 +1313,8 @@ export class SettingsClient {
                 message: data.message || `Berhasil menghapus ${data.deleted} dokumen duplikat.`,
                 size_label: data.size_label,
             };
-            // Refresh stats after cleanup
-            await this.fetchCleanupStats();
+            // Refresh stats after cleanup (preserve the success message)
+            await this.fetchCleanupStats(true);
             // Also refresh documents list
             await this.fetchDocuments({ page: 1 });
         } catch (error) {

@@ -193,4 +193,104 @@ class DocumentMaintenanceTest extends TestCase
             ->assertHeader('Content-Type', 'application/json')
             ->assertJsonStructure(['message']);
     }
+
+    public function test_cleanup_stats_detects_filesystem_duplicates(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        Storage::fake('public');
+
+        // Create duplicate files in same request folder and document type
+        $basePath = 'investigators/test-folder/2026-01-03-1234/generated/laporan_hasil_uji';
+        Storage::disk('public')->put($basePath.'/20260103100000-file-a.pdf', 'content-a');
+        Storage::disk('public')->put($basePath.'/20260103100001-file-b.pdf', 'content-b');
+
+        $this->actingAs($admin);
+
+        $response = $this->getJson('/api/settings/documents/cleanup-stats');
+
+        $response->assertOk()
+            ->assertJsonPath('duplicate_documents.count', 1)
+            ->assertJsonPath('duplicate_documents.groups', 1);
+    }
+
+    public function test_cleanup_duplicates_removes_filesystem_duplicates(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        Storage::fake('public');
+
+        // Create duplicate files - older file should be deleted
+        $basePath = 'investigators/test-folder/2026-01-03-1234/generated/laporan_hasil_uji';
+        $oldFile = $basePath.'/20260103100000-file-old.pdf';
+        $newFile = $basePath.'/20260103100001-file-new.pdf';
+        Storage::disk('public')->put($oldFile, 'old-content');
+        Storage::disk('public')->put($newFile, 'new-content');
+
+        $this->actingAs($admin);
+
+        $response = $this->postJson('/api/settings/documents/cleanup-duplicates');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('deleted', 1);
+
+        // Old file should be deleted, new file kept
+        Storage::disk('public')->assertMissing($oldFile);
+        Storage::disk('public')->assertExists($newFile);
+    }
+
+    public function test_cleanup_stats_returns_zero_when_no_duplicates(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        Storage::fake('public');
+
+        // Create unique files in different request folders
+        Storage::disk('public')->put('investigators/folder/2026-01-03-1111/generated/lhu/file.pdf', 'a');
+        Storage::disk('public')->put('investigators/folder/2026-01-03-2222/generated/lhu/file.pdf', 'b');
+
+        $this->actingAs($admin);
+
+        $response = $this->getJson('/api/settings/documents/cleanup-stats');
+
+        $response->assertOk()
+            ->assertJsonPath('duplicate_documents.count', 0)
+            ->assertJsonPath('duplicate_documents.groups', 0);
+    }
+
+    public function test_cleanup_stats_detects_html_duplicates(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        Storage::fake('public');
+
+        // Create duplicate HTML files in same request folder
+        $basePath = 'investigators/test-folder/2026-01-03-1234/generated/laporan_hasil_uji_html';
+        Storage::disk('public')->put($basePath.'/20260103100000-file-a.html', 'content-a');
+        Storage::disk('public')->put($basePath.'/20260103100001-file-b.html', 'content-b');
+
+        $this->actingAs($admin);
+
+        $response = $this->getJson('/api/settings/documents/cleanup-stats');
+
+        $response->assertOk()
+            ->assertJsonPath('duplicate_documents.count', 1)
+            ->assertJsonPath('duplicate_documents.groups', 1);
+    }
+
+    public function test_cleanup_orphaned_folders_returns_success_flag(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        Storage::fake('public');
+
+        // Create orphaned folder
+        Storage::disk('public')->put('investigators/orphan-folder-123/file.pdf', 'content');
+
+        $this->actingAs($admin);
+
+        $response = $this->postJson('/api/settings/documents/cleanup-orphaned');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('deleted', 1);
+
+        Storage::disk('public')->assertMissing('investigators/orphan-folder-123/file.pdf');
+    }
 }
