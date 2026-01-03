@@ -19,6 +19,12 @@ export class SettingsClient {
             notificationsSecurity: '/api/settings/notifications-security',
             notificationsTest: '/api/settings/notifications/test',
             documents: '/api/settings/documents',
+            cleanupStats: '/api/settings/documents/cleanup-stats',
+            cleanupOrphaned: '/api/settings/documents/cleanup-orphaned',
+            cleanupDuplicates: '/api/settings/documents/cleanup-duplicates',
+            iku: '/api/settings/iku',
+            ikuPreview: '/api/settings/iku/preview',
+            surveyExport: '/reports/surveys/export',
             ...config.api
         };
 
@@ -43,6 +49,7 @@ export class SettingsClient {
                 localization: { message: '', intentClass: 'text-primary-600' },
                 notifications: { message: '', intentClass: 'text-primary-600' },
                 documents: { message: '', intentClass: 'text-primary-600' },
+                iku: { message: '', intentClass: 'text-primary-600' },
             },
             sectionErrors: {
                 numbering: '',
@@ -51,6 +58,7 @@ export class SettingsClient {
                 localization: '',
                 notifications: '',
                 documents: '',
+                iku: '',
             },
             scopeErrors: {
                 sample_code: {},
@@ -80,6 +88,7 @@ export class SettingsClient {
                 localization: false,
                 notifications: false,
                 documents: false,
+                iku: false,
             },
             templates: config.templates || [],
             activeTemplates: {},
@@ -121,6 +130,12 @@ export class SettingsClient {
                 total: 0,
             },
             documentDeleting: {},
+            // Cleanup-related state
+            cleanupLoading: false,
+            cleanupStats: null,
+            cleanupOrphanedLoading: false,
+            cleanupDuplicatesLoading: false,
+            cleanupResult: null,
         };
     }
 
@@ -1207,6 +1222,103 @@ export class SettingsClient {
         } catch (e) {
             console.error('Failed to convert to plain object:', e);
             return {};
+        }
+    }
+
+    // =========================================================================
+    // Storage Cleanup Methods
+    // =========================================================================
+
+    /**
+     * Fetch cleanup statistics (orphaned folders and duplicate documents)
+     */
+    async fetchCleanupStats() {
+        this.state.cleanupLoading = true;
+        this.state.cleanupStats = null;
+        this.state.cleanupResult = null;
+
+        try {
+            const data = await this.apiFetch(this.api.cleanupStats);
+            this.state.cleanupStats = data;
+        } catch (error) {
+            this.state.cleanupResult = {
+                success: false,
+                message: error.message || 'Gagal mengambil statistik cleanup.',
+            };
+        } finally {
+            this.state.cleanupLoading = false;
+        }
+    }
+
+    /**
+     * Cleanup orphaned investigator folders
+     */
+    async cleanupOrphanedFolders() {
+        const count = this.state.cleanupStats?.orphaned_folders?.count || 0;
+        if (count === 0) return;
+
+        if (!confirm(`Yakin hapus ${count} folder investigator orphan? Tindakan ini tidak dapat dibatalkan.`)) {
+            return;
+        }
+
+        this.state.cleanupOrphanedLoading = true;
+        this.state.cleanupResult = null;
+
+        try {
+            const data = await this.apiFetch(this.api.cleanupOrphaned, {
+                method: 'POST',
+            });
+            this.state.cleanupResult = {
+                success: true,
+                message: data.message || `Berhasil menghapus ${data.deleted} folder.`,
+                size_label: data.size_label,
+            };
+            // Refresh stats after cleanup
+            await this.fetchCleanupStats();
+        } catch (error) {
+            this.state.cleanupResult = {
+                success: false,
+                message: error.message || 'Gagal menghapus folder orphan.',
+            };
+        } finally {
+            this.state.cleanupOrphanedLoading = false;
+        }
+    }
+
+    /**
+     * Cleanup duplicate documents
+     */
+    async cleanupDuplicates() {
+        const count = this.state.cleanupStats?.duplicate_documents?.count || 0;
+        if (count === 0) return;
+
+        if (!confirm(`Yakin hapus ${count} dokumen duplikat? Hanya dokumen terbaru per tipe yang akan dipertahankan.`)) {
+            return;
+        }
+
+        this.state.cleanupDuplicatesLoading = true;
+        this.state.cleanupResult = null;
+
+        try {
+            const data = await this.apiFetch(this.api.cleanupDuplicates, {
+                method: 'POST',
+            });
+            this.state.cleanupResult = {
+                success: true,
+                message: data.message || `Berhasil menghapus ${data.deleted} dokumen duplikat.`,
+                size_label: data.size_label,
+            };
+            // Refresh stats after cleanup
+            await this.fetchCleanupStats();
+            // Also refresh documents list
+            await this.fetchDocuments({ page: 1 });
+        } catch (error) {
+            this.state.cleanupResult = {
+                success: false,
+                message: error.message || 'Gagal menghapus dokumen duplikat.',
+            };
+        } finally {
+            this.state.cleanupDuplicatesLoading = false;
         }
     }
 }

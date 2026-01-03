@@ -45,7 +45,7 @@ class GroupedSearchTest extends TestCase
 
     private function ensureTables(): void
     {
-        if (!Schema::hasTable('people')) {
+        if (! Schema::hasTable('people')) {
             Schema::create('people', function (Blueprint $table) {
                 $table->bigIncrements('id');
                 $table->text('name');
@@ -55,7 +55,7 @@ class GroupedSearchTest extends TestCase
             });
         }
 
-        if (!Schema::hasTable('cases')) {
+        if (! Schema::hasTable('cases')) {
             Schema::create('cases', function (Blueprint $table) {
                 $table->bigIncrements('id');
                 $table->text('title');
@@ -64,7 +64,7 @@ class GroupedSearchTest extends TestCase
             });
         }
 
-        if (!Schema::hasTable('case_people')) {
+        if (! Schema::hasTable('case_people')) {
             Schema::create('case_people', function (Blueprint $table) {
                 $table->unsignedBigInteger('case_id');
                 $table->unsignedBigInteger('person_id');
@@ -72,24 +72,24 @@ class GroupedSearchTest extends TestCase
             });
         }
 
-        if (!Schema::hasColumn('documents', 'doc_type')) {
+        if (! Schema::hasColumn('documents', 'doc_type')) {
             Schema::table('documents', function (Blueprint $table) {
-                if (!Schema::hasColumn('documents', 'doc_type')) {
+                if (! Schema::hasColumn('documents', 'doc_type')) {
                     $table->string('doc_type')->nullable();
                 }
-                if (!Schema::hasColumn('documents', 'ba_no')) {
+                if (! Schema::hasColumn('documents', 'ba_no')) {
                     $table->string('ba_no')->nullable();
                 }
-                if (!Schema::hasColumn('documents', 'title')) {
+                if (! Schema::hasColumn('documents', 'title')) {
                     $table->string('title')->nullable();
                 }
-                if (!Schema::hasColumn('documents', 'lp_no')) {
+                if (! Schema::hasColumn('documents', 'lp_no')) {
                     $table->string('lp_no')->nullable();
                 }
-                if (!Schema::hasColumn('documents', 'doc_date')) {
+                if (! Schema::hasColumn('documents', 'doc_date')) {
                     $table->date('doc_date')->nullable();
                 }
-                if (!Schema::hasColumn('documents', 'file_path')) {
+                if (! Schema::hasColumn('documents', 'file_path')) {
                     $table->string('file_path')->nullable();
                 }
             });
@@ -109,10 +109,10 @@ class GroupedSearchTest extends TestCase
                 'folder_key' => '12345678-andi',
             ]
         );
-        
+
         $user = User::factory()->create();
 
-        // Create test request with suspect name that matches search  
+        // Create test request with suspect name that matches search
         $testRequest = TestRequest::factory()->create([
             'investigator_id' => $investigator->id,
             'user_id' => $user->id,
@@ -188,7 +188,7 @@ class GroupedSearchTest extends TestCase
         $this->actingAs($u);
 
         $q = str_repeat('A', 81);
-        $this->getJson('/api/search?q=' . $q)->assertStatus(422);
+        $this->getJson('/api/search?q='.$q)->assertStatus(422);
     }
 
     public function test_422_for_invalid_doc_type(): void
@@ -243,10 +243,10 @@ class GroupedSearchTest extends TestCase
         $allCount = (int) $all->json('summary.documents_total');
         $this->assertGreaterThanOrEqual(2, $allCount, 'Should find at least 2 documents matching BA-00');
 
-        // Search with doc_type filter matching document_type 'ba_penerimaan' 
+        // Search with doc_type filter matching document_type 'ba_penerimaan'
         // First update one document to have ba_penerimaan type
         DB::table('documents')->where('id', 100)->update(['document_type' => 'ba_penerimaan']);
-        
+
         $baFilter = $this->getJson('/api/search?q=BA-00&doc_type=ba_penerimaan')->assertOk();
         $filteredCount = (int) $baFilter->json('summary.documents_total');
         $this->assertGreaterThanOrEqual(1, $filteredCount, 'Should find at least 1 document with ba_penerimaan type');
@@ -261,7 +261,7 @@ class GroupedSearchTest extends TestCase
         for ($i = 3; $i <= 25; $i++) {
             DB::table('people')->insert([
                 'id' => $i,
-                'name' => 'Andi ' . $i,
+                'name' => 'Andi '.$i,
                 'role' => 'tersangka',
                 'photo_path' => null,
                 'created_at' => now()->subMinutes($i),

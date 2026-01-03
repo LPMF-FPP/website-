@@ -4,10 +4,10 @@ namespace App\Providers;
 
 use App\Repositories\DocumentTemplateRepository;
 use App\Services\DocumentGeneration\DocumentRenderService;
-use App\Services\DocumentTemplates\DocumentTemplateRenderService;
 use App\Services\DocumentGeneration\Resolvers\BaPenerimaanContextResolver;
 use App\Services\DocumentGeneration\Resolvers\BaPenyerahanContextResolver;
 use App\Services\DocumentGeneration\Resolvers\LhuContextResolver;
+use App\Services\DocumentTemplates\DocumentTemplateRenderService;
 use Illuminate\Support\ServiceProvider;
 
 class DocumentGenerationServiceProvider extends ServiceProvider
@@ -53,8 +53,8 @@ class DocumentGenerationServiceProvider extends ServiceProvider
      */
     private function registerResolvers(DocumentRenderService $service): void
     {
-        $service->registerResolver(new BaPenerimaanContextResolver());
-        $service->registerResolver(new BaPenyerahanContextResolver());
-        $service->registerResolver(new LhuContextResolver());
+        $service->registerResolver(new BaPenerimaanContextResolver);
+        $service->registerResolver(new BaPenyerahanContextResolver);
+        $service->registerResolver(new LhuContextResolver);
     }
 }

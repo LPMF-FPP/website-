@@ -18,13 +18,13 @@ class DocumentTemplateDefaultsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->withoutMiddleware(\App\Http\Middleware\VerifyCsrfToken::class);
-        
+
         $this->admin = User::factory()->create(['role' => 'admin']);
-        
+
         // Mock Gate to allow manage-settings
-        \Illuminate\Support\Facades\Gate::define('manage-settings', fn() => true);
+        \Illuminate\Support\Facades\Gate::define('manage-settings', fn () => true);
     }
 
     /** @test */
@@ -34,20 +34,20 @@ class DocumentTemplateDefaultsTest extends TestCase
             ->getJson('/api/settings/document-templates');
 
         $response->assertOk();
-        
+
         $data = $response->json();
-        
+
         // Should have groups
         $this->assertArrayHasKey('groups', $data);
         $this->assertArrayHasKey('penerimaan', $data['groups']);
         $this->assertArrayHasKey('pengujian', $data['groups']);
         $this->assertArrayHasKey('penyerahan', $data['groups']);
-        
+
         // Each group should have at least one default template
         $this->assertNotEmpty($data['groups']['penerimaan']);
         $this->assertNotEmpty($data['groups']['pengujian']);
         $this->assertNotEmpty($data['groups']['penyerahan']);
-        
+
         // Defaults should be marked as active and default
         $penerimaanTemplate = collect($data['groups']['penerimaan'])->first();
         $this->assertTrue($penerimaanTemplate['is_active']);
@@ -70,18 +70,18 @@ class DocumentTemplateDefaultsTest extends TestCase
             ->getJson('/api/settings/document-templates');
 
         $response->assertOk();
-        
+
         $data = $response->json();
-        
+
         // Should have the uploaded template
         $penerimaanTemplates = collect($data['groups']['penerimaan']);
-        
+
         $customTemplate = $penerimaanTemplates->firstWhere('id', $template->id);
         $this->assertNotNull($customTemplate);
         $this->assertEquals('Custom BA Penerimaan', $customTemplate['name']);
         $this->assertTrue($customTemplate['is_active']);
         $this->assertFalse($customTemplate['is_default']);
-        
+
         // Should not have default template for this type+format anymore
         $defaultTemplate = $penerimaanTemplates->firstWhere('is_default', true);
         $this->assertNull($defaultTemplate);
@@ -137,13 +137,13 @@ class DocumentTemplateDefaultsTest extends TestCase
             ->getJson('/api/settings/document-templates');
 
         $response->assertOk();
-        
+
         $data = $response->json();
-        
+
         // Check all groups have preview URLs
         foreach (['penerimaan', 'pengujian', 'penyerahan'] as $group) {
             $templates = collect($data['groups'][$group]);
-            
+
             foreach ($templates as $template) {
                 $this->assertArrayHasKey('preview_url', $template);
                 $this->assertStringContainsString('/api/settings/document-templates/preview/', $template['preview_url']);

@@ -21,10 +21,10 @@ class DocumentStorageTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         Storage::fake('public');
         $this->documentService = app(DocumentService::class);
-        
+
         // Bypass Gate authorization for testing
         \Illuminate\Support\Facades\Gate::before(function () {
             return true;
@@ -98,7 +98,7 @@ class DocumentStorageTest extends TestCase
 
         // Act: Buat binary content dan simpan via storeGenerated
         $binary = "%PDF-1.7\n%";
-        $baseName = 'LHU-' . $testRequest->request_number;
+        $baseName = 'LHU-'.$testRequest->request_number;
 
         $document = $this->documentService->storeGenerated(
             $binary,
@@ -146,7 +146,7 @@ class DocumentStorageTest extends TestCase
         ]);
 
         $binary = "%PDF-1.7\n%TEST CONTENT FOR DOWNLOAD";
-        $baseName = 'LHU-' . $testRequest->request_number;
+        $baseName = 'LHU-'.$testRequest->request_number;
 
         $document = $this->documentService->storeGenerated(
             $binary,
@@ -159,7 +159,7 @@ class DocumentStorageTest extends TestCase
 
         // Verify file was stored
         Storage::disk('public')->assertExists($document->path);
-        
+
         // Get the actual file content from fake storage to verify
         $storedContent = Storage::disk('public')->get($document->path);
         $this->assertNotEmpty($storedContent);

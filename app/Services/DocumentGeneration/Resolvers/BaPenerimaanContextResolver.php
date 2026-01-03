@@ -43,7 +43,7 @@ class BaPenerimaanContextResolver extends AbstractContextResolver
 
     private function getMockRequest(): \stdClass
     {
-        $obj = new \stdClass();
+        $obj = new \stdClass;
         $obj->request_number = 'REQ-001-XII-2025';
         $obj->receipt_number = 'RESI-001-XII-2025';
         $obj->created_at = now();
@@ -53,24 +53,26 @@ class BaPenerimaanContextResolver extends AbstractContextResolver
         $obj->to_office = 'Kepala Sub Satker Farmapol Pusdokkes Polri';
         $obj->investigator = $this->getMockInvestigator();
         $obj->samples = $this->getMockSamples();
+
         return $obj;
     }
 
     private function getMockInvestigator(): \stdClass
     {
-        $obj = new \stdClass();
+        $obj = new \stdClass;
         $obj->name = 'Dr. John Doe';
         $obj->nrp = 'NRP12345';
         $obj->rank = 'AKBP';
         $obj->unit = 'Unit Pengujian';
         $obj->jurisdiction = 'Polda Metro Jaya';
         $obj->phone = '08123456789';
+
         return $obj;
     }
 
     private function getMockSamples(): \Illuminate\Support\Collection
     {
-        $sample1 = new \stdClass();
+        $sample1 = new \stdClass;
         $sample1->sample_code = 'W001XII2025';
         $sample1->sample_name = 'Sampel Tablet Warna Biru';
         $sample1->description = 'Sampel berbentuk tablet warna biru';
@@ -79,8 +81,8 @@ class BaPenerimaanContextResolver extends AbstractContextResolver
         $sample1->test_methods = ['uv_vis', 'gc_ms'];
         $sample1->sample_condition = 'Baik, tersimpan dalam kantong plastik';
         $sample1->notes = '-';
-        
-        $sample2 = new \stdClass();
+
+        $sample2 = new \stdClass;
         $sample2->sample_code = 'W002XII2025';
         $sample2->sample_name = 'Sampel Cairan Bening';
         $sample2->description = 'Sampel berupa cairan bening dalam botol';
@@ -89,7 +91,7 @@ class BaPenerimaanContextResolver extends AbstractContextResolver
         $sample2->test_methods = ['lc_ms'];
         $sample2->sample_condition = 'Baik, botol tertutup rapat';
         $sample2->notes = '-';
-        
+
         return collect([$sample1, $sample2]);
     }
 }

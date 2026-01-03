@@ -14,7 +14,7 @@ class DocumentsPurgePreviewRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        if (!$this->has('filters') || $this->input('filters') === null) {
+        if (! $this->has('filters') || $this->input('filters') === null) {
             $this->merge(['filters' => []]);
         }
     }

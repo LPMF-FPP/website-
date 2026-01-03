@@ -34,7 +34,7 @@ class NumberingService
                 ->lockForUpdate()
                 ->first();
 
-            if (!$sequence) {
+            if (! $sequence) {
                 $sequence = Sequence::create([
                     'scope' => $scope,
                     'bucket' => $bucket,

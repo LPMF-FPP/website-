@@ -15,7 +15,8 @@ function postWithEmptyJsonAndForm($url, array $form)
     ];
     // Attach form as query string so request->all() picks it up even when JSON content exists
     $qs = http_build_query($form);
-    $uri = $qs ? ($url . (str_contains($url, '?') ? '&' : '?') . $qs) : $url;
+    $uri = $qs ? ($url.(str_contains($url, '?') ? '&' : '?').$qs) : $url;
+
     return test()->call('POST', $uri, [], [], [], $server, '[]');
 }
 

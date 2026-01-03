@@ -64,8 +64,7 @@ class DocumentTemplateRepository
         foreach ($mainTypes as $docType) {
             foreach ($docType->supportedFormats() as $format) {
                 // Check if DB has templates for this type+format
-                $typeFormatTemplates = $dbTemplates->filter(fn($t) => 
-                    $t->type === $docType && $t->format === $format
+                $typeFormatTemplates = $dbTemplates->filter(fn ($t) => $t->type === $docType && $t->format === $format
                 );
 
                 if ($typeFormatTemplates->isNotEmpty()) {
@@ -90,7 +89,7 @@ class DocumentTemplateRepository
                         'id' => null,
                         'type' => $docType->value,
                         'format' => $format->value,
-                        'name' => $docType->label() . ' (Default)',
+                        'name' => $docType->label().' (Default)',
                         'is_active' => true, // Default is always active if no DB template
                         'is_default' => true,
                         'version' => 1,
@@ -108,8 +107,8 @@ class DocumentTemplateRepository
     /**
      * Create a new template version
      *
-     * @param array $data Template data including type, format, name, storage_path, content/checksum
-     * @return DocumentTemplate
+     * @param  array  $data  Template data including type, format, name, storage_path, content/checksum
+     *
      * @throws \Exception
      */
     public function createTemplateVersion(array $data): DocumentTemplate
@@ -161,8 +160,6 @@ class DocumentTemplateRepository
     /**
      * Activate a template (and deactivate others of same type+format)
      *
-     * @param int $templateId
-     * @return DocumentTemplate
      * @throws \Exception
      */
     public function activateTemplate(int $templateId): DocumentTemplate
@@ -190,15 +187,13 @@ class DocumentTemplateRepository
     {
         $template = DocumentTemplate::findOrFail($templateId);
         $template->update(['is_active' => false]);
-        
+
         return $template->fresh();
     }
 
     /**
      * Delete a template (and its file if exists)
      *
-     * @param int $templateId
-     * @return bool
      * @throws \Exception
      */
     public function deleteTemplate(int $templateId): bool
@@ -224,9 +219,8 @@ class DocumentTemplateRepository
     /**
      * Update template content (create new version)
      *
-     * @param int $templateId
-     * @param string $content New content
-     * @param array $meta Additional metadata
+     * @param  string  $content  New content
+     * @param  array  $meta  Additional metadata
      * @return DocumentTemplate New version
      */
     public function updateTemplateContent(int $templateId, string $content, array $meta = []): DocumentTemplate
@@ -239,7 +233,7 @@ class DocumentTemplateRepository
             $basePath = dirname($oldTemplate->storage_path);
             $extension = pathinfo($oldTemplate->storage_path, PATHINFO_EXTENSION);
             $timestamp = now()->format('YmdHis');
-            $newPath = "{$basePath}/{$timestamp}-v" . ($oldTemplate->version + 1) . ".{$extension}";
+            $newPath = "{$basePath}/{$timestamp}-v".($oldTemplate->version + 1).".{$extension}";
 
             Storage::disk($disk)->put($newPath, $content);
 
@@ -278,14 +272,14 @@ class DocumentTemplateRepository
      */
     public function getTemplateContent(DocumentTemplate $template): string
     {
-        if (!empty($template->content_html)) {
+        if (! empty($template->content_html)) {
             return $template->content_html;
         }
 
         $disk = data_get($template->meta, 'disk', config('filesystems.default'));
         $path = $template->storage_path;
 
-        if (!$path || !Storage::disk($disk)->exists($path)) {
+        if (! $path || ! Storage::disk($disk)->exists($path)) {
             throw new FileNotFoundException("Template file not found: {$path}");
         }
 

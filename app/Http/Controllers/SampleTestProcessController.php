@@ -2,27 +2,27 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\SampleStatus;
+use App\Enums\TestProcessStage;
+use App\Models\Document;
 use App\Models\Sample;
 use App\Models\SampleTestProcess;
-use App\Services\WorkflowService;
 use App\Services\ActiveSubstanceService;
 use App\Services\NumberingService;
-use App\Enums\TestProcessStage;
-use App\Enums\SampleStatus;
-use Illuminate\Http\Request;
-use Illuminate\View\View;
+use App\Services\WorkflowService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Str;
-use App\Models\Document;
+use Illuminate\View\View;
 
 class SampleTestProcessController extends Controller
 {
     protected $workflowService;
+
     protected ActiveSubstanceService $activeSubstanceService;
 
     public function __construct(WorkflowService $workflowService, ActiveSubstanceService $activeSubstanceService)
@@ -34,11 +34,11 @@ class SampleTestProcessController extends Controller
     public function index(Request $request): View
     {
         $query = SampleTestProcess::with(['sample.testRequest.investigator', 'analyst'])
-            ->whereHas('sample', function($q) {
+            ->whereHas('sample', function ($q) {
                 // Hanya proses dari sampel yang sudah diinput pengujian DAN belum ready_for_delivery
                 $q->whereNotNull('assigned_analyst_id')
-                  ->whereNotNull('test_date')
-                  ->where('status', '!=', SampleStatus::READY_FOR_DELIVERY->value);
+                    ->whereNotNull('test_date')
+                    ->where('status', '!=', SampleStatus::READY_FOR_DELIVERY->value);
             });
 
         if ($request->filled('stage')) {
@@ -48,7 +48,7 @@ class SampleTestProcessController extends Controller
         // Filter by exact short_description if provided (dropdown)
         if ($request->filled('short_description')) {
             $name = $request->string('short_description');
-            $query->whereHas('sample', function($q) use ($name) {
+            $query->whereHas('sample', function ($q) use ($name) {
                 $q->where('short_description', $name);
             });
         }
@@ -56,7 +56,7 @@ class SampleTestProcessController extends Controller
         // Filter by exact request_number if provided (dropdown)
         if ($request->filled('request_number')) {
             $reqNo = $request->string('request_number');
-            $query->whereHas('sample.testRequest', function($q) use ($reqNo) {
+            $query->whereHas('sample.testRequest', function ($q) use ($reqNo) {
                 $q->where('request_number', $reqNo);
             });
         }
@@ -86,13 +86,13 @@ class SampleTestProcessController extends Controller
             ->values();
 
         // Get samples that have all 3 stages completed for "Ready for Delivery" action
-        $samplesReadyForDelivery = Sample::whereHas('testProcesses', function($q) {
+        $samplesReadyForDelivery = Sample::whereHas('testProcesses', function ($q) {
             $q->whereNotNull('completed_at')
-              ->whereIn('stage', ['preparation', 'instrumentation', 'interpretation']);
+                ->whereIn('stage', ['preparation', 'instrumentation', 'interpretation']);
         }, '=', 3)
-        ->where('status', '!=', SampleStatus::READY_FOR_DELIVERY->value)
-        ->pluck('id')
-        ->toArray();
+            ->where('status', '!=', SampleStatus::READY_FOR_DELIVERY->value)
+            ->pluck('id')
+            ->toArray();
 
         return view('sample-processes.index', [
             'processes' => $processes,
@@ -127,8 +127,8 @@ class SampleTestProcessController extends Controller
 
         // Exclude ADMINISTRATION stage from selectable options on create page
         $stages = collect(TestProcessStage::cases())
-            ->reject(fn($stage) => $stage === TestProcessStage::ADMINISTRATION)
-            ->mapWithKeys(fn($stage) => [$stage->value => $stage->label()])
+            ->reject(fn ($stage) => $stage === TestProcessStage::ADMINISTRATION)
+            ->mapWithKeys(fn ($stage) => [$stage->value => $stage->label()])
             ->toArray();
 
         return view('sample-processes.create', [
@@ -183,7 +183,7 @@ class SampleTestProcessController extends Controller
             'started_at' => $validated['started_at'] ?? null,
             'completed_at' => $validated['completed_at'] ?? null,
             'notes' => $validated['notes'] ?? null,
-            'metadata' => $metadata
+            'metadata' => $metadata,
         ]);
 
         return redirect()
@@ -220,18 +220,22 @@ class SampleTestProcessController extends Controller
             $attachmentPath = $metadata['test_result_attachment_path'] ?? null;
             $attachmentOriginal = $metadata['test_result_attachment_original'] ?? null;
             $attachmentUrl = $attachmentPath && Storage::disk('public')->exists($attachmentPath)
-                ? asset('storage/' . ltrim($attachmentPath, '/'))
+                ? asset('storage/'.ltrim($attachmentPath, '/'))
                 : null;
 
             // Prepare multi-instrument interpretations if present
             $multi = [];
-            if (!empty($metadata['multi_interpretations']) && is_array($metadata['multi_interpretations'])) {
+            if (! empty($metadata['multi_interpretations']) && is_array($metadata['multi_interpretations'])) {
                 foreach ($metadata['multi_interpretations'] as $mi) {
-                    if (!is_array($mi)) { continue; }
+                    if (! is_array($mi)) {
+                        continue;
+                    }
                     $raw = $mi['test_result'] ?? null;
-                    $label = match ($raw) { 'positive' => 'Positif', 'negative' => 'Negatif', default => 'Belum ditentukan' };
+                    $label = match ($raw) {
+                        'positive' => 'Positif', 'negative' => 'Negatif', default => 'Belum ditentukan'
+                    };
                     $path = $mi['test_result_attachment_path'] ?? null;
-                    $url = $path && Storage::disk('public')->exists($path) ? asset('storage/' . ltrim($path, '/')) : null;
+                    $url = $path && Storage::disk('public')->exists($path) ? asset('storage/'.ltrim($path, '/')) : null;
                     $multi[] = [
                         'instrument' => $mi['instrument'] ?? null,
                         'detected_substance' => $mi['detected_substance'] ?? null,
@@ -261,7 +265,7 @@ class SampleTestProcessController extends Controller
         return view('sample-processes.show', [
             'sampleProcess' => $sampleProcess,
             'stages' => TestProcessStage::cases(),
-            'interpretationDetails' => $interpretationDetails
+            'interpretationDetails' => $interpretationDetails,
         ]);
     }
 
@@ -284,8 +288,8 @@ class SampleTestProcessController extends Controller
 
         // Exclude ADMINISTRATION stage from selectable options on edit page
         $stages = collect(TestProcessStage::cases())
-            ->reject(fn($stage) => $stage === TestProcessStage::ADMINISTRATION)
-            ->mapWithKeys(fn($stage) => [$stage->value => $stage->label()])
+            ->reject(fn ($stage) => $stage === TestProcessStage::ADMINISTRATION)
+            ->mapWithKeys(fn ($stage) => [$stage->value => $stage->label()])
             ->toArray();
 
         $metadata = $sampleProcess->metadata ?? [];
@@ -300,7 +304,7 @@ class SampleTestProcessController extends Controller
             ?? $sampleProcess->sample?->active_substance
             ?? null;
 
-        if ($currentDetectedSubstance && !$activeSubstances->contains($currentDetectedSubstance)) {
+        if ($currentDetectedSubstance && ! $activeSubstances->contains($currentDetectedSubstance)) {
             $activeSubstances = $activeSubstances->prepend($currentDetectedSubstance);
         }
 
@@ -309,7 +313,7 @@ class SampleTestProcessController extends Controller
         $attachmentPath = $metadata['test_result_attachment_path'] ?? null;
         $attachmentOriginal = $metadata['test_result_attachment_original'] ?? null;
         $attachmentUrl = $attachmentPath && Storage::disk('public')->exists($attachmentPath)
-            ? asset('storage/' . ltrim($attachmentPath, '/'))
+            ? asset('storage/'.ltrim($attachmentPath, '/'))
             : null;
 
         // Secondary (optional) interpretation for multi-instrument cases
@@ -323,7 +327,7 @@ class SampleTestProcessController extends Controller
         $secondaryAttachmentPath = $secondary['test_result_attachment_path'] ?? null;
         $secondaryAttachmentOriginal = $secondary['test_result_attachment_original'] ?? null;
         $secondaryAttachmentUrl = $secondaryAttachmentPath && Storage::disk('public')->exists($secondaryAttachmentPath)
-            ? asset('storage/' . ltrim($secondaryAttachmentPath, '/'))
+            ? asset('storage/'.ltrim($secondaryAttachmentPath, '/'))
             : null;
 
         return view('sample-processes.edit', [
@@ -355,12 +359,12 @@ class SampleTestProcessController extends Controller
         $sample = $sampleProcess->sample;
         $request = $sample?->testRequest;
         $investigator = $request?->investigator;
-        if (!$sample || !$request || !$investigator) {
+        if (! $sample || ! $request || ! $investigator) {
             abort(422, 'Missing sample request data for form preparation.');
         }
 
         $html = view('pdf.form-preparation', [
-            'process'     => $sampleProcess,
+            'process' => $sampleProcess,
             'generatedAt' => now(),
         ])->render();
 
@@ -382,7 +386,7 @@ class SampleTestProcessController extends Controller
             // Use Storage facade to get the file path, works with both real and fake storage
             $disk = $doc->storage_disk ?? 'public';
             $stream = Storage::disk($disk)->get($doc->path);
-            
+
             return response($stream, 200, [
                 'Content-Type' => 'application/pdf',
                 'Content-Disposition' => 'attachment; filename="'.$doc->filename.'"',
@@ -391,7 +395,7 @@ class SampleTestProcessController extends Controller
         }
 
         return response($pdfBinary, 200, [
-            'Content-Type'        => 'application/pdf',
+            'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="'.$doc->filename.'"',
         ]);
     }
@@ -472,15 +476,15 @@ class SampleTestProcessController extends Controller
 
             if ($request->hasFile('test_result_file')) {
                 $file = $request->file('test_result_file');
-                if (!is_array($metadata)) {
+                if (! is_array($metadata)) {
                     $metadata = [];
                 }
-                if (!empty($metadata['test_result_attachment_path']) && Storage::disk('public')->exists($metadata['test_result_attachment_path'])) {
+                if (! empty($metadata['test_result_attachment_path']) && Storage::disk('public')->exists($metadata['test_result_attachment_path'])) {
                     Storage::disk('public')->delete($metadata['test_result_attachment_path']);
                 }
                 $storedPath = $file->storeAs(
                     'test-results',
-                    Str::uuid()->toString() . '.' . $file->getClientOriginalExtension(),
+                    Str::uuid()->toString().'.'.$file->getClientOriginalExtension(),
                     'public'
                 );
                 $metadata['test_result_attachment_path'] = $storedPath;
@@ -503,12 +507,12 @@ class SampleTestProcessController extends Controller
                 }
                 if ($request->hasFile('test_result_file_2')) {
                     $file2 = $request->file('test_result_file_2');
-                    if (!empty($entry['test_result_attachment_path']) && Storage::disk('public')->exists($entry['test_result_attachment_path'])) {
+                    if (! empty($entry['test_result_attachment_path']) && Storage::disk('public')->exists($entry['test_result_attachment_path'])) {
                         Storage::disk('public')->delete($entry['test_result_attachment_path']);
                     }
                     $storedPath2 = $file2->storeAs(
                         'test-results',
-                        Str::uuid()->toString() . '.' . $file2->getClientOriginalExtension(),
+                        Str::uuid()->toString().'.'.$file2->getClientOriginalExtension(),
                         'public'
                     );
                     $entry['test_result_attachment_path'] = $storedPath2;
@@ -518,9 +522,9 @@ class SampleTestProcessController extends Controller
                 $metadata['multi_interpretations'] = $multi;
             } else {
                 // If no secondary input and exists previously but now cleared, remove it and delete file
-                if (!empty($metadata['multi_interpretations']) && is_array($metadata['multi_interpretations'])) {
+                if (! empty($metadata['multi_interpretations']) && is_array($metadata['multi_interpretations'])) {
                     $entry = $metadata['multi_interpretations'][0] ?? null;
-                    if (is_array($entry) && !empty($entry['test_result_attachment_path']) && Storage::disk('public')->exists($entry['test_result_attachment_path'])) {
+                    if (is_array($entry) && ! empty($entry['test_result_attachment_path']) && Storage::disk('public')->exists($entry['test_result_attachment_path'])) {
                         Storage::disk('public')->delete($entry['test_result_attachment_path']);
                     }
                     unset($metadata['multi_interpretations']);
@@ -528,13 +532,13 @@ class SampleTestProcessController extends Controller
             }
         } else {
             // Clean up interpretation-specific metadata if stage is not interpretation
-            if (!empty($metadata['test_result_attachment_path']) && Storage::disk('public')->exists($metadata['test_result_attachment_path'])) {
+            if (! empty($metadata['test_result_attachment_path']) && Storage::disk('public')->exists($metadata['test_result_attachment_path'])) {
                 Storage::disk('public')->delete($metadata['test_result_attachment_path']);
             }
             // Clean up secondary attachments if any
-            if (!empty($metadata['multi_interpretations']) && is_array($metadata['multi_interpretations'])) {
+            if (! empty($metadata['multi_interpretations']) && is_array($metadata['multi_interpretations'])) {
                 foreach ($metadata['multi_interpretations'] as $mi) {
-                    if (is_array($mi) && !empty($mi['test_result_attachment_path']) && Storage::disk('public')->exists($mi['test_result_attachment_path'])) {
+                    if (is_array($mi) && ! empty($mi['test_result_attachment_path']) && Storage::disk('public')->exists($mi['test_result_attachment_path'])) {
                         Storage::disk('public')->delete($mi['test_result_attachment_path']);
                     }
                 }
@@ -553,7 +557,7 @@ class SampleTestProcessController extends Controller
             'started_at' => $validated['started_at'] ?? null,
             'completed_at' => $validated['completed_at'] ?? null,
             'notes' => $validated['notes'] ?? null,
-            'metadata' => $metadata
+            'metadata' => $metadata,
         ]);
 
         return redirect()
@@ -568,7 +572,7 @@ class SampleTestProcessController extends Controller
         $pdfRenderService = app(\App\Services\PdfRenderService::class);
 
         // Validate that sample exists
-        if (!$sampleProcess->sample) {
+        if (! $sampleProcess->sample) {
             abort(404, 'Sample not found for this process');
         }
 
@@ -613,7 +617,7 @@ class SampleTestProcessController extends Controller
 
         // Try to get active template for LHU
         $template = $templateService->getActiveTemplateByDocType('LHU');
-        
+
         $templateId = null;
         $templateVersion = null;
         $templateHash = null;
@@ -687,9 +691,9 @@ class SampleTestProcessController extends Controller
 
             // Render HTML from legacy view
             $html = view('pdf.laporan-hasil-uji', [
-                'process'               => $sampleProcess,
-                'generatedAt'           => now(),
-                'noLHU'                 => $lhuNumber,
+                'process' => $sampleProcess,
+                'generatedAt' => now(),
+                'noLHU' => $lhuNumber,
                 'forcedActiveSubstance' => $forcedActive,
             ])->render();
         }
@@ -697,13 +701,13 @@ class SampleTestProcessController extends Controller
         // Generate PDF from HTML using PdfRenderService
         $pdf = $pdfRenderService->htmlToPdf($html, config('app.url'));
 
-        // SAVE via DocumentService (html + pdf)
+        // SAVE via DocumentService (html + pdf) - use replaceExisting to avoid duplicates
         $reqNo = $sampleProcess->sample->testRequest->request_number ?? 'REQ-UNKNOWN';
-        $code  = $sampleProcess->sample->sample_code ?? ('SAMPLE-'.$sampleProcess->sample_id);
-        $base  = trim("Laporan-Hasil-Uji-{$code}-{$reqNo}".($lhuNumber ? "-{$lhuNumber}" : ''));
+        $code = $sampleProcess->sample->sample_code ?? ('SAMPLE-'.$sampleProcess->sample_id);
+        $base = trim("Laporan-Hasil-Uji-{$code}-{$reqNo}".($lhuNumber ? "-{$lhuNumber}" : ''));
 
-        $docs->storeForSampleProcess($sampleProcess, 'html', 'laporan_hasil_uji_html', $base, $html);
-        $docPdf = $docs->storeForSampleProcess($sampleProcess, 'pdf',  'laporan_hasil_uji',      $base, $pdf);
+        $docs->storeForSampleProcess($sampleProcess, 'html', 'laporan_hasil_uji_html', $base, $html, replaceExisting: true);
+        $docPdf = $docs->storeForSampleProcess($sampleProcess, 'pdf', 'laporan_hasil_uji', $base, $pdf, replaceExisting: true);
 
         // Update document metadata dengan template info
         if ($docPdf && $templateId) {
@@ -732,7 +736,7 @@ class SampleTestProcessController extends Controller
         }
 
         return response($pdf, 200, [
-            'Content-Type'        => 'application/pdf',
+            'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="'.$docPdf->filename.'"',
         ]);
     }
@@ -742,15 +746,16 @@ class SampleTestProcessController extends Controller
      */
     private function computeFLHUFromSampleCode(?Sample $sample): string
     {
-        $code = (string)($sample->sample_code ?? '');
+        $code = (string) ($sample->sample_code ?? '');
         // Expected pattern: W%03d + RomanMonth + Year, e.g. W012V2025 -> FLHU012
         if (preg_match('/^W(\d{3})/i', $code, $m)) {
-            return 'FLHU' . $m[1];
+            return 'FLHU'.$m[1];
         }
         // Fallback: take first 3 digits consecutively in code
         if (preg_match('/.*?(\d{3})/', $code, $m2)) {
-            return 'FLHU' . $m2[1];
+            return 'FLHU'.$m2[1];
         }
+
         // Final fallback: 001
         return 'FLHU001';
     }
@@ -766,11 +771,11 @@ class SampleTestProcessController extends Controller
 
         $max = 0;
         foreach ($metadatas as $data) {
-            if (!is_array($data)) {
+            if (! is_array($data)) {
                 continue;
             }
             $value = $data['report_number'] ?? null;
-            if (!$value) {
+            if (! $value) {
                 continue;
             }
             $numeric = (int) preg_replace('/\D/', '', $value);
@@ -790,13 +795,14 @@ class SampleTestProcessController extends Controller
     public function startProcess(Request $request, Sample $sample): RedirectResponse
     {
         $request->validate([
-            'stage' => ['required', 'string', Rule::in(array_column(TestProcessStage::cases(), 'value'))]
+            'stage' => ['required', 'string', Rule::in(array_column(TestProcessStage::cases(), 'value'))],
         ]);
 
         $stage = TestProcessStage::from($request->stage);
 
         try {
             $process = $this->workflowService->startTestProcess($sample, $stage);
+
             return back()->with('success', "Tahap {$stage->label()} telah dimulai.");
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors());
@@ -807,6 +813,7 @@ class SampleTestProcessController extends Controller
     {
         try {
             $this->workflowService->completeTestProcess($process);
+
             return back()->with('success', "Tahap {$process->stage->label()} telah selesai.");
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors());
@@ -841,7 +848,7 @@ class SampleTestProcessController extends Controller
 
         // Update sample status to ready for delivery
         $sample->update([
-            'status' => SampleStatus::READY_FOR_DELIVERY
+            'status' => SampleStatus::READY_FOR_DELIVERY,
         ]);
 
         // Check if all samples in this request are ready for delivery
@@ -854,7 +861,7 @@ class SampleTestProcessController extends Controller
             // Set completed_at timestamp when all samples are ready
             $testRequest->update([
                 'status' => 'ready_for_delivery',
-                'completed_at' => now()
+                'completed_at' => now(),
             ]);
         }
 

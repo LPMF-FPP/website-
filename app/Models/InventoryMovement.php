@@ -113,25 +113,25 @@ class InventoryMovement extends Model
     public function getSignedQtyAttribute(): float
     {
         $qty = (float) $this->qty;
-        
+
         // Movements that increase stock at to_location
         $inTypes = ['RECEIPT', 'RETURN'];
         if (in_array($this->movement_type, $inTypes)) {
             return $qty;
         }
-        
+
         // Movements that decrease stock at from_location
         $outTypes = ['ISSUE', 'DISPOSE'];
         if (in_array($this->movement_type, $outTypes)) {
             return -$qty;
         }
-        
+
         // ADJUST can be positive or negative
         if ($this->movement_type === 'ADJUST') {
             // If has to_location, it's an increase; if from_location, decrease
             return $this->to_location_id ? $qty : -$qty;
         }
-        
+
         // TRANSFER is neutral (one out, one in)
         return $qty;
     }
@@ -159,7 +159,7 @@ class InventoryMovement extends Model
     {
         return $query->where(function ($q) use ($locationId) {
             $q->where('from_location_id', $locationId)
-              ->orWhere('to_location_id', $locationId);
+                ->orWhere('to_location_id', $locationId);
         });
     }
 
@@ -174,6 +174,7 @@ class InventoryMovement extends Model
         if ($to) {
             $query->where('performed_at', '<=', $to);
         }
+
         return $query;
     }
 }

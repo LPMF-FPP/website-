@@ -21,9 +21,9 @@ class DocumentTemplateWorkflowTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->admin = User::factory()->create();
-        Gate::define('manage-settings', fn() => true);
+        Gate::define('manage-settings', fn () => true);
     }
 
     /**
@@ -102,7 +102,7 @@ class DocumentTemplateWorkflowTest extends TestCase
         // Actual PDF generation is tested in dedicated preview tests
 
         $template = DocumentTemplate::find($newTemplateId);
-        
+
         // Test HTML preview (doesn't require PDF rendering)
         $htmlPreviewResponse = $this->actingAs($this->admin)
             ->get("/api/settings/document-templates/{$template->id}/preview/html");
@@ -132,7 +132,7 @@ class DocumentTemplateWorkflowTest extends TestCase
         $response = $this->get("/api/settings/document-templates/{$template->id}/preview/html");
 
         $response->assertOk();
-        
+
         $contentType = $response->headers->get('Content-Type');
         $this->assertStringContainsString('text/html', strtolower($contentType));
     }

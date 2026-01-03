@@ -13,8 +13,7 @@ class RenderedDocument
         public readonly DocumentFormat $format,
         public readonly ?int $templateId = null,
         public readonly array $metadata = []
-    ) {
-    }
+    ) {}
 
     /**
      * Get content as binary string
@@ -39,7 +38,7 @@ class RenderedDocument
     {
         return response($this->content, 200, [
             'Content-Type' => $this->mimeType,
-            'Content-Disposition' => 'attachment; filename="' . $this->filename . '"',
+            'Content-Disposition' => 'attachment; filename="'.$this->filename.'"',
             'Content-Length' => $this->getSize(),
         ]);
     }
@@ -51,7 +50,7 @@ class RenderedDocument
     {
         return response($this->content, 200, [
             'Content-Type' => $this->mimeType,
-            'Content-Disposition' => 'inline; filename="' . $this->filename . '"',
+            'Content-Disposition' => 'inline; filename="'.$this->filename.'"',
             'Content-Length' => $this->getSize(),
         ]);
     }

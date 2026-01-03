@@ -8,6 +8,7 @@ use Illuminate\View\Component;
 class StageTabs extends Component
 {
     public $currentStage;
+
     public $baseUrl;
 
     public function __construct(?string $currentStage = null, string $baseUrl = '')
@@ -19,7 +20,7 @@ class StageTabs extends Component
     public function render()
     {
         return view('components.stage-tabs', [
-            'stages' => TestProcessStage::cases()
+            'stages' => TestProcessStage::cases(),
         ]);
     }
 }

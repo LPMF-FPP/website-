@@ -14,7 +14,7 @@ class AppTimezone
             $tz = settings('localization.timezone', settings('locale.timezone', config('app.timezone', 'UTC')));
             $tz = is_string($tz) ? trim($tz) : null;
 
-            if (!$tz || !in_array($tz, timezone_identifiers_list(), true)) {
+            if (! $tz || ! in_array($tz, timezone_identifiers_list(), true)) {
                 $tz = config('app.timezone', 'UTC');
             }
 
@@ -26,7 +26,7 @@ class AppTimezone
     {
         $tz = $tz ?: self::current();
 
-        if (!in_array($tz, timezone_identifiers_list(), true)) {
+        if (! in_array($tz, timezone_identifiers_list(), true)) {
             $tz = config('app.timezone', 'UTC') ?: 'UTC';
         }
 

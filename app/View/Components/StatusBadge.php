@@ -7,7 +7,9 @@ use Illuminate\View\Component;
 class StatusBadge extends Component
 {
     public string $status;
+
     public ?string $label;
+
     public ?string $customClass;
 
     protected array $statusConfig = [

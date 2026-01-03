@@ -52,7 +52,7 @@ class TransactionController extends Controller
 
         // Create new lot if lot_no provided
         $lotId = $validated['lot_id'] ?? null;
-        if (!empty($validated['new_lot_no'])) {
+        if (! empty($validated['new_lot_no'])) {
             // Check expiry requirement
             if ($item->requiresExpiry() && empty($validated['new_lot_expiry'])) {
                 return back()
@@ -266,7 +266,7 @@ class TransactionController extends Controller
     public function getLotsForItem(Request $request)
     {
         $itemId = $request->input('item_id');
-        
+
         $lots = InventoryLot::where('item_id', $itemId)
             ->where('status', '!=', 'DISPOSED')
             ->fefo()

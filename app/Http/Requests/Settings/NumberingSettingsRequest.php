@@ -15,7 +15,7 @@ class NumberingSettingsRequest extends FormRequest
     {
         if ($this->has('numbering')) {
             $numbering = $this->input('numbering', []);
-            
+
             // Normalize each numbering scope
             foreach ($numbering as $scope => $config) {
                 // Convert empty string to null for nullable fields
@@ -30,7 +30,7 @@ class NumberingSettingsRequest extends FormRequest
                     $numbering[$scope]['pattern'] = trim($config['pattern']);
                 }
             }
-            
+
             $this->merge(['numbering' => $numbering]);
         }
     }

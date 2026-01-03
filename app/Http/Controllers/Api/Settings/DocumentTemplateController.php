@@ -11,8 +11,8 @@ use App\Repositories\DocumentTemplateRepository;
 use App\Services\DocumentGeneration\DocumentRenderService;
 use App\Services\DocumentTemplates\DocumentTemplateRenderService;
 use App\Support\Audit;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
@@ -26,8 +26,7 @@ class DocumentTemplateController extends Controller
         private readonly DocumentTemplateRepository $repository,
         private readonly DocumentRenderService $renderService,
         private readonly DocumentTemplateRenderService $templateRenderService
-    ) {
-    }
+    ) {}
 
     /**
      * Get all document templates grouped by type
@@ -43,9 +42,9 @@ class DocumentTemplateController extends Controller
 
             // Group by process: Penerimaan, Pengujian, Penyerahan
             $groups = [
-                'penerimaan' => $dbTemplates->filter(fn($t) => $t['type'] === 'ba_penerimaan')->values(),
-                'pengujian' => $dbTemplates->filter(fn($t) => $t['type'] === 'lhu')->values(),
-                'penyerahan' => $dbTemplates->filter(fn($t) => $t['type'] === 'ba_penyerahan')->values(),
+                'penerimaan' => $dbTemplates->filter(fn ($t) => $t['type'] === 'ba_penerimaan')->values(),
+                'pengujian' => $dbTemplates->filter(fn ($t) => $t['type'] === 'lhu')->values(),
+                'penyerahan' => $dbTemplates->filter(fn ($t) => $t['type'] === 'ba_penyerahan')->values(),
             ];
 
             $documentTypes = collect(DocumentType::cases())->map(function ($type) {
@@ -53,7 +52,7 @@ class DocumentTemplateController extends Controller
                     'value' => $type->value,
                     'label' => $type->label(),
                     'defaultFormat' => $type->defaultFormat()->value,
-                    'supportedFormats' => array_map(fn($f) => $f->value, $type->supportedFormats()),
+                    'supportedFormats' => array_map(fn ($f) => $f->value, $type->supportedFormats()),
                 ];
             });
 
@@ -73,9 +72,10 @@ class DocumentTemplateController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to load templates: ' . $e->getMessage(),
+                'message' => 'Failed to load templates: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -281,9 +281,11 @@ class DocumentTemplateController extends Controller
 
             $context = $this->renderService->getSampleContext($template->type);
             $document = $this->templateRenderService->renderHtml($template, $template->type, $context, ['preview' => true]);
+
             return $document->toInlineResponse();
         } catch (\Throwable $e) {
             report($e);
+
             return $this->previewErrorResponse($request, 'Failed to render HTML preview', $e);
         }
     }
@@ -308,9 +310,11 @@ class DocumentTemplateController extends Controller
 
             $context = $this->renderService->getSampleContext($template->type);
             $document = $this->templateRenderService->renderPdf($template, $template->type, $context, ['preview' => true]);
+
             return $document->toInlineResponse();
         } catch (\Throwable $e) {
             report($e);
+
             return $this->previewErrorResponse($request, 'Failed to render PDF preview', $e);
         }
     }
@@ -481,16 +485,16 @@ class DocumentTemplateController extends Controller
     /**
      * Preview a template with sample data
      */
-    public function preview(string $type, string $format): JsonResponse | \Illuminate\Http\Response
+    public function preview(string $type, string $format): JsonResponse|\Illuminate\Http\Response
     {
         Gate::authorize('manage-settings');
 
         // Whitelist validation for format
         $allowedFormats = ['pdf', 'html', 'docx'];
-        if (!in_array(strtolower($format), $allowedFormats)) {
+        if (! in_array(strtolower($format), $allowedFormats)) {
             return response()->json([
                 'message' => 'Invalid format',
-                'error' => "Format must be one of: " . implode(', ', $allowedFormats),
+                'error' => 'Format must be one of: '.implode(', ', $allowedFormats),
             ], 404);
         }
 
@@ -508,7 +512,7 @@ class DocumentTemplateController extends Controller
             $docFormat = DocumentFormat::from($format);
 
             // Check if format is supported by document type
-            if (!in_array($docFormat, $docType->supportedFormats())) {
+            if (! in_array($docFormat, $docType->supportedFormats())) {
                 return response()->json([
                     'message' => 'Format not supported',
                     'error' => "Document type '{$type}' does not support '{$format}' format",
@@ -547,7 +551,7 @@ class DocumentTemplateController extends Controller
         } catch (\Throwable $e) {
             // Log unexpected errors
             report($e);
-            
+
             // Return user-friendly message
             return response()->json([
                 'message' => 'Failed to generate preview',
@@ -610,7 +614,7 @@ class DocumentTemplateController extends Controller
         try {
             // Get template before deletion
             $template = DocumentTemplate::find($templateId);
-            if (!$template) {
+            if (! $template) {
                 return response()->json([
                     'message' => 'Template not found',
                 ], 404);
@@ -663,7 +667,7 @@ class DocumentTemplateController extends Controller
 
     private function ensureJson(Request $request): void
     {
-        if (!str_contains((string) $request->header('Accept'), 'application/json')) {
+        if (! str_contains((string) $request->header('Accept'), 'application/json')) {
             throw new HttpResponseException(response()->json([
                 'message' => 'Unsupported Accept header. Please include application/json.',
             ], 406));

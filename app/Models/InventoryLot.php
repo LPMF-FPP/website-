@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Carbon\Carbon;
 
 class InventoryLot extends Model
 {
@@ -53,9 +53,10 @@ class InventoryLot extends Model
      */
     public function getIsExpiredAttribute(): bool
     {
-        if (!$this->expiry_date) {
+        if (! $this->expiry_date) {
             return false;
         }
+
         return $this->expiry_date->isPast();
     }
 
@@ -64,9 +65,10 @@ class InventoryLot extends Model
      */
     public function getDaysUntilExpiryAttribute(): ?int
     {
-        if (!$this->expiry_date) {
+        if (! $this->expiry_date) {
             return null;
         }
+
         return (int) Carbon::now()->startOfDay()->diffInDays($this->expiry_date, false);
     }
 
@@ -75,10 +77,11 @@ class InventoryLot extends Model
      */
     public function isNearExpiry(int $days = 30): bool
     {
-        if (!$this->expiry_date) {
+        if (! $this->expiry_date) {
             return false;
         }
         $daysUntil = $this->days_until_expiry;
+
         return $daysUntil !== null && $daysUntil >= 0 && $daysUntil <= $days;
     }
 
@@ -96,6 +99,7 @@ class InventoryLot extends Model
         if ($this->status === 'QUARANTINE') {
             return false;
         }
+
         return true;
     }
 
@@ -122,7 +126,7 @@ class InventoryLot extends Model
     {
         return $query->where(function ($q) {
             $q->where('status', 'EXPIRED')
-              ->orWhere('expiry_date', '<', Carbon::today());
+                ->orWhere('expiry_date', '<', Carbon::today());
         });
     }
 

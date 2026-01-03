@@ -44,6 +44,11 @@
             </div>
         @endif
 
+        @php
+            $survey = $request->customerSurvey;
+            $surveyComplete = $survey && $survey->isComplete();
+        @endphp
+
         @if($request->status === 'ready_for_delivery')
             <div class="rounded border border-blue-200 bg-blue-50 p-4">
                 <div class="flex items-start justify-between gap-4">
@@ -52,16 +57,22 @@
                         <p class="mt-1 text-sm text-blue-700">
                             Permintaan ini siap untuk diserahkan. Klik tombol di sebelah kanan setelah penyerahan selesai dilaksanakan.
                         </p>
+                        @if(!$surveyComplete)
+                            <p class="mt-2 text-sm text-blue-800">
+                                Survei kepuasan wajib diisi sebelum penyerahan dapat diselesaikan.
+                            </p>
+                        @endif
                     </div>
                     <form method="POST" action="{{ route('delivery.complete', $request) }}" class="flex-shrink-0">
                         @csrf
                         <button type="submit"
                             onclick="return confirm('Tandai penyerahan sebagai selesai?\n\nTanggal selesai akan diset ke waktu sekarang dan status akan berubah menjadi Selesai.')"
-                            class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">
+                            class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            @disabled(!$surveyComplete)>
                             <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                             </svg>
-                            Tandai Penyerahan Selesai
+                            {{ $surveyComplete ? 'Tandai Penyerahan Selesai' : 'Wajib Isi Survei' }}
                         </button>
                     </form>
                 </div>
@@ -197,7 +208,12 @@
                             </div>
 
                             <div class="pt-3">
-                                <a href="{{ route('delivery.survey', $request) }}" class="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-200 transition hover:text-primary-700">Kirim Survei Layanan</a>
+                                @php
+                                    $surveyLinkLabel = $surveyComplete
+                                        ? 'Lihat Survei Layanan'
+                                        : ($survey ? 'Perbarui Survei Layanan' : 'Kirim Survei Layanan');
+                                @endphp
+                                <a href="{{ route('delivery.survey', $request) }}" class="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-200 transition hover:text-primary-700">{{ $surveyLinkLabel }}</a>
                             </div>
 
                             <script>

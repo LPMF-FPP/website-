@@ -26,7 +26,7 @@ class ProcessController extends Controller
             ->orderByDesc('created_at');
 
         if ($search !== '') {
-            $like = '%' . strtolower($search) . '%';
+            $like = '%'.strtolower($search).'%';
             $applyLike = function ($subQuery, string $column) use ($like) {
                 $subQuery->whereRaw("LOWER({$column}) LIKE ?", [$like]);
             };
@@ -34,11 +34,13 @@ class ProcessController extends Controller
             $query->where(function ($subQuery) use ($applyLike, $like, $scope) {
                 if ($scope === 'receipt_number') {
                     $applyLike($subQuery, 'receipt_number');
+
                     return;
                 }
 
                 if ($scope === 'request_number') {
                     $applyLike($subQuery, 'request_number');
+
                     return;
                 }
 
@@ -54,6 +56,7 @@ class ProcessController extends Controller
                     $subQuery->orWhereHas('user', function ($userQuery) use ($applyLike) {
                         $applyLike($userQuery, 'name');
                     });
+
                     return;
                 }
 
@@ -189,7 +192,7 @@ class ProcessController extends Controller
         }
 
         $metadata = [];
-        if (!empty($validated['scheduled_at'])) {
+        if (! empty($validated['scheduled_at'])) {
             $metadata['scheduled_at'] = $validated['scheduled_at'];
         }
 
@@ -197,7 +200,7 @@ class ProcessController extends Controller
             'sample_id' => $sample->id,
             'stage' => $validated['stage'],
             'performed_by' => $validated['performed_by'] ?? null,
-            'metadata' => !empty($metadata) ? $metadata : null,
+            'metadata' => ! empty($metadata) ? $metadata : null,
         ]);
 
         return redirect()
@@ -255,6 +258,7 @@ class ProcessController extends Controller
         foreach ($stageChecks as $stage) {
             $hasStage = $processes->first(function ($process) use ($stage) {
                 $value = $this->stageValue($process->stage ?? null);
+
                 return $value === $stage && ($process->started_at || $process->completed_at);
             });
 
@@ -283,19 +287,20 @@ class ProcessController extends Controller
             $processes = $sample->testProcesses
                 ->sortBy(function ($process) use ($stageOrder) {
                     $stage = $this->stageValue($process->stage ?? null);
+
                     return $stageOrder[$stage] ?? 99;
                 })
                 ->values();
 
             $currentProcess = $processes->first(function ($process) {
-                return $process->started_at && !$process->completed_at;
+                return $process->started_at && ! $process->completed_at;
             });
 
-            if (!$currentProcess) {
+            if (! $currentProcess) {
                 $currentProcess = $processes->sortByDesc('completed_at')->first();
             }
 
-            if (!$currentProcess) {
+            if (! $currentProcess) {
                 $currentProcess = $processes->first();
             }
 
@@ -313,7 +318,7 @@ class ProcessController extends Controller
             }
 
             $scheduledAt = null;
-            if ($currentProcess && !empty($currentProcess->metadata['scheduled_at'])) {
+            if ($currentProcess && ! empty($currentProcess->metadata['scheduled_at'])) {
                 $scheduledAt = Carbon::parse($currentProcess->metadata['scheduled_at']);
             }
 
@@ -363,7 +368,7 @@ class ProcessController extends Controller
 
     private function touchRecent(TestRequest $testRequest, $user): void
     {
-        if (!$user) {
+        if (! $user) {
             return;
         }
 

@@ -11,7 +11,7 @@ enum DeliveryStatus: string
 
     public function canTransitionTo(self $newStatus): bool
     {
-        return match($this) {
+        return match ($this) {
             self::PENDING => $newStatus === self::READY,
             self::READY => $newStatus === self::COLLECTED || $newStatus === self::UNCOLLECTED,
             self::UNCOLLECTED => $newStatus === self::COLLECTED,
@@ -21,7 +21,7 @@ enum DeliveryStatus: string
 
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::PENDING => 'Menunggu Penyerahan',
             self::READY => 'Siap Diserahkan',
             self::COLLECTED => 'Hasil Sudah Diambil',

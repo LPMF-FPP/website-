@@ -47,7 +47,7 @@ class SearchController extends Controller
             ['type' => 'status', 'value' => 'completed', 'label' => 'Completed'],
             ['type' => 'status', 'value' => 'delivered', 'label' => 'Delivered'],
         ];
-        
+
         return response()->json([
             'items' => $suggestions,
         ]);

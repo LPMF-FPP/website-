@@ -18,11 +18,11 @@ class SampleFactory extends Factory
     {
         return [
             'test_request_id' => \App\Models\TestRequest::factory(),
-            'sample_code' => 'SAMP-' . fake()->unique()->numerify('#####'),
+            'sample_code' => 'SAMP-'.fake()->unique()->numerify('#####'),
             'short_description' => fake()->word(),
             'sample_description' => fake()->sentence(),
             'sample_form' => fake()->randomElement(['powder', 'pill', 'liquid', 'plant', 'crystal', 'paste', 'capsule', 'other']),
-            'sample_category' => fake()->randomElement(['narkotika', 'psikotropika', 'prekursor', 'zat_adiktif', 'obat_keras', 'other']),
+            'sample_category' => fake()->randomElement(['narkotika', 'prekursor', 'zat_adiktif', 'obat_keras', 'other']),
             'sample_color' => fake()->safeColorName(),
             'sample_weight' => fake()->randomFloat(2, 0.1, 1000),
             'package_quantity' => fake()->numberBetween(1, 10),

@@ -2,13 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Enums\TestProcessStage;
 use App\Models\Document;
 use App\Models\Investigator;
 use App\Models\Sample;
 use App\Models\SampleTestProcess;
 use App\Models\TestRequest;
 use App\Models\User;
-use App\Enums\TestProcessStage;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -74,7 +74,7 @@ class FormPreparationArchiveTest extends TestCase
         $response = $this->actingAs($this->user)
             ->get(route('process.processes.generate-form', [
                 'sample_process' => $sampleProcess->id,
-                'stage' => 'preparation'
+                'stage' => 'preparation',
             ]));
 
         // Assert: Response successful and is PDF
@@ -156,8 +156,8 @@ class FormPreparationArchiveTest extends TestCase
         $response = $this->actingAs($this->user)
             ->get(route('process.processes.generate-form', [
                 'sample_process' => $sampleProcess->id,
-                'stage' => 'preparation'
-            ]) . '?download=1');
+                'stage' => 'preparation',
+            ]).'?download=1');
 
         // Assert: Response is successful
         $response->assertSuccessful();

@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\EvidenceUnit;
-use App\Models\RemainingUnit;
 use App\Services\LabelService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,8 +36,8 @@ class LabelController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => $created->count() . ' label barang bukti berhasil dibuat.',
-                'data' => $created->map(fn($eu) => [
+                'message' => $created->count().' label barang bukti berhasil dibuat.',
+                'data' => $created->map(fn ($eu) => [
                     'id' => $eu->id,
                     'sample_id' => $eu->sample_id,
                     'sample_code' => $eu->sample_code,
@@ -102,7 +101,7 @@ class LabelController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $evidenceUnits->map(fn($eu) => [
+            'data' => $evidenceUnits->map(fn ($eu) => [
                 'id' => $eu->id,
                 'sample_id' => $eu->sample_id,
                 'sample_code' => $eu->sample_code,
@@ -126,7 +125,7 @@ class LabelController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $remainingUnits->map(fn($ru) => [
+            'data' => $remainingUnits->map(fn ($ru) => [
                 'id' => $ru->id,
                 'sample_code' => $ru->sample_code,
                 'remaining_code' => $ru->remaining_code,

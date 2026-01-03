@@ -18,8 +18,8 @@ class RegistrationTest extends TestCase
 
     public function test_new_users_can_register(): void
     {
-        $uniqueEmail = 'test-' . uniqid() . '@example.com';
-        
+        $uniqueEmail = 'test-'.uniqid().'@example.com';
+
         $response = $this->post('/register', [
             'name' => 'Test User',
             'email' => $uniqueEmail,

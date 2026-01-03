@@ -4,13 +4,13 @@ namespace App\Http\Controllers\Api\Settings;
 
 use App\Http\Controllers\Controller;
 use App\Support\TemplatePreviewData;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use Carbon\Carbon;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class BladeTemplateEditorController extends Controller
@@ -41,10 +41,10 @@ class BladeTemplateEditorController extends Controller
     public function index(): JsonResponse
     {
         $templates = [];
-        
+
         foreach (self::EDITABLE_TEMPLATES as $key => $path) {
             $fullPath = base_path($path);
-            
+
             if (File::exists($fullPath)) {
                 $templates[] = [
                     'key' => $key,
@@ -68,7 +68,7 @@ class BladeTemplateEditorController extends Controller
      */
     public function show(string $templateKey): JsonResponse
     {
-        if (!isset(self::EDITABLE_TEMPLATES[$templateKey])) {
+        if (! isset(self::EDITABLE_TEMPLATES[$templateKey])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Template tidak ditemukan atau tidak diizinkan untuk diedit.',
@@ -78,7 +78,7 @@ class BladeTemplateEditorController extends Controller
         $path = self::EDITABLE_TEMPLATES[$templateKey];
         $fullPath = base_path($path);
 
-        if (!File::exists($fullPath)) {
+        if (! File::exists($fullPath)) {
             return response()->json([
                 'success' => false,
                 'message' => 'File template tidak ditemukan.',
@@ -106,7 +106,7 @@ class BladeTemplateEditorController extends Controller
     public function update(Request $request, string $templateKey): JsonResponse
     {
         // Validate template key
-        if (!isset(self::EDITABLE_TEMPLATES[$templateKey])) {
+        if (! isset(self::EDITABLE_TEMPLATES[$templateKey])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Template tidak ditemukan atau tidak diizinkan untuk diedit.',
@@ -133,7 +133,7 @@ class BladeTemplateEditorController extends Controller
 
         // Security validation
         $securityCheck = $this->validateTemplateContent($content);
-        if (!$securityCheck['valid']) {
+        if (! $securityCheck['valid']) {
             return response()->json([
                 'success' => false,
                 'message' => 'Template mengandung kode yang tidak diizinkan.',
@@ -165,7 +165,7 @@ class BladeTemplateEditorController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal menyimpan template: ' . $e->getMessage(),
+                'message' => 'Gagal menyimpan template: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -175,7 +175,7 @@ class BladeTemplateEditorController extends Controller
      */
     public function backups(string $templateKey): JsonResponse
     {
-        if (!isset(self::EDITABLE_TEMPLATES[$templateKey])) {
+        if (! isset(self::EDITABLE_TEMPLATES[$templateKey])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Template tidak ditemukan.',
@@ -185,7 +185,7 @@ class BladeTemplateEditorController extends Controller
         $backupPath = "template-backups/{$templateKey}";
         $disk = Storage::disk('local');
 
-        if (!$disk->exists($backupPath)) {
+        if (! $disk->exists($backupPath)) {
             return response()->json([
                 'success' => true,
                 'backups' => [],
@@ -205,7 +205,7 @@ class BladeTemplateEditorController extends Controller
         }
 
         // Sort by created_at descending
-        usort($backups, fn($a, $b) => strcmp($b['created_at'], $a['created_at']));
+        usort($backups, fn ($a, $b) => strcmp($b['created_at'], $a['created_at']));
 
         return response()->json([
             'success' => true,
@@ -218,7 +218,7 @@ class BladeTemplateEditorController extends Controller
      */
     public function restore(Request $request, string $templateKey): JsonResponse
     {
-        if (!isset(self::EDITABLE_TEMPLATES[$templateKey])) {
+        if (! isset(self::EDITABLE_TEMPLATES[$templateKey])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Template tidak ditemukan.',
@@ -239,7 +239,7 @@ class BladeTemplateEditorController extends Controller
         $backupFile = $request->input('backup_file');
         $disk = Storage::disk('local');
 
-        if (!$disk->exists($backupFile)) {
+        if (! $disk->exists($backupFile)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Backup tidak ditemukan.',
@@ -264,7 +264,7 @@ class BladeTemplateEditorController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal memulihkan template: ' . $e->getMessage(),
+                'message' => 'Gagal memulihkan template: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -274,7 +274,7 @@ class BladeTemplateEditorController extends Controller
      */
     public function preview(Request $request, string $templateKey): JsonResponse
     {
-        if (!isset(self::EDITABLE_TEMPLATES[$templateKey])) {
+        if (! isset(self::EDITABLE_TEMPLATES[$templateKey])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Template tidak ditemukan.',
@@ -299,7 +299,7 @@ class BladeTemplateEditorController extends Controller
 
         // Security validation
         $securityCheck = $this->validateTemplateContent($content);
-        if (!$securityCheck['valid']) {
+        if (! $securityCheck['valid']) {
             return response()->json([
                 'success' => false,
                 'message' => 'Template mengandung kode yang tidak diizinkan.',
@@ -316,10 +316,10 @@ class BladeTemplateEditorController extends Controller
         $bladeCompiler = app('blade.compiler');
 
         try {
-            if (!File::isDirectory($tempDir)) {
+            if (! File::isDirectory($tempDir)) {
                 File::makeDirectory($tempDir, 0755, true);
             }
-            $tempFile = $tempDir . '/tmp_preview_' . Str::uuid()->toString() . '.blade.php';
+            $tempFile = $tempDir.'/tmp_preview_'.Str::uuid()->toString().'.blade.php';
 
             if (File::put($tempFile, $content) === false) {
                 throw new \RuntimeException('Gagal menulis template sementara.');
@@ -369,7 +369,7 @@ class BladeTemplateEditorController extends Controller
     private function buildPreviewDataFor(string $templateKey): array
     {
         $now = now();
-        
+
         return match ($templateKey) {
             'berita-acara-penerimaan' => $this->getBeritaAcaraPenerimaanData($now),
             'ba-penyerahan' => $this->getBaPenyerahanData($now),
@@ -543,7 +543,7 @@ class BladeTemplateEditorController extends Controller
                 'penyidik' => 'IPDA Budi Santoso',
                 'satuan_kerja' => 'Polres Metro Jakarta Selatan',
                 'satuan' => 'Tablet',
-                'jenis' => 'Psikotropika',
+                'jenis' => 'Narkotika',
                 'qr' => $this->qrPngDataUri('BB-2025-002'),
                 'qr_text' => 'BB-2025-002',
             ],
@@ -780,7 +780,7 @@ class BladeTemplateEditorController extends Controller
                 ->errorCorrection('M')
                 ->generate($text);
 
-            return 'data:image/png;base64,' . base64_encode($png);
+            return 'data:image/png;base64,'.base64_encode($png);
         } catch (\Throwable $e) {
             $svg = QrCode::format('svg')
                 ->size(180)
@@ -788,12 +788,13 @@ class BladeTemplateEditorController extends Controller
                 ->errorCorrection('M')
                 ->generate($text);
 
-            return 'data:image/svg+xml;base64,' . base64_encode($svg);
+            return 'data:image/svg+xml;base64,'.base64_encode($svg);
         }
     }
 
     /**
      * Get sample data for template preview
+     *
      * @deprecated Use buildPreviewDataFor instead
      */
     private function getSampleData(string $templateKey): array
@@ -806,7 +807,7 @@ class BladeTemplateEditorController extends Controller
      */
     private function createBackup(string $templateKey, string $fullPath, string $suffix = ''): void
     {
-        if (!File::exists($fullPath)) {
+        if (! File::exists($fullPath)) {
             return;
         }
 
@@ -833,7 +834,7 @@ class BladeTemplateEditorController extends Controller
         $disk = Storage::disk('local');
         $backupPath = "template-backups/{$templateKey}";
 
-        if (!$disk->exists($backupPath)) {
+        if (! $disk->exists($backupPath)) {
             return;
         }
 
@@ -844,7 +845,7 @@ class BladeTemplateEditorController extends Controller
         }
 
         // Sort by modification time
-        usort($files, function($a, $b) use ($disk) {
+        usort($files, function ($a, $b) use ($disk) {
             return $disk->lastModified($b) - $disk->lastModified($a);
         });
 
@@ -870,7 +871,7 @@ class BladeTemplateEditorController extends Controller
         ];
 
         foreach ($dangerousFunctions as $func) {
-            if (preg_match('/\b' . preg_quote($func, '/') . '\s*\(/i', $content)) {
+            if (preg_match('/\b'.preg_quote($func, '/').'\s*\(/i', $content)) {
                 $errors[] = "Fungsi PHP berbahaya terdeteksi: {$func}()";
             }
         }

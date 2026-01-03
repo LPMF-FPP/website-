@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Settings;
 
-use App\Models\User;
 use App\Models\SystemSetting;
+use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
@@ -14,14 +14,14 @@ class NumberingCurrentTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Setup initial settings
         SystemSetting::updateOrCreate(
             ['key' => 'numbering.sample_code'],
             ['value' => [
                 'pattern' => 'LPMF-{YYYY}{MM}-{INV}-{SEQ:4}',
                 'reset' => 'monthly',
-                'start_from' => 1
+                'start_from' => 1,
             ]]
         );
 
@@ -30,7 +30,7 @@ class NumberingCurrentTest extends TestCase
             ['value' => [
                 'pattern' => 'BA/{YYYY}/{MM}/{SEQ:4}',
                 'reset' => 'monthly',
-                'start_from' => 1
+                'start_from' => 1,
             ]]
         );
     }
@@ -53,7 +53,7 @@ class NumberingCurrentTest extends TestCase
             ->putJson('/api/settings/numbering/sample_code', [
                 'pattern' => 'W{SEQ:3}{RM}{YYYY}',
                 'reset' => 'yearly',
-                'start_from' => 1
+                'start_from' => 1,
             ])
             ->assertOk()
             ->assertJson([
@@ -91,7 +91,7 @@ class NumberingCurrentTest extends TestCase
 
         // Verify all scopes return array structure with current/next/pattern
         $scopes = ['sample_code', 'ba', 'lhu', 'ba_penyerahan', 'tracking'];
-        
+
         foreach ($scopes as $scope) {
             $this->assertArrayHasKey($scope, $data);
             $this->assertIsArray($data[$scope]);
@@ -110,10 +110,10 @@ class NumberingCurrentTest extends TestCase
                 'config' => [
                     'numbering' => [
                         'sample_code' => [
-                            'pattern' => 'W{SEQ:3}{RM}{YYYY}'
-                        ]
-                    ]
-                ]
+                            'pattern' => 'W{SEQ:3}{RM}{YYYY}',
+                        ],
+                    ],
+                ],
             ])
             ->assertOk()
             ->assertJsonStructure(['example', 'preview', 'extractedValue', 'scope', 'pattern']);
@@ -147,23 +147,23 @@ class NumberingCurrentTest extends TestCase
                     'config' => [
                         'numbering' => [
                             'sample_code' => [
-                                'pattern' => $pattern
-                            ]
-                        ]
-                    ]
+                                'pattern' => $pattern,
+                            ],
+                        ],
+                    ],
                 ])
                 ->assertOk();
 
             $preview = $response->json('preview');
             $this->assertNotEmpty($preview, "Preview empty for pattern: {$pattern}");
-            
+
             if ($expectedPrefix) {
                 $this->assertStringStartsWith($expectedPrefix, $preview, "Pattern {$pattern} didn't start with {$expectedPrefix}");
             }
         }
     }
 
-    public function test_updateScope_requires_valid_fields()
+    public function test_update_scope_requires_valid_fields()
     {
         $user = User::factory()->create(['role' => 'admin']);
 
@@ -171,7 +171,7 @@ class NumberingCurrentTest extends TestCase
         $this->actingAs($user)
             ->putJson('/api/settings/numbering/sample_code', [
                 'reset' => 'monthly',
-                'start_from' => 1
+                'start_from' => 1,
             ])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['pattern']);
@@ -181,7 +181,7 @@ class NumberingCurrentTest extends TestCase
             ->putJson('/api/settings/numbering/sample_code', [
                 'pattern' => '{YYYY}-{SEQ:4}',
                 'reset' => 'invalid',
-                'start_from' => 1
+                'start_from' => 1,
             ])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['reset']);
@@ -191,7 +191,7 @@ class NumberingCurrentTest extends TestCase
             ->putJson('/api/settings/numbering/sample_code', [
                 'pattern' => '{YYYY}-{SEQ:4}',
                 'reset' => 'monthly',
-                'start_from' => 0
+                'start_from' => 0,
             ])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['start_from']);
@@ -208,7 +208,7 @@ class NumberingCurrentTest extends TestCase
             ['value' => [
                 'pattern' => $oldPattern,
                 'reset' => 'monthly',
-                'start_from' => 1
+                'start_from' => 1,
             ]]
         );
 
@@ -225,7 +225,7 @@ class NumberingCurrentTest extends TestCase
             ->putJson('/api/settings/numbering/sample_code', [
                 'pattern' => $newPattern,
                 'reset' => 'yearly',
-                'start_from' => 10
+                'start_from' => 10,
             ])
             ->assertOk();
 

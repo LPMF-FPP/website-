@@ -14,7 +14,7 @@ return new class extends Migration
             $table->enum('document_type', [
                 'lab_report', 'cover_letter', 'handover_report',
                 'sample_receipt', 'report_receipt', 'letter_receipt',
-                'sample_handover', 'test_results', 'qr_code'
+                'sample_handover', 'test_results', 'qr_code',
             ]);
             $table->string('file_path');
             $table->string('original_filename');

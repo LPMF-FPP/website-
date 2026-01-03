@@ -14,7 +14,7 @@ return new class extends Migration
         if ($driver === 'sqlite') {
             return;
         }
-        
+
         // Drop old constraint
         DB::statement('ALTER TABLE documents DROP CONSTRAINT IF EXISTS documents_document_type_check');
 
@@ -26,12 +26,12 @@ return new class extends Migration
             'request_letter_receipt',
             'request_letter', 'sample_photo', 'evidence_photo',
             'test_result', 'lhu', 'ba_penyerahan', 'ba_penerimaan', 'other',
-            'form_preparation', 'instrument_uv_vis', 'instrument_gc_ms', 
+            'form_preparation', 'instrument_uv_vis', 'instrument_gc_ms',
             'instrument_lc_ms', 'instrument_result',
             'laporan_hasil_uji', 'laporan_hasil_uji_html',
-            'ba_penyerahan_html'
+            'ba_penyerahan_html',
         ]);
-        
+
         DB::statement("ALTER TABLE documents ADD CONSTRAINT documents_document_type_check CHECK (document_type IN ('{$allowedTypes}'))");
     }
 

@@ -39,8 +39,8 @@ class ItemController extends Controller
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'ilike', "%{$search}%")
-                  ->orWhere('brand', 'ilike', "%{$search}%")
-                  ->orWhere('manufacturer', 'ilike', "%{$search}%");
+                    ->orWhere('brand', 'ilike', "%{$search}%")
+                    ->orWhere('manufacturer', 'ilike', "%{$search}%");
             });
         }
 
@@ -56,7 +56,7 @@ class ItemController extends Controller
     public function create(): View
     {
         return view('inventory.items.form', [
-            'item' => new InventoryItem(),
+            'item' => new InventoryItem,
             'itemTypes' => InventoryItem::ITEM_TYPES,
             'storageConditions' => InventoryItem::STORAGE_CONDITIONS,
         ]);
@@ -65,7 +65,7 @@ class ItemController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $this->validateItem($request);
-        
+
         InventoryItem::create($validated);
 
         return redirect()
@@ -85,7 +85,7 @@ class ItemController extends Controller
     public function update(Request $request, InventoryItem $item): RedirectResponse
     {
         $validated = $this->validateItem($request, $item->id);
-        
+
         $item->update($validated);
 
         return redirect()
@@ -128,13 +128,13 @@ class ItemController extends Controller
         // 1. Delete all movements for this item's lots
         $lotIds = $item->lots()->pluck('id');
         \App\Models\InventoryMovement::whereIn('lot_id', $lotIds)->delete();
-        
+
         // 2. Delete all balances for this item
         $item->balances()->delete();
-        
+
         // 3. Delete all lots for this item
         $item->lots()->delete();
-        
+
         // 4. Delete the item itself
         $item->delete();
 

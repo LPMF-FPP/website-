@@ -5,10 +5,10 @@ namespace App\Providers;
 use App\Events\NumberIssued;
 use App\Listeners\SendIssueNotification;
 use App\Support\AppTimezone;
-use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -49,12 +49,14 @@ class AppServiceProvider extends ServiceProvider
             }
             // Check settings for additional roles
             $allowed = settings('security.roles.can_manage_settings', []);
+
             return in_array($user->role ?? null, $allowed, true);
         });
 
         Gate::define('issue-number', function ($user) {
             // Allow admin by default so preview/issue works out of the box
             $allowed = settings('security.roles.can_issue_number', ['admin']);
+
             return in_array($user->role ?? null, $allowed, true);
         });
     }

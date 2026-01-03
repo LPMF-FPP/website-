@@ -3,11 +3,10 @@
 namespace App\Services\Search;
 
 use App\Models\Investigator;
+use Carbon\Carbon;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class SearchService
 {
@@ -32,8 +31,8 @@ class SearchService
         $pageDocs = (int) ($params['page_docs'] ?? 1);
         $ppDocs = (int) ($params['per_page_docs'] ?? 10);
 
-        $contains = '%' . $qEsc . '%';
-        $startsWith = $qEsc . '%';
+        $contains = '%'.$qEsc.'%';
+        $startsWith = $qEsc.'%';
 
         // Search investigators and test requests (people-like results)
         $peoplePaginator = $this->searchInvestigatorsAndRequests(
@@ -104,14 +103,14 @@ class SearchService
         $investigators = Investigator::query()
             ->select('id', 'name', 'rank', 'created_at')
             ->selectRaw(
-                "CASE
+                'CASE
                     WHEN lower(name) = lower(?) THEN 100
                     WHEN name ILIKE ? THEN 80
                     ELSE 50
-                 END AS relevance",
+                 END AS relevance',
                 [$qRaw, $startsWith]
             )
-            ->whereRaw("name ILIKE ?", [$contains])
+            ->whereRaw('name ILIKE ?', [$contains])
             ->with(['testRequests' => function ($query) use ($casesLimit) {
                 $query->select('id', 'investigator_id', 'request_number', 'suspect_name', 'submitted_at')
                     ->latest('submitted_at')
@@ -121,7 +120,7 @@ class SearchService
             ->orderByDesc('created_at')
             ->get()
             ->map(function (Investigator $inv) {
-                $requests = $inv->testRequests->map(fn($tr) => [
+                $requests = $inv->testRequests->map(fn ($tr) => [
                     'id' => $tr->id,
                     'request_number' => $tr->request_number,
                     'suspect_name' => $tr->suspect_name,
@@ -154,19 +153,19 @@ class SearchService
                 'investigators.name as investigator_name'
             )
             ->selectRaw(
-                "CASE
+                'CASE
                     WHEN lower(test_requests.suspect_name) = lower(?) THEN 90
                     WHEN test_requests.suspect_name ILIKE ? THEN 80
                     WHEN test_requests.request_number ILIKE ? THEN 75
                     WHEN investigators.name ILIKE ? THEN 65
                     ELSE 40
-                 END AS relevance",
+                 END AS relevance',
                 [$qRaw, $contains, $contains, $contains]
             )
             ->where(function (Builder $q) use ($contains) {
-                $q->whereRaw("test_requests.suspect_name ILIKE ?", [$contains])
-                    ->orWhereRaw("test_requests.request_number ILIKE ?", [$contains])
-                    ->orWhereRaw("investigators.name ILIKE ?", [$contains]);
+                $q->whereRaw('test_requests.suspect_name ILIKE ?', [$contains])
+                    ->orWhereRaw('test_requests.request_number ILIKE ?', [$contains])
+                    ->orWhereRaw('investigators.name ILIKE ?', [$contains]);
             })
             ->orderByDesc('relevance')
             ->orderByDesc('test_requests.submitted_at')
@@ -226,7 +225,7 @@ class SearchService
 
         if ($normalizedQuery !== '') {
             $documentTypeMatches = collect(self::DOC_TYPE_LABELS)
-                ->filter(fn($label, $key) => str_contains(mb_strtolower($label), $normalizedQuery))
+                ->filter(fn ($label, $key) => str_contains(mb_strtolower($label), $normalizedQuery))
                 ->keys()
                 ->values()
                 ->all();
@@ -246,7 +245,7 @@ class SearchService
                 'investigators.name as investigator_name'
             )
             ->selectRaw(
-                "CASE
+                'CASE
                     WHEN lower(test_requests.suspect_name) = lower(?) THEN 100
                     WHEN test_requests.suspect_name ILIKE ? THEN 90
                     WHEN test_requests.request_number ILIKE ? THEN 85
@@ -254,21 +253,21 @@ class SearchService
                     WHEN investigators.name ILIKE ? THEN 65
                     WHEN documents.document_type = ? THEN 60
                     ELSE 40
-                 END AS relevance",
+                 END AS relevance',
                 [$qRaw, $contains, $contains, $startsWith, $contains, $docType]
             )
             ->where(function (Builder $q) use ($contains, $documentTypeMatches) {
-                $q->whereRaw("documents.original_filename ILIKE ?", [$contains])
-                    ->orWhereRaw("documents.document_type ILIKE ?", [$contains])
-                    ->orWhereRaw("test_requests.suspect_name ILIKE ?", [$contains])
-                    ->orWhereRaw("test_requests.request_number ILIKE ?", [$contains])
-                    ->orWhereRaw("investigators.name ILIKE ?", [$contains]);
+                $q->whereRaw('documents.original_filename ILIKE ?', [$contains])
+                    ->orWhereRaw('documents.document_type ILIKE ?', [$contains])
+                    ->orWhereRaw('test_requests.suspect_name ILIKE ?', [$contains])
+                    ->orWhereRaw('test_requests.request_number ILIKE ?', [$contains])
+                    ->orWhereRaw('investigators.name ILIKE ?', [$contains]);
 
-                if (!empty($documentTypeMatches)) {
+                if (! empty($documentTypeMatches)) {
                     $q->orWhereIn('documents.document_type', $documentTypeMatches);
                 }
             })
-            ->when($docType !== 'all', fn($q) => $q->where('documents.document_type', $docType))
+            ->when($docType !== 'all', fn ($q) => $q->where('documents.document_type', $docType))
             ->orderByDesc('relevance')
             ->orderByDesc('documents.created_at')
             ->get();
@@ -286,7 +285,7 @@ class SearchService
             $previewUrl = route('investigator.documents.show', ['document' => $doc->id]);
 
             $documents[] = (object) [
-                'id' => 'doc_' . $doc->id,
+                'id' => 'doc_'.$doc->id,
                 'type' => 'document',
                 'document_type' => $doc->document_type,
                 'document_type_label' => self::DOC_TYPE_LABELS[$doc->document_type] ?? ucfirst(str_replace('_', ' ', $doc->document_type)),

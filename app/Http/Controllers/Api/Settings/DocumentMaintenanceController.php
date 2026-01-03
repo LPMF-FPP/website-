@@ -18,9 +18,7 @@ use Illuminate\Validation\Rule;
 
 class DocumentMaintenanceController extends Controller
 {
-    public function __construct(private readonly DocumentService $documents)
-    {
-    }
+    public function __construct(private readonly DocumentService $documents) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -97,7 +95,7 @@ class DocumentMaintenanceController extends Controller
         $disk = Storage::disk('public');
 
         $document = null;
-        if (!empty($data['document_id'])) {
+        if (! empty($data['document_id'])) {
             $document = Document::query()->find($data['document_id']);
         }
 
@@ -117,7 +115,7 @@ class DocumentMaintenanceController extends Controller
             ]);
         }
 
-        if (!$disk->exists($path)) {
+        if (! $disk->exists($path)) {
             return response()->json([
                 'message' => 'File tidak ditemukan.',
             ], 404);
@@ -183,33 +181,33 @@ class DocumentMaintenanceController extends Controller
     {
         $document = $entry['document'] ?? null;
 
-        if (!empty($filters['type'])) {
+        if (! empty($filters['type'])) {
             if (empty($entry['type']) || $entry['type'] !== $filters['type']) {
                 return false;
             }
         }
 
-        if (!empty($filters['source'])) {
+        if (! empty($filters['source'])) {
             if (($entry['source'] ?? 'filesystem') !== $filters['source']) {
                 return false;
             }
         }
 
-        if (!empty($filters['request_id'])) {
+        if (! empty($filters['request_id'])) {
             if (empty($document['request_id'] ?? null) || (int) $document['request_id'] !== (int) $filters['request_id']) {
                 return false;
             }
         }
 
-        if (!empty($filters['request_number'])) {
+        if (! empty($filters['request_number'])) {
             $needle = Str::lower($filters['request_number']);
             $haystack = Str::lower($document['request_number'] ?? '');
-            if (!Str::contains($haystack, $needle)) {
+            if (! Str::contains($haystack, $needle)) {
                 return false;
             }
         }
 
-        if (!empty($filters['query'])) {
+        if (! empty($filters['query'])) {
             $needle = Str::lower($filters['query']);
             $haystacks = [
                 Str::lower($entry['name'] ?? ''),
@@ -221,7 +219,7 @@ class DocumentMaintenanceController extends Controller
             ];
 
             $matches = collect($haystacks)->contains(fn ($value) => Str::contains((string) $value, $needle));
-            if (!$matches) {
+            if (! $matches) {
                 return false;
             }
         }
@@ -263,5 +261,256 @@ class DocumentMaintenanceController extends Controller
         $value = $bytes / (1024 ** $exp);
 
         return sprintf('%s %s', number_format($value, $value >= 10 ? 0 : 2), $units[$exp]);
+    }
+
+    /**
+     * Get cleanup statistics (orphaned folders and duplicate documents)
+     */
+    public function cleanupStats(): JsonResponse
+    {
+        Gate::authorize('manage-settings');
+
+        $disk = Storage::disk('public');
+
+        // Orphaned investigator folders
+        $validFolderKeys = \App\Models\Investigator::pluck('folder_key')->filter()->toArray();
+        $investigatorDirs = $disk->directories('investigators');
+
+        $orphanedFolders = [];
+        $orphanedSize = 0;
+
+        foreach ($investigatorDirs as $dir) {
+            $folderName = basename($dir);
+            if (! in_array($folderName, $validFolderKeys)) {
+                $orphanedFolders[] = $folderName;
+                foreach ($disk->allFiles($dir) as $file) {
+                    try {
+                        $orphanedSize += $disk->size($file);
+                    } catch (\Throwable $e) {
+                        // Ignore
+                    }
+                }
+            }
+        }
+
+        // Duplicate documents
+        $duplicates = Document::select(
+            'test_request_id',
+            'document_type',
+            \Illuminate\Support\Facades\DB::raw('COUNT(*) as count')
+        )
+            ->where('source', 'generated')
+            ->whereNotNull('test_request_id')
+            ->groupBy('test_request_id', 'document_type')
+            ->having(\Illuminate\Support\Facades\DB::raw('COUNT(*)'), '>', 1)
+            ->get();
+
+        $totalDuplicates = 0;
+        $duplicateSize = 0;
+
+        foreach ($duplicates as $dup) {
+            $docsToRemove = Document::where('test_request_id', $dup->test_request_id)
+                ->where('document_type', $dup->document_type)
+                ->where('source', 'generated')
+                ->orderByDesc('created_at')
+                ->skip(1)
+                ->take(1000)
+                ->get();
+
+            foreach ($docsToRemove as $doc) {
+                $totalDuplicates++;
+                $path = $doc->file_path ?? $doc->path;
+                if ($path && $disk->exists($path)) {
+                    try {
+                        $duplicateSize += $disk->size($path);
+                    } catch (\Throwable $e) {
+                        // Ignore
+                    }
+                }
+            }
+        }
+
+        return response()->json([
+            'orphaned_folders' => [
+                'count' => count($orphanedFolders),
+                'size' => $orphanedSize,
+                'size_label' => $this->formatFileSize($orphanedSize),
+                'samples' => array_slice($orphanedFolders, 0, 5),
+            ],
+            'duplicate_documents' => [
+                'count' => $totalDuplicates,
+                'size' => $duplicateSize,
+                'size_label' => $this->formatFileSize($duplicateSize),
+                'groups' => $duplicates->count(),
+            ],
+        ]);
+    }
+
+    /**
+     * Clean up orphaned investigator folders
+     */
+    public function cleanupOrphanedFolders(Request $request): JsonResponse
+    {
+        Gate::authorize('manage-settings');
+
+        $dryRun = $request->boolean('dry_run', false);
+        $disk = Storage::disk('public');
+
+        $validFolderKeys = \App\Models\Investigator::pluck('folder_key')->filter()->toArray();
+        $investigatorDirs = $disk->directories('investigators');
+
+        $orphanedFolders = [];
+        $totalSize = 0;
+
+        foreach ($investigatorDirs as $dir) {
+            $folderName = basename($dir);
+            if (! in_array($folderName, $validFolderKeys)) {
+                $orphanedFolders[] = $dir;
+                foreach ($disk->allFiles($dir) as $file) {
+                    try {
+                        $totalSize += $disk->size($file);
+                    } catch (\Throwable $e) {
+                        // Ignore
+                    }
+                }
+            }
+        }
+
+        if (empty($orphanedFolders)) {
+            return response()->json([
+                'message' => 'Tidak ada folder orphan yang ditemukan.',
+                'deleted' => 0,
+                'failed' => 0,
+                'size_reclaimed' => 0,
+                'size_label' => '0 B',
+            ]);
+        }
+
+        if ($dryRun) {
+            return response()->json([
+                'dry_run' => true,
+                'message' => count($orphanedFolders).' folder orphan akan dihapus.',
+                'count' => count($orphanedFolders),
+                'size' => $totalSize,
+                'size_label' => $this->formatFileSize($totalSize),
+                'samples' => array_slice(array_map('basename', $orphanedFolders), 0, 10),
+            ]);
+        }
+
+        $deleted = 0;
+        $failed = 0;
+
+        foreach ($orphanedFolders as $folder) {
+            try {
+                $files = $disk->allFiles($folder);
+                Document::whereIn('path', $files)
+                    ->orWhereIn('file_path', $files)
+                    ->delete();
+
+                $disk->deleteDirectory($folder);
+                $deleted++;
+            } catch (\Throwable $e) {
+                $failed++;
+            }
+        }
+
+        return response()->json([
+            'message' => "Berhasil menghapus {$deleted} folder orphan.",
+            'deleted' => $deleted,
+            'failed' => $failed,
+            'size_reclaimed' => $totalSize,
+            'size_label' => $this->formatFileSize($totalSize),
+        ]);
+    }
+
+    /**
+     * Clean up duplicate documents (keep latest only)
+     */
+    public function cleanupDuplicates(Request $request): JsonResponse
+    {
+        Gate::authorize('manage-settings');
+
+        $dryRun = $request->boolean('dry_run', false);
+        $disk = Storage::disk('public');
+
+        $duplicates = Document::select(
+            'test_request_id',
+            'document_type',
+            \Illuminate\Support\Facades\DB::raw('COUNT(*) as count'),
+            \Illuminate\Support\Facades\DB::raw('MAX(created_at) as latest_created_at')
+        )
+            ->where('source', 'generated')
+            ->whereNotNull('test_request_id')
+            ->groupBy('test_request_id', 'document_type')
+            ->having(\Illuminate\Support\Facades\DB::raw('COUNT(*)'), '>', 1)
+            ->get();
+
+        if ($duplicates->isEmpty()) {
+            return response()->json([
+                'message' => 'Tidak ada dokumen duplikat yang ditemukan.',
+                'deleted' => 0,
+                'failed' => 0,
+                'size_reclaimed' => 0,
+                'size_label' => '0 B',
+            ]);
+        }
+
+        $documentsToDelete = collect();
+        $totalSize = 0;
+
+        foreach ($duplicates as $dup) {
+            $docsToRemove = Document::where('test_request_id', $dup->test_request_id)
+                ->where('document_type', $dup->document_type)
+                ->where('source', 'generated')
+                ->where('created_at', '<', $dup->latest_created_at)
+                ->get();
+
+            foreach ($docsToRemove as $doc) {
+                $documentsToDelete->push($doc);
+                $path = $doc->file_path ?? $doc->path;
+                if ($path && $disk->exists($path)) {
+                    try {
+                        $totalSize += $disk->size($path);
+                    } catch (\Throwable $e) {
+                        // Ignore
+                    }
+                }
+            }
+        }
+
+        if ($dryRun) {
+            return response()->json([
+                'dry_run' => true,
+                'message' => $documentsToDelete->count().' dokumen duplikat akan dihapus.',
+                'count' => $documentsToDelete->count(),
+                'size' => $totalSize,
+                'size_label' => $this->formatFileSize($totalSize),
+                'groups' => $duplicates->count(),
+            ]);
+        }
+
+        $deleted = 0;
+        $failed = 0;
+
+        foreach ($documentsToDelete as $doc) {
+            try {
+                $path = $doc->file_path ?? $doc->path;
+                if ($path && $disk->exists($path)) {
+                    $disk->delete($path);
+                }
+                $doc->forceDelete();
+                $deleted++;
+            } catch (\Throwable $e) {
+                $failed++;
+            }
+        }
+
+        return response()->json([
+            'message' => "Berhasil menghapus {$deleted} dokumen duplikat.",
+            'deleted' => $deleted,
+            'failed' => $failed,
+            'size_reclaimed' => $totalSize,
+            'size_label' => $this->formatFileSize($totalSize),
+        ]);
     }
 }

@@ -40,7 +40,7 @@ class TemplatesApiTest extends TestCase
         $this->actingAs($user)->putJson("/api/settings/templates/{$templateId}/activate", [
             'type' => 'LHU',
         ])->assertOk()
-            ->assertJsonPath("active.LHU", 'LHU');
+            ->assertJsonPath('active.LHU', 'LHU');
 
         $this->actingAs($user)->get("/api/settings/templates/{$templateId}/preview")
             ->assertOk()

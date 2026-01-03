@@ -13,12 +13,12 @@ class BladeTemplatePreviewTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Create and authenticate an admin user
         $this->user = User::factory()->create([
             'role' => 'admin',
         ]);
-        
+
         $this->actingAs($this->user);
     }
 

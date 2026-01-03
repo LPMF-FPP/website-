@@ -1,26 +1,24 @@
 <?php
 
 use App\Models\SystemSetting;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Schema;
 
 // Internal override store for tests / runtime fakes (not cached)
-if (!isset($GLOBALS['__settings_overrides'])) {
+if (! isset($GLOBALS['__settings_overrides'])) {
     $GLOBALS['__settings_overrides'] = [];
 }
 
-if (!function_exists('settings')) {
+if (! function_exists('settings')) {
     /**
      * Retrieve cached system settings, optionally for a dot-notated key.
      * Supports runtime overrides via settings_fake().
      *
-     * @param  string|null  $key
      * @param  mixed  $default
      */
     function settings(?string $key = null, $default = null)
     {
         $all = cache()->remember('sys_settings_all', 60, function () {
-            if (!Schema::hasTable('settings')) {
+            if (! Schema::hasTable('settings')) {
                 return [];
             }
 
@@ -31,7 +29,7 @@ if (!function_exists('settings')) {
         });
 
         // Merge in overrides (not persisted / not cached) – overrides take precedence
-        if (!empty($GLOBALS['__settings_overrides'])) {
+        if (! empty($GLOBALS['__settings_overrides'])) {
             $all = array_merge($all, $GLOBALS['__settings_overrides']);
         }
 
@@ -40,6 +38,7 @@ if (!function_exists('settings')) {
             if (array_key_exists($key, $all)) {
                 return $all[$key];
             }
+
             // Otherwise use dot notation
             return data_get($all, $key, $default);
         }
@@ -48,12 +47,12 @@ if (!function_exists('settings')) {
     }
 }
 
-if (!function_exists('settings_fake')) {
+if (! function_exists('settings_fake')) {
     /**
      * Inject fake settings for tests without touching DB. Values override cached values.
      * Pass $replace=true to clear previous fakes.
      *
-     * @param array<string,mixed> $pairs
+     * @param  array<string,mixed>  $pairs
      */
     function settings_fake(array $pairs, bool $replace = false): void
     {
@@ -64,21 +63,21 @@ if (!function_exists('settings_fake')) {
     }
 }
 
-if (!function_exists('settings_fake_clear')) {
+if (! function_exists('settings_fake_clear')) {
     function settings_fake_clear(): void
     {
         $GLOBALS['__settings_overrides'] = [];
     }
 }
 
-if (!function_exists('settings_forget_cache')) {
+if (! function_exists('settings_forget_cache')) {
     function settings_forget_cache(): void
     {
         cache()->forget('sys_settings_all');
     }
 }
 
-if (!function_exists('settings_nest')) {
+if (! function_exists('settings_nest')) {
     /**
      * Transform a flat dot-notated array into nested arrays.
      *
@@ -96,13 +95,12 @@ if (!function_exists('settings_nest')) {
     }
 }
 
-if (!function_exists('settings_flatten')) {
+if (! function_exists('settings_flatten')) {
     /**
      * Flatten nested arrays into dot-notated keys.
      * Preserves non-associative arrays as values instead of flattening them.
      *
      * @param  array<string, mixed>  $nested
-     * @param  string  $prepend
      * @return array<string, mixed>
      */
     function settings_flatten(array $nested, string $prepend = ''): array
@@ -110,9 +108,9 @@ if (!function_exists('settings_flatten')) {
         $result = [];
 
         foreach ($nested as $key => $value) {
-            $newKey = $prepend === '' ? $key : $prepend . '.' . $key;
+            $newKey = $prepend === '' ? $key : $prepend.'.'.$key;
 
-            if (is_array($value) && !empty($value)) {
+            if (is_array($value) && ! empty($value)) {
                 // Check if it's an associative array (has string keys)
                 $isAssociative = array_keys($value) !== range(0, count($value) - 1);
 
@@ -133,7 +131,7 @@ if (!function_exists('settings_flatten')) {
     }
 }
 
-if (!function_exists('settings_flush_cache')) {
+if (! function_exists('settings_flush_cache')) {
     /**
      * Backwards compatible alias for settings cache invalidation.
      */
@@ -144,7 +142,7 @@ if (!function_exists('settings_flush_cache')) {
 }
 
 // Localization formatting helpers
-if (!function_exists('fmt_date')) {
+if (! function_exists('fmt_date')) {
     function fmt_date($dt, $format = null)
     {
         if ($dt === null || $dt === '') {
@@ -161,11 +159,12 @@ if (!function_exists('fmt_date')) {
             'Y-m-d' => 'Y-m-d',
             'd-m-Y' => 'd-m-Y',
         ];
+
         return $carbon->format($map[$format] ?? 'd/m/Y');
     }
 }
 
-if (!function_exists('fmt_number')) {
+if (! function_exists('fmt_number')) {
     function fmt_number($num, int $decimals = 2)
     {
         if ($num === null || $num === '') {
@@ -174,6 +173,7 @@ if (!function_exists('fmt_number')) {
         $nf = settings('locale.number_format', '1.234,56');
         $decimalSep = $nf === '1,234.56' ? '.' : ','; // which character shows decimals
         $thousandSep = $nf === '1,234.56' ? ',' : '.'; // which character groups thousands
+
         return number_format((float) $num, $decimals, $decimalSep, $thousandSep);
     }
 }

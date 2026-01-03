@@ -13,16 +13,16 @@ class RouteServiceProvider extends ServiceProvider
     {
         RateLimiter::for('search', function (Request $request) {
             $key = $request->user()?->getAuthIdentifier()
-                ? 'u:' . $request->user()->getAuthIdentifier()
-                : 'ip:' . $request->ip();
+                ? 'u:'.$request->user()->getAuthIdentifier()
+                : 'ip:'.$request->ip();
 
             return Limit::perMinute(30)->by($key);
         });
 
         RateLimiter::for('document-template-preview', function (Request $request) {
             $key = $request->user()?->getAuthIdentifier()
-                ? 'tpl-preview:user:' . $request->user()->getAuthIdentifier()
-                : 'tpl-preview:ip:' . $request->ip();
+                ? 'tpl-preview:user:'.$request->user()->getAuthIdentifier()
+                : 'tpl-preview:ip:'.$request->ip();
 
             $limit = max(1, config('document-templates.preview_rate_limit', 10));
 

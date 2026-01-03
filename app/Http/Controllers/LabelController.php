@@ -3,12 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\EvidenceUnit;
-use App\Models\LabelPrintLog;
 use App\Models\RemainingUnit;
 use App\Services\LabelService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
@@ -68,7 +66,7 @@ class LabelController extends Controller
      */
     private function qrPngDataUri(?string $text): string
     {
-        if (!$text) {
+        if (! $text) {
             return '';
         }
 
@@ -79,7 +77,7 @@ class LabelController extends Controller
                 ->errorCorrection('M')
                 ->generate($text);
 
-            return 'data:image/png;base64,' . base64_encode($png);
+            return 'data:image/png;base64,'.base64_encode($png);
         } catch (\Throwable $e) {
             $svg = QrCode::format('svg')
                 ->size(200)
@@ -87,7 +85,7 @@ class LabelController extends Controller
                 ->errorCorrection('M')
                 ->generate($text);
 
-            return 'data:image/svg+xml;base64,' . base64_encode($svg);
+            return 'data:image/svg+xml;base64,'.base64_encode($svg);
         }
     }
 
@@ -112,7 +110,7 @@ class LabelController extends Controller
         }
 
         // Build explicit label payloads with QR as base64 PNG
-        $labels = $evidenceUnits->map(fn($unit) => $this->buildLabelPayload($unit))->values();
+        $labels = $evidenceUnits->map(fn ($unit) => $this->buildLabelPayload($unit))->values();
 
         // Debug log first label payload (remove after verification)
         logger()->info('Label payload sample', $labels->take(1)->toArray());
@@ -242,6 +240,7 @@ class LabelController extends Controller
 
         return $pdf->stream("label-sisa-{$remainingUnit->remaining_code}.pdf");
     }
+
     /**
      * Create evidence units from sample IDs.
      * POST /labels/evidence-units
@@ -262,8 +261,8 @@ class LabelController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => $created->count() . ' label barang bukti berhasil dibuat.',
-                'data' => $created->map(fn($eu) => [
+                'message' => $created->count().' label barang bukti berhasil dibuat.',
+                'data' => $created->map(fn ($eu) => [
                     'id' => $eu->id,
                     'sample_id' => $eu->sample_id,
                     'sample_code' => $eu->sample_code,
@@ -334,7 +333,7 @@ class LabelController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Gagal menghapus label: ' . $e->getMessage(),
+                'message' => 'Gagal menghapus label: '.$e->getMessage(),
             ], 500);
         }
     }

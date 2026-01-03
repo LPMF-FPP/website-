@@ -55,7 +55,7 @@ class LabelTestSeeder extends Seeder
             'test_request_id' => $request->id,
             'short_description' => 'Pil Ekstasi',
             'sample_description' => 'Tablet warna hijau dengan logo',
-            'sample_category' => 'psikotropika',
+            'sample_category' => 'narkotika',
             'sample_form' => 'pill',
             'condition' => 'baik',
             'sample_weight' => 0.3,
@@ -124,7 +124,7 @@ class LabelTestSeeder extends Seeder
         $this->command->info("Sample 2: {$sample2->sample_code}");
         $this->command->info("Evidence Unit 1 QR: {$eu1->qr_content}");
         $this->command->info("Evidence Unit 2 QR: {$eu2->qr_content}");
-        
+
         $rem1 = RemainingUnit::where('evidence_unit_id', $eu1->id)->first();
         $rem2 = RemainingUnit::where('evidence_unit_id', $eu1->id)->skip(1)->first();
         $this->command->info("Remaining 1 Code: {$rem1->remaining_code}");

@@ -3,8 +3,8 @@
 namespace Tests\Feature\Settings;
 
 use App\Models\SystemSetting;
-use App\Support\AppTimezone;
 use App\Models\User;
+use App\Support\AppTimezone;
 use Database\Seeders\SystemSettingSeeder;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Cache;

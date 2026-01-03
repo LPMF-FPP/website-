@@ -32,20 +32,21 @@ return new class extends Migration
     {
         $connection = Schema::getConnection();
         $driver = $connection->getDriverName();
-        $table = $connection->getTablePrefix() . 'users';
+        $table = $connection->getTablePrefix().'users';
         $column = 'role';
         $default = 'investigator';
 
         if ($driver === 'pgsql') {
-            $constraint = $table . '_' . $column . '_check';
+            $constraint = $table.'_'.$column.'_check';
             $allowed = implode(', ', array_map(
-                fn (string $role) => "'" . str_replace("'", "''", $role) . "'",
+                fn (string $role) => "'".str_replace("'", "''", $role)."'",
                 $roles
             ));
 
             DB::statement("ALTER TABLE {$table} DROP CONSTRAINT IF EXISTS {$constraint}");
             DB::statement("ALTER TABLE {$table} ADD CONSTRAINT {$constraint} CHECK ({$column} IN ({$allowed}))");
             DB::statement("ALTER TABLE {$table} ALTER COLUMN {$column} SET DEFAULT '{$default}'");
+
             return;
         }
 
@@ -56,8 +57,9 @@ return new class extends Migration
             ));
             DB::statement(
                 "ALTER TABLE `{$table}` MODIFY `{$column}` "
-                . "ENUM('{$allowed}') NOT NULL DEFAULT '{$default}'"
+                ."ENUM('{$allowed}') NOT NULL DEFAULT '{$default}'"
             );
+
             return;
         }
     }

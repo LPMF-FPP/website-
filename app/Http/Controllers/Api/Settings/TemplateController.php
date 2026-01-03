@@ -15,9 +15,7 @@ use Illuminate\Support\Str;
 
 class TemplateController extends Controller
 {
-    public function __construct(private readonly SettingsWriter $writer)
-    {
-    }
+    public function __construct(private readonly SettingsWriter $writer) {}
 
     public function index(): JsonResponse
     {
@@ -95,7 +93,7 @@ class TemplateController extends Controller
         $disk = data_get($template->meta, 'disk', 'local');
         $path = $template->storage_path;
 
-        if (!$path || !Storage::disk($disk)->exists($path)) {
+        if (! $path || ! Storage::disk($disk)->exists($path)) {
             abort(404, 'Template file not found');
         }
 
@@ -104,13 +102,13 @@ class TemplateController extends Controller
             abort(500, 'Failed to read template file.');
         }
         $mime = Storage::disk($disk)->mimeType($path);
-        if (!$mime || $mime === 'application/octet-stream') {
+        if (! $mime || $mime === 'application/octet-stream') {
             $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
             $mime = $ext === 'docx'
                 ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
                 : 'application/octet-stream';
         }
-        $filename = $template->name . '.' . pathinfo($path, PATHINFO_EXTENSION);
+        $filename = $template->name.'.'.pathinfo($path, PATHINFO_EXTENSION);
 
         return response()->stream(function () use ($stream) {
             if (is_resource($stream)) {
@@ -125,12 +123,12 @@ class TemplateController extends Controller
 
     private function deleteTemplateArtifacts(string $disk, ?string $path): void
     {
-        if (!$path) {
+        if (! $path) {
             return;
         }
 
         $normalized = trim($path, '/');
-        if (!str_starts_with($normalized, 'templates/')) {
+        if (! str_starts_with($normalized, 'templates/')) {
             return;
         }
 

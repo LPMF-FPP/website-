@@ -9,28 +9,28 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (Schema::hasTable('system_settings') && !Schema::hasTable('settings')) {
+        if (Schema::hasTable('system_settings') && ! Schema::hasTable('settings')) {
             Schema::rename('system_settings', 'settings');
         }
 
-        if (Schema::hasTable('sequences') && !Schema::hasTable('number_sequences')) {
+        if (Schema::hasTable('sequences') && ! Schema::hasTable('number_sequences')) {
             Schema::rename('sequences', 'number_sequences');
         }
 
         if (Schema::hasTable('number_sequences')) {
             Schema::table('number_sequences', function (Blueprint $table) {
-                if (!Schema::hasColumn('number_sequences', 'reset_period')) {
+                if (! Schema::hasColumn('number_sequences', 'reset_period')) {
                     $table->string('reset_period', 32)->default('never')->after('bucket');
                 }
             });
         }
 
         Schema::table('documents', function (Blueprint $table) {
-            if (!Schema::hasColumn('documents', 'storage_disk')) {
+            if (! Schema::hasColumn('documents', 'storage_disk')) {
                 $table->string('storage_disk', 32)->default('public')->after('source');
             }
 
-            if (!Schema::hasColumn('documents', 'deleted_at')) {
+            if (! Schema::hasColumn('documents', 'deleted_at')) {
                 $table->softDeletes();
             }
 
@@ -68,11 +68,11 @@ return new class extends Migration
             });
         }
 
-        if (Schema::hasTable('number_sequences') && !Schema::hasTable('sequences')) {
+        if (Schema::hasTable('number_sequences') && ! Schema::hasTable('sequences')) {
             Schema::rename('number_sequences', 'sequences');
         }
 
-        if (Schema::hasTable('settings') && !Schema::hasTable('system_settings')) {
+        if (Schema::hasTable('settings') && ! Schema::hasTable('system_settings')) {
             Schema::rename('settings', 'system_settings');
         }
     }

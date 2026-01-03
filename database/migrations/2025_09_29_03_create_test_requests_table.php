@@ -22,8 +22,8 @@ return new class extends Migration
             $table->date('incident_date')->nullable();
             $table->text('incident_location')->nullable();
             $table->enum('status', [
-                'submitted', 'verified', 'received', 'in_testing', 
-                'analysis', 'quality_check', 'ready_for_delivery', 'completed'
+                'submitted', 'verified', 'received', 'in_testing',
+                'analysis', 'quality_check', 'ready_for_delivery', 'completed',
             ])->default('submitted');
             $table->string('official_letter_path')->nullable();
             $table->string('evidence_photo_path')->nullable();

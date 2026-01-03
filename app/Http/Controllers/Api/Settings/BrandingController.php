@@ -17,8 +17,7 @@ class BrandingController extends Controller
     public function __construct(
         private readonly SettingsWriter $writer,
         private readonly SettingsResponseBuilder $builder
-    ) {
-    }
+    ) {}
 
     public function update(BrandingSettingsRequest $request): JsonResponse
     {

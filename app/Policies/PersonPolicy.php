@@ -8,7 +8,7 @@ class PersonPolicy
 {
     public function viewAny(?object $user = null): bool
     {
-        if (!config('search.enforce_search_policy')) {
+        if (! config('search.enforce_search_policy')) {
             return true;
         }
 
@@ -17,7 +17,7 @@ class PersonPolicy
 
     public function view(?object $user, Person $person): bool
     {
-        if (!config('search.enforce_search_policy')) {
+        if (! config('search.enforce_search_policy')) {
             return true;
         }
 

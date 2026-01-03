@@ -20,7 +20,7 @@ class WhatsAppService
     public function send(string $target, string $message): array
     {
         // Validate phone number format (basic validation)
-        if (!$this->isValidPhoneNumber($target)) {
+        if (! $this->isValidPhoneNumber($target)) {
             return [
                 'status' => 'error',
                 'message' => 'Invalid phone number format. Expected format: +62xxx or 08xxx',
@@ -32,7 +32,7 @@ class WhatsAppService
         // For now, log the message and return success for testing
         Log::info('WhatsApp message stub', [
             'target' => $target,
-            'message' => substr($message, 0, 100) . (strlen($message) > 100 ? '...' : ''),
+            'message' => substr($message, 0, 100).(strlen($message) > 100 ? '...' : ''),
             'timestamp' => now()->toIso8601String(),
         ]);
 
@@ -64,8 +64,8 @@ class WhatsAppService
     {
         // Check if WhatsApp API credentials exist in config
         // Adjust these config keys based on your chosen provider
-        return !empty(config('services.whatsapp.api_key')) 
-            && !empty(config('services.whatsapp.api_url'));
+        return ! empty(config('services.whatsapp.api_key'))
+            && ! empty(config('services.whatsapp.api_url'));
     }
 
     /**

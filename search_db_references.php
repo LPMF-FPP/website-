@@ -1,15 +1,14 @@
 <?php
 
-use App\Models\InventoryMovement;
 use App\Models\Document;
+use App\Models\InventoryMovement;
 use App\Models\SystemSetting;
-use App\Models\DocumentTemplate;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 // Bootstrap Laravel
-require __DIR__ . '/vendor/autoload.php';
-$app = require_once __DIR__ . '/bootstrap/app.php';
+require __DIR__.'/vendor/autoload.php';
+$app = require_once __DIR__.'/bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
@@ -20,7 +19,7 @@ if (Schema::hasTable('inventory_movements')) {
     echo "Checking InventoryMovement distinct reference_type:\n";
     $types = InventoryMovement::distinct()->pluck('reference_type');
     foreach ($types as $t) {
-        echo " - " . $t . "\n";
+        echo ' - '.$t."\n";
     }
 }
 
@@ -29,7 +28,7 @@ if (Schema::hasTable('documents')) {
     echo "Checking Document distinct document_type:\n";
     $types = Document::distinct()->pluck('document_type');
     foreach ($types as $t) {
-        echo " - " . $t . "\n";
+        echo ' - '.$t."\n";
     }
 }
 
@@ -48,7 +47,7 @@ if (Schema::hasTable('references')) {
     echo "Found 'references' table!\n";
     $refs = DB::table('references')->get();
     foreach ($refs as $r) {
-        echo " - " . json_encode($r) . "\n";
+        echo ' - '.json_encode($r)."\n";
     }
 } else {
     echo "No 'references' table found.\n";
@@ -59,7 +58,7 @@ if (Schema::hasTable('reference_types')) {
     echo "Found 'reference_types' table!\n";
     $refs = DB::table('reference_types')->get();
     foreach ($refs as $r) {
-        echo " - " . json_encode($r) . "\n";
+        echo ' - '.json_encode($r)."\n";
     }
 } else {
     echo "No 'reference_types' table found.\n";

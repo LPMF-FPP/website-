@@ -18,11 +18,11 @@ class TestRequestFactory extends Factory
     {
         $submittedAt = fake()->dateTimeBetween('-6 months', 'now');
         $uniqueSuffix = fake()->unique()->numerify('####');
-        
+
         return [
             // Generate unique numbers to avoid constraint violations in tests
-            'request_number' => now()->format('Y-m-d') . '-' . $uniqueSuffix,
-            'receipt_number' => now()->format('Y-m-d') . '-' . $uniqueSuffix,
+            'request_number' => now()->format('Y-m-d').'-'.$uniqueSuffix,
+            'receipt_number' => now()->format('Y-m-d').'-'.$uniqueSuffix,
             'investigator_id' => \App\Models\Investigator::factory(),
             'user_id' => \App\Models\User::factory(),
             'to_office' => fake()->randomElement(['Pusdokkes Polri', 'Labfor Polri', 'Puslabfor Bareskrim']),

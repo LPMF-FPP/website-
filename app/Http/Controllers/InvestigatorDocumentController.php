@@ -29,7 +29,7 @@ class InvestigatorDocumentController extends Controller
 
         // Group by request
         $groupedDocuments = $documents->groupBy(function ($doc) {
-            return $doc->test_request_id 
+            return $doc->test_request_id
                 ? "{$doc->testRequest->request_number} - {$doc->testRequest->case_number}"
                 : 'General Documents';
         });
@@ -77,7 +77,7 @@ class InvestigatorDocumentController extends Controller
         ]);
 
         try {
-            $testRequest = $validated['test_request_id'] 
+            $testRequest = $validated['test_request_id']
                 ? \App\Models\TestRequest::find($validated['test_request_id'])
                 : null;
 
@@ -94,7 +94,7 @@ class InvestigatorDocumentController extends Controller
         } catch (\Exception $e) {
             return back()
                 ->withInput()
-                ->with('error', 'Failed to upload document: ' . $e->getMessage());
+                ->with('error', 'Failed to upload document: '.$e->getMessage());
         }
     }
 
@@ -105,7 +105,7 @@ class InvestigatorDocumentController extends Controller
     {
         Gate::authorize('download', $document);
 
-        if (!$this->documentService->fileExists($document)) {
+        if (! $this->documentService->fileExists($document)) {
             abort(404, 'Document file not found');
         }
 
@@ -125,7 +125,7 @@ class InvestigatorDocumentController extends Controller
     {
         Gate::authorize('view', $document);
 
-        if (!$this->documentService->fileExists($document)) {
+        if (! $this->documentService->fileExists($document)) {
             abort(404, 'Document file not found');
         }
 
@@ -137,7 +137,7 @@ class InvestigatorDocumentController extends Controller
             $this->documentService->getFilePath($document),
             [
                 'Content-Type' => $mimeType,
-                'Content-Disposition' => 'inline; filename="' . $filename . '"',
+                'Content-Disposition' => 'inline; filename="'.$filename.'"',
             ]
         );
     }
@@ -157,7 +157,7 @@ class InvestigatorDocumentController extends Controller
                 ->route('investigator.documents.index', ['investigator' => $investigatorId])
                 ->with('success', 'Document deleted successfully');
         } catch (\Exception $e) {
-            return back()->with('error', 'Failed to delete document: ' . $e->getMessage());
+            return back()->with('error', 'Failed to delete document: '.$e->getMessage());
         }
     }
 

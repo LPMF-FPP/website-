@@ -47,15 +47,16 @@ class InventoryMovementService
 
     /**
      * Create an ISSUE movement (outgoing stock).
+     *
      * @throws RuntimeException if insufficient stock or lot is expired
      */
     public function issue(array $data): InventoryMovement
     {
         return DB::transaction(function () use ($data) {
             // Validate lot if provided
-            if (!empty($data['lot_id'])) {
+            if (! empty($data['lot_id'])) {
                 $lot = InventoryLot::findOrFail($data['lot_id']);
-                if (!$lot->canBeIssued()) {
+                if (! $lot->canBeIssued()) {
                     throw new RuntimeException(
                         "Lot {$lot->lot_no} tidak dapat dikeluarkan. Status: {$lot->status_label}"
                     );
@@ -69,7 +70,7 @@ class InventoryMovementService
                 'location_id' => $data['location_id'],
             ])->first();
 
-            if (!$balance || $balance->on_hand_qty < $data['qty']) {
+            if (! $balance || $balance->on_hand_qty < $data['qty']) {
                 $available = $balance ? $balance->on_hand_qty : 0;
                 throw new RuntimeException(
                     "Stok tidak mencukupi. Tersedia: {$available}, Diminta: {$data['qty']}"
@@ -100,6 +101,7 @@ class InventoryMovementService
 
     /**
      * Create a TRANSFER movement (move stock between locations).
+     *
      * @throws RuntimeException if insufficient stock
      */
     public function transfer(array $data): InventoryMovement
@@ -112,7 +114,7 @@ class InventoryMovementService
                 'location_id' => $data['from_location_id'],
             ])->first();
 
-            if (!$sourceBalance || $sourceBalance->on_hand_qty < $data['qty']) {
+            if (! $sourceBalance || $sourceBalance->on_hand_qty < $data['qty']) {
                 $available = $sourceBalance ? $sourceBalance->on_hand_qty : 0;
                 throw new RuntimeException(
                     "Stok tidak mencukupi di lokasi asal. Tersedia: {$available}, Diminta: {$data['qty']}"
@@ -204,7 +206,7 @@ class InventoryMovementService
                 'location_id' => $data['location_id'],
             ])->first();
 
-            if (!$balance || $balance->on_hand_qty < $data['qty']) {
+            if (! $balance || $balance->on_hand_qty < $data['qty']) {
                 $available = $balance ? $balance->on_hand_qty : 0;
                 throw new RuntimeException(
                     "Stok tidak mencukupi untuk disposal. Tersedia: {$available}, Diminta: {$data['qty']}"
@@ -231,7 +233,7 @@ class InventoryMovementService
             $balance->decreaseOnHand((float) $data['qty']);
 
             // Update lot status if disposing entire lot
-            if (!empty($data['lot_id'])) {
+            if (! empty($data['lot_id'])) {
                 $lot = InventoryLot::find($data['lot_id']);
                 $remainingBalance = InventoryBalance::where('lot_id', $data['lot_id'])
                     ->sum('on_hand_qty');
@@ -246,7 +248,8 @@ class InventoryMovementService
 
     /**
      * Process stocktake results and create ADJUST movements for variances.
-     * @param array $countedItems Array of ['item_id', 'lot_id', 'location_id', 'counted_qty']
+     *
+     * @param  array  $countedItems  Array of ['item_id', 'lot_id', 'location_id', 'counted_qty']
      * @return array Summary of adjustments made
      */
     public function processStocktake(array $countedItems, ?int $performedBy = null): array
@@ -276,6 +279,7 @@ class InventoryMovementService
                         'variance' => 0,
                         'adjusted' => false,
                     ];
+
                     continue;
                 }
 
@@ -319,23 +323,23 @@ class InventoryMovementService
             ->orderBy('performed_at', 'asc')
             ->orderBy('id', 'asc');
 
-        if (!empty($filters['item_id'])) {
+        if (! empty($filters['item_id'])) {
             $query->where('item_id', $filters['item_id']);
         }
-        if (!empty($filters['lot_id'])) {
+        if (! empty($filters['lot_id'])) {
             $query->where('lot_id', $filters['lot_id']);
         }
-        if (!empty($filters['location_id'])) {
+        if (! empty($filters['location_id'])) {
             $query->where(function ($q) use ($filters) {
                 $q->where('from_location_id', $filters['location_id'])
-                  ->orWhere('to_location_id', $filters['location_id']);
+                    ->orWhere('to_location_id', $filters['location_id']);
             });
         }
-        if (!empty($filters['date_from'])) {
+        if (! empty($filters['date_from'])) {
             $query->where('performed_at', '>=', $filters['date_from']);
         }
-        if (!empty($filters['date_to'])) {
-            $query->where('performed_at', '<=', $filters['date_to'] . ' 23:59:59');
+        if (! empty($filters['date_to'])) {
+            $query->where('performed_at', '<=', $filters['date_to'].' 23:59:59');
         }
 
         $movements = $query->get();
@@ -345,14 +349,14 @@ class InventoryMovementService
         $runningBalance = 0;
 
         // Get opening balance if location is specified
-        if ($locationId && !empty($filters['date_from'])) {
+        if ($locationId && ! empty($filters['date_from'])) {
             $openingBalance = InventoryMovement::query()
                 ->where('performed_at', '<', $filters['date_from']);
-            
-            if (!empty($filters['item_id'])) {
+
+            if (! empty($filters['item_id'])) {
                 $openingBalance->where('item_id', $filters['item_id']);
             }
-            if (!empty($filters['lot_id'])) {
+            if (! empty($filters['lot_id'])) {
                 $openingBalance->where('lot_id', $filters['lot_id']);
             }
 
@@ -360,7 +364,7 @@ class InventoryMovementService
             $incoming = (clone $openingBalance)
                 ->where('to_location_id', $locationId)
                 ->sum('qty');
-            
+
             // Sum outgoing movements
             $outgoing = (clone $openingBalance)
                 ->where('from_location_id', $locationId)
@@ -372,7 +376,7 @@ class InventoryMovementService
         $result = [];
         foreach ($movements as $movement) {
             $change = 0;
-            
+
             if ($locationId) {
                 // Calculate change for specific location
                 if ($movement->to_location_id == $locationId) {

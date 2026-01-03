@@ -16,14 +16,15 @@ class PurgeOldFiles extends Command
     public function handle(): int
     {
         $days = (int) settings('retention.purge_after_days', 1825);
-        $basePath = rtrim(settings('retention.base_path', 'official_docs/'), '/') . '/';
+        $basePath = rtrim(settings('retention.base_path', 'official_docs/'), '/').'/';
         $disk = settings('retention.storage_driver', 'public');
         $threshold = CarbonImmutable::now()->subDays($days);
 
         $storage = Storage::disk($disk);
 
-        if (!$storage->exists($basePath)) {
+        if (! $storage->exists($basePath)) {
             $this->info('Base path not found, nothing to purge.');
+
             return self::SUCCESS;
         }
 

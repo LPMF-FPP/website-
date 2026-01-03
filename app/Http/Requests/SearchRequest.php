@@ -17,7 +17,7 @@ class SearchRequest extends FormRequest
 
         return [
             'q' => ['required', 'string', 'min:2', 'max:80'],
-            'doc_type' => ['sometimes', 'string', 'in:' . implode(',', $docTypes)],
+            'doc_type' => ['sometimes', 'string', 'in:'.implode(',', $docTypes)],
             'sort' => ['sometimes', 'string', 'in:relevance,latest,oldest'],
             'page_people' => ['sometimes', 'integer', 'min:1', 'max:1000'],
             'per_page_people' => ['sometimes', 'integer', 'min:1', 'max:25'],
@@ -44,7 +44,7 @@ class SearchRequest extends FormRequest
     {
         return str_replace(
             [$escapeChar, '%', '_'],
-            [$escapeChar . $escapeChar, $escapeChar . '%', $escapeChar . '_'],
+            [$escapeChar.$escapeChar, $escapeChar.'%', $escapeChar.'_'],
             $value
         );
     }

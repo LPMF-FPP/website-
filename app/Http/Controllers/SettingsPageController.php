@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Settings\LocalizationSettingsRequest;
 use App\Models\Document;
 use App\Models\DocumentTemplate;
 use App\Models\SystemSetting;
-use App\Http\Requests\Settings\LocalizationSettingsRequest;
 use App\Support\DocumentTypes;
 use Illuminate\Support\Facades\Gate;
 

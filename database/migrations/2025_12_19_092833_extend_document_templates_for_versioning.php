@@ -19,7 +19,7 @@ return new class extends Migration
             $table->unsignedInteger('version')->after('is_active')->default(1);
             $table->string('checksum')->after('version')->nullable();
             $table->foreignId('created_by')->after('updated_by')->nullable()->constrained('users')->nullOnDelete();
-            
+
             // Add composite unique index for (type, format, version)
             $table->unique(['type', 'format', 'version'], 'templates_type_format_version_unique');
             // Add index for finding active templates

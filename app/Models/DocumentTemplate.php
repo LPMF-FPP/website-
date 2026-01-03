@@ -89,7 +89,8 @@ class DocumentTemplate extends Model
     public function getFullPathAttribute(): string
     {
         $disk = data_get($this->meta, 'disk', config('filesystems.default'));
-        return storage_path('app/' . $this->storage_path);
+
+        return storage_path('app/'.$this->storage_path);
     }
 
     /**
@@ -155,6 +156,7 @@ class DocumentTemplate extends Model
     {
         $this->status = 'issued';
         $this->issued_at = now();
+
         return $this->save();
     }
 
@@ -165,6 +167,7 @@ class DocumentTemplate extends Model
     {
         $this->status = 'obsolete';
         $this->is_active = false;
+
         return $this->save();
     }
 }

@@ -141,10 +141,11 @@ class RemainingUnit extends Model
      */
     public function getQtyWithUomAttribute(): string
     {
-        if (!$this->qty_remaining) {
+        if (! $this->qty_remaining) {
             return '-';
         }
-        return number_format($this->qty_remaining, 2) . ' ' . ($this->uom ?? '');
+
+        return number_format($this->qty_remaining, 2).' '.($this->uom ?? '');
     }
 
     // ==================== SCOPES ====================

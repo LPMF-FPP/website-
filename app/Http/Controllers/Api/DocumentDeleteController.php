@@ -11,9 +11,7 @@ use Illuminate\Support\Facades\Gate;
 
 class DocumentDeleteController extends Controller
 {
-    public function __construct(private readonly DocumentService $documents)
-    {
-    }
+    public function __construct(private readonly DocumentService $documents) {}
 
     public function __invoke(Document $document): JsonResponse
     {

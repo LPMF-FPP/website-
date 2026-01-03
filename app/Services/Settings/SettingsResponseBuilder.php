@@ -3,11 +3,16 @@
 namespace App\Services\Settings;
 
 use App\Models\DocumentTemplate;
+use App\Services\IkuService;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 
 class SettingsResponseBuilder
 {
+    public function __construct(
+        private readonly IkuService $ikuService
+    ) {}
+
     public function build(): array
     {
         $flat = settings();
@@ -28,6 +33,7 @@ class SettingsResponseBuilder
             'notifications' => Arr::get($nested, 'notifications', Arr::get($nested, 'automation', [])),
             'smtp' => $this->composeSmtp(Arr::get($nested, 'smtp', [])),
             'security' => Arr::get($nested, 'security.roles', []),
+            'iku' => $this->ikuService->getConfig(),
         ];
     }
 
@@ -53,7 +59,7 @@ class SettingsResponseBuilder
         $relative = trim($storagePath ?: Arr::get($retention, 'base_path', ''), '/');
 
         try {
-            $retention['resolved_storage_path'] = rtrim(Storage::disk($disk)->path($relative), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            $retention['resolved_storage_path'] = rtrim(Storage::disk($disk)->path($relative), DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR;
         } catch (\Throwable $e) {
             $retention['resolved_storage_path'] = null;
         }

@@ -14,7 +14,7 @@ class Investigator extends Model
     protected $fillable = [
         'name', 'rank', 'nrp', 'jurisdiction',
         'phone', 'email', 'address', 'folder_key',
-        'is_polri', 'institution', 'occupation', 'alt_phone'
+        'is_polri', 'institution', 'occupation', 'alt_phone',
     ];
 
     protected static function boot()
@@ -47,7 +47,7 @@ class Investigator extends Model
 
     public function getFullNameAttribute(): string
     {
-        return $this->rank . ' ' . $this->name;
+        return $this->rank.' '.$this->name;
     }
 
     /**
@@ -62,8 +62,8 @@ class Investigator extends Model
         $original = $folderKey;
         $counter = 1;
         while (static::where('folder_key', $folderKey)
-                    ->where('id', '!=', $investigator->id ?? null)
-                    ->exists()) {
+            ->where('id', '!=', $investigator->id ?? null)
+            ->exists()) {
             $folderKey = "{$original}-{$counter}";
             $counter++;
         }
@@ -77,19 +77,19 @@ class Investigator extends Model
     public function getDocumentPath(?string $requestNumber = null, ?string $source = 'uploads', ?string $type = null): string
     {
         $path = "investigators/{$this->folder_key}";
-        
+
         if ($requestNumber) {
             $path .= "/{$requestNumber}";
         }
-        
+
         if ($source) {
             $path .= "/{$source}";
         }
-        
+
         if ($type) {
             $path .= "/{$type}";
         }
-        
+
         return $path;
     }
 }

@@ -14,7 +14,7 @@ class SurveyResponse extends Model
         'test_request_id', 'service_quality', 'process_speed',
         'staff_professionalism', 'facility_condition',
         'overall_satisfaction', 'suggestions', 'complaints',
-        'additional_comments', 'respondent_name', 'respondent_contact'
+        'additional_comments', 'respondent_name', 'respondent_contact',
     ];
 
     public function testRequest(): BelongsTo

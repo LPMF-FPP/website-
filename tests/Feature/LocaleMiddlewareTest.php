@@ -25,8 +25,8 @@ class LocaleMiddlewareTest extends TestCase
         $this->get('/_locale-test')->assertOk();
 
         // Middleware should have run via bootstrap; ensure fallback by manual invocation too
-        (new \App\Http\Middleware\ApplyTimezone())->handle(request(), fn($r) => $r);
-        (new \App\Http\Middleware\ApplyLocaleFromSettings())->handle(request(), fn($r) => $r);
+        (new \App\Http\Middleware\ApplyTimezone)->handle(request(), fn ($r) => $r);
+        (new \App\Http\Middleware\ApplyLocaleFromSettings)->handle(request(), fn ($r) => $r);
 
         $this->assertSame('Asia/Jayapura', config('app.timezone'));
         $this->assertSame('id', app()->getLocale());

@@ -15,24 +15,27 @@ class DocumentsTest extends TestCase
     use DatabaseTransactions;
 
     protected User $admin;
+
     protected User $investigatorUser;
+
     protected Investigator $investigator;
+
     protected TestRequest $testRequest;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         Storage::fake('public');
-        
+
         $this->admin = User::factory()->create(['role' => 'admin']);
-        
+
         $this->investigator = Investigator::factory()->create();
         $this->investigatorUser = User::factory()->create([
             'role' => 'investigator',
             'investigator_id' => $this->investigator->id,
         ]);
-        
+
         $this->testRequest = TestRequest::factory()->create([
             'investigator_id' => $this->investigator->id,
         ]);
@@ -88,7 +91,7 @@ class DocumentsTest extends TestCase
         $response = $this->getJson("/api/requests/{$this->testRequest->id}/documents");
 
         $response->assertOk();
-        
+
         // Should only see authorized documents
         $ids = collect($response->json('data'))->pluck('id')->toArray();
         $this->assertContains($doc1->id, $ids);
@@ -251,7 +254,7 @@ class DocumentsTest extends TestCase
         $response->assertOk();
 
         $doc = collect($response->json('data'))->firstWhere('id', $document->id);
-        
+
         $this->assertNotNull($doc);
         $this->assertStringContainsString('signature=', $doc['download_url']);
         $this->assertStringContainsString('expires=', $doc['download_url']);

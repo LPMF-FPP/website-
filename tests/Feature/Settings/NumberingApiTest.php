@@ -40,12 +40,12 @@ class NumberingApiTest extends TestCase
             $this->assertArrayHasKey('current', $data[$scope], "Scope {$scope} should have 'current' key");
             $this->assertArrayHasKey('next', $data[$scope], "Scope {$scope} should have 'next' key");
             $this->assertArrayHasKey('pattern', $data[$scope], "Scope {$scope} should have 'pattern' key");
-            
+
             // current can be null (not issued yet) or string
             if ($data[$scope]['current'] !== null) {
                 $this->assertIsString($data[$scope]['current'], "Scope {$scope}.current should be string or null");
             }
-            
+
             // next should always be a string
             $this->assertIsString($data[$scope]['next'], "Scope {$scope}.next should be string");
             $this->assertIsString($data[$scope]['pattern'], "Scope {$scope}.pattern should be string");

@@ -47,9 +47,10 @@ class SyncDocumentTemplates extends Command
 
             foreach ($type->supportedFormats() as $format) {
                 // Check if template already exists
-                if (!$this->option('force') && $repository->hasActiveTemplate($type, $format)) {
+                if (! $this->option('force') && $repository->hasActiveTemplate($type, $format)) {
                     $this->warn("  - {$format->value}: Already exists (use --force to override)");
                     $skipped++;
+
                     continue;
                 }
 
@@ -79,7 +80,7 @@ class SyncDocumentTemplates extends Command
     ): void {
         $viewName = $type->legacyView();
 
-        if (!$viewName || !View::exists($viewName)) {
+        if (! $viewName || ! View::exists($viewName)) {
             throw new \Exception("Legacy view not found: {$viewName}");
         }
 
@@ -90,14 +91,14 @@ class SyncDocumentTemplates extends Command
         // Store template file
         $disk = config('filesystems.default');
         $path = "templates/synced/{$type->value}/{$format->value}/template-v1.blade.php";
-        
+
         Storage::disk($disk)->put($path, $content);
 
         // Create template record
         $repository->createTemplateVersion([
             'type' => $type->value,
             'format' => $format->value,
-            'name' => $type->label() . ' (Legacy)',
+            'name' => $type->label().' (Legacy)',
             'storage_path' => $path,
             'checksum' => md5($content),
             'is_active' => true, // Activate by default
@@ -112,4 +113,3 @@ class SyncDocumentTemplates extends Command
         ]);
     }
 }
-

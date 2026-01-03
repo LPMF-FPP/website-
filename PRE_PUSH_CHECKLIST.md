@@ -2,7 +2,7 @@
 
 Use this checklist before pushing commits to GitHub. Run each step and verify the criteria.
 
-**Last Verified:** January 2, 2026 (branch: `main`)
+**Last Verified:** January 3, 2026 (branch: `main`)
 
 ---
 
@@ -16,7 +16,7 @@ git diff --cached --stat
 
 **Criteria:**
 - [x] No temporary/log/cache files staged
-- [x] Staged changes match intended push (Process Controller refactor, Recent Requests, UI improvements)
+- [x] Staged changes match intended push (IKU feature, Customer Survey, code linting fixes)
 
 ---
 
@@ -30,7 +30,7 @@ php artisan route:list --name=changelogs
 ```
 
 **Criteria:**
-- [x] Test suite passes: **245 passed, 9 skipped** ✅
+- [x] Test suite passes: **284 passed, 9 skipped** ✅
 - [x] Critical routes exist and not broken
 
 ---
@@ -56,7 +56,7 @@ npm run build
 ```
 
 **Criteria:**
-- [x] Build succeeds ✅ (2.54s)
+- [x] Build succeeds ✅ (3.34s)
 - [x] `node_modules` not in git
 - [x] `public/build` only if required by repo policy
 
@@ -115,7 +115,7 @@ grep -r "document-templates" routes/web.php
 
 ```bash
 git add -A
-git commit -m "feat: process controller refactor, recent requests table, UI improvements"
+git commit -m "feat: IKU feature, Customer Survey model, Survey Export, code linting"
 git push origin main
 ```
 
@@ -125,27 +125,34 @@ git push origin main
 
 ---
 
-## Changes Summary (January 2, 2026)
+## Changes Summary (January 3, 2026)
 
-### Process Controller Refactor
-- New `ProcessController.php` for sample process workflows
-- Updated `SampleTestController.php` and `SampleTestProcessController.php`
-- Improved navigation routes in `routes/web.php`
+### IKU (Indeks Kinerja Utama) Feature
+- New `IkuService.php` for calculating IKU (performance index)
+- New `IkuSettingsController.php` API controller
+- New `IkuSettingsRequest.php` form request validation
+- Settings partial: `iku.blade.php` with preview and configuration UI
+- IKU Settings test suite: `IkuSettingsTest.php`
 
-### Recent Requests Table
-- New `RecentRequest` model for tracking recent activity
-- Migration: `2026_01_07_000000_create_recent_requests_table`
-- Enhanced `TestRequest` model relationships
+### Customer Survey Model & Export
+- New `CustomerSurvey.php` model with validation methods
+- Migration: `2025_10_02_000000_create_customer_surveys_table`
+- New `CustomerSurveyExport.php` for Excel export
+- New `SurveyExportController.php` with date filtering
+- Route: `GET /reports/surveys/export`
 
-### UI Improvements
-- Updated navigation layout (`layouts/navigation.blade.php`)
-- Improved requests index and show pages
-- Enhanced sample-processes views (create, edit, index, show)
-- Updated samples test page
+### Code Quality & Linting Fixes
+- Import statement sorting (alphabetical order)
+- Whitespace cleanup in routes/web.php
+- Arrow function formatting: `fn() =>` to `fn () =>`
+- String concatenation standardization: `. ` spacing
+- Removed deprecated files from `siap-dihapus-2025-12-23/`
+- PHP-CS-Fixer compliant test files
 
 ### Tests
-- All 245 tests passing
+- All 284 tests passing (increased from 245)
 - 9 tests skipped (deprecated features)
+- New test coverage for IKU feature
 
 ---
 

@@ -74,26 +74,29 @@ class InventoryBalance extends Model
         $this->on_hand_qty = (float) $this->on_hand_qty + $qty;
         $this->updated_at = now();
         $this->save();
+
         return $this;
     }
 
     /**
      * Decrease on-hand quantity.
+     *
      * @throws \RuntimeException if would result in negative balance
      */
     public function decreaseOnHand(float $qty, bool $allowNegative = false): self
     {
         $newQty = (float) $this->on_hand_qty - $qty;
-        
-        if (!$allowNegative && $newQty < 0) {
+
+        if (! $allowNegative && $newQty < 0) {
             throw new \RuntimeException(
                 "Insufficient stock. Available: {$this->on_hand_qty}, Requested: {$qty}"
             );
         }
-        
+
         $this->on_hand_qty = $newQty;
         $this->updated_at = now();
         $this->save();
+
         return $this;
     }
 

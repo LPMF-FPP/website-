@@ -10,9 +10,7 @@ use Illuminate\Support\Facades\Gate;
 
 class SettingsController extends Controller
 {
-    public function __construct(private readonly SettingsResponseBuilder $builder)
-    {
-    }
+    public function __construct(private readonly SettingsResponseBuilder $builder) {}
 
     public function index(): JsonResponse
     {

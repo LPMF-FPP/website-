@@ -22,7 +22,7 @@ class DocumentTemplatePreviewTest extends TestCase
         parent::setUp();
 
         $this->user = User::factory()->create();
-        Gate::define('manage-settings', fn() => true);
+        Gate::define('manage-settings', fn () => true);
     }
 
     /** @test */
@@ -79,7 +79,7 @@ class DocumentTemplatePreviewTest extends TestCase
             ->get('/api/settings/document-templates/preview/lhu/html');
 
         $response->assertStatus(200);
-        
+
         // Check content type (case insensitive)
         $contentType = $response->headers->get('Content-Type');
         $this->assertStringContainsString('text/html', strtolower($contentType));
@@ -110,7 +110,7 @@ class DocumentTemplatePreviewTest extends TestCase
     /** @test */
     public function it_requires_manage_settings_permission()
     {
-        Gate::define('manage-settings', fn() => false);
+        Gate::define('manage-settings', fn () => false);
 
         $response = $this->actingAs($this->user)
             ->getJson('/api/settings/document-templates/preview/ba_penerimaan/pdf');

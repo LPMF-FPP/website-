@@ -15,12 +15,13 @@ class DocumentTemplateRepositoryTest extends TestCase
     use DatabaseTransactions;
 
     private DocumentTemplateRepository $repository;
+
     private User $user;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->repository = new DocumentTemplateRepository();
+        $this->repository = new DocumentTemplateRepository;
         $this->user = User::factory()->create();
         $this->actingAs($this->user);
     }

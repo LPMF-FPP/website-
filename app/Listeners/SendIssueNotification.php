@@ -10,14 +10,12 @@ use Illuminate\Support\Facades\Mail;
 
 class SendIssueNotification implements ShouldQueue
 {
-    public function __construct(protected WhatsAppService $whatsapp)
-    {
-    }
+    public function __construct(protected WhatsAppService $whatsapp) {}
 
     public function handle(NumberIssued $event): void
     {
         $config = settings('notifications');
-        if (!$config) {
+        if (! $config) {
             return;
         }
 
@@ -30,7 +28,7 @@ class SendIssueNotification implements ShouldQueue
             '{REQ}' => (string) ($event->ctx['request_short'] ?? '-'),
         ]);
 
-        if (!empty($emailConfig['enabled'])) {
+        if (! empty($emailConfig['enabled'])) {
             $subject = $replace($emailConfig['subject'] ?? 'Nomor {NUMBER}');
             $body = $replace($emailConfig['body'] ?? 'Nomor {NUMBER} telah diterbitkan.');
             $recipient = $emailConfig['default_recipient'] ?? config('mail.to.address', config('mail.from.address'));
@@ -42,12 +40,13 @@ class SendIssueNotification implements ShouldQueue
             }
         }
 
-        if (!empty($whatsappConfig['enabled'])) {
+        if (! empty($whatsappConfig['enabled'])) {
             $message = $replace($whatsappConfig['message'] ?? '{SCOPE} {NUMBER} issued');
             $recipient = $whatsappConfig['default_target'] ?? null;
 
-            if (!$recipient) {
+            if (! $recipient) {
                 Log::warning('[LIMS] WhatsApp recipient not configured');
+
                 return;
             }
 

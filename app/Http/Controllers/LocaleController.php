@@ -9,11 +9,12 @@ class LocaleController extends Controller
 {
     public function switch(Request $request, string $locale): RedirectResponse
     {
-        $supported = ['id','en'];
-        if (!in_array($locale, $supported, true)) {
+        $supported = ['id', 'en'];
+        if (! in_array($locale, $supported, true)) {
             $locale = config('app.locale');
         }
         session(['app_locale' => $locale]);
+
         return back();
     }
 }

@@ -22,7 +22,6 @@
                     ['label' => 'Total Permintaan', 'key' => 'total_requests'],
                     ['label' => 'Sampel Pending', 'key' => 'pending_samples'],
                     ['label' => 'Pengujian Selesai', 'key' => 'completed_tests'],
-                    ['label' => 'SLA Performance', 'key' => 'sla_performance', 'suffix' => '%'],
                 ]; @endphp
                 @foreach($cards as $c)
                 <div class="card">
@@ -34,6 +33,24 @@
                     </div>
                 </div>
                 @endforeach
+
+                {{-- IKU Performance Card --}}
+                <div class="card bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-100">
+                    <div class="space-y-1">
+                        <div class="flex items-baseline gap-2">
+                            <div class="text-3xl font-semibold text-blue-700">
+                                {{ number_format($stats['iku_value'] ?? 0, 2) }}
+                            </div>
+                            <div class="text-lg font-medium text-blue-500">
+                                ({{ $stats['iku_category'] ?? '-' }})
+                            </div>
+                        </div>
+                        <div class="text-sm font-medium text-blue-600">IKU Performance</div>
+                        <div class="text-xs text-blue-400">
+                            Periode: {{ $iku_data['period']['start'] ?? 'Bulan ini' }} s/d {{ $iku_data['period']['end'] ?? '' }}
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Tiny Status Breakdown Bar -->

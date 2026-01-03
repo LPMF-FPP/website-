@@ -10,9 +10,7 @@ class TestNotificationMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public function __construct(private readonly string $body)
-    {
-    }
+    public function __construct(private readonly string $body) {}
 
     public function build(): self
     {

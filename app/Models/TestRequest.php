@@ -1,23 +1,14 @@
 <?php
 
-
-
 namespace App\Models;
 
-
-
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
-
-use Illuminate\Support\Facades\DB;
-
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Cache;
-
-
 
 class TestRequest extends Model
 {
@@ -31,11 +22,9 @@ class TestRequest extends Model
 
         'incident_location', 'status', 'official_letter_path', 'evidence_photo_path',
 
-        'submitted_at', 'verified_at', 'received_at', 'completed_at'
+        'submitted_at', 'verified_at', 'received_at', 'completed_at',
 
     ];
-
-
 
     protected $casts = [
 
@@ -53,27 +42,22 @@ class TestRequest extends Model
 
     ];
 
-
-
     protected static function boot()
-
     {
 
         parent::boot();
 
-
-
         static::creating(function ($model) {
             $numbering = app(\App\Services\NumberingService::class);
-            
-            if (!$model->request_number) {
+
+            if (! $model->request_number) {
                 // Generate Berita Acara (BA) number for the request
                 $model->request_number = $numbering->issue('ba', [
                     'investigator_id' => $model->investigator_id ?? null,
                 ]);
             }
-            
-            if (!$model->receipt_number) {
+
+            if (! $model->receipt_number) {
                 // Generate receipt/tracking number (nomor resi)
                 $model->receipt_number = $numbering->issue('tracking', [
                     'investigator_id' => $model->investigator_id ?? null,
@@ -81,15 +65,13 @@ class TestRequest extends Model
             }
         });
 
-
-
         $clear = function (self $model) {
             // Clear cache for both request_number and receipt_number
             if ($model->request_number) {
-                Cache::forget('track:condensed:' . $model->request_number);
+                Cache::forget('track:condensed:'.$model->request_number);
             }
             if ($model->receipt_number) {
-                Cache::forget('track:condensed:' . $model->receipt_number);
+                Cache::forget('track:condensed:'.$model->receipt_number);
             }
         };
 
@@ -98,8 +80,6 @@ class TestRequest extends Model
         static::deleted($clear);
 
     }
-
-
 
     /**
      * @deprecated Use NumberingService instead
@@ -110,26 +90,20 @@ class TestRequest extends Model
         // This method is no longer used.
         // Request numbers (BA Penerimaan) are now generated via NumberingService
         // which uses settings from /settings page
-        
+
         throw new \RuntimeException(
             'generateRequestNumber() is deprecated. Use NumberingService::issue() instead.'
         );
     }
 
-
-
     public function investigator(): BelongsTo
-
     {
 
         return $this->belongsTo(Investigator::class);
 
     }
 
-
-
     public function samples(): HasMany
-
     {
 
         return $this->hasMany(Sample::class);
@@ -151,34 +125,30 @@ class TestRequest extends Model
         return $this->hasMany(RecentRequest::class, 'test_request_id');
     }
 
-
-
     public function user(): BelongsTo
-
     {
 
         return $this->belongsTo(User::class);
 
     }
 
-
-
     public function documents(): HasMany
-
     {
 
         return $this->hasMany(Document::class);
 
     }
 
-
-
     public function surveyResponses(): HasMany
-
     {
 
         return $this->hasMany(SurveyResponse::class);
 
+    }
+
+    public function customerSurvey(): HasOne
+    {
+        return $this->hasOne(CustomerSurvey::class);
     }
 
     public function evidenceUnits(): HasMany
@@ -190,5 +160,4 @@ class TestRequest extends Model
     {
         return $this->hasMany(Suspect::class)->orderBy('order_no');
     }
-
 }

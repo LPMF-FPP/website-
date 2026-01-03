@@ -122,6 +122,13 @@
                             class="w-full text-left px-4 py-3 rounded-lg transition-colors text-sm">
                             Manajemen Dokumen
                         </button>
+
+                        <button 
+                            @click="activeSection = 'iku'" 
+                            :class="activeSection === 'iku' ? 'bg-gray-200 text-gray-900 font-medium' : 'bg-white text-gray-700 hover:bg-gray-50'"
+                            class="w-full text-left px-4 py-3 rounded-lg transition-colors text-sm">
+                            Perhitungan IKU
+                        </button>
                     </nav>
                 </div>
             </div>
@@ -159,6 +166,10 @@
 
                 <div x-show="activeSection === 'documents'">
                     <?php echo $__env->make('settings.partials.documents', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
+                </div>
+
+                <div x-show="activeSection === 'iku'">
+                    <?php echo $__env->make('settings.partials.iku', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?>
                 </div>
             </div>
 

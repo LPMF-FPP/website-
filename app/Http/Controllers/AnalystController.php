@@ -17,9 +17,10 @@ class AnalystController extends Controller
     {
         $this->middleware(function ($request, $next) {
             $user = $request->user();
-            if (!$user || !in_array($user->role, ['admin', 'supervisor'])) {
+            if (! $user || ! in_array($user->role, ['admin', 'supervisor'])) {
                 abort(403, 'Unauthorized');
             }
+
             return $next($request);
         });
     }
@@ -40,7 +41,7 @@ class AnalystController extends Controller
     public function create(): View
     {
         return view('analysts.create', [
-            'analyst' => new User(),
+            'analyst' => new User,
             'roles' => $this->analystRoles,
         ]);
     }
@@ -58,7 +59,7 @@ class AnalystController extends Controller
 
     public function edit(User $analyst): View
     {
-        if (!in_array($analyst->role, $this->analystRoles)) {
+        if (! in_array($analyst->role, $this->analystRoles)) {
             abort(404);
         }
 
@@ -70,7 +71,7 @@ class AnalystController extends Controller
 
     public function update(Request $request, User $analyst): RedirectResponse
     {
-        if (!in_array($analyst->role, $this->analystRoles)) {
+        if (! in_array($analyst->role, $this->analystRoles)) {
             abort(404);
         }
 
@@ -85,7 +86,7 @@ class AnalystController extends Controller
 
     public function destroy(User $analyst): RedirectResponse
     {
-        if (!in_array($analyst->role, $this->analystRoles)) {
+        if (! in_array($analyst->role, $this->analystRoles)) {
             abort(404);
         }
 
@@ -99,7 +100,7 @@ class AnalystController extends Controller
     protected function validatedData(Request $request, ?int $analystId = null): array
     {
         $passwordRule = ['sometimes', 'nullable', 'string', 'min:8', 'confirmed'];
-        if (!$analystId) {
+        if (! $analystId) {
             $passwordRule = ['required', 'string', 'min:8', 'confirmed'];
         }
 
@@ -117,7 +118,7 @@ class AnalystController extends Controller
             'password.confirmed' => 'Konfirmasi password tidak sesuai.',
         ]);
 
-        if (!empty($validated['password'])) {
+        if (! empty($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
         } else {
             unset($validated['password']);

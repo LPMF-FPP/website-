@@ -19,7 +19,7 @@ class TemplatesSettingsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         Storage::fake('local');
         $this->admin = User::factory()->create(['role' => 'admin']);
     }
@@ -27,7 +27,7 @@ class TemplatesSettingsTest extends TestCase
     public function test_can_list_templates(): void
     {
         DocumentTemplate::factory()->count(3)->create();
-        
+
         $this->actingAs($this->admin);
 
         $response = $this->getJson('/api/settings/templates');
@@ -113,7 +113,7 @@ class TemplatesSettingsTest extends TestCase
         // depending on how SettingsWriter handles nested arrays with dot notation keys
         $settings = SystemSetting::where('key', 'like', 'templates.active%')->get();
         $this->assertGreaterThan(0, $settings->count(), 'Should have at least one templates.active setting');
-        
+
         // Check that lhu template is activated
         $snapshot = settings_nest(settings());
         $this->assertEquals('LHU_MAIN', data_get($snapshot, 'templates.active.lhu'));
@@ -124,7 +124,7 @@ class TemplatesSettingsTest extends TestCase
         $this->actingAs($this->admin);
 
         $template = DocumentTemplate::factory()->create();
-        
+
         // Create fake file
         Storage::disk('local')->put($template->storage_path, 'fake content');
 

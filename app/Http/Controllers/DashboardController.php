@@ -2,28 +2,30 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\TestRequest;
 use App\Models\Sample;
+use App\Models\TestRequest;
 use App\Models\TestResult;
-use App\Models\Investigator;
-use Carbon\Carbon;
+use App\Services\IkuService;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
+    public function __construct(
+        private readonly IkuService $ikuService
+    ) {}
+
     public function index()
     {
         try {
             // 1. Hitung statistik utama dari database
             $totalRequests = TestRequest::count();
-            $pendingSamples = Sample::whereHas('testRequest', function($query) {
+            $pendingSamples = Sample::whereHas('testRequest', function ($query) {
                 $query->whereIn('status', ['submitted', 'verified', 'received']);
             })->count();
             $completedTests = TestRequest::where('status', 'completed')->count();
 
-            // 2. Hitung SLA Performance (contoh: target 7 hari)
-            $slaPerformance = $this->calculateSLAPerformance();
+            // 2. Hitung IKU Performance
+            $ikuData = $this->calculateIkuPerformance();
 
             // 3. Aktivitas terbaru (5 terakhir)
             $recentActivities = $this->getRecentActivities();
@@ -40,8 +42,10 @@ class DashboardController extends Controller
                     'total_requests' => $totalRequests,
                     'pending_samples' => $pendingSamples,
                     'completed_tests' => $completedTests,
-                    'sla_performance' => $slaPerformance
+                    'iku_value' => $ikuData['iku_value'],
+                    'iku_category' => $ikuData['iku_category'],
                 ],
+                'iku_data' => $ikuData,
                 'recent_activities' => $recentActivities,
                 'status_breakdown' => $statusBreakdown,
             ];
@@ -53,8 +57,10 @@ class DashboardController extends Controller
                     'total_requests' => 0,
                     'pending_samples' => 0,
                     'completed_tests' => 0,
-                    'sla_performance' => 0
+                    'iku_value' => 0,
+                    'iku_category' => 'F',
                 ],
+                'iku_data' => null,
                 'recent_activities' => collect([]),
                 'status_breakdown' => [],
             ];
@@ -63,25 +69,28 @@ class DashboardController extends Controller
         return view('dashboard', $dashboardData);
     }
 
-    private function calculateSLAPerformance()
+    private function calculateIkuPerformance(): array
     {
         try {
-            $completed = TestRequest::where('status', 'completed')
-                ->whereNotNull('completed_at')
-                ->get();
-
-            if ($completed->isEmpty()) {
-                return 0;
+            $config = $this->ikuService->getConfig();
+            if (! $config['enabled']) {
+                return [
+                    'iku_value' => 0,
+                    'iku_category' => '-',
+                    'enabled' => false,
+                ];
             }
 
-            $onTime = $completed->filter(function ($request) {
-                $days = $request->created_at->diffInDays($request->completed_at);
-                return $days <= 7; // Target 7 hari
-            })->count();
-
-            return round(($onTime / $completed->count()) * 100);
+            return array_merge(
+                $this->ikuService->computeForCurrentMonth(),
+                ['enabled' => true]
+            );
         } catch (\Exception $e) {
-            return 0;
+            return [
+                'iku_value' => 0,
+                'iku_category' => 'F',
+                'enabled' => false,
+            ];
         }
     }
 
@@ -99,11 +108,11 @@ class DashboardController extends Controller
                 ->map(function ($request) {
                     return (object) [
                         'type' => 'new_request',
-                        'title' => 'Permintaan Baru: ' . ($request->receipt_number ?? $request->request_number),
-                        'description' => 'dari ' . ($request->investigator->name ?? 'Unknown'),
+                        'title' => 'Permintaan Baru: '.($request->receipt_number ?? $request->request_number),
+                        'description' => 'dari '.($request->investigator->name ?? 'Unknown'),
                         'time' => $request->created_at,
                         'icon' => '📋',
-                        'color' => 'blue'
+                        'color' => 'blue',
                     ];
                 });
 
@@ -116,11 +125,11 @@ class DashboardController extends Controller
                     ->map(function ($result) {
                         return (object) [
                             'type' => 'test_result',
-                            'title' => 'Hasil Test: ' . $result->sample->short_description,
-                            'description' => 'Status: ' . $result->result_status,
+                            'title' => 'Hasil Test: '.$result->sample->short_description,
+                            'description' => 'Status: '.$result->result_status,
                             'time' => $result->created_at,
                             'icon' => '🧪',
-                            'color' => 'green'
+                            'color' => 'green',
                         ];
                     });
 
@@ -141,20 +150,26 @@ class DashboardController extends Controller
     public function getStats()
     {
         try {
+            $ikuData = $this->calculateIkuPerformance();
+
             return response()->json([
                 'total_requests' => TestRequest::count(),
-                'pending_samples' => Sample::whereHas('testRequest', function($query) {
+                'pending_samples' => Sample::whereHas('testRequest', function ($query) {
                     $query->whereIn('status', ['submitted', 'verified', 'received']);
                 })->count(),
                 'completed_tests' => TestRequest::where('status', 'completed')->count(),
-                'sla_performance' => $this->calculateSLAPerformance()
+                'iku_value' => $ikuData['iku_value'],
+                'iku_category' => $ikuData['iku_category'],
+                'iku_data' => $ikuData,
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'total_requests' => 0,
                 'pending_samples' => 0,
                 'completed_tests' => 0,
-                'sla_performance' => 0
+                'iku_value' => 0,
+                'iku_category' => 'F',
+                'iku_data' => null,
             ]);
         }
     }

@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Delivery extends Model
 {
@@ -17,13 +17,13 @@ class Delivery extends Model
         'notes',
         'delivery_date',
         'status',
-        'collected_at'
+        'collected_at',
     ];
 
     protected $casts = [
         'delivery_date' => 'datetime',
         'collected_at' => 'datetime',
-        'status' => \App\Enums\DeliveryStatus::class
+        'status' => \App\Enums\DeliveryStatus::class,
     ];
 
     public function request(): BelongsTo
@@ -57,7 +57,7 @@ class Delivery extends Model
     public function isReadyForDelivery(): bool
     {
         return $this->request->samples()
-            ->whereHas('testProcesses', function($query) {
+            ->whereHas('testProcesses', function ($query) {
                 $query->whereNotNull('completed_at')
                     ->whereIn('stage', ['preparation', 'instrumentation', 'interpretation'])
                     ->groupBy('sample_id')

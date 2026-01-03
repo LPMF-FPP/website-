@@ -44,7 +44,7 @@ class RequestStoreDocumentServiceTest extends TestCase
                     'name' => 'Test Suspect',
                     'gender' => 'male',
                     'age' => 30,
-                ]
+                ],
             ],
             'samples' => [
                 [
@@ -54,7 +54,7 @@ class RequestStoreDocumentServiceTest extends TestCase
                     'unit' => 'serbuk',
                     'test_types' => ['uv_vis', 'gc_ms'],
                     'active_substance' => 'Methamphetamine',
-                ]
+                ],
             ],
         ];
 
@@ -87,27 +87,27 @@ class RequestStoreDocumentServiceTest extends TestCase
             ->where('document_type', 'request_letter')
             ->where('source', 'upload')
             ->first();
-        
+
         $this->assertNotNull($letterDoc, 'Request letter document should be created');
 
         $evidenceDoc = Document::where('test_request_id', $testRequest->id)
             ->where('document_type', 'evidence_photo')
             ->where('source', 'upload')
             ->first();
-        
+
         $this->assertNotNull($evidenceDoc, 'Evidence photo document should be created');
 
         // Assert: Paths follow correct structure
         $expectedPathPattern = "investigators/87010123-andri-wibowo/{$testRequest->request_number}/uploads/";
-        
+
         $this->assertStringContainsString(
-            $expectedPathPattern . 'request_letter/',
+            $expectedPathPattern.'request_letter/',
             $letterDoc->path,
             'Request letter path should follow investigators/{folder_key}/{request_number}/uploads/request_letter/ pattern'
         );
 
         $this->assertStringContainsString(
-            $expectedPathPattern . 'evidence_photo/',
+            $expectedPathPattern.'evidence_photo/',
             $evidenceDoc->path,
             'Evidence photo path should follow investigators/{folder_key}/{request_number}/uploads/evidence_photo/ pattern'
         );
@@ -137,7 +137,7 @@ class RequestStoreDocumentServiceTest extends TestCase
                     'name' => 'Test Suspect 2',
                     'gender' => null,
                     'age' => null,
-                ]
+                ],
             ],
             'samples' => [
                 [
@@ -146,7 +146,7 @@ class RequestStoreDocumentServiceTest extends TestCase
                     'active_substance' => 'Cannabis',
                     'package_quantity' => 5,
                     'unit' => 'serbuk',
-                ]
+                ],
             ],
             'request_letter' => UploadedFile::fake()->create('surat.pdf', 50, 'application/pdf'),
         ];
@@ -209,7 +209,7 @@ class RequestStoreDocumentServiceTest extends TestCase
                     'name' => 'Test Suspect 3',
                     'gender' => null,
                     'age' => null,
-                ]
+                ],
             ],
             'samples' => [
                 [
@@ -218,7 +218,7 @@ class RequestStoreDocumentServiceTest extends TestCase
                     'active_substance' => 'Heroin',
                     'package_quantity' => 3,
                     'unit' => 'serbuk',
-                ]
+                ],
             ],
             'request_letter' => UploadedFile::fake()->create('surat.pdf', 50, 'application/pdf'),
         ];
@@ -239,7 +239,7 @@ class RequestStoreDocumentServiceTest extends TestCase
         // Assert: Document uses the existing folder_key in path
         $testRequest = TestRequest::where('investigator_id', $investigator->id)->first();
         $document = Document::where('test_request_id', $testRequest->id)->first();
-        
+
         $this->assertStringContainsString('investigators/89030789-test-investigator/', $document->path);
     }
 }

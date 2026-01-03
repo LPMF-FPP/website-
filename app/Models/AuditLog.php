@@ -24,4 +24,3 @@ class AuditLog extends Model
         'context' => 'array',
     ];
 }
-

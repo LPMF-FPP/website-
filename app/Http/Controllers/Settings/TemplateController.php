@@ -8,7 +8,6 @@ use App\Models\SystemSetting;
 use App\Support\Audit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class TemplateController extends Controller

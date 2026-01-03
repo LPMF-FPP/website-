@@ -17,8 +17,7 @@ class LocalizationRetentionController extends Controller
     public function __construct(
         private readonly SettingsWriter $writer,
         private readonly SettingsResponseBuilder $builder
-    ) {
-    }
+    ) {}
 
     public function update(LocalizationSettingsRequest $request): JsonResponse
     {
@@ -29,7 +28,7 @@ class LocalizationRetentionController extends Controller
         if (isset($data['retention']['storage_folder_path'])) {
             $folder = trim($data['retention']['storage_folder_path'], '/');
             $data['retention']['storage_folder_path'] = $folder;
-            $data['retention']['base_path'] = $folder ? $folder . '/' : '';
+            $data['retention']['base_path'] = $folder ? $folder.'/' : '';
         } elseif (isset($data['retention']) && array_key_exists('storage_folder_path', $data['retention'])) {
             // Explicitly set to empty/null - clear base_path too
             $data['retention']['base_path'] = '';

@@ -89,7 +89,7 @@ class RequestController extends Controller
      */
     public function store(Request $request)
     {
-        if (!$request->has('suspects') && $request->filled('suspect_name')) {
+        if (! $request->has('suspects') && $request->filled('suspect_name')) {
             $request->merge([
                 'suspects' => [[
                     'name' => $request->input('suspect_name'),
@@ -207,11 +207,11 @@ class RequestController extends Controller
                 );
             } else {
                 // Generate synthetic NRP for external user
-                $syntheticNrp = 'EXT-' . strtoupper(Str::random(8));
-                
+                $syntheticNrp = 'EXT-'.strtoupper(Str::random(8));
+
                 // Ensure uniqueness
                 while (Investigator::where('nrp', $syntheticNrp)->exists()) {
-                    $syntheticNrp = 'EXT-' . strtoupper(Str::random(8));
+                    $syntheticNrp = 'EXT-'.strtoupper(Str::random(8));
                 }
 
                 $investigator = Investigator::create([
@@ -363,7 +363,7 @@ class RequestController extends Controller
                 $samplePhotoDocs = Document::where('test_request_id', $testRequest->id)
                     ->where('document_type', 'sample_photo')
                     ->get();
-                    
+
                 foreach ($samplePhotoDocs as $doc) {
                     if ($doc->path) {
                         $disk = $doc->storage_disk ?? 'public';
@@ -407,7 +407,7 @@ class RequestController extends Controller
     public function update(Request $request, string $id)
     {
         $testRequest = TestRequest::with(['investigator', 'suspects'])->findOrFail($id);
-        
+
         // Determine investigator type
         $isInvestigator = $request->boolean('is_investigator', $testRequest->investigator->is_polri ?? true);
 
@@ -452,7 +452,7 @@ class RequestController extends Controller
         try {
             // Update investigator based on type
             $inv = $testRequest->investigator;
-            
+
             if ($isInvestigator) {
                 $inv->update([
                     'is_polri' => true,
@@ -504,7 +504,7 @@ class RequestController extends Controller
             $submittedSampleIds = [];
 
             foreach ($validated['samples'] as $sampleData) {
-                if (!empty($sampleData['id'])) {
+                if (! empty($sampleData['id'])) {
                     $sample = Sample::find($sampleData['id']);
                     if ($sample && $sample->test_request_id == $testRequest->id) {
                         $sample->update([
@@ -544,7 +544,7 @@ class RequestController extends Controller
                 @unlink($baFilepath);
                 \Log::info('Deleted old BA file after edit', [
                     'request_id' => $testRequest->id,
-                    'file' => $baFilename
+                    'file' => $baFilename,
                 ]);
             }
 
@@ -558,12 +558,12 @@ class RequestController extends Controller
 
             \Log::error('Error updating request', [
                 'request_id' => $id,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
             ]);
 
             return back()
                 ->withInput()
-                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+                ->with('error', 'Terjadi kesalahan: '.$e->getMessage());
         }
     }
 
@@ -755,6 +755,9 @@ class RequestController extends Controller
 
             // Hapus survey responses terkait
             $testRequest->surveyResponses()->delete();
+
+            // Hapus survey pelanggan terkait
+            $testRequest->customerSurvey()->delete();
 
             // Hapus file terkait
             if ($testRequest->official_letter_path) {
@@ -972,7 +975,7 @@ class RequestController extends Controller
             $inv = $testRequest->investigator;
 
             // Validate investigator exists
-            if (!$inv) {
+            if (! $inv) {
                 return back()->with('error', 'Investigator tidak ditemukan untuk test request ini.');
             }
 
@@ -984,7 +987,7 @@ class RequestController extends Controller
 
             // Try to get active template for BA
             $template = $templateService->getActiveTemplateByDocType('BA');
-            
+
             $templateId = null;
             $templateVersion = null;
             $templateHash = null;
@@ -1037,14 +1040,15 @@ class RequestController extends Controller
                     contextId: $testRequest->id
                 );
 
-                // Return immediately with legacy system
+                // Return immediately with legacy system - use replaceExisting to avoid duplicates
                 $doc = $documentService->storeGenerated(
-                    binary:   $rendered->content,
-                    ext:      'pdf',
-                    inv:      $inv,
-                    req:      $testRequest,
-                    type:     'ba_penerimaan',
-                    baseName: 'BA-Penerimaan-'.$testRequest->request_number
+                    binary: $rendered->content,
+                    ext: 'pdf',
+                    inv: $inv,
+                    req: $testRequest,
+                    type: 'ba_penerimaan',
+                    baseName: 'BA-Penerimaan-'.$testRequest->request_number,
+                    replaceExisting: true
                 );
 
                 if (request()->boolean('download')) {
@@ -1057,14 +1061,15 @@ class RequestController extends Controller
             // Generate PDF from HTML using PdfRenderService
             $pdfBinary = $pdfRenderService->htmlToPdf($html, config('app.url'));
 
-            // Save PDF via DocumentService
+            // Save PDF via DocumentService - use replaceExisting to avoid duplicates
             $doc = $documentService->storeGenerated(
-                binary:   $pdfBinary,
-                ext:      'pdf',
-                inv:      $inv,
-                req:      $testRequest,
-                type:     'ba_penerimaan',
-                baseName: 'BA-Penerimaan-'.$testRequest->request_number
+                binary: $pdfBinary,
+                ext: 'pdf',
+                inv: $inv,
+                req: $testRequest,
+                type: 'ba_penerimaan',
+                baseName: 'BA-Penerimaan-'.$testRequest->request_number,
+                replaceExisting: true
             );
 
             // Update document metadata dengan template info
@@ -1087,7 +1092,7 @@ class RequestController extends Controller
             // Download atau inline view
             if (request()->boolean('download')) {
                 return response()->download(
-                    storage_path('app/public/' . $doc->path),
+                    storage_path('app/public/'.$doc->path),
                     $doc->filename,
                     ['Content-Type' => 'application/pdf']
                 );
@@ -1095,15 +1100,16 @@ class RequestController extends Controller
 
             return response($pdfBinary, 200, [
                 'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'inline; filename="' . $doc->filename . '"',
+                'Content-Disposition' => 'inline; filename="'.$doc->filename.'"',
             ]);
 
         } catch (\Throwable $e) {
             \Log::error('Exception in generateBeritaAcara', [
                 'request_id' => $testRequest->id ?? null,
-                'error'      => $e->getMessage(),
-                'trace'      => $e->getTraceAsString(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
+
             // Fallback aman: kembali dengan error flash
             return back()->with('error', 'Gagal membuat Berita Acara: '.$e->getMessage());
         }
@@ -1122,11 +1128,12 @@ class RequestController extends Controller
             ->latest()
             ->first();
 
-        if (!$document || !$documentService->fileExists($document)) {
+        if (! $document || ! $documentService->fileExists($document)) {
             return back()->with('error', 'Berita Acara belum di-generate. Silakan generate terlebih dahulu.');
         }
 
         $filePath = $documentService->getFilePath($document);
+
         return response()->download($filePath, $document->filename, [
             'Content-Type' => 'application/pdf',
         ]);
@@ -1147,6 +1154,7 @@ class RequestController extends Controller
 
         if ($htmlDocument && $documentService->fileExists($htmlDocument)) {
             $filePath = $documentService->getFilePath($htmlDocument);
+
             return response()->file($filePath, [
                 'Content-Type' => 'text/html',
             ]);
@@ -1161,6 +1169,7 @@ class RequestController extends Controller
 
         if ($pdfDocument && $documentService->fileExists($pdfDocument)) {
             $filePath = $documentService->getFilePath($pdfDocument);
+
             return response()->file($filePath, [
                 'Content-Type' => 'application/pdf',
             ]);

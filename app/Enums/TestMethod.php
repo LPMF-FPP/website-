@@ -10,7 +10,7 @@ enum TestMethod: string
 
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::UV_VIS => 'Identifikasi Spektrofotometri UV-VIS',
             self::GC_MS => 'Identifikasi GC-MS',
             self::LC_MS => 'Identifikasi LC-MS',
@@ -19,7 +19,7 @@ enum TestMethod: string
 
     public function shortLabel(): string
     {
-        return match($this) {
+        return match ($this) {
             self::UV_VIS => 'Spektrofotometri UV-VIS',
             self::GC_MS => 'GC-MS',
             self::LC_MS => 'LC-MS',
@@ -29,14 +29,14 @@ enum TestMethod: string
     public static function options(): array
     {
         return collect(self::cases())
-            ->mapWithKeys(fn($case) => [$case->value => $case->label()])
+            ->mapWithKeys(fn ($case) => [$case->value => $case->label()])
             ->toArray();
     }
 
     public static function shortOptions(): array
     {
         return collect(self::cases())
-            ->mapWithKeys(fn($case) => [$case->value => $case->shortLabel()])
+            ->mapWithKeys(fn ($case) => [$case->value => $case->shortLabel()])
             ->toArray();
     }
 }

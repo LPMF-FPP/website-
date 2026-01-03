@@ -53,15 +53,16 @@ class CreateAdminUser extends Command
         if ($validator->fails()) {
             $this->error('Validasi gagal:');
             foreach ($validator->errors()->all() as $error) {
-                $this->error('- ' . $error);
+                $this->error('- '.$error);
             }
+
             return Command::FAILURE;
         }
 
         // Cek apakah email sudah ada
         if (User::where('email', $email)->exists()) {
             $this->error("Email '{$email}' sudah terdaftar!");
-            
+
             if ($this->confirm('Update user yang sudah ada?')) {
                 $user = User::where('email', $email)->first();
                 $user->update([
@@ -70,7 +71,7 @@ class CreateAdminUser extends Command
                     'role' => 'admin',
                     'email_verified_at' => now(),
                 ]);
-                
+
                 $this->info("✓ User admin '{$name}' berhasil diupdate!");
             } else {
                 return Command::FAILURE;

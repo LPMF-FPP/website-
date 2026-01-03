@@ -2,7 +2,6 @@
 
 namespace App\Services\DocumentGeneration;
 
-use App\Enums\DocumentType;
 use App\Services\DocumentGeneration\Contracts\DocumentContextResolver;
 
 abstract class AbstractContextResolver implements DocumentContextResolver
@@ -42,7 +41,7 @@ abstract class AbstractContextResolver implements DocumentContextResolver
                 $logoUrl = asset($logoPath);
             } else {
                 // Assume it's in public directory
-                $logoUrl = asset('images/' . $logoPath);
+                $logoUrl = asset('images/'.$logoPath);
             }
         }
 

@@ -1,23 +1,24 @@
 <?php
 
+use App\Http\Controllers\AnalystController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DeliveryController;
+use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\ProcessController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Reports\SurveyExportController;
 use App\Http\Controllers\RequestController;
 use App\Http\Controllers\SampleTestController;
 use App\Http\Controllers\SampleTestProcessController;
-use App\Http\Controllers\AnalystController;
-use App\Http\Controllers\DeliveryController;
-use App\Http\Controllers\TrackingController;
-use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\SearchController;
-use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Settings\NumberingController;
+use App\Http\Controllers\Settings\TemplateController as SettingsTemplateController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SettingsPageController;
-use App\Http\Controllers\ProcessController;
-use App\Http\Controllers\Settings\TemplateController as SettingsTemplateController;
-use App\Http\Controllers\Settings\NumberingController;
-use App\Http\Controllers\LocaleController;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\StatisticsController;
+use App\Http\Controllers\TrackingController;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
 
 // Locale switch
 Route::post('/locale/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
@@ -28,6 +29,7 @@ Route::get('/', function () {
     if (Auth::check()) {
         return redirect()->route('dashboard');
     }
+
     return view('landing');
 });
 
@@ -42,7 +44,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/api/dashboard-stats', [DashboardController::class, 'getStats'])->name('dashboard.stats');
-    
+
     // Search
     Route::view('/search', 'search.index')->name('search.index');
     Route::get('/search/data', [SearchController::class, 'data'])->name('search.data');
@@ -57,7 +59,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Requests
     Route::resource('requests', RequestController::class);
-    
+
     // Request document endpoints (sample_receipt, handover_report, request_letter_receipt)
     Route::get('/requests/{testRequest}/documents/{type}', [RequestController::class, 'downloadDocument'])->name('requests.documents.download');
     Route::delete('/requests/{testRequest}/documents/{type}', [RequestController::class, 'deleteDocument'])->name('requests.documents.delete');
@@ -77,7 +79,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/test', [SampleTestController::class, 'create'])->name('samples.test.create');
         Route::post('/test', [SampleTestController::class, 'store'])->name('samples.test.store');
         Route::get('/test/{sampleDetail}', [SampleTestController::class, 'show'])->name('samples.test.show');
-        Route::get('/', function() {
+        Route::get('/', function () {
             return redirect()->route('samples.test.create');
         })->name('samples.index');
     });
@@ -146,7 +148,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('samples.ready-for-delivery');
     Route::resource('analysts', AnalystController::class)->except(['show']);
 
-
     // Delivery
     Route::prefix('delivery')->group(function () {
         Route::get('/', [DeliveryController::class, 'index'])->name('delivery.index');
@@ -181,6 +182,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/', [StatisticsController::class, 'index'])->name('statistics.index');
         Route::get('/data', [StatisticsController::class, 'data'])->name('statistics.data');
         Route::get('/export', [StatisticsController::class, 'export'])->name('statistics.export');
+    });
+
+    Route::middleware('can:manage-settings')->prefix('reports')->name('reports.')->group(function () {
+        Route::get('/surveys/export', SurveyExportController::class)->name('surveys.export');
     });
 
     Route::middleware('can:manage-settings')->prefix('settings')->name('settings.')->group(function () {
@@ -234,19 +239,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
 // Inventory Module Routes
 Route::prefix('referensi/inventori')->name('inventory.')->middleware(['auth', 'verified'])->group(function () {
     Route::get('/', [App\Http\Controllers\Inventory\DashboardController::class, 'index'])->name('dashboard');
-    
+
     // Items CRUD
     Route::resource('items', App\Http\Controllers\Inventory\ItemController::class)->except(['show']);
     Route::get('items/{item}/lots', [App\Http\Controllers\Inventory\LotController::class, 'index'])->name('items.lots');
     Route::post('lots', [App\Http\Controllers\Inventory\LotController::class, 'store'])->name('lots.store');
-    
+
     // Locations CRUD
     Route::resource('locations', App\Http\Controllers\Inventory\LocationController::class)->except(['show', 'destroy']);
-    
+
     // Stock Card
     Route::get('kartu-stok', [App\Http\Controllers\Inventory\StockCardController::class, 'index'])->name('stock-card');
     Route::get('kartu-stok/cetak', [App\Http\Controllers\Inventory\StockCardController::class, 'print'])->name('stock-card.print');
-    
+
     // Transactions
     Route::prefix('transaksi')->name('transaction.')->group(function () {
         Route::get('receipt', [App\Http\Controllers\Inventory\TransactionController::class, 'receiptForm'])->name('receipt');
@@ -260,7 +265,7 @@ Route::prefix('referensi/inventori')->name('inventory.')->middleware(['auth', 'v
         Route::get('dispose', [App\Http\Controllers\Inventory\TransactionController::class, 'disposeForm'])->name('dispose');
         Route::post('dispose', [App\Http\Controllers\Inventory\TransactionController::class, 'disposeSubmit']);
     });
-    
+
     // AJAX helpers
     Route::get('ajax/lots', [App\Http\Controllers\Inventory\TransactionController::class, 'getLotsForItem'])->name('ajax.lots');
     Route::get('ajax/balance', [App\Http\Controllers\Inventory\TransactionController::class, 'getBalanceForSelection'])->name('ajax.balance');
@@ -271,7 +276,7 @@ Route::prefix('labels')->middleware(['auth'])->group(function () {
     // Evidence labels
     Route::get('evidence/request/{requestId}/sheet', [App\Http\Controllers\LabelController::class, 'evidenceSheet'])->name('labels.evidence.sheet');
     Route::get('evidence/{id}/single', [App\Http\Controllers\LabelController::class, 'evidenceSingle'])->name('labels.evidence.single');
-    
+
     // Remaining labels
     Route::get('remaining/request/{requestId}/sheet', [App\Http\Controllers\LabelController::class, 'remainingSheet'])->name('labels.remaining.sheet');
     Route::get('remaining/{evidenceUnit}/all', [App\Http\Controllers\LabelController::class, 'remainingForEvidence'])->name('labels.remaining.all');
@@ -306,11 +311,10 @@ if (app()->isLocal() || env('APP_DEBUG') === true) {
                 'raw_files' => request()->allFiles(),
             ]);
         })->name('debug.file-keys');
-        
+
         // QA debug routes for BA generation and document testing have been removed
     });
 }
-
 
 // Design Examples (for authenticated preview of design system)
 Route::view('/design-examples', 'design-examples')

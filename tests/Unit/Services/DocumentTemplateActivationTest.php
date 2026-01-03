@@ -18,7 +18,7 @@ class DocumentTemplateActivationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->repository = new DocumentTemplateRepository();
+        $this->repository = new DocumentTemplateRepository;
     }
 
     /**

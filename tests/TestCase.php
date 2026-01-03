@@ -9,7 +9,7 @@ abstract class TestCase extends BaseTestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Clear settings cache before each test
         if (function_exists('settings_forget_cache')) {
             settings_forget_cache();

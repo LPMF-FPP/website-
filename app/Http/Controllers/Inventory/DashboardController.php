@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Inventory;
 
 use App\Http\Controllers\Controller;
-use App\Models\InventoryBalance;
 use App\Models\InventoryItem;
 use App\Models\InventoryLot;
 use Carbon\Carbon;
@@ -23,14 +22,14 @@ class DashboardController extends Controller
             ->active()
             ->with('balances')
             ->get()
-            ->filter(fn($item) => $item->is_below_min_stock)
+            ->filter(fn ($item) => $item->is_below_min_stock)
             ->take(10);
 
         // Near expiry lots (30 days)
         $nearExpiry30 = InventoryLot::query()
             ->with(['item', 'balances.location'])
             ->nearExpiry(30)
-            ->whereHas('balances', fn($q) => $q->where('on_hand_qty', '>', 0))
+            ->whereHas('balances', fn ($q) => $q->where('on_hand_qty', '>', 0))
             ->orderBy('expiry_date')
             ->take(10)
             ->get();
@@ -42,7 +41,7 @@ class DashboardController extends Controller
             ->where('expiry_date', '>', Carbon::today()->addDays(30))
             ->where('expiry_date', '<=', Carbon::today()->addDays(60))
             ->where('status', '!=', 'DISPOSED')
-            ->whereHas('balances', fn($q) => $q->where('on_hand_qty', '>', 0))
+            ->whereHas('balances', fn ($q) => $q->where('on_hand_qty', '>', 0))
             ->orderBy('expiry_date')
             ->take(10)
             ->get();
@@ -51,7 +50,7 @@ class DashboardController extends Controller
         $expiredLots = InventoryLot::query()
             ->with(['item', 'balances.location'])
             ->expired()
-            ->whereHas('balances', fn($q) => $q->where('on_hand_qty', '>', 0))
+            ->whereHas('balances', fn ($q) => $q->where('on_hand_qty', '>', 0))
             ->orderBy('expiry_date')
             ->take(10)
             ->get();

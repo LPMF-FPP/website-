@@ -21,7 +21,7 @@ return new class extends Migration
         DB::table('investigators')->orderBy('id')->each(function ($investigator) {
             $slug = Str::slug($investigator->name);
             $folderKey = $investigator->nrp ? "{$investigator->nrp}-{$slug}" : $slug;
-            
+
             // Ensure uniqueness
             $original = $folderKey;
             $counter = 1;
@@ -29,7 +29,7 @@ return new class extends Migration
                 $folderKey = "{$original}-{$counter}";
                 $counter++;
             }
-            
+
             DB::table('investigators')
                 ->where('id', $investigator->id)
                 ->update(['folder_key' => $folderKey]);

@@ -11,7 +11,7 @@ enum TestProcessStage: string
 
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::ADMINISTRATION => 'Administrasi',
             self::PREPARATION => 'Preparasi Sampel',
             self::INSTRUMENTATION => 'Pengujian Instrumen',
@@ -21,7 +21,7 @@ enum TestProcessStage: string
 
     public function getRequiredStatus(): SampleStatus
     {
-        return match($this) {
+        return match ($this) {
             self::ADMINISTRATION => SampleStatus::ADMIN_PENDING,
             self::PREPARATION => SampleStatus::PREPARATION_PENDING,
             self::INSTRUMENTATION => SampleStatus::INSTRUMENTATION_PENDING,
@@ -31,7 +31,7 @@ enum TestProcessStage: string
 
     public function getInProgressStatus(): SampleStatus
     {
-        return match($this) {
+        return match ($this) {
             self::ADMINISTRATION => SampleStatus::ADMIN_IN_PROGRESS,
             self::PREPARATION => SampleStatus::PREPARATION_IN_PROGRESS,
             self::INSTRUMENTATION => SampleStatus::INSTRUMENTATION_IN_PROGRESS,
@@ -41,7 +41,7 @@ enum TestProcessStage: string
 
     public function getCompletedStatus(): SampleStatus
     {
-        return match($this) {
+        return match ($this) {
             self::ADMINISTRATION => SampleStatus::ADMIN_DONE,
             self::PREPARATION => SampleStatus::PREPARATION_DONE,
             self::INSTRUMENTATION => SampleStatus::INSTRUMENTATION_DONE,

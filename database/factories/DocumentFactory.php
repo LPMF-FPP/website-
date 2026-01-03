@@ -17,8 +17,8 @@ class DocumentFactory extends Factory
 
     public function definition(): array
     {
-        $filename = Str::slug($this->faker->sentence(3)) . '.pdf';
-        $path = 'investigators/' . $this->faker->uuid . '/' . $filename;
+        $filename = Str::slug($this->faker->sentence(3)).'.pdf';
+        $path = 'investigators/'.$this->faker->uuid.'/'.$filename;
 
         return [
             'investigator_id' => Investigator::factory(),
@@ -44,7 +44,7 @@ class DocumentFactory extends Factory
     public function configure(): static
     {
         return $this->afterCreating(function (Document $document) {
-            if (!$document->investigator_id && $document->test_request_id) {
+            if (! $document->investigator_id && $document->test_request_id) {
                 $document->investigator_id = $document->testRequest?->investigator_id;
                 $document->save();
             }

@@ -16,15 +16,16 @@ class LabelService
     /**
      * Create evidence units from sample IDs.
      *
-     * @param int $requestId Test request ID
-     * @param array $sampleIds Array of sample IDs to create labels for
+     * @param  int  $requestId  Test request ID
+     * @param  array  $sampleIds  Array of sample IDs to create labels for
      * @return Collection Created EvidenceUnit records
+     *
      * @throws RuntimeException if samples don't belong to request
      */
     public function createEvidenceUnits(int $requestId, array $sampleIds): Collection
     {
         $request = TestRequest::with('investigator')->findOrFail($requestId);
-        
+
         // Validate all samples belong to this request
         $samples = Sample::whereIn('id', $sampleIds)
             ->where('test_request_id', $requestId)
@@ -68,8 +69,8 @@ class LabelService
     /**
      * Create a remaining unit for an evidence unit.
      *
-     * @param int $evidenceUnitId The evidence unit ID
-     * @param array $data Remaining unit data
+     * @param  int  $evidenceUnitId  The evidence unit ID
+     * @param  array  $data  Remaining unit data
      * @return RemainingUnit Created remaining unit
      */
     public function createRemainingUnit(int $evidenceUnitId, array $data): RemainingUnit

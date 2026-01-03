@@ -16,7 +16,7 @@ class LocalizationRetentionSettingsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->admin = User::factory()->create(['role' => 'admin']);
     }
 

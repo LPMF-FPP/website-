@@ -11,8 +11,7 @@ class SettingsWriter
 {
     public function __construct(
         private readonly SettingsRepository $repository
-    ) {
-    }
+    ) {}
 
     /**
      * Persist a set of setting key/value pairs and log the change.
@@ -24,7 +23,7 @@ class SettingsWriter
         $before = [];
         $after = [];
         $userId = $actor?->getAuthIdentifier();
-        
+
         // First, identify keys that should be deleted (have null values)
         $flattenedAll = $this->flattenPairs($pairs);
         $keysToDelete = [];
@@ -33,7 +32,7 @@ class SettingsWriter
                 $keysToDelete[] = $key;
             }
         }
-        
+
         // Then, filter out nulls to prevent constraint violations
         $flattened = $this->flattenPairs($this->removeNullLeaves($pairs));
 
@@ -69,7 +68,7 @@ class SettingsWriter
 
         foreach ($pairs as $key => $value) {
             $isDotKey = str_contains((string) $key, '.');
-            if (is_array($value) && !$isDotKey) {
+            if (is_array($value) && ! $isDotKey) {
                 $nested = settings_flatten([$key => $value]);
                 foreach ($nested as $nestedKey => $nestedValue) {
                     $flat[$nestedKey] = $nestedValue;
@@ -98,21 +97,22 @@ class SettingsWriter
                 // Skip null values - they will be tracked for deletion
                 continue;
             }
-            
+
             if (is_array($value)) {
                 $isAssociative = array_keys($value) !== range(0, count($value) - 1);
-                if (!$isAssociative) {
+                if (! $isAssociative) {
                     // Preserve list arrays as values (even if empty).
                     $result[$key] = $value;
+
                     continue;
                 }
 
                 // Check if this array contains ANY non-null values (recursively)
                 $cleaned = $this->removeNullLeaves($value);
-                
+
                 // Only include this key if the array has content after removing nulls
                 // An empty array after cleanup means all values were null
-                if (!empty($cleaned)) {
+                if (! empty($cleaned)) {
                     $result[$key] = $cleaned;
                 }
             } else {

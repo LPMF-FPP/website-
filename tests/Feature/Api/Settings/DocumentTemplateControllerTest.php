@@ -9,8 +9,8 @@ use App\Models\DocumentTemplate;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class DocumentTemplateControllerTest extends TestCase
@@ -22,11 +22,11 @@ class DocumentTemplateControllerTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Create admin user
         $this->admin = User::factory()->create();
         // Assume admin has manage-settings permission
-        Gate::define('manage-settings', fn() => true);
+        Gate::define('manage-settings', fn () => true);
     }
 
     public function test_can_list_templates(): void
@@ -192,7 +192,7 @@ class DocumentTemplateControllerTest extends TestCase
     public function test_requires_authentication(): void
     {
         $response = $this->getJson('/api/settings/document-templates');
-        
+
         $response->assertUnauthorized();
     }
 }

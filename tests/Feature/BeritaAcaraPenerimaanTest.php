@@ -8,7 +8,6 @@ use App\Models\Sample;
 use App\Models\TestRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -17,7 +16,9 @@ class BeritaAcaraPenerimaanTest extends TestCase
     use DatabaseTransactions;
 
     protected User $user;
+
     protected Investigator $investigator;
+
     protected TestRequest $testRequest;
 
     protected function setUp(): void
@@ -65,20 +66,20 @@ class BeritaAcaraPenerimaanTest extends TestCase
     {
         // Force fresh query to ensure data is in DB
         $testRequest = TestRequest::with(['investigator', 'samples'])->find($this->testRequest->id);
-        
+
         // Verify data is set up correctly
         $this->assertNotNull($testRequest);
         $this->assertNotNull($testRequest->investigator, 'Investigator should be loaded');
         $this->assertNotNull($testRequest->investigator_id, 'Investigator ID should be set');
         $this->assertGreaterThan(0, $testRequest->samples->count());
-        
+
         $response = $this->actingAs($this->user)
             ->post("/requests/{$testRequest->id}/berita-acara/generate");
 
         // Debug error if redirect
         if ($response->status() === 302) {
             $error = $response->getSession()->get('error');
-            $this->fail("Expected 200, got 302 redirect. Error: " . ($error ?? 'none'));
+            $this->fail('Expected 200, got 302 redirect. Error: '.($error ?? 'none'));
         }
 
         // Should return PDF response
@@ -93,7 +94,7 @@ class BeritaAcaraPenerimaanTest extends TestCase
 
         $this->assertNotNull($document);
         $this->assertStringContainsString('BA-Penerimaan', $document->filename);
-        
+
         // Verify file path structure
         $expectedPathPattern = "investigators/{$this->investigator->folder_key}/{$this->testRequest->request_number}/generated/ba_penerimaan/";
         $this->assertStringContainsString($expectedPathPattern, $document->path);
@@ -182,7 +183,7 @@ class BeritaAcaraPenerimaanTest extends TestCase
             $pdfDocument = Document::where('test_request_id', $this->testRequest->id)
                 ->where('document_type', 'ba_penerimaan')
                 ->first();
-            
+
             $this->assertNotNull($pdfDocument);
         }
     }

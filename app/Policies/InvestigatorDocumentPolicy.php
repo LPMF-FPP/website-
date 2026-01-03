@@ -5,7 +5,6 @@ namespace App\Policies;
 use App\Models\Document;
 use App\Models\Investigator;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class InvestigatorDocumentPolicy
 {
@@ -87,7 +86,7 @@ class InvestigatorDocumentPolicy
         }
 
         // Investigators can delete their own uploaded documents
-        if ($user->role === 'investigator' && 
+        if ($user->role === 'investigator' &&
             $user->investigator_id === $document->investigator_id &&
             $document->source === 'upload') {
             return true;

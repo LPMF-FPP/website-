@@ -15,7 +15,7 @@ class TestResult extends Model
         'test_conditions', 'active_substances', 'purity_percentage',
         'test_conclusion', 'result_status', 'chromatogram_path',
         'spectrum_path', 'analyst_notes', 'reviewed_by',
-        'reviewed_at', 'qc_approved'
+        'reviewed_at', 'qc_approved',
     ];
 
     protected $casts = [

@@ -57,7 +57,7 @@ return new class extends Migration
 
     private function createIndex(string $table, string $index, string $columnDefinition, bool $gin = false): void
     {
-        if (!Schema::hasTable($table)) {
+        if (! Schema::hasTable($table)) {
             return;
         }
 

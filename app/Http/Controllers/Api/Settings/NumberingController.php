@@ -16,8 +16,7 @@ class NumberingController extends Controller
     public function __construct(
         private readonly SettingsWriter $writer,
         private readonly NumberingService $numbering
-    ) {
-    }
+    ) {}
 
     public function current(): JsonResponse
     {
@@ -35,7 +34,7 @@ class NumberingController extends Controller
                     'pattern' => $snapshot['pattern'] ?? '',
                 ];
             } catch (\Exception $e) {
-                \Log::warning("Failed to get current numbering for {$scope}: " . $e->getMessage());
+                \Log::warning("Failed to get current numbering for {$scope}: ".$e->getMessage());
                 $result[$scope] = [
                     'current' => null,
                     'next' => '',
@@ -65,9 +64,9 @@ class NumberingController extends Controller
 
         // Validate the scope parameter
         $validScopes = ['sample_code', 'ba', 'lhu', 'ba_penyerahan', 'tracking'];
-        if (!in_array($scope, $validScopes)) {
+        if (! in_array($scope, $validScopes)) {
             return response()->json([
-                'message' => 'Invalid scope. Valid scopes are: ' . implode(', ', $validScopes),
+                'message' => 'Invalid scope. Valid scopes are: '.implode(', ', $validScopes),
                 'errors' => ['scope' => ['Invalid scope']],
             ], 422);
         }
@@ -97,7 +96,7 @@ class NumberingController extends Controller
                 "numbering.{$scope}.reset" => $validated['reset'],
                 "numbering.{$scope}.start_from" => $validated['start_from'],
             ],
-            'UPDATE_NUMBERING_SCOPE_' . strtoupper($scope),
+            'UPDATE_NUMBERING_SCOPE_'.strtoupper($scope),
             $request->user()
         );
 
@@ -119,11 +118,11 @@ class NumberingController extends Controller
         $data = $request->validated();
         $scope = $data['scope'];
         $config = $data['config'] ?? [];
-        
+
         // Extract pattern from various possible structures
         $pattern = data_get($config, "numbering.$scope.pattern")
             ?? data_get($config, "$scope.pattern")
-            ?? data_get($config, "pattern")
+            ?? data_get($config, 'pattern')
             ?? settings("numbering.$scope.pattern");
 
         // Validate pattern
@@ -143,7 +142,7 @@ class NumberingController extends Controller
 
         try {
             $example = $this->numbering->example($scope, $pattern);
-            
+
             return response()->json([
                 'example' => $example,
                 'preview' => $example,  // For frontend compatibility
@@ -157,9 +156,9 @@ class NumberingController extends Controller
                 'pattern' => $pattern,
                 'error' => $e->getMessage(),
             ]);
-            
+
             return response()->json([
-                'message' => 'Gagal membuat preview: ' . $e->getMessage(),
+                'message' => 'Gagal membuat preview: '.$e->getMessage(),
                 'errors' => ['preview' => [$e->getMessage()]],
             ], 422);
         }

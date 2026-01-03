@@ -13,40 +13,40 @@ return new class extends Migration
     {
         Schema::table('documents', function (Blueprint $table) {
             // Add investigator_id if not exists
-            if (!Schema::hasColumn('documents', 'investigator_id')) {
+            if (! Schema::hasColumn('documents', 'investigator_id')) {
                 $table->foreignId('investigator_id')->nullable()->after('id')->constrained()->onDelete('cascade');
             }
-            
+
             // Make test_request_id nullable (for investigator uploads without request)
             if (Schema::hasColumn('documents', 'test_request_id')) {
                 $table->foreignId('test_request_id')->nullable()->change();
             }
-            
+
             // Add source column (upload or generated)
-            if (!Schema::hasColumn('documents', 'source')) {
+            if (! Schema::hasColumn('documents', 'source')) {
                 $table->enum('source', ['upload', 'generated'])->default('upload')->after('document_type');
             }
-            
+
             // Add filename column (original filename)
-            if (!Schema::hasColumn('documents', 'filename')) {
+            if (! Schema::hasColumn('documents', 'filename')) {
                 $table->string('filename')->nullable()->after('file_path');
             }
-            
+
             // Add path column (storage path relative to disk)
-            if (!Schema::hasColumn('documents', 'path')) {
+            if (! Schema::hasColumn('documents', 'path')) {
                 $table->string('path')->nullable()->after('filename');
             }
-            
+
             // Add extra column for additional metadata (JSON)
-            if (!Schema::hasColumn('documents', 'extra')) {
+            if (! Schema::hasColumn('documents', 'extra')) {
                 $table->json('extra')->nullable()->after('mime_type');
             }
-            
+
             // Add file_size column
-            if (!Schema::hasColumn('documents', 'file_size')) {
+            if (! Schema::hasColumn('documents', 'file_size')) {
                 $table->bigInteger('file_size')->nullable()->after('mime_type');
             }
-            
+
             // Add indexes
             $table->index('investigator_id');
             $table->index(['investigator_id', 'test_request_id']);
@@ -63,7 +63,7 @@ return new class extends Migration
             $table->dropIndex(['investigator_id']);
             $table->dropIndex(['investigator_id', 'test_request_id']);
             $table->dropIndex(['source']);
-            
+
             if (Schema::hasColumn('documents', 'investigator_id')) {
                 $table->dropForeign(['investigator_id']);
                 $table->dropColumn('investigator_id');

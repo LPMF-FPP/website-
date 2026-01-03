@@ -18,7 +18,7 @@ class BaPenyerahanContextResolver extends AbstractContextResolver
         /** @var Delivery $delivery */
         $delivery = Delivery::with([
             'request.investigator',
-            'request.samples'
+            'request.samples',
         ])->findOrFail($contextId);
 
         return array_merge($this->getCommonContext(), [
@@ -43,40 +43,43 @@ class BaPenyerahanContextResolver extends AbstractContextResolver
 
     private function getMockDelivery(): \stdClass
     {
-        $obj = new \stdClass();
+        $obj = new \stdClass;
         $obj->delivered_at = now();
         $obj->received_by = 'John Doe';
         $obj->notes = 'Delivered successfully';
         $obj->request = $this->getMockRequest();
+
         return $obj;
     }
 
     private function getMockRequest(): \stdClass
     {
-        $obj = new \stdClass();
+        $obj = new \stdClass;
         $obj->request_number = 'REQ-001-XII-2025';
         $obj->receipt_number = 'RESI-001-XII-2025';
         $obj->created_at = now()->subDays(7);
         $obj->case_number = 'SP/001/XII/2025';
         $obj->investigator = $this->getMockInvestigator();
         $obj->samples = $this->getMockSamples();
+
         return $obj;
     }
 
     private function getMockInvestigator(): \stdClass
     {
-        $obj = new \stdClass();
+        $obj = new \stdClass;
         $obj->name = 'Dr. Jane Smith';
         $obj->nrp = 'NRP67890';
         $obj->rank = 'KOMPOL';
         $obj->unit = 'Investigation Unit';
         $obj->jurisdiction = 'Polda Jawa Barat';
+
         return $obj;
     }
 
     private function getMockSamples(): \Illuminate\Support\Collection
     {
-        $sample1 = new \stdClass();
+        $sample1 = new \stdClass;
         $sample1->sample_code = 'W001XII2025';
         $sample1->sample_name = 'Sample Tablet Biru';
         $sample1->description = 'Tablet warna biru';
@@ -96,8 +99,8 @@ class BaPenyerahanContextResolver extends AbstractContextResolver
         $sample1->latest_process = null;
         $sample1->interpretation_process = null;
         $sample1->sample_test_process = null;
-        
-        $sample2 = new \stdClass();
+
+        $sample2 = new \stdClass;
         $sample2->sample_code = 'W002XII2025';
         $sample2->sample_name = 'Sample Cairan';
         $sample2->description = 'Cairan bening';
@@ -117,7 +120,7 @@ class BaPenyerahanContextResolver extends AbstractContextResolver
         $sample2->latest_process = null;
         $sample2->interpretation_process = null;
         $sample2->sample_test_process = null;
-        
+
         return collect([$sample1, $sample2]);
     }
 }

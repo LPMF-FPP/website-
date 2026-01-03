@@ -35,7 +35,7 @@ class DocumentTypes
 
     public static function label(?string $type): string
     {
-        if (!$type) {
+        if (! $type) {
             return 'Dokumen';
         }
 
@@ -45,7 +45,7 @@ class DocumentTypes
     /**
      * Map a list of type keys to value/label option arrays.
      *
-     * @param iterable<string> $types
+     * @param  iterable<string>  $types
      * @return array<int, array{value: string, label: string}>
      */
     public static function mapOptions(iterable $types): array
@@ -53,7 +53,7 @@ class DocumentTypes
         $options = [];
 
         foreach ($types as $type) {
-            if (!$type) {
+            if (! $type) {
                 continue;
             }
 

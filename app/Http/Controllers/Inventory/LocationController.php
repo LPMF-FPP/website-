@@ -31,7 +31,7 @@ class LocationController extends Controller
     public function create(): View
     {
         return view('inventory.locations.form', [
-            'location' => new InventoryLocation(),
+            'location' => new InventoryLocation,
             'locationTypes' => InventoryLocation::LOCATION_TYPES,
         ]);
     }

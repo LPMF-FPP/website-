@@ -16,8 +16,8 @@ return new class extends Migration
             $table->text('sample_description')->nullable();
             $table->enum('sample_form', ['powder', 'pill', 'liquid', 'plant', 'crystal', 'paste', 'capsule', 'other'])->default('other');
             $table->enum('sample_category', [
-                'narkotika', 'psikotropika', 'prekursor', 'zat_adiktif', 
-                'obat_keras', 'other'
+                'narkotika', 'prekursor', 'zat_adiktif',
+                'obat_keras', 'other',
             ])->default('other');
             $table->string('sample_color')->nullable();
             $table->decimal('sample_weight', 10, 2)->nullable();
@@ -32,9 +32,9 @@ return new class extends Migration
             $table->foreignId('received_by')->nullable()->constrained('users');
             $table->timestamp('received_at')->nullable();
             $table->enum('sample_status', [
-                'received', 'in_queue', 'in_testing', 'tested', 
-                'in_analysis', 'analysis_complete', 'quality_check', 
-                'qc_approved', 'qc_rejected', 'ready_for_delivery', 'delivered'
+                'received', 'in_queue', 'in_testing', 'tested',
+                'in_analysis', 'analysis_complete', 'quality_check',
+                'qc_approved', 'qc_rejected', 'ready_for_delivery', 'delivered',
             ])->default('received');
             $table->text('test_methods')->nullable();
             $table->string('active_substance')->nullable();

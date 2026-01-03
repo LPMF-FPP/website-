@@ -26,6 +26,7 @@ class SystemSetting extends Model
         $clearCache = static function (): void {
             if (function_exists('settings_forget_cache')) {
                 settings_forget_cache();
+
                 return;
             }
 

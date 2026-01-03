@@ -2,16 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Settings\LocalizationSettingsRequest;
 use App\Models\DocumentTemplate;
 use App\Models\SystemSetting;
 use App\Services\NumberingService;
 use App\Support\Audit;
-use App\Http\Requests\Settings\LocalizationSettingsRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
+
 use function settings;
 use function settings_flatten;
 use function settings_forget_cache;
@@ -20,8 +21,11 @@ use function settings_nest;
 class SettingsController extends Controller
 {
     private const ALLOWED_DATE_FORMATS = ['DD/MM/YYYY', 'YYYY-MM-DD', 'DD-MM-YYYY'];
+
     private const ALLOWED_NUMBER_FORMATS = ['1.234,56', '1,234.56'];
+
     private const ALLOWED_LANGUAGES = ['id', 'en'];
+
     public function index()
     {
         Gate::authorize('manage-settings');
@@ -38,8 +42,8 @@ class SettingsController extends Controller
     {
         Gate::authorize('manage-settings');
 
-    $flat = settings();
-    $settings = settings_nest($flat);
+        $flat = settings();
+        $settings = settings_nest($flat);
 
         $templates = DocumentTemplate::orderBy('name')->get();
 
@@ -79,7 +83,7 @@ class SettingsController extends Controller
             }
 
             // Normalize security roles structure
-            if (isset($incoming['security']) && !isset($incoming['security']['roles'])) {
+            if (isset($incoming['security']) && ! isset($incoming['security']['roles'])) {
                 $incoming['security']['roles'] = [
                     'can_manage_settings' => Arr::get($incoming['security'], 'can_manage_settings', []),
                     'can_issue_number' => Arr::get($incoming['security'], 'can_issue_number', []),
@@ -91,29 +95,30 @@ class SettingsController extends Controller
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
+
             return response()->json(['error' => $e->getMessage()], 500);
         }
 
         // Light validation for locale keys
         if (isset($incoming['locale']) && is_array($incoming['locale'])) {
-            $l =& $incoming['locale'];
+            $l = &$incoming['locale'];
             $allowedTimezones = LocalizationSettingsRequest::timezones();
-            if (isset($l['timezone']) && !in_array($l['timezone'], $allowedTimezones, true)) {
+            if (isset($l['timezone']) && ! in_array($l['timezone'], $allowedTimezones, true)) {
                 $l['timezone'] = $allowedTimezones[0] ?? 'UTC';
             }
-            if (isset($l['date_format']) && !in_array($l['date_format'], self::ALLOWED_DATE_FORMATS, true)) {
+            if (isset($l['date_format']) && ! in_array($l['date_format'], self::ALLOWED_DATE_FORMATS, true)) {
                 $l['date_format'] = self::ALLOWED_DATE_FORMATS[0];
             }
-            if (isset($l['number_format']) && !in_array($l['number_format'], self::ALLOWED_NUMBER_FORMATS, true)) {
+            if (isset($l['number_format']) && ! in_array($l['number_format'], self::ALLOWED_NUMBER_FORMATS, true)) {
                 $l['number_format'] = self::ALLOWED_NUMBER_FORMATS[0];
             }
-            if (isset($l['language']) && !in_array($l['language'], self::ALLOWED_LANGUAGES, true)) {
+            if (isset($l['language']) && ! in_array($l['language'], self::ALLOWED_LANGUAGES, true)) {
                 $l['language'] = self::ALLOWED_LANGUAGES[0];
             }
         }
 
         try {
-            if (isset($incoming['automation']) && !isset($incoming['notifications'])) {
+            if (isset($incoming['automation']) && ! isset($incoming['notifications'])) {
                 $incoming['notifications'] = $incoming['automation'];
             }
 
@@ -138,6 +143,7 @@ class SettingsController extends Controller
                     'method' => $request->method(),
                     'raw_body' => $request->getContent(),
                 ]);
+
                 return response()->json([
                     'error' => 'Empty settings payload',
                 ], 422);
@@ -148,9 +154,10 @@ class SettingsController extends Controller
 
             foreach ($flat as $key => $value) {
                 $root = explode('.', $key, 2)[0];
-                if (!in_array($root, $allowedRoots, true)) {
+                if (! in_array($root, $allowedRoots, true)) {
                     // Log ignored root
                     Log::info('Settings update: skipping key with disallowed root', ['key' => $key, 'root' => $root]);
+
                     continue;
                 }
 
@@ -166,6 +173,7 @@ class SettingsController extends Controller
                     } else {
                         Log::info('Settings update: skipping null (non-nullable column)', ['key' => $key]);
                         $skipped[$key] = 'null_not_allowed';
+
                         continue;
                     }
                 }
@@ -206,6 +214,7 @@ class SettingsController extends Controller
                 'trace' => $e->getTraceAsString(),
                 'incoming' => $incoming ?? null,
             ]);
+
             return response()->json(['error' => 'Failed to save settings: '.$e->getMessage()], 500);
         }
     }
@@ -263,9 +272,9 @@ class SettingsController extends Controller
             ['value' => $path, 'updated_by' => $request->user()->id]
         );
 
-    settings_forget_cache();
+        settings_forget_cache();
 
-    Audit::log('UPLOAD_BRAND_ASSET', $validated['type'], null, ['key' => $key, 'path' => $path]);
+        Audit::log('UPLOAD_BRAND_ASSET', $validated['type'], null, ['key' => $key, 'path' => $path]);
 
         return response()->json(['path' => $path]);
     }
@@ -280,7 +289,7 @@ class SettingsController extends Controller
         }
 
         // 2) Try a JSON string in 'payload'
-        if (!$incoming) {
+        if (! $incoming) {
             $payload = $request->input('payload');
             if (is_string($payload) && $payload !== '') {
                 $decoded = json_decode($payload, true);
@@ -291,7 +300,7 @@ class SettingsController extends Controller
         }
 
         // 3) Try explicit 'settings' field (array or JSON string)
-        if (!$incoming) {
+        if (! $incoming) {
             $settingsInput = $request->input('settings');
             if (is_array($settingsInput)) {
                 $incoming = $settingsInput;
@@ -304,7 +313,7 @@ class SettingsController extends Controller
         }
 
         // 4) Final fallback for form-urlencoded or multipart form-data
-        if (!$incoming) {
+        if (! $incoming) {
             $incoming = $request->all();
             // If JSON content-type forces input() to JSON and returns empty,
             // but form parameters exist in $request->request, use those.
@@ -329,7 +338,7 @@ class SettingsController extends Controller
             }
         }
 
-        if (!is_array($incoming)) {
+        if (! is_array($incoming)) {
             throw ValidationException::withMessages([
                 'settings' => 'Invalid settings payload.',
             ]);

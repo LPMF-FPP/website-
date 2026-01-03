@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v1.0.2
+# WALKTHROUGH - LPMF LIMS v1.0.4
 
 > **Laboratory Information Management System untuk Laboratorium Pengujian Mutu Farmasi**
 > **Dokumen ini menggabungkan PRD (Product Requirements) dan ERD (Entity Relationship)**
@@ -6,6 +6,212 @@
 ---
 
 ## 📝 Changelog
+
+### v1.0.4 (3 Januari 2026)
+
+#### 🔍 Audit Besar Codebase
+
+**Tanggal Audit:** 3 Januari 2026
+
+##### 1. Audit Kata "Pelanggan" → "User"
+
+| File | Line | Teks Ditemukan | Status |
+|------|------|----------------|--------|
+| `resources/views/settings/partials/iku.blade.php` | 149 | "Pelanggan harus mengisi survey..." | ⚠️ Perlu diganti |
+| `resources/views/settings/partials/iku.blade.php` | 177 | "survey kepuasan pelanggan" | ⚠️ Perlu diganti |
+| `resources/views/changelogs/index.blade.php` | 53 | "survey kepuasan pelanggan" | ⚠️ Perlu diganti |
+| `resources/views/sample-processes/report-lhu.blade.php` | 95,97,98 | "Informasi Pelanggan", "Nama Pelanggan", "Alamat Pelanggan" | ⚠️ Perlu diganti |
+| `resources/views/delivery/survey.blade.php` | 5,59 | "Survei Kepuasan Pelanggan" | ⚠️ Perlu diganti |
+| `resources/views/pdf/ba-penyerahan.blade.php` | 343 | "Pelanggan" | ⚠️ Perlu diganti |
+| `scripts/generate_ba_penyerahan_summary.py` | 73,133 | "nama_pelanggan", "nomor_pelanggan" | ⚠️ Perlu diganti |
+| `app/Http/Controllers/RequestController.php` | 759 | "Hapus survey pelanggan" | ⚠️ Perlu diganti |
+| `templates/ba_penyerahan_ringkasan.html.j2` | 49 | "Pelanggan" | ⚠️ Perlu diganti |
+| `templates/laporan_hasil_uji.html.j2` | 91,94,95 | "Informasi Pelanggan", "Nama Pelanggan", "Alamat Pelanggan" | ⚠️ Perlu diganti |
+| `output/laporan-hasil-uji/*.html` | 87,90,91 | Generated output (akan regenerate) | ℹ️ Auto-fix |
+
+**Total:** 19 kemunculan kata "pelanggan" di 11 file
+
+##### 2. Audit Kata "Narokita" & "Psikotropika"
+
+| Kata | Hasil | Status |
+|------|-------|--------|
+| `narokita` | ❌ Tidak ditemukan | ✅ Aman |
+| `psikotropika` | ✅ 8 kemunculan | ⚠️ Perlu review |
+
+**Detail kemunculan "psikotropika":**
+| File | Konteks | Status |
+|------|---------|--------|
+| `WALKTHROUGH.md` | Referensi tabel enum | ℹ️ Dokumentasi |
+| `database/seeders/LabelTestSeeder.php` | sample_category enum | ⚠️ Review |
+| `database/factories/SampleFactory.php` | sample_category enum | ⚠️ Review |
+| `database/seeders/DummyDataSeeder.php` | 2 occurrences | ⚠️ Review |
+| `database/migrations/2025_09_29_044652_create_samples_table.php` | enum definition | ⚠️ Review |
+| `app/Support/TemplatePreviewData.php` | jenis sample | ⚠️ Review |
+| `app/Http/Controllers/Api/Settings/BladeTemplateEditorController.php` | preview data | ⚠️ Review |
+
+**Catatan:** "Psikotropika" adalah istilah teknis legal/farmasi. Jika perlu dihilangkan, perlu migration database.
+
+##### 3. Audit File Inactive/Orphaned
+
+**🔴 CRITICAL - Hapus Segera:**
+| File | Alasan | Prioritas |
+|------|--------|-----------|
+| `siap-dihapus-2025-12-23/er->role = 'admin';` | Filename corrupted | 🔴 CRITICAL |
+| `siap-dihapus-2025-12-23/mcp-server.log` | Runtime log | 🔴 CRITICAL |
+| `siap-dihapus-2025-12-23/mcp-server.prev.log` | Runtime log | 🔴 CRITICAL |
+| `siap-dihapus-2025-12-23/test.php` | Debug script | 🔴 CRITICAL |
+
+**🟡 HIGH - Aman Dihapus:**
+| File | Alasan | Prioritas |
+|------|--------|-----------|
+| `siap-dihapus-2025-12-23/test-null-removal.php` | Debug script | 🟡 HIGH |
+| `siap-dihapus-2025-12-23/REFACTORED_METHODS.php` | Old reference | 🟡 HIGH |
+| `siap-dihapus-2025-12-23/test-preview-debug.php` | Debug script | 🟡 HIGH |
+| `resources/views/_unused/dashboard.dynamic.backup.blade.php` | Backup file | 🟡 HIGH |
+| `resources/views/_unused/welcome.blade.php` | Unused view | 🟡 HIGH |
+
+**🟢 KEEP - Masih Digunakan:**
+| File | Alasan |
+|------|--------|
+| `test-safe-overlay.html` | Referenced in DESIGN-SYSTEM-README |
+| `design-system-demo.html` | Design reference |
+| `theme-demo.html` | Theme reference |
+
+##### 4. Audit Folder Inactive/Orphaned
+
+**🔴 HAPUS - Folder Tidak Aktif:**
+| Folder | Size | Status | Alasan |
+|--------|------|--------|--------|
+| `siap-dihapus-2025-12-23/` | ~1 MB | 🔴 HAPUS | Staging folder for deletion |
+| `script sh/` | 76 KB | 🔴 HAPUS/RENAME | Space in name, unused scripts |
+| `resources/views/_unused/` | 8 KB | 🔴 HAPUS | Explicitly marked unused |
+
+**🟡 REORGANIZE - Perlu Cleanup:**
+| Folder | Size | Status | Rekomendasi |
+|--------|------|--------|-------------|
+| `markdown-backup-20251230/` | 1.2 MB | 🟡 ARCHIVE | Move to archive atau hapus |
+| `md-backup-20251230/` | ~500 KB | 🟡 ARCHIVE | Duplicate backup, hapus |
+| `temp/` | 8 KB | 🟡 KEEP | Theme build workflow |
+| `output/` | 1.6 MB | 🟡 KEEP | Generated docs, add to .gitignore |
+
+**✅ AKTIF - Jangan Disentuh:**
+| Folder | Purpose |
+|--------|---------|
+| `app/` | PHP application code |
+| `resources/` | Views, CSS, JS |
+| `routes/` | Route definitions |
+| `database/` | Migrations, seeders |
+| `config/` | Configuration |
+| `public/` | Web assets |
+| `storage/` | Laravel storage |
+| `scripts/` | Build utilities |
+| `templates/` | Document templates |
+| `tests/` | Test files |
+| `docs/` | Documentation |
+| `dokpol-style/` | Design system |
+
+##### 📋 Deprecated Code Found
+
+| File | Line | Keterangan |
+|------|------|------------|
+| `app/Models/TestRequest.php` | 85-95 | `generateRequestNumber()` deprecated, gunakan NumberingService |
+| `resources/views/components/stage-tabs.blade.php` | 1 | Deprecated, gunakan `<x-tabs>` |
+| `scripts/generate_laporan_hasil_uji.py` | 121,154 | `--api` flag deprecated |
+
+##### 🎯 Action Items - COMPLETED ✅
+
+| Action | Status | Tanggal |
+|--------|--------|---------|
+| Hapus folder `siap-dihapus-2025-12-23/` | ✅ Done | 3 Jan 2026 |
+| Hapus folder `script sh/` | ✅ Done | 3 Jan 2026 |
+| Hapus folder `resources/views/_unused/` | ✅ Done | 3 Jan 2026 |
+| Hapus folder `markdown-backup-20251230/` | ✅ Done | 3 Jan 2026 |
+| Hapus folder `md-backup-20251230/` | ✅ Done | 3 Jan 2026 |
+| Hapus kata "psikotropika" dari codebase | ✅ Done | 3 Jan 2026 |
+
+**Files Updated untuk hapus 'psikotropika':**
+- `database/migrations/2025_09_29_044652_create_samples_table.php` - Hapus dari enum
+- `database/migrations/2026_01_03_*_remove_psikotropika_*.php` - Migration baru
+- `database/seeders/LabelTestSeeder.php` - Ganti dengan 'narkotika'
+- `database/seeders/DummyDataSeeder.php` - Ganti dengan 'narkotika'
+- `database/factories/SampleFactory.php` - Hapus dari enum list
+- `app/Support/TemplatePreviewData.php` - Ganti dengan 'Narkotika'
+- `app/Http/Controllers/Api/Settings/BladeTemplateEditorController.php` - Ganti dengan 'Narkotika'
+
+**Pending Action (Optional):**
+- Update kata "pelanggan" → "user" (belum dilakukan, perlu konfirmasi)
+
+---
+
+### v1.0.3 (3 Januari 2026)
+
+#### 🆕 Fitur Baru
+
+**1. Sistem IKU (Indeks Kinerja Utama) - Full Implementation**
+- Dashboard card IKU menggantikan card "SLA Performance"
+- Halaman Settings dengan konfigurasi bobot, target sampel per tahun, dan periode
+- Preview IKU real-time dengan data mentah, formula, dan skala kategori
+- Penjelasan komprehensif variabel A-F di panel preview
+
+**2. DummyDataSeeder Enhancements**
+- Pembuatan dokumen LHU (Laporan Hasil Uji) otomatis via `createLhuDocuments()`
+- Pembuatan CustomerSurvey untuk testing via `createCustomerSurveys()`
+- Fix enum constraint untuk `request_type` dan `respondent_job_category`
+- Fix unique constraint `sample_code` dengan timestamp suffix
+
+**3. Clear Dummy Data Command**
+- Artisan command baru: `php artisan dummy:clear`
+- Opsi `--force` untuk skip konfirmasi
+- Menghapus semua data dari DummyDataSeeder secara aman
+
+**4. Admin User Persistence**
+- `AdminUserSeeder` dipanggil dari `DatabaseSeeder`
+- User admin tidak hilang setelah migration/seeding
+- Default credentials: `labmutufarmapol@gmail.com` / `LPMFjaya1`
+
+#### 🐛 Bug Fixes
+
+- **Double JSON.stringify**: Menghapus `JSON.stringify()` redundan di `saveIkuSettings()` - penyebab data IKU tidak tersimpan
+- **Tambah Tahun Bug**: Fix `addIkuTargetYear()` yang mengubah object menjadi array dengan validasi `Array.isArray()`
+- **IKU Samples Count 0**: Fix `getSamplesCompletedCount()` untuk mengenali status 'ready_for_delivery', 'interpretation_done', 'tested', 'completed'
+- **IKU LHU Count 0**: Fix `getLhuIssuedCount()` untuk mengenali document type 'laporan_hasil_uji' dan 'lhu'
+
+#### 🎨 UI Improvements
+
+- Preview IKU dengan penjelasan komprehensif variabel (A = Permohonan dikerjakan, dst)
+- Tampilan formula perhitungan R, P, L, S dengan nilai aktual
+- Skala kategori IKU (A: >4.00, B: >3.00, dst)
+- Card dashboard IKU dengan warna sesuai kategori
+
+#### 📦 Database/Seeder Changes
+
+- `DatabaseSeeder.php` memanggil `AdminUserSeeder` untuk memastikan admin user persist
+- `DummyDataSeeder.php` support LHU dan Survey creation
+
+#### 📁 Files Changed
+
+| File | Change |
+|------|--------|
+| `app/Services/IkuService.php` | Fixed getSamplesCompletedCount, getLhuIssuedCount |
+| `app/Console/Commands/ClearDummyData.php` | **NEW** - Clear dummy data command |
+| `database/seeders/DummyDataSeeder.php` | Added LHU + Survey creation |
+| `database/seeders/DatabaseSeeder.php` | Added AdminUserSeeder call |
+| `resources/js/pages/settings/alpine-component.js` | Fixed double stringify, addIkuTargetYear |
+| `resources/views/settings/partials/iku.blade.php` | Comprehensive preview descriptions |
+| `resources/views/dashboard/_iku-card.blade.php` | IKU dashboard card |
+
+#### 📋 Artisan Commands
+
+```bash
+# Seed dummy data (requests, samples, LHU, surveys)
+php artisan db:seed --class=DummyDataSeeder
+
+# Clear dummy data
+php artisan dummy:clear
+php artisan dummy:clear --force  # Skip confirmation
+```
+
+---
 
 ### v1.0.2 (2 Januari 2026)
 
@@ -320,11 +526,11 @@ LPMF LIMS adalah sistem manajemen informasi laboratorium yang dirancang untuk:
 **Kategori Sampel:**
 | Category | Description |
 |----------|-------------|
-| `narkotika` | Narkotika & Psikotropika |
-| `obat` | Obat-obatan |
-| `suplemen_jamu` | Suplemen & Jamu |
-| `kosmetik` | Kosmetik |
-| `makanan_minuman` | Makanan & Minuman |
+| `narkotika` | Narkotika |
+| `prekursor` | Prekursor |
+| `zat_adiktif` | Zat Adiktif |
+| `obat_keras` | Obat Keras |
+| `other` | Lainnya |
 
 **Status Flow:**
 ```
@@ -358,7 +564,7 @@ received → preparation → instrumentation → reporting → completed → del
 
 **Entitas:** `Delivery`, `DeliveryItem`
 
-**Status Delivery:**
+**Status Delivery:**600
 | Status | Description |
 |--------|-------------|
 | `pending` | Menunggu penyerahan |
@@ -678,6 +884,132 @@ php artisan make:controller NewFeatureController --resource
 
 ---
 
+## 📊 Sistem IKU (Indeks Kinerja Utama)
+
+> Ditambahkan: Januari 2025
+
+### Gambaran Umum
+
+Sistem IKU menghitung indeks kinerja laboratorium dengan 4 komponen berbobot:
+
+| Komponen | Kode | Formula | Default Bobot |
+|----------|------|---------|---------------|
+| Registrasi Permohonan | R | A / B | 10% |
+| Pemeriksaan Laboratorium | P | C / D | 40% |
+| Laporan Hasil | L | E / A | 40% |
+| Survei Kepuasan | S | F / A | 10% |
+
+**Variabel:**
+- A = jumlah permohonan dikerjakan
+- B = jumlah permohonan diterima
+- C = jumlah sampel dikerjakan
+- D = target sampel (konfigurasi per tahun)
+- E = jumlah laporan diterbitkan
+- F = jumlah survey diterima
+
+**Formula IKU:**
+```
+IKU = (R × WR + P × WP + L × WL + S × WS) × 5
+```
+Hasil: Indeks 0-5 dengan kategori: Sangat Baik, Baik, Cukup, Kurang, Sangat Kurang.
+
+### File Terkait
+
+| File | Fungsi |
+|------|--------|
+| `app/Services/IkuService.php` | Service untuk komputasi dan konfigurasi IKU |
+| `app/Http/Controllers/Api/Settings/IkuSettingsController.php` | API endpoint IKU |
+| `app/Http/Requests/Settings/IkuSettingsRequest.php` | Request validation |
+| `resources/views/settings/partials/iku.blade.php` | Blade partial untuk halaman settings |
+| `resources/views/dashboard/_iku-card.blade.php` | Card IKU di dashboard |
+| `resources/js/pages/settings/alpine-component.js` | Alpine component (saveIkuSettings, ensureIkuDefaults) |
+
+### API Endpoints
+
+| Method | Endpoint | Fungsi |
+|--------|----------|--------|
+| GET | `/api/settings/iku` | Get konfigurasi IKU |
+| PUT | `/api/settings/iku` | Update konfigurasi IKU |
+| GET | `/api/settings/iku/preview` | Preview perhitungan IKU bulan ini |
+
+### Konfigurasi di Database
+
+Pengaturan IKU disimpan di tabel `system_settings` dengan key prefix `iku.`:
+
+```
+iku.enabled = true/false
+iku.period_mode = 'monthly'/'yearly'
+iku.weights.registration = 10
+iku.weights.lab_exam = 40
+iku.weights.report = 40
+iku.weights.survey = 10
+iku.target_samples_by_year = {"2025": 500, "2026": 600}
+iku.sources.A = 'requests_completed_count'
+iku.survey_required_for_delivery = true
+```
+
+### Troubleshooting
+
+**Settings tidak tersimpan dari UI:**
+- Pastikan frontend di-build: `npm run build`
+- Cek browser console untuk error JavaScript
+- Verifikasi endpoint `/api/settings/iku` menerima request
+
+**Nilai selalu default:**
+- Cek database: `SELECT * FROM system_settings WHERE key LIKE 'iku.%';`
+- Gunakan tinker untuk test: `app(IkuService::class)->getConfig()`
+
+---
+
+## Storage Cleanup
+
+```
+Source: Updated on 2025-01-04
+```
+
+### Deskripsi
+
+Fitur pembersihan storage untuk menghapus file-file yang tidak terpakai:
+1. **Folder Investigator Orphan**: Folder dari investigator yang sudah dihapus dari database
+2. **Dokumen Duplikat**: Dokumen generated yang sama untuk satu request (duplicate timestamps)
+
+### Artisan Commands
+
+```bash
+# Hapus folder investigator yang orphan (tidak ada di database)
+php artisan storage:cleanup-investigators --dry-run  # Preview
+php artisan storage:cleanup-investigators --force    # Execute
+
+# Hapus dokumen duplikat (simpan hanya yang terbaru)
+php artisan storage:cleanup-duplicates --dry-run     # Preview  
+php artisan storage:cleanup-duplicates --force       # Execute
+```
+
+### API Endpoints
+
+| Method | Endpoint | Fungsi |
+|--------|----------|--------|
+| GET | `/api/settings/documents/cleanup-stats` | Statistik folder orphan & dokumen duplikat |
+| POST | `/api/settings/documents/cleanup-orphaned` | Hapus folder investigator orphan |
+| POST | `/api/settings/documents/cleanup-duplicates` | Hapus dokumen duplikat |
+
+### UI di Settings
+
+Fitur cleanup tersedia di halaman **Settings > Manajemen Dokumen** section "Pembersihan Storage":
+1. Klik "Perbarui Statistik" untuk melihat jumlah file yang bisa dihapus
+2. Klik "Hapus Folder Orphan" untuk menghapus folder investigator yang tidak terpakai
+3. Klik "Hapus Duplikat" untuk menghapus dokumen duplikat (hanya yang terbaru dipertahankan)
+
+### Files Terkait
+
+- `app/Console/Commands/CleanupOrphanedInvestigatorFolders.php`
+- `app/Console/Commands/CleanupDuplicateDocuments.php`
+- `app/Http/Controllers/Api/Settings/DocumentMaintenanceController.php`
+- `resources/views/settings/partials/documents.blade.php`
+- `resources/js/pages/settings/index.js`
+
+---
+
 ## ⚠️ Aturan Dokumentasi
 
 ### JANGAN BUAT FILE .md BARU
@@ -695,4 +1027,4 @@ Untuk menambah dokumentasi baru, tambahkan section di bagian bawah file ini.
 
 ---
 
-*Dokumen ini terakhir diperbarui: 2 Januari 2026*
+*Dokumen ini terakhir diperbarui: 3 Januari 2026*

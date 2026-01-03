@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Enums\DocumentType;
 use App\Models\DocumentTemplate;
 use Illuminate\Support\Facades\Log;
 
@@ -15,8 +14,7 @@ class DocumentTemplateService
     /**
      * Get the active template for a given document type
      *
-     * @param string $docType The document type (e.g., 'BA', 'LHU')
-     * @return DocumentTemplate|null
+     * @param  string  $docType  The document type (e.g., 'BA', 'LHU')
      */
     public function getActiveTemplateByDocType(string $docType): ?DocumentTemplate
     {
@@ -47,7 +45,7 @@ class DocumentTemplateService
                 'doc_type' => $docType,
                 'error' => $e->getMessage(),
             ]);
-            
+
             return null;
         }
     }
@@ -55,14 +53,14 @@ class DocumentTemplateService
     /**
      * Render HTML from template with real data using token replacement
      *
-     * @param DocumentTemplate $template The template to render
-     * @param array $data The real data for token replacement
+     * @param  DocumentTemplate  $template  The template to render
+     * @param  array  $data  The real data for token replacement
      * @return string The rendered HTML
      */
     public function renderHtmlFromTemplate(DocumentTemplate $template, array $data): string
     {
         try {
-            if (!empty($template->content_html)) {
+            if (! empty($template->content_html)) {
                 Log::debug('Using content_html for rendering');
                 $html = $template->content_html;
             } else {
@@ -76,7 +74,7 @@ class DocumentTemplateService
             $renderedHtml = $this->replaceTokens($html, $data);
 
             // Wrap with CSS if available
-            if (!empty($template->content_css)) {
+            if (! empty($template->content_css)) {
                 $renderedHtml = $this->wrapWithCss($renderedHtml, $template->content_css);
             }
 
@@ -97,8 +95,8 @@ class DocumentTemplateService
      *
      * Token whitelist untuk keamanan - hanya token yang didefinisikan yang akan diganti
      *
-     * @param string $html The HTML template
-     * @param array $data The data for replacement
+     * @param  string  $html  The HTML template
+     * @param  array  $data  The data for replacement
      * @return string HTML with replaced tokens
      */
     private function replaceTokens(string $html, array $data): string
@@ -110,20 +108,20 @@ class DocumentTemplateService
             'case_number',
             'to_office',
             'generated_at',
-            
+
             // Investigator
             'investigator_name',
             'investigator_nrp',
             'investigator_rank',
             'investigator_jurisdiction',
             'investigator_phone',
-            
+
             // Suspect
             'suspect_name',
             'suspect_gender',
             'suspect_age',
             'suspect_address',
-            
+
             // Sample
             'short_description',
             'sample_code',
@@ -132,7 +130,7 @@ class DocumentTemplateService
             'sample_count',
             'package_quantity',
             'unit',
-            
+
             // Test/Results
             'test_date',
             'test_methods',
@@ -141,13 +139,13 @@ class DocumentTemplateService
             'detected_substance',
             'test_result',
             'test_result_text',
-            
+
             // LHU specific
             'lhu_number',
             'report_number',
             'instrument',
             'conclusion',
-            
+
             // Lab info
             'lab_name',
             'lab_address',
@@ -156,7 +154,7 @@ class DocumentTemplateService
         // Replace tokens
         foreach ($allowedTokens as $token) {
             $value = $this->getNestedValue($data, $token);
-            
+
             if ($value !== null) {
                 // Convert objects to string if possible
                 if (is_object($value) && method_exists($value, '__toString')) {
@@ -181,8 +179,6 @@ class DocumentTemplateService
     /**
      * Get nested value from array using dot notation
      *
-     * @param array $data
-     * @param string $key
      * @return mixed|null
      */
     private function getNestedValue(array $data, string $key)
@@ -214,10 +210,6 @@ class DocumentTemplateService
 
     /**
      * Wrap HTML with CSS
-     *
-     * @param string $html
-     * @param string $css
-     * @return string
      */
     private function wrapWithCss(string $html, string $css): string
     {
@@ -240,9 +232,6 @@ HTML;
 
     /**
      * Calculate hash of template content for version tracking
-     *
-     * @param DocumentTemplate $template
-     * @return string
      */
     public function calculateTemplateHash(DocumentTemplate $template): string
     {

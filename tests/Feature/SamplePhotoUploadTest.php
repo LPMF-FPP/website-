@@ -50,7 +50,7 @@ class SamplePhotoUploadTest extends TestCase
                     'unit' => 'serbuk',
                     'test_types' => ['uv_vis', 'gc_ms'],
                     'active_substance' => 'MDMA',
-                ]
+                ],
             ],
         ];
 
@@ -90,17 +90,17 @@ class SamplePhotoUploadTest extends TestCase
             ->where('document_type', 'sample_photo')
             ->where('source', 'upload')
             ->get();
-        
+
         $this->assertCount(2, $samplePhotoDocs, 'Should have 2 sample photo documents');
 
         // Assert: Each document has correct path structure
         $expectedPathPattern = "investigators/{$investigator->folder_key}/{$testRequest->request_number}/uploads/sample_photo/";
-        
+
         foreach ($samplePhotoDocs as $doc) {
             $this->assertStringContainsString(
                 $expectedPathPattern,
                 $doc->path,
-                "Sample photo path should follow investigators/{folder_key}/{request_number}/uploads/sample_photo/ pattern"
+                'Sample photo path should follow investigators/{folder_key}/{request_number}/uploads/sample_photo/ pattern'
             );
 
             // Assert: File exists in storage
@@ -134,7 +134,7 @@ class SamplePhotoUploadTest extends TestCase
                     'unit' => 'serbuk',
                     'test_types' => ['uv_vis'],
                     'active_substance' => 'Heroin',
-                ]
+                ],
             ],
             'request_letter' => UploadedFile::fake()->create('surat.pdf', 50, 'application/pdf'),
         ];
@@ -158,7 +158,7 @@ class SamplePhotoUploadTest extends TestCase
         $samplePhotoDocs = Document::where('test_request_id', $testRequest->id)
             ->where('document_type', 'sample_photo')
             ->get();
-        
+
         $this->assertCount(0, $samplePhotoDocs, 'Should have no sample photo documents when not uploaded');
     }
 
@@ -189,7 +189,7 @@ class SamplePhotoUploadTest extends TestCase
                     'unit' => 'ml',
                     'test_types' => ['gc_ms'],
                     'active_substance' => 'Cocaine',
-                ]
+                ],
             ],
             'request_letter' => UploadedFile::fake()->create('surat.pdf', 50, 'application/pdf'),
         ];
@@ -199,7 +199,7 @@ class SamplePhotoUploadTest extends TestCase
             UploadedFile::fake()->image('sampel-a-1.jpg', 100, 100),
             UploadedFile::fake()->image('sampel-a-2.jpg', 100, 100),
         ];
-        
+
         $requestData['samples'][1]['photos'] = [
             UploadedFile::fake()->image('sampel-b-1.jpg', 100, 100),
         ];
@@ -226,7 +226,7 @@ class SamplePhotoUploadTest extends TestCase
         $allPhotoDocs = Document::where('test_request_id', $testRequest->id)
             ->where('document_type', 'sample_photo')
             ->get();
-        
+
         $this->assertCount(3, $allPhotoDocs, 'Should have 3 total sample photos (2 for A, 1 for B)');
 
         // Check Sample A photos
@@ -257,10 +257,10 @@ class SamplePhotoUploadTest extends TestCase
     {
         // Re-enable middleware for this test since we're testing validation
         $this->withMiddleware();
-        
+
         // Capture initial count of sample_photo documents
         $initialPhotoCount = Document::where('document_type', 'sample_photo')->count();
-        
+
         // Arrange: Prepare request data with INVALID data (to trigger validation error)
         // Missing required field 'investigator_name' (which is required for investigator type)
         $requestData = [
@@ -280,7 +280,7 @@ class SamplePhotoUploadTest extends TestCase
                     'unit' => 'tablet',
                     'test_types' => ['uv_vis'],
                     'active_substance' => 'Test',
-                ]
+                ],
             ],
             'request_letter' => UploadedFile::fake()->create('surat.pdf', 50, 'application/pdf'),
         ];
@@ -299,8 +299,8 @@ class SamplePhotoUploadTest extends TestCase
         // Assert: No NEW documents were created in database (due to validation failure)
         $finalPhotoCount = Document::where('document_type', 'sample_photo')->count();
         $this->assertEquals(
-            $initialPhotoCount, 
-            $finalPhotoCount, 
+            $initialPhotoCount,
+            $finalPhotoCount,
             'No new sample photo documents should be created on validation failure'
         );
 

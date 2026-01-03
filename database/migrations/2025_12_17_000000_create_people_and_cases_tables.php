@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('people')) {
+        if (! Schema::hasTable('people')) {
             Schema::create('people', function (Blueprint $table) {
                 $table->bigIncrements('id');
                 $table->text('name');
@@ -18,7 +18,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('cases')) {
+        if (! Schema::hasTable('cases')) {
             Schema::create('cases', function (Blueprint $table) {
                 $table->bigIncrements('id');
                 $table->text('title');
@@ -27,7 +27,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('case_people')) {
+        if (! Schema::hasTable('case_people')) {
             Schema::create('case_people', function (Blueprint $table) {
                 $table->unsignedBigInteger('case_id');
                 $table->unsignedBigInteger('person_id');

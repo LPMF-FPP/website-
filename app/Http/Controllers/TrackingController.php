@@ -4,10 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\TestRequest;
 use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\QueryException;
 
 class TrackingController extends Controller
 {
@@ -31,7 +31,7 @@ class TrackingController extends Controller
 
         $trackingData = $this->getTrackingData($trackingNumber);
 
-        if (!$trackingData) {
+        if (! $trackingData) {
             return back()->withInput()->withErrors([
                 'tracking_number' => 'Nomor resi tidak ditemukan.',
             ]);
@@ -61,7 +61,7 @@ class TrackingController extends Controller
                 $testRequest = TestRequest::with(['investigator', 'samples'])
                     ->where(function ($query) use ($trackingNumber) {
                         $query->whereRaw('UPPER(receipt_number) = UPPER(?)', [$trackingNumber])
-                              ->orWhereRaw('UPPER(request_number) = UPPER(?)', [$trackingNumber]);
+                            ->orWhereRaw('UPPER(request_number) = UPPER(?)', [$trackingNumber]);
                     })
                     ->first();
 
@@ -190,7 +190,7 @@ class TrackingController extends Controller
                     'name' => 'Bripka John Doe',
                     'rank' => 'BRIPKA',
                     'jurisdiction' => 'Polres Jakarta Pusat',
-                    'phone' => '021-1234567'
+                    'phone' => '021-1234567',
                 ],
                 'suspect_name' => 'Ahmad Suspect',
                 'submit_date' => '2025-09-20 10:30:00',
@@ -254,7 +254,7 @@ class TrackingController extends Controller
         foreach ($trackingStages as $stage) {
             if ($stage['status'] === 'completed') {
                 $completedStages++;
-            } elseif ($stage['status'] === 'current' && !$currentStageFound) {
+            } elseif ($stage['status'] === 'current' && ! $currentStageFound) {
                 $completedStages += 0.5;
                 $currentStageFound = true;
             }
@@ -281,7 +281,7 @@ class TrackingController extends Controller
         $timestamps = [null, null, null, null];
         foreach ($originalStages as $stage) {
             $idx = $mapStages[$stage['stage']] ?? null;
-            if ($idx !== null && !$timestamps[$idx] && !empty($stage['timestamp'])) {
+            if ($idx !== null && ! $timestamps[$idx] && ! empty($stage['timestamp'])) {
                 $timestamps[$idx] = $stage['timestamp'];
             }
         }
@@ -303,8 +303,11 @@ class TrackingController extends Controller
         $condensedStages = [];
         foreach ($labels as $i => $meta) {
             $status = 'pending';
-            if ($i < $currentIndex) { $status = 'completed'; }
-            elseif ($i === $currentIndex) { $status = $currentIndex === 3 ? 'completed' : 'current'; }
+            if ($i < $currentIndex) {
+                $status = 'completed';
+            } elseif ($i === $currentIndex) {
+                $status = $currentIndex === 3 ? 'completed' : 'current';
+            }
 
             $condensedStages[] = [
                 'index' => $i,
@@ -319,7 +322,7 @@ class TrackingController extends Controller
         $lastUpdated = collect($originalStages)
             ->pluck('timestamp')
             ->filter()
-            ->map(fn($t) => Carbon::parse($t))
+            ->map(fn ($t) => Carbon::parse($t))
             ->sortDesc()
             ->first();
 
@@ -341,7 +344,7 @@ class TrackingController extends Controller
     public function json(Request $request, string $tracking_number)
     {
         $trackingNumber = $this->normalizeTrackingNumber($tracking_number);
-        $cacheKey = 'track:condensed:' . $trackingNumber;
+        $cacheKey = 'track:condensed:'.$trackingNumber;
         $ttl = 60; // seconds
         $bypass = $request->boolean('nocache');
 
@@ -351,16 +354,17 @@ class TrackingController extends Controller
 
         $condensed = Cache::remember($cacheKey, $ttl, function () use ($trackingNumber) {
             $trackingData = $this->getTrackingData($trackingNumber);
-            if (!$trackingData) {
+            if (! $trackingData) {
                 return null; // handle 404 after retrieval
             }
+
             return $this->buildCondensedPayload($trackingData);
         });
 
-        if (!$condensed) {
+        if (! $condensed) {
             return response()->json(['message' => 'Not found'], 404);
         }
 
-        return response()->json($condensed + ['_cached' => !$bypass]);
+        return response()->json($condensed + ['_cached' => ! $bypass]);
     }
 }

@@ -9,7 +9,7 @@ uses(DatabaseTransactions::class);
 
 beforeEach(function () {
     $this->user = User::factory()->create();
-    
+
     // Clean up any seeded settings that might conflict with test assertions
     SystemSetting::whereIn('key', [
         'retention.purge_after_days',
@@ -23,12 +23,12 @@ beforeEach(function () {
         'notifications.email_enabled',
         'notifications.whatsapp_enabled',
     ])->delete();
-    
+
     // Also delete nested format keys
     SystemSetting::where('key', 'LIKE', 'retention.%')->delete();
     SystemSetting::where('key', 'LIKE', 'locale.%')->delete();
     SystemSetting::where('key', 'LIKE', 'notifications.%')->delete();
-    
+
     settings_forget_cache();
 });
 

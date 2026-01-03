@@ -34,9 +34,9 @@ class LidikSidikController extends Controller
         ];
 
         $recentRequests = TestRequest::with([
-                'investigator:id,name,jurisdiction,rank',
-                'samples:id,test_request_id',
-            ])
+            'investigator:id,name,jurisdiction,rank',
+            'samples:id,test_request_id',
+        ])
             ->withCount('samples')
             ->latest()
             ->limit(5)
@@ -46,7 +46,7 @@ class LidikSidikController extends Controller
             ->whereNotNull('completed_at')
             ->get()
             ->map(static function (TestRequest $request) {
-                if (!$request->submitted_at || !$request->completed_at) {
+                if (! $request->submitted_at || ! $request->completed_at) {
                     return null;
                 }
 

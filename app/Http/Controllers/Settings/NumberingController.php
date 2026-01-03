@@ -9,9 +9,7 @@ use Illuminate\Support\Facades\Gate;
 
 class NumberingController extends Controller
 {
-    public function __construct(private readonly NumberingService $service)
-    {
-    }
+    public function __construct(private readonly NumberingService $service) {}
 
     public function preview(Request $request, string $scope)
     {

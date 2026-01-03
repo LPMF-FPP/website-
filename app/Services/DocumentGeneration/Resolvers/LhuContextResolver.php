@@ -19,7 +19,7 @@ class LhuContextResolver extends AbstractContextResolver
         $process = SampleTestProcess::with([
             'sample.testRequest.investigator',
             'sample.testRequest',
-            'performer'
+            'performer',
         ])->findOrFail($contextId);
 
         // Get or generate LHU number
@@ -50,7 +50,7 @@ class LhuContextResolver extends AbstractContextResolver
     private function generateLhuNumber(SampleTestProcess $process): string
     {
         // This would use NumberingService in real implementation
-        return 'FLHU' . str_pad($process->id, 3, '0', STR_PAD_LEFT);
+        return 'FLHU'.str_pad($process->id, 3, '0', STR_PAD_LEFT);
     }
 
     private function getMockProcess(): array

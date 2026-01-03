@@ -10,12 +10,13 @@ use Throwable;
 class ActiveSubstanceService
 {
     protected array $defaultColors = [
-        '#DC2626', '#EA580C', '#D97706', '#65A30D', '#059669', '#0891B2'
+        '#DC2626', '#EA580C', '#D97706', '#65A30D', '#059669', '#0891B2',
     ];
 
     protected array $fallbackCounts = [];
 
     protected ?array $cachedCounts = null;
+
     protected bool $usingFallback = false;
 
     public function breakdown(int $limit = 6): array
@@ -70,12 +71,12 @@ class ActiveSubstanceService
                 }
             }
         } catch (Throwable $exception) {
-            Log::warning('Unable to load active substance statistics from samples: ' . $exception->getMessage());
+            Log::warning('Unable to load active substance statistics from samples: '.$exception->getMessage());
         }
 
         if (empty($counts)) {
             try {
-                if (!class_exists(TestResult::class)) {
+                if (! class_exists(TestResult::class)) {
                     throw new \RuntimeException('TestResult model unavailable');
                 }
 
@@ -87,7 +88,7 @@ class ActiveSubstanceService
                     }
                 }
             } catch (Throwable $exception) {
-                Log::warning('Unable to load fallback active substance statistics from test results: ' . $exception->getMessage());
+                Log::warning('Unable to load fallback active substance statistics from test results: '.$exception->getMessage());
             }
         }
 
@@ -127,6 +128,7 @@ class ActiveSubstanceService
             foreach ($raw as $item) {
                 if (is_array($item) || is_object($item)) {
                     $collected = array_merge($collected, $this->extractSubstances($item));
+
                     continue;
                 }
 
@@ -150,6 +152,7 @@ class ActiveSubstanceService
         foreach ($parts as $part) {
             if (is_array($part) || is_object($part)) {
                 $normalized = array_merge($normalized, $this->extractSubstances($part));
+
                 continue;
             }
 
@@ -159,7 +162,7 @@ class ActiveSubstanceService
                 continue;
             }
 
-            if (!preg_match('/[a-zA-Z]/', $name)) {
+            if (! preg_match('/[a-zA-Z]/', $name)) {
                 continue;
             }
 

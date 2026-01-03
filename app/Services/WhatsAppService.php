@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Log;
 class WhatsAppService
 {
     protected ?string $baseUrl;
+
     protected ?string $apiKey;
 
     public function __construct()
@@ -21,12 +22,12 @@ class WhatsAppService
      *
      * @param  string  $to  Phone number with country code (e.g., 628123456789)
      * @param  string  $message  Message content
-     * @return bool
      */
     public function send(string $to, string $message): bool
     {
         if (empty($this->baseUrl)) {
             Log::warning('[WhatsApp] Base URL not configured');
+
             return false;
         }
 
@@ -66,9 +67,6 @@ class WhatsAppService
 
     /**
      * Format phone number to international format (remove leading 0, add country code if needed)
-     *
-     * @param  string  $phone
-     * @return string
      */
     protected function formatPhoneNumber(string $phone): string
     {
@@ -78,7 +76,7 @@ class WhatsAppService
             $phone = '62'.substr($phone, 1);
         }
 
-        if (!str_starts_with($phone, '62')) {
+        if (! str_starts_with($phone, '62')) {
             $phone = '62'.$phone;
         }
 
@@ -87,11 +85,9 @@ class WhatsAppService
 
     /**
      * Check if WhatsApp service is configured
-     *
-     * @return bool
      */
     public function isConfigured(): bool
     {
-        return !empty($this->baseUrl);
+        return ! empty($this->baseUrl);
     }
 }

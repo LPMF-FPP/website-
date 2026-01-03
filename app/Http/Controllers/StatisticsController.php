@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\TestRequest;
-use App\Models\Sample;
-use App\Services\ActiveSubstanceService;
 use App\Models\Investigator;
-use App\Models\User;
+use App\Models\Sample;
 use App\Models\SurveyResponse;
+use App\Models\TestRequest;
+use App\Models\User;
+use App\Services\ActiveSubstanceService;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class StatisticsController extends Controller
@@ -85,17 +85,17 @@ class StatisticsController extends Controller
                 'performanceMetrics' => $performanceMetrics,
                 'trendData' => $trendData,
                 'surveyStats' => $surveyStats,
-                'activeSubstanceBreakdown' => $activeSubstanceBreakdown
+                'activeSubstanceBreakdown' => $activeSubstanceBreakdown,
             ]);
 
         } catch (\Exception $e) {
             // Log error untuk debugging
-            \Log::error('Statistics Controller Error: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            \Log::error('Statistics Controller Error: '.$e->getMessage());
+            \Log::error('Stack trace: '.$e->getTraceAsString());
 
             // Fallback dengan data real atau 0
             $fallbackActiveSubstance = ['labels' => [], 'data' => [], 'percentages' => [], 'colors' => [], 'total' => 0, 'unique_total' => 0, 'fallback' => false];
-            
+
             return view('statistics.index', [
                 'total_users' => User::count(),
                 'requests_this_month' => TestRequest::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count(),
@@ -116,15 +116,15 @@ class StatisticsController extends Controller
                     'success_rate' => 0,
                     'sla_compliance' => 0,
                     'total_investigators' => Investigator::count(),
-                    'active_this_month' => TestRequest::whereMonth('created_at', now()->month)->count()
+                    'active_this_month' => TestRequest::whereMonth('created_at', now()->month)->count(),
                 ],
                 'trendData' => [],
                 'surveyStats' => [
                     'total_responses' => 0,
                     'avg_satisfaction' => 0,
-                    'ratings_breakdown' => []
+                    'ratings_breakdown' => [],
                 ],
-                'activeSubstanceBreakdown' => $fallbackActiveSubstance
+                'activeSubstanceBreakdown' => $fallbackActiveSubstance,
             ]);
         }
     }
@@ -147,7 +147,7 @@ class StatisticsController extends Controller
                     ->count(),
                 'samples' => Sample::whereYear('created_at', $date->year)
                     ->whereMonth('created_at', $date->month)
-                    ->count()
+                    ->count(),
             ]);
         }
 
@@ -184,7 +184,7 @@ class StatisticsController extends Controller
                 'success_rate' => round($successRate, 1),
                 'sla_compliance' => round($slaCompliance, 1),
                 'total_investigators' => Investigator::count(),
-                'active_this_month' => TestRequest::whereMonth('created_at', now()->month)->count()
+                'active_this_month' => TestRequest::whereMonth('created_at', now()->month)->count(),
             ];
         } catch (\Exception $e) {
             return [
@@ -192,7 +192,7 @@ class StatisticsController extends Controller
                 'success_rate' => 95.2,
                 'sla_compliance' => 88.5,
                 'total_investigators' => 25,
-                'active_this_month' => 42
+                'active_this_month' => 42,
             ];
         }
     }
@@ -209,7 +209,7 @@ class StatisticsController extends Controller
                 $last7Days->push([
                     'date' => $date->format('M j'),
                     'requests' => TestRequest::whereDate('created_at', $date)->count(),
-                    'completed' => TestRequest::whereDate('completed_at', $date)->count()
+                    'completed' => TestRequest::whereDate('completed_at', $date)->count(),
                 ]);
             }
 
@@ -221,11 +221,11 @@ class StatisticsController extends Controller
 
     private function getSurveyStatistics()
     {
-        if (!class_exists('App\Models\SurveyResponse')) {
+        if (! class_exists('App\Models\SurveyResponse')) {
             return [
                 'total_responses' => 0,
                 'avg_satisfaction' => 0,
-                'ratings_breakdown' => []
+                'ratings_breakdown' => [],
             ];
         }
 
@@ -242,13 +242,13 @@ class StatisticsController extends Controller
             return [
                 'total_responses' => $totalResponses,
                 'avg_satisfaction' => round($avgSatisfaction, 1),
-                'ratings_breakdown' => $ratingsBreakdown
+                'ratings_breakdown' => $ratingsBreakdown,
             ];
         } catch (\Exception $e) {
             return [
                 'total_responses' => 0,
                 'avg_satisfaction' => 0,
-                'ratings_breakdown' => []
+                'ratings_breakdown' => [],
             ];
         }
     }
@@ -284,7 +284,8 @@ class StatisticsController extends Controller
                     return response()->json(['error' => 'Invalid type'], 400);
             }
         } catch (\Exception $e) {
-            \Log::error('Statistics data error: ' . $e->getMessage());
+            \Log::error('Statistics data error: '.$e->getMessage());
+
             return response()->json(['error' => 'Unable to load data', 'message' => $e->getMessage()], 500);
         }
     }
@@ -300,23 +301,22 @@ class StatisticsController extends Controller
         $data = $jurisdictionData->pluck('total')->toArray();
 
         $total = array_sum($data);
-        $percentages = array_map(function($value) use ($total) {
+        $percentages = array_map(function ($value) use ($total) {
             return $total > 0 ? round(($value / $total) * 100, 1) : 0;
         }, $data);
 
         $colors = [
             '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
-            '#EC4899', '#14B8A6', '#F97316', '#84CC16', '#6366F1'
+            '#EC4899', '#14B8A6', '#F97316', '#84CC16', '#6366F1',
         ];
 
         return response()->json([
             'labels' => $labels,
             'data' => $data,
             'percentages' => $percentages,
-            'colors' => array_slice($colors, 0, count($data))
+            'colors' => array_slice($colors, 0, count($data)),
         ]);
     }
-
 
     private function getMonthlyRequestsData()
     {
@@ -349,7 +349,7 @@ class StatisticsController extends Controller
                     'borderColor' => '#3B82F6',
                     'backgroundColor' => 'rgba(59, 130, 246, 0.1)',
                     'fill' => true,
-                    'tension' => 0.4
+                    'tension' => 0.4,
                 ],
                 [
                     'label' => 'Permintaan Selesai',
@@ -357,9 +357,9 @@ class StatisticsController extends Controller
                     'borderColor' => '#10B981',
                     'backgroundColor' => 'rgba(16, 185, 129, 0.1)',
                     'fill' => true,
-                    'tension' => 0.4
-                ]
-            ]
+                    'tension' => 0.4,
+                ],
+            ],
         ]);
     }
 
@@ -393,10 +393,10 @@ class StatisticsController extends Controller
                     'data' => $samplesData,
                     'backgroundColor' => '#10B981',
                     'borderColor' => '#ffffff',
-                    'borderWidth' => 2
+                    'borderWidth' => 2,
                 ],
                 [
-                    'label' => 'Target Rata-rata (' . $monthlyTarget . ' per bulan)',
+                    'label' => 'Target Rata-rata ('.$monthlyTarget.' per bulan)',
                     'type' => 'line',
                     'data' => $targetData,
                     'borderColor' => '#DC2626',
@@ -404,14 +404,14 @@ class StatisticsController extends Controller
                     'borderWidth' => 3,
                     'borderDash' => [5, 5],
                     'pointRadius' => 0,
-                    'fill' => false
-                ]
+                    'fill' => false,
+                ],
             ],
             'targetInfo' => [
                 'yearly_target' => $yearlyTarget,
                 'monthly_average' => $monthlyTarget,
-                'current_total' => array_sum($samplesData)
-            ]
+                'current_total' => array_sum($samplesData),
+            ],
         ]);
     }
 
@@ -427,14 +427,14 @@ class StatisticsController extends Controller
                 throw new \Exception('No gender data');
             }
 
-            $labels = $genderData->map(function($item) {
+            $labels = $genderData->map(function ($item) {
                 return $item->suspect_gender === 'male' ? 'Laki-laki' : 'Perempuan';
             })->toArray();
-            
+
             $data = $genderData->pluck('total')->toArray();
-            
+
             $total = array_sum($data);
-            $percentages = array_map(function($value) use ($total) {
+            $percentages = array_map(function ($value) use ($total) {
                 return $total > 0 ? round(($value / $total) * 100, 1) : 0;
             }, $data);
 
@@ -445,7 +445,7 @@ class StatisticsController extends Controller
                 'data' => $data,
                 'percentages' => $percentages,
                 'colors' => $colors,
-                'total' => $total
+                'total' => $total,
             ]);
         } catch (\Exception $e) {
             // Return empty data if no data available
@@ -454,7 +454,7 @@ class StatisticsController extends Controller
                 'data' => [],
                 'percentages' => [],
                 'colors' => ['#3B82F6', '#EC4899'],
-                'total' => 0
+                'total' => 0,
             ]);
         }
     }
@@ -473,7 +473,7 @@ class StatisticsController extends Controller
             '26-35' => 0,
             '36-45' => 0,
             '46-55' => 0,
-            '>55' => 0
+            '>55' => 0,
         ];
 
         foreach ($ageData as $item) {
@@ -498,7 +498,7 @@ class StatisticsController extends Controller
             'data' => array_values($ageRanges),
             'total' => array_sum($ageRanges),
             'backgroundColor' => '#10B981',
-            'borderColor' => '#ffffff'
+            'borderColor' => '#ffffff',
         ]);
     }
 

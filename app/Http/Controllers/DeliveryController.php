@@ -1,34 +1,23 @@
 <?php
 
-
-
 namespace App\Http\Controllers;
 
-
-
-use App\Models\SampleTestProcess;
-
-use App\Models\TestRequest;
-
+use App\Models\CustomerSurvey;
 use App\Models\Delivery;
-
 use App\Models\Document;
-
-use Illuminate\Http\Request;
-
-use Barryvdh\DomPDF\Facade\Pdf;
-
+use App\Models\TestRequest;
 use App\Services\DocumentService;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-
-
+use Illuminate\Validation\Rule;
 
 class DeliveryController extends Controller
-
 {
     private function handoverBasePath(string $requestNumber): string
     {
         $sanitized = preg_replace('/[^A-Za-z0-9_-]+/', '_', $requestNumber);
+
         return base_path("output/BA_Penyerahan_Ringkasan_{$sanitized}");
     }
 
@@ -47,18 +36,16 @@ class DeliveryController extends Controller
                         $q->whereNotNull('completed_at')
                             ->whereIn('stage', ['preparation', 'instrumentation', 'interpretation']);
                     }]);
-            }
+            },
         ])
-        ->where(function($query) {
-            $query->where('status', 'ready_for_delivery')
-                  ->orWhere('request_number', 'REQ-2025-0005');
-        })
+            ->where(function ($query) {
+                $query->where('status', 'ready_for_delivery')
+                    ->orWhere('request_number', 'REQ-2025-0005');
+            })
     // Include suspect_name and receipt_number for display
-    ->select('id', 'request_number', 'receipt_number', 'investigator_id', 'suspect_name', 'status', 'completed_at')
-        ->orderByDesc('completed_at')
-        ->get();
-
-
+            ->select('id', 'request_number', 'receipt_number', 'investigator_id', 'suspect_name', 'status', 'completed_at')
+            ->orderByDesc('completed_at')
+            ->get();
 
         $deliveries = Delivery::with([
 
@@ -82,24 +69,17 @@ class DeliveryController extends Controller
 
             },
 
-            'items'
+            'items',
 
         ])
-
-        ->latest()
-
-        ->paginate(10);
-
-
+            ->latest()
+            ->paginate(10);
 
         return view('delivery.index', compact('requests', 'deliveries'));
 
     }
 
-
-
     public function show(TestRequest $request)
-
     {
 
         $request->load([
@@ -112,16 +92,16 @@ class DeliveryController extends Controller
 
             'evidenceUnits.remainingUnits', // Load data for labels
 
+            'customerSurvey',
+
         ]);
-
-
 
         $formatQuantity = static function ($value): ?string {
             if ($value === null || $value === '') {
                 return null;
             }
 
-            if (!is_numeric($value)) {
+            if (! is_numeric($value)) {
                 return trim((string) $value) ?: null;
             }
 
@@ -132,8 +112,6 @@ class DeliveryController extends Controller
             return $formatted === '' ? null : $formatted;
         };
 
-
-
         $appendUnit = static function (?string $quantity, ?string $unit): ?string {
             if ($quantity === null) {
                 return null;
@@ -141,20 +119,18 @@ class DeliveryController extends Controller
 
             $unit = $unit ? trim($unit) : '';
 
-            return $unit !== '' ? $quantity . ' ' . $unit : $quantity;
+            return $unit !== '' ? $quantity.' '.$unit : $quantity;
         };
-
-
 
         $request->samples->each(function ($sample) use ($formatQuantity, $appendUnit) {
             $deliveredQty = $sample->package_quantity;
             $testingQty = $sample->quantity;
 
-            if ($deliveredQty !== null && !is_numeric($deliveredQty)) {
+            if ($deliveredQty !== null && ! is_numeric($deliveredQty)) {
                 $deliveredQty = null;
             }
 
-            if ($testingQty !== null && !is_numeric($testingQty)) {
+            if ($testingQty !== null && ! is_numeric($testingQty)) {
                 $testingQty = null;
             }
 
@@ -184,8 +160,6 @@ class DeliveryController extends Controller
             $sample->setAttribute('leftover_quantity_display', $leftoverDisplay);
         });
 
-
-
         // Get or create delivery for this request
         $delivery = Delivery::firstOrCreate(
             ['request_id' => $request->id],
@@ -204,56 +178,104 @@ class DeliveryController extends Controller
             'stages' => [
                 'preparation' => 'Preparasi Sampel',
                 'instrumentation' => 'Pengujian Instrumen',
-                'interpretation' => 'Interpretasi Hasil'
+                'interpretation' => 'Interpretasi Hasil',
             ],
 
         ]);
 
     }
 
-
-
-
-
     public function surveyForm(TestRequest $request)
-
     {
 
-        return view('delivery.survey', compact('request'));
+        $request->loadMissing('customerSurvey');
+
+        $survey = $request->customerSurvey;
+        $isReadOnly = $request->status === 'completed';
+
+        return view('delivery.survey', compact('request', 'survey', 'isReadOnly'));
 
     }
 
-
-
     public function submitSurvey(Request $httpRequest, TestRequest $request)
-
     {
 
+        if ($request->status === 'completed') {
+            return back()->with('error', 'Penyerahan sudah selesai. Survei tidak dapat diubah.');
+        }
+
+        $jobCategories = [
+            'TNI',
+            'Polri',
+            'ASN',
+            'Swasta',
+            'Wirausaha',
+            'Mahasiswa',
+            'Siswa',
+        ];
+
+        $requestTypes = ['Kimia - Fisika', 'Mikrobiologi'];
+
         $validatedData = $httpRequest->validate([
-
-            'overall_satisfaction' => 'required|integer|min:1|max:5',
-
-            'service_quality' => 'required|integer|min:1|max:5',
-
-            'timeliness' => 'required|integer|min:1|max:5',
-
-            'staff_professionalism' => 'required|integer|min:1|max:5',
-
-            'comments' => 'nullable|string|max:1000',
-
-            'suggestions' => 'nullable|string|max:1000',
-
+            'respondent_name' => ['required', 'string', 'max:255'],
+            'respondent_job_title' => ['required', 'string', 'max:255'],
+            'respondent_institution' => ['required', 'string', 'max:255'],
+            'respondent_job_category' => ['required', Rule::in($jobCategories)],
+            'request_type' => ['required', Rule::in($requestTypes)],
+            'voluntary_statement' => ['accepted'],
+            'answers' => ['required', 'array'],
+            'answers.persyaratan' => ['required', 'integer', 'between:1,4'],
+            'answers.prosedur' => ['required', 'integer', 'between:1,4'],
+            'answers.ketepatan_waktu' => ['required', 'integer', 'between:1,4'],
+            'answers.kesesuaian_hasil' => ['required', 'integer', 'between:1,4'],
+            'answers.kompetensi' => ['required', 'integer', 'between:1,4'],
+            'answers.sikap' => ['required', 'integer', 'between:1,4'],
+            'answers.pengaduan' => ['required', 'integer', 'between:1,4'],
+            'answers.fasilitas' => ['required', 'integer', 'between:1,4'],
+            'suggestion' => ['required', 'string'],
+            'complaint' => ['nullable', 'string'],
+            'follow_up' => ['nullable', 'string'],
+        ], [
+            'respondent_name.required' => 'Nama responden wajib diisi.',
+            'respondent_job_title.required' => 'Pekerjaan responden wajib diisi.',
+            'respondent_institution.required' => 'Instansi responden wajib diisi.',
+            'respondent_job_category.required' => 'Kategori pekerjaan wajib dipilih.',
+            'respondent_job_category.in' => 'Kategori pekerjaan tidak valid.',
+            'request_type.required' => 'Jenis permintaan pengujian wajib dipilih.',
+            'request_type.in' => 'Jenis permintaan pengujian tidak valid.',
+            'voluntary_statement.accepted' => 'Pernyataan wajib disetujui.',
+            'answers.required' => 'Semua pertanyaan survei wajib diisi.',
+            'answers.*.required' => 'Semua pertanyaan survei wajib diisi.',
+            'answers.*.between' => 'Skor harus di antara 1 dan 4.',
+            'suggestion.required' => 'Saran/pesan/masukan wajib diisi.',
         ]);
 
+        $scoreAvg = collect($validatedData['answers'])
+            ->map(fn ($value) => (int) $value)
+            ->avg();
 
+        CustomerSurvey::updateOrCreate(
+            ['test_request_id' => $request->id],
+            [
+                'respondent_name' => $validatedData['respondent_name'],
+                'respondent_job_title' => $validatedData['respondent_job_title'],
+                'respondent_institution' => $validatedData['respondent_institution'],
+                'respondent_job_category' => $validatedData['respondent_job_category'],
+                'request_type' => $validatedData['request_type'],
+                'voluntary_statement' => true,
+                'answers' => $validatedData['answers'],
+                'suggestion' => $validatedData['suggestion'],
+                'complaint' => $validatedData['complaint'] ?? null,
+                'follow_up' => $validatedData['follow_up'] ?? null,
+                'score_avg' => $scoreAvg,
+                'submitted_at' => now(),
+                'submitted_by' => Auth::id(),
+            ]
+        );
 
-        \Illuminate\Support\Facades\Log::info('Survey submitted for request ' . $request->id, $validatedData);
+        return redirect()->route('delivery.show', $request)
 
-
-
-        return redirect()->route('delivery.index')
-
-            ->with('success', 'Terima kasih atas feedback Anda! Survey untuk permintaan ' . $request->request_number . ' telah tersimpan.');
+            ->with('success', 'Terima kasih atas feedback Anda! Survei untuk permintaan '.$request->request_number.' telah tersimpan.');
 
     }
 
@@ -268,10 +290,16 @@ class DeliveryController extends Controller
             return back()->withErrors(['error' => 'Semua sampel harus siap diserahkan terlebih dahulu.']);
         }
 
+        $request->loadMissing('customerSurvey');
+
+        if (! $request->customerSurvey || ! $request->customerSurvey->isComplete()) {
+            return back()->with('error', 'Survey kepuasan wajib diisi sebelum penyerahan ditandai selesai.');
+        }
+
         // Update status to completed
         $request->update([
             'status' => 'completed',
-            'completed_at' => now()
+            'completed_at' => now(),
         ]);
 
         return back()->with('success', 'Penyerahan berhasil diselesaikan. Status permintaan telah diperbarui.');
@@ -288,11 +316,11 @@ class DeliveryController extends Controller
             $outdir = base_path('output');
             $templates = base_path('templates');
 
-            if (!file_exists($script)) {
+            if (! file_exists($script)) {
                 return back()->with('error', 'Script generator BA Penyerahan tidak ditemukan.');
             }
 
-            if (!is_dir($outdir)) {
+            if (! is_dir($outdir)) {
                 @mkdir($outdir, 0755, true);
             }
 
@@ -308,7 +336,8 @@ class DeliveryController extends Controller
                     'gc_ms' => 'Identifikasi GC-MS',
                     'lc_ms' => 'Identifikasi LC-MS',
                 ];
-                return collect($methods)->map(fn($m) => $map[$m] ?? $m)->join('; ');
+
+                return collect($methods)->map(fn ($m) => $map[$m] ?? $m)->join('; ');
             };
 
             $formatQuantity = static function ($value): ?string {
@@ -316,7 +345,7 @@ class DeliveryController extends Controller
                     return null;
                 }
 
-                if (!is_numeric($value)) {
+                if (! is_numeric($value)) {
                     return trim((string) $value) ?: null;
                 }
 
@@ -327,8 +356,6 @@ class DeliveryController extends Controller
                 return $formatted === '' ? null : $formatted;
             };
 
-
-
             $appendUnit = static function (?string $quantity, ?string $unit): ?string {
                 if ($quantity === null) {
                     return null;
@@ -336,10 +363,8 @@ class DeliveryController extends Controller
 
                 $unit = $unit ? trim($unit) : '';
 
-                return $unit !== '' ? $quantity . ' ' . $unit : $quantity;
+                return $unit !== '' ? $quantity.' '.$unit : $quantity;
             };
-
-
 
             // Load test processes to get report numbers
             $request->samples->load('testProcesses');
@@ -349,8 +374,10 @@ class DeliveryController extends Controller
                 $interpProcess = $sample->testProcesses->where('stage', 'interpretation')->first();
                 if ($interpProcess) {
                     $metadata = $interpProcess->metadata ?? [];
+
                     return $metadata['report_number'] ?? null;
                 }
+
                 return null;
             })->filter()->unique()->values();
 
@@ -360,7 +387,7 @@ class DeliveryController extends Controller
             if ($sampleCodes->count() === 1) {
                 $sampleCodeRange = $sampleCodes->first();
             } elseif ($sampleCodes->count() > 1) {
-                $sampleCodeRange = $sampleCodes->first() . ' — ' . $sampleCodes->last();
+                $sampleCodeRange = $sampleCodes->first().' — '.$sampleCodes->last();
             }
 
             // Format report number range
@@ -368,7 +395,7 @@ class DeliveryController extends Controller
             if ($reportNumbers->count() === 1) {
                 $reportNoRange = $reportNumbers->first();
             } elseif ($reportNumbers->count() > 1) {
-                $reportNoRange = $reportNumbers->first() . ' — ' . $reportNumbers->last();
+                $reportNoRange = $reportNumbers->first().' — '.$reportNumbers->last();
             }
 
             $payload = [
@@ -378,11 +405,11 @@ class DeliveryController extends Controller
                 // for template compatibility: use case_number as 'request_basis' (nomor surat pada permintaan)
                 'request_basis' => $request->case_number ?? '',
                 'received_date' => $request->received_at ? $request->received_at->format('d F Y') : now()->format('d F Y'),
-                'customer_rank_name' => trim(($request->investigator->rank ?? '') . ' ' . ($request->investigator->name ?? '')),
+                'customer_rank_name' => trim(($request->investigator->rank ?? '').' '.($request->investigator->name ?? '')),
                 'customer_no' => $request->investigator->nrp ?? '',
                 'unit' => $request->investigator->jurisdiction ?? '',
                 'suspect_name' => $request->suspect_name ?? '',
-                'tests_summary' => $request->samples->map(fn($s) => $formatTestMethods($s->test_methods))->unique()->join('; '),
+                'tests_summary' => $request->samples->map(fn ($s) => $formatTestMethods($s->test_methods))->unique()->join('; '),
                 'sample_count' => $request->samples->count(),
                 'sample_code_range' => $sampleCodeRange,
                 'report_no_range' => $reportNoRange,
@@ -430,12 +457,12 @@ class DeliveryController extends Controller
                         'report_number' => $reportNumber,
                     ];
                 })->values()->toArray(),
-                'submitted_by' => trim(($request->investigator->rank ?? '') . ' ' . ($request->investigator->name ?? '')),
+                'submitted_by' => trim(($request->investigator->rank ?? '').' '.($request->investigator->name ?? '')),
                 'received_by' => 'Petugas Administrasi (dokumen) & Petugas Laboratorium (sampel)',
                 'source_printed_at' => $request->submitted_at ? $request->submitted_at->format('d F Y H:i:s') : '',
             ];
 
-            $tempDataFile = base_path('output/temp_ba_penyerahan_' . $request->request_number . '.json');
+            $tempDataFile = base_path('output/temp_ba_penyerahan_'.$request->request_number.'.json');
             file_put_contents($tempDataFile, json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
 
             $process = new \Symfony\Component\Process\Process([
@@ -447,12 +474,12 @@ class DeliveryController extends Controller
                 '--outdir', $outdir,
                 '--logo-tribrata', public_path('images/logo-tribrata-polri.png'),
                 '--logo-pusdokkes', public_path('images/logo-pusdokkes-polri.png'),
-                '--pdf'
+                '--pdf',
             ]);
             $process->setTimeout(120);
             $process->run();
 
-            if (!$process->isSuccessful()) {
+            if (! $process->isSuccessful()) {
                 \Illuminate\Support\Facades\Log::error('Generate BA Penyerahan gagal', [
                     'exit_code' => $process->getExitCode(),
                     'stdout' => $process->getOutput(),
@@ -460,17 +487,24 @@ class DeliveryController extends Controller
                 ]);
                 // Trim long stderr for flash
                 $err = trim($process->getErrorOutput());
-                $msg = 'Gagal generate Berita Acara Penyerahan.' . ($err ? ' Detail: ' . mb_strimwidth($err, 0, 300, '…') : '');
+                $msg = 'Gagal generate Berita Acara Penyerahan.'.($err ? ' Detail: '.mb_strimwidth($err, 0, 300, '…') : '');
                 // Clean up temp file
-                if (file_exists($tempDataFile)) { @unlink($tempDataFile); }
+                if (file_exists($tempDataFile)) {
+                    @unlink($tempDataFile);
+                }
+
                 return back()->with('error', $msg);
             }
 
-            if (file_exists($tempDataFile)) { @unlink($tempDataFile); }
+            if (file_exists($tempDataFile)) {
+                @unlink($tempDataFile);
+            }
+
             return back()->with('success', 'Berita Acara Penyerahan (ringkasan) berhasil dibuat di folder output.');
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('Exception generate BA Penyerahan', ['error' => $e->getMessage()]);
-            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+
+            return back()->with('error', 'Terjadi kesalahan: '.$e->getMessage());
         }
     }
 
@@ -485,26 +519,31 @@ class DeliveryController extends Controller
 
         // render blade BA yang sudah kamu buat
         $html = view('pdf.ba-penyerahan', [
-            'request'     => $req,
+            'request' => $req,
             'generatedAt' => now(),
         ])->render();
 
-        // arsip HTML
-        $docs->storeGenerated($html, 'html', $inv, $req, 'ba_penyerahan_html', 'BA-Penyerahan-'.$req->request_number);
+        $base = 'BA-Penyerahan-'.$req->request_number;
+
+        // arsip HTML (replace existing to avoid duplication)
+        $docs->storeGenerated($html, 'html', $inv, $req, 'ba_penyerahan_html', $base, replaceExisting: true);
 
         // HTML → PDF
         $pdf = Pdf::loadHTML($html)->setPaper('a4')
             ->setOption('isRemoteEnabled', true)->setOption('isHtml5ParserEnabled', true)
             ->setOption('dpi', 96)->output();
 
-        // arsip PDF
-        $docs->storeGenerated($pdf, 'pdf', $inv, $req, 'ba_penyerahan', 'BA-Penyerahan-'.$req->request_number);
+        // arsip PDF (replace existing to avoid duplication)
+        $docs->storeGenerated($pdf, 'pdf', $inv, $req, 'ba_penyerahan', $base, replaceExisting: true);
 
         return back()->with('success', 'BA Penyerahan dibuat & disimpan di storage publik.');
     }
 
     /**
      * View BA Penyerahan inline (GET)
+     *
+     * This method only views existing document or generates on-the-fly without storing.
+     * To store a new document, use handoverGenerate().
      */
     public function handoverView(Delivery $delivery, DocumentService $docs)
     {
@@ -512,18 +551,32 @@ class DeliveryController extends Controller
         $req = $delivery->request;
         $inv = $req->investigator;
 
-        // Render HTML
+        // Check if PDF already exists - if so, serve it directly
+        $existingPdf = $docs->getExistingGenerated($req, 'ba_penyerahan');
+        if ($existingPdf && $docs->fileExists($existingPdf)) {
+            $filePath = $docs->getFilePath($existingPdf);
+
+            if (request()->boolean('download')) {
+                return response()->download(
+                    $filePath,
+                    $existingPdf->filename,
+                    ['Content-Type' => 'application/pdf']
+                );
+            }
+
+            return response()->file($filePath, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="'.$existingPdf->filename.'"',
+            ]);
+        }
+
+        // No existing PDF - generate on-the-fly WITHOUT storing (view only)
         $html = view('pdf.ba-penyerahan', [
-            'request'     => $req,
+            'request' => $req,
             'generatedAt' => now(),
         ])->render();
 
-        $base = 'BA-Penyerahan-' . $req->request_number;
-
-        // Simpan HTML
-        $docs->storeGenerated($html, 'html', $inv, $req, 'ba_penyerahan_html', $base);
-
-        // Konversi PDF dan simpan
+        // Konversi PDF (tanpa menyimpan)
         $pdf = Pdf::loadHTML($html)
             ->setPaper('a4')
             ->setOption('isRemoteEnabled', true)
@@ -531,20 +584,19 @@ class DeliveryController extends Controller
             ->setOption('dpi', 96)
             ->output();
 
-        $doc = $docs->storeGenerated($pdf, 'pdf', $inv, $req, 'ba_penyerahan', $base);
+        $filename = 'BA-Penyerahan-'.$req->request_number.'.pdf';
 
-        // Tampilkan
         if (request()->boolean('download')) {
-            return response()->download(
-                storage_path('app/public/' . $doc->path),
-                $doc->filename,
-                ['Content-Type' => 'application/pdf']
-            );
+            return response($pdf, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+                'Content-Length' => strlen($pdf),
+            ]);
         }
 
         return response($pdf, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="' . $doc->filename . '"',
+            'Content-Disposition' => 'inline; filename="'.$filename.'"',
         ]);
     }
 
@@ -578,19 +630,16 @@ class DeliveryController extends Controller
             'request_number' => $request->request_number,
             'html' => [
                 'exists' => $htmlDoc !== null,
-                'path' => $htmlDoc ? storage_path('app/public/' . $htmlDoc->path) : null,
+                'path' => $htmlDoc ? storage_path('app/public/'.$htmlDoc->path) : null,
                 'mtime' => $htmlDoc ? $htmlDoc->created_at->toIso8601String() : null,
             ],
             'pdf' => [
                 'exists' => $pdfDoc !== null,
-                'path' => $pdfDoc ? storage_path('app/public/' . $pdfDoc->path) : null,
+                'path' => $pdfDoc ? storage_path('app/public/'.$pdfDoc->path) : null,
                 'mtime' => $pdfDoc ? $pdfDoc->created_at->toIso8601String() : null,
             ],
         ];
 
         return response()->json($status);
     }
-
-
-
 }

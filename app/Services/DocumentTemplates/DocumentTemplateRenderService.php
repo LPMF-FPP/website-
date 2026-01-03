@@ -80,7 +80,7 @@ class DocumentTemplateRenderService
             ->setOption('isRemoteEnabled', $options['isRemoteEnabled'] ?? false)
             ->setOption('isHtml5ParserEnabled', true);
 
-        if (!empty($options['orientation']) && $options['orientation'] === 'landscape') {
+        if (! empty($options['orientation']) && $options['orientation'] === 'landscape') {
             $pdf->setPaper('a4', 'landscape');
         }
 
@@ -94,22 +94,22 @@ class DocumentTemplateRenderService
         $head .= '<meta name="viewport" content="width=device-width, initial-scale=1.0">';
         $head .= '<style>body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:12px;}table{width:100%;border-collapse:collapse;}th,td{padding:4px;}</style>';
 
-        if (!empty($css)) {
+        if (! empty($css)) {
             $head .= "<style>{$css}</style>";
         }
 
-        if (!empty($options['head_html'])) {
+        if (! empty($options['head_html'])) {
             $head .= $options['head_html'];
         }
 
-        return '<!DOCTYPE html><html><head>' . $head . '</head><body>' . $bodyHtml . '</body></html>';
+        return '<!DOCTYPE html><html><head>'.$head.'</head><body>'.$bodyHtml.'</body></html>';
     }
 
     private function sanitizeHtml(string $html): string
     {
         $document = new DOMDocument('1.0', 'UTF-8');
         libxml_use_internal_errors(true);
-        $document->loadHTML('<?xml encoding="utf-8" ?>' . $html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+        $document->loadHTML('<?xml encoding="utf-8" ?>'.$html, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
 
         // Remove script tags
         while (($scripts = $document->getElementsByTagName('script')) && $scripts->length > 0) {
@@ -166,12 +166,12 @@ class DocumentTemplateRenderService
         }
 
         if (Str::startsWith($value, '//')) {
-            $value = 'https:' . $value;
+            $value = 'https:'.$value;
         }
 
         if (Str::startsWith(strtolower($value), 'http')) {
             $host = parse_url($value, PHP_URL_HOST);
-            if ($host === null || !in_array($host, $this->allowedHosts, true)) {
+            if ($host === null || ! in_array($host, $this->allowedHosts, true)) {
                 return null;
             }
 
@@ -181,10 +181,10 @@ class DocumentTemplateRenderService
         $base = rtrim(config('app.url'), '/');
 
         if (Str::startsWith($value, '/')) {
-            return $base . $value;
+            return $base.$value;
         }
 
-        return $base . '/' . ltrim($value, './');
+        return $base.'/'.ltrim($value, './');
     }
 
     private function buildAllowedHosts(): array

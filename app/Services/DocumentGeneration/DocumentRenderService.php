@@ -6,8 +6,8 @@ use App\Enums\DocumentFormat;
 use App\Enums\DocumentType;
 use App\Models\DocumentTemplate;
 use App\Repositories\DocumentTemplateRepository;
-use App\Services\DocumentTemplates\DocumentTemplateRenderService;
 use App\Services\DocumentGeneration\Contracts\DocumentContextResolver;
+use App\Services\DocumentTemplates\DocumentTemplateRenderService;
 use App\Support\Audit;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
@@ -20,8 +20,7 @@ class DocumentRenderService
     public function __construct(
         private readonly DocumentTemplateRepository $templateRepository,
         private readonly DocumentTemplateRenderService $templateRenderService
-    ) {
-    }
+    ) {}
 
     /**
      * Register a context resolver for a document type
@@ -34,11 +33,9 @@ class DocumentRenderService
     /**
      * Render a document with given context
      *
-     * @param DocumentType $type
-     * @param mixed $contextId
-     * @param DocumentFormat|null $format
-     * @param array $options Additional rendering options
-     * @return RenderedDocument
+     * @param  mixed  $contextId
+     * @param  array  $options  Additional rendering options
+     *
      * @throws \Exception
      */
     public function render(
@@ -104,6 +101,7 @@ class DocumentRenderService
     private function resolveContext(DocumentType $type, $contextId): array
     {
         $resolver = $this->getResolver($type);
+
         return $resolver->resolve($contextId);
     }
 
@@ -134,8 +132,8 @@ class DocumentRenderService
      */
     private function getResolver(DocumentType $type): DocumentContextResolver
     {
-        if (!isset($this->resolvers[$type->value])) {
-            throw new \InvalidArgumentException("No context resolver registered for document type: {$type->value}. Available types: " . implode(', ', array_keys($this->resolvers)));
+        if (! isset($this->resolvers[$type->value])) {
+            throw new \InvalidArgumentException("No context resolver registered for document type: {$type->value}. Available types: ".implode(', ', array_keys($this->resolvers)));
         }
 
         return $this->resolvers[$type->value];
@@ -148,7 +146,7 @@ class DocumentRenderService
     {
         $template = $this->templateRepository->getActiveTemplate($type, $format);
 
-        if (!$template) {
+        if (! $template) {
             Log::warning("No active template found for {$type->value}/{$format->value}, will use legacy fallback");
         }
 
@@ -166,10 +164,10 @@ class DocumentRenderService
 
         // Render legacy view
         $viewName = $type->legacyView();
-        if (!$viewName) {
+        if (! $viewName) {
             throw new \InvalidArgumentException("No template uploaded and no legacy view configured for document type: {$type->value}");
         }
-        if (!View::exists($viewName)) {
+        if (! View::exists($viewName)) {
             throw new \InvalidArgumentException("Legacy view '{$viewName}' does not exist for document type: {$type->value}");
         }
         try {
@@ -229,7 +227,7 @@ class DocumentRenderService
     {
         // Note: DOCX generation is not implemented in current codebase
         // This is a placeholder for future implementation
-        throw new \Exception("DOCX rendering is not yet implemented");
+        throw new \Exception('DOCX rendering is not yet implemented');
     }
 
     /**
@@ -239,10 +237,10 @@ class DocumentRenderService
     {
         $timestamp = now()->format('YmdHis');
         $typeName = str_replace('_', '-', $type->value);
-        
+
         // Try to get request number or other identifier from context
-        $identifier = $context['request_number'] 
-            ?? $context['request']?->request_number 
+        $identifier = $context['request_number']
+            ?? $context['request']?->request_number
             ?? $context['process']?->sample?->testRequest?->request_number
             ?? 'PREVIEW';
 

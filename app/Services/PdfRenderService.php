@@ -10,8 +10,8 @@ class PdfRenderService
     /**
      * Convert HTML to PDF using Dompdf.
      *
-     * @param string $html The HTML content to convert
-     * @param string|null $baseUrl Base URL for resolving relative paths (optional)
+     * @param  string  $html  The HTML content to convert
+     * @param  string|null  $baseUrl  Base URL for resolving relative paths (optional)
      * @return string PDF binary content
      */
     public function htmlToPdf(string $html, ?string $baseUrl = null): string
@@ -45,8 +45,8 @@ class PdfRenderService
     /**
      * Convert HTML to PDF with custom options.
      *
-     * @param string $html The HTML content to convert
-     * @param array $options Custom options for Dompdf
+     * @param  string  $html  The HTML content to convert
+     * @param  array  $options  Custom options for Dompdf
      * @return string PDF binary content
      */
     public function htmlToPdfWithOptions(string $html, array $options = []): string
@@ -95,16 +95,16 @@ class PdfRenderService
 
     private function applyBaseUrl(string $html, ?string $baseUrl): string
     {
-        if (!$baseUrl) {
+        if (! $baseUrl) {
             return $html;
         }
 
-        $baseTag = '<base href="' . rtrim($baseUrl, '/') . '/">';
+        $baseTag = '<base href="'.rtrim($baseUrl, '/').'/">';
 
         if (stripos($html, '<head') !== false) {
-            return preg_replace('/<head(\s*[^>]*)>/i', '<head$1>' . $baseTag, $html, 1) ?? $html;
+            return preg_replace('/<head(\s*[^>]*)>/i', '<head$1>'.$baseTag, $html, 1) ?? $html;
         }
 
-        return '<!DOCTYPE html><html><head>' . $baseTag . '</head><body>' . $html . '</body></html>';
+        return '<!DOCTYPE html><html><head>'.$baseTag.'</head><body>'.$html.'</body></html>';
     }
 }

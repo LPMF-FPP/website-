@@ -98,6 +98,13 @@
                             class="w-full text-left px-4 py-3 rounded-lg transition-colors text-sm">
                             Manajemen Dokumen
                         </button>
+
+                        <button 
+                            @click="activeSection = 'iku'" 
+                            :class="activeSection === 'iku' ? 'bg-gray-200 text-gray-900 font-medium' : 'bg-white text-gray-700 hover:bg-gray-50'"
+                            class="w-full text-left px-4 py-3 rounded-lg transition-colors text-sm">
+                            Perhitungan IKU
+                        </button>
                     </nav>
                 </div>
             </div>
@@ -135,6 +142,10 @@
 
                 <div x-show="activeSection === 'documents'">
                     @include('settings.partials.documents')
+                </div>
+
+                <div x-show="activeSection === 'iku'">
+                    @include('settings.partials.iku')
                 </div>
             </div>
 

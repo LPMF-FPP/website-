@@ -15,20 +15,20 @@ return new class extends Migration
             }
 
             // Add render_engine column if not exists
-            if (!Schema::hasColumn('document_templates', 'render_engine')) {
+            if (! Schema::hasColumn('document_templates', 'render_engine')) {
                 $table->string('render_engine')
                     ->default(DocumentRenderEngine::DOMPDF->value)
                     ->after('storage_path');
             }
 
             // Add content columns if not exist
-            if (!Schema::hasColumn('document_templates', 'content_html')) {
+            if (! Schema::hasColumn('document_templates', 'content_html')) {
                 $table->longText('content_html')->nullable()->after('storage_path');
             }
-            if (!Schema::hasColumn('document_templates', 'content_css')) {
+            if (! Schema::hasColumn('document_templates', 'content_css')) {
                 $table->longText('content_css')->nullable()->after('content_html');
             }
-            if (!Schema::hasColumn('document_templates', 'editor_project')) {
+            if (! Schema::hasColumn('document_templates', 'editor_project')) {
                 $table->json('editor_project')->nullable()->after('content_css');
             }
         });
@@ -39,7 +39,7 @@ return new class extends Migration
         Schema::table('document_templates', function (Blueprint $table) {
             // Drop columns added in this migration
             $columnsToDrop = [];
-            
+
             if (Schema::hasColumn('document_templates', 'render_engine')) {
                 $columnsToDrop[] = 'render_engine';
             }
@@ -52,8 +52,8 @@ return new class extends Migration
             if (Schema::hasColumn('document_templates', 'editor_project')) {
                 $columnsToDrop[] = 'editor_project';
             }
-            
-            if (!empty($columnsToDrop)) {
+
+            if (! empty($columnsToDrop)) {
                 $table->dropColumn($columnsToDrop);
             }
 

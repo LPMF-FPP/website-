@@ -2,7 +2,6 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -15,7 +14,7 @@ return new class extends Migration
         if ($driver === 'sqlite') {
             return;
         }
-        
+
         // Drop old constraint
         DB::statement('ALTER TABLE documents DROP CONSTRAINT IF EXISTS documents_document_type_check');
 
@@ -27,9 +26,9 @@ return new class extends Migration
             'request_letter_receipt',
             // Add new types for investigator uploads
             'request_letter', 'sample_photo', 'evidence_photo',
-            'test_result', 'lhu', 'ba_penyerahan', 'ba_penerimaan', 'other'
+            'test_result', 'lhu', 'ba_penyerahan', 'ba_penerimaan', 'other',
         ]);
-        
+
         DB::statement("ALTER TABLE documents ADD CONSTRAINT documents_document_type_check CHECK (document_type IN ('{$allowedTypes}'))");
     }
 
@@ -42,17 +41,17 @@ return new class extends Migration
         if ($driver === 'sqlite') {
             return;
         }
-        
+
         // Revert to previous constraint
         DB::statement('ALTER TABLE documents DROP CONSTRAINT IF EXISTS documents_document_type_check');
-        
+
         $allowedTypes = implode("','", [
             'lab_report', 'cover_letter', 'handover_report',
             'sample_receipt', 'report_receipt', 'letter_receipt',
             'sample_handover', 'test_results', 'qr_code',
-            'request_letter_receipt'
+            'request_letter_receipt',
         ]);
-        
+
         DB::statement("ALTER TABLE documents ADD CONSTRAINT documents_document_type_check CHECK (document_type IN ('{$allowedTypes}'))");
     }
 };

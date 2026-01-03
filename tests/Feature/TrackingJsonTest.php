@@ -2,10 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\TestRequest;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
-use App\Models\TestRequest;
-use App\Models\Investigator; // adjust if different namespace
+
+// adjust if different namespace
 
 class TrackingJsonTest extends TestCase
 {
@@ -27,7 +28,7 @@ class TrackingJsonTest extends TestCase
             'status' => 'in_testing',
         ]);
 
-        $this->getJson('/track/' . $request->request_number . '.json')
+        $this->getJson('/track/'.$request->request_number.'.json')
             ->assertOk()
             ->assertJsonStructure([
                 'request_number',
@@ -35,10 +36,10 @@ class TrackingJsonTest extends TestCase
                 'current_stage_index',
                 'progress_percent',
                 'stages' => [
-                    ['index','key','label','icon','status','timestamp'],
-                    ['index','key','label','icon','status','timestamp'],
-                    ['index','key','label','icon','status','timestamp'],
-                    ['index','key','label','icon','status','timestamp'],
+                    ['index', 'key', 'label', 'icon', 'status', 'timestamp'],
+                    ['index', 'key', 'label', 'icon', 'status', 'timestamp'],
+                    ['index', 'key', 'label', 'icon', 'status', 'timestamp'],
+                    ['index', 'key', 'label', 'icon', 'status', 'timestamp'],
                 ],
                 'last_updated',
             ]);

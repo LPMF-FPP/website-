@@ -20,7 +20,7 @@ class DebugDocProbeTest extends TestCase
 
         // Assert response is successful
         $response->assertStatus(200);
-        
+
         // Assert JSON structure
         $response->assertJsonStructure([
             'success',
@@ -45,7 +45,7 @@ class DebugDocProbeTest extends TestCase
         // Verify file exists in storage
         $disk = Storage::disk('public');
         $this->assertTrue($disk->exists('investigators/__probe_route.txt'));
-        
+
         // Verify content contains expected data
         $content = $disk->get('investigators/__probe_route.txt');
         $this->assertStringContainsString('Probe timestamp:', $content);
@@ -57,7 +57,7 @@ class DebugDocProbeTest extends TestCase
     {
         $user = User::factory()->create();
         $disk = Storage::disk('public');
-        
+
         // Delete folder if exists (for clean test)
         if ($disk->exists('investigators/__probe_route.txt')) {
             $disk->delete('investigators/__probe_route.txt');
@@ -65,11 +65,11 @@ class DebugDocProbeTest extends TestCase
 
         // Call the probe route
         $response = $this->actingAs($user)->get('/debug/doc-probe');
-        
+
         // Assert folder was created
         $response->assertStatus(200);
         $response->assertJson(['folder_exists' => true]);
-        
+
         // Verify folder exists
         $this->assertTrue($disk->exists('investigators'));
     }
@@ -78,15 +78,15 @@ class DebugDocProbeTest extends TestCase
     {
         $user = User::factory()->create();
         $response = $this->actingAs($user)->get('/debug/doc-probe');
-        
+
         $response->assertStatus(200);
-        
+
         $data = $response->json();
-        
+
         // Verify root matches config
         $expectedRoot = config('filesystems.disks.public.root');
         $this->assertEquals($expectedRoot, $data['root']);
-        
+
         // Verify full_path is constructed correctly
         $this->assertStringContainsString('investigators', $data['full_path']);
         $this->assertStringContainsString('__probe_route.txt', $data['full_path']);

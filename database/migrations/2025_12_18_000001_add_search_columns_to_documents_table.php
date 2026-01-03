@@ -9,19 +9,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('documents', function (Blueprint $table) {
-            if (!Schema::hasColumn('documents', 'doc_type')) {
+            if (! Schema::hasColumn('documents', 'doc_type')) {
                 $table->string('doc_type')->nullable()->after('document_type');
             }
-            if (!Schema::hasColumn('documents', 'ba_no')) {
+            if (! Schema::hasColumn('documents', 'ba_no')) {
                 $table->string('ba_no')->nullable()->after('doc_type');
             }
-            if (!Schema::hasColumn('documents', 'title')) {
+            if (! Schema::hasColumn('documents', 'title')) {
                 $table->string('title')->nullable()->after('ba_no');
             }
-            if (!Schema::hasColumn('documents', 'lp_no')) {
+            if (! Schema::hasColumn('documents', 'lp_no')) {
                 $table->string('lp_no')->nullable()->after('title');
             }
-            if (!Schema::hasColumn('documents', 'doc_date')) {
+            if (! Schema::hasColumn('documents', 'doc_date')) {
                 $table->date('doc_date')->nullable()->after('lp_no');
             }
         });

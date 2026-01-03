@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\SampleStatus;
+use App\Enums\TestMethod;
+use App\Enums\TestProcessStage;
 use App\Models\Sample;
 use App\Models\SampleTestProcess;
 use App\Models\TestRequest;
 use App\Models\User;
-use App\Enums\SampleStatus;
-use App\Enums\TestMethod;
-use App\Enums\TestProcessStage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -36,12 +36,12 @@ class SampleTestController extends Controller
 
             // Jika request terpilih sudah tidak berada di status yang diizinkan (sudah berpindah proses),
             // kosongkan agar otomatis memilih request pertama yang valid.
-            if ($selectedRequest && !in_array($selectedRequest->status, $allowedStatusesForForm, true)) {
+            if ($selectedRequest && ! in_array($selectedRequest->status, $allowedStatusesForForm, true)) {
                 $selectedRequest = null;
             }
         }
 
-        if (!$selectedRequest && $requests->isNotEmpty()) {
+        if (! $selectedRequest && $requests->isNotEmpty()) {
             $selectedRequestId = $requests->first()->id;
             $selectedRequest = $this->loadRequestWithSamples($selectedRequestId);
         }
@@ -70,7 +70,7 @@ class SampleTestController extends Controller
             'samples.*.id' => ['required', 'exists:samples,id'],
             'samples.*.assigned_analyst_id' => ['required', 'exists:users,id'],
             'samples.*.test_methods' => ['required', 'array', 'min:1'],
-            'samples.*.test_methods.*' => ['string', Rule::in(array_map(fn($method) => $method->value, TestMethod::cases()))],
+            'samples.*.test_methods.*' => ['string', Rule::in(array_map(fn ($method) => $method->value, TestMethod::cases()))],
             'samples.*.physical_identification' => ['required', 'string'],
             'samples.*.quantity' => ['required', 'numeric', 'min:0.01'],
             // quantity_unit is now optional - server will use sample.unit from database
@@ -88,8 +88,6 @@ class SampleTestController extends Controller
 
         $firstSampleId = $validated['samples'][0]['id'] ?? null;
 
-
-
         DB::transaction(function () use ($validated) {
             foreach ($validated['samples'] as $index => $sampleData) {
                 $sample = Sample::where('id', $sampleData['id'])
@@ -100,7 +98,7 @@ class SampleTestController extends Controller
                 $otherCategory = $sampleData['other_sample_category'] ?? null;
 
                 if ($sample->sample_type === 'other') {
-                    if (!$otherCategory) {
+                    if (! $otherCategory) {
                         throw ValidationException::withMessages([
                             "samples.$index.other_sample_category" => 'Pilih kategori sampel untuk jenis lainnya.',
                         ]);
@@ -149,7 +147,7 @@ class SampleTestController extends Controller
                     }
 
                     // If instrumentation has an assigned analyst, mark it started.
-                    if ($stage === TestProcessStage::INSTRUMENTATION && !empty($createAttrs['performed_by'])) {
+                    if ($stage === TestProcessStage::INSTRUMENTATION && ! empty($createAttrs['performed_by'])) {
                         $createAttrs['started_at'] = $createAttrs['started_at'] ?? now();
                     }
 
@@ -174,14 +172,14 @@ class SampleTestController extends Controller
 
     protected function loadRequestWithSamples(?int $requestId): ?TestRequest
     {
-        if (!$requestId) {
+        if (! $requestId) {
             return null;
         }
 
         return TestRequest::with(['samples' => function ($query) {
             // Hanya muat sampel yang belum ready_for_delivery
             $query->where('status', '!=', SampleStatus::READY_FOR_DELIVERY->value)
-                  ->orderBy('id');
+                ->orderBy('id');
         }])->find($requestId);
     }
 }

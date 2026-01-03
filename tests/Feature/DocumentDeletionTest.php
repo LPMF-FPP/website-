@@ -2,21 +2,22 @@
 
 namespace Tests\Feature;
 
-use Tests\TestCase;
-use App\Models\User;
-use App\Models\TestRequest;
 use App\Models\Document;
 use App\Models\Investigator;
+use App\Models\TestRequest;
+use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Http\UploadedFile;
+use Tests\TestCase;
 
 class DocumentDeletionTest extends TestCase
 {
     use DatabaseTransactions;
 
     protected $user;
+
     protected $testRequest;
+
     protected $document;
 
     protected function setUp(): void
@@ -124,7 +125,7 @@ class DocumentDeletionTest extends TestCase
     public function can_delete_all_document_types()
     {
         $documentTypes = ['sample_receipt', 'handover_report', 'request_letter_receipt'];
-        
+
         foreach ($documentTypes as $type) {
             $filePath = "receipts/test/{$type}.pdf";
             Storage::disk('documents')->put($filePath, 'fake content');

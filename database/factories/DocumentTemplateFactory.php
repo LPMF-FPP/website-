@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Enums\DocumentFormat;
 use App\Enums\DocumentRenderEngine;
 use App\Enums\DocumentType;
 use App\Models\DocumentTemplate;
@@ -17,14 +16,14 @@ class DocumentTemplateFactory extends Factory
     {
         $type = fake()->randomElement(DocumentType::cases());
         $format = fake()->randomElement($type->supportedFormats());
-        $code = strtoupper("{$type->value}_{$format->value}_" . fake()->unique()->lexify('???'));
-        
+        $code = strtoupper("{$type->value}_{$format->value}_".fake()->unique()->lexify('???'));
+
         return [
             'code' => $code,
             'type' => $type,
             'format' => $format,
             'name' => fake()->words(3, true),
-            'storage_path' => "templates/{$type->value}/{$format->value}/" . Str::slug(fake()->words(2, true)) . ".{$format->value}",
+            'storage_path' => "templates/{$type->value}/{$format->value}/".Str::slug(fake()->words(2, true)).".{$format->value}",
             'content_html' => '<div class="doc-template"><h1>{{ $title ?? "Dokumen Contoh" }}</h1></div>',
             'content_css' => 'body { font-family: Arial, sans-serif; }',
             'editor_project' => json_encode([

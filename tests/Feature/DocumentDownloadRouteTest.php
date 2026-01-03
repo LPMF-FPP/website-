@@ -17,17 +17,18 @@ class DocumentDownloadRouteTest extends TestCase
     use DatabaseTransactions;
 
     protected DocumentService $documentService;
+
     protected User $user;
 
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Use real disk for this test since we're testing actual file download
         Storage::fake('public');
         $this->documentService = app(DocumentService::class);
         $this->user = User::factory()->create();
-        
+
         // Bypass Gate authorization for testing
         \Illuminate\Support\Facades\Gate::before(function () {
             return true;
@@ -99,14 +100,14 @@ class DocumentDownloadRouteTest extends TestCase
 
         // Create a generated document
         $pdfBinary = "%PDF-1.7\n%Test PDF Content for Download";
-        
+
         $document = $this->documentService->storeGenerated(
             $pdfBinary,
             'pdf',
             $investigator,
             $testRequest,
             'lhu',
-            'LHU-' . $testRequest->request_number
+            'LHU-'.$testRequest->request_number
         );
 
         // Verify file was stored
@@ -130,7 +131,7 @@ class DocumentDownloadRouteTest extends TestCase
 
         // Assert: Verify file exists in storage
         $this->assertTrue(Storage::disk('public')->exists($document->path));
-        
+
         // Assert: Verify content
         $storedContent = Storage::disk('public')->get($document->path);
         $this->assertEquals($pdfBinary, $storedContent);
@@ -165,7 +166,7 @@ class DocumentDownloadRouteTest extends TestCase
             'user_id' => $this->user->id,
         ]);
 
-        $binaryContent = "This is test content with specific size: " . str_repeat("A", 100);
+        $binaryContent = 'This is test content with specific size: '.str_repeat('A', 100);
         $document = $this->documentService->storeGenerated(
             $binaryContent,
             'txt',
@@ -184,7 +185,7 @@ class DocumentDownloadRouteTest extends TestCase
 
         // Assert
         $response->assertStatus(200);
-        
+
         // Verify file size matches
         $this->assertEquals(strlen($binaryContent), $document->file_size);
         $this->assertEquals($document->file_size, Storage::disk('public')->size($document->path));
@@ -197,7 +198,7 @@ class DocumentDownloadRouteTest extends TestCase
             'investigator.documents.download',
             ['document' => 999999]
         );
-        
+
         $response = $this->actingAs($this->user)->get($signedUrl);
 
         // Assert

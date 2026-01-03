@@ -3,8 +3,8 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
+use Symfony\Component\Process\Process;
 
 class GenerateBeritaAcara extends Command
 {
@@ -38,9 +38,10 @@ class GenerateBeritaAcara extends Command
 
         // Path ke Python script
         $scriptPath = base_path('scripts/generate_berita_acara.py');
-        
-        if (!file_exists($scriptPath)) {
+
+        if (! file_exists($scriptPath)) {
             $this->error("Script generator tidak ditemukan: {$scriptPath}");
+
             return Command::FAILURE;
         }
 
@@ -63,24 +64,24 @@ class GenerateBeritaAcara extends Command
         // Execute Python script
         try {
             $this->line('Running generator...');
-            
+
             $process = new Process($command);
             $process->setTimeout(60); // 60 seconds timeout
             $process->run(function ($type, $buffer) {
-                if (Process::OUT === $type) {
+                if ($type === Process::OUT) {
                     $this->line($buffer);
                 } else {
                     $this->error($buffer);
                 }
             });
 
-            if (!$process->isSuccessful()) {
+            if (! $process->isSuccessful()) {
                 throw new ProcessFailedException($process);
             }
 
             $this->newLine();
             $this->info('✓ Berita Acara berhasil dibuat!');
-            $this->line("Output folder: " . base_path('output'));
+            $this->line('Output folder: '.base_path('output'));
 
             return Command::SUCCESS;
 
@@ -91,7 +92,7 @@ class GenerateBeritaAcara extends Command
             $this->warn('Pastikan Python 3 sudah terinstall dan tersedia di PATH');
             $this->warn('Install dependencies: pip install jinja2');
             $this->warn('Untuk PDF: pip install weasyprint (butuh GTK3 runtime di Windows)');
-            
+
             return Command::FAILURE;
         }
     }

@@ -8,9 +8,7 @@ use Illuminate\Support\Facades\Mail;
 
 class NotificationTestService
 {
-    public function __construct(private readonly WhatsAppService $whatsapp)
-    {
-    }
+    public function __construct(private readonly WhatsAppService $whatsapp) {}
 
     /**
      * Send a test notification via the specified channel.
@@ -24,7 +22,7 @@ class NotificationTestService
             'whatsapp' => $this->sendWhatsApp($target, $message),
             default => [
                 'status' => 'failed',
-                'message' => 'Unsupported notification channel: ' . $channel,
+                'message' => 'Unsupported notification channel: '.$channel,
             ],
         };
     }
@@ -36,7 +34,7 @@ class NotificationTestService
     {
         try {
             $body = $message ?: 'Tes notifikasi LIMS - Email berfungsi dengan baik.';
-            
+
             Mail::to($target)->send(new TestNotificationMail($body));
 
             // Fallback to log if mail driver is 'log'
@@ -60,7 +58,7 @@ class NotificationTestService
 
             return [
                 'status' => 'failed',
-                'message' => 'Gagal mengirim email: ' . $e->getMessage(),
+                'message' => 'Gagal mengirim email: '.$e->getMessage(),
             ];
         }
     }
@@ -84,7 +82,7 @@ class NotificationTestService
 
             return [
                 'status' => 'failed',
-                'message' => 'Gagal mengirim WhatsApp: ' . $e->getMessage(),
+                'message' => 'Gagal mengirim WhatsApp: '.$e->getMessage(),
             ];
         }
     }

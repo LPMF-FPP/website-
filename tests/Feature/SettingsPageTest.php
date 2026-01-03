@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\User;
 use App\Models\SystemSetting;
+use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 
 uses(DatabaseTransactions::class);
@@ -43,7 +43,7 @@ test('preview endpoint returns example number', function () {
                 'pattern' => 'LHU/{YYYY}/{SEQ:5}',
                 'reset' => 'monthly',
                 'start_from' => 1,
-            ]
+            ],
         ]]
     );
     settings_forget_cache();

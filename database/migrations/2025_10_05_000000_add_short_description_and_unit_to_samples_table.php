@@ -9,13 +9,13 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasColumn('samples', 'short_description')) {
+        if (! Schema::hasColumn('samples', 'short_description')) {
             Schema::table('samples', function (Blueprint $table) {
                 $table->string('short_description')->nullable()->after('sample_code');
             });
         }
 
-        if (!Schema::hasColumn('samples', 'unit')) {
+        if (! Schema::hasColumn('samples', 'unit')) {
             Schema::table('samples', function (Blueprint $table) {
                 $table->string('unit', 50)->nullable()->after('package_quantity');
             });
@@ -43,7 +43,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (!Schema::hasColumn('samples', 'sample_name')) {
+        if (! Schema::hasColumn('samples', 'sample_name')) {
             Schema::table('samples', function (Blueprint $table) {
                 $table->string('sample_name')->nullable()->after('sample_code');
             });

@@ -9,11 +9,12 @@ use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\Settings\BladeTemplateEditorController;
 use App\Http\Controllers\Api\Settings\BrandingController;
 use App\Http\Controllers\Api\Settings\DocumentMaintenanceController;
+use App\Http\Controllers\Api\Settings\IkuSettingsController;
 use App\Http\Controllers\Api\Settings\DocumentTemplateController;
 use App\Http\Controllers\Api\Settings\LocalizationRetentionController;
-use App\Http\Controllers\Api\Settings\SettingsLocalizationController;
 use App\Http\Controllers\Api\Settings\NotificationsController;
 use App\Http\Controllers\Api\Settings\NumberingController;
+use App\Http\Controllers\Api\Settings\SettingsLocalizationController;
 use App\Http\Controllers\Api\Settings\TemplateController as ApiTemplateController;
 use App\Http\Controllers\Api\SettingsController as ApiSettingsController;
 use App\Models\TestRequest;
@@ -69,6 +70,14 @@ Route::middleware(['auth', 'verified'])->prefix('settings')->group(function () {
     Route::post('/notifications/test', [NotificationsController::class, 'test']);
     Route::get('/documents', [DocumentMaintenanceController::class, 'index']);
     Route::delete('/documents', [DocumentMaintenanceController::class, 'destroy']);
+    Route::get('/documents/cleanup-stats', [DocumentMaintenanceController::class, 'cleanupStats']);
+    Route::post('/documents/cleanup-orphaned', [DocumentMaintenanceController::class, 'cleanupOrphanedFolders']);
+    Route::post('/documents/cleanup-duplicates', [DocumentMaintenanceController::class, 'cleanupDuplicates']);
+
+    // IKU Settings
+    Route::get('/iku', [IkuSettingsController::class, 'show']);
+    Route::put('/iku', [IkuSettingsController::class, 'update']);
+    Route::get('/iku/preview', [IkuSettingsController::class, 'preview']);
 
     // Blade Template Editor
     Route::prefix('blade-templates')->name('blade-templates.')->middleware(\App\Http\Middleware\ValidateBladeTemplateAccess::class)->group(function () {
@@ -107,26 +116,27 @@ Route::middleware(['auth', 'verified'])->prefix('labels')->group(function () {
 });
 
 // API endpoint untuk generator Berita Acara
-Route::get('/requests/{requestNumber}', function($requestNumber) {
+Route::get('/requests/{requestNumber}', function ($requestNumber) {
     $request = TestRequest::with(['investigator', 'samples', 'user'])
         ->where('request_number', $requestNumber)
         ->first();
 
-    if (!$request) {
+    if (! $request) {
         return response()->json(['error' => 'Request not found'], 404);
     }
 
     // Format test methods untuk display
-    $formatTestMethods = function($methods) {
+    $formatTestMethods = function ($methods) {
         if (is_string($methods)) {
             $methods = json_decode($methods, true) ?? [];
         }
         $map = [
             'uv_vis' => 'Identifikasi Spektrofotometri UV-VIS',
             'gc_ms' => 'Identifikasi GC-MS',
-            'lc_ms' => 'Identifikasi LC-MS'
+            'lc_ms' => 'Identifikasi LC-MS',
         ];
-        return collect($methods)->map(fn($m) => $map[$m] ?? $m)->join('; ');
+
+        return collect($methods)->map(fn ($m) => $map[$m] ?? $m)->join('; ');
     };
 
     return response()->json([
@@ -134,54 +144,55 @@ Route::get('/requests/{requestNumber}', function($requestNumber) {
         'request_no' => $request->request_number,
         'surat_permintaan_no' => $request->case_number ?? '',
         'received_date' => $request->received_at ? $request->received_at->format('d F Y') : now()->format('d F Y'),
-        'customer_rank_name' => $request->investigator->rank . ' ' . $request->investigator->name,
+        'customer_rank_name' => $request->investigator->rank.' '.$request->investigator->name,
         'customer_no' => $request->investigator->nrp ?? '',
         'unit' => $request->investigator->jurisdiction ?? '',
         'addressed_to' => $request->to_office ?? 'Kepala Sub Satker Farmapol Pusdokkes Polri',
-        'tests_summary' => $request->samples->map(fn($s) => $formatTestMethods($s->test_methods))->unique()->join('; '),
+        'tests_summary' => $request->samples->map(fn ($s) => $formatTestMethods($s->test_methods))->unique()->join('; '),
         'sample_count' => $request->samples->count(),
-        'samples' => $request->samples->map(function($sample) use ($formatTestMethods) {
+        'samples' => $request->samples->map(function ($sample) use ($formatTestMethods) {
             return [
                 'short_description' => $sample->short_description,
                 'name' => $sample->short_description,
                 'tests' => $formatTestMethods($sample->test_methods),
-                'active' => $sample->active_substance ?? ''
+                'active' => $sample->active_substance ?? '',
             ];
         }),
-        'submitted_by' => $request->investigator->rank . ' ' . $request->investigator->name,
+        'submitted_by' => $request->investigator->rank.' '.$request->investigator->name,
         'received_by' => 'Petugas Administrasi (dokumen) & Petugas Laboratorium (sampel)',
         'source_printed_at' => $request->submitted_at ? $request->submitted_at->format('d F Y H:i:s') : '',
     ]);
 });
 
 // API endpoint untuk generator Laporan Hasil Uji
-Route::get('/sample-processes/{processId}', function($processId) {
+Route::get('/sample-processes/{processId}', function ($processId) {
     // Refresh dari database untuk memastikan data terbaru
     $process = \App\Models\SampleTestProcess::with(['sample.testRequest.investigator', 'analyst'])
         ->findOrFail($processId);
-    
+
     // Force reload dari database
     $process->refresh();
     $process->load(['sample.testRequest.investigator', 'analyst']);
-    
+
     $sample = $process->sample;
     $testRequest = $sample?->testRequest;
     $investigator = $testRequest?->investigator;
     $metadata = $process->metadata ?? [];
-    
+
     // Format test methods
-    $formatTestMethods = function($methods) {
+    $formatTestMethods = function ($methods) {
         if (is_string($methods)) {
             $methods = json_decode($methods, true) ?? [];
         }
         $map = [
             'uv_vis' => 'Identifikasi UV-VIS',
             'gc_ms' => 'Identifikasi GC-MS',
-            'lc_ms' => 'Identifikasi LC-MS'
+            'lc_ms' => 'Identifikasi LC-MS',
         ];
-        return collect($methods)->map(fn($m) => $map[$m] ?? $m)->join(', ');
+
+        return collect($methods)->map(fn ($m) => $map[$m] ?? $m)->join(', ');
     };
-    
+
     // Get test result
     $resultRaw = $metadata['test_result'] ?? null;
     $resultLabel = match ($resultRaw) {
@@ -189,27 +200,27 @@ Route::get('/sample-processes/{processId}', function($processId) {
         'negative' => 'Negatif',
         default => 'Belum ditentukan',
     };
-    
-    $testResultPrefix = match($resultRaw) {
+
+    $testResultPrefix = match ($resultRaw) {
         'positive' => '(+)',
         'negative' => '(-)',
         default => '',
     };
-    
+
     $detected = $metadata['detected_substance'] ?? $metadata['detection'] ?? $metadata['hasil'] ?? ($sample?->active_substance ?: 'Tidak ada hasil terdeteksi');
-    $testResultText = trim($testResultPrefix . ' ' . $detected);
-    
+    $testResultText = trim($testResultPrefix.' '.$detected);
+
     // Format quantity
     $quantityDisplay = '-';
     if ($sample?->quantity) {
-        $quantityDisplay = rtrim(rtrim(number_format($sample->quantity, 2, ',', '.'), '0'), ',') . ' ' . ($sample->quantity_unit ?? '');
+        $quantityDisplay = rtrim(rtrim(number_format($sample->quantity, 2, ',', '.'), '0'), ',').' '.($sample->quantity_unit ?? '');
     }
-    
+
     return response()->json([
         'process_id' => $process->id,
         'report_number' => $metadata['report_number'] ?? sprintf('FLHU%03d', $process->id),
         'customer_unit' => $investigator?->jurisdiction ?? $investigator?->name ?? '-',
-        'customer_name' => trim(($investigator?->rank ? $investigator->rank . ' ' : '') . ($investigator?->name ?? '')),
+        'customer_name' => trim(($investigator?->rank ? $investigator->rank.' ' : '').($investigator?->name ?? '')),
         'customer_address' => $testRequest?->delivery_address ?? '-',
         'request_number' => $testRequest?->request_number ?? '-',
         'case_number' => $testRequest?->case_number ?? '-',

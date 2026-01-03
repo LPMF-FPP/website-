@@ -102,11 +102,11 @@ class TemplatePreviewData
             $process->loadMissing(['sample.testRequest.investigator']);
             $process->metadata = self::normalizeMeta($process->metadata ?? []);
 
-            if (!$process->sample) {
+            if (! $process->sample) {
                 $process->sample = self::dummySample($now);
             }
 
-            if (!$process->sample->testRequest) {
+            if (! $process->sample->testRequest) {
                 $request = self::resolveRequest($now, $forceDummy);
                 if (method_exists($process->sample, 'setRelation')) {
                     $process->sample->setRelation('testRequest', $request);
@@ -115,7 +115,7 @@ class TemplatePreviewData
                 }
             }
 
-            if (!isset($process->method)) {
+            if (! isset($process->method)) {
                 $process->method = $process->metadata['method']
                     ?? $process->metadata['test_method']
                     ?? $process->test_method
@@ -157,10 +157,10 @@ class TemplatePreviewData
 
         if ($process) {
             $process->loadMissing(['sample.testRequest', 'analyst']);
-            if (!$process->sample) {
+            if (! $process->sample) {
                 $process->sample = self::dummySample($now);
             }
-            if (!$process->sample->testRequest) {
+            if (! $process->sample->testRequest) {
                 $request = self::resolveRequest($now, $forceDummy);
                 if (method_exists($process->sample, 'setRelation')) {
                     $process->sample->setRelation('testRequest', $request);
@@ -261,14 +261,14 @@ class TemplatePreviewData
 
         $item = $movements->first()->item ?: InventoryItem::latest('id')->first();
         $lot = $movements->first()->lot ?: InventoryLot::latest('id')->first();
-        if (!$lot) {
+        if (! $lot) {
             $lot = (object) ['lot_no' => 'Semua'];
         }
 
         $location = $movements->first()->toLocation
             ?: $movements->first()->fromLocation
             ?: InventoryLocation::latest('id')->first();
-        if (!$location) {
+        if (! $location) {
             $location = (object) ['name' => 'Semua'];
         }
 
@@ -314,10 +314,10 @@ class TemplatePreviewData
 
         if ($request) {
             $request->loadMissing(['investigator', 'samples']);
-            if (!$request->relationLoaded('samples')) {
+            if (! $request->relationLoaded('samples')) {
                 $request->setRelation('samples', collect());
             }
-            if (!$request->investigator) {
+            if (! $request->investigator) {
                 $fallbackInvestigator = self::dummyRequest($now)->investigator;
                 if (method_exists($request, 'setRelation')) {
                     $request->setRelation('investigator', $fallbackInvestigator);
@@ -325,6 +325,7 @@ class TemplatePreviewData
                     $request->investigator = $fallbackInvestigator;
                 }
             }
+
             return $request;
         }
 
@@ -342,6 +343,7 @@ class TemplatePreviewData
     {
         if (is_string($metaRaw)) {
             $decoded = json_decode($metaRaw, true);
+
             return (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) ? $decoded : [];
         }
 
@@ -458,7 +460,7 @@ class TemplatePreviewData
                 'penyidik' => 'IPDA Budi Santoso',
                 'satuan_kerja' => 'Polres Metro Jakarta Selatan',
                 'satuan' => 'Tablet',
-                'jenis' => 'Psikotropika',
+                'jenis' => 'Narkotika',
                 'qr' => self::qrPngDataUri('BB-2025-002'),
                 'qr_text' => 'BB-2025-002',
             ],
@@ -637,7 +639,7 @@ class TemplatePreviewData
 
     private static function qrPngDataUri(?string $text): string
     {
-        if (!$text) {
+        if (! $text) {
             return '';
         }
 
@@ -648,7 +650,7 @@ class TemplatePreviewData
                 ->errorCorrection('M')
                 ->generate($text);
 
-            return 'data:image/png;base64,' . base64_encode($png);
+            return 'data:image/png;base64,'.base64_encode($png);
         } catch (\Throwable $e) {
             return '';
         }

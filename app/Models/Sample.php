@@ -1,7 +1,5 @@
 <?php
 
-
-
 namespace App\Models;
 
 use App\Enums\SampleStatus;
@@ -9,41 +7,24 @@ use App\Enums\TestProcessStage;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\DB;
-
-
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Sample extends Model
 {
     use HasFactory;
 
-
-
     public const OTHER_SAMPLE_CATEGORIES = [
-
-
 
         'obat' => 'Obat',
 
-
-
         'suplemen_jamu' => 'Suplemen/Jamu',
-
-
 
         'kosmetik' => 'Kosmetik',
 
-
-
         'makanan_minuman' => 'Makanan/Minuman',
 
-
-
     ];
-
-
 
     protected $fillable = [
 
@@ -83,11 +64,7 @@ class Sample extends Model
         'notes',
         'status',
 
-
-
     ];
-
-
 
     protected $casts = [
         // Temporary disabled for testing - enum mismatch with database
@@ -104,22 +81,13 @@ class Sample extends Model
         'testing_completed_at' => 'datetime',
     ];
 
-
-
     protected static function boot()
-
-
-
     {
-
-
 
         parent::boot();
 
-
-
         static::creating(function ($model) {
-            if (!$model->sample_code) {
+            if (! $model->sample_code) {
                 // Use centralized NumberingService instead of manual generation
                 $numbering = app(\App\Services\NumberingService::class);
                 $model->sample_code = $numbering->issue('sample_code', [
@@ -128,11 +96,7 @@ class Sample extends Model
             }
         });
 
-
-
     }
-
-
 
     /**
      * @deprecated Use NumberingService instead
@@ -143,141 +107,67 @@ class Sample extends Model
         // This method is no longer used.
         // Sample codes are now generated via NumberingService
         // which uses settings from /settings page
-        
+
         throw new \RuntimeException(
             'generateSampleCode() is deprecated. Use NumberingService::issue() instead.'
         );
     }
 
-
-
     protected static function toRoman(int $month): string
-
-
-
     {
-
-
 
         $map = [
 
-
-
             1 => 'I',
-
-
 
             2 => 'II',
 
-
-
             3 => 'III',
-
-
 
             4 => 'IV',
 
-
-
             5 => 'V',
-
-
 
             6 => 'VI',
 
-
-
             7 => 'VII',
-
-
 
             8 => 'VIII',
 
-
-
             9 => 'IX',
-
-
 
             10 => 'X',
 
-
-
             11 => 'XI',
-
-
 
             12 => 'XII',
 
-
-
         ];
-
-
 
         return $map[$month] ?? 'I';
 
-
-
     }
 
-
-
     public function testRequest(): BelongsTo
-
-
-
     {
-
-
 
         return $this->belongsTo(TestRequest::class);
 
-
-
     }
 
-
-
     public function testResult(): HasOne
-
-
-
     {
-
-
 
         return $this->hasOne(TestResult::class);
 
-
-
     }
 
-
-
-
-
     public function testProcesses(): HasMany
-
-
-
-
-
     {
-
-
-
-
 
         return $this->hasMany(SampleTestProcess::class);
 
-
-
-
-
     }
-
-
 
     public function analyst(): BelongsTo
     {
@@ -302,64 +192,41 @@ class Sample extends Model
 
     public function isReadyForNextStage(): bool
     {
-        return !$this->getCurrentTestProcess() &&
+        return ! $this->getCurrentTestProcess() &&
                in_array($this->status, [
                    SampleStatus::ADMIN_PENDING,
                    SampleStatus::PREPARATION_PENDING,
                    SampleStatus::INSTRUMENTATION_PENDING,
-                   SampleStatus::INTERPRETATION_PENDING
+                   SampleStatus::INTERPRETATION_PENDING,
                ]);
     }
 
     public function canStartStage(TestProcessStage $stage): bool
     {
         return $this->status === $stage->getRequiredStatus() &&
-               !$this->getCurrentTestProcess();
+               ! $this->getCurrentTestProcess();
     }
 
     public function getSampleTypeLabelAttribute(): string
     {
 
-
-
         if ($this->sample_type !== 'other') {
-
-
 
             return ucfirst($this->sample_type);
 
-
-
         }
 
-
-
-        if (!$this->other_sample_category) {
-
-
+        if (! $this->other_sample_category) {
 
             return 'Other';
 
-
-
         }
-
-
 
         $label = self::OTHER_SAMPLE_CATEGORIES[$this->other_sample_category]
 
-
-
             ?? ucwords(str_replace('_', ' ', $this->other_sample_category));
 
-
-
-        return 'Other - ' . $label;
-
-
+        return 'Other - '.$label;
 
     }
-
-
-
 }

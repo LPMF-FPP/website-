@@ -2,7 +2,6 @@
 
 namespace Database\Factories;
 
-use App\Enums\TestProcessStage;
 use App\Models\Sample;
 use Illuminate\Database\Eloquent\Factories\Factory;
 

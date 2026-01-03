@@ -319,6 +319,36 @@ export function registerSettingsComponent() {
                 if (!this.client.state.form.smtp.from_name) this.client.state.form.smtp.from_name = 'LPMF LIMS';
                 // Detect preset based on current values
                 this.detectSmtpPreset();
+                // IKU defaults
+                this.ensureIkuDefaults();
+            },
+
+            ensureIkuDefaults() {
+                // Ensure IKU object exists with proper defaults
+                if (!this.client.state.form.iku || typeof this.client.state.form.iku !== 'object') {
+                    this.client.state.form.iku = {};
+                }
+                this.client.state.form.iku.enabled ??= true;
+                this.client.state.form.iku.period_mode ??= 'monthly';
+                this.client.state.form.iku.weights ??= {};
+                this.client.state.form.iku.weights.registration ??= 10;
+                this.client.state.form.iku.weights.lab_exam ??= 40;
+                this.client.state.form.iku.weights.report ??= 40;
+                this.client.state.form.iku.weights.survey ??= 10;
+                
+                // Ensure target_samples_by_year is always an object (not array)
+                if (!this.client.state.form.iku.target_samples_by_year || 
+                    typeof this.client.state.form.iku.target_samples_by_year !== 'object' ||
+                    Array.isArray(this.client.state.form.iku.target_samples_by_year)) {
+                    this.client.state.form.iku.target_samples_by_year = { '2025': 500, '2026': 600, '2027': 700 };
+                }
+                
+                this.client.state.form.iku.sources ??= {};
+                this.client.state.form.iku.sources.A ??= 'requests_completed_count';
+                this.client.state.form.iku.sources.B ??= 'requests_submitted_count';
+                this.client.state.form.iku.sources.C ??= 'samples_completed_count';
+                this.client.state.form.iku.sources.E ??= 'lhu_issued_count';
+                this.client.state.form.iku.survey_required_for_delivery ??= true;
             },
 
             updateNowPreview() {
@@ -374,6 +404,142 @@ export function registerSettingsComponent() {
                 } finally {
                     this.timePreview.loading = false;
                 }
+            },
+
+            // IKU Settings Methods
+            ikuNewYear: new Date().getFullYear() + 1,
+            ikuNewTarget: 500,
+            surveyExport: {
+                startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+                endDate: new Date().toISOString().split('T')[0],
+                loading: false,
+                error: '',
+            },
+            ikuPreview: {
+                loading: false,
+                data: null,
+                error: '',
+            },
+
+            getIkuWeightSum() {
+                const weights = this.client?.state?.form?.iku?.weights || {};
+                return (parseInt(weights.registration) || 0)
+                    + (parseInt(weights.lab_exam) || 0)
+                    + (parseInt(weights.report) || 0)
+                    + (parseInt(weights.survey) || 0);
+            },
+
+            addIkuTargetYear() {
+                const year = parseInt(this.ikuNewYear);
+                const target = parseInt(this.ikuNewTarget);
+                
+                if (!year || year < 2020 || year > 2099) {
+                    console.warn('Invalid year:', this.ikuNewYear);
+                    return;
+                }
+                if (!target || target < 1) {
+                    console.warn('Invalid target:', this.ikuNewTarget);
+                    return;
+                }
+                
+                // Ensure target_samples_by_year is a proper object (not array)
+                if (!this.client.state.form.iku.target_samples_by_year || 
+                    typeof this.client.state.form.iku.target_samples_by_year !== 'object' ||
+                    Array.isArray(this.client.state.form.iku.target_samples_by_year)) {
+                    this.client.state.form.iku.target_samples_by_year = {};
+                }
+                
+                // Add year with string key for consistency
+                this.client.state.form.iku.target_samples_by_year[String(year)] = target;
+                
+                // Reset input fields
+                this.ikuNewYear = new Date().getFullYear() + 1;
+                this.ikuNewTarget = 500;
+            },
+
+            removeIkuTargetYear(year) {
+                if (this.client.state.form.iku.target_samples_by_year) {
+                    delete this.client.state.form.iku.target_samples_by_year[year];
+                }
+            },
+
+            async saveIkuSettings() {
+                this.client.state.loadingSections.iku = true;
+                this.client.state.sectionErrors.iku = '';
+                this.client.state.sectionStatus.iku = { message: '', intentClass: 'text-primary-600' };
+
+                try {
+                    const payload = {
+                        enabled: this.client.state.form.iku.enabled,
+                        period_mode: this.client.state.form.iku.period_mode,
+                        weights: this.client.state.form.iku.weights,
+                        target_samples_by_year: this.client.state.form.iku.target_samples_by_year,
+                        sources: this.client.state.form.iku.sources,
+                        survey_required_for_delivery: this.client.state.form.iku.survey_required_for_delivery,
+                    };
+
+                    const response = await this.client.apiFetch(this.client.api.iku, {
+                        method: 'PUT',
+                        body: payload,
+                    });
+
+                    if (response.ok) {
+                        this.client.state.sectionStatus.iku = {
+                            message: response.message || 'Pengaturan IKU berhasil disimpan.',
+                            intentClass: 'text-green-600',
+                        };
+                        // Update form with returned config
+                        if (response.iku) {
+                            this.client.state.form.iku = { ...this.client.state.form.iku, ...response.iku };
+                        }
+                    } else {
+                        throw new Error(response.error || 'Gagal menyimpan pengaturan IKU.');
+                    }
+                } catch (error) {
+                    console.error('IKU save error:', error);
+                    this.client.state.sectionErrors.iku = error.message || 'Gagal menyimpan pengaturan IKU.';
+                } finally {
+                    this.client.state.loadingSections.iku = false;
+                }
+            },
+
+            async refreshIkuPreview() {
+                this.ikuPreview.loading = true;
+                this.ikuPreview.error = '';
+
+                try {
+                    const response = await this.client.apiFetch(this.client.api.ikuPreview);
+                    if (response.ok && response.iku) {
+                        this.ikuPreview.data = response.iku;
+                    } else {
+                        throw new Error(response.error || 'Gagal memuat preview IKU.');
+                    }
+                } catch (error) {
+                    console.error('IKU preview error:', error);
+                    this.ikuPreview.error = error.message || 'Gagal memuat preview IKU.';
+                    this.ikuPreview.data = null;
+                } finally {
+                    this.ikuPreview.loading = false;
+                }
+            },
+
+            downloadSurveyExport() {
+                if (!this.surveyExport.startDate || !this.surveyExport.endDate) {
+                    this.surveyExport.error = 'Silakan pilih tanggal mulai dan akhir.';
+                    return;
+                }
+                this.surveyExport.loading = true;
+                this.surveyExport.error = '';
+
+                const url = `${this.client.api.surveyExport}?start=${this.surveyExport.startDate}&end=${this.surveyExport.endDate}`;
+                
+                // Use window.location for file download
+                window.location.href = url;
+                
+                // Reset loading after a short delay
+                setTimeout(() => {
+                    this.surveyExport.loading = false;
+                }, 2000);
             },
 
             // Template helpers

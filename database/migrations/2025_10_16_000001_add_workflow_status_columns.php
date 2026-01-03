@@ -1,37 +1,37 @@
 <?php
 
+use App\Enums\SampleStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use App\Enums\SampleStatus;
 
 return new class extends Migration
 {
     public function up(): void
     {
         Schema::table('samples', function (Blueprint $table) {
-            if (!Schema::hasColumn('samples', 'status')) {
+            if (! Schema::hasColumn('samples', 'status')) {
                 $table->string('status')->default(SampleStatus::FORM_SUBMITTED->value)
-                      ->after('test_request_id');
+                    ->after('test_request_id');
             }
         });
 
         Schema::table('sample_test_processes', function (Blueprint $table) {
-            if (!Schema::hasColumn('sample_test_processes', 'performed_by')) {
+            if (! Schema::hasColumn('sample_test_processes', 'performed_by')) {
                 $table->foreignId('performed_by')->nullable()
-                      ->constrained('users')
-                      ->nullOnDelete();
+                    ->constrained('users')
+                    ->nullOnDelete();
             }
         });
 
         Schema::table('deliveries', function (Blueprint $table) {
-            if (!Schema::hasColumn('deliveries', 'status')) {
+            if (! Schema::hasColumn('deliveries', 'status')) {
                 $table->string('status')->default('penyerahan_pending')
-                      ->after('request_id');
+                    ->after('request_id');
             }
-            if (!Schema::hasColumn('deliveries', 'collected_at')) {
+            if (! Schema::hasColumn('deliveries', 'collected_at')) {
                 $table->timestamp('collected_at')->nullable()
-                      ->after('delivery_date');
+                    ->after('delivery_date');
             }
         });
     }
@@ -59,7 +59,7 @@ return new class extends Migration
             if (Schema::hasColumn('deliveries', 'collected_at')) {
                 $columns[] = 'collected_at';
             }
-            if (!empty($columns)) {
+            if (! empty($columns)) {
                 $table->dropColumn($columns);
             }
         });

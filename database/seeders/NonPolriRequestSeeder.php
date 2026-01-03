@@ -18,8 +18,8 @@ class NonPolriRequestSeeder extends Seeder
         $user = User::first() ?? User::factory()->create();
 
         // Create external (non-Polri) investigator with synthetic NRP
-        $syntheticNrp = 'EXT-' . strtoupper(Str::random(8));
-        
+        $syntheticNrp = 'EXT-'.strtoupper(Str::random(8));
+
         $investigator = Investigator::create([
             'is_polri' => false,
             'nrp' => $syntheticNrp,
@@ -30,7 +30,7 @@ class NonPolriRequestSeeder extends Seeder
             'alt_phone' => '021-7865432',
             'institution' => 'Universitas Indonesia',
             'occupation' => 'Dosen Fakultas Farmasi',
-            'folder_key' => $syntheticNrp . '-dr-bambang-supriyanto',
+            'folder_key' => $syntheticNrp.'-dr-bambang-supriyanto',
         ]);
 
         // Create test request

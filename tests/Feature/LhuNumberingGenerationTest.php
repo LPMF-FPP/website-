@@ -17,6 +17,7 @@ class LhuNumberingGenerationTest extends TestCase
     use DatabaseTransactions;
 
     protected User $admin;
+
     protected Investigator $investigator;
 
     protected function setUp(): void
@@ -76,7 +77,7 @@ class LhuNumberingGenerationTest extends TestCase
         $this->assertMatchesRegularExpression(
             '/^LHU-\d{4}-\d{4}$/',
             $metadata['lhu_number'],
-            'LHU number should match pattern LHU-YYYY-NNNN, got: ' . ($metadata['lhu_number'] ?? 'null')
+            'LHU number should match pattern LHU-YYYY-NNNN, got: '.($metadata['lhu_number'] ?? 'null')
         );
     }
 
@@ -176,7 +177,7 @@ class LhuNumberingGenerationTest extends TestCase
     {
         // Clear any existing cache from setUp
         settings_forget_cache();
-        
+
         // Set initial pattern using dot-notated keys (correct approach)
         SystemSetting::updateOrCreate(['key' => 'numbering.lhu.pattern'], ['value' => 'CACHE-TEST-{SEQ:4}']);
         SystemSetting::updateOrCreate(['key' => 'numbering.lhu.reset'], ['value' => 'never']);

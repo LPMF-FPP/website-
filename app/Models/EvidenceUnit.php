@@ -108,9 +108,10 @@ class EvidenceUnit extends Model
      */
     public function getSampleDescTruncatedAttribute(): ?string
     {
-        if (!$this->sample_desc) {
+        if (! $this->sample_desc) {
             return null;
         }
+
         return Str::limit($this->sample_desc, 80);
     }
 

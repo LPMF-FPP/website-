@@ -16,7 +16,7 @@ class ValidateBladeTemplateAccess
     public function handle(Request $request, Closure $next): Response
     {
         // Only allow users with manage-settings permission
-        if (!$request->user() || !$request->user()->can('manage-settings')) {
+        if (! $request->user() || ! $request->user()->can('manage-settings')) {
             abort(403, 'Unauthorized access to template editor.');
         }
 
@@ -30,7 +30,7 @@ class ValidateBladeTemplateAccess
                 'method' => $request->method(),
                 'user_agent' => $request->userAgent(),
             ];
-            
+
             // Try audit channel, fallback to default
             try {
                 if (config('logging.channels.audit')) {

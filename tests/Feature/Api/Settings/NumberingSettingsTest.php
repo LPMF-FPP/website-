@@ -16,7 +16,7 @@ class NumberingSettingsTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->admin = User::factory()->create(['role' => 'admin']);
     }
 
@@ -186,7 +186,7 @@ class NumberingSettingsTest extends TestCase
             $resetValue === null || $resetValue->value === null,
             'Reset should be null or not stored'
         );
-        
+
         $this->assertTrue(
             $startFromValue === null || $startFromValue->value === null,
             'Start from should be null or not stored'

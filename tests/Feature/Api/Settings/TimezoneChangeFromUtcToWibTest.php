@@ -2,7 +2,6 @@
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-use App\Support\AppTimezone;
 
 uses(DatabaseTransactions::class);
 
@@ -56,13 +55,13 @@ test('perubahan timezone dari UTC ke WIB (Asia/Jakarta)', function () {
     // Step 3: Verify the timezone has been changed to Asia/Jakarta
     $newResponse = $this->actingAs($this->user)
         ->getJson('/api/settings/localization/time-preview');
-    
+
     $newResponse->assertStatus(200);
     $newTimezone = $newResponse->json('app_timezone');
-    
+
     // Assert timezone is now Asia/Jakarta (WIB)
     expect($newTimezone)->toBe('Asia/Jakarta');
-    
+
     // Verify the localization settings returned
     expect($response->json('localization.timezone'))->toBe('Asia/Jakarta');
 });

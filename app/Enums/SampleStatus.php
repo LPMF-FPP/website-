@@ -31,7 +31,7 @@ enum SampleStatus: string
 
     public function canTransitionTo(self $newStatus): bool
     {
-        return match($this) {
+        return match ($this) {
             self::FORM_SUBMITTED => $newStatus === self::ADMIN_PENDING,
 
             self::ADMIN_PENDING => $newStatus === self::ADMIN_IN_PROGRESS,
@@ -56,7 +56,7 @@ enum SampleStatus: string
 
     public function getNextStatus(): ?self
     {
-        return match($this) {
+        return match ($this) {
             self::FORM_SUBMITTED => self::ADMIN_PENDING,
 
             self::ADMIN_PENDING => self::ADMIN_IN_PROGRESS,
@@ -81,7 +81,7 @@ enum SampleStatus: string
 
     public function label(): string
     {
-        return match($this) {
+        return match ($this) {
             self::FORM_SUBMITTED => 'Form Diajukan',
 
             self::ADMIN_PENDING => 'Menunggu Administrasi',

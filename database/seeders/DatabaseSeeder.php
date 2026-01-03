@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use App\Models\Investigator;
-use App\Models\TestRequest;
 use App\Models\Sample;
+use App\Models\TestRequest;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
@@ -14,10 +14,13 @@ class DatabaseSeeder extends Seeder
     {
         // Seed system settings (always needed)
         $this->call(SystemSettingSeeder::class);
-        
+
+        // Create admin user (always needed)
+        $this->call(AdminUserSeeder::class);
+
         // SEEDING DINONAKTIFKAN - Hanya untuk data riil
         // Uncomment baris di bawah jika perlu generate data testing
-        
+
         /*
         // Create or get admin user
         User::firstOrCreate(

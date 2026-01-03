@@ -24,7 +24,7 @@ class SampleTestProcess extends Model
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
         'metadata' => 'array',
-        'stage' => \App\Enums\TestProcessStage::class
+        'stage' => \App\Enums\TestProcessStage::class,
     ];
 
     public function sample(): BelongsTo

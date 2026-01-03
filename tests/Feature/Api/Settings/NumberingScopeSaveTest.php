@@ -128,7 +128,7 @@ class NumberingScopeSaveTest extends TestCase
             'reset' => 'yearly',
             'start_from' => 1,
         ]);
-        
+
         $response1->assertStatus(200)
             ->assertJson([
                 'config' => [
@@ -144,7 +144,7 @@ class NumberingScopeSaveTest extends TestCase
             'reset' => 'monthly',
             'start_from' => 100,
         ]);
-        
+
         $response2->assertStatus(200)
             ->assertJson([
                 'config' => [

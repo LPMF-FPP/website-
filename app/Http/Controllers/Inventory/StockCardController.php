@@ -23,7 +23,7 @@ class StockCardController extends Controller
     public function index(Request $request): View
     {
         $filters = $request->only(['item_id', 'lot_id', 'location_id', 'date_from', 'date_to']);
-        
+
         $stockCard = [];
         if ($request->filled('item_id')) {
             $stockCard = $this->movementService->getStockCard($filters);
@@ -31,7 +31,7 @@ class StockCardController extends Controller
 
         $items = InventoryItem::active()->orderBy('name')->get();
         $locations = InventoryLocation::orderBy('name')->get();
-        
+
         $lots = [];
         if ($request->filled('item_id')) {
             $lots = InventoryLot::where('item_id', $request->item_id)
@@ -39,8 +39,8 @@ class StockCardController extends Controller
                 ->get();
         }
 
-        $selectedItem = $request->filled('item_id') 
-            ? InventoryItem::find($request->item_id) 
+        $selectedItem = $request->filled('item_id')
+            ? InventoryItem::find($request->item_id)
             : null;
 
         return view('inventory.stock-card', [
@@ -64,16 +64,16 @@ class StockCardController extends Controller
 
         $filters = $request->only(['item_id', 'lot_id', 'location_id', 'date_from', 'date_to']);
         $stockCard = $this->movementService->getStockCard($filters);
-        
+
         $item = InventoryItem::findOrFail($filters['item_id']);
-        
+
         $lot = null;
-        if (!empty($filters['lot_id'])) {
+        if (! empty($filters['lot_id'])) {
             $lot = InventoryLot::find($filters['lot_id']);
         }
-        
+
         $location = null;
-        if (!empty($filters['location_id'])) {
+        if (! empty($filters['location_id'])) {
             $location = InventoryLocation::find($filters['location_id']);
         }
 
@@ -89,7 +89,7 @@ class StockCardController extends Controller
 
         $pdf->setPaper('A4', 'landscape');
 
-        $filename = 'kartu-stok-' . str_replace(' ', '-', strtolower($item->name)) . '-' . now()->format('Ymd') . '.pdf';
+        $filename = 'kartu-stok-'.str_replace(' ', '-', strtolower($item->name)).'-'.now()->format('Ymd').'.pdf';
 
         return $pdf->stream($filename);
     }

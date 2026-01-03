@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api\Settings;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Settings\NotificationTestRequest;
 use App\Http\Requests\Settings\NotificationsSecurityRequest;
+use App\Http\Requests\Settings\NotificationTestRequest;
 use App\Services\Notifications\NotificationTestService;
 use App\Services\Settings\SettingsResponseBuilder;
 use App\Services\Settings\SettingsWriter;
@@ -17,8 +17,7 @@ class NotificationsController extends Controller
     public function __construct(
         private readonly SettingsWriter $writer,
         private readonly SettingsResponseBuilder $builder
-    ) {
-    }
+    ) {}
 
     public function update(NotificationsSecurityRequest $request): JsonResponse
     {
@@ -26,11 +25,11 @@ class NotificationsController extends Controller
         $data = $request->validated();
 
         $payload = [];
-        
+
         if (isset($data['notifications'])) {
             $payload['notifications'] = $data['notifications'];
         }
-        
+
         if (isset($data['smtp'])) {
             // Store SMTP config in settings (excluding password from plain storage)
             $smtp = $data['smtp'];
@@ -39,13 +38,13 @@ class NotificationsController extends Controller
             $payload['smtp.username'] = $smtp['username'] ?? null;
             $payload['smtp.from_address'] = $smtp['from_address'] ?? null;
             $payload['smtp.from_name'] = $smtp['from_name'] ?? null;
-            
+
             // Only store password if provided (non-empty)
-            if (!empty($smtp['password'])) {
+            if (! empty($smtp['password'])) {
                 $payload['smtp.password'] = encrypt($smtp['password']);
             }
         }
-        
+
         if (isset($data['security']['roles'])) {
             $payload['security.roles'] = $data['security']['roles'];
         }

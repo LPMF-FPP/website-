@@ -8,7 +8,5 @@ class NumberIssued
         public readonly string $scope,
         public readonly string $number,
         public readonly array $ctx = [],
-    ) {
-    }
+    ) {}
 }
-

@@ -38,6 +38,7 @@ class QueueHealthCheck extends Command
             $this->info('✅ Sync driver detected - no tables required');
             $this->newLine();
             $this->comment('💡 Jobs will run synchronously (not async)');
+
             return self::SUCCESS;
         }
 
@@ -46,6 +47,7 @@ class QueueHealthCheck extends Command
         }
 
         $this->warn("⚠️  Queue driver '{$driver}' - skipping table checks");
+
         return self::SUCCESS;
     }
 
@@ -74,7 +76,7 @@ class QueueHealthCheck extends Command
 
         $this->newLine();
 
-        if (!$allExist) {
+        if (! $allExist) {
             $this->error('❌ Queue tables are missing!');
             $this->newLine();
             $this->comment('🔧 Fix by running:');
@@ -83,6 +85,7 @@ class QueueHealthCheck extends Command
             $this->comment('📖 Or switch to sync queue in .env:');
             $this->line('   QUEUE_CONNECTION=sync');
             $this->newLine();
+
             return self::FAILURE;
         }
 
