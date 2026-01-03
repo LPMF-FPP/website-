@@ -648,7 +648,7 @@
 
                                         <label class="block text-sm font-medium text-gray-700 mb-2">
 
-                                            Foto Sampel <span class="text-red-500">*</span>
+                                            Foto Sampel <span class="text-gray-400 text-xs">(opsional)</span>
 
                                         </label>
 
@@ -685,8 +685,6 @@
                                                                        accept="image/*"
 
                                                                        multiple
-
-                                                                       required
 
                                                                        onchange="previewSampleImages(this, 0)">
 
