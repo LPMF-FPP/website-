@@ -94,6 +94,12 @@
                         <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                         </svg>
+                        <span><strong>Tabel Sampel Stuck di Tahap Sebelumnya:</strong> Fix bug dimana tabel sampel di halaman proses tetap menampilkan tahap "Preparasi" atau "Pengujian Instrumen" meskipun sudah selesai, sekarang otomatis advance ke tahap berikutnya</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
                         <span><strong>Lokasi Penyimpanan Inventori:</strong> Fix bug dimana lokasi penyimpanan hanya dropdown, sekarang bisa input lokasi baru via toggle</span>
                     </li>
                 </ul>

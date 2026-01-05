@@ -56,6 +56,23 @@
   - **Fix**: Memisahkan pengecekan proses in-progress dan completed. Jika semua proses instrumentation completed, stepper sekarang akan menampilkan "Interpretasi" sebagai tahap berikutnya.
   - **File terpengaruh**: `app/Http/Controllers/ProcessController.php`
 
+- **Tabel Sampel Stuck di Tahap Sebelumnya**: Fix bug di halaman Detail Proses (`/proses/{id}`) dimana tabel daftar sampel tetap menampilkan tahap "Preparasi Sampel" atau "Pengujian Instrumen" meskipun proses tersebut sudah ditandai selesai.
+  - **Root cause**: Logika `mapSamplesWithProcessState()` di `ProcessController.php` hanya mencari proses yang sedang berjalan, lalu fallback ke proses terakhir yang selesai. Tidak ada logic untuk menentukan tahap berikutnya setelah tahap sebelumnya selesai.
+  - **Fix**: Memperbaiki logic untuk:
+    1. Cek proses in-progress - jika ada, tampilkan itu
+    2. Jika tidak ada proses in-progress, kumpulkan semua tahap yang sudah selesai
+    3. Temukan tahap tertinggi yang selesai dan tentukan tahap berikutnya dalam urutan: Preparasi → Instrumen → Interpretasi
+    4. Tampilkan tahap berikutnya dengan status "Menunggu" jika belum ada proses untuk tahap tersebut
+  - **Behavior baru**:
+    | Kondisi | Tahap Ditampilkan | Status |
+    |---------|-------------------|--------|
+    | Preparasi sedang berjalan | Preparasi Sampel | Berjalan |
+    | Preparasi selesai, belum ada Instrumen | Pengujian Instrumen | Menunggu |
+    | Instrumen sedang berjalan | Pengujian Instrumen | Berjalan |
+    | Instrumen selesai, belum ada Interpretasi | Interpretasi Hasil | Menunggu |
+    | Interpretasi selesai | Interpretasi Hasil | Selesai |
+  - **File terpengaruh**: `app/Http/Controllers/ProcessController.php`
+
 - **Lokasi Penyimpanan Tidak Bisa Input Baru**: Fix bug di halaman Penerimaan Stok (`/referensi/inventori/transaksi/receipt`) dimana field "Lokasi Penyimpanan" hanya berupa dropdown dan tidak bisa menginput lokasi baru.
   - **Root cause**: Field lokasi hanya menggunakan `<select>` dengan opsi dari database, tidak ada opsi untuk menambah lokasi baru secara inline.
   - **Fix**: Mengubah field lokasi menjadi combobox dengan radio button toggle antara "Lokasi yang ada" (dropdown) dan "Lokasi baru" (text input + tipe lokasi), mirip dengan pola yang sudah ada untuk field Lot.

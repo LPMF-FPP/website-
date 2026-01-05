@@ -324,7 +324,13 @@ class ProcessController extends Controller
             TestProcessStage::INTERPRETATION->value => 3,
         ];
 
-        return $samples->map(function ($sample) use ($stageOrder) {
+        $stageSequence = [
+            TestProcessStage::PREPARATION->value,
+            TestProcessStage::INSTRUMENTATION->value,
+            TestProcessStage::INTERPRETATION->value,
+        ];
+
+        return $samples->map(function ($sample) use ($stageOrder, $stageSequence) {
             $processes = $sample->testProcesses
                 ->sortBy(function ($process) use ($stageOrder) {
                     $stage = $this->stageValue($process->stage ?? null);
@@ -333,29 +339,77 @@ class ProcessController extends Controller
                 })
                 ->values();
 
+            // First, check for any in-progress process
             $currentProcess = $processes->first(function ($process) {
                 return $process->started_at && ! $process->completed_at;
             });
 
-            if (! $currentProcess) {
-                $currentProcess = $processes->sortByDesc('completed_at')->first();
-            }
-
-            if (! $currentProcess) {
-                $currentProcess = $processes->first();
-            }
-
             $statusKey = 'pending';
             $statusLabel = 'Belum dimulai';
+            $nextStageLabel = null;
 
             if ($currentProcess) {
-                if ($currentProcess->completed_at) {
-                    $statusKey = 'completed';
-                    $statusLabel = 'Selesai';
-                } elseif ($currentProcess->started_at) {
-                    $statusKey = 'in_progress';
-                    $statusLabel = 'Berjalan';
+                // There's an in-progress process
+                $statusKey = 'in_progress';
+                $statusLabel = 'Berjalan';
+            } else {
+                // No in-progress process - determine next stage based on completed processes
+                $completedStages = $processes
+                    ->filter(fn ($p) => $p->completed_at)
+                    ->map(fn ($p) => $this->stageValue($p->stage))
+                    ->unique()
+                    ->values()
+                    ->toArray();
+
+                // Find the highest completed stage
+                $highestCompletedIndex = -1;
+                foreach ($stageSequence as $index => $stage) {
+                    if (in_array($stage, $completedStages, true)) {
+                        $highestCompletedIndex = $index;
+                    }
                 }
+
+                // Determine next stage
+                $nextStageIndex = $highestCompletedIndex + 1;
+
+                if ($nextStageIndex < count($stageSequence)) {
+                    // There's a next stage to do
+                    $nextStageValue = $stageSequence[$nextStageIndex];
+
+                    // Check if there's already a process for the next stage
+                    $nextStageProcess = $processes->first(function ($p) use ($nextStageValue) {
+                        return $this->stageValue($p->stage) === $nextStageValue;
+                    });
+
+                    if ($nextStageProcess) {
+                        $currentProcess = $nextStageProcess;
+                        if ($nextStageProcess->completed_at) {
+                            $statusKey = 'completed';
+                            $statusLabel = 'Selesai';
+                        } else {
+                            $statusKey = 'pending';
+                            $statusLabel = 'Menunggu';
+                        }
+                    } else {
+                        // No process exists for next stage yet - show the next expected stage
+                        $currentProcess = $processes->sortByDesc('completed_at')->first();
+                        $statusKey = 'pending';
+                        $statusLabel = 'Menunggu';
+                        $nextStageLabel = TestProcessStage::tryFrom($nextStageValue)?->label();
+                    }
+                } else {
+                    // All stages completed
+                    $currentProcess = $processes->sortByDesc('completed_at')->first();
+                    if ($currentProcess?->completed_at) {
+                        $statusKey = 'completed';
+                        $statusLabel = 'Selesai';
+                    }
+                }
+            }
+
+            // Fallback if still no current process
+            if (! $currentProcess) {
+                $currentProcess = $processes->first();
             }
 
             $scheduledAt = null;
@@ -364,7 +418,7 @@ class ProcessController extends Controller
             }
 
             $sample->current_process = $currentProcess;
-            $sample->current_stage_label = $currentProcess?->stage_label ?? '—';
+            $sample->current_stage_label = $nextStageLabel ?? ($currentProcess?->stage_label ?? '—');
             $sample->current_stage_value = $this->stageValue($currentProcess?->stage ?? null);
             $sample->current_status_key = $statusKey;
             $sample->current_status_label = $statusLabel;
