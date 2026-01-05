@@ -49,19 +49,46 @@ class TestRequest extends Model
 
         static::creating(function ($model) {
             $numbering = app(\App\Services\NumberingService::class);
+            $maxRetries = 10;
 
             if (! $model->request_number) {
                 // Generate Berita Acara (BA) number for the request
-                $model->request_number = $numbering->issue('ba', [
-                    'investigator_id' => $model->investigator_id ?? null,
-                ]);
+                // Retry loop in case of collision with existing records
+                for ($attempt = 0; $attempt < $maxRetries; $attempt++) {
+                    $candidate = $numbering->issue('ba', [
+                        'investigator_id' => $model->investigator_id ?? null,
+                    ]);
+
+                    if (! static::where('request_number', $candidate)->exists()) {
+                        $model->request_number = $candidate;
+                        break;
+                    }
+                }
+
+                // Fallback: append timestamp to ensure uniqueness
+                if (! $model->request_number) {
+                    $model->request_number = $candidate.'-'.now()->format('His');
+                }
             }
 
             if (! $model->receipt_number) {
                 // Generate receipt/tracking number (nomor resi)
-                $model->receipt_number = $numbering->issue('tracking', [
-                    'investigator_id' => $model->investigator_id ?? null,
-                ]);
+                // Retry loop in case of collision with existing records
+                for ($attempt = 0; $attempt < $maxRetries; $attempt++) {
+                    $candidate = $numbering->issue('tracking', [
+                        'investigator_id' => $model->investigator_id ?? null,
+                    ]);
+
+                    if (! static::where('receipt_number', $candidate)->exists()) {
+                        $model->receipt_number = $candidate;
+                        break;
+                    }
+                }
+
+                // Fallback: append timestamp to ensure uniqueness
+                if (! $model->receipt_number) {
+                    $model->receipt_number = $candidate.'-'.now()->format('His');
+                }
             }
         });
 
