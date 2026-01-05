@@ -517,13 +517,20 @@ class DeliveryController extends Controller
         $req = $delivery->request;
         $inv = $req->investigator;
 
+        // Generate document number using the 'ba_penyerahan' numbering scope
+        $numberingService = app(\App\Services\NumberingService::class);
+        $baPenyerahanNumber = $numberingService->issue('ba_penyerahan', [
+            'investigator_id' => $inv->id,
+        ]);
+        
+        // Generate filesystem-safe baseName from document number
+        $base = $docs->generateDocumentBaseName('ba_penyerahan', $baPenyerahanNumber);
+
         // render blade BA yang sudah kamu buat
         $html = view('pdf.ba-penyerahan', [
             'request' => $req,
             'generatedAt' => now(),
         ])->render();
-
-        $base = 'BA-Penyerahan-'.$req->request_number;
 
         // arsip HTML (replace existing to avoid duplication)
         $docs->storeGenerated($html, 'html', $inv, $req, 'ba_penyerahan_html', $base, replaceExisting: true);

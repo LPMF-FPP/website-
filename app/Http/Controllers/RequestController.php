@@ -993,6 +993,7 @@ class RequestController extends Controller
             $documentService = app(DocumentService::class);
             $templateService = app(\App\Services\DocumentTemplateService::class);
             $pdfRenderService = app(\App\Services\PdfRenderService::class);
+            $numberingService = app(\App\Services\NumberingService::class);
 
             // Ambil relasi lengkap
             $testRequest->loadMissing(['investigator', 'samples']);
@@ -1008,6 +1009,14 @@ class RequestController extends Controller
                 $inv->folder_key = trim(($inv->nrp ? $inv->nrp.'-' : '').\Illuminate\Support\Str::slug($inv->name ?? 'noname'));
                 $inv->save();
             }
+
+            // Generate document number using the 'ba' numbering scope
+            $baNumber = $numberingService->issue('ba', [
+                'investigator_id' => $inv->id,
+            ]);
+            
+            // Generate filesystem-safe baseName from document number
+            $baseName = $documentService->generateDocumentBaseName('ba_penerimaan', $baNumber);
 
             // Try to get active template for BA
             $template = $templateService->getActiveTemplateByDocType('BA');
@@ -1071,7 +1080,7 @@ class RequestController extends Controller
                     inv: $inv,
                     req: $testRequest,
                     type: 'ba_penerimaan',
-                    baseName: 'BA-Penerimaan-'.$testRequest->request_number,
+                    baseName: $baseName,
                     replaceExisting: true
                 );
 
@@ -1092,7 +1101,7 @@ class RequestController extends Controller
                 inv: $inv,
                 req: $testRequest,
                 type: 'ba_penerimaan',
-                baseName: 'BA-Penerimaan-'.$testRequest->request_number,
+                baseName: $baseName,
                 replaceExisting: true
             );
 

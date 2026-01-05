@@ -702,9 +702,8 @@ class SampleTestProcessController extends Controller
         $pdf = $pdfRenderService->htmlToPdf($html, config('app.url'));
 
         // SAVE via DocumentService (html + pdf) - use replaceExisting to avoid duplicates
-        $reqNo = $sampleProcess->sample->testRequest->request_number ?? 'REQ-UNKNOWN';
-        $code = $sampleProcess->sample->sample_code ?? ('SAMPLE-'.$sampleProcess->sample_id);
-        $base = trim("Laporan-Hasil-Uji-{$code}-{$reqNo}".($lhuNumber ? "-{$lhuNumber}" : ''));
+        // Use the LHU number as the baseName for filename
+        $base = $docs->generateDocumentBaseName('lhu', $lhuNumber);
 
         $docs->storeForSampleProcess($sampleProcess, 'html', 'laporan_hasil_uji_html', $base, $html, replaceExisting: true);
         $docPdf = $docs->storeForSampleProcess($sampleProcess, 'pdf', 'laporan_hasil_uji', $base, $pdf, replaceExisting: true);

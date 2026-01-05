@@ -73,6 +73,19 @@
   - **Fix**: Update `fetchCurrentNumbering()` di `resources/js/pages/settings/index.js` untuk mengekstrak nilai `next` atau `current` dari objek response.
   - **File terpengaruh**: `resources/js/pages/settings/index.js`
 
+- **Penamaan Dokumen Sesuai Penomoran Otomatis**: Dokumen yang digenerate (BA Penerimaan, BA Penyerahan, LHU) sekarang menggunakan nomor dari sistem Penomoran Otomatis di `/settings` untuk nama file.
+  - **Sebelumnya**: Nama file menggunakan `request_number` (contoh: `BA-Penerimaan-2026-01-05-0001.pdf`)
+  - **Sekarang**: Nama file menggunakan nomor dokumen dari scope yang sesuai (contoh: `BA-2026-01-0001-ba-penerimaan.pdf` sesuai pattern `BA/{YYYY}/{MM}/{SEQ:4}`)
+  - **Mapping scope**:
+    - `ba_penerimaan` → scope `ba`
+    - `ba_penyerahan` → scope `ba_penyerahan`
+    - `lhu` / `laporan_hasil_uji` → scope `lhu`
+  - **File terpengaruh**:
+    - `app/Services/DocumentService.php` - Tambah method `issueDocumentNumber()`, `previewDocumentNumber()`, `generateDocumentBaseName()`
+    - `app/Http/Controllers/RequestController.php` - Generate BA Penerimaan menggunakan numbering
+    - `app/Http/Controllers/DeliveryController.php` - Generate BA Penyerahan menggunakan numbering
+    - `app/Http/Controllers/SampleTestProcessController.php` - LHU sudah menggunakan numbering, update baseName
+
 ---
 
 ### v1.0.4 (3 Januari 2026)

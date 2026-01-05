@@ -16,6 +16,16 @@ class DocumentService
 
     protected array $candidateDisks = [];
 
+    /**
+     * Document type to numbering scope mapping
+     */
+    protected array $typeToScope = [
+        'ba_penerimaan' => 'ba',
+        'ba_penyerahan' => 'ba_penyerahan',
+        'lhu' => 'lhu',
+        'laporan_hasil_uji' => 'lhu',
+    ];
+
     public function __construct()
     {
         // Only include local disks to avoid trying S3/remote storage during resolution
@@ -46,6 +56,16 @@ class DocumentService
     ];
 
     /**
+     * Human-readable document type labels for filenames
+     */
+    protected array $typeLabels = [
+        'ba_penerimaan' => 'ba-penerimaan',
+        'ba_penyerahan' => 'ba-penyerahan',
+        'lhu' => 'lhu',
+        'laporan_hasil_uji' => 'lhu',
+    ];
+
+    /**
      * Allowed MIME types for uploads
      */
     protected array $allowedMimeTypes = [
@@ -66,6 +86,65 @@ class DocumentService
      * Maximum file size in bytes (20MB)
      */
     protected int $maxFileSize = 20 * 1024 * 1024;
+
+    /**
+     * Generate a document number for a given type using the NumberingService.
+     * Issues a new number from the appropriate scope.
+     *
+     * @param  string  $type  Document type (e.g., 'ba_penerimaan', 'lhu')
+     * @param  array  $context  Additional context for numbering
+     * @return string|null  The generated document number, or null if no scope mapping
+     */
+    public function issueDocumentNumber(string $type, array $context = []): ?string
+    {
+        $scope = $this->typeToScope[$type] ?? null;
+        if (!$scope) {
+            return null;
+        }
+
+        /** @var NumberingService $numbering */
+        $numbering = app(NumberingService::class);
+        return $numbering->issue($scope, $context);
+    }
+
+    /**
+     * Preview a document number for a given type without issuing it.
+     *
+     * @param  string  $type  Document type (e.g., 'ba_penerimaan', 'lhu')
+     * @param  array  $context  Additional context for numbering
+     * @return string|null  The preview document number, or null if no scope mapping
+     */
+    public function previewDocumentNumber(string $type, array $context = []): ?string
+    {
+        $scope = $this->typeToScope[$type] ?? null;
+        if (!$scope) {
+            return null;
+        }
+
+        /** @var NumberingService $numbering */
+        $numbering = app(NumberingService::class);
+        return $numbering->preview($scope, $context);
+    }
+
+    /**
+     * Generate a filename for a document based on its type and document number.
+     * Converts document number to filesystem-safe format.
+     *
+     * @param  string  $type  Document type
+     * @param  string  $documentNumber  The issued document number
+     * @return string  The base filename (without extension)
+     */
+    public function generateDocumentBaseName(string $type, string $documentNumber): string
+    {
+        $label = $this->typeLabels[$type] ?? str_replace('_', '-', $type);
+        
+        // Convert document number to filesystem-safe format
+        // e.g., "BA/2026/01/0001" -> "BA-2026-01-0001"
+        $safeNumber = preg_replace('/[\/\\\\]/', '-', $documentNumber);
+        $safeNumber = preg_replace('/[^A-Za-z0-9\-_]/', '', $safeNumber);
+        
+        return "{$safeNumber}-{$label}";
+    }
 
     /**
      * Store an uploaded file

@@ -93,7 +93,8 @@ class BeritaAcaraPenerimaanTest extends TestCase
             ->first();
 
         $this->assertNotNull($document);
-        $this->assertStringContainsString('BA-Penerimaan', $document->filename);
+        // Filename should contain 'ba-penerimaan' (from document type label) based on numbering pattern
+        $this->assertStringContainsString('ba-penerimaan', strtolower($document->filename));
 
         // Verify file path structure
         $expectedPathPattern = "investigators/{$this->investigator->folder_key}/{$this->testRequest->request_number}/generated/ba_penerimaan/";
