@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v1.0.4
+# WALKTHROUGH - LPMF LIMS v1.0.5
 
 > **Laboratory Information Management System untuk Laboratorium Pengujian Mutu Farmasi**
 > **Dokumen ini menggabungkan PRD (Product Requirements) dan ERD (Entity Relationship)**
@@ -6,6 +6,74 @@
 ---
 
 ## 📝 Changelog
+
+### v1.0.5 (5 Januari 2026)
+
+#### 🆕 Improvements
+
+- **Manajemen Staff (Rename dari Manajemen Analis)**: Menu "Analis" di navigasi diganti menjadi "Staff" dan "Manajemen analis" menjadi "Manajemen staff". Halaman index, create, dan edit diperbarui.
+  - **Perubahan Peran**: Opsi peran di form create/edit sekarang adalah: `Analis`, `Penyelia`, `Manajer Teknis` (sebelumnya: analyst, lab_analyst, petugas_lab).
+  - **File terpengaruh**:
+    - `app/Http/Controllers/AnalystController.php` - Update `$analystRoles` array dan success messages
+    - `resources/views/layouts/navigation.blade.php` - Menu "Staff" dan "Manajemen staff"
+    - `resources/views/analysts/index.blade.php` - Title "Manajemen Staff", "Daftar Staff"
+    - `resources/views/analysts/create.blade.php` - Title "Tambah Staff"
+    - `resources/views/analysts/edit.blade.php` - Title "Ubah Data Staff"
+
+- **Label Barang Bukti - Ganti Kolom Penyidik dengan Deskripsi Singkat**: Pada template label barang bukti (sheet dan single), kolom "Penyidik" diganti menjadi "Deskripsi Singkat" untuk menampilkan deskripsi sampel yang lebih informatif.
+  - **Fitur**: Label sekarang menampilkan `short_description` dari sampel, bukan nama penyidik.
+  - **File terpengaruh**:
+    - `app/Http/Controllers/LabelController.php` - `buildLabelPayload()` sekarang return `deskripsi_singkat`
+    - `resources/views/labels/evidence-sheet.blade.php` - Field "Deskripsi Singkat"
+    - `resources/views/labels/evidence-single.blade.php` - Field "Deskripsi Singkat"
+    - `app/Http/Controllers/Api/Settings/BladeTemplateEditorController.php` - Preview data untuk template editor
+
+- **Identifikasi Sampel - Toggle Dropdown dan Input Baru**: Di halaman Pengujian Sampel (`/samples/test`), field "Identifikasi Sampel / Barang Bukti" sekarang memiliki dua pilihan input:
+  - **Fitur**: Radio button toggle antara "Pilih yang sudah ada" (dropdown dari database) dan "Input baru" (textarea manual).
+  - **Behavior**: Jika sudah ada identifikasi di database, user dapat memilih dari dropdown. Jika baru, user dapat input manual via textarea.
+  - **File terpengaruh**:
+    - `app/Http/Controllers/SampleTestController.php` - Query existing `physical_identification` dari samples table
+    - `resources/views/samples/test.blade.php` - UI toggle dengan JavaScript untuk sync nilai
+
+- **Auto-fill Data Penyidik/Pemohon**: Di halaman Buat Permintaan (`/permintaan/buat`), jika penyidik atau pemohon non-Polri sudah pernah mengajukan permintaan sebelumnya, mereka dapat memilih nama dari dropdown untuk auto-fill semua data (NRP, pangkat, satuan, telepon, alamat, dll).
+  - **Fitur**: Dropdown "Pilih Data Penyidik yang Sudah Terdaftar" untuk Polri, dan "Pilih Pemohon yang Sudah Terdaftar" untuk non-Polri.
+  - **Behavior**: Pilih dari dropdown untuk auto-fill, atau pilih "-- Input Data Baru --" untuk input manual.
+  - **File terpengaruh**:
+    - `app/Http/Controllers/RequestController.php` - Menambahkan query untuk existing investigators dan externals
+    - `resources/views/requests/create.blade.php` - UI dropdown dengan auto-fill JavaScript
+
+- **Autocomplete Zat Aktif**: Field "Zat Aktif" di form sampel sekarang mendukung autocomplete dari zat aktif yang sudah pernah diinput sebelumnya.
+  - **Fitur**: Menggunakan HTML5 `<datalist>` untuk menampilkan suggestions dari zat aktif yang sudah ada di database.
+  - **Behavior**: User dapat memilih dari suggestions atau mengetik zat aktif baru.
+  - **File terpengaruh**:
+    - `app/Http/Controllers/RequestController.php` - Query unique active substances
+    - `resources/views/requests/create.blade.php` - Datalist dan input dengan list attribute
+
+#### 🐛 Bug Fixes
+
+- **Stepper Tidak Advance ke Interpretasi**: Fix bug di halaman Detail Proses (`/proses/{id}`) dimana stepper tidak menampilkan tahap "Interpretasi" ketika semua proses "Preparasi Sampel" dan "Pengujian Instrumen" telah selesai. 
+  - **Root cause**: Logika `resolveStepperStage()` di `ProcessController.php` mengecek apakah ada proses di suatu stage (started atau completed), tapi tidak mempertimbangkan bahwa jika semua proses completed maka harus advance ke stage berikutnya.
+  - **Fix**: Memisahkan pengecekan proses in-progress dan completed. Jika semua proses instrumentation completed, stepper sekarang akan menampilkan "Interpretasi" sebagai tahap berikutnya.
+  - **File terpengaruh**: `app/Http/Controllers/ProcessController.php`
+
+- **Lokasi Penyimpanan Tidak Bisa Input Baru**: Fix bug di halaman Penerimaan Stok (`/referensi/inventori/transaksi/receipt`) dimana field "Lokasi Penyimpanan" hanya berupa dropdown dan tidak bisa menginput lokasi baru.
+  - **Root cause**: Field lokasi hanya menggunakan `<select>` dengan opsi dari database, tidak ada opsi untuk menambah lokasi baru secara inline.
+  - **Fix**: Mengubah field lokasi menjadi combobox dengan radio button toggle antara "Lokasi yang ada" (dropdown) dan "Lokasi baru" (text input + tipe lokasi), mirip dengan pola yang sudah ada untuk field Lot.
+  - **File terpengaruh**: 
+    - `resources/views/inventory/transactions/receipt.blade.php` - UI dengan toggle mode
+    - `app/Http/Controllers/Inventory/TransactionController.php` - Backend logic untuk create lokasi baru
+
+- **Artisan dummy:clear Gagal dengan Foreign Key Violation**: Fix bug pada command `php artisan dummy:clear` yang gagal dengan error `SQLSTATE[23503]: Foreign key violation` karena PostgreSQL FK constraints.
+  - **Root cause**: Menggunakan Eloquent `Model::query()->delete()` tidak bisa menangani FK constraints yang kompleks di PostgreSQL. Bahkan dengan `SET CONSTRAINTS ALL DEFERRED`, masih ada masalah timing dengan child records.
+  - **Fix**: Menggunakan raw SQL `TRUNCATE TABLE ... CASCADE` yang secara native PostgreSQL menangani FK constraints dengan cascade delete semua child records.
+  - **File terpengaruh**: `app/Console/Commands/ClearDummyData.php`
+
+- **Penomoran Saat Ini Menampilkan [object Object]**: Fix bug pada halaman `/settings` bagian "Penomoran Saat Ini" yang menampilkan `[object Object]` dan tombol Refresh tidak berfungsi dengan benar.
+  - **Root cause**: Backend API `/api/settings/numbering/current` mengembalikan objek `{ current, next, pattern }` untuk setiap scope, tapi frontend JavaScript mengasumsikan response berupa string langsung.
+  - **Fix**: Update `fetchCurrentNumbering()` di `resources/js/pages/settings/index.js` untuk mengekstrak nilai `next` atau `current` dari objek response.
+  - **File terpengaruh**: `resources/js/pages/settings/index.js`
+
+---
 
 ### v1.0.4 (3 Januari 2026)
 

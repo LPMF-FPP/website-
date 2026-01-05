@@ -84,18 +84,51 @@
                     </div>
 
                     <!-- Location -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Lokasi Penyimpanan <span class="text-red-500">*</span></label>
-                        <select name="location_id" required
-                            class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('location_id') border-red-500 @enderror">
-                            <option value="">Pilih lokasi...</option>
-                            @foreach($locations as $location)
-                                <option value="{{ $location->id }}" {{ old('location_id') == $location->id ? 'selected' : '' }}>
-                                    {{ $location->name }} ({{ $location->location_type_label }})
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('location_id')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                    <div class="p-4 bg-gray-50 rounded-lg space-y-4">
+                        <div class="flex items-center gap-4">
+                            <label class="flex items-center gap-2">
+                                <input type="radio" name="location_mode" value="existing" checked class="text-primary-600 focus:ring-primary-500">
+                                <span class="text-sm font-medium text-gray-700">Lokasi yang ada</span>
+                            </label>
+                            <label class="flex items-center gap-2">
+                                <input type="radio" name="location_mode" value="new" class="text-primary-600 focus:ring-primary-500">
+                                <span class="text-sm font-medium text-gray-700">Lokasi baru</span>
+                            </label>
+                        </div>
+
+                        <div id="existing-location-section">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Lokasi Penyimpanan <span class="text-red-500">*</span></label>
+                            <select name="location_id" id="location-select"
+                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 @error('location_id') border-red-500 @enderror">
+                                <option value="">Pilih lokasi...</option>
+                                @foreach($locations as $location)
+                                    <option value="{{ $location->id }}" {{ old('location_id') == $location->id ? 'selected' : '' }}>
+                                        {{ $location->name }} ({{ $location->location_type_label }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('location_id')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div id="new-location-section" class="hidden space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lokasi Baru <span class="text-red-500">*</span></label>
+                                <input type="text" name="new_location_name" value="{{ old('new_location_name') }}"
+                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                    placeholder="e.g., Gudang Utama, Lab Kimia, Cold Room A">
+                                @error('new_location_name')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Tipe Lokasi</label>
+                                <select name="new_location_type"
+                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                    <option value="storage" {{ old('new_location_type', 'storage') === 'storage' ? 'selected' : '' }}>Penyimpanan</option>
+                                    <option value="lab" {{ old('new_location_type') === 'lab' ? 'selected' : '' }}>Laboratorium</option>
+                                    <option value="cold_room" {{ old('new_location_type') === 'cold_room' ? 'selected' : '' }}>Cold Room</option>
+                                    <option value="quarantine" {{ old('new_location_type') === 'quarantine' ? 'selected' : '' }}>Karantina</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Quantity -->
@@ -158,9 +191,12 @@
     <script>
         const itemSelect = document.getElementById('item-select');
         const lotSelect = document.getElementById('lot-select');
+        const locationSelect = document.getElementById('location-select');
         const uomDisplay = document.getElementById('uom-display');
         const existingLotSection = document.getElementById('existing-lot-section');
         const newLotSection = document.getElementById('new-lot-section');
+        const existingLocationSection = document.getElementById('existing-location-section');
+        const newLocationSection = document.getElementById('new-location-section');
         const expiryRequired = document.getElementById('expiry-required');
 
         // Load lots when item changes
@@ -195,6 +231,41 @@
                 existingLotSection.classList.toggle('hidden', this.value === 'new');
                 newLotSection.classList.toggle('hidden', this.value !== 'new');
             });
+        });
+
+        // Toggle location mode
+        document.querySelectorAll('[name="location_mode"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                const isNew = this.value === 'new';
+                existingLocationSection.classList.toggle('hidden', isNew);
+                newLocationSection.classList.toggle('hidden', !isNew);
+                
+                // Update required attribute
+                if (locationSelect) {
+                    locationSelect.required = !isNew;
+                }
+            });
+        });
+
+        // Handle form submission validation
+        document.getElementById('receipt-form').addEventListener('submit', function(e) {
+            const locationMode = document.querySelector('[name="location_mode"]:checked')?.value || 'existing';
+            
+            if (locationMode === 'new') {
+                const newLocationName = document.querySelector('[name="new_location_name"]')?.value?.trim();
+                if (!newLocationName) {
+                    e.preventDefault();
+                    alert('Nama lokasi baru wajib diisi.');
+                    return false;
+                }
+            } else {
+                const locationId = locationSelect?.value;
+                if (!locationId) {
+                    e.preventDefault();
+                    alert('Pilih lokasi penyimpanan.');
+                    return false;
+                }
+            }
         });
     </script>
     @endpush

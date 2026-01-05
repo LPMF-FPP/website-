@@ -1,8 +1,8 @@
 # Pre-Pull Gate Checklist
 
 > **Tujuan**: Memastikan `git pull` berjalan aman tanpa konflik atau kehilangan perubahan lokal.  
-> **Last Updated**: 2025-12-31  
-> **Last Verified**: ✅ Production-Ready
+> **Last Updated**: 2026-01-05  
+> **Last Verified**: ✅ Production-Ready (v1.0.5)
 
 ---
 
@@ -14,8 +14,8 @@
 | PHP | ✅ | 8.3.29 |
 | Node.js/NPM | ✅ | 11.7.0 |
 | Git Branch | ✅ | `main` (up to date) |
-| Latest Commit | ✅ | `091bf53` - fix test isolation issues |
-| Tests | ✅ | 240 passed (all test isolation fixes applied) |
+| Latest Commit | ✅ | v1.0.5 - improvements and bug fixes |
+| Tests | ✅ | 289 passed, 9 skipped |
 | Working Tree | ✅ | Clean |
 
 ---

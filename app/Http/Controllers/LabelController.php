@@ -49,7 +49,7 @@ class LabelController extends Controller
             'resi' => $unit->receipt_code ?? '-',
             'kode_sampel' => $unit->sample_code ?? '-',
             'tanggal_terima' => $receivedAtFormatted,
-            'penyidik' => $unit->investigator_name ?? '-',
+            'deskripsi_singkat' => $sample?->short_description ?? '-',
             'satuan_kerja' => $unit->investigator_unit ?? '-',
             'satuan' => $satuan,
             'jenis' => $unit->sample_type ?? '-',

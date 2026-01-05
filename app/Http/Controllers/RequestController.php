@@ -80,7 +80,31 @@ class RequestController extends Controller
 
         }
 
-        return view('requests.create', ['activeSubstanceHighlights' => $activeSubstanceHighlights]);
+        // Get existing investigators for autocomplete (Polri only)
+        $existingInvestigators = Investigator::where('is_polri', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'nrp', 'rank', 'jurisdiction', 'phone', 'address']);
+
+        // Get existing non-Polri investigators for autocomplete
+        $existingExternals = Investigator::where('is_polri', false)
+            ->orderBy('name')
+            ->get(['id', 'name', 'institution', 'phone', 'alt_phone', 'occupation']);
+
+        // Get unique active substances from samples for autocomplete
+        $existingActiveSubstances = Sample::whereNotNull('active_substance')
+            ->where('active_substance', '!=', '')
+            ->distinct()
+            ->orderBy('active_substance')
+            ->pluck('active_substance')
+            ->unique()
+            ->values();
+
+        return view('requests.create', [
+            'activeSubstanceHighlights' => $activeSubstanceHighlights,
+            'existingInvestigators' => $existingInvestigators,
+            'existingExternals' => $existingExternals,
+            'existingActiveSubstances' => $existingActiveSubstances,
+        ]);
 
     }
 

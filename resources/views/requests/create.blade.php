@@ -70,6 +70,36 @@
                             </svg>
                             Data Penyidik
                         </h3>
+
+                        {{-- Quick Select Existing Investigator --}}
+                        @if(isset($existingInvestigators) && $existingInvestigators->count() > 0)
+                        <div class="mb-6 p-4 bg-white rounded-lg border border-blue-100">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                                    <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+                                </svg>
+                                Pilih Data Penyidik yang Sudah Terdaftar
+                            </label>
+                            <select id="existing_investigator_select" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">-- Input Data Baru --</option>
+                                @foreach($existingInvestigators as $inv)
+                                    <option value="{{ $inv->id }}" 
+                                            data-name="{{ $inv->name }}"
+                                            data-nrp="{{ $inv->nrp }}"
+                                            data-rank="{{ $inv->rank }}"
+                                            data-jurisdiction="{{ $inv->jurisdiction }}"
+                                            data-phone="{{ $inv->phone }}"
+                                            data-address="{{ $inv->address }}">
+                                        {{ $inv->rank }} {{ $inv->name }} ({{ $inv->jurisdiction }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Pilih untuk auto-fill data, atau kosongkan untuk input data baru.</p>
+                        </div>
+                        @endif
+
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div>
                                 <label for="investigator_name" class="block text-sm font-medium text-gray-700 mb-2">
@@ -157,6 +187,35 @@
                             </svg>
                             Data Pemohon
                         </h3>
+
+                        {{-- Quick Select Existing External --}}
+                        @if(isset($existingExternals) && $existingExternals->count() > 0)
+                        <div class="mb-6 p-4 bg-white rounded-lg border border-green-100">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path>
+                                    <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path>
+                                </svg>
+                                Pilih Pemohon yang Sudah Terdaftar
+                            </label>
+                            <select id="existing_external_select" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500">
+                                <option value="">-- Input Data Baru --</option>
+                                @foreach($existingExternals as $ext)
+                                    <option value="{{ $ext->id }}" 
+                                            data-name="{{ $ext->name }}"
+                                            data-institution="{{ $ext->institution }}"
+                                            data-phone="{{ $ext->phone }}"
+                                            data-alt-phone="{{ $ext->alt_phone }}"
+                                            data-occupation="{{ $ext->occupation }}">
+                                        {{ $ext->name }} ({{ $ext->institution }})
+                                    </option>
+                                @endforeach
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Pilih untuk auto-fill data, atau kosongkan untuk input data baru.</p>
+                        </div>
+                        @endif
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label for="external_name" class="block text-sm font-medium text-gray-700 mb-2">
@@ -636,9 +695,15 @@
 
                                                required
 
-                                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                               list="active_substance_list"
 
-                                               placeholder="Contoh: Amfetamin">
+                                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 active-substance-input"
+
+                                               placeholder="Pilih atau ketik zat aktif baru..."
+
+                                               autocomplete="off">
+
+                                        <p class="text-xs text-gray-500 mt-1">Pilih dari daftar atau ketik zat aktif baru.</p>
 
                                     </div>
 
@@ -779,7 +844,68 @@
 
     </div>
 
+{{-- Datalist for Active Substances --}}
+<datalist id="active_substance_list">
+    @if(isset($existingActiveSubstances))
+        @foreach($existingActiveSubstances as $substance)
+            <option value="{{ $substance }}">
+        @endforeach
+    @endif
+</datalist>
+
 <script>
+// Auto-fill existing investigator data
+(function() {
+    const existingInvestigatorSelect = document.getElementById('existing_investigator_select');
+    if (existingInvestigatorSelect) {
+        existingInvestigatorSelect.addEventListener('change', function() {
+            const option = this.options[this.selectedIndex];
+            
+            if (this.value) {
+                // Auto-fill from selected investigator
+                document.getElementById('investigator_name').value = option.dataset.name || '';
+                document.getElementById('investigator_nrp').value = option.dataset.nrp || '';
+                document.getElementById('investigator_rank').value = option.dataset.rank || '';
+                document.getElementById('investigator_jurisdiction').value = option.dataset.jurisdiction || '';
+                document.getElementById('investigator_phone').value = option.dataset.phone || '';
+                document.getElementById('investigator_address').value = option.dataset.address || '';
+            } else {
+                // Clear fields for new input
+                document.getElementById('investigator_name').value = '';
+                document.getElementById('investigator_nrp').value = '';
+                document.getElementById('investigator_rank').value = '';
+                document.getElementById('investigator_jurisdiction').value = '';
+                document.getElementById('investigator_phone').value = '';
+                document.getElementById('investigator_address').value = '';
+            }
+        });
+    }
+
+    // Auto-fill existing external (non-Polri) data
+    const existingExternalSelect = document.getElementById('existing_external_select');
+    if (existingExternalSelect) {
+        existingExternalSelect.addEventListener('change', function() {
+            const option = this.options[this.selectedIndex];
+            
+            if (this.value) {
+                // Auto-fill from selected external
+                document.getElementById('external_name').value = option.dataset.name || '';
+                document.getElementById('external_institution').value = option.dataset.institution || '';
+                document.getElementById('external_phone').value = option.dataset.altPhone || '';
+                document.getElementById('external_hp').value = option.dataset.phone || '';
+                document.getElementById('external_occupation').value = option.dataset.occupation || '';
+            } else {
+                // Clear fields for new input
+                document.getElementById('external_name').value = '';
+                document.getElementById('external_institution').value = '';
+                document.getElementById('external_phone').value = '';
+                document.getElementById('external_hp').value = '';
+                document.getElementById('external_occupation').value = '';
+            }
+        });
+    }
+})();
+
 // Display filename when file is selected for request letter
 function displayRequestLetterFileName(input) {
     const filenameDisplay = document.getElementById('request_letter_filename');

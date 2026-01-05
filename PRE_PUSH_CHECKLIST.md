@@ -2,7 +2,7 @@
 
 Use this checklist before pushing commits to GitHub. Run each step and verify the criteria.
 
-**Last Verified:** January 3, 2026 (branch: `main`)
+**Last Verified:** January 5, 2026 (branch: `main`)
 
 ---
 
@@ -16,7 +16,7 @@ git diff --cached --stat
 
 **Criteria:**
 - [x] No temporary/log/cache files staged
-- [x] Staged changes match intended push (IKU feature, Customer Survey, code linting fixes)
+- [x] Staged changes match intended push (v1.0.5 improvements and bug fixes)
 
 ---
 
@@ -30,7 +30,7 @@ php artisan route:list --name=changelogs
 ```
 
 **Criteria:**
-- [x] Test suite passes: **284 passed, 9 skipped** ✅
+- [x] Test suite passes: **289 passed, 9 skipped** ✅
 - [x] Critical routes exist and not broken
 
 ---
@@ -125,34 +125,43 @@ git push origin main
 
 ---
 
-## Changes Summary (January 3, 2026)
+## Changes Summary (January 5, 2026) - v1.0.5
 
-### IKU (Indeks Kinerja Utama) Feature
-- New `IkuService.php` for calculating IKU (performance index)
-- New `IkuSettingsController.php` API controller
-- New `IkuSettingsRequest.php` form request validation
-- Settings partial: `iku.blade.php` with preview and configuration UI
-- IKU Settings test suite: `IkuSettingsTest.php`
+### 🆕 Improvements
 
-### Customer Survey Model & Export
-- New `CustomerSurvey.php` model with validation methods
-- Migration: `2025_10_02_000000_create_customer_surveys_table`
-- New `CustomerSurveyExport.php` for Excel export
-- New `SurveyExportController.php` with date filtering
-- Route: `GET /reports/surveys/export`
+#### Manajemen Staff (Rename dari Manajemen Analis)
+- Menu "Analis" → "Staff", "Manajemen analis" → "Manajemen staff"
+- Opsi peran baru: `Analis`, `Penyelia`, `Manajer Teknis`
+- Files: `AnalystController.php`, `navigation.blade.php`, `analysts/*.blade.php`
 
-### Code Quality & Linting Fixes
-- Import statement sorting (alphabetical order)
-- Whitespace cleanup in routes/web.php
-- Arrow function formatting: `fn() =>` to `fn () =>`
-- String concatenation standardization: `. ` spacing
-- Removed deprecated files from `siap-dihapus-2025-12-23/`
-- PHP-CS-Fixer compliant test files
+#### Label Barang Bukti - Deskripsi Singkat
+- Kolom "Penyidik" diganti menjadi "Deskripsi Singkat"
+- Files: `LabelController.php`, `evidence-sheet.blade.php`, `evidence-single.blade.php`
 
-### Tests
-- All 284 tests passing (increased from 245)
-- 9 tests skipped (deprecated features)
-- New test coverage for IKU feature
+#### Identifikasi Sampel Toggle
+- Toggle dropdown/textarea untuk field identifikasi sampel di `/samples/test`
+- Files: `SampleTestController.php`, `test.blade.php`
+
+#### Auto-fill Data Penyidik/Pemohon
+- Dropdown untuk memilih penyidik/pemohon yang sudah terdaftar
+- Files: `RequestController.php`, `create.blade.php`
+
+#### Autocomplete Zat Aktif
+- Datalist suggestions untuk field zat aktif
+- Files: `RequestController.php`, `create.blade.php`
+
+### 🐛 Bug Fixes
+
+- **Stepper Tidak Advance ke Interpretasi**: Fix logika stepper di ProcessController
+- **Lokasi Penyimpanan Input Baru**: Combobox toggle di inventory receipt
+- **dummy:clear FK Violation**: Gunakan TRUNCATE CASCADE untuk PostgreSQL
+- **Penomoran Saat Ini [object Object]**: Fix fetchCurrentNumbering di settings JS
+
+### Files Changed (21 files, +781/-110 lines)
+- Controllers: 8 files
+- Views: 10 files  
+- JS: 1 file
+- Config: 2 files (WALKTHROUGH.md, changelogs)
 
 ---
 
@@ -162,6 +171,6 @@ git push origin main
 |-------|---------|----------|
 | Git status | `git status --porcelain` | Clean or expected changes |
 | Routes | `php artisan route:list` | No missing routes |
-| Build | `npm run build` | Success, <10s |
+| Build | `npm run build` | Success, <5s |
 | Secrets | `git ls-files \| grep .env` | Only `.env.example` |
 | Endpoints | `curl -w "%{http_code}" <url>` | 200/302, no 500 |

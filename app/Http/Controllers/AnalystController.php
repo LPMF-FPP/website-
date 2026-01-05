@@ -11,7 +11,7 @@ use Illuminate\View\View;
 
 class AnalystController extends Controller
 {
-    protected array $analystRoles = ['analyst', 'lab_analyst', 'petugas_lab'];
+    protected array $analystRoles = ['analis', 'penyelia', 'manajer_teknis'];
 
     public function __construct()
     {
@@ -54,7 +54,7 @@ class AnalystController extends Controller
 
         return redirect()
             ->route('analysts.index')
-            ->with('success', 'Data analis berhasil ditambahkan.');
+            ->with('success', 'Data staff berhasil ditambahkan.');
     }
 
     public function edit(User $analyst): View
@@ -81,7 +81,7 @@ class AnalystController extends Controller
 
         return redirect()
             ->route('analysts.index')
-            ->with('success', 'Data analis berhasil diperbarui.');
+            ->with('success', 'Data staff berhasil diperbarui.');
     }
 
     public function destroy(User $analyst): RedirectResponse
@@ -94,7 +94,7 @@ class AnalystController extends Controller
 
         return redirect()
             ->route('analysts.index')
-            ->with('success', 'Data analis berhasil dihapus.');
+            ->with('success', 'Data staff berhasil dihapus.');
     }
 
     protected function validatedData(Request $request, ?int $analystId = null): array

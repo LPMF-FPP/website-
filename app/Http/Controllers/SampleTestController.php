@@ -51,6 +51,15 @@ class SampleTestController extends Controller
             ->orderBy('name')
             ->get();
 
+        // Get existing physical identifications for autocomplete/dropdown
+        $existingPhysicalIdentifications = Sample::query()
+            ->whereNotNull('physical_identification')
+            ->where('physical_identification', '!=', '')
+            ->distinct()
+            ->pluck('physical_identification')
+            ->sort()
+            ->values();
+
         return view('samples.test', [
             'requests' => $requests,
             'selectedRequest' => $selectedRequest,
@@ -58,6 +67,7 @@ class SampleTestController extends Controller
             'analysts' => $analysts,
             'methodOptions' => TestMethod::options(),
             'otherSampleOptions' => Sample::OTHER_SAMPLE_CATEGORIES,
+            'existingPhysicalIdentifications' => $existingPhysicalIdentifications,
         ]);
     }
 

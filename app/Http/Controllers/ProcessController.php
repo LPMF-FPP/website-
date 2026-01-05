@@ -255,16 +255,57 @@ class ProcessController extends Controller
             'preparation',
         ];
 
+        // First, check if any stage has an in-progress process (started but not completed)
         foreach ($stageChecks as $stage) {
-            $hasStage = $processes->first(function ($process) use ($stage) {
+            $hasInProgress = $processes->first(function ($process) use ($stage) {
                 $value = $this->stageValue($process->stage ?? null);
 
-                return $value === $stage && ($process->started_at || $process->completed_at);
+                return $value === $stage && $process->started_at && ! $process->completed_at;
             });
 
-            if ($hasStage) {
+            if ($hasInProgress) {
                 return $stage;
             }
+        }
+
+        // No in-progress processes - determine next stage based on completed processes
+        // Group processes by stage
+        $preparationProcesses = $processes->filter(fn ($p) => $this->stageValue($p->stage ?? null) === 'preparation');
+        $instrumentationProcesses = $processes->filter(fn ($p) => $this->stageValue($p->stage ?? null) === 'instrumentation');
+        $interpretationProcesses = $processes->filter(fn ($p) => $this->stageValue($p->stage ?? null) === 'interpretation');
+
+        // Check if interpretation exists
+        if ($interpretationProcesses->isNotEmpty()) {
+            $allInterpretationCompleted = $interpretationProcesses->every(fn ($p) => $p->completed_at);
+            if ($allInterpretationCompleted) {
+                return 'ready_for_delivery';
+            }
+
+            return 'interpretation';
+        }
+
+        // Check instrumentation - if any exists and all are completed, advance to interpretation
+        if ($instrumentationProcesses->isNotEmpty()) {
+            $allInstrumentationCompleted = $instrumentationProcesses->every(fn ($p) => $p->completed_at);
+            
+            if ($allInstrumentationCompleted) {
+                // All existing instrumentation processes are done, advance to interpretation
+                return 'interpretation';
+            }
+
+            return 'instrumentation';
+        }
+
+        // Check preparation - if any exists and all are completed, advance to instrumentation
+        if ($preparationProcesses->isNotEmpty()) {
+            $allPreparationCompleted = $preparationProcesses->every(fn ($p) => $p->completed_at);
+            
+            if ($allPreparationCompleted) {
+                // All existing preparation processes are done, advance to instrumentation
+                return 'instrumentation';
+            }
+
+            return 'preparation';
         }
 
         if ($testRequest->status === 'in_testing') {

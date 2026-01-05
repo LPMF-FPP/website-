@@ -138,8 +138,8 @@
                                                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 5L20.49 19l-5-5zM9.5 14C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
                                             </div>
                                             <div class="min-w-0">
-                                                <div class="font-semibold text-primary-900">Analis</div>
-                                                <div class="text-sm text-primary-600/80">Manajemen analis</div>
+                                                <div class="font-semibold text-primary-900">Staff</div>
+                                                <div class="text-sm text-primary-600/80">Manajemen staff</div>
                                             </div>
                                         </a>
                                         @endif

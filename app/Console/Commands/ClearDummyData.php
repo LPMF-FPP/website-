@@ -2,15 +2,6 @@
 
 namespace App\Console\Commands;
 
-use App\Models\CustomerSurvey;
-use App\Models\Document;
-use App\Models\InventoryBalance;
-use App\Models\InventoryLot;
-use App\Models\InventoryItem;
-use App\Models\InventoryLocation;
-use App\Models\Investigator;
-use App\Models\Sample;
-use App\Models\TestRequest;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -29,46 +20,39 @@ class ClearDummyData extends Command
 
         $this->info('Clearing dummy data...');
 
-        DB::statement('SET CONSTRAINTS ALL DEFERRED');
+        // Get list of tables to truncate (in dependency order, children first)
+        $tables = [
+            'customer_surveys',
+            'remaining_units',
+            'evidence_units', 
+            'sample_test_processes',
+            'documents',
+            'samples',
+            'suspects',
+            'test_requests',
+            'investigators',
+            'inventory_movements',
+            'inventory_balances',
+            'inventory_lots',
+            'inventory_items',
+            'inventory_locations',
+        ];
 
-        // Clear in order of dependencies
-        $this->line('Deleting customer surveys...');
-        $deleted = CustomerSurvey::query()->delete();
-        $this->info("  ✓ Deleted {$deleted} customer surveys");
+        DB::beginTransaction();
 
-        $this->line('Deleting documents...');
-        $deleted = Document::query()->delete();
-        $this->info("  ✓ Deleted {$deleted} documents");
+        try {
+            foreach ($tables as $table) {
+                $this->line("Truncating {$table}...");
+                DB::statement("TRUNCATE TABLE {$table} CASCADE");
+                $this->info("  ✓ Truncated {$table}");
+            }
 
-        $this->line('Deleting samples...');
-        $deleted = Sample::query()->delete();
-        $this->info("  ✓ Deleted {$deleted} samples");
-
-        $this->line('Deleting test requests...');
-        $deleted = TestRequest::query()->delete();
-        $this->info("  ✓ Deleted {$deleted} test requests");
-
-        $this->line('Deleting investigators...');
-        $deleted = Investigator::query()->delete();
-        $this->info("  ✓ Deleted {$deleted} investigators");
-
-        $this->line('Deleting inventory balances...');
-        $deleted = InventoryBalance::query()->delete();
-        $this->info("  ✓ Deleted {$deleted} inventory balances");
-
-        $this->line('Deleting inventory lots...');
-        $deleted = InventoryLot::query()->delete();
-        $this->info("  ✓ Deleted {$deleted} inventory lots");
-
-        $this->line('Deleting inventory items...');
-        $deleted = InventoryItem::query()->delete();
-        $this->info("  ✓ Deleted {$deleted} inventory items");
-
-        $this->line('Deleting inventory locations...');
-        $deleted = InventoryLocation::query()->delete();
-        $this->info("  ✓ Deleted {$deleted} inventory locations");
-
-        DB::statement('SET CONSTRAINTS ALL IMMEDIATE');
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            $this->error("Failed to clear data: " . $e->getMessage());
+            return 1;
+        }
 
         $this->newLine();
         $this->info('✅ All dummy data cleared successfully!');

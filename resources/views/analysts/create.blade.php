@@ -1,11 +1,11 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Tambah Analis</h2>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Tambah Staff</h2>
     </x-slot>
 
     <div class="max-w-3xl mx-auto sm:px-6 lg:px-8 space-y-6">
         <a href="{{ route('analysts.index') }}"
-            class="inline-flex items-center text-sm font-semibold text-primary-600 hover:text-primary-700">&larr; Kembali ke daftar analis</a>
+            class="inline-flex items-center text-sm font-semibold text-primary-600 hover:text-primary-700">&larr; Kembali ke daftar staff</a>
 
         <div class="rounded-lg bg-white p-6 shadow-sm">
             <form method="POST" action="{{ route('analysts.store') }}" class="space-y-6">

@@ -265,14 +265,22 @@ export class SettingsClient {
         try {
             const data = await this.apiFetch(this.api.numberingCurrent);
 
-            // Backend now returns plain strings { sample_code: "W001XII2025", ba: "BA/2025/12/0001", ... }
-            // No need for complex extraction logic
+            // Backend returns objects like { sample_code: { current, next, pattern }, ... }
+            // Extract the 'next' value (or 'current' if available) from each scope
+            const extractValue = (scopeData) => {
+                if (typeof scopeData === 'string') return scopeData;
+                if (typeof scopeData === 'object' && scopeData !== null) {
+                    return scopeData.next || scopeData.current || '';
+                }
+                return '';
+            };
+
             this.state.currentNumbering = {
-                sample_code: data.sample_code || data.sample || '',
-                ba: data.ba || '',
-                lhu: data.lhu || '',
-                ba_penyerahan: data.ba_penyerahan || '',
-                tracking: data.tracking || '',
+                sample_code: extractValue(data.sample_code || data.sample),
+                ba: extractValue(data.ba),
+                lhu: extractValue(data.lhu),
+                ba_penyerahan: extractValue(data.ba_penyerahan),
+                tracking: extractValue(data.tracking),
             };
         } catch (error) {
             this.setSectionError('numbering', error.message || 'Gagal memuat penomoran saat ini.');

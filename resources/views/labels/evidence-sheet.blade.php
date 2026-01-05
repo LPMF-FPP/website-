@@ -161,8 +161,8 @@
                                         </div>
 
                                         <div class="field">
-                                            <div class="field-label">Penyidik</div>
-                                            <div class="field-value clamp2">{{ $label['penyidik'] }}</div>
+                                            <div class="field-label">Deskripsi Singkat</div>
+                                            <div class="field-value clamp2">{{ $label['deskripsi_singkat'] }}</div>
                                         </div>
 
                                         <div class="field">

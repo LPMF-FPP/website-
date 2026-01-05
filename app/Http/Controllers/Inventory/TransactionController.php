@@ -38,7 +38,7 @@ class TransactionController extends Controller
         $validated = $request->validate([
             'item_id' => ['required', 'exists:inventory_items,id'],
             'lot_id' => ['nullable', 'exists:inventory_lots,id'],
-            'location_id' => ['required', 'exists:inventory_locations,id'],
+            'location_id' => ['nullable', 'exists:inventory_locations,id'],
             'qty' => ['required', 'numeric', 'min:0.001'],
             'reference_type' => ['nullable', 'string'],
             'unit_cost' => ['nullable', 'numeric', 'min:0'],
@@ -46,9 +46,40 @@ class TransactionController extends Controller
             // New lot fields
             'new_lot_no' => ['nullable', 'string', 'max:100'],
             'new_lot_expiry' => ['nullable', 'date'],
+            // New location fields
+            'location_mode' => ['nullable', 'string', 'in:existing,new'],
+            'new_location_name' => ['nullable', 'string', 'max:255'],
+            'new_location_type' => ['nullable', 'string', 'in:storage,lab,cold_room,quarantine'],
         ]);
 
         $item = InventoryItem::findOrFail($validated['item_id']);
+
+        // Determine location ID - create new location if needed
+        $locationId = $validated['location_id'] ?? null;
+        $locationMode = $validated['location_mode'] ?? 'existing';
+
+        if ($locationMode === 'new' && ! empty($validated['new_location_name'])) {
+            // Check if location with same name already exists
+            $existingLocation = InventoryLocation::where('name', $validated['new_location_name'])->first();
+            
+            if ($existingLocation) {
+                $locationId = $existingLocation->id;
+            } else {
+                $location = InventoryLocation::create([
+                    'name' => $validated['new_location_name'],
+                    'location_type' => $validated['new_location_type'] ?? 'storage',
+                    'is_active' => true,
+                ]);
+                $locationId = $location->id;
+            }
+        }
+
+        // Validate that we have a location
+        if (! $locationId) {
+            return back()
+                ->withInput()
+                ->withErrors(['location_id' => 'Lokasi penyimpanan wajib dipilih atau diisi.']);
+        }
 
         // Create new lot if lot_no provided
         $lotId = $validated['lot_id'] ?? null;
@@ -74,7 +105,7 @@ class TransactionController extends Controller
             $this->movementService->receipt([
                 'item_id' => $validated['item_id'],
                 'lot_id' => $lotId,
-                'location_id' => $validated['location_id'],
+                'location_id' => $locationId,
                 'qty' => $validated['qty'],
                 'uom' => $item->uom,
                 'reference_type' => $validated['reference_type'] ?? 'MANUAL',

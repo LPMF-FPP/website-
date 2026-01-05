@@ -168,9 +168,50 @@
                                             </div>
                                             <div class="md:col-span-2">
                                                 <label class="block text-sm font-medium text-gray-700">Identifikasi Sampel / Barang Bukti</label>
-                                                <textarea name="samples[{{ $sampleIndex }}][physical_identification]" rows="3" required
-                                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                                                    placeholder="Contoh: Tablet putih dalam kemasan blister dengan garis hijau ...">{{ old("samples.$sampleIndex.physical_identification", $sample->physical_identification) }}</textarea>
+                                                
+                                                {{-- Toggle between existing and new --}}
+                                                <div class="mt-1 flex items-center gap-4 text-sm">
+                                                    <label class="inline-flex items-center">
+                                                        <input type="radio" name="samples[{{ $sampleIndex }}][physical_id_mode]" value="existing" 
+                                                            class="physical-id-mode-radio text-primary-600 focus:ring-primary-500"
+                                                            data-sample-index="{{ $sampleIndex }}"
+                                                            @checked($existingPhysicalIdentifications->isNotEmpty() && !$sample->physical_identification)>
+                                                        <span class="ml-2 text-gray-700">Pilih yang sudah ada</span>
+                                                    </label>
+                                                    <label class="inline-flex items-center">
+                                                        <input type="radio" name="samples[{{ $sampleIndex }}][physical_id_mode]" value="new" 
+                                                            class="physical-id-mode-radio text-primary-600 focus:ring-primary-500"
+                                                            data-sample-index="{{ $sampleIndex }}"
+                                                            @checked($existingPhysicalIdentifications->isEmpty() || $sample->physical_identification)>
+                                                        <span class="ml-2 text-gray-700">Input baru</span>
+                                                    </label>
+                                                </div>
+
+                                                {{-- Dropdown for existing identifications --}}
+                                                <div id="physical-id-existing-{{ $sampleIndex }}" class="mt-2 {{ ($existingPhysicalIdentifications->isEmpty() || $sample->physical_identification) ? 'hidden' : '' }}">
+                                                    <select id="physical-id-select-{{ $sampleIndex }}"
+                                                        class="physical-id-select block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                                        data-sample-index="{{ $sampleIndex }}">
+                                                        <option value="">-- Pilih identifikasi yang sudah ada --</option>
+                                                        @foreach($existingPhysicalIdentifications as $identification)
+                                                            <option value="{{ $identification }}">{{ Str::limit($identification, 100) }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+
+                                                {{-- Textarea for new identification --}}
+                                                <div id="physical-id-new-{{ $sampleIndex }}" class="mt-2 {{ ($existingPhysicalIdentifications->isNotEmpty() && !$sample->physical_identification) ? 'hidden' : '' }}">
+                                                    <textarea id="physical-id-textarea-{{ $sampleIndex }}" rows="3"
+                                                        class="physical-id-textarea block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                                        data-sample-index="{{ $sampleIndex }}"
+                                                        placeholder="Contoh: Tablet putih dalam kemasan blister dengan garis hijau ...">{{ old("samples.$sampleIndex.physical_identification", $sample->physical_identification) }}</textarea>
+                                                </div>
+
+                                                {{-- Hidden input that will be submitted --}}
+                                                <input type="hidden" name="samples[{{ $sampleIndex }}][physical_identification]" 
+                                                    id="physical-id-hidden-{{ $sampleIndex }}"
+                                                    value="{{ old("samples.$sampleIndex.physical_identification", $sample->physical_identification) }}"
+                                                    required>
                                             </div>
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700">Jumlah Sampel untuk Pengujian</label>
@@ -262,6 +303,49 @@
                 const url = new URL('{{ url('/samples/test') }}', window.location.origin);
                 url.searchParams.set('request_id', value);
                 window.location.href = url.toString();
+            });
+
+            // Physical Identification toggle handler
+            document.querySelectorAll('.physical-id-mode-radio').forEach(function(radio) {
+                radio.addEventListener('change', function() {
+                    const sampleIndex = this.dataset.sampleIndex;
+                    const mode = this.value;
+                    const existingDiv = document.getElementById('physical-id-existing-' + sampleIndex);
+                    const newDiv = document.getElementById('physical-id-new-' + sampleIndex);
+                    const selectEl = document.getElementById('physical-id-select-' + sampleIndex);
+                    const textareaEl = document.getElementById('physical-id-textarea-' + sampleIndex);
+                    const hiddenInput = document.getElementById('physical-id-hidden-' + sampleIndex);
+
+                    if (mode === 'existing') {
+                        existingDiv.classList.remove('hidden');
+                        newDiv.classList.add('hidden');
+                        // Set hidden value from select
+                        hiddenInput.value = selectEl.value;
+                    } else {
+                        existingDiv.classList.add('hidden');
+                        newDiv.classList.remove('hidden');
+                        // Set hidden value from textarea
+                        hiddenInput.value = textareaEl.value;
+                    }
+                });
+            });
+
+            // Sync select value to hidden input
+            document.querySelectorAll('.physical-id-select').forEach(function(select) {
+                select.addEventListener('change', function() {
+                    const sampleIndex = this.dataset.sampleIndex;
+                    const hiddenInput = document.getElementById('physical-id-hidden-' + sampleIndex);
+                    hiddenInput.value = this.value;
+                });
+            });
+
+            // Sync textarea value to hidden input
+            document.querySelectorAll('.physical-id-textarea').forEach(function(textarea) {
+                textarea.addEventListener('input', function() {
+                    const sampleIndex = this.dataset.sampleIndex;
+                    const hiddenInput = document.getElementById('physical-id-hidden-' + sampleIndex);
+                    hiddenInput.value = this.value;
+                });
             });
         </script>
     @endpush
