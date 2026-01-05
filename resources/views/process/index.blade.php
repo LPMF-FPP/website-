@@ -55,7 +55,7 @@
             <div class="mt-6">
                 <div class="flex items-center justify-between">
                     <h4 class="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                        {{ ($filters['q'] ?? '') !== '' ? 'Hasil Pencarian' : 'Daftar Resi Terbaru' }}
+                        {{ ($filters['q'] ?? '') !== '' ? 'Hasil Pencarian' : 'Daftar Resi Siap Diproses' }}
                     </h4>
                     <span class="text-xs text-gray-400">{{ $requests->total() }} data</span>
                 </div>
@@ -99,50 +99,6 @@
                         Tidak ada resi yang ditemukan.
                     </div>
                 @endif
-            </div>
-        </div>
-
-        <div class="rounded-lg bg-white p-6 shadow-sm">
-            <div class="flex items-center justify-between">
-                <h3 class="text-base font-semibold text-primary-900">Resi Terakhir Dibuka</h3>
-                <a href="{{ route('process.index') }}" class="text-sm font-semibold text-primary-700 hover:text-primary-800">
-                    Lihat semua riwayat
-                </a>
-            </div>
-
-            <div class="mt-4">
-                @forelse($recentRequests as $recent)
-                    @php
-                        $recentRequest = $recent->request;
-                        $investigator = $recentRequest?->investigator;
-                        $unit = $investigator?->jurisdiction ?? $investigator?->institution;
-                        $receivedAt = $recentRequest?->received_at ?? $recentRequest?->created_at;
-                    @endphp
-                    @if($recentRequest)
-                        <a
-                            href="{{ route('process.show', $recentRequest) }}"
-                            class="flex flex-wrap items-center justify-between gap-4 rounded-md px-2 py-3 transition hover:bg-gray-50">
-                            <div>
-                                <div class="text-sm font-semibold text-primary-900">
-                                    {{ $recentRequest->receipt_number ?? $recentRequest->request_number }}
-                                </div>
-                                <div class="text-xs text-gray-500">
-                                    {{ $investigator?->full_name ?? $investigator?->name ?? '-' }}
-                                    @if($unit)
-                                        / {{ $unit }}
-                                    @endif
-                                </div>
-                            </div>
-                            <div class="text-xs text-gray-500">
-                                {{ optional($receivedAt)->format('d M Y') ?? '-' }}
-                            </div>
-                        </a>
-                    @endif
-                @empty
-                    <div class="rounded-md border border-dashed border-gray-200 p-4 text-sm text-gray-500">
-                        Belum ada resi yang dibuka.
-                    </div>
-                @endforelse
             </div>
         </div>
     </div>

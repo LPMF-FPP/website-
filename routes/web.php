@@ -103,6 +103,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::post('{testRequest}/recent', [ProcessController::class, 'storeRecent'])->name('recent');
         Route::post('{testRequest}/processes', [ProcessController::class, 'storeProcess'])->name('request-processes.store');
+        Route::post('{testRequest}/ready-for-delivery', [ProcessController::class, 'markReadyForDelivery'])->name('ready-for-delivery');
         Route::get('{testRequest}', [ProcessController::class, 'show'])->name('show');
     });
 

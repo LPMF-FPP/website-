@@ -23,6 +23,7 @@ class ProcessController extends Controller
         $scope = $request->query('scope', 'all');
 
         $query = TestRequest::with(['investigator'])
+            ->whereNotIn('status', ['ready_for_delivery', 'completed'])
             ->orderByDesc('created_at');
 
         if ($search !== '') {
@@ -140,6 +141,25 @@ class ProcessController extends Controller
 
         $currentStageKey = $this->resolveStepperStage($testRequest, $samples);
 
+        // Check if all samples have completed interpretation - ready for delivery
+        $readyForDelivery = false;
+        if ($samples->isNotEmpty()) {
+            $allProcesses = $samples->flatMap(fn ($s) => $s->testProcesses);
+            $interpretationProcesses = $allProcesses->filter(
+                fn ($p) => $this->stageValue($p->stage) === TestProcessStage::INTERPRETATION->value
+            );
+            
+            // Ready for delivery if:
+            // 1. There are interpretation processes
+            // 2. All interpretation processes are completed
+            // 3. TestRequest status is not already ready_for_delivery or completed
+            if ($interpretationProcesses->isNotEmpty()) {
+                $allInterpretationCompleted = $interpretationProcesses->every(fn ($p) => $p->completed_at);
+                $readyForDelivery = $allInterpretationCompleted && 
+                    !in_array($testRequest->status, ['ready_for_delivery', 'completed'], true);
+            }
+        }
+
         return view('process.show', [
             'testRequest' => $testRequest,
             'samples' => $paginatedSamples,
@@ -158,6 +178,7 @@ class ProcessController extends Controller
                 'in_progress' => 'Berjalan',
                 'completed' => 'Selesai',
             ],
+            'readyForDelivery' => $readyForDelivery,
         ]);
     }
 
@@ -166,6 +187,24 @@ class ProcessController extends Controller
         $this->touchRecent($testRequest, $request->user());
 
         return redirect()->route('process.show', $testRequest);
+    }
+
+    public function markReadyForDelivery(TestRequest $testRequest): RedirectResponse
+    {
+        // Update test request status to ready_for_delivery
+        $testRequest->update([
+            'status' => 'ready_for_delivery',
+        ]);
+
+        // Also update all samples status
+        $testRequest->samples()->update([
+            'status' => 'ready_for_delivery',
+            'sample_status' => 'ready_for_delivery',
+        ]);
+
+        return redirect()
+            ->route('delivery.show', $testRequest)
+            ->with('success', 'Permintaan berhasil dikirim ke penyerahan.');
     }
 
     public function storeProcess(Request $request, TestRequest $testRequest): RedirectResponse

@@ -39,8 +39,7 @@ class DeliveryController extends Controller
             },
         ])
             ->where(function ($query) {
-                $query->where('status', 'ready_for_delivery')
-                    ->orWhere('request_number', 'REQ-2025-0005');
+                $query->where('status', 'ready_for_delivery');
             })
     // Include suspect_name and receipt_number for display
             ->select('id', 'request_number', 'receipt_number', 'investigator_id', 'suspect_name', 'status', 'completed_at')

@@ -36,6 +36,7 @@ class ClearDummyData extends Command
             'inventory_lots',
             'inventory_items',
             'inventory_locations',
+            'sequences', // Reset numbering sequences so they start from 1
         ];
 
         DB::beginTransaction();

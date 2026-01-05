@@ -44,7 +44,16 @@
                     Diterima pada: {{ optional($receivedAt)->format('d F Y') ?? '-' }}
                 </div>
             </div>
-            <div>
+            <div class="flex gap-2">
+                @if($readyForDelivery)
+                    <form action="{{ route('process.ready-for-delivery', $testRequest) }}" method="POST">
+                        @csrf
+                        <button type="submit" class="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700">
+                            <x-icon name="truck" size="sm" :decorative="true" />
+                            Kirim ke Penyerahan
+                        </button>
+                    </form>
+                @endif
                 <a
                     href="{{ route('process.processes.create', ['request_id' => $testRequest->id]) }}"
                     class="inline-flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700">

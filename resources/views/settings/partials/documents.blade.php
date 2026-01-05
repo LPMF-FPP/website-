@@ -185,6 +185,19 @@
         </div>
 
         <div class="p-6 space-y-6">
+            {{-- Info Box: Labels --}}
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div class="flex items-start gap-3">
+                    <svg class="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div class="text-sm text-blue-800">
+                        <p class="font-medium">Catatan tentang Label Barang Bukti</p>
+                        <p class="mt-1 text-blue-700">Label barang bukti (sheet dan single) tidak disimpan di storage karena dicetak langsung ke browser. Untuk mencetak label, buka halaman detail permintaan dan klik tombol "Cetak Label".</p>
+                    </div>
+                </div>
+            </div>
+
             {{-- Filters --}}
             <form @submit.prevent="client.fetchDocuments({ page: 1 })" class="space-y-4">
                 <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

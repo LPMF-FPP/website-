@@ -28,6 +28,8 @@ const DOCUMENT_TYPE_LABELS = {
     sample_handover: 'Serah Terima Sampel',
     test_results: 'Hasil Pengujian',
     qr_code: 'QR Code',
+    label_evidence: 'Label Barang Bukti',
+    label_remaining: 'Label Sisa Sampel',
 };
 
 const formatDocumentType = (type) => {
