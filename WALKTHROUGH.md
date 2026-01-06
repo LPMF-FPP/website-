@@ -61,20 +61,22 @@
     - `app/Http/Controllers/RequestController.php` - Tambah token validation dan cache lock di `store()` dan `update()` methods
 
 - **Perbaikan Gap Penomoran BA RIM**: Fix bug dimana nomor BA RIM tidak berurutan (misal: 001, 003, 005, 008 bukannya 001, 002, 003, 004) setelah terjadi error atau double-submit.
-  - **Root cause**: Logika di `TestRequest::boot()` menggunakan retry loop dengan collision check yang memanggil `NumberingService::issue()` berkali-kali. Setiap panggilan `issue()` menaikkan sequence counter, sehingga ketika terjadi collision atau error, nomor yang sudah dialokasikan "hilang" dan menyebabkan gap.
+  - **Root cause (Update)**: 
+    1. ~~Logika di `TestRequest::boot()` menggunakan retry loop~~ - sudah diperbaiki sebelumnya
+    2. **Method `generateBeritaAcara()` memanggil `NumberingService::issue('ba')` untuk generate nomor dokumen BA, padahal seharusnya menggunakan `request_number` yang sudah ada di TestRequest**. Ini menyebabkan setiap kali user meng-generate/view BA, sequence counter naik!
   - **Analysis**: 
-    - `NumberingService::issue()` sudah menggunakan `lockForUpdate()` di dalam DB transaction, menjamin atomicity dan uniqueness
-    - Retry loop dengan collision check sebenarnya tidak diperlukan
-    - Setiap retry menyebabkan sequence counter naik tanpa digunakan
+    - `TestRequest::boot()` sudah benar memanggil `issue()` sekali saat creating
+    - Tapi `generateBeritaAcara()` salah memanggil `issue()` lagi untuk membuat "nomor dokumen BA"
+    - Seharusnya BA Penerimaan menggunakan `request_number` yang sudah ada, bukan nomor baru
   - **Fix**: 
-    1. **Renumber existing records**: Script tinker untuk renumber existing TestRequests agar berurutan sesuai ID
-    2. **Reset sequence counter**: Reset counter BA ke nilai yang sesuai dengan jumlah record
-    3. **Simplify boot method**: Hapus retry loop dan collision check yang tidak perlu, cukup panggil `issue()` sekali
+    1. **Ubah `generateBeritaAcara()`**: Gunakan `$testRequest->request_number` sebagai nomor BA, bukan memanggil `issue()` baru
+    2. **Renumber existing records**: Menggunakan `php artisan fix:numbering --renumber --reset-counters`
   - **File terpengaruh**:
-    - `app/Models/TestRequest.php` - Simplify `boot()` creating event untuk `request_number` dan `receipt_number`
-  - **Database changes**:
-    - Renumbered TestRequests: 001, 003, 005, 008 → 001, 002, 003, 004
-    - Reset BA sequence counter dari 5 ke 4
+    - `app/Http/Controllers/RequestController.php` - Hapus pemanggilan `NumberingService::issue('ba')` di `generateBeritaAcara()`
+  - **Command untuk fix**:
+    ```bash
+    php artisan fix:numbering --renumber --reset-counters --force
+    ```
 
 #### 🐛 Bug Fixes
 

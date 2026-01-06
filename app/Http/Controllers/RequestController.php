@@ -1063,7 +1063,6 @@ class RequestController extends Controller
             $documentService = app(DocumentService::class);
             $templateService = app(\App\Services\DocumentTemplateService::class);
             $pdfRenderService = app(\App\Services\PdfRenderService::class);
-            $numberingService = app(\App\Services\NumberingService::class);
 
             // Ambil relasi lengkap
             $testRequest->loadMissing(['investigator', 'samples']);
@@ -1080,10 +1079,10 @@ class RequestController extends Controller
                 $inv->save();
             }
 
-            // Generate document number using the 'ba' numbering scope
-            $baNumber = $numberingService->issue('ba', [
-                'investigator_id' => $inv->id,
-            ]);
+            // Use the existing request_number as the BA document number
+            // DO NOT call numberingService->issue() here - it would create a new sequence number
+            // The request_number was already generated when TestRequest was created
+            $baNumber = $testRequest->request_number;
             
             // Generate filesystem-safe baseName from document number
             $baseName = $documentService->generateDocumentBaseName('ba_penerimaan', $baNumber);
