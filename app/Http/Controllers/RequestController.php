@@ -14,6 +14,7 @@ use App\Services\DocumentService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -112,6 +113,54 @@ class RequestController extends Controller
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
+    {
+        // Double-submit prevention using submission token
+        $submissionToken = $request->input('_submission_token');
+        if ($submissionToken) {
+            $cacheKey = 'submission_token_' . $submissionToken;
+            
+            // Check if this token was already used
+            if (Cache::has($cacheKey)) {
+                Log::warning('Duplicate submission detected', [
+                    'token' => $submissionToken,
+                    'user_id' => auth()->id(),
+                    'ip' => $request->ip(),
+                ]);
+                
+                // Return the same redirect as success to avoid confusion
+                return redirect()->route('requests.index')
+                    ->with('warning', 'Permintaan ini sudah diproses sebelumnya.');
+            }
+            
+            // Mark token as used immediately (expires after 5 minutes)
+            Cache::put($cacheKey, true, 300);
+        }
+
+        // Additional lock based on user + timestamp to prevent race conditions
+        $lockKey = 'request_store_user_' . auth()->id();
+        $lock = Cache::lock($lockKey, 10); // 10 second lock
+        
+        if (!$lock->get()) {
+            Log::warning('Request store locked - concurrent submission attempt', [
+                'user_id' => auth()->id(),
+                'ip' => $request->ip(),
+            ]);
+            
+            return back()->withInput()
+                ->withErrors(['error' => 'Permintaan sedang diproses. Mohon tunggu beberapa saat.']);
+        }
+
+        try {
+            return $this->processStore($request, $lock);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    /**
+     * Process the store logic (extracted for lock handling)
+     */
+    protected function processStore(Request $request, $lock)
     {
         if (! $request->has('suspects') && $request->filled('suspect_name')) {
             $request->merge([
@@ -430,6 +479,27 @@ class RequestController extends Controller
      */
     public function update(Request $request, string $id)
     {
+        // Double-submit prevention using submission token
+        $submissionToken = $request->input('_submission_token');
+        if ($submissionToken) {
+            $cacheKey = 'submission_token_' . $submissionToken;
+            
+            // Check if this token was already used
+            if (Cache::has($cacheKey)) {
+                Log::warning('Duplicate update submission detected', [
+                    'token' => $submissionToken,
+                    'request_id' => $id,
+                    'user_id' => auth()->id(),
+                ]);
+                
+                return redirect()->route('requests.show', $id)
+                    ->with('warning', 'Perubahan ini sudah diproses sebelumnya.');
+            }
+            
+            // Mark token as used immediately (expires after 5 minutes)
+            Cache::put($cacheKey, true, 300);
+        }
+
         $testRequest = TestRequest::with(['investigator', 'suspects'])->findOrFail($id);
 
         // Determine investigator type

@@ -49,6 +49,33 @@
     - `app/Http/Controllers/RequestController.php` - Query unique active substances
     - `resources/views/requests/create.blade.php` - Datalist dan input dengan list attribute
 
+- **Perbaikan Double-Submit pada Form Permintaan**: Fix bug dimana form permintaan pengujian bisa disubmit dua kali jika user menekan tombol submit berulang kali, menyebabkan dokumen terinput duplikat dan penomoran menjadi tidak teratur.
+  - **Root cause**: Tidak ada proteksi double-submit pada form, baik di frontend maupun backend. Ketika user menekan tombol submit dua kali (misalnya karena koneksi lambat), request terkirim dua kali dan masing-masing mengalokasikan nomor urut baru.
+  - **Fix**: Implementasi multi-layer protection:
+    1. **Frontend (Alpine.js)**: Tombol submit akan disabled dan menampilkan loading spinner setelah diklik pertama kali
+    2. **Backend (Token-based)**: Setiap form memiliki `_submission_token` unik yang di-cache setelah digunakan, mencegah duplikat jika token yang sama disubmit ulang
+    3. **Backend (Cache Lock)**: Menggunakan `Cache::lock()` untuk mencegah concurrent request dari user yang sama dalam waktu 10 detik
+  - **File terpengaruh**:
+    - `resources/views/requests/create.blade.php` - Tambah Alpine.js double-submit prevention dan submission token
+    - `resources/views/requests/edit.blade.php` - Tambah Alpine.js double-submit prevention dan submission token
+    - `app/Http/Controllers/RequestController.php` - Tambah token validation dan cache lock di `store()` dan `update()` methods
+
+- **Perbaikan Gap Penomoran BA RIM**: Fix bug dimana nomor BA RIM tidak berurutan (misal: 001, 003, 005, 008 bukannya 001, 002, 003, 004) setelah terjadi error atau double-submit.
+  - **Root cause**: Logika di `TestRequest::boot()` menggunakan retry loop dengan collision check yang memanggil `NumberingService::issue()` berkali-kali. Setiap panggilan `issue()` menaikkan sequence counter, sehingga ketika terjadi collision atau error, nomor yang sudah dialokasikan "hilang" dan menyebabkan gap.
+  - **Analysis**: 
+    - `NumberingService::issue()` sudah menggunakan `lockForUpdate()` di dalam DB transaction, menjamin atomicity dan uniqueness
+    - Retry loop dengan collision check sebenarnya tidak diperlukan
+    - Setiap retry menyebabkan sequence counter naik tanpa digunakan
+  - **Fix**: 
+    1. **Renumber existing records**: Script tinker untuk renumber existing TestRequests agar berurutan sesuai ID
+    2. **Reset sequence counter**: Reset counter BA ke nilai yang sesuai dengan jumlah record
+    3. **Simplify boot method**: Hapus retry loop dan collision check yang tidak perlu, cukup panggil `issue()` sekali
+  - **File terpengaruh**:
+    - `app/Models/TestRequest.php` - Simplify `boot()` creating event untuk `request_number` dan `receipt_number`
+  - **Database changes**:
+    - Renumbered TestRequests: 001, 003, 005, 008 → 001, 002, 003, 004
+    - Reset BA sequence counter dari 5 ke 4
+
 #### 🐛 Bug Fixes
 
 - **Stepper Tidak Advance ke Interpretasi**: Fix bug di halaman Detail Proses (`/proses/{id}`) dimana stepper tidak menampilkan tahap "Interpretasi" ketika semua proses "Preparasi Sampel" dan "Pengujian Instrumen" telah selesai. 
@@ -307,6 +334,14 @@ php artisan db:seed --class=DummyDataSeeder
 # Clear dummy data
 php artisan dummy:clear
 php artisan dummy:clear --force  # Skip confirmation
+
+# Fix numbering issues (one-shot bug resolver)
+php artisan fix:numbering                                    # Show current state and help
+php artisan fix:numbering --dry-run                          # Preview without changes
+php artisan fix:numbering --delete=SABRI --reset-counters    # Delete by suspect name
+php artisan fix:numbering --delete=145 --reset-counters      # Delete by ID
+php artisan fix:numbering --renumber --reset-counters        # Renumber all + reset counters
+php artisan fix:numbering --delete=SABRI --renumber --reset-counters --force  # Full fix, no prompts
 ```
 
 ---
