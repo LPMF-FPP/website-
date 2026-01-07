@@ -2,47 +2,283 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\User;
+use App\Support\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AnalystController extends Controller
 {
-    protected array $analystRoles = ['analis', 'penyelia', 'manajer_teknis'];
+    protected array $manageableRoles = ['analis', 'penyelia', 'manajer_teknis', 'admin'];
 
     public function __construct()
     {
         $this->middleware(function ($request, $next) {
-            $user = $request->user();
-            if (! $user || ! in_array($user->role, ['admin', 'supervisor'])) {
-                abort(403, 'Unauthorized');
-            }
+            Gate::authorize('manage-users');
 
             return $next($request);
         });
     }
 
-    public function index(): View
+    public function index(Request $request): View
     {
-        $analysts = User::query()
-            ->whereIn('role', $this->analystRoles)
+        $role = $request->string('role')->toString();
+        $status = $request->string('status')->toString();
+        $keyword = trim($request->string('q')->toString());
+
+        $query = User::query();
+
+        if ($role !== '') {
+            $query->where('role', $role);
+        }
+
+        if ($status === 'active') {
+            $query->where('is_active', true);
+        } elseif ($status === 'inactive') {
+            $query->where('is_active', false);
+        }
+
+        if ($keyword !== '') {
+            $like = $this->likeOperator();
+            $keyword = str_replace('%', '\\%', $keyword);
+
+            $query->where(function ($builder) use ($like, $keyword) {
+                $pattern = "%{$keyword}%";
+
+                $builder->where('name', $like, $pattern)
+                    ->orWhere('email', $like, $pattern)
+                    ->orWhere('nrp', $like, $pattern)
+                    ->orWhere('nip', $like, $pattern);
+            });
+        }
+
+        $lastActivitySub = ActivityLog::select('created_at')
+            ->whereColumn('actor_user_id', 'users.id')
+            ->latest('created_at')
+            ->limit(1);
+
+        $analysts = $query
+            ->addSelect(['last_activity_at' => $lastActivitySub])
+            ->withCasts(['last_activity_at' => 'datetime'])
             ->orderBy('name')
-            ->paginate(20);
+            ->paginate(20)
+            ->withQueryString();
+
+        $availableRoles = User::query()
+            ->select('role')
+            ->whereNotNull('role')
+            ->distinct()
+            ->orderBy('role')
+            ->pluck('role')
+            ->values()
+            ->merge($this->manageableRoles)
+            ->unique()
+            ->values()
+            ->all();
 
         return view('analysts.index', [
             'analysts' => $analysts,
-            'roles' => $this->analystRoles,
+            'roles' => $this->manageableRoles,
+            'availableRoles' => $availableRoles,
+            'filters' => [
+                'role' => $role,
+                'status' => $status,
+                'q' => $keyword,
+            ],
         ]);
+    }
+
+    public function show(User $analyst): View
+    {
+        $lastActivity = ActivityLog::where('actor_user_id', $analyst->id)
+            ->latest()
+            ->first()?->created_at;
+
+        $recentLogs = ActivityLog::query()
+            ->with(['actor:id,name', 'target:id,name'])
+            ->where(function ($query) use ($analyst) {
+                $query->where('actor_user_id', $analyst->id)
+                    ->orWhere('target_user_id', $analyst->id);
+            })
+            ->latest()
+            ->limit(10)
+            ->get();
+
+        return view('analysts.show', [
+            'analyst' => $analyst,
+            'lastActivity' => $lastActivity,
+            'roles' => $this->roleOptions($analyst->role),
+            'recentLogs' => $recentLogs,
+        ]);
+    }
+
+    public function logs(Request $request, User $analyst): View
+    {
+        $action = $request->string('action')->toString();
+        $subjectType = $request->string('subject_type')->toString();
+        $startDate = $request->string('start_date')->toString();
+        $endDate = $request->string('end_date')->toString();
+
+        $query = ActivityLog::query()
+            ->where(function ($builder) use ($analyst) {
+                $builder->where('actor_user_id', $analyst->id)
+                    ->orWhere('target_user_id', $analyst->id);
+            });
+
+        if ($action !== '') {
+            $query->where('action', $action);
+        }
+
+        if ($subjectType !== '') {
+            $query->where('subject_type', $subjectType);
+        }
+
+        if ($startDate !== '') {
+            $query->whereDate('created_at', '>=', $startDate);
+        }
+
+        if ($endDate !== '') {
+            $query->whereDate('created_at', '<=', $endDate);
+        }
+
+        $logs = $query
+            ->with(['actor:id,name', 'target:id,name'])
+            ->latest()
+            ->paginate(25)
+            ->withQueryString();
+
+        $actions = ActivityLog::query()
+            ->where(function ($builder) use ($analyst) {
+                $builder->where('actor_user_id', $analyst->id)
+                    ->orWhere('target_user_id', $analyst->id);
+            })
+            ->select('action')
+            ->distinct()
+            ->orderBy('action')
+            ->pluck('action');
+
+        $subjectTypes = ActivityLog::query()
+            ->where(function ($builder) use ($analyst) {
+                $builder->where('actor_user_id', $analyst->id)
+                    ->orWhere('target_user_id', $analyst->id);
+            })
+            ->whereNotNull('subject_type')
+            ->select('subject_type')
+            ->distinct()
+            ->orderBy('subject_type')
+            ->pluck('subject_type');
+
+        return view('analysts.logs', [
+            'analyst' => $analyst,
+            'logs' => $logs,
+            'actions' => $actions,
+            'subjectTypes' => $subjectTypes,
+            'filters' => [
+                'action' => $action,
+                'subject_type' => $subjectType,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+            ],
+        ]);
+    }
+
+    public function updateRole(Request $request, User $analyst): RedirectResponse
+    {
+        if ($analyst->id === $request->user()->id) {
+            return back()->withErrors(['role' => 'Anda tidak dapat mengubah role sendiri.']);
+        }
+
+        $validated = $request->validate([
+            'role' => ['required', Rule::in($this->roleOptions($analyst->role))],
+        ]);
+
+        $previousRole = $analyst->role;
+
+        if ($previousRole === $validated['role']) {
+            return back()->with('success', 'Peran pengguna tidak berubah.');
+        }
+
+        $analyst->update(['role' => $validated['role']]);
+
+        ActivityLogger::log(
+            'USER_ROLE_CHANGED',
+            $analyst->id,
+            $analyst,
+            ['role' => $previousRole],
+            ['role' => $validated['role']],
+            [
+                'from' => $previousRole,
+                'to' => $validated['role'],
+            ]
+        );
+
+        return back()->with('success', 'Peran pengguna berhasil diperbarui.');
+    }
+
+    public function disable(Request $request, User $analyst): RedirectResponse
+    {
+        if ($analyst->id === $request->user()->id) {
+            return back()->withErrors(['user' => 'Anda tidak dapat menonaktifkan akun sendiri.']);
+        }
+
+        if (! $analyst->is_active) {
+            return back()->with('success', 'Pengguna sudah nonaktif.');
+        }
+
+        $reason = $request->input('reason');
+        $before = ['is_active' => $analyst->is_active];
+
+        $analyst->forceFill(['is_active' => false])->save();
+        DB::table('sessions')->where('user_id', $analyst->id)->delete();
+
+        ActivityLogger::log(
+            'USER_DISABLED',
+            $analyst->id,
+            $analyst,
+            $before,
+            ['is_active' => false],
+            ['reason' => $reason]
+        );
+
+        return back()->with('success', 'Pengguna berhasil dinonaktifkan.');
+    }
+
+    public function enable(Request $request, User $analyst): RedirectResponse
+    {
+        if ($analyst->id === $request->user()->id) {
+            return back()->withErrors(['user' => 'Anda tidak dapat mengaktifkan akun sendiri.']);
+        }
+
+        if ($analyst->is_active) {
+            return back()->with('success', 'Pengguna sudah aktif.');
+        }
+
+        $before = ['is_active' => $analyst->is_active];
+        $analyst->forceFill(['is_active' => true])->save();
+
+        ActivityLogger::log(
+            'USER_ENABLED',
+            $analyst->id,
+            $analyst,
+            $before,
+            ['is_active' => true]
+        );
+
+        return back()->with('success', 'Pengguna berhasil diaktifkan.');
     }
 
     public function create(): View
     {
         return view('analysts.create', [
             'analyst' => new User,
-            'roles' => $this->analystRoles,
+            'roles' => $this->roleOptions(),
         ]);
     }
 
@@ -50,7 +286,20 @@ class AnalystController extends Controller
     {
         $data = $this->validatedData($request);
 
-        User::create($data);
+        $user = User::create($data);
+
+        ActivityLogger::log(
+            'USER_CREATED',
+            $user->id,
+            $user,
+            null,
+            [
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role,
+                'is_active' => $user->is_active,
+            ]
+        );
 
         return redirect()
             ->route('analysts.index')
@@ -59,25 +308,59 @@ class AnalystController extends Controller
 
     public function edit(User $analyst): View
     {
-        if (! in_array($analyst->role, $this->analystRoles)) {
-            abort(404);
-        }
-
         return view('analysts.edit', [
             'analyst' => $analyst,
-            'roles' => $this->analystRoles,
+            'roles' => $this->roleOptions($analyst->role),
         ]);
     }
 
     public function update(Request $request, User $analyst): RedirectResponse
     {
-        if (! in_array($analyst->role, $this->analystRoles)) {
-            abort(404);
+        $data = $this->validatedData($request, $analyst->id, $analyst->role);
+
+        if ($analyst->id === $request->user()->id &&
+            array_key_exists('role', $data) &&
+            $data['role'] !== $analyst->role) {
+            return back()->withErrors(['role' => 'Anda tidak dapat mengubah role sendiri.']);
         }
 
-        $data = $this->validatedData($request, $analyst->id);
+        $analyst->fill($data);
+        $changes = $analyst->getDirty();
 
-        $analyst->update($data);
+        if ($changes !== []) {
+            $before = Arr::only($analyst->getOriginal(), array_keys($changes));
+            $analyst->save();
+
+            $logChanges = Arr::except($changes, ['password', 'remember_token']);
+            $logBefore = Arr::except($before, ['password', 'remember_token']);
+
+            if (array_key_exists('role', $logChanges)) {
+                ActivityLogger::log(
+                    'USER_ROLE_CHANGED',
+                    $analyst->id,
+                    $analyst,
+                    ['role' => $logBefore['role'] ?? null],
+                    ['role' => $logChanges['role']],
+                    [
+                        'from' => $logBefore['role'] ?? null,
+                        'to' => $logChanges['role'],
+                    ]
+                );
+
+                unset($logChanges['role'], $logBefore['role']);
+            }
+
+            if ($logChanges !== []) {
+                ActivityLogger::log(
+                    'USER_UPDATED',
+                    $analyst->id,
+                    $analyst,
+                    $logBefore,
+                    $logChanges,
+                    ['email' => $analyst->email]
+                );
+            }
+        }
 
         return redirect()
             ->route('analysts.index')
@@ -86,18 +369,34 @@ class AnalystController extends Controller
 
     public function destroy(User $analyst): RedirectResponse
     {
-        if (! in_array($analyst->role, $this->analystRoles)) {
-            abort(404);
+        if ($analyst->id === request()->user()?->id) {
+            return back()->withErrors(['user' => 'Anda tidak dapat menghapus akun sendiri.']);
         }
 
+        $before = [
+            'name' => $analyst->name,
+            'email' => $analyst->email,
+            'role' => $analyst->role,
+            'is_active' => $analyst->is_active,
+        ];
+
+        DB::table('sessions')->where('user_id', $analyst->id)->delete();
         $analyst->delete();
+
+        ActivityLogger::log(
+            'USER_DELETED',
+            $analyst->id,
+            $analyst,
+            $before,
+            null
+        );
 
         return redirect()
             ->route('analysts.index')
             ->with('success', 'Data staff berhasil dihapus.');
     }
 
-    protected function validatedData(Request $request, ?int $analystId = null): array
+    protected function validatedData(Request $request, ?int $analystId = null, ?string $currentRole = null): array
     {
         $passwordRule = ['sometimes', 'nullable', 'string', 'min:8', 'confirmed'];
         if (! $analystId) {
@@ -107,7 +406,7 @@ class AnalystController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($analystId)],
-            'role' => ['required', Rule::in($this->analystRoles)],
+            'role' => ['required', Rule::in($this->roleOptions($currentRole))],
             'title_prefix' => ['nullable', 'string', 'max:50'],
             'title_suffix' => ['nullable', 'string', 'max:50'],
             'rank' => ['nullable', 'string', 'max:100'],
@@ -125,5 +424,21 @@ class AnalystController extends Controller
         }
 
         return $validated;
+    }
+
+    private function roleOptions(?string $currentRole = null): array
+    {
+        $roles = $this->manageableRoles;
+
+        if ($currentRole && ! in_array($currentRole, $roles, true)) {
+            $roles[] = $currentRole;
+        }
+
+        return $roles;
+    }
+
+    private function likeOperator(): string
+    {
+        return DB::getDriverName() === 'pgsql' ? 'ilike' : 'like';
     }
 }

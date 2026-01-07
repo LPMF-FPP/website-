@@ -61,7 +61,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('requests', RequestController::class);
 
     // Request document endpoints (sample_receipt, handover_report, request_letter_receipt)
-    Route::get('/requests/{testRequest}/documents/{type}', [RequestController::class, 'downloadDocument'])->name('requests.documents.download');
+    Route::get('/requests/{testRequest}/documents/{type}', [RequestController::class, 'downloadDocument'])
+        ->name('requests.documents.download')
+        ->middleware('audit.activity:DOCUMENT_DOWNLOADED');
     Route::delete('/requests/{testRequest}/documents/{type}', [RequestController::class, 'deleteDocument'])->name('requests.documents.delete');
 
     // Berita Acara Penerimaan
@@ -147,7 +149,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
     Route::post('samples/{sample}/ready-for-delivery', [SampleTestProcessController::class, 'markAsReadyForDelivery'])
         ->name('samples.ready-for-delivery');
-    Route::resource('analysts', AnalystController::class)->except(['show']);
+    Route::get('analysts/{analyst}/logs', [AnalystController::class, 'logs'])->name('analysts.logs');
+    Route::put('analysts/{analyst}/role', [AnalystController::class, 'updateRole'])->name('analysts.role.update');
+    Route::post('analysts/{analyst}/disable', [AnalystController::class, 'disable'])->name('analysts.disable');
+    Route::post('analysts/{analyst}/enable', [AnalystController::class, 'enable'])->name('analysts.enable');
+    Route::resource('analysts', AnalystController::class);
 
     // Delivery
     Route::prefix('delivery')->group(function () {
@@ -192,7 +198,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware('can:manage-settings')->prefix('settings')->name('settings.')->group(function () {
         Route::get('/', [SettingsPageController::class, 'index'])->name('index');
         Route::get('/data', [SettingsController::class, 'show'])->name('show');
-        Route::post('/save', [SettingsController::class, 'update'])->name('update');
+        Route::post('/save', [SettingsController::class, 'update'])
+            ->name('update')
+            ->middleware('audit.activity:SETTINGS_UPDATED');
         Route::post('/preview', [SettingsController::class, 'preview'])->name('preview');
         Route::post('/test', [SettingsController::class, 'test'])->name('test');
         Route::post('/brand-asset', [SettingsController::class, 'uploadBrandAsset'])->name('brand.upload');
@@ -231,7 +239,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('investigator.documents.show');
     Route::get('/documents/{document}/download', [App\Http\Controllers\InvestigatorDocumentController::class, 'download'])
         ->name('investigator.documents.download')
-        ->middleware('signed');
+        ->middleware(['signed', 'audit.activity:DOCUMENT_DOWNLOADED,document']);
     Route::delete('/documents/{document}', [App\Http\Controllers\InvestigatorDocumentController::class, 'destroy'])
         ->name('investigator.documents.destroy');
 

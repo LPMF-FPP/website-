@@ -1,19 +1,23 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Ubah Data Staff</h2>
+        <h2 class="font-semibold text-xl text-gray-800 leading-tight">Ubah Pengguna</h2>
     </x-slot>
 
     <div class="max-w-3xl mx-auto sm:px-6 lg:px-8 space-y-6">
         <div class="flex items-center justify-between">
             <a href="{{ route('analysts.index') }}"
-                class="inline-flex items-center text-sm font-semibold text-primary-600 hover:text-primary-700">&larr; Kembali ke daftar staff</a>
+                class="inline-flex items-center text-sm font-semibold text-primary-600 hover:text-primary-700">&larr; Kembali ke daftar pengguna</a>
 
-            <form method="POST" action="{{ route('analysts.destroy', $analyst) }}"
-                onsubmit="return confirm('Hapus staff ini? Tindakan tidak dapat dibatalkan.');">
-                @csrf
-                @method('DELETE')
-                <button type="submit" class="text-sm font-semibold text-red-600 hover:text-red-700">Hapus</button>
-            </form>
+            @if(auth()->id() !== $analyst->id)
+                <form method="POST" action="{{ route('analysts.destroy', $analyst) }}"
+                    onsubmit="return confirm('Hapus pengguna ini? Data akan diarsipkan (soft delete).');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="text-sm font-semibold text-red-600 hover:text-red-700">Hapus</button>
+                </form>
+            @else
+                <span class="text-xs text-gray-400">Akun Anda</span>
+            @endif
         </div>
 
         <div class="rounded-lg bg-white p-6 shadow-sm">
