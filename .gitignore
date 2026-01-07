@@ -43,3 +43,9 @@ Thumbs.db
 /.zed
 /storage/framework/views/*.php
 /storage/framework/views/*.blade.php
+
+# Temporary and generated files
+test.txt
+_bmad/
+/docs/
+AGENTS.md
