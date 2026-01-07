@@ -19,6 +19,13 @@ class DocumentDownloadController extends Controller
             abort(404);
         }
 
+        request()->attributes->set('audit_subject', $document);
+        request()->attributes->set('audit_meta', [
+            'document_type' => $document->document_type ?? null,
+            'original_filename' => $document->original_filename ?? null,
+            'ba_no' => $document->ba_no ?? null,
+        ]);
+
         $ext = pathinfo($path, PATHINFO_EXTENSION);
         $base = $document->ba_no ?: ('document_'.$document->id);
         $filename = preg_replace('/[^A-Za-z0-9._-]+/', '_', $base);

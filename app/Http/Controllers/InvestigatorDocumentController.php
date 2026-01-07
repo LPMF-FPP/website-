@@ -109,6 +109,13 @@ class InvestigatorDocumentController extends Controller
             abort(404, 'Document file not found');
         }
 
+        request()->attributes->set('audit_subject', $document);
+        request()->attributes->set('audit_meta', [
+            'document_type' => $document->document_type,
+            'original_filename' => $document->original_filename,
+            'investigator_id' => $document->investigator_id,
+        ]);
+
         $path = $document->file_path ?? $document->path ?? '';
         $filename = $document->original_filename ?? $document->filename ?? ($path ? basename($path) : 'document');
 

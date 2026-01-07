@@ -669,6 +669,13 @@ class RequestController extends Controller
 
         $document = $testRequest->documents()->where('document_type', $type)->latest()->firstOrFail();
 
+        request()->attributes->set('audit_subject', $document);
+        request()->attributes->set('audit_meta', [
+            'document_type' => $document->document_type,
+            'original_filename' => $document->original_filename,
+            'request_number' => $testRequest->request_number,
+        ]);
+
         $path = $document->file_path ?? $document->path;
         $disk = $document->storage_disk ?? 'documents';
 
