@@ -47,7 +47,7 @@ class SampleTestController extends Controller
         }
 
         $analysts = User::query()
-            ->whereIn('role', ['analyst', 'lab_analyst', 'petugas_lab'])
+            ->whereIn('role', ['analis', 'penyelia', 'manajer_teknis'])
             ->orderBy('name')
             ->get();
 

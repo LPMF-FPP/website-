@@ -14,7 +14,7 @@ class InvestigatorDocumentPolicy
     public function viewDocuments(User $user, Investigator $investigator): bool
     {
         // Admin and analyst can view all documents
-        if (in_array($user->role, ['admin', 'analyst'])) {
+        if (in_array($user->role, ['admin', 'analis', 'penyelia', 'manajer_teknis'])) {
             return true;
         }
 
@@ -27,7 +27,7 @@ class InvestigatorDocumentPolicy
     public function view(User $user, Document $document): bool
     {
         // Admin and analyst can view all documents
-        if (in_array($user->role, ['admin', 'analyst', 'supervisor'])) {
+        if (in_array($user->role, ['admin', 'analis', 'penyelia', 'manajer_teknis', 'supervisor'])) {
             return true;
         }
 
@@ -45,7 +45,7 @@ class InvestigatorDocumentPolicy
     public function uploadDocument(User $user, Investigator $investigator): bool
     {
         // Admin and analyst can upload documents
-        if (in_array($user->role, ['admin', 'analyst'])) {
+        if (in_array($user->role, ['admin', 'analis', 'penyelia', 'manajer_teknis'])) {
             return true;
         }
 
@@ -58,7 +58,7 @@ class InvestigatorDocumentPolicy
     public function download(User $user, Document $document): bool
     {
         // Admin and analyst can download all documents
-        if (in_array($user->role, ['admin', 'analyst', 'supervisor'])) {
+        if (in_array($user->role, ['admin', 'analis', 'penyelia', 'manajer_teknis', 'supervisor'])) {
             return true;
         }
 
@@ -81,7 +81,7 @@ class InvestigatorDocumentPolicy
         }
 
         // Analysts can delete uploaded documents (not generated)
-        if ($user->role === 'analyst' && $document->source === 'upload') {
+        if (in_array($user->role, ['analis', 'penyelia', 'manajer_teknis']) && $document->source === 'upload') {
             return true;
         }
 

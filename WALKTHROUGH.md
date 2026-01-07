@@ -9,6 +9,18 @@
 
 ### v1.0.5 (5 Januari 2026)
 
+#### 🐛 Bug Fixes
+
+- **Staff Tidak Terpanggil di Halaman Pengujian**: Memperbaiki masalah dimana staff yang sudah terdaftar tidak terpanggil di halaman `/samples/test` sehingga tidak dapat memilih analis. Masalah ini disebabkan oleh mismatch role antara kode dan database.
+  - **Root Cause**: Controller menggunakan role `['analyst', 'lab_analyst', 'petugas_lab']` (bahasa Inggris), sedangkan di database menggunakan role `'analis'` (bahasa Indonesia).
+  - **Solusi**: Update semua query untuk menggunakan role yang konsisten dengan `AnalystController`: `['analis', 'penyelia', 'manajer_teknis']`.
+  - **File terpengaruh**:
+    - `app/Http/Controllers/SampleTestController.php` - Update query analis di method `create()`
+    - `app/Http/Controllers/SampleTestProcessController.php` - Update query analis di method `index()` dan `edit()`
+    - `app/Policies/InvestigatorDocumentPolicy.php` - Update role checks di semua methods
+    - `app/Policies/InvestigatorPolicy.php` - Update role checks di method `viewDocuments()`
+  - **Dampak**: Sekarang staff dengan role `analis`, `penyelia`, atau `manajer_teknis` akan muncul di dropdown pemilihan analis pada halaman pengujian dan proses pengujian.
+
 #### 🆕 Improvements
 
 - **Manajemen Staff (Rename dari Manajemen Analis)**: Menu "Analis" di navigasi diganti menjadi "Staff" dan "Manajemen analis" menjadi "Manajemen staff". Halaman index, create, dan edit diperbarui.

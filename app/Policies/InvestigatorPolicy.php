@@ -23,7 +23,7 @@ class InvestigatorPolicy
         }
 
         // Analysts and supervisors can view all documents
-        if (in_array($user->role, ['analyst', 'supervisor'])) {
+        if (in_array($user->role, ['analis', 'penyelia', 'manajer_teknis', 'supervisor'])) {
             return true;
         }
 

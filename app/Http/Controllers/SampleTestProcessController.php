@@ -120,8 +120,7 @@ class SampleTestProcessController extends Controller
 
         $samples = $samplesQuery->get();
 
-        $analysts = \App\Models\User::where('role', 'analyst')
-            ->orWhere('role', 'admin')
+        $analysts = \App\Models\User::whereIn('role', ['analis', 'penyelia', 'manajer_teknis', 'admin'])
             ->orderBy('name')
             ->get();
 
@@ -281,8 +280,7 @@ class SampleTestProcessController extends Controller
             ->latest()
             ->get();
 
-        $analysts = \App\Models\User::where('role', 'analyst')
-            ->orWhere('role', 'admin')
+        $analysts = \App\Models\User::whereIn('role', ['analis', 'penyelia', 'manajer_teknis', 'admin'])
             ->orderBy('name')
             ->get();
 
