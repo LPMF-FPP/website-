@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v1.0.5
+# WALKTHROUGH - LPMF LIMS v1.0.6
 
 > **Laboratory Information Management System untuk Laboratorium Pengujian Mutu Farmasi**
 > **Dokumen ini menggabungkan PRD (Product Requirements) dan ERD (Entity Relationship)**
@@ -19,6 +19,64 @@
         - `resources/views/layouts/navigation.blade.php` - Rewrite total struktur navbar
         - `resources/views/components/nav-link.blade.php` - Update styling menjadi pill shape
         - `resources/views/components/responsive-nav-link.blade.php` - Update styling untuk drawer
+
+#### 🆕 New Features
+
+- **Kontrol Pengguna (Staff Management v2)**: Fitur manajemen pengguna yang ditingkatkan dengan kontrol role, status aktif/nonaktif, dan audit trail.
+    - **Fitur Utama**:
+        - **Enable/Disable User**: Admin dapat menonaktifkan user tanpa menghapus data. User yang dinonaktifkan akan di-logout otomatis dan tidak bisa login kembali.
+        - **Role Management**: Ubah role pengguna langsung dari halaman detail dengan logging perubahan.
+        - **Activity Logs**: Lihat riwayat aktivitas per pengguna dengan filter aksi, jenis objek, dan rentang tanggal.
+        - **Soft Deletes**: User yang dihapus akan diarsipkan (soft delete), bukan dihapus permanen.
+    - **Database Schema**:
+        - `users.is_active` - Boolean flag untuk status aktif/nonaktif
+        - `users.deleted_at` - Soft deletes support
+        - `activity_logs` - Tabel baru untuk audit trail
+    - **Routes Baru**:
+        - `GET /analysts/{id}` - Halaman detail pengguna
+        - `GET /analysts/{id}/logs` - Halaman log aktivitas pengguna
+        - `PUT /analysts/{id}/role` - Update role pengguna
+        - `POST /analysts/{id}/disable` - Nonaktifkan pengguna
+        - `POST /analysts/{id}/enable` - Aktifkan pengguna
+    - **Files Changed**:
+        - `app/Http/Controllers/AnalystController.php` - CRUD + role, enable, disable, logs
+        - `app/Models/User.php` - SoftDeletes trait, is_active cast
+        - `app/Models/ActivityLog.php` - Model baru untuk audit trail
+        - `resources/views/analysts/show.blade.php` - Halaman detail pengguna
+        - `resources/views/analysts/logs.blade.php` - Halaman log aktivitas
+        - `resources/views/analysts/index.blade.php` - Kolom status dan last activity
+
+- **Activity Logging System**: Sistem audit trail komprehensif untuk melacak semua aktivitas penting dalam aplikasi.
+    - **Komponen**:
+        - `ActivityLogger` - Support class untuk logging aktivitas ke database
+        - `AuditActivity` middleware - Route-level activity tracking
+        - `EnsureUserIsActive` middleware - Blok user nonaktif dari mengakses aplikasi
+    - **Event yang Dilacak**:
+        - Login/logout pengguna
+        - CRUD operasi pengguna (create, update, delete, role change)
+        - Enable/disable pengguna
+        - Download dokumen
+        - Update settings sistem
+    - **Data yang Dicatat**:
+        - Actor (siapa yang melakukan aksi)
+        - Target (user yang terdampak, jika ada)
+        - Before/After state (untuk perubahan data)
+        - IP address, user agent, route, method
+        - Metadata tambahan (reason, context)
+    - **Files Changed**:
+        - `app/Support/ActivityLogger.php` - Centralized logging utility
+        - `app/Http/Middleware/AuditActivity.php` - Route middleware
+        - `app/Http/Middleware/EnsureUserIsActive.php` - User status check
+        - `app/Providers/AppServiceProvider.php` - Login/logout event listeners
+        - `bootstrap/app.php` - Middleware registration
+
+- **Manage Users Permission**: Permission baru `can_manage_users` untuk mengontrol siapa yang bisa mengelola pengguna.
+    - **Default**: Admin dan Manajer Teknis dapat mengelola pengguna
+    - **Konfigurasi**: Settings > Security > Role Permissions
+    - **Files Changed**:
+        - `app/Providers/AppServiceProvider.php` - Gate definition
+        - `app/Http/Controllers/SettingsController.php` - Settings handler
+        - `database/seeders/SystemSettingSeeder.php` - Default configuration
 
 #### 🐛 Bug Fixes
 
