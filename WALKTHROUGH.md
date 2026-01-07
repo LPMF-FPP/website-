@@ -7,142 +7,155 @@
 
 ## 📝 Changelog
 
+### v1.0.6 (7 Januari 2026)
+
+#### 🎨 UI Redesign
+
+- **Redesign Navigation Bar**: Update visual navbar menjadi gaya modern/minimalis (SaaS style) dengan palet warna Pusdokkes yang konsisten.
+    - **Desktop**: White background, clean borders, "pill" style active links, dan Mega Menu untuk referensi yang lebih rapi.
+    - **Mobile**: Implementasi **Slide-over Drawer** yang modern menggantikan expand-down menu.
+    - **Tech**: Migrasi ke full Alpine.js untuk state management (dropdowns, mobile drawer, mega menu) menggantikan vanilla JS event listeners.
+    - **Files Changed**:
+        - `resources/views/layouts/navigation.blade.php` - Rewrite total struktur navbar
+        - `resources/views/components/nav-link.blade.php` - Update styling menjadi pill shape
+        - `resources/views/components/responsive-nav-link.blade.php` - Update styling untuk drawer
+
 ### v1.0.5 (5 Januari 2026)
 
 #### 🐛 Bug Fixes
 
 - **Staff Tidak Terpanggil di Halaman Pengujian**: Memperbaiki masalah dimana staff yang sudah terdaftar tidak terpanggil di halaman `/samples/test` sehingga tidak dapat memilih analis. Masalah ini disebabkan oleh mismatch role antara kode dan database.
-  - **Root Cause**: Controller menggunakan role `['analyst', 'lab_analyst', 'petugas_lab']` (bahasa Inggris), sedangkan di database menggunakan role `'analis'` (bahasa Indonesia).
-  - **Solusi**: Update semua query untuk menggunakan role yang konsisten dengan `AnalystController`: `['analis', 'penyelia', 'manajer_teknis']`.
-  - **File terpengaruh**:
-    - `app/Http/Controllers/SampleTestController.php` - Update query analis di method `create()`
-    - `app/Http/Controllers/SampleTestProcessController.php` - Update query analis di method `index()` dan `edit()`
-    - `app/Policies/InvestigatorDocumentPolicy.php` - Update role checks di semua methods
-    - `app/Policies/InvestigatorPolicy.php` - Update role checks di method `viewDocuments()`
-  - **Dampak**: Sekarang staff dengan role `analis`, `penyelia`, atau `manajer_teknis` akan muncul di dropdown pemilihan analis pada halaman pengujian dan proses pengujian.
+    - **Root Cause**: Controller menggunakan role `['analyst', 'lab_analyst', 'petugas_lab']` (bahasa Inggris), sedangkan di database menggunakan role `'analis'` (bahasa Indonesia).
+    - **Solusi**: Update semua query untuk menggunakan role yang konsisten dengan `AnalystController`: `['analis', 'penyelia', 'manajer_teknis']`.
+    - **File terpengaruh**:
+        - `app/Http/Controllers/SampleTestController.php` - Update query analis di method `create()`
+        - `app/Http/Controllers/SampleTestProcessController.php` - Update query analis di method `index()` dan `edit()`
+        - `app/Policies/InvestigatorDocumentPolicy.php` - Update role checks di semua methods
+        - `app/Policies/InvestigatorPolicy.php` - Update role checks di method `viewDocuments()`
+    - **Dampak**: Sekarang staff dengan role `analis`, `penyelia`, atau `manajer_teknis` akan muncul di dropdown pemilihan analis pada halaman pengujian dan proses pengujian.
 
 #### 🆕 Improvements
 
 - **Manajemen Staff (Rename dari Manajemen Analis)**: Menu "Analis" di navigasi diganti menjadi "Staff" dan "Manajemen analis" menjadi "Manajemen staff". Halaman index, create, dan edit diperbarui.
-  - **Perubahan Peran**: Opsi peran di form create/edit sekarang adalah: `Analis`, `Penyelia`, `Manajer Teknis` (sebelumnya: analyst, lab_analyst, petugas_lab).
-  - **File terpengaruh**:
-    - `app/Http/Controllers/AnalystController.php` - Update `$analystRoles` array dan success messages
-    - `resources/views/layouts/navigation.blade.php` - Menu "Staff" dan "Manajemen staff"
-    - `resources/views/analysts/index.blade.php` - Title "Manajemen Staff", "Daftar Staff"
-    - `resources/views/analysts/create.blade.php` - Title "Tambah Staff"
-    - `resources/views/analysts/edit.blade.php` - Title "Ubah Data Staff"
+    - **Perubahan Peran**: Opsi peran di form create/edit sekarang adalah: `Analis`, `Penyelia`, `Manajer Teknis` (sebelumnya: analyst, lab_analyst, petugas_lab).
+    - **File terpengaruh**:
+        - `app/Http/Controllers/AnalystController.php` - Update `$analystRoles` array dan success messages
+        - `resources/views/layouts/navigation.blade.php` - Menu "Staff" dan "Manajemen staff"
+        - `resources/views/analysts/index.blade.php` - Title "Manajemen Staff", "Daftar Staff"
+        - `resources/views/analysts/create.blade.php` - Title "Tambah Staff"
+        - `resources/views/analysts/edit.blade.php` - Title "Ubah Data Staff"
 
 - **Label Barang Bukti - Ganti Kolom Penyidik dengan Deskripsi Singkat**: Pada template label barang bukti (sheet dan single), kolom "Penyidik" diganti menjadi "Deskripsi Singkat" untuk menampilkan deskripsi sampel yang lebih informatif.
-  - **Fitur**: Label sekarang menampilkan `short_description` dari sampel, bukan nama penyidik.
-  - **File terpengaruh**:
-    - `app/Http/Controllers/LabelController.php` - `buildLabelPayload()` sekarang return `deskripsi_singkat`
-    - `resources/views/labels/evidence-sheet.blade.php` - Field "Deskripsi Singkat"
-    - `resources/views/labels/evidence-single.blade.php` - Field "Deskripsi Singkat"
-    - `app/Http/Controllers/Api/Settings/BladeTemplateEditorController.php` - Preview data untuk template editor
+    - **Fitur**: Label sekarang menampilkan `short_description` dari sampel, bukan nama penyidik.
+    - **File terpengaruh**:
+        - `app/Http/Controllers/LabelController.php` - `buildLabelPayload()` sekarang return `deskripsi_singkat`
+        - `resources/views/labels/evidence-sheet.blade.php` - Field "Deskripsi Singkat"
+        - `resources/views/labels/evidence-single.blade.php` - Field "Deskripsi Singkat"
+        - `app/Http/Controllers/Api/Settings/BladeTemplateEditorController.php` - Preview data untuk template editor
 
 - **Identifikasi Sampel - Toggle Dropdown dan Input Baru**: Di halaman Pengujian Sampel (`/samples/test`), field "Identifikasi Sampel / Barang Bukti" sekarang memiliki dua pilihan input:
-  - **Fitur**: Radio button toggle antara "Pilih yang sudah ada" (dropdown dari database) dan "Input baru" (textarea manual).
-  - **Behavior**: Jika sudah ada identifikasi di database, user dapat memilih dari dropdown. Jika baru, user dapat input manual via textarea.
-  - **File terpengaruh**:
-    - `app/Http/Controllers/SampleTestController.php` - Query existing `physical_identification` dari samples table
-    - `resources/views/samples/test.blade.php` - UI toggle dengan JavaScript untuk sync nilai
+    - **Fitur**: Radio button toggle antara "Pilih yang sudah ada" (dropdown dari database) dan "Input baru" (textarea manual).
+    - **Behavior**: Jika sudah ada identifikasi di database, user dapat memilih dari dropdown. Jika baru, user dapat input manual via textarea.
+    - **File terpengaruh**:
+        - `app/Http/Controllers/SampleTestController.php` - Query existing `physical_identification` dari samples table
+        - `resources/views/samples/test.blade.php` - UI toggle dengan JavaScript untuk sync nilai
 
 - **Auto-fill Data Penyidik/Pemohon**: Di halaman Buat Permintaan (`/permintaan/buat`), jika penyidik atau pemohon non-Polri sudah pernah mengajukan permintaan sebelumnya, mereka dapat memilih nama dari dropdown untuk auto-fill semua data (NRP, pangkat, satuan, telepon, alamat, dll).
-  - **Fitur**: Dropdown "Pilih Data Penyidik yang Sudah Terdaftar" untuk Polri, dan "Pilih Pemohon yang Sudah Terdaftar" untuk non-Polri.
-  - **Behavior**: Pilih dari dropdown untuk auto-fill, atau pilih "-- Input Data Baru --" untuk input manual.
-  - **File terpengaruh**:
-    - `app/Http/Controllers/RequestController.php` - Menambahkan query untuk existing investigators dan externals
-    - `resources/views/requests/create.blade.php` - UI dropdown dengan auto-fill JavaScript
+    - **Fitur**: Dropdown "Pilih Data Penyidik yang Sudah Terdaftar" untuk Polri, dan "Pilih Pemohon yang Sudah Terdaftar" untuk non-Polri.
+    - **Behavior**: Pilih dari dropdown untuk auto-fill, atau pilih "-- Input Data Baru --" untuk input manual.
+    - **File terpengaruh**:
+        - `app/Http/Controllers/RequestController.php` - Menambahkan query untuk existing investigators dan externals
+        - `resources/views/requests/create.blade.php` - UI dropdown dengan auto-fill JavaScript
 
 - **Autocomplete Zat Aktif**: Field "Zat Aktif" di form sampel sekarang mendukung autocomplete dari zat aktif yang sudah pernah diinput sebelumnya.
-  - **Fitur**: Menggunakan HTML5 `<datalist>` untuk menampilkan suggestions dari zat aktif yang sudah ada di database.
-  - **Behavior**: User dapat memilih dari suggestions atau mengetik zat aktif baru.
-  - **File terpengaruh**:
-    - `app/Http/Controllers/RequestController.php` - Query unique active substances
-    - `resources/views/requests/create.blade.php` - Datalist dan input dengan list attribute
+    - **Fitur**: Menggunakan HTML5 `<datalist>` untuk menampilkan suggestions dari zat aktif yang sudah ada di database.
+    - **Behavior**: User dapat memilih dari suggestions atau mengetik zat aktif baru.
+    - **File terpengaruh**:
+        - `app/Http/Controllers/RequestController.php` - Query unique active substances
+        - `resources/views/requests/create.blade.php` - Datalist dan input dengan list attribute
 
 - **Perbaikan Double-Submit pada Form Permintaan**: Fix bug dimana form permintaan pengujian bisa disubmit dua kali jika user menekan tombol submit berulang kali, menyebabkan dokumen terinput duplikat dan penomoran menjadi tidak teratur.
-  - **Root cause**: Tidak ada proteksi double-submit pada form, baik di frontend maupun backend. Ketika user menekan tombol submit dua kali (misalnya karena koneksi lambat), request terkirim dua kali dan masing-masing mengalokasikan nomor urut baru.
-  - **Fix**: Implementasi multi-layer protection:
-    1. **Frontend (Alpine.js)**: Tombol submit akan disabled dan menampilkan loading spinner setelah diklik pertama kali
-    2. **Backend (Token-based)**: Setiap form memiliki `_submission_token` unik yang di-cache setelah digunakan, mencegah duplikat jika token yang sama disubmit ulang
-    3. **Backend (Cache Lock)**: Menggunakan `Cache::lock()` untuk mencegah concurrent request dari user yang sama dalam waktu 10 detik
-  - **File terpengaruh**:
-    - `resources/views/requests/create.blade.php` - Tambah Alpine.js double-submit prevention dan submission token
-    - `resources/views/requests/edit.blade.php` - Tambah Alpine.js double-submit prevention dan submission token
-    - `app/Http/Controllers/RequestController.php` - Tambah token validation dan cache lock di `store()` dan `update()` methods
+    - **Root cause**: Tidak ada proteksi double-submit pada form, baik di frontend maupun backend. Ketika user menekan tombol submit dua kali (misalnya karena koneksi lambat), request terkirim dua kali dan masing-masing mengalokasikan nomor urut baru.
+    - **Fix**: Implementasi multi-layer protection:
+        1. **Frontend (Alpine.js)**: Tombol submit akan disabled dan menampilkan loading spinner setelah diklik pertama kali
+        2. **Backend (Token-based)**: Setiap form memiliki `_submission_token` unik yang di-cache setelah digunakan, mencegah duplikat jika token yang sama disubmit ulang
+        3. **Backend (Cache Lock)**: Menggunakan `Cache::lock()` untuk mencegah concurrent request dari user yang sama dalam waktu 10 detik
+    - **File terpengaruh**:
+        - `resources/views/requests/create.blade.php` - Tambah Alpine.js double-submit prevention dan submission token
+        - `resources/views/requests/edit.blade.php` - Tambah Alpine.js double-submit prevention dan submission token
+        - `app/Http/Controllers/RequestController.php` - Tambah token validation dan cache lock di `store()` dan `update()` methods
 
 - **Perbaikan Gap Penomoran BA RIM**: Fix bug dimana nomor BA RIM tidak berurutan (misal: 001, 003, 005, 008 bukannya 001, 002, 003, 004) setelah terjadi error atau double-submit.
-  - **Root cause (Update)**: 
-    1. ~~Logika di `TestRequest::boot()` menggunakan retry loop~~ - sudah diperbaiki sebelumnya
-    2. **Method `generateBeritaAcara()` memanggil `NumberingService::issue('ba')` untuk generate nomor dokumen BA, padahal seharusnya menggunakan `request_number` yang sudah ada di TestRequest**. Ini menyebabkan setiap kali user meng-generate/view BA, sequence counter naik!
-  - **Analysis**: 
-    - `TestRequest::boot()` sudah benar memanggil `issue()` sekali saat creating
-    - Tapi `generateBeritaAcara()` salah memanggil `issue()` lagi untuk membuat "nomor dokumen BA"
-    - Seharusnya BA Penerimaan menggunakan `request_number` yang sudah ada, bukan nomor baru
-  - **Fix**: 
-    1. **Ubah `generateBeritaAcara()`**: Gunakan `$testRequest->request_number` sebagai nomor BA, bukan memanggil `issue()` baru
-    2. **Renumber existing records**: Menggunakan `php artisan fix:numbering --renumber --reset-counters`
-  - **File terpengaruh**:
-    - `app/Http/Controllers/RequestController.php` - Hapus pemanggilan `NumberingService::issue('ba')` di `generateBeritaAcara()`
-  - **Command untuk fix**:
-    ```bash
-    php artisan fix:numbering --renumber --reset-counters --force
-    ```
+    - **Root cause (Update)**:
+        1. ~~Logika di `TestRequest::boot()` menggunakan retry loop~~ - sudah diperbaiki sebelumnya
+        2. **Method `generateBeritaAcara()` memanggil `NumberingService::issue('ba')` untuk generate nomor dokumen BA, padahal seharusnya menggunakan `request_number` yang sudah ada di TestRequest**. Ini menyebabkan setiap kali user meng-generate/view BA, sequence counter naik!
+    - **Analysis**:
+        - `TestRequest::boot()` sudah benar memanggil `issue()` sekali saat creating
+        - Tapi `generateBeritaAcara()` salah memanggil `issue()` lagi untuk membuat "nomor dokumen BA"
+        - Seharusnya BA Penerimaan menggunakan `request_number` yang sudah ada, bukan nomor baru
+    - **Fix**:
+        1. **Ubah `generateBeritaAcara()`**: Gunakan `$testRequest->request_number` sebagai nomor BA, bukan memanggil `issue()` baru
+        2. **Renumber existing records**: Menggunakan `php artisan fix:numbering --renumber --reset-counters`
+    - **File terpengaruh**:
+        - `app/Http/Controllers/RequestController.php` - Hapus pemanggilan `NumberingService::issue('ba')` di `generateBeritaAcara()`
+    - **Command untuk fix**:
+        ```bash
+        php artisan fix:numbering --renumber --reset-counters --force
+        ```
 
 #### 🐛 Bug Fixes
 
-- **Stepper Tidak Advance ke Interpretasi**: Fix bug di halaman Detail Proses (`/proses/{id}`) dimana stepper tidak menampilkan tahap "Interpretasi" ketika semua proses "Preparasi Sampel" dan "Pengujian Instrumen" telah selesai. 
-  - **Root cause**: Logika `resolveStepperStage()` di `ProcessController.php` mengecek apakah ada proses di suatu stage (started atau completed), tapi tidak mempertimbangkan bahwa jika semua proses completed maka harus advance ke stage berikutnya.
-  - **Fix**: Memisahkan pengecekan proses in-progress dan completed. Jika semua proses instrumentation completed, stepper sekarang akan menampilkan "Interpretasi" sebagai tahap berikutnya.
-  - **File terpengaruh**: `app/Http/Controllers/ProcessController.php`
+- **Stepper Tidak Advance ke Interpretasi**: Fix bug di halaman Detail Proses (`/proses/{id}`) dimana stepper tidak menampilkan tahap "Interpretasi" ketika semua proses "Preparasi Sampel" dan "Pengujian Instrumen" telah selesai.
+    - **Root cause**: Logika `resolveStepperStage()` di `ProcessController.php` mengecek apakah ada proses di suatu stage (started atau completed), tapi tidak mempertimbangkan bahwa jika semua proses completed maka harus advance ke stage berikutnya.
+    - **Fix**: Memisahkan pengecekan proses in-progress dan completed. Jika semua proses instrumentation completed, stepper sekarang akan menampilkan "Interpretasi" sebagai tahap berikutnya.
+    - **File terpengaruh**: `app/Http/Controllers/ProcessController.php`
 
 - **Tabel Sampel Stuck di Tahap Sebelumnya**: Fix bug di halaman Detail Proses (`/proses/{id}`) dimana tabel daftar sampel tetap menampilkan tahap "Preparasi Sampel" atau "Pengujian Instrumen" meskipun proses tersebut sudah ditandai selesai.
-  - **Root cause**: Logika `mapSamplesWithProcessState()` di `ProcessController.php` hanya mencari proses yang sedang berjalan, lalu fallback ke proses terakhir yang selesai. Tidak ada logic untuk menentukan tahap berikutnya setelah tahap sebelumnya selesai.
-  - **Fix**: Memperbaiki logic untuk:
-    1. Cek proses in-progress - jika ada, tampilkan itu
-    2. Jika tidak ada proses in-progress, kumpulkan semua tahap yang sudah selesai
-    3. Temukan tahap tertinggi yang selesai dan tentukan tahap berikutnya dalam urutan: Preparasi → Instrumen → Interpretasi
-    4. Tampilkan tahap berikutnya dengan status "Menunggu" jika belum ada proses untuk tahap tersebut
-  - **Behavior baru**:
-    | Kondisi | Tahap Ditampilkan | Status |
-    |---------|-------------------|--------|
-    | Preparasi sedang berjalan | Preparasi Sampel | Berjalan |
-    | Preparasi selesai, belum ada Instrumen | Pengujian Instrumen | Menunggu |
-    | Instrumen sedang berjalan | Pengujian Instrumen | Berjalan |
-    | Instrumen selesai, belum ada Interpretasi | Interpretasi Hasil | Menunggu |
-    | Interpretasi selesai | Interpretasi Hasil | Selesai |
-  - **File terpengaruh**: `app/Http/Controllers/ProcessController.php`
+    - **Root cause**: Logika `mapSamplesWithProcessState()` di `ProcessController.php` hanya mencari proses yang sedang berjalan, lalu fallback ke proses terakhir yang selesai. Tidak ada logic untuk menentukan tahap berikutnya setelah tahap sebelumnya selesai.
+    - **Fix**: Memperbaiki logic untuk:
+        1. Cek proses in-progress - jika ada, tampilkan itu
+        2. Jika tidak ada proses in-progress, kumpulkan semua tahap yang sudah selesai
+        3. Temukan tahap tertinggi yang selesai dan tentukan tahap berikutnya dalam urutan: Preparasi → Instrumen → Interpretasi
+        4. Tampilkan tahap berikutnya dengan status "Menunggu" jika belum ada proses untuk tahap tersebut
+    - **Behavior baru**:
+      | Kondisi | Tahap Ditampilkan | Status |
+      |---------|-------------------|--------|
+      | Preparasi sedang berjalan | Preparasi Sampel | Berjalan |
+      | Preparasi selesai, belum ada Instrumen | Pengujian Instrumen | Menunggu |
+      | Instrumen sedang berjalan | Pengujian Instrumen | Berjalan |
+      | Instrumen selesai, belum ada Interpretasi | Interpretasi Hasil | Menunggu |
+      | Interpretasi selesai | Interpretasi Hasil | Selesai |
+    - **File terpengaruh**: `app/Http/Controllers/ProcessController.php`
 
 - **Lokasi Penyimpanan Tidak Bisa Input Baru**: Fix bug di halaman Penerimaan Stok (`/referensi/inventori/transaksi/receipt`) dimana field "Lokasi Penyimpanan" hanya berupa dropdown dan tidak bisa menginput lokasi baru.
-  - **Root cause**: Field lokasi hanya menggunakan `<select>` dengan opsi dari database, tidak ada opsi untuk menambah lokasi baru secara inline.
-  - **Fix**: Mengubah field lokasi menjadi combobox dengan radio button toggle antara "Lokasi yang ada" (dropdown) dan "Lokasi baru" (text input + tipe lokasi), mirip dengan pola yang sudah ada untuk field Lot.
-  - **File terpengaruh**: 
-    - `resources/views/inventory/transactions/receipt.blade.php` - UI dengan toggle mode
-    - `app/Http/Controllers/Inventory/TransactionController.php` - Backend logic untuk create lokasi baru
+    - **Root cause**: Field lokasi hanya menggunakan `<select>` dengan opsi dari database, tidak ada opsi untuk menambah lokasi baru secara inline.
+    - **Fix**: Mengubah field lokasi menjadi combobox dengan radio button toggle antara "Lokasi yang ada" (dropdown) dan "Lokasi baru" (text input + tipe lokasi), mirip dengan pola yang sudah ada untuk field Lot.
+    - **File terpengaruh**:
+        - `resources/views/inventory/transactions/receipt.blade.php` - UI dengan toggle mode
+        - `app/Http/Controllers/Inventory/TransactionController.php` - Backend logic untuk create lokasi baru
 
 - **Artisan dummy:clear Gagal dengan Foreign Key Violation**: Fix bug pada command `php artisan dummy:clear` yang gagal dengan error `SQLSTATE[23503]: Foreign key violation` karena PostgreSQL FK constraints.
-  - **Root cause**: Menggunakan Eloquent `Model::query()->delete()` tidak bisa menangani FK constraints yang kompleks di PostgreSQL. Bahkan dengan `SET CONSTRAINTS ALL DEFERRED`, masih ada masalah timing dengan child records.
-  - **Fix**: Menggunakan raw SQL `TRUNCATE TABLE ... CASCADE` yang secara native PostgreSQL menangani FK constraints dengan cascade delete semua child records.
-  - **File terpengaruh**: `app/Console/Commands/ClearDummyData.php`
+    - **Root cause**: Menggunakan Eloquent `Model::query()->delete()` tidak bisa menangani FK constraints yang kompleks di PostgreSQL. Bahkan dengan `SET CONSTRAINTS ALL DEFERRED`, masih ada masalah timing dengan child records.
+    - **Fix**: Menggunakan raw SQL `TRUNCATE TABLE ... CASCADE` yang secara native PostgreSQL menangani FK constraints dengan cascade delete semua child records.
+    - **File terpengaruh**: `app/Console/Commands/ClearDummyData.php`
 
 - **Penomoran Saat Ini Menampilkan [object Object]**: Fix bug pada halaman `/settings` bagian "Penomoran Saat Ini" yang menampilkan `[object Object]` dan tombol Refresh tidak berfungsi dengan benar.
-  - **Root cause**: Backend API `/api/settings/numbering/current` mengembalikan objek `{ current, next, pattern }` untuk setiap scope, tapi frontend JavaScript mengasumsikan response berupa string langsung.
-  - **Fix**: Update `fetchCurrentNumbering()` di `resources/js/pages/settings/index.js` untuk mengekstrak nilai `next` atau `current` dari objek response.
-  - **File terpengaruh**: `resources/js/pages/settings/index.js`
+    - **Root cause**: Backend API `/api/settings/numbering/current` mengembalikan objek `{ current, next, pattern }` untuk setiap scope, tapi frontend JavaScript mengasumsikan response berupa string langsung.
+    - **Fix**: Update `fetchCurrentNumbering()` di `resources/js/pages/settings/index.js` untuk mengekstrak nilai `next` atau `current` dari objek response.
+    - **File terpengaruh**: `resources/js/pages/settings/index.js`
 
 - **Penamaan Dokumen Sesuai Penomoran Otomatis**: Dokumen yang digenerate (BA Penerimaan, BA Penyerahan, LHU) sekarang menggunakan nomor dari sistem Penomoran Otomatis di `/settings` untuk nama file.
-  - **Sebelumnya**: Nama file menggunakan `request_number` (contoh: `BA-Penerimaan-2026-01-05-0001.pdf`)
-  - **Sekarang**: Nama file menggunakan nomor dokumen dari scope yang sesuai (contoh: `BA-2026-01-0001-ba-penerimaan.pdf` sesuai pattern `BA/{YYYY}/{MM}/{SEQ:4}`)
-  - **Mapping scope**:
-    - `ba_penerimaan` → scope `ba`
-    - `ba_penyerahan` → scope `ba_penyerahan`
-    - `lhu` / `laporan_hasil_uji` → scope `lhu`
-  - **File terpengaruh**:
-    - `app/Services/DocumentService.php` - Tambah method `issueDocumentNumber()`, `previewDocumentNumber()`, `generateDocumentBaseName()`
-    - `app/Http/Controllers/RequestController.php` - Generate BA Penerimaan menggunakan numbering
-    - `app/Http/Controllers/DeliveryController.php` - Generate BA Penyerahan menggunakan numbering
-    - `app/Http/Controllers/SampleTestProcessController.php` - LHU sudah menggunakan numbering, update baseName
+    - **Sebelumnya**: Nama file menggunakan `request_number` (contoh: `BA-Penerimaan-2026-01-05-0001.pdf`)
+    - **Sekarang**: Nama file menggunakan nomor dokumen dari scope yang sesuai (contoh: `BA-2026-01-0001-ba-penerimaan.pdf` sesuai pattern `BA/{YYYY}/{MM}/{SEQ:4}`)
+    - **Mapping scope**:
+        - `ba_penerimaan` → scope `ba`
+        - `ba_penyerahan` → scope `ba_penyerahan`
+        - `lhu` / `laporan_hasil_uji` → scope `lhu`
+    - **File terpengaruh**:
+        - `app/Services/DocumentService.php` - Tambah method `issueDocumentNumber()`, `previewDocumentNumber()`, `generateDocumentBaseName()`
+        - `app/Http/Controllers/RequestController.php` - Generate BA Penerimaan menggunakan numbering
+        - `app/Http/Controllers/DeliveryController.php` - Generate BA Penyerahan menggunakan numbering
+        - `app/Http/Controllers/SampleTestProcessController.php` - LHU sudah menggunakan numbering, update baseName
 
 ---
 
@@ -154,28 +167,28 @@
 
 ##### 1. Audit Kata "Pelanggan" → "User"
 
-| File | Line | Teks Ditemukan | Status |
-|------|------|----------------|--------|
-| `resources/views/settings/partials/iku.blade.php` | 149 | "Pelanggan harus mengisi survey..." | ⚠️ Perlu diganti |
-| `resources/views/settings/partials/iku.blade.php` | 177 | "survey kepuasan pelanggan" | ⚠️ Perlu diganti |
-| `resources/views/changelogs/index.blade.php` | 53 | "survey kepuasan pelanggan" | ⚠️ Perlu diganti |
+| File                                                    | Line     | Teks Ditemukan                                              | Status           |
+| ------------------------------------------------------- | -------- | ----------------------------------------------------------- | ---------------- |
+| `resources/views/settings/partials/iku.blade.php`       | 149      | "Pelanggan harus mengisi survey..."                         | ⚠️ Perlu diganti |
+| `resources/views/settings/partials/iku.blade.php`       | 177      | "survey kepuasan pelanggan"                                 | ⚠️ Perlu diganti |
+| `resources/views/changelogs/index.blade.php`            | 53       | "survey kepuasan pelanggan"                                 | ⚠️ Perlu diganti |
 | `resources/views/sample-processes/report-lhu.blade.php` | 95,97,98 | "Informasi Pelanggan", "Nama Pelanggan", "Alamat Pelanggan" | ⚠️ Perlu diganti |
-| `resources/views/delivery/survey.blade.php` | 5,59 | "Survei Kepuasan Pelanggan" | ⚠️ Perlu diganti |
-| `resources/views/pdf/ba-penyerahan.blade.php` | 343 | "Pelanggan" | ⚠️ Perlu diganti |
-| `scripts/generate_ba_penyerahan_summary.py` | 73,133 | "nama_pelanggan", "nomor_pelanggan" | ⚠️ Perlu diganti |
-| `app/Http/Controllers/RequestController.php` | 759 | "Hapus survey pelanggan" | ⚠️ Perlu diganti |
-| `templates/ba_penyerahan_ringkasan.html.j2` | 49 | "Pelanggan" | ⚠️ Perlu diganti |
-| `templates/laporan_hasil_uji.html.j2` | 91,94,95 | "Informasi Pelanggan", "Nama Pelanggan", "Alamat Pelanggan" | ⚠️ Perlu diganti |
-| `output/laporan-hasil-uji/*.html` | 87,90,91 | Generated output (akan regenerate) | ℹ️ Auto-fix |
+| `resources/views/delivery/survey.blade.php`             | 5,59     | "Survei Kepuasan Pelanggan"                                 | ⚠️ Perlu diganti |
+| `resources/views/pdf/ba-penyerahan.blade.php`           | 343      | "Pelanggan"                                                 | ⚠️ Perlu diganti |
+| `scripts/generate_ba_penyerahan_summary.py`             | 73,133   | "nama_pelanggan", "nomor_pelanggan"                         | ⚠️ Perlu diganti |
+| `app/Http/Controllers/RequestController.php`            | 759      | "Hapus survey pelanggan"                                    | ⚠️ Perlu diganti |
+| `templates/ba_penyerahan_ringkasan.html.j2`             | 49       | "Pelanggan"                                                 | ⚠️ Perlu diganti |
+| `templates/laporan_hasil_uji.html.j2`                   | 91,94,95 | "Informasi Pelanggan", "Nama Pelanggan", "Alamat Pelanggan" | ⚠️ Perlu diganti |
+| `output/laporan-hasil-uji/*.html`                       | 87,90,91 | Generated output (akan regenerate)                          | ℹ️ Auto-fix      |
 
 **Total:** 19 kemunculan kata "pelanggan" di 11 file
 
 ##### 2. Audit Kata "Narokita" & "Psikotropika"
 
-| Kata | Hasil | Status |
-|------|-------|--------|
-| `narokita` | ❌ Tidak ditemukan | ✅ Aman |
-| `psikotropika` | ✅ 8 kemunculan | ⚠️ Perlu review |
+| Kata           | Hasil              | Status          |
+| -------------- | ------------------ | --------------- |
+| `narokita`     | ❌ Tidak ditemukan | ✅ Aman         |
+| `psikotropika` | ✅ 8 kemunculan    | ⚠️ Perlu review |
 
 **Detail kemunculan "psikotropika":**
 | File | Konteks | Status |
@@ -251,24 +264,25 @@
 
 ##### 📋 Deprecated Code Found
 
-| File | Line | Keterangan |
-|------|------|------------|
-| `app/Models/TestRequest.php` | 85-95 | `generateRequestNumber()` deprecated, gunakan NumberingService |
-| `resources/views/components/stage-tabs.blade.php` | 1 | Deprecated, gunakan `<x-tabs>` |
-| `scripts/generate_laporan_hasil_uji.py` | 121,154 | `--api` flag deprecated |
+| File                                              | Line    | Keterangan                                                     |
+| ------------------------------------------------- | ------- | -------------------------------------------------------------- |
+| `app/Models/TestRequest.php`                      | 85-95   | `generateRequestNumber()` deprecated, gunakan NumberingService |
+| `resources/views/components/stage-tabs.blade.php` | 1       | Deprecated, gunakan `<x-tabs>`                                 |
+| `scripts/generate_laporan_hasil_uji.py`           | 121,154 | `--api` flag deprecated                                        |
 
 ##### 🎯 Action Items - COMPLETED ✅
 
-| Action | Status | Tanggal |
-|--------|--------|---------|
-| Hapus folder `siap-dihapus-2025-12-23/` | ✅ Done | 3 Jan 2026 |
-| Hapus folder `script sh/` | ✅ Done | 3 Jan 2026 |
-| Hapus folder `resources/views/_unused/` | ✅ Done | 3 Jan 2026 |
+| Action                                   | Status  | Tanggal    |
+| ---------------------------------------- | ------- | ---------- |
+| Hapus folder `siap-dihapus-2025-12-23/`  | ✅ Done | 3 Jan 2026 |
+| Hapus folder `script sh/`                | ✅ Done | 3 Jan 2026 |
+| Hapus folder `resources/views/_unused/`  | ✅ Done | 3 Jan 2026 |
 | Hapus folder `markdown-backup-20251230/` | ✅ Done | 3 Jan 2026 |
-| Hapus folder `md-backup-20251230/` | ✅ Done | 3 Jan 2026 |
-| Hapus kata "psikotropika" dari codebase | ✅ Done | 3 Jan 2026 |
+| Hapus folder `md-backup-20251230/`       | ✅ Done | 3 Jan 2026 |
+| Hapus kata "psikotropika" dari codebase  | ✅ Done | 3 Jan 2026 |
 
 **Files Updated untuk hapus 'psikotropika':**
+
 - `database/migrations/2025_09_29_044652_create_samples_table.php` - Hapus dari enum
 - `database/migrations/2026_01_03_*_remove_psikotropika_*.php` - Migration baru
 - `database/seeders/LabelTestSeeder.php` - Ganti dengan 'narkotika'
@@ -278,6 +292,7 @@
 - `app/Http/Controllers/Api/Settings/BladeTemplateEditorController.php` - Ganti dengan 'Narkotika'
 
 **Pending Action (Optional):**
+
 - Update kata "pelanggan" → "user" (belum dilakukan, perlu konfirmasi)
 
 ---
@@ -287,23 +302,27 @@
 #### 🆕 Fitur Baru
 
 **1. Sistem IKU (Indeks Kinerja Utama) - Full Implementation**
+
 - Dashboard card IKU menggantikan card "SLA Performance"
 - Halaman Settings dengan konfigurasi bobot, target sampel per tahun, dan periode
 - Preview IKU real-time dengan data mentah, formula, dan skala kategori
 - Penjelasan komprehensif variabel A-F di panel preview
 
 **2. DummyDataSeeder Enhancements**
+
 - Pembuatan dokumen LHU (Laporan Hasil Uji) otomatis via `createLhuDocuments()`
 - Pembuatan CustomerSurvey untuk testing via `createCustomerSurveys()`
 - Fix enum constraint untuk `request_type` dan `respondent_job_category`
 - Fix unique constraint `sample_code` dengan timestamp suffix
 
 **3. Clear Dummy Data Command**
+
 - Artisan command baru: `php artisan dummy:clear`
 - Opsi `--force` untuk skip konfirmasi
 - Menghapus semua data dari DummyDataSeeder secara aman
 
 **4. Admin User Persistence**
+
 - `AdminUserSeeder` dipanggil dari `DatabaseSeeder`
 - User admin tidak hilang setelah migration/seeding
 - Default credentials: `labmutufarmapol@gmail.com` / `LPMFjaya1`
@@ -329,15 +348,15 @@
 
 #### 📁 Files Changed
 
-| File | Change |
-|------|--------|
-| `app/Services/IkuService.php` | Fixed getSamplesCompletedCount, getLhuIssuedCount |
-| `app/Console/Commands/ClearDummyData.php` | **NEW** - Clear dummy data command |
-| `database/seeders/DummyDataSeeder.php` | Added LHU + Survey creation |
-| `database/seeders/DatabaseSeeder.php` | Added AdminUserSeeder call |
-| `resources/js/pages/settings/alpine-component.js` | Fixed double stringify, addIkuTargetYear |
-| `resources/views/settings/partials/iku.blade.php` | Comprehensive preview descriptions |
-| `resources/views/dashboard/_iku-card.blade.php` | IKU dashboard card |
+| File                                              | Change                                            |
+| ------------------------------------------------- | ------------------------------------------------- |
+| `app/Services/IkuService.php`                     | Fixed getSamplesCompletedCount, getLhuIssuedCount |
+| `app/Console/Commands/ClearDummyData.php`         | **NEW** - Clear dummy data command                |
+| `database/seeders/DummyDataSeeder.php`            | Added LHU + Survey creation                       |
+| `database/seeders/DatabaseSeeder.php`             | Added AdminUserSeeder call                        |
+| `resources/js/pages/settings/alpine-component.js` | Fixed double stringify, addIkuTargetYear          |
+| `resources/views/settings/partials/iku.blade.php` | Comprehensive preview descriptions                |
+| `resources/views/dashboard/_iku-card.blade.php`   | IKU dashboard card                                |
 
 #### 📋 Artisan Commands
 
@@ -365,16 +384,19 @@ php artisan fix:numbering --delete=SABRI --renumber --reset-counters --force  # 
 #### 🆕 Fitur Baru
 
 **1. Process Controller Refactor**
+
 - New dedicated `ProcessController.php` for unified sample process workflows
 - Improved route organization in `routes/web.php`
 - Better separation of concerns between test and process controllers
 
 **2. Recent Requests Tracking**
+
 - New `RecentRequest` model untuk tracking aktivitas terbaru
 - Tabel `recent_requests` baru untuk menyimpan riwayat akses
 - Enhanced `TestRequest` model dengan relationships baru
 
 **3. Sample Process UI Improvements**
+
 - Improved create, edit, index, and show views untuk sample-processes
 - Enhanced navigation layout
 
@@ -394,20 +416,20 @@ CREATE TABLE recent_requests (
 
 #### 📁 Files Changed
 
-| File | Change |
-|------|--------|
-| `app/Http/Controllers/ProcessController.php` | **NEW** - Process workflow controller |
-| `app/Http/Controllers/SampleTestController.php` | Updated process handling |
-| `app/Http/Controllers/SampleTestProcessController.php` | Updated process handling |
-| `app/Models/RecentRequest.php` | **NEW** - Recent request tracking model |
-| `app/Models/TestRequest.php` | Added recent requests relationship |
-| `resources/views/layouts/navigation.blade.php` | Enhanced navigation |
-| `resources/views/requests/index.blade.php` | UI improvements |
-| `resources/views/requests/show.blade.php` | UI improvements |
-| `resources/views/sample-processes/*.blade.php` | Updated all views |
-| `resources/views/samples/test.blade.php` | UI improvements |
-| `routes/web.php` | New process routes |
-| `vite.config.js` | Build configuration updates |
+| File                                                   | Change                                  |
+| ------------------------------------------------------ | --------------------------------------- |
+| `app/Http/Controllers/ProcessController.php`           | **NEW** - Process workflow controller   |
+| `app/Http/Controllers/SampleTestController.php`        | Updated process handling                |
+| `app/Http/Controllers/SampleTestProcessController.php` | Updated process handling                |
+| `app/Models/RecentRequest.php`                         | **NEW** - Recent request tracking model |
+| `app/Models/TestRequest.php`                           | Added recent requests relationship      |
+| `resources/views/layouts/navigation.blade.php`         | Enhanced navigation                     |
+| `resources/views/requests/index.blade.php`             | UI improvements                         |
+| `resources/views/requests/show.blade.php`              | UI improvements                         |
+| `resources/views/sample-processes/*.blade.php`         | Updated all views                       |
+| `resources/views/samples/test.blade.php`               | UI improvements                         |
+| `routes/web.php`                                       | New process routes                      |
+| `vite.config.js`                                       | Build configuration updates             |
 
 ---
 
@@ -416,17 +438,20 @@ CREATE TABLE recent_requests (
 #### 🆕 Fitur Baru
 
 **1. Multi-Suspect Support**
+
 - Mendukung multi tersangka per permohonan (tidak lagi terbatas 1 tersangka)
 - Tabel `suspects` baru dengan relasi ke `test_requests`
 - Dynamic add/remove tersangka di form create dan edit
 - Backward compatibility: tersangka pertama tetap disimpan ke kolom legacy `test_requests.suspect_*`
 
 **2. Non-Polri Investigator Support**
+
 - Pertanyaan "Apakah Anda penyidik?" toggle antara form Polri dan non-Polri
 - Kolom baru di `investigators`: `is_polri`, `institution`, `occupation`, `alt_phone`
 - Synthetic NRP untuk non-Polri dengan format `EXT-XXXXXXXX`
 
 **3. Improved Suspect Display**
+
 - Halaman index: Menampilkan tersangka pertama + "+N tersangka lainnya"
 - Halaman detail: Card-style display untuk semua tersangka dengan badge nomor urut
 
@@ -465,21 +490,20 @@ CREATE TABLE suspects (
 
 #### 📁 Files Changed
 
-| File | Change |
-|------|--------|
-| `app/Models/Suspect.php` | **NEW** - Multi-suspect model |
-| `app/Models/TestRequest.php` | Added `suspects()` relationship |
-| `app/Models/Investigator.php` | Added external fields |
-| `app/Http/Controllers/RequestController.php` | Updated store/update/edit methods |
-| `resources/views/requests/create.blade.php` | New suspect UI, external form |
-| `resources/views/requests/edit.blade.php` | Same updates as create |
-| `resources/views/requests/index.blade.php` | Multi-suspect display |
-| `resources/views/requests/show.blade.php` | Card-style suspect display |
-| `resources/js/pages/requests-form.js` | **NEW** - Dynamic suspect handling |
-| `vite.config.js` | Added new JS entry |
+| File                                         | Change                             |
+| -------------------------------------------- | ---------------------------------- |
+| `app/Models/Suspect.php`                     | **NEW** - Multi-suspect model      |
+| `app/Models/TestRequest.php`                 | Added `suspects()` relationship    |
+| `app/Models/Investigator.php`                | Added external fields              |
+| `app/Http/Controllers/RequestController.php` | Updated store/update/edit methods  |
+| `resources/views/requests/create.blade.php`  | New suspect UI, external form      |
+| `resources/views/requests/edit.blade.php`    | Same updates as create             |
+| `resources/views/requests/index.blade.php`   | Multi-suspect display              |
+| `resources/views/requests/show.blade.php`    | Card-style suspect display         |
+| `resources/js/pages/requests-form.js`        | **NEW** - Dynamic suspect handling |
+| `vite.config.js`                             | Added new JS entry                 |
 
 ---
-
 
 ## 📋 Daftar Isi
 
@@ -497,7 +521,9 @@ CREATE TABLE suspects (
 ## Ringkasan Produk
 
 ### Tujuan
+
 LPMF LIMS adalah sistem manajemen informasi laboratorium yang dirancang untuk:
+
 - Mengelola **permohonan pengujian** dari penyidik kepolisian
 - Melacak **sampel barang bukti** (narkotika dan zat terlarang)
 - Menghasilkan **dokumen resmi** (Berita Acara, Laporan Hasil Uji)
@@ -505,16 +531,17 @@ LPMF LIMS adalah sistem manajemen informasi laboratorium yang dirancang untuk:
 - Menyediakan **dashboard analitik** untuk monitoring kinerja
 
 ### Tech Stack
-| Layer | Teknologi | Versi |
-|-------|-----------|-------|
-| Backend | Laravel (PHP) | 12.x (PHP 8.3+) |
-| Frontend | Blade + Alpine.js + Tailwind CSS | Alpine 3.x, Tailwind 3.x |
-| Database | PostgreSQL | 16+ |
-| Build Tool | Vite | 7.x |
-| PDF Generation | DomPDF | barryvdh/laravel-dompdf ^3.1 |
-| Template Editor | Blade Editor | Native inline editor |
-| Queue | Laravel Queue | Database driver |
-| Audit Tools | Puppeteer + Lighthouse + axe-core | Development only |
+
+| Layer           | Teknologi                         | Versi                        |
+| --------------- | --------------------------------- | ---------------------------- |
+| Backend         | Laravel (PHP)                     | 12.x (PHP 8.3+)              |
+| Frontend        | Blade + Alpine.js + Tailwind CSS  | Alpine 3.x, Tailwind 3.x     |
+| Database        | PostgreSQL                        | 16+                          |
+| Build Tool      | Vite                              | 7.x                          |
+| PDF Generation  | DomPDF                            | barryvdh/laravel-dompdf ^3.1 |
+| Template Editor | Blade Editor                      | Native inline editor         |
+| Queue           | Laravel Queue                     | Database driver              |
+| Audit Tools     | Puppeteer + Lighthouse + axe-core | Development only             |
 
 ---
 
@@ -619,17 +646,17 @@ LPMF LIMS adalah sistem manajemen informasi laboratorium yang dirancang untuk:
 
 ### Entity Relationships
 
-| Parent | Child | Type | Description |
-|--------|-------|------|-------------|
-| `investigators` | `test_requests` | 1:N | Satu penyidik bisa punya banyak permohonan |
-| `test_requests` | `samples` | 1:N | Satu permohonan bisa punya banyak sampel |
-| `test_requests` | `documents` | 1:N | Satu permohonan bisa punya banyak dokumen |
-| `test_requests` | `deliveries` | 1:N | Satu permohonan bisa punya banyak pengiriman |
-| `samples` | `test_results` | 1:1 | Satu sampel punya satu hasil uji |
-| `samples` | `sample_test_processes` | 1:N | Satu sampel melalui banyak tahap proses |
-| `deliveries` | `delivery_items` | 1:N | Satu delivery punya banyak item |
-| `inventory_items` | `inventory_lots` | 1:N | Satu item punya banyak lot/batch |
-| `inventory_lots` | `inventory_movements` | 1:N | Satu lot punya banyak pergerakan stok |
+| Parent            | Child                   | Type | Description                                  |
+| ----------------- | ----------------------- | ---- | -------------------------------------------- |
+| `investigators`   | `test_requests`         | 1:N  | Satu penyidik bisa punya banyak permohonan   |
+| `test_requests`   | `samples`               | 1:N  | Satu permohonan bisa punya banyak sampel     |
+| `test_requests`   | `documents`             | 1:N  | Satu permohonan bisa punya banyak dokumen    |
+| `test_requests`   | `deliveries`            | 1:N  | Satu permohonan bisa punya banyak pengiriman |
+| `samples`         | `test_results`          | 1:1  | Satu sampel punya satu hasil uji             |
+| `samples`         | `sample_test_processes` | 1:N  | Satu sampel melalui banyak tahap proses      |
+| `deliveries`      | `delivery_items`        | 1:N  | Satu delivery punya banyak item              |
+| `inventory_items` | `inventory_lots`        | 1:N  | Satu item punya banyak lot/batch             |
+| `inventory_lots`  | `inventory_movements`   | 1:N  | Satu lot punya banyak pergerakan stok        |
 
 ---
 
@@ -639,16 +666,17 @@ LPMF LIMS adalah sistem manajemen informasi laboratorium yang dirancang untuk:
 
 **Entitas:** `TestRequest`
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `request_number` | string | Nomor BA otomatis (format: BA/LPMF/XII/2025/001) |
-| `receipt_number` | string | Nomor resi tracking |
-| `investigator_id` | FK | Referensi ke penyidik |
-| `suspect_name` | string | Nama tersangka |
-| `case_number` | string | Nomor LP perkara |
-| `status` | enum | pending → received → testing → completed |
+| Field             | Type   | Description                                      |
+| ----------------- | ------ | ------------------------------------------------ |
+| `request_number`  | string | Nomor BA otomatis (format: BA/LPMF/XII/2025/001) |
+| `receipt_number`  | string | Nomor resi tracking                              |
+| `investigator_id` | FK     | Referensi ke penyidik                            |
+| `suspect_name`    | string | Nama tersangka                                   |
+| `case_number`     | string | Nomor LP perkara                                 |
+| `status`          | enum   | pending → received → testing → completed         |
 
 **Fitur:**
+
 - ✅ CRUD permohonan pengujian
 - ✅ Upload surat resmi & foto barang bukti
 - ✅ Generate Berita Acara Penerimaan (PDF)
@@ -661,14 +689,14 @@ LPMF LIMS adalah sistem manajemen informasi laboratorium yang dirancang untuk:
 
 **Entitas:** `Sample`
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `sample_code` | string | Kode sampel unik |
-| `sample_category` | enum | narkotika, obat, kosmetik, makanan_minuman |
-| `sample_form` | enum | crystal, powder, tablet, liquid, plant |
-| `sample_weight` | decimal | Berat bruto (gram) |
-| `net_weight` | decimal | Berat netto (gram) |
-| `sample_status` | enum | received → testing → completed |
+| Field             | Type    | Description                                |
+| ----------------- | ------- | ------------------------------------------ |
+| `sample_code`     | string  | Kode sampel unik                           |
+| `sample_category` | enum    | narkotika, obat, kosmetik, makanan_minuman |
+| `sample_form`     | enum    | crystal, powder, tablet, liquid, plant     |
+| `sample_weight`   | decimal | Berat bruto (gram)                         |
+| `net_weight`      | decimal | Berat netto (gram)                         |
+| `sample_status`   | enum    | received → testing → completed             |
 
 **Kategori Sampel:**
 | Category | Description |
@@ -680,6 +708,7 @@ LPMF LIMS adalah sistem manajemen informasi laboratorium yang dirancang untuk:
 | `other` | Lainnya |
 
 **Status Flow:**
+
 ```
 received → preparation → instrumentation → reporting → completed → delivered
 ```
@@ -692,13 +721,14 @@ received → preparation → instrumentation → reporting → completed → del
 
 **Tahapan Pengujian:**
 
-| Stage | Description |
-|-------|-------------|
-| `preparation` | Preparasi sampel (penimbangan, pelarutan) |
-| `instrumentation` | Analisis instrumen (GCMS, HPLC, UV-Vis) |
-| `reporting` | Pembuatan laporan hasil |
+| Stage             | Description                               |
+| ----------------- | ----------------------------------------- |
+| `preparation`     | Preparasi sampel (penimbangan, pelarutan) |
+| `instrumentation` | Analisis instrumen (GCMS, HPLC, UV-Vis)   |
+| `reporting`       | Pembuatan laporan hasil                   |
 
 **Fitur:**
+
 - ✅ Input hasil identifikasi fisik
 - ✅ Input hasil uji GCMS/instrumen
 - ✅ Upload kromatogram & spektrum
@@ -720,6 +750,7 @@ received → preparation → instrumentation → reporting → completed → del
 | `collected` | Sudah diambil penyidik |
 
 **Fitur:**
+
 - ✅ Daftar sampel siap diserahkan
 - ✅ Generate Berita Acara Penyerahan
 - ✅ Survey kepuasan pelayanan
@@ -748,6 +779,7 @@ received → preparation → instrumentation → reporting → completed → del
 | `TRANSFER` | Transfer antar lokasi |
 
 **Fitur:**
+
 - ✅ Master data item (reagen, consumable, standar)
 - ✅ Lot/batch tracking dengan expiry date
 - ✅ Stock in/out movements
@@ -770,6 +802,7 @@ received → preparation → instrumentation → reporting → completed → del
 | `sample_receipt` | Tanda terima sampel |
 
 **Template Engine:**
+
 - **Blade Editor** - Inline code editor untuk template
 - **Blade** - Server-side rendering
 - **DomPDF** - PDF generation (barryvdh/laravel-dompdf)
@@ -815,16 +848,19 @@ received → preparation → instrumentation → reporting → completed → del
 ### Status Transitions
 
 **TestRequest Status:**
+
 ```
 pending → received → testing → completed → delivered
 ```
 
 **Sample Status:**
+
 ```
 received → preparation → instrumentation → reporting → completed → delivered
 ```
 
 **Delivery Status:**
+
 ```
 pending → ready → delivered → collected
 ```
@@ -835,13 +871,13 @@ pending → ready → delivered → collected
 
 ### Public Endpoints (Tanpa Auth)
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/` | Landing page |
-| GET | `/track` | Form tracking publik |
-| POST | `/track` | Submit nomor resi |
-| GET | `/track/{number}.json` | API tracking JSON |
-| GET | `/health` | Health check |
+| Method | Endpoint               | Description          |
+| ------ | ---------------------- | -------------------- |
+| GET    | `/`                    | Landing page         |
+| GET    | `/track`               | Form tracking publik |
+| POST   | `/track`               | Submit nomor resi    |
+| GET    | `/track/{number}.json` | API tracking JSON    |
+| GET    | `/health`              | Health check         |
 
 ### Authenticated Endpoints
 
@@ -1002,13 +1038,13 @@ database/
 
 ### Konvensi Kode
 
-| Type | Convention | Example |
-|------|------------|---------|
-| Model | Singular PascalCase | `TestRequest`, `Sample` |
-| Controller | Resource pattern | `RequestController` |
-| View folder | kebab-case | `sample-processes/` |
-| Route name | dot notation | `requests.store` |
-| Enum | PascalCase | `SampleStatus::RECEIVED` |
+| Type        | Convention          | Example                  |
+| ----------- | ------------------- | ------------------------ |
+| Model       | Singular PascalCase | `TestRequest`, `Sample`  |
+| Controller  | Resource pattern    | `RequestController`      |
+| View folder | kebab-case          | `sample-processes/`      |
+| Route name  | dot notation        | `requests.store`         |
+| Enum        | PascalCase          | `SampleStatus::RECEIVED` |
 
 ### Menambah Fitur Baru
 
@@ -1039,14 +1075,15 @@ php artisan make:controller NewFeatureController --resource
 
 Sistem IKU menghitung indeks kinerja laboratorium dengan 4 komponen berbobot:
 
-| Komponen | Kode | Formula | Default Bobot |
-|----------|------|---------|---------------|
-| Registrasi Permohonan | R | A / B | 10% |
-| Pemeriksaan Laboratorium | P | C / D | 40% |
-| Laporan Hasil | L | E / A | 40% |
-| Survei Kepuasan | S | F / A | 10% |
+| Komponen                 | Kode | Formula | Default Bobot |
+| ------------------------ | ---- | ------- | ------------- |
+| Registrasi Permohonan    | R    | A / B   | 10%           |
+| Pemeriksaan Laboratorium | P    | C / D   | 40%           |
+| Laporan Hasil            | L    | E / A   | 40%           |
+| Survei Kepuasan          | S    | F / A   | 10%           |
 
 **Variabel:**
+
 - A = jumlah permohonan dikerjakan
 - B = jumlah permohonan diterima
 - C = jumlah sampel dikerjakan
@@ -1055,29 +1092,31 @@ Sistem IKU menghitung indeks kinerja laboratorium dengan 4 komponen berbobot:
 - F = jumlah survey diterima
 
 **Formula IKU:**
+
 ```
 IKU = (R × WR + P × WP + L × WL + S × WS) × 5
 ```
+
 Hasil: Indeks 0-5 dengan kategori: Sangat Baik, Baik, Cukup, Kurang, Sangat Kurang.
 
 ### File Terkait
 
-| File | Fungsi |
-|------|--------|
-| `app/Services/IkuService.php` | Service untuk komputasi dan konfigurasi IKU |
-| `app/Http/Controllers/Api/Settings/IkuSettingsController.php` | API endpoint IKU |
-| `app/Http/Requests/Settings/IkuSettingsRequest.php` | Request validation |
-| `resources/views/settings/partials/iku.blade.php` | Blade partial untuk halaman settings |
-| `resources/views/dashboard/_iku-card.blade.php` | Card IKU di dashboard |
-| `resources/js/pages/settings/alpine-component.js` | Alpine component (saveIkuSettings, ensureIkuDefaults) |
+| File                                                          | Fungsi                                                |
+| ------------------------------------------------------------- | ----------------------------------------------------- |
+| `app/Services/IkuService.php`                                 | Service untuk komputasi dan konfigurasi IKU           |
+| `app/Http/Controllers/Api/Settings/IkuSettingsController.php` | API endpoint IKU                                      |
+| `app/Http/Requests/Settings/IkuSettingsRequest.php`           | Request validation                                    |
+| `resources/views/settings/partials/iku.blade.php`             | Blade partial untuk halaman settings                  |
+| `resources/views/dashboard/_iku-card.blade.php`               | Card IKU di dashboard                                 |
+| `resources/js/pages/settings/alpine-component.js`             | Alpine component (saveIkuSettings, ensureIkuDefaults) |
 
 ### API Endpoints
 
-| Method | Endpoint | Fungsi |
-|--------|----------|--------|
-| GET | `/api/settings/iku` | Get konfigurasi IKU |
-| PUT | `/api/settings/iku` | Update konfigurasi IKU |
-| GET | `/api/settings/iku/preview` | Preview perhitungan IKU bulan ini |
+| Method | Endpoint                    | Fungsi                            |
+| ------ | --------------------------- | --------------------------------- |
+| GET    | `/api/settings/iku`         | Get konfigurasi IKU               |
+| PUT    | `/api/settings/iku`         | Update konfigurasi IKU            |
+| GET    | `/api/settings/iku/preview` | Preview perhitungan IKU bulan ini |
 
 ### Konfigurasi di Database
 
@@ -1098,11 +1137,13 @@ iku.survey_required_for_delivery = true
 ### Troubleshooting
 
 **Settings tidak tersimpan dari UI:**
+
 - Pastikan frontend di-build: `npm run build`
 - Cek browser console untuk error JavaScript
 - Verifikasi endpoint `/api/settings/iku` menerima request
 
 **Nilai selalu default:**
+
 - Cek database: `SELECT * FROM system_settings WHERE key LIKE 'iku.%';`
 - Gunakan tinker untuk test: `app(IkuService::class)->getConfig()`
 
@@ -1117,6 +1158,7 @@ Source: Updated on 2025-01-04
 ### Deskripsi
 
 Fitur pembersihan storage untuk menghapus file-file yang tidak terpakai:
+
 1. **Folder Investigator Orphan**: Folder dari investigator yang sudah dihapus dari database
 2. **Dokumen Duplikat**: Dokumen generated yang sama untuk satu request (duplicate timestamps)
 
@@ -1128,21 +1170,22 @@ php artisan storage:cleanup-investigators --dry-run  # Preview
 php artisan storage:cleanup-investigators --force    # Execute
 
 # Hapus dokumen duplikat (simpan hanya yang terbaru)
-php artisan storage:cleanup-duplicates --dry-run     # Preview  
+php artisan storage:cleanup-duplicates --dry-run     # Preview
 php artisan storage:cleanup-duplicates --force       # Execute
 ```
 
 ### API Endpoints
 
-| Method | Endpoint | Fungsi |
-|--------|----------|--------|
-| GET | `/api/settings/documents/cleanup-stats` | Statistik folder orphan & dokumen duplikat |
-| POST | `/api/settings/documents/cleanup-orphaned` | Hapus folder investigator orphan |
-| POST | `/api/settings/documents/cleanup-duplicates` | Hapus dokumen duplikat |
+| Method | Endpoint                                     | Fungsi                                     |
+| ------ | -------------------------------------------- | ------------------------------------------ |
+| GET    | `/api/settings/documents/cleanup-stats`      | Statistik folder orphan & dokumen duplikat |
+| POST   | `/api/settings/documents/cleanup-orphaned`   | Hapus folder investigator orphan           |
+| POST   | `/api/settings/documents/cleanup-duplicates` | Hapus dokumen duplikat                     |
 
 ### UI di Settings
 
 Fitur cleanup tersedia di halaman **Settings > Manajemen Dokumen** section "Pembersihan Storage":
+
 1. Klik "Perbarui Statistik" untuk melihat jumlah file yang bisa dihapus
 2. Klik "Hapus Folder Orphan" untuk menghapus folder investigator yang tidak terpakai
 3. Klik "Hapus Duplikat" untuk menghapus dokumen duplikat (hanya yang terbaru dipertahankan)
@@ -1166,6 +1209,7 @@ Semua dokumentasi project harus ditambahkan ke file `WALKTHROUGH.md` ini.
 Untuk menambah dokumentasi baru, tambahkan section di bagian bawah file ini.
 
 ### File Exception (boleh terpisah):
+
 - `README.md` - Untuk GitHub
 - `PRE_PULL_CHECKLIST.md` - Checklist sebelum pull
 - `PRE_PUSH_CHECKLIST.md` - Checklist sebelum push
@@ -1174,4 +1218,4 @@ Untuk menambah dokumentasi baru, tambahkan section di bagian bawah file ini.
 
 ---
 
-*Dokumen ini terakhir diperbarui: 3 Januari 2026*
+_Dokumen ini terakhir diperbarui: 7 Januari 2026_

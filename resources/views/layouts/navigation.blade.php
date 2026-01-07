@@ -1,23 +1,23 @@
-<nav class="navbar py-2 bg-gradient-to-r from-primary-50 to-white dark:from-accent-900 dark:to-accent-800 shadow-lg border-b border-primary-200 dark:border-accent-700 relative z-[200]" aria-label="Site navigation">
-    <div class="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center">
+<nav x-data="{ mobileOpen: false }" class="bg-white dark:bg-accent-900 border-b border-primary-100 dark:border-accent-800 relative z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
             <!-- Logo Section -->
-            <div class="flex items-center space-x-4 d-flex align-items-center gap-2 me-4">
-                <div class="shrink-0 flex items-center space-x-3 mr-2 xl:mr-4">
-                    <img src="/images/logo-pusdokkes-polri.png" alt="Logo Pusdokkes Polri" class="h-12 w-auto">
+            <div class="flex items-center gap-4">
+                <a href="{{ route('dashboard') }}" class="flex items-center space-x-3 group">
+                    <img src="/images/logo-pusdokkes-polri.png" alt="Logo Pusdokkes Polri" class="h-10 w-auto group-hover:scale-105 transition-transform duration-200">
                     <div class="hidden lg:block">
-                        <h1 class="text-lg font-bold text-primary-800 leading-tight xl:max-w-[260px] 2xl:max-w-none xl:truncate">
-                            Farmapol Pusdokkes Polri
+                        <h1 class="text-lg font-bold text-primary-900 dark:text-white leading-tight">
+                            Farmapol
                         </h1>
-                        <p class="text-sm text-primary-600 font-medium hidden lg:block xl:hidden 2xl:block">
-                            Kedokteran dan Kesehatan
+                        <p class="text-xs text-primary-500 font-medium tracking-wide uppercase">
+                            Pusdokkes Polri
                         </p>
                     </div>
-                </div>
+                </a>
             </div>
 
-            <!-- Center Navigation -->
-            <div class="hidden xl:flex xl:items-center flex-1 min-w-0 justify-center gap-2 whitespace-nowrap navbar-nav align-items-center">
+            <!-- Desktop Navigation -->
+            <div class="hidden xl:flex items-center space-x-1">
                 @auth
                     @php
                         $user = Auth::user();
@@ -47,166 +47,152 @@
                         </x-nav-link>
                     @endif
 
-                    @php
-                        $referensiActive = request()->routeIs('tracking.*')
-                            || request()->routeIs('search.*')
-                            || request()->routeIs('statistics.*')
-                            || request()->routeIs('inventory.*')
-                            || request()->routeIs('analysts.*')
-                            || request()->routeIs('settings.*');
-                    @endphp
-                    <!-- Mega menu: Referensi -->
-                    <div class="relative group pl-5 ml-2 border-l border-primary-200">
-                        <button type="button"
-                            class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-150
-                            {{ $referensiActive ? 'text-primary-900 bg-primary-50 ring-1 ring-primary-200' : 'text-primary-800 hover:text-primary-900 hover:bg-primary-50' }}">
-                            <svg class="w-4 h-4 mr-2 text-primary-500" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3a1 1 0 00.293.707l2 2a1 1 0 101.414-1.414L11 9.586V7z" clip-rule="evenodd" />
-                            </svg>
+                    <!-- Referensi Mega Menu -->
+                    <div class="relative ml-1" x-data="{ open: false }" @click.away="open = false">
+                        <button @click="open = !open" 
+                                type="button"
+                                class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-150
+                                {{ (request()->routeIs('tracking.*') || request()->routeIs('search.*') || request()->routeIs('statistics.*') || request()->routeIs('inventory.*') || request()->routeIs('analysts.*') || request()->routeIs('settings.*')) 
+                                   ? 'bg-primary-50 text-primary-700 dark:bg-accent-800 dark:text-primary-400' 
+                                   : 'text-primary-600 hover:bg-primary-50 hover:text-primary-900 dark:text-accent-400 dark:hover:bg-accent-800 dark:hover:text-accent-100' }}">
                             <span>Referensi</span>
-                            <svg class="w-4 h-4 ml-2 text-primary-500 transition-transform duration-150 group-hover:rotate-180" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                            <svg class="w-4 h-4 ml-1.5 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                             </svg>
                         </button>
 
-                        <!-- Dropdown Panel -->
-                        <div class="pointer-events-none opacity-0 group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-150 ease-out absolute right-0 top-full mt-2 w-[90vw] max-w-5xl z-[80]">
-                            <div class="bg-white shadow-2xl ring-1 ring-black/5 rounded-2xl p-6">
-                                <div class="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-primary-600/80">Referensi Data</div>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                                    <a href="{{ route('tracking.index') }}" class="group flex items-start gap-3 p-3 rounded-xl border border-primary-100 hover:border-primary-200 hover:bg-primary-50 transition">
-                                        <div class="shrink-0 inline-flex w-10 h-10 items-center justify-center rounded-xl bg-primary-100 text-primary-600">
-                                            <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path d="M3 3h14v2H3V3zm0 6h10v2H3V9zm0 6h14v2H3v-2z"/></svg>
+                        <div x-show="open"
+                             x-transition:enter="transition ease-out duration-200"
+                             x-transition:enter-start="opacity-0 translate-y-1"
+                             x-transition:enter-end="opacity-100 translate-y-0"
+                             x-transition:leave="transition ease-in duration-150"
+                             x-transition:leave-start="opacity-100 translate-y-0"
+                             x-transition:leave-end="opacity-0 translate-y-1"
+                             class="absolute left-1/2 transform -translate-x-1/2 mt-3 w-screen max-w-3xl px-4 sm:px-0 z-50"
+                             style="display: none;">
+                            <div class="overflow-hidden rounded-2xl shadow-xl ring-1 ring-black/5 bg-white dark:bg-accent-900 dark:ring-white/10 p-6">
+                                <div class="grid grid-cols-2 gap-8">
+                                    <!-- Column 1: Umum -->
+                                    <div>
+                                        <h3 class="text-xs font-semibold text-primary-500 uppercase tracking-wider mb-4">Referensi Data</h3>
+                                        <div class="space-y-3">
+                                            <a href="{{ route('tracking.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
+                                                <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-primary-100 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400">
+                                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                                                </div>
+                                                <div class="ml-4">
+                                                    <p class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary-700 dark:group-hover:text-primary-400">Tracking</p>
+                                                    <p class="text-sm text-gray-500 dark:text-gray-400">Lacak progres permintaan</p>
+                                                </div>
+                                            </a>
+                                            <a href="{{ route('search.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
+                                                <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-primary-100 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400">
+                                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                                </div>
+                                                <div class="ml-4">
+                                                    <p class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary-700 dark:group-hover:text-primary-400">Pencarian</p>
+                                                    <p class="text-sm text-gray-500 dark:text-gray-400">Cari data & dokumen</p>
+                                                </div>
+                                            </a>
+                                            <a href="{{ route('statistics.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
+                                                <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-primary-100 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400">
+                                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                                                </div>
+                                                <div class="ml-4">
+                                                    <p class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary-700 dark:group-hover:text-primary-400">Statistik</p>
+                                                    <p class="text-sm text-gray-500 dark:text-gray-400">Analisa data laboratorium</p>
+                                                </div>
+                                            </a>
                                         </div>
-                                        <div class="min-w-0">
-                                            <div class="font-semibold text-primary-900">Tracking</div>
-                                            <div class="text-sm text-primary-600/80">Lacak progres permintaan</div>
-                                        </div>
-                                    </a>
-
-                                    <a href="{{ route('search.index') }}" class="group flex items-start gap-3 p-3 rounded-xl border border-primary-100 hover:border-primary-200 hover:bg-primary-50 transition">
-                                        <div class="shrink-0 inline-flex w-10 h-10 items-center justify-center rounded-xl bg-primary-100 text-primary-600">
-                                            <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd"/></svg>
-                                        </div>
-                                        <div class="min-w-0">
-                                            <div class="font-semibold text-primary-900">Pencarian</div>
-                                            <div class="text-sm text-primary-600/80">Cari data &amp; dokumen</div>
-                                        </div>
-                                    </a>
-
-                                    <a href="{{ route('statistics.index') }}" class="group flex items-start gap-3 p-3 rounded-xl border border-primary-100 hover:border-primary-200 hover:bg-primary-50 transition">
-                                        <div class="shrink-0 inline-flex w-10 h-10 items-center justify-center rounded-xl bg-primary-100 text-primary-600">
-                                            <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor"><path d="M3 17h14v-2H3v2zm2-4h3V7H5v6zm5 0h3V3h-3v10zm5 0h3V9h-3v4z"/></svg>
-                                        </div>
-                                        <div class="min-w-0">
-                                            <div class="font-semibold text-primary-900">Statistik</div>
-                                        </div>
-                                    </a>
-
-                                    <a href="{{ route('changelogs.index') }}" class="group flex items-start gap-3 p-3 rounded-xl border border-primary-100 hover:border-primary-200 hover:bg-primary-50 transition {{ request()->routeIs('changelogs.*') ? 'border-primary-300 bg-primary-50' : '' }}">
-                                        <div class="shrink-0 inline-flex w-10 h-10 items-center justify-center rounded-xl bg-primary-100 text-primary-600">
-                                            <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3a1 1 0 00.293.707l2 2a1 1 0 101.414-1.414L11 9.586V7z" clip-rule="evenodd" />
-                                            </svg>
-                                        </div>
-                                        <div class="min-w-0">
-                                            <div class="font-semibold text-primary-900">Changelogs</div>
-                                            <div class="text-sm text-primary-600/80">Riwayat perubahan sistem</div>
-                                        </div>
-                                    </a>
-
-                                    <a href="{{ route('inventory.dashboard') }}" class="group flex items-start gap-3 p-3 rounded-xl border border-amber-100 hover:border-amber-200 hover:bg-amber-50 transition {{ request()->routeIs('inventory.*') ? 'border-amber-300 bg-amber-50' : '' }}">
-                                        <div class="shrink-0 inline-flex w-10 h-10 items-center justify-center rounded-xl bg-amber-100 text-amber-600">
-                                            <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
-                                                <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 0v12h8V4H6zm2 2h4v2H8V6zm0 4h4v2H8v-2z" clip-rule="evenodd"/>
-                                            </svg>
-                                        </div>
-                                        <div class="min-w-0">
-                                            <div class="font-semibold text-amber-900">Inventori</div>
-                                            <div class="text-sm text-amber-700/80">Stok reagen & BHP</div>
-                                        </div>
-                                    </a>
-                                </div>
-
-                                @if(in_array($user->role, $supervisorRoles, true) || in_array($user->role, ['admin'], true))
-                                    <div class="my-4 border-t border-primary-100"></div>
-                                    <div class="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wide text-primary-600/80">Admin</div>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                                        @if(in_array($user->role, $supervisorRoles, true))
-                                        <a href="{{ route('analysts.index') }}" class="group flex items-start gap-3 p-3 rounded-xl border border-primary-100 hover:border-primary-200 hover:bg-primary-50 transition">
-                                            <div class="shrink-0 inline-flex w-10 h-10 items-center justify-center rounded-xl bg-primary-100 text-primary-600">
-                                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 5L20.49 19l-5-5zM9.5 14C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                                            </div>
-                                            <div class="min-w-0">
-                                                <div class="font-semibold text-primary-900">Staff</div>
-                                                <div class="text-sm text-primary-600/80">Manajemen staff</div>
-                                            </div>
-                                        </a>
-                                        @endif
-
-                                        @if(in_array($user->role, ['admin', 'supervisor'], true))
-                                        <a href="{{ route('settings.index') }}" class="group flex items-start gap-3 p-3 rounded-xl border border-emerald-100 hover:border-emerald-200 hover:bg-emerald-50 transition {{ request()->routeIs('settings.*') ? 'border-emerald-300 bg-emerald-50' : '' }}">
-                                            <div class="shrink-0 inline-flex w-10 h-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-                                                <svg class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                                    <path d="M11.983 1.58a1.5 1.5 0 00-3.966 0l-.2.69a7.01 7.01 0 00-1.71.988l-.7-.2a1.5 1.5 0 00-1.84 1.06l-.36 1.33a1.5 1.5 0 001.06 1.84l.7.2c-.06.37-.1.74-.1 1.12s.04.75.1 1.12l-.7.2a1.5 1.5 0 001.06 1.84l.36 1.33a1.5 1.5 0 001.84 1.06l.7-.2c.52.4 1.1.74 1.71.99l.2.69a1.5 1.5 0 003.966 0l.2-.69c.61-.25 1.19-.59 1.71-.99l.7.2a1.5 1.5 0 001.84-1.06l-.36-1.33a1.5 1.5 0 00-1.06-1.84l-.7-.2c.06-.37.1-.74.1-1.12s-.04-.75-.1-1.12l.7-.2a1.5 1.5 0 001.06-1.84l-.36-1.33a1.5 1.5 0 00-1.84-1.06l-.7.2a7.01 7.01 0 00-1.71-.99l-.2-.69zM10 13a3 3 0 110-6 3 3 0 010 6z"/>
-                                                </svg>
-                                            </div>
-                                            <div class="min-w-0">
-                                                <div class="font-semibold text-emerald-900">Pengaturan Sistem</div>
-                                                <div class="text-sm text-emerald-700/70">Penomoran, template, otomatisasi</div>
-                                            </div>
-                                        </a>
-                                        @endif
                                     </div>
-                                @endif
+
+                                    <!-- Column 2: Admin / More -->
+                                    <div>
+                                        <h3 class="text-xs font-semibold text-primary-500 uppercase tracking-wider mb-4">Sistem & Inventori</h3>
+                                        <div class="space-y-3">
+                                            <a href="{{ route('inventory.dashboard') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/30 transition duration-150">
+                                                <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-400">
+                                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                                                </div>
+                                                <div class="ml-4">
+                                                    <p class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-amber-700 dark:group-hover:text-amber-400">Inventori</p>
+                                                    <p class="text-sm text-gray-500 dark:text-gray-400">Manajemen stok reagen</p>
+                                                </div>
+                                            </a>
+                                            
+                                            <a href="{{ route('changelogs.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
+                                                <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-primary-100 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400">
+                                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                </div>
+                                                <div class="ml-4">
+                                                    <p class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary-700 dark:group-hover:text-primary-400">Changelogs</p>
+                                                    <p class="text-sm text-gray-500 dark:text-gray-400">Riwayat perubahan</p>
+                                                </div>
+                                            </a>
+
+                                            @if(in_array($user->role, $supervisorRoles, true) || in_array($user->role, ['admin'], true))
+                                                <div class="border-t border-gray-100 dark:border-white/10 my-2"></div>
+
+                                                @if(in_array($user->role, $supervisorRoles, true))
+                                                <a href="{{ route('analysts.index') }}" class="group flex items-center p-2 rounded-md hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
+                                                    <svg class="w-5 h-5 text-primary-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Manajemen Staff</span>
+                                                </a>
+                                                @endif
+
+                                                @if(in_array($user->role, ['admin', 'supervisor'], true))
+                                                <a href="{{ route('settings.index') }}" class="group flex items-center p-2 rounded-md hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
+                                                    <svg class="w-5 h-5 text-primary-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Pengaturan Sistem</span>
+                                                </a>
+                                                @endif
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                 @endauth
-
-                @guest
-                    <x-nav-link href="{{ route('login') }}" :active="request()->routeIs('login')">
-                        Login
-                    </x-nav-link>
-
-                    <x-nav-link href="{{ route('register') }}" :active="request()->routeIs('register')">
-                        Register
-                    </x-nav-link>
-                @endguest
+                    </div>
+                @endauth
             </div>
 
-            <!-- User Menu - Right Side -->
-            <div class="flex items-center ms-auto d-flex align-items-center gap-3">
-                <button type="button" onclick="window.__toggleTheme()" class="mr-4 inline-flex items-center justify-center w-9 h-9 rounded-md border border-primary-200 dark:border-accent-600 text-primary-600 dark:text-accent-200 hover:bg-primary-50 dark:hover:bg-accent-700 focus:outline-none focus:ring-2 focus:ring-primary-500" aria-label="Toggle theme">
-                    <svg class="h-5 w-5 dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2m10-10h-2M4 12H2m15.07 6.07-1.42-1.42M8.35 8.35 6.93 6.93m10.12 0-1.42 1.42M8.35 15.65l-1.42 1.42"/></svg>
-                    <svg class="h-5 w-5 hidden dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>
+            <!-- Right Side Actions -->
+            <div class="flex items-center gap-2">
+                 <!-- Theme Toggle -->
+                 <button type="button" onclick="window.__toggleTheme()" class="p-2 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors">
+                    <span class="sr-only">Toggle theme</span>
+                    <svg class="h-5 w-5 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                    <svg class="h-5 w-5 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
                 </button>
 
                 @auth
                     <!-- User Dropdown -->
                     <x-dropdown align="right" width="48">
                         <x-slot name="trigger">
-                            <div class="flex items-center space-x-2 px-3 py-2 text-sm font-medium text-primary-800 hover:text-primary-900 hover:bg-primary-50 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 cursor-pointer">
-                                <div class="w-8 h-8 bg-gradient-to-br from-primary-500 to-secondary-400 rounded-full flex items-center justify-center text-white font-bold text-xs">
+                            <button class="flex items-center gap-2 px-3 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-accent-800 transition-colors duration-150">
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white text-xs font-bold shadow-sm">
                                     {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
                                 </div>
-                                <div class="text-left">
-                                    <div class="text-sm font-semibold">{{ Auth::user()->name }}</div>
-                                    <div class="text-xs text-primary-600">{{ ucfirst(Auth::user()->role) }}</div>
+                                <div class="hidden sm:block text-left">
+                                    <p class="text-sm font-semibold text-gray-700 dark:text-gray-200 leading-none">{{ Auth::user()->name }}</p>
+                                    <p class="text-xs text-primary-600 dark:text-primary-400 leading-none mt-1">{{ ucfirst(Auth::user()->role) }}</p>
                                 </div>
-                            </div>
+                                <svg class="w-4 h-4 text-gray-400 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                            </button>
                         </x-slot>
 
                         <x-slot name="content">
+                            <div class="block px-4 py-2 text-xs text-gray-400">
+                                {{ __('Manage Account') }}
+                            </div>
                             <x-dropdown-link :href="route('profile.edit')">
-                                Profile
+                                {{ __('Profile') }}
                             </x-dropdown-link>
-
-                            <div class="border-t border-primary-100"></div>
-
+                            <div class="border-t border-gray-100 dark:border-white/10"></div>
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
                                 <x-dropdown-link :href="route('logout')" onclick="event.preventDefault(); this.closest('form').submit();">
-                                    Log Out
+                                    {{ __('Log Out') }}
                                 </x-dropdown-link>
                             </form>
                         </x-slot>
@@ -214,192 +200,126 @@
                 @endauth
 
                 @guest
-                    <div class="flex space-x-3">
-                        <a href="{{ route('login') }}" class="btn btn-ghost text-sm">
-                            Login
-                        </a>
-                        <a href="{{ route('register') }}" class="btn btn-primary text-sm">
-                            Register
-                        </a>
+                    <div class="flex items-center gap-2">
+                        <a href="{{ route('login') }}" class="text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white px-3 py-2">Login</a>
+                        <a href="{{ route('register') }}" class="text-sm font-medium bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 shadow-sm transition-all duration-150">Register</a>
                     </div>
                 @endguest
-            </div>
 
-            <!-- Mobile menu button -->
-            <div class="xl:hidden flex items-center ml-2">
-                <button
-                    type="button"
-                    class="mobile-menu-button inline-flex items-center justify-center p-2 rounded-md text-primary-600 hover:text-primary-800 hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    aria-controls="primary-navigation"
-                    aria-expanded="false"
-                    aria-label="Toggle navigation menu"
-                >
-                    <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                        <path class="menu-open" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        <path class="menu-close hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                <!-- Mobile Menu Button -->
+                <button @click="mobileOpen = true" type="button" class="xl:hidden p-2 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    <span class="sr-only">Open menu</span>
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- Mobile Navigation Menu -->
-    <div id="primary-navigation" class="xl:hidden mobile-menu hidden bg-white border-t border-primary-200">
-        <div class="px-4 pt-2 pb-3 space-y-1">
-            @auth
-                @php
-                    $user = Auth::user();
-                    $labRoles = ['admin', 'supervisor', 'analyst', 'lab_analyst', 'petugas_lab'];
-                    $supervisorRoles = ['admin', 'supervisor'];
-                @endphp
-                <x-responsive-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')">
-                    Dashboard
-                </x-responsive-nav-link>
+    <!-- Mobile Drawer -->
+    <div x-show="mobileOpen" class="relative z-50 xl:hidden" style="display: none;">
+        <!-- Backdrop -->
+        <div x-show="mobileOpen" 
+             x-transition:enter="transition-opacity ease-linear duration-300"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition-opacity ease-linear duration-300"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 bg-gray-900/80 backdrop-blur-sm"
+             @click="mobileOpen = false"></div>
 
-                <x-responsive-nav-link href="{{ route('requests.index') }}" :active="request()->routeIs('requests.*')">
-                    Permintaan
-                </x-responsive-nav-link>
+        <!-- Drawer Panel -->
+        <div x-show="mobileOpen"
+             x-transition:enter="transition ease-in-out duration-300 transform"
+             x-transition:enter-start="translate-x-full"
+             x-transition:enter-end="translate-x-0"
+             x-transition:leave="transition ease-in-out duration-300 transform"
+             x-transition:leave-start="translate-x-0"
+             x-transition:leave-end="translate-x-full"
+             class="fixed inset-y-0 right-0 z-50 w-full max-w-xs bg-white dark:bg-accent-900 shadow-2xl overflow-y-auto">
+            
+            <div class="px-6 py-4 flex items-center justify-between border-b border-gray-100 dark:border-white/10">
+                <span class="text-lg font-bold text-gray-900 dark:text-white">Menu</span>
+                <button @click="mobileOpen = false" class="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white focus:outline-none">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
 
-                @if(in_array($user->role, $labRoles, true))
-                    <x-responsive-nav-link href="{{ route('samples.test.create') }}" :active="request()->routeIs('samples.*')">
-                        Pengujian
+            <div class="px-2 py-4 space-y-1">
+                @auth
+                    <x-responsive-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')">
+                        Dashboard
                     </x-responsive-nav-link>
 
-                    <x-responsive-nav-link href="{{ route('process.index') }}" :active="request()->routeIs('process.*')">
-                        Proses
+                    <x-responsive-nav-link href="{{ route('requests.index') }}" :active="request()->routeIs('requests.*')">
+                        Permintaan
                     </x-responsive-nav-link>
 
-                    <x-responsive-nav-link href="{{ route('delivery.index') }}" :active="request()->routeIs('delivery.*')">
-                        Penyerahan
-                    </x-responsive-nav-link>
-                @endif
+                    @if(in_array($user->role, $labRoles, true))
+                        <x-responsive-nav-link href="{{ route('samples.test.create') }}" :active="request()->routeIs('samples.*')">
+                            Pengujian
+                        </x-responsive-nav-link>
 
-                <!-- Mobile: Referensi collapsible group -->
-                <div class="mt-2 pt-2 border-t border-primary-200">
-                    <button type="button" data-ref-menu-toggle class="w-full flex items-center justify-between px-2 py-2 rounded-md text-sm font-medium text-primary-700 hover:bg-primary-50">
-                        <span class="inline-flex items-center">
-                            <svg class="w-4 h-4 mr-2 text-primary-500" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3a1 1 0 00.293.707l2 2a1 1 0 101.414-1.414L11 9.586V7z" clip-rule="evenodd"/></svg>
-                            Referensi
-                        </span>
-                        <svg class="w-4 h-4 text-primary-500 rotate-0 transition-transform duration-150" data-ref-menu-caret viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.06l3.71-3.83a.75.75 0 111.08 1.04l-4.25 4.39a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>
-                    </button>
-                    <div id="ref-mobile-menu" class="mt-1 ml-2 space-y-1 hidden">
-                        <x-responsive-nav-link href="{{ route('tracking.index') }}" :active="request()->routeIs('tracking.*')">
-                            Tracking
+                        <x-responsive-nav-link href="{{ route('process.index') }}" :active="request()->routeIs('process.*')">
+                            Proses
                         </x-responsive-nav-link>
-                        <x-responsive-nav-link href="{{ route('search.index') }}" :active="request()->routeIs('search.*')">
-                            Pencarian
+
+                        <x-responsive-nav-link href="{{ route('delivery.index') }}" :active="request()->routeIs('delivery.*')">
+                            Penyerahan
                         </x-responsive-nav-link>
-                        <x-responsive-nav-link href="{{ route('statistics.index') }}" :active="request()->routeIs('statistics.*')">
-                            Statistik
-                        </x-responsive-nav-link>
-                        <x-responsive-nav-link href="{{ route('changelogs.index') }}" :active="request()->routeIs('changelogs.*')">
-                            Changelogs
-                        </x-responsive-nav-link>
-                        <x-responsive-nav-link href="{{ route('inventory.dashboard') }}" :active="request()->routeIs('inventory.*')">
-                            Inventori
-                        </x-responsive-nav-link>
-                        @if(in_array($user->role, $supervisorRoles, true))
-                            <x-responsive-nav-link href="{{ route('analysts.index') }}" :active="request()->routeIs('analysts.*')">
-                                Analis
-                            </x-responsive-nav-link>
-                        @endif
-                        @if(in_array($user->role, ['admin', 'supervisor'], true))
-                            <x-responsive-nav-link href="{{ route('settings.index') }}" :active="request()->routeIs('settings.*')">
-                                Pengaturan Sistem
-                            </x-responsive-nav-link>
-                        @endif
+                    @endif
+
+                    <!-- Mobile Reference Section -->
+                    <div x-data="{ refExpanded: false }" class="space-y-1">
+                        <button @click="refExpanded = !refExpanded" class="w-full flex items-center justify-between px-3 py-2 text-base font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-accent-800 rounded-md">
+                            <span>Referensi</span>
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': refExpanded }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        <div x-show="refExpanded" class="pl-4 space-y-1" style="display: none;">
+                            <x-responsive-nav-link href="{{ route('tracking.index') }}" :active="request()->routeIs('tracking.*')">Tracking</x-responsive-nav-link>
+                            <x-responsive-nav-link href="{{ route('search.index') }}" :active="request()->routeIs('search.*')">Pencarian</x-responsive-nav-link>
+                            <x-responsive-nav-link href="{{ route('statistics.index') }}" :active="request()->routeIs('statistics.*')">Statistik</x-responsive-nav-link>
+                            <x-responsive-nav-link href="{{ route('inventory.dashboard') }}" :active="request()->routeIs('inventory.*')">Inventori</x-responsive-nav-link>
+                            <x-responsive-nav-link href="{{ route('changelogs.index') }}" :active="request()->routeIs('changelogs.*')">Changelogs</x-responsive-nav-link>
+                            
+                            @if(in_array($user->role, $supervisorRoles, true))
+                                <x-responsive-nav-link href="{{ route('analysts.index') }}" :active="request()->routeIs('analysts.*')">Manajemen Staff</x-responsive-nav-link>
+                            @endif
+                            @if(in_array($user->role, ['admin', 'supervisor'], true))
+                                <x-responsive-nav-link href="{{ route('settings.index') }}" :active="request()->routeIs('settings.*')">Pengaturan</x-responsive-nav-link>
+                            @endif
+                        </div>
                     </div>
-                </div>
-            @endauth
+                @endauth
+            </div>
 
-            @guest
-                <x-responsive-nav-link href="{{ route('login') }}" :active="request()->routeIs('login')">
-                    Login
-                </x-responsive-nav-link>
-                <x-responsive-nav-link href="{{ route('register') }}" :active="request()->routeIs('register')">
-                    Register
-                </x-responsive-nav-link>
-            @endguest
-        </div>
-
-        @auth
-            <div class="pt-4 pb-3 border-t border-primary-200">
-                <div class="flex items-center px-4">
-                    <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-secondary-400 rounded-full flex items-center justify-center text-white font-bold">
-                        {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
+            @auth
+            <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-accent-800/50">
+                <div class="flex items-center">
+                    <div class="shrink-0">
+                        <div class="h-10 w-10 rounded-full bg-primary-600 flex items-center justify-center text-white font-bold">
+                            {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
+                        </div>
                     </div>
                     <div class="ml-3">
-                        <div class="text-base font-medium text-primary-800">{{ Auth::user()->name }}</div>
-                        <div class="text-sm font-medium text-primary-600">{{ Auth::user()->email }}</div>
+                        <div class="text-base font-medium text-gray-800 dark:text-white">{{ Auth::user()->name }}</div>
+                        <div class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ Auth::user()->email }}</div>
                     </div>
-                </div>
-                <div class="mt-3 space-y-1">
-                    <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-base font-medium text-primary-600 hover:text-primary-800 hover:bg-primary-50">
-                        Profile
-                    </a>
-
-                    <form method="POST" action="{{ route('logout') }}">
+                    <form method="POST" action="{{ route('logout') }}" class="ml-auto">
                         @csrf
-                        <button type="submit" class="w-full text-left block px-4 py-2 text-base font-medium text-primary-600 hover:text-primary-800 hover:bg-primary-50">
-                            Log Out
+                        <button type="submit" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white">
+                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                         </button>
                     </form>
                 </div>
             </div>
-        @endauth
+            @endauth
+        </div>
     </div>
 </nav>
-
-@push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const button = document.querySelector('.mobile-menu-button');
-    const menu = document.querySelector('.mobile-menu');
-
-    if (button && menu) {
-        button.addEventListener('click', function(e) {
-            e.stopPropagation();
-            menu.classList.toggle('hidden');
-            const isOpen = !menu.classList.contains('hidden');
-            button.setAttribute('aria-expanded', String(isOpen));
-
-            const openIcon = button.querySelector('.menu-open');
-            const closeIcon = button.querySelector('.menu-close');
-
-            if (openIcon && closeIcon) {
-                openIcon.classList.toggle('hidden');
-                closeIcon.classList.toggle('hidden');
-            }
-        });
-
-        // Close menu when clicking outside
-        document.addEventListener('click', function(e) {
-            if (!button.contains(e.target) && !menu.contains(e.target)) {
-                menu.classList.add('hidden');
-                button.setAttribute('aria-expanded', 'false');
-                const openIcon = button.querySelector('.menu-open');
-                const closeIcon = button.querySelector('.menu-close');
-                if (openIcon && closeIcon) {
-                    openIcon.classList.remove('hidden');
-                    closeIcon.classList.add('hidden');
-                }
-            }
-        });
-    }
-
-    // Mobile: Referensi accordion toggle
-    const refToggle = document.querySelector('[data-ref-menu-toggle]');
-    const refMenu = document.getElementById('ref-mobile-menu');
-    const refCaret = document.querySelector('[data-ref-menu-caret]');
-    if (refToggle && refMenu) {
-        refToggle.addEventListener('click', function() {
-            refMenu.classList.toggle('hidden');
-            if (refCaret) {
-                refCaret.classList.toggle('rotate-180');
-            }
-        });
-    }
-});
-</script>
-@endpush
