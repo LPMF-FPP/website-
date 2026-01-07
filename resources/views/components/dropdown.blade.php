@@ -14,11 +14,11 @@ $width = match ($width) {
 @endphp
 
 <div class="relative" data-dropdown>
-    <button type="button" class="inline-flex items-center" data-dropdown-trigger>
+    <button type="button" class="inline-flex items-center focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-accent-900 rounded-full" data-dropdown-trigger>
         {{ $trigger }}
     </button>
 
-    <div class="absolute z-50 mt-2 {{ $width }} rounded-md shadow-lg {{ $alignmentClasses }} hidden" data-dropdown-panel>
+    <div class="absolute z-50 mt-2 {{ $width }} rounded-md shadow-lg bg-white {{ $alignmentClasses }} hidden" data-dropdown-panel>
         <div class="rounded-md ring-1 ring-black ring-opacity-5 {{ $contentClasses }}">
             {{ $content }}
         </div>

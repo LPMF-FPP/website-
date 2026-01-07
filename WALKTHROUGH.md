@@ -20,6 +20,17 @@
         - `resources/views/components/nav-link.blade.php` - Update styling menjadi pill shape
         - `resources/views/components/responsive-nav-link.blade.php` - Update styling untuk drawer
 
+#### 🐛 Bug Fixes
+
+- **User Dropdown Tidak Bisa Diklik**: Memperbaiki bug dimana mengklik "Admin LPMF" (user name) di pojok kanan atas navbar tidak membuka dropdown menu Profile/Logout.
+    - **Root Cause**: Nested `<button>` elements - komponen `dropdown.blade.php` sudah menyediakan `<button>` wrapper, tapi di `navigation.blade.php` juga menggunakan `<button>` di dalam trigger slot, menghasilkan HTML invalid: `<button><button>...</button></button>`.
+    - **Solusi**:
+        1. Ganti inner `<button>` di trigger slot menjadi `<div>` dengan `cursor-pointer`.
+        2. Tambahkan focus styles (`focus:ring-2`, `focus:ring-primary-500`) ke button wrapper di `dropdown.blade.php`.
+    - **Files Changed**:
+        - `resources/views/layouts/navigation.blade.php:171-182` - Ganti `<button>` → `<div>` di trigger slot
+        - `resources/views/components/dropdown.blade.php:17` - Tambahkan focus styles dan `rounded-full` ke button trigger
+
 ### v1.0.5 (5 Januari 2026)
 
 #### 🐛 Bug Fixes

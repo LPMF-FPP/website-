@@ -169,7 +169,7 @@
                     <!-- User Dropdown -->
                     <x-dropdown align="right" width="48">
                         <x-slot name="trigger">
-                            <button class="inline-flex items-center gap-3 px-3 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-accent-800 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-accent-900">
+                            <div class="inline-flex items-center gap-3 px-3 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-accent-800 transition-colors duration-150 cursor-pointer">
                                 <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white text-xs font-bold shadow-sm ring-2 ring-white dark:ring-accent-800">
                                     {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
                                 </div>
@@ -178,7 +178,7 @@
                                     <span class="text-xs text-primary-600 dark:text-primary-400 font-medium leading-none mt-0.5">{{ ucfirst(Auth::user()->role) }}</span>
                                 </div>
                                 <svg class="w-4 h-4 text-gray-400 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                            </button>
+                            </div>
                         </x-slot>
 
                         <x-slot name="content">
