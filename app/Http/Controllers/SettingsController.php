@@ -86,9 +86,14 @@ class SettingsController extends Controller
             if (isset($incoming['security']) && ! isset($incoming['security']['roles'])) {
                 $incoming['security']['roles'] = [
                     'can_manage_settings' => Arr::get($incoming['security'], 'can_manage_settings', []),
+                    'can_manage_users' => Arr::get($incoming['security'], 'can_manage_users', []),
                     'can_issue_number' => Arr::get($incoming['security'], 'can_issue_number', []),
                 ];
-                unset($incoming['security']['can_manage_settings'], $incoming['security']['can_issue_number']);
+                unset(
+                    $incoming['security']['can_manage_settings'],
+                    $incoming['security']['can_manage_users'],
+                    $incoming['security']['can_issue_number']
+                );
             }
         } catch (\Exception $e) {
             Log::error('Settings update error (pre-processing):', [
@@ -206,6 +211,12 @@ class SettingsController extends Controller
                 // ignore cache clearing issues
             }
             Audit::log('UPDATE_SETTINGS', null, $before, $after);
+            $request->attributes->set('audit_before', $before);
+            $request->attributes->set('audit_after', $after);
+            $request->attributes->set('audit_meta', [
+                'updated_keys' => array_keys($after),
+                'skipped' => $skipped,
+            ]);
 
             return response()->json(['ok' => true, 'message' => 'Settings saved successfully']);
         } catch (\Exception $e) {

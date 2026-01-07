@@ -97,7 +97,9 @@ Route::middleware([
     Route::get('/search', SearchController::class)->name('api.search');
     Route::get('/people/{person}', PeopleController::class)->name('api.people.show');
     Route::get('/documents/{document}', DocumentController::class)->name('api.documents.show');
-    Route::get('/documents/{document}/download', DocumentDownloadController::class)->name('api.documents.download');
+    Route::get('/documents/{document}/download', DocumentDownloadController::class)
+        ->name('api.documents.download')
+        ->middleware('audit.activity:DOCUMENT_DOWNLOADED,document');
 });
 
 Route::middleware(['auth', 'verified'])->group(function () {

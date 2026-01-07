@@ -136,6 +136,7 @@ class SystemSettingSeeder extends Seeder
                 'key' => 'security.roles',
                 'value' => [
                     'can_manage_settings' => ['admin', 'supervisor'],
+                    'can_manage_users' => ['admin', 'manajer_teknis'],
                     'can_issue_number' => ['admin', 'supervisor', 'analis'],
                 ],
             ],
