@@ -4,7 +4,16 @@ namespace App\Providers;
 
 use App\Events\NumberIssued;
 use App\Listeners\SendIssueNotification;
+use App\Models\Document;
+use App\Models\Sample;
+use App\Models\TestRequest;
+use App\Observers\DocumentObserver;
+use App\Observers\SampleObserver;
+use App\Observers\TestRequestObserver;
+use App\Support\ActivityLogger;
 use App\Support\AppTimezone;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Queue;
@@ -42,6 +51,30 @@ class AppServiceProvider extends ServiceProvider
             AppTimezone::apply();
         });
 
+        Event::listen(Login::class, function (Login $event): void {
+            ActivityLogger::log(
+                'USER_LOGIN',
+                $event->user?->getKey(),
+                $event->user,
+                null,
+                null,
+                ['guard' => $event->guard],
+                $event->user?->getKey()
+            );
+        });
+
+        Event::listen(Logout::class, function (Logout $event): void {
+            ActivityLogger::log(
+                'USER_LOGOUT',
+                $event->user?->getKey(),
+                $event->user,
+                null,
+                null,
+                ['guard' => $event->guard],
+                $event->user?->getKey()
+            );
+        });
+
         Gate::define('manage-settings', function ($user) {
             // Allow admin and supervisor by default
             if (in_array($user->role ?? null, ['admin', 'supervisor'], true)) {
@@ -53,11 +86,26 @@ class AppServiceProvider extends ServiceProvider
             return in_array($user->role ?? null, $allowed, true);
         });
 
+        Gate::define('manage-users', function ($user) {
+            // Allow admin and manajer_teknis by default
+            if (in_array($user->role ?? null, ['admin', 'manajer_teknis'], true)) {
+                return true;
+            }
+
+            $allowed = settings('security.roles.can_manage_users', []);
+
+            return in_array($user->role ?? null, $allowed, true);
+        });
+
         Gate::define('issue-number', function ($user) {
             // Allow admin by default so preview/issue works out of the box
             $allowed = settings('security.roles.can_issue_number', ['admin']);
 
             return in_array($user->role ?? null, $allowed, true);
         });
+
+        TestRequest::observe(TestRequestObserver::class);
+        Sample::observe(SampleObserver::class);
+        Document::observe(DocumentObserver::class);
     }
 }
