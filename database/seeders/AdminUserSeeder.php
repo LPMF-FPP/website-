@@ -20,6 +20,7 @@ class AdminUserSeeder extends Seeder
                 'email' => 'labmutufarmapol@gmail.com',
                 'password' => Hash::make('LPMFjaya1'),
                 'role' => 'admin',
+                'is_active' => true,
                 'email_verified_at' => now(),
             ]
         );
