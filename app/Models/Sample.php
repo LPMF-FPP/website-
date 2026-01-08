@@ -63,6 +63,9 @@ class Sample extends Model
         'test_type',
         'notes',
         'status',
+        'uvvis_weighed_grams',
+        'uvvis_weighed_by',
+        'uvvis_weighed_at',
 
     ];
 
@@ -79,6 +82,8 @@ class Sample extends Model
         'received_at' => 'datetime',
         'testing_started_at' => 'datetime',
         'testing_completed_at' => 'datetime',
+        'uvvis_weighed_grams' => 'decimal:4',
+        'uvvis_weighed_at' => 'datetime',
     ];
 
     protected static function boot()
@@ -172,6 +177,11 @@ class Sample extends Model
     public function analyst(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_analyst_id');
+    }
+
+    public function uvvisWeighedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'uvvis_weighed_by');
     }
 
     public function getCurrentTestProcess(): ?SampleTestProcess

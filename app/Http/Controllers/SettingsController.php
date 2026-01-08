@@ -128,7 +128,7 @@ class SettingsController extends Controller
             }
 
             $allowedRoots = [
-                'numbering', 'branding', 'pdf', 'locale', 'retention', 'notifications', 'automation', 'templates', 'security',
+                'numbering', 'branding', 'pdf', 'locale', 'retention', 'notifications', 'automation', 'templates', 'security', 'monitoring_logging',
             ];
 
             $flat = settings_flatten($incoming);
@@ -357,7 +357,7 @@ class SettingsController extends Controller
 
         // Only allow specific root keys
         $allowedRoots = [
-            'numbering', 'branding', 'pdf', 'locale', 'retention', 'notifications', 'automation', 'templates', 'security',
+            'numbering', 'branding', 'pdf', 'locale', 'retention', 'notifications', 'automation', 'templates', 'security', 'monitoring_logging',
         ];
 
         $filtered = [];

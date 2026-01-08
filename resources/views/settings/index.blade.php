@@ -105,6 +105,13 @@
                             class="w-full text-left px-4 py-3 rounded-lg transition-colors text-sm">
                             Perhitungan IKU
                         </button>
+
+                        <button 
+                            @click="activeSection = 'monitoring_logging'" 
+                            :class="activeSection === 'monitoring_logging' ? 'bg-gray-200 text-gray-900 font-medium' : 'bg-white text-gray-700 hover:bg-gray-50'"
+                            class="w-full text-left px-4 py-3 rounded-lg transition-colors text-sm">
+                            Monitoring & Logging
+                        </button>
                     </nav>
                 </div>
             </div>
@@ -146,6 +153,10 @@
 
                 <div x-show="activeSection === 'iku'">
                     @include('settings.partials.iku')
+                </div>
+
+                <div x-show="activeSection === 'monitoring_logging'">
+                    @include('settings.partials.monitoring-logging')
                 </div>
             </div>
 

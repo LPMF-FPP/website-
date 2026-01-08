@@ -6,59 +6,93 @@
 export class SettingsClient {
     constructor(config = {}) {
         this.api = {
-            settings: '/api/settings',
-            numberingCurrent: '/api/settings/numbering/current',
-            numbering: '/api/settings/numbering',
-            numberingPreview: '/api/settings/numbering/preview',
-            templates: '/api/settings/templates',
-            templateUpload: '/api/settings/templates/upload',
-            branding: '/api/settings/branding',
-            pdfPreview: '/api/settings/pdf/preview',
-            localization: '/api/settings/localization-retention',
-            localizationTimePreview: '/api/settings/localization/time-preview',
-            notificationsSecurity: '/api/settings/notifications-security',
-            notificationsTest: '/api/settings/notifications/test',
-            documents: '/api/settings/documents',
-            cleanupStats: '/api/settings/documents/cleanup-stats',
-            cleanupOrphaned: '/api/settings/documents/cleanup-orphaned',
-            cleanupDuplicates: '/api/settings/documents/cleanup-duplicates',
-            iku: '/api/settings/iku',
-            ikuPreview: '/api/settings/iku/preview',
-            surveyExport: '/reports/surveys/export',
-            ...config.api
+            settings: "/api/settings",
+            numberingCurrent: "/api/settings/numbering/current",
+            numbering: "/api/settings/numbering",
+            numberingPreview: "/api/settings/numbering/preview",
+            templates: "/api/settings/templates",
+            templateUpload: "/api/settings/templates/upload",
+            branding: "/api/settings/branding",
+            pdfPreview: "/api/settings/pdf/preview",
+            localization: "/api/settings/localization-retention",
+            localizationTimePreview: "/api/settings/localization/time-preview",
+            notificationsSecurity: "/api/settings/notifications-security",
+            notificationsTest: "/api/settings/notifications/test",
+            documents: "/api/settings/documents",
+            cleanupStats: "/api/settings/documents/cleanup-stats",
+            cleanupOrphaned: "/api/settings/documents/cleanup-orphaned",
+            cleanupDuplicates: "/api/settings/documents/cleanup-duplicates",
+            iku: "/api/settings/iku",
+            ikuPreview: "/api/settings/iku/preview",
+            surveyExport: "/reports/surveys/export",
+            monitoringLogging: "/api/settings",
+            ...config.api,
         };
 
-        this.csrf = config.csrf || document.querySelector('meta[name=csrf-token]')?.content || '';
+        this.csrf =
+            config.csrf ||
+            document.querySelector("meta[name=csrf-token]")?.content ||
+            "";
         this.state = this.initializeState(config);
     }
 
     initializeState(config) {
         return {
             pageLoading: true,
-            loadError: '',
+            loadError: "",
             form: {},
-            currentNumbering: { sample_code: '', ba: '', lhu: '', ba_penyerahan: '', tracking: '' },
+            currentNumbering: {
+                sample_code: "",
+                ba: "",
+                lhu: "",
+                ba_penyerahan: "",
+                tracking: "",
+            },
             currentNumberingLoading: false,
-            numberingPreview: { sample_code: '', ba: '', lhu: '', ba_penyerahan: '', tracking: '' },
-            previewLoading: { sample_code: false, ba: false, lhu: false, ba_penyerahan: false, tracking: false },
-            previewState: { numbering: false, sample_code: false, ba: false, lhu: false, ba_penyerahan: false, tracking: false },
+            numberingPreview: {
+                sample_code: "",
+                ba: "",
+                lhu: "",
+                ba_penyerahan: "",
+                tracking: "",
+            },
+            previewLoading: {
+                sample_code: false,
+                ba: false,
+                lhu: false,
+                ba_penyerahan: false,
+                tracking: false,
+            },
+            previewState: {
+                numbering: false,
+                sample_code: false,
+                ba: false,
+                lhu: false,
+                ba_penyerahan: false,
+                tracking: false,
+            },
             sectionStatus: {
-                numbering: { message: '', intentClass: 'text-primary-600' },
-                templates: { message: '', intentClass: 'text-primary-600' },
-                branding: { message: '', intentClass: 'text-primary-600' },
-                localization: { message: '', intentClass: 'text-primary-600' },
-                notifications: { message: '', intentClass: 'text-primary-600' },
-                documents: { message: '', intentClass: 'text-primary-600' },
-                iku: { message: '', intentClass: 'text-primary-600' },
+                numbering: { message: "", intentClass: "text-primary-600" },
+                templates: { message: "", intentClass: "text-primary-600" },
+                branding: { message: "", intentClass: "text-primary-600" },
+                localization: { message: "", intentClass: "text-primary-600" },
+                notifications: { message: "", intentClass: "text-primary-600" },
+                documents: { message: "", intentClass: "text-primary-600" },
+                iku: { message: "", intentClass: "text-primary-600" },
+                monitoring_logging: {
+                    message: "",
+                    intentClass: "text-primary-600",
+                },
             },
             sectionErrors: {
-                numbering: '',
-                templates: '',
-                branding: '',
-                localization: '',
-                notifications: '',
-                documents: '',
-                iku: '',
+                numbering: "",
+                templates: "",
+                branding: "",
+                localization: "",
+                notifications: "",
+                documents: "",
+                iku: "",
+                monitoring_logging: "",
             },
             scopeErrors: {
                 sample_code: {},
@@ -68,11 +102,11 @@ export class SettingsClient {
                 tracking: {},
             },
             scopeStatus: {
-                sample_code: { message: '', intentClass: 'text-primary-600' },
-                ba: { message: '', intentClass: 'text-primary-600' },
-                lhu: { message: '', intentClass: 'text-primary-600' },
-                ba_penyerahan: { message: '', intentClass: 'text-primary-600' },
-                tracking: { message: '', intentClass: 'text-primary-600' },
+                sample_code: { message: "", intentClass: "text-primary-600" },
+                ba: { message: "", intentClass: "text-primary-600" },
+                lhu: { message: "", intentClass: "text-primary-600" },
+                ba_penyerahan: { message: "", intentClass: "text-primary-600" },
+                tracking: { message: "", intentClass: "text-primary-600" },
             },
             scopeLoading: {
                 sample_code: false,
@@ -89,37 +123,48 @@ export class SettingsClient {
                 notifications: false,
                 documents: false,
                 iku: false,
+                monitoring_logging: false,
             },
             templates: config.templates || [],
             activeTemplates: {},
-            templateForm: { code: '', name: '', file: null },
-            templateError: '',
+            templateForm: { code: "", name: "", file: null },
+            templateError: "",
             templateUploading: false,
             templatesLoading: false,
             templateActionLoading: {},
-            pdfPreviewUrl: '',
+            pdfPreviewUrl: "",
             pdfPreviewLoading: false,
-            pdfPreviewError: '',
+            pdfPreviewError: "",
             pdfPreviewObjectUrl: null,
             roles: {
                 manage: config.initialManageRoles || [],
                 issue: config.initialIssueRoles || [],
             },
             notificationsTest: {
-                email: { target: '', loading: false, message: '', intentClass: 'text-primary-600' },
-                whatsapp: { target: '', loading: false, message: '', intentClass: 'text-primary-600' },
+                email: {
+                    target: "",
+                    loading: false,
+                    message: "",
+                    intentClass: "text-primary-600",
+                },
+                whatsapp: {
+                    target: "",
+                    loading: false,
+                    message: "",
+                    intentClass: "text-primary-600",
+                },
             },
             documents: [],
             documentsLoading: false,
-            documentsError: '',
+            documentsError: "",
             documentDeleting: {},
             selectedDocuments: [],
             bulkDeleteLoading: false,
             documentsFilters: {
-                query: '',
-                request_number: '',
-                type: '',
-                source: '',
+                query: "",
+                request_number: "",
+                type: "",
+                source: "",
                 per_page: 25,
                 page: 1,
             },
@@ -143,52 +188,56 @@ export class SettingsClient {
      * Generic API fetch dengan error handling
      */
     async apiFetch(url, options = {}) {
-        const { method = 'GET', body = null, headers = {} } = options;
+        const { method = "GET", body = null, headers = {} } = options;
 
         const requestHeaders = {
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            ...headers
+            Accept: "application/json",
+            "X-Requested-With": "XMLHttpRequest",
+            ...headers,
         };
 
         const upper = method.toUpperCase();
-        const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+        const isFormData =
+            typeof FormData !== "undefined" && body instanceof FormData;
 
-        if (!isFormData && body !== null && !['GET', 'HEAD'].includes(upper)) {
-            requestHeaders['Content-Type'] = 'application/json';
+        if (!isFormData && body !== null && !["GET", "HEAD"].includes(upper)) {
+            requestHeaders["Content-Type"] = "application/json";
         }
 
-        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(upper)) {
-            requestHeaders['X-CSRF-TOKEN'] = this.csrf;
+        if (["POST", "PUT", "PATCH", "DELETE"].includes(upper)) {
+            requestHeaders["X-CSRF-TOKEN"] = this.csrf;
         }
 
         const fetchOptions = {
             method: upper,
             headers: requestHeaders,
-            credentials: 'same-origin',
+            credentials: "same-origin",
         };
 
-        if (body !== null && !['GET', 'HEAD'].includes(upper)) {
+        if (body !== null && !["GET", "HEAD"].includes(upper)) {
             fetchOptions.body = isFormData ? body : JSON.stringify(body);
         }
 
         const response = await fetch(url, fetchOptions);
-        const contentType = response.headers.get('Content-Type') || '';
+        const contentType = response.headers.get("Content-Type") || "";
 
         // Handle non-JSON responses (e.g., PDF preview, HTML error pages)
-        if (!contentType.includes('application/json')) {
+        if (!contentType.includes("application/json")) {
             if (response.ok) {
                 return response; // Return raw response for blob/pdf handling
             }
 
             // For error responses with non-JSON content (like HTML error pages),
             // read text and create a meaningful error message
-            const textBody = await response.text().catch(() => '');
-            const snippet = textBody.length > 200 ? textBody.substring(0, 200) + '...' : textBody;
+            const textBody = await response.text().catch(() => "");
+            const snippet =
+                textBody.length > 200
+                    ? textBody.substring(0, 200) + "..."
+                    : textBody;
             throw new Error(
                 `Server returned ${response.status} with non-JSON response. ` +
-                `Content-Type: ${contentType}. ` +
-                (snippet ? `Body snippet: ${snippet}` : 'No body content.')
+                    `Content-Type: ${contentType}. ` +
+                    (snippet ? `Body snippet: ${snippet}` : "No body content."),
             );
         }
 
@@ -198,13 +247,18 @@ export class SettingsClient {
             data = await response.json();
         } catch (parseError) {
             // If JSON parsing fails, read the raw text for debugging
-            const textBody = await response.text().catch(() => '');
-            const snippet = textBody.length > 200 ? textBody.substring(0, 200) + '...' : textBody;
+            const textBody = await response.text().catch(() => "");
+            const snippet =
+                textBody.length > 200
+                    ? textBody.substring(0, 200) + "..."
+                    : textBody;
             throw new Error(
                 `Failed to parse JSON response from ${url}. ` +
-                `Status: ${response.status}. ` +
-                `Parse error: ${parseError.message}. ` +
-                (snippet ? `Body snippet: ${snippet}` : 'Empty response body.')
+                    `Status: ${response.status}. ` +
+                    `Parse error: ${parseError.message}. ` +
+                    (snippet
+                        ? `Body snippet: ${snippet}`
+                        : "Empty response body."),
             );
         }
 
@@ -212,11 +266,18 @@ export class SettingsClient {
             // Handle 422 validation errors
             if (response.status === 422 && data.errors) {
                 const errorMessages = Object.entries(data.errors)
-                    .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
-                    .join('; ');
-                throw new Error(errorMessages || data.message || 'Validation failed');
+                    .map(
+                        ([field, messages]) =>
+                            `${field}: ${Array.isArray(messages) ? messages.join(", ") : messages}`,
+                    )
+                    .join("; ");
+                throw new Error(
+                    errorMessages || data.message || "Validation failed",
+                );
             }
-            throw new Error(data.message || `Request failed with status ${response.status}`);
+            throw new Error(
+                data.message || `Request failed with status ${response.status}`,
+            );
         }
 
         return data;
@@ -227,7 +288,7 @@ export class SettingsClient {
      */
     async loadAll() {
         this.state.pageLoading = true;
-        this.state.loadError = '';
+        this.state.loadError = "";
 
         try {
             await Promise.all([
@@ -237,7 +298,7 @@ export class SettingsClient {
                 this.fetchDocuments(),
             ]);
         } catch (error) {
-            this.state.loadError = error.message || 'Gagal memuat data awal.';
+            this.state.loadError = error.message || "Gagal memuat data awal.";
             throw error;
         } finally {
             this.state.pageLoading = false;
@@ -252,7 +313,7 @@ export class SettingsClient {
             const data = await this.apiFetch(this.api.settings);
             this.applyServerData(data);
         } catch (error) {
-            this.state.loadError = error.message || 'Gagal memuat pengaturan.';
+            this.state.loadError = error.message || "Gagal memuat pengaturan.";
             throw error;
         }
     }
@@ -268,11 +329,11 @@ export class SettingsClient {
             // Backend returns objects like { sample_code: { current, next, pattern }, ... }
             // Extract the 'next' value (or 'current' if available) from each scope
             const extractValue = (scopeData) => {
-                if (typeof scopeData === 'string') return scopeData;
-                if (typeof scopeData === 'object' && scopeData !== null) {
-                    return scopeData.next || scopeData.current || '';
+                if (typeof scopeData === "string") return scopeData;
+                if (typeof scopeData === "object" && scopeData !== null) {
+                    return scopeData.next || scopeData.current || "";
                 }
-                return '';
+                return "";
             };
 
             this.state.currentNumbering = {
@@ -283,7 +344,10 @@ export class SettingsClient {
                 tracking: extractValue(data.tracking),
             };
         } catch (error) {
-            this.setSectionError('numbering', error.message || 'Gagal memuat penomoran saat ini.');
+            this.setSectionError(
+                "numbering",
+                error.message || "Gagal memuat penomoran saat ini.",
+            );
         } finally {
             this.state.currentNumberingLoading = false;
         }
@@ -296,10 +360,17 @@ export class SettingsClient {
         this.state.templatesLoading = true;
         try {
             const data = await this.apiFetch(this.api.templates);
-            this.state.templates = Array.isArray(data) ? data : (Array.isArray(data.list) ? data.list : (data.data || []));
-            this.hydrateActiveTemplates(data.active ?? this.state.activeTemplates);
+            this.state.templates = Array.isArray(data)
+                ? data
+                : Array.isArray(data.list)
+                  ? data.list
+                  : data.data || [];
+            this.hydrateActiveTemplates(
+                data.active ?? this.state.activeTemplates,
+            );
         } catch (error) {
-            this.state.templateError = error.message || 'Gagal memuat template.';
+            this.state.templateError =
+                error.message || "Gagal memuat template.";
         } finally {
             this.state.templatesLoading = false;
         }
@@ -309,20 +380,38 @@ export class SettingsClient {
      * Test numbering preview
      */
     async testPreview(scope) {
-        console.log('SettingsClient.testPreview called', { scope, currentForm: this.state.form.numbering?.[scope] });
+        console.log("SettingsClient.testPreview called", {
+            scope,
+            currentForm: this.state.form.numbering?.[scope],
+        });
 
         // Ensure previewState exists
-        this.state.previewState = this.state.previewState || { numbering: false };
+        this.state.previewState = this.state.previewState || {
+            numbering: false,
+        };
 
         // Special case: 'numbering' means test all scopes
-        if (scope === 'numbering') {
+        if (scope === "numbering") {
             this.state.previewState.numbering = true;
             try {
-                const scopes = ['sample_code', 'ba', 'lhu', 'ba_penyerahan', 'tracking'];
-                await Promise.all(scopes.map(s => this.testPreview(s)));
-                this.setSectionStatus('numbering', 'Preview berhasil untuk semua jenis dokumen.', 'text-green-600');
+                const scopes = [
+                    "sample_code",
+                    "ba",
+                    "lhu",
+                    "ba_penyerahan",
+                    "tracking",
+                ];
+                await Promise.all(scopes.map((s) => this.testPreview(s)));
+                this.setSectionStatus(
+                    "numbering",
+                    "Preview berhasil untuk semua jenis dokumen.",
+                    "text-green-600",
+                );
             } catch (error) {
-                this.setSectionError('numbering', error.message || 'Gagal melakukan preview penomoran.');
+                this.setSectionError(
+                    "numbering",
+                    error.message || "Gagal melakukan preview penomoran.",
+                );
             } finally {
                 this.state.previewState.numbering = false;
             }
@@ -331,15 +420,19 @@ export class SettingsClient {
 
         // Individual scope preview
         // Use object spread to trigger Alpine reactivity
-        this.state.previewLoading = { ...this.state.previewLoading, [scope]: true };
+        this.state.previewLoading = {
+            ...this.state.previewLoading,
+            [scope]: true,
+        };
         this.clearScopeError(scope);
 
         try {
             // CRITICAL: Deep clone to plain object (avoid Alpine Proxy serialization issues)
-            const scopeConfig = this.toPlainObject(this.state.form.numbering?.[scope]) || {};
+            const scopeConfig =
+                this.toPlainObject(this.state.form.numbering?.[scope]) || {};
 
-            console.log('🔍 [testPreview] Starting preview for scope:', scope);
-            console.log('📋 Config from state:', scopeConfig);
+            console.log("🔍 [testPreview] Starting preview for scope:", scope);
+            console.log("📋 Config from state:", scopeConfig);
 
             // Backend expects: { scope: string, config: { numbering: { [scope]: {...} } } }
             // OR simpler: { scope: string, pattern: string }
@@ -348,52 +441,67 @@ export class SettingsClient {
                 config: {
                     numbering: {
                         [scope]: {
-                            pattern: scopeConfig.pattern || '',
-                            reset: scopeConfig.reset || 'never',
-                            start_from: scopeConfig.start_from || 1
-                        }
-                    }
-                }
+                            pattern: scopeConfig.pattern || "",
+                            reset: scopeConfig.reset || "never",
+                            start_from: scopeConfig.start_from || 1,
+                        },
+                    },
+                },
             };
 
-            console.log('→ POST /api/settings/numbering/preview', JSON.stringify(payload, null, 2));
+            console.log(
+                "→ POST /api/settings/numbering/preview",
+                JSON.stringify(payload, null, 2),
+            );
 
             const data = await this.apiFetch(this.api.numberingPreview, {
-                method: 'POST',
+                method: "POST",
                 body: payload,
             });
 
             // Backend returns: { example: "..." }
-            const previewValue = data.example ?? data.preview ?? data.value ?? data.data?.example ?? '';
+            const previewValue =
+                data.example ??
+                data.preview ??
+                data.value ??
+                data.data?.example ??
+                "";
 
-            console.log('✓ Preview response:', data);
-            console.log('✓ Extracted preview value:', previewValue);
+            console.log("✓ Preview response:", data);
+            console.log("✓ Extracted preview value:", previewValue);
 
-            if (!previewValue || previewValue === '') {
-                throw new Error('Preview kosong. Periksa pattern penomoran.');
+            if (!previewValue || previewValue === "") {
+                throw new Error("Preview kosong. Periksa pattern penomoran.");
             }
 
             // CRITICAL: Reassign entire object to trigger Alpine reactivity
             this.state.numberingPreview = {
                 ...this.state.numberingPreview,
-                [scope]: previewValue
+                [scope]: previewValue,
             };
 
-            console.log('✓ State updated:', { scope, value: this.state.numberingPreview[scope] });
-            this.setScopeStatus(scope, 'Preview berhasil!', 'text-green-600');
+            console.log("✓ State updated:", {
+                scope,
+                value: this.state.numberingPreview[scope],
+            });
+            this.setScopeStatus(scope, "Preview berhasil!", "text-green-600");
         } catch (error) {
-            console.error('✗ Preview error:', error);
-            const errorMessage = error.message || 'Gagal melakukan preview penomoran.';
+            console.error("✗ Preview error:", error);
+            const errorMessage =
+                error.message || "Gagal melakukan preview penomoran.";
             this.setScopeError(scope, errorMessage);
 
             // Set explicit error marker (not empty string)
             this.state.numberingPreview = {
                 ...this.state.numberingPreview,
-                [scope]: null  // null indicates error, empty string is ambiguous
+                [scope]: null, // null indicates error, empty string is ambiguous
             };
         } finally {
             // Use spread for loading state too
-            this.state.previewLoading = { ...this.state.previewLoading, [scope]: false };
+            this.state.previewLoading = {
+                ...this.state.previewLoading,
+                [scope]: false,
+            };
         }
     }
 
@@ -409,35 +517,36 @@ export class SettingsClient {
      */
     async uploadTemplate(templateForm, fileInputRef) {
         if (!templateForm.file) {
-            this.state.templateError = 'Pilih file .docx terlebih dahulu.';
+            this.state.templateError = "Pilih file .docx terlebih dahulu.";
             return;
         }
 
         this.state.templateUploading = true;
-        this.state.templateError = '';
+        this.state.templateError = "";
 
         try {
             const formData = new FormData();
-            formData.append('code', templateForm.code || '');
-            formData.append('name', templateForm.name || '');
-            formData.append('file', templateForm.file);
+            formData.append("code", templateForm.code || "");
+            formData.append("name", templateForm.name || "");
+            formData.append("file", templateForm.file);
 
             await this.apiFetch(this.api.templateUpload, {
-                method: 'POST',
+                method: "POST",
                 body: formData,
             });
 
             // Reset form
-            templateForm.code = '';
-            templateForm.name = '';
+            templateForm.code = "";
+            templateForm.name = "";
             templateForm.file = null;
             if (fileInputRef) {
-                fileInputRef.value = '';
+                fileInputRef.value = "";
             }
 
             await this.fetchTemplates();
         } catch (error) {
-            this.state.templateError = error.message || 'Gagal mengunggah template.';
+            this.state.templateError =
+                error.message || "Gagal mengunggah template.";
         } finally {
             this.state.templateUploading = false;
         }
@@ -452,10 +561,13 @@ export class SettingsClient {
         this.state.templateActionLoading[template.id] = true;
         try {
             const body = template.type ? { type: template.type } : {};
-            const data = await this.apiFetch(`${this.api.templates}/${template.id}/activate`, {
-                method: 'PUT',
-                body,
-            });
+            const data = await this.apiFetch(
+                `${this.api.templates}/${template.id}/activate`,
+                {
+                    method: "PUT",
+                    body,
+                },
+            );
 
             if (data?.active) {
                 this.state.activeTemplates = this.clone(data.active);
@@ -463,7 +575,10 @@ export class SettingsClient {
 
             await this.fetchTemplates();
         } catch (error) {
-            this.setSectionError('templates', error.message || 'Gagal mengaktifkan template.');
+            this.setSectionError(
+                "templates",
+                error.message || "Gagal mengaktifkan template.",
+            );
         } finally {
             this.state.templateActionLoading[template.id] = false;
         }
@@ -478,10 +593,15 @@ export class SettingsClient {
 
         this.state.templateActionLoading[template.id] = true;
         try {
-            await this.apiFetch(`${this.api.templates}/${template.id}`, { method: 'DELETE' });
+            await this.apiFetch(`${this.api.templates}/${template.id}`, {
+                method: "DELETE",
+            });
             await this.fetchTemplates();
         } catch (error) {
-            this.setSectionError('templates', error.message || 'Gagal menghapus template.');
+            this.setSectionError(
+                "templates",
+                error.message || "Gagal menghapus template.",
+            );
         } finally {
             this.state.templateActionLoading[template.id] = false;
         }
@@ -491,10 +611,13 @@ export class SettingsClient {
      * Preview PDF
      */
     async previewPdf() {
-        console.log('SettingsClient.previewPdf called', { branding: this.state.form.branding, pdf: this.state.form.pdf });
+        console.log("SettingsClient.previewPdf called", {
+            branding: this.state.form.branding,
+            pdf: this.state.form.pdf,
+        });
 
         this.state.pdfPreviewLoading = true;
-        this.state.pdfPreviewError = '';
+        this.state.pdfPreviewError = "";
 
         if (this.state.pdfPreviewObjectUrl) {
             URL.revokeObjectURL(this.state.pdfPreviewObjectUrl);
@@ -502,17 +625,20 @@ export class SettingsClient {
         }
 
         try {
-            console.log('→ POST /api/settings/pdf/preview', { branding: this.state.form.branding, pdf: this.state.form.pdf });
+            console.log("→ POST /api/settings/pdf/preview", {
+                branding: this.state.form.branding,
+                pdf: this.state.form.pdf,
+            });
 
             const response = await fetch(this.api.pdfPreview, {
-                method: 'POST',
+                method: "POST",
                 headers: {
-                    'X-CSRF-TOKEN': this.csrf,
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/pdf,application/json',
-                    'Content-Type': 'application/json',
+                    "X-CSRF-TOKEN": this.csrf,
+                    "X-Requested-With": "XMLHttpRequest",
+                    Accept: "application/pdf,application/json",
+                    "Content-Type": "application/json",
                 },
-                credentials: 'same-origin',
+                credentials: "same-origin",
                 body: JSON.stringify({
                     branding: this.state.form.branding,
                     pdf: this.state.form.pdf,
@@ -521,24 +647,30 @@ export class SettingsClient {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                console.error('✗ PDF preview error:', errorData);
-                throw new Error(errorData.message || 'Gagal membuat preview PDF.');
+                console.error("✗ PDF preview error:", errorData);
+                throw new Error(
+                    errorData.message || "Gagal membuat preview PDF.",
+                );
             }
 
-            const contentType = response.headers.get('Content-Type') || '';
-            if (contentType.includes('application/json')) {
+            const contentType = response.headers.get("Content-Type") || "";
+            if (contentType.includes("application/json")) {
                 const data = await response.json();
-                console.log('✓ PDF preview URL:', data.url);
-                this.state.pdfPreviewUrl = data.url || '';
+                console.log("✓ PDF preview URL:", data.url);
+                this.state.pdfPreviewUrl = data.url || "";
             } else {
                 const blob = await response.blob();
                 this.state.pdfPreviewObjectUrl = URL.createObjectURL(blob);
                 this.state.pdfPreviewUrl = this.state.pdfPreviewObjectUrl;
-                console.log('✓ PDF preview blob URL created:', this.state.pdfPreviewUrl);
+                console.log(
+                    "✓ PDF preview blob URL created:",
+                    this.state.pdfPreviewUrl,
+                );
             }
         } catch (error) {
-            console.error('✗ PDF preview exception:', error);
-            this.state.pdfPreviewError = error.message || 'Gagal membuat preview PDF.';
+            console.error("✗ PDF preview exception:", error);
+            this.state.pdfPreviewError =
+                error.message || "Gagal membuat preview PDF.";
         } finally {
             this.state.pdfPreviewLoading = false;
         }
@@ -552,25 +684,25 @@ export class SettingsClient {
         if (!controller) return;
 
         if (!controller.target) {
-            controller.message = 'Isi target test terlebih dahulu.';
-            controller.intentClass = 'text-red-600';
+            controller.message = "Isi target test terlebih dahulu.";
+            controller.intentClass = "text-red-600";
             return;
         }
 
         controller.loading = true;
-        controller.message = '';
+        controller.message = "";
 
         try {
             const data = await this.apiFetch(this.api.notificationsTest, {
-                method: 'POST',
+                method: "POST",
                 body: { channel, target: controller.target },
             });
 
-            controller.message = data.message || 'Pengiriman test berhasil.';
-            controller.intentClass = 'text-emerald-600';
+            controller.message = data.message || "Pengiriman test berhasil.";
+            controller.intentClass = "text-emerald-600";
         } catch (error) {
-            controller.message = error.message || 'Pengiriman test gagal.';
-            controller.intentClass = 'text-red-600';
+            controller.message = error.message || "Pengiriman test gagal.";
+            controller.intentClass = "text-red-600";
         } finally {
             controller.loading = false;
         }
@@ -582,28 +714,31 @@ export class SettingsClient {
     async saveNumberingScope(scope) {
         // Clear previous errors and status
         this.state.scopeErrors[scope] = {};
-        this.state.scopeStatus[scope] = { message: '', intentClass: 'text-primary-600' };
+        this.state.scopeStatus[scope] = {
+            message: "",
+            intentClass: "text-primary-600",
+        };
         this.state.scopeLoading[scope] = true;
 
         try {
             const config = this.state.form.numbering?.[scope];
             if (!config) {
-                throw new Error('Konfigurasi penomoran tidak ditemukan.');
+                throw new Error("Konfigurasi penomoran tidak ditemukan.");
             }
 
             // Validate locally before sending
-            if (!config.pattern || config.pattern.trim() === '') {
-                throw new Error('Pattern wajib diisi.');
+            if (!config.pattern || config.pattern.trim() === "") {
+                throw new Error("Pattern wajib diisi.");
             }
             if (!config.reset) {
-                throw new Error('Reset period wajib dipilih.');
+                throw new Error("Reset period wajib dipilih.");
             }
             if (!config.start_from || config.start_from < 1) {
-                throw new Error('Start from minimal 1.');
+                throw new Error("Start from minimal 1.");
             }
 
             const data = await this.apiFetch(`${this.api.numbering}/${scope}`, {
-                method: 'PUT',
+                method: "PUT",
                 body: {
                     pattern: config.pattern,
                     reset: config.reset,
@@ -612,25 +747,26 @@ export class SettingsClient {
             });
 
             this.state.scopeStatus[scope] = {
-                message: data.message || 'Pengaturan penomoran berhasil disimpan.',
-                intentClass: 'text-emerald-600'
+                message:
+                    data.message || "Pengaturan penomoran berhasil disimpan.",
+                intentClass: "text-emerald-600",
             };
 
             // Refresh current numbering display
             await this.fetchCurrentNumbering();
-
         } catch (error) {
             // Parse validation errors if available
-            const errorMessage = error.message || 'Gagal menyimpan pengaturan penomoran.';
+            const errorMessage =
+                error.message || "Gagal menyimpan pengaturan penomoran.";
 
             // Check if it's a validation error with field-specific messages
-            if (errorMessage.includes(':')) {
+            if (errorMessage.includes(":")) {
                 // Parse field:message format
                 const errors = {};
-                errorMessage.split(';').forEach(part => {
-                    const [field, ...msgParts] = part.trim().split(':');
+                errorMessage.split(";").forEach((part) => {
+                    const [field, ...msgParts] = part.trim().split(":");
                     if (field && msgParts.length > 0) {
-                        errors[field.trim()] = msgParts.join(':').trim();
+                        errors[field.trim()] = msgParts.join(":").trim();
                     }
                 });
                 this.state.scopeErrors[scope] = errors;
@@ -638,7 +774,7 @@ export class SettingsClient {
 
             this.state.scopeStatus[scope] = {
                 message: errorMessage,
-                intentClass: 'text-red-600'
+                intentClass: "text-red-600",
             };
         } finally {
             this.state.scopeLoading[scope] = false;
@@ -652,8 +788,8 @@ export class SettingsClient {
         const config = this.sectionEndpoint(key);
         if (!config) return false;
 
-        this.setSectionError(key, '');
-        this.setSectionStatus(key, '', 'text-primary-600');
+        this.setSectionError(key, "");
+        this.setSectionStatus(key, "", "text-primary-600");
         this.setSectionLoading(key, true);
 
         try {
@@ -662,17 +798,24 @@ export class SettingsClient {
                 body: this.sanitizePayload(config.body),
             });
 
-            this.setSectionStatus(key, 'Pengaturan tersimpan.', 'text-emerald-600');
+            this.setSectionStatus(
+                key,
+                "Pengaturan tersimpan.",
+                "text-emerald-600",
+            );
 
-            if (key === 'templates') {
+            if (key === "templates") {
                 await this.fetchTemplates();
             } else {
                 await this.fetchSettings();
             }
             return true;
         } catch (error) {
-            this.setSectionError(key, error.message || 'Gagal menyimpan pengaturan.');
-            this.setSectionStatus(key, 'Gagal menyimpan.', 'text-red-600');
+            this.setSectionError(
+                key,
+                error.message || "Gagal menyimpan pengaturan.",
+            );
+            this.setSectionStatus(key, "Gagal menyimpan.", "text-red-600");
             return false;
         } finally {
             this.setSectionLoading(key, false);
@@ -683,18 +826,21 @@ export class SettingsClient {
      * Sanitize payload: convert empty strings to null for numeric fields
      */
     sanitizePayload(payload) {
-        if (!payload || typeof payload !== 'object') return payload;
+        if (!payload || typeof payload !== "object") return payload;
 
         const sanitized = JSON.parse(JSON.stringify(payload));
 
         // Recursively sanitize numeric fields
         const sanitizeObject = (obj) => {
-            if (!obj || typeof obj !== 'object') return obj;
+            if (!obj || typeof obj !== "object") return obj;
 
             for (const key in obj) {
-                if (typeof obj[key] === 'object' && obj[key] !== null) {
+                if (typeof obj[key] === "object" && obj[key] !== null) {
                     sanitizeObject(obj[key]);
-                } else if (obj[key] === '' && ['start_from', 'purge_after_days'].includes(key)) {
+                } else if (
+                    obj[key] === "" &&
+                    ["start_from", "purge_after_days"].includes(key)
+                ) {
                     obj[key] = null;
                 }
             }
@@ -709,55 +855,74 @@ export class SettingsClient {
      */
     sectionEndpoint(key) {
         switch (key) {
-            case 'numbering':
+            case "numbering":
                 return {
                     url: this.api.numbering,
-                    method: 'PUT',
-                    body: { numbering: this.clone(this.state.form.numbering) }
+                    method: "PUT",
+                    body: { numbering: this.clone(this.state.form.numbering) },
                 };
-            case 'templates':
+            case "templates":
                 return {
                     url: this.api.templates,
-                    method: 'PUT',
-                    body: { active: this.serializeActiveTemplates() }
+                    method: "PUT",
+                    body: { active: this.serializeActiveTemplates() },
                 };
-            case 'branding':
+            case "branding":
                 return {
                     url: this.api.branding,
-                    method: 'PUT',
+                    method: "PUT",
                     body: {
                         branding: this.clone(this.state.form.branding),
-                        pdf: this.clone(this.state.form.pdf)
-                    }
+                        pdf: this.clone(this.state.form.pdf),
+                    },
                 };
-            case 'localization':
+            case "localization":
                 return {
                     url: this.api.localization,
-                    method: 'PUT',
+                    method: "PUT",
                     body: {
                         localization: this.clone(this.state.form.locale),
                         retention: {
-                            storage_driver: this.state.form.retention.storage_driver,
-                            storage_folder_path: this.state.form.retention.storage_folder_path,
-                            purge_after_days: this.state.form.retention.purge_after_days,
-                            export_filename_pattern: this.state.form.retention.export_filename_pattern || '',
-                        }
-                    }
+                            storage_driver:
+                                this.state.form.retention.storage_driver,
+                            storage_folder_path:
+                                this.state.form.retention.storage_folder_path,
+                            purge_after_days:
+                                this.state.form.retention.purge_after_days,
+                            export_filename_pattern:
+                                this.state.form.retention
+                                    .export_filename_pattern || "",
+                        },
+                    },
                 };
-            case 'notifications':
+            case "notifications":
                 return {
                     url: this.api.notificationsSecurity,
-                    method: 'PUT',
+                    method: "PUT",
                     body: {
-                        notifications: this.clone(this.state.form.notifications),
+                        notifications: this.clone(
+                            this.state.form.notifications,
+                        ),
                         smtp: this.clone(this.state.form.smtp),
                         security: {
                             roles: {
-                                can_manage_settings: [...this.state.roles.manage],
+                                can_manage_settings: [
+                                    ...this.state.roles.manage,
+                                ],
                                 can_issue_number: [...this.state.roles.issue],
                             },
                         },
-                    }
+                    },
+                };
+            case "monitoring_logging":
+                return {
+                    url: this.api.monitoringLogging,
+                    method: "PUT",
+                    body: {
+                        monitoring_logging: this.clone(
+                            this.state.form.monitoring_logging,
+                        ),
+                    },
                 };
             default:
                 return null;
@@ -777,7 +942,7 @@ export class SettingsClient {
         this.state.sectionErrors[key] = message;
     }
 
-    setScopeStatus(scope, message, intentClass = 'text-green-600') {
+    setScopeStatus(scope, message, intentClass = "text-green-600") {
         if (this.state.scopeStatus[scope]) {
             this.state.scopeStatus[scope] = { message, intentClass };
         }
@@ -785,13 +950,19 @@ export class SettingsClient {
 
     setScopeError(scope, message) {
         if (this.state.scopeStatus[scope]) {
-            this.state.scopeStatus[scope] = { message, intentClass: 'text-red-600' };
+            this.state.scopeStatus[scope] = {
+                message,
+                intentClass: "text-red-600",
+            };
         }
     }
 
     clearScopeError(scope) {
         if (this.state.scopeStatus[scope]) {
-            this.state.scopeStatus[scope] = { message: '', intentClass: 'text-primary-600' };
+            this.state.scopeStatus[scope] = {
+                message: "",
+                intentClass: "text-primary-600",
+            };
         }
         if (this.state.scopeErrors[scope]) {
             this.state.scopeErrors[scope] = {};
@@ -799,7 +970,8 @@ export class SettingsClient {
     }
 
     applyServerData(payload) {
-        const data = (payload && (payload.settings || payload.data)) || payload || {};
+        const data =
+            (payload && (payload.settings || payload.data)) || payload || {};
 
         // Map backend keys to frontend keys before merging
         // Backend returns 'localization', frontend uses 'locale'
@@ -808,8 +980,13 @@ export class SettingsClient {
         }
 
         // Merge form data instead of replacing to preserve default state structure
-        this.state.form = { ...this.state.form, ...this.mergeDefaults(this.clone(data)) };
-        this.hydrateActiveTemplates(data.templates?.active ?? this.state.activeTemplates);
+        this.state.form = {
+            ...this.state.form,
+            ...this.mergeDefaults(this.clone(data)),
+        };
+        this.hydrateActiveTemplates(
+            data.templates?.active ?? this.state.activeTemplates,
+        );
 
         const security = data.security ?? data.roles ?? {};
         if (Array.isArray(security.can_manage_settings)) {
@@ -821,25 +998,37 @@ export class SettingsClient {
 
         const notifications = data.notifications ?? data.automation ?? null;
         if (notifications) {
-            this.state.form.notifications = this.mergeNotifications(notifications);
+            this.state.form.notifications =
+                this.mergeNotifications(notifications);
         }
 
         // Ensure previewState is always defined after hydration
-        this.state.previewState = this.state.previewState || { numbering: false };
+        this.state.previewState = this.state.previewState || {
+            numbering: false,
+        };
     }
 
     mergeDefaults(form) {
         form.numbering ??= {};
-        ['sample_code', 'ba', 'lhu', 'ba_penyerahan', 'tracking'].forEach((scope) => {
-            if (!form.numbering[scope]) {
-                form.numbering[scope] = { pattern: '', reset: 'never', start_from: 1 };
-            } else {
-                // Preserve server values, only fill missing fields
-                form.numbering[scope].pattern = form.numbering[scope].pattern ?? '';
-                form.numbering[scope].reset = form.numbering[scope].reset ?? 'never';
-                form.numbering[scope].start_from = form.numbering[scope].start_from ?? 1;
-            }
-        });
+        ["sample_code", "ba", "lhu", "ba_penyerahan", "tracking"].forEach(
+            (scope) => {
+                if (!form.numbering[scope]) {
+                    form.numbering[scope] = {
+                        pattern: "",
+                        reset: "never",
+                        start_from: 1,
+                    };
+                } else {
+                    // Preserve server values, only fill missing fields
+                    form.numbering[scope].pattern =
+                        form.numbering[scope].pattern ?? "";
+                    form.numbering[scope].reset =
+                        form.numbering[scope].reset ?? "never";
+                    form.numbering[scope].start_from =
+                        form.numbering[scope].start_from ?? 1;
+                }
+            },
+        );
 
         form.branding ??= {};
         form.pdf ??= { header: {}, footer: {}, qr: {} };
@@ -848,18 +1037,45 @@ export class SettingsClient {
         form.pdf.qr ??= { enabled: false };
         form.locale ??= {};
         // Ensure locale is an object, not an array (server may return empty array)
-        if (Array.isArray(form.locale) || typeof form.locale !== 'object') {
+        if (Array.isArray(form.locale) || typeof form.locale !== "object") {
             form.locale = {};
         }
         form.retention ??= {};
         // Only set defaults if field doesn't exist, preserve server values including empty strings
-        if (!('storage_driver' in form.retention)) form.retention.storage_driver = 'public';
-        if (!('storage_folder_path' in form.retention)) form.retention.storage_folder_path = '';
-        if (!('purge_after_days' in form.retention)) form.retention.purge_after_days = 365;
-        if (!('export_filename_pattern' in form.retention)) form.retention.export_filename_pattern = '';
-        form.notifications = this.mergeNotifications(form.notifications ?? form.automation ?? {});
+        if (!("storage_driver" in form.retention))
+            form.retention.storage_driver = "public";
+        if (!("storage_folder_path" in form.retention))
+            form.retention.storage_folder_path = "";
+        if (!("purge_after_days" in form.retention))
+            form.retention.purge_after_days = 365;
+        if (!("export_filename_pattern" in form.retention))
+            form.retention.export_filename_pattern = "";
+        form.notifications = this.mergeNotifications(
+            form.notifications ?? form.automation ?? {},
+        );
         form.smtp = this.mergeSmtp(form.smtp ?? {});
-        form.security ??= { roles: { can_manage_settings: [], can_issue_number: [] } };
+        form.security ??= {
+            roles: { can_manage_settings: [], can_issue_number: [] },
+        };
+
+        form.monitoring_logging ??= {};
+        form.monitoring_logging.environment ??= {
+            enabled: false,
+            work_start: "07:00",
+            work_end: "15:00",
+            work_days: [1, 2, 3, 4, 5],
+            window_morning_start: "07:00",
+            window_morning_end: "09:00",
+            window_afternoon_start: "12:00",
+            window_afternoon_end: "14:00",
+            humidity_enabled: false,
+        };
+        form.monitoring_logging.instrument ??= {
+            enabled: false,
+        };
+        form.monitoring_logging.uvvis_weighing ??= {
+            enabled: false,
+        };
 
         return form;
     }
@@ -868,35 +1084,41 @@ export class SettingsClient {
         return {
             email: {
                 enabled: !!source?.email?.enabled,
-                address: source?.email?.address || '',
+                address: source?.email?.address || "",
             },
             whatsapp: {
                 enabled: !!source?.whatsapp?.enabled,
-                number: source?.whatsapp?.number || '',
+                number: source?.whatsapp?.number || "",
             },
         };
     }
 
     mergeSmtp(source) {
         return {
-            host: source?.host || '127.0.0.1',
+            host: source?.host || "127.0.0.1",
             port: source?.port || 1025,
-            username: source?.username || '',
-            password: source?.password || '',
-            from_address: source?.from_address || '',
-            from_name: source?.from_name || 'LPMF LIMS',
+            username: source?.username || "",
+            password: source?.password || "",
+            from_address: source?.from_address || "",
+            from_name: source?.from_name || "LPMF LIMS",
         };
     }
 
     hydrateActiveTemplates(source) {
         const normalized = {};
-        if (source && typeof source === 'object') {
+        if (source && typeof source === "object") {
             Object.entries(source).forEach(([type, value]) => {
-                if (value && typeof value === 'object') {
+                if (value && typeof value === "object") {
                     normalized[type] = this.clone(value);
                 } else if (value) {
-                    const match = this.state.templates.find((tpl) => tpl.id === value || (tpl.code && tpl.code === value));
-                    normalized[type] = match ? this.clone(match) : { code: value };
+                    const match = this.state.templates.find(
+                        (tpl) =>
+                            tpl.id === value ||
+                            (tpl.code && tpl.code === value),
+                    );
+                    normalized[type] = match
+                        ? this.clone(match)
+                        : { code: value };
                 }
             });
         }
@@ -909,23 +1131,23 @@ export class SettingsClient {
             if (value === undefined || value === null) {
                 return;
             }
-            if (typeof value === 'string') {
+            if (typeof value === "string") {
                 const trimmed = value.trim();
-                if (trimmed === '') {
+                if (trimmed === "") {
                     return;
                 }
                 searchParams.append(key, trimmed);
                 return;
             }
-            if (typeof value === 'number') {
+            if (typeof value === "number") {
                 if (!Number.isFinite(value)) {
                     return;
                 }
                 searchParams.append(key, value.toString());
                 return;
             }
-            if (typeof value === 'boolean' && value) {
-                searchParams.append(key, '1');
+            if (typeof value === "boolean" && value) {
+                searchParams.append(key, "1");
             }
         });
 
@@ -934,8 +1156,8 @@ export class SettingsClient {
 
     async fetchDocuments(overrides = {}) {
         this.state.documentsLoading = true;
-        this.state.documentsError = '';
-        this.setSectionError('documents', '');
+        this.state.documentsError = "";
+        this.setSectionError("documents", "");
 
         const filters = {
             ...this.state.documentsFilters,
@@ -952,11 +1174,17 @@ export class SettingsClient {
         this.state.documentsFilters = filters;
 
         const query = this.buildDocumentsQuery(filters);
-        const url = query ? `${this.api.documents}?${query}` : this.api.documents;
+        const url = query
+            ? `${this.api.documents}?${query}`
+            : this.api.documents;
 
         try {
             const data = await this.apiFetch(url);
-            const list = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+            const list = Array.isArray(data?.data)
+                ? data.data
+                : Array.isArray(data)
+                  ? data
+                  : [];
 
             this.state.documents = list;
             this.state.documentsPagination = {
@@ -966,18 +1194,22 @@ export class SettingsClient {
                 total: data.total ?? list.length,
             };
         } catch (error) {
-            const message = error.message || 'Gagal memuat dokumen.';
+            const message = error.message || "Gagal memuat dokumen.";
             this.state.documentsError = message;
-            this.setSectionError('documents', message);
+            this.setSectionError("documents", message);
             // Don't re-throw to prevent Alpine crashes
-            console.error('fetchDocuments error:', error);
+            console.error("fetchDocuments error:", error);
         } finally {
             this.state.documentsLoading = false;
         }
     }
 
     async changeDocumentsPage(page) {
-        if (!page || page < 1 || page === this.state.documentsPagination.current_page) {
+        if (
+            !page ||
+            page < 1 ||
+            page === this.state.documentsPagination.current_page
+        ) {
             return;
         }
         await this.fetchDocuments({ page });
@@ -985,10 +1217,10 @@ export class SettingsClient {
 
     resetDocumentsFilters() {
         this.state.documentsFilters = {
-            query: '',
-            request_number: '',
-            type: '',
-            source: '',
+            query: "",
+            request_number: "",
+            type: "",
+            source: "",
             per_page: 25,
             page: 1,
         };
@@ -1008,10 +1240,14 @@ export class SettingsClient {
     }
 
     toggleAllDocuments() {
-        if (this.state.selectedDocuments.length === this.state.documents.length) {
+        if (
+            this.state.selectedDocuments.length === this.state.documents.length
+        ) {
             this.state.selectedDocuments = [];
         } else {
-            this.state.selectedDocuments = this.state.documents.map(doc => doc.path);
+            this.state.selectedDocuments = this.state.documents.map(
+                (doc) => doc.path,
+            );
         }
     }
 
@@ -1024,8 +1260,10 @@ export class SettingsClient {
     }
 
     get allDocumentsSelected() {
-        return this.state.documents.length > 0 &&
-            this.state.selectedDocuments.length === this.state.documents.length;
+        return (
+            this.state.documents.length > 0 &&
+            this.state.selectedDocuments.length === this.state.documents.length
+        );
     }
 
     async bulkDeleteDocuments() {
@@ -1035,11 +1273,11 @@ export class SettingsClient {
         if (!confirm(`Yakin hapus ${count} dokumen yang dipilih?`)) return;
 
         this.state.bulkDeleteLoading = true;
-        this.setSectionError('documents', '');
+        this.setSectionError("documents", "");
 
         const selectedPaths = [...this.state.selectedDocuments];
-        const documents = this.state.documents.filter(doc =>
-            selectedPaths.includes(doc.path)
+        const documents = this.state.documents.filter((doc) =>
+            selectedPaths.includes(doc.path),
         );
 
         let successCount = 0;
@@ -1049,7 +1287,7 @@ export class SettingsClient {
         for (const doc of documents) {
             try {
                 await this.apiFetch(this.api.documents, {
-                    method: 'DELETE',
+                    method: "DELETE",
                     body: {
                         path: doc.path,
                         document_id: doc.document?.id || null,
@@ -1067,18 +1305,20 @@ export class SettingsClient {
 
         if (successCount > 0) {
             this.setSectionStatus(
-                'documents',
+                "documents",
                 `${successCount} dokumen berhasil dihapus.` +
-                (failCount > 0 ? ` ${failCount} gagal.` : ''),
-                failCount > 0 ? 'text-amber-600' : 'text-emerald-600'
+                    (failCount > 0 ? ` ${failCount} gagal.` : ""),
+                failCount > 0 ? "text-amber-600" : "text-emerald-600",
             );
         }
 
         if (errors.length > 0) {
-            this.setSectionError('documents', errors.join('; '));
+            this.setSectionError("documents", errors.join("; "));
         }
 
-        await this.fetchDocuments({ page: this.state.documentsPagination.current_page });
+        await this.fetchDocuments({
+            page: this.state.documentsPagination.current_page,
+        });
     }
 
     toggleDocumentSelection(path) {
@@ -1091,10 +1331,14 @@ export class SettingsClient {
     }
 
     toggleAllDocuments() {
-        if (this.state.selectedDocuments.length === this.state.documents.length) {
+        if (
+            this.state.selectedDocuments.length === this.state.documents.length
+        ) {
             this.state.selectedDocuments = [];
         } else {
-            this.state.selectedDocuments = this.state.documents.map(doc => doc.path);
+            this.state.selectedDocuments = this.state.documents.map(
+                (doc) => doc.path,
+            );
         }
     }
 
@@ -1107,8 +1351,10 @@ export class SettingsClient {
     }
 
     get allDocumentsSelected() {
-        return this.state.documents.length > 0 &&
-            this.state.selectedDocuments.length === this.state.documents.length;
+        return (
+            this.state.documents.length > 0 &&
+            this.state.selectedDocuments.length === this.state.documents.length
+        );
     }
 
     async bulkDeleteDocuments() {
@@ -1118,11 +1364,11 @@ export class SettingsClient {
         if (!confirm(`Yakin hapus ${count} dokumen yang dipilih?`)) return;
 
         this.state.bulkDeleteLoading = true;
-        this.setSectionError('documents', '');
+        this.setSectionError("documents", "");
 
         const selectedPaths = [...this.state.selectedDocuments];
-        const documents = this.state.documents.filter(doc =>
-            selectedPaths.includes(doc.path)
+        const documents = this.state.documents.filter((doc) =>
+            selectedPaths.includes(doc.path),
         );
 
         let successCount = 0;
@@ -1132,7 +1378,7 @@ export class SettingsClient {
         for (const doc of documents) {
             try {
                 await this.apiFetch(this.api.documents, {
-                    method: 'DELETE',
+                    method: "DELETE",
                     body: {
                         path: doc.path,
                         document_id: doc.document?.id || null,
@@ -1150,57 +1396,76 @@ export class SettingsClient {
 
         if (successCount > 0) {
             this.setSectionStatus(
-                'documents',
+                "documents",
                 `${successCount} dokumen berhasil dihapus.` +
-                (failCount > 0 ? ` ${failCount} gagal.` : ''),
-                failCount > 0 ? 'text-amber-600' : 'text-emerald-600'
+                    (failCount > 0 ? ` ${failCount} gagal.` : ""),
+                failCount > 0 ? "text-amber-600" : "text-emerald-600",
             );
         }
 
         if (errors.length > 0) {
-            this.setSectionError('documents', errors.join('; '));
+            this.setSectionError("documents", errors.join("; "));
         }
 
-        await this.fetchDocuments({ page: this.state.documentsPagination.current_page });
+        await this.fetchDocuments({
+            page: this.state.documentsPagination.current_page,
+        });
     }
 
     async deleteDocumentEntry(entry) {
         if (!entry?.path) return;
         if (!entry.can_delete) {
-            this.setSectionError('documents', 'Anda tidak memiliki izin menghapus dokumen ini.');
+            this.setSectionError(
+                "documents",
+                "Anda tidak memiliki izin menghapus dokumen ini.",
+            );
             return;
         }
 
         const name = entry.name || entry.type_label || entry.path;
         if (!confirm(`Yakin hapus ${name}?`)) return;
 
-        this.state.documentDeleting = { ...this.state.documentDeleting, [entry.path]: true };
-        this.setSectionError('documents', '');
+        this.state.documentDeleting = {
+            ...this.state.documentDeleting,
+            [entry.path]: true,
+        };
+        this.setSectionError("documents", "");
 
         try {
             await this.apiFetch(this.api.documents, {
-                method: 'DELETE',
+                method: "DELETE",
                 body: {
                     path: entry.path,
                     document_id: entry.document?.id || null,
                 },
             });
-            this.setSectionStatus('documents', `${name} berhasil dihapus.`, 'text-emerald-600');
-            await this.fetchDocuments({ page: this.state.documentsPagination.current_page });
+            this.setSectionStatus(
+                "documents",
+                `${name} berhasil dihapus.`,
+                "text-emerald-600",
+            );
+            await this.fetchDocuments({
+                page: this.state.documentsPagination.current_page,
+            });
         } catch (error) {
-            const message = error.message || 'Gagal menghapus dokumen.';
-            this.setSectionError('documents', message);
+            const message = error.message || "Gagal menghapus dokumen.";
+            this.setSectionError("documents", message);
         } finally {
-            this.state.documentDeleting = { ...this.state.documentDeleting, [entry.path]: false };
+            this.state.documentDeleting = {
+                ...this.state.documentDeleting,
+                [entry.path]: false,
+            };
         }
     }
 
     serializeActiveTemplates() {
         const payload = {};
-        Object.entries(this.state.activeTemplates || {}).forEach(([type, tpl]) => {
-            if (!tpl) return;
-            payload[type] = tpl.code || tpl.id || tpl;
-        });
+        Object.entries(this.state.activeTemplates || {}).forEach(
+            ([type, tpl]) => {
+                if (!tpl) return;
+                payload[type] = tpl.code || tpl.id || tpl;
+            },
+        );
         return payload;
     }
 
@@ -1216,7 +1481,7 @@ export class SettingsClient {
         if (obj === null || obj === undefined) return {};
 
         // Use structuredClone if available (modern browsers)
-        if (typeof structuredClone === 'function') {
+        if (typeof structuredClone === "function") {
             try {
                 return structuredClone(obj);
             } catch (e) {
@@ -1228,7 +1493,7 @@ export class SettingsClient {
         try {
             return JSON.parse(JSON.stringify(obj));
         } catch (e) {
-            console.error('Failed to convert to plain object:', e);
+            console.error("Failed to convert to plain object:", e);
             return {};
         }
     }
@@ -1256,7 +1521,7 @@ export class SettingsClient {
         } catch (error) {
             this.state.cleanupResult = {
                 success: false,
-                message: error.message || 'Gagal mengambil statistik cleanup.',
+                message: error.message || "Gagal mengambil statistik cleanup.",
             };
         } finally {
             this.state.cleanupLoading = false;
@@ -1270,7 +1535,11 @@ export class SettingsClient {
         const count = this.state.cleanupStats?.orphaned_folders?.count || 0;
         if (count === 0) return;
 
-        if (!confirm(`Yakin hapus ${count} folder investigator orphan? Tindakan ini tidak dapat dibatalkan.`)) {
+        if (
+            !confirm(
+                `Yakin hapus ${count} folder investigator orphan? Tindakan ini tidak dapat dibatalkan.`,
+            )
+        ) {
             return;
         }
 
@@ -1279,11 +1548,13 @@ export class SettingsClient {
 
         try {
             const data = await this.apiFetch(this.api.cleanupOrphaned, {
-                method: 'POST',
+                method: "POST",
             });
             this.state.cleanupResult = {
                 success: true,
-                message: data.message || `Berhasil menghapus ${data.deleted} folder.`,
+                message:
+                    data.message ||
+                    `Berhasil menghapus ${data.deleted} folder.`,
                 size_label: data.size_label,
             };
             // Refresh stats after cleanup (preserve the success message)
@@ -1291,7 +1562,7 @@ export class SettingsClient {
         } catch (error) {
             this.state.cleanupResult = {
                 success: false,
-                message: error.message || 'Gagal menghapus folder orphan.',
+                message: error.message || "Gagal menghapus folder orphan.",
             };
         } finally {
             this.state.cleanupOrphanedLoading = false;
@@ -1305,7 +1576,11 @@ export class SettingsClient {
         const count = this.state.cleanupStats?.duplicate_documents?.count || 0;
         if (count === 0) return;
 
-        if (!confirm(`Yakin hapus ${count} dokumen duplikat? Hanya dokumen terbaru per tipe yang akan dipertahankan.`)) {
+        if (
+            !confirm(
+                `Yakin hapus ${count} dokumen duplikat? Hanya dokumen terbaru per tipe yang akan dipertahankan.`,
+            )
+        ) {
             return;
         }
 
@@ -1314,11 +1589,13 @@ export class SettingsClient {
 
         try {
             const data = await this.apiFetch(this.api.cleanupDuplicates, {
-                method: 'POST',
+                method: "POST",
             });
             this.state.cleanupResult = {
                 success: true,
-                message: data.message || `Berhasil menghapus ${data.deleted} dokumen duplikat.`,
+                message:
+                    data.message ||
+                    `Berhasil menghapus ${data.deleted} dokumen duplikat.`,
                 size_label: data.size_label,
             };
             // Refresh stats after cleanup (preserve the success message)
@@ -1328,7 +1605,7 @@ export class SettingsClient {
         } catch (error) {
             this.state.cleanupResult = {
                 success: false,
-                message: error.message || 'Gagal menghapus dokumen duplikat.',
+                message: error.message || "Gagal menghapus dokumen duplikat.",
             };
         } finally {
             this.state.cleanupDuplicatesLoading = false;
