@@ -7,6 +7,38 @@
 
 ## 📝 Changelog
 
+### v1.0.7 (8 Januari 2026)
+
+#### ✅ Feature Verification - Monitoring, Instruments & Weighing
+
+Completed verification of the LPMF monitoring and logging features implemented in Phase 1-4:
+
+**Features Verified:**
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Environment Monitoring | ✅ Working | Location cards, status indicators, input forms |
+| Instrument Logging | ✅ Working | Asset selection, usage log creation |
+| UV-VIS Weighing | ✅ Working | Conditional display, auto-fill user/timestamp |
+| Settings UI | ✅ Working | All 3 toggles persist on reload |
+| Monthly PDF Reports | ✅ Working | Environment, Instrument, Weighing reports generate |
+
+**Acceptance Criteria Met:**
+
+- ✅ `/settings` has "Monitoring dan Pencatatan" section with persistent toggles
+- ✅ Dashboard shows environment monitoring banner during work windows (07-09, 13-15)
+- ✅ Environment input validates temperature (required) and humidity (optional per settings)
+- ✅ Instrument logging blocks finalize without valid asset selection
+- ✅ UV-VIS preparation requires gram weighing when toggle enabled
+- ✅ Monthly PDF reports generate for any month with "Tidak ada data" for empty periods
+
+**Files Updated:**
+
+- `todos.md` - Marked 22 Phase 5 testing items as complete
+- `GET /api/settings` - Confirmed `monitoring_logging` block already included
+
+---
+
 ### v1.0.6 (7 Januari 2026)
 
 #### 🎨 UI Redesign

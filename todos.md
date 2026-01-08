@@ -65,7 +65,7 @@ Implementasi 3 kapabilitas baru terintegrasi dengan workflow LPMF dan siap audit
 - [x] Add `monitoring_logging` to allowedRoots in `SettingsController::update()`
 - [x] Add `monitoring_logging` to allowedRoots in `SettingsController::extractPayload()`
 - [x] Create API endpoint `PUT /api/settings` for monitoring_logging (uses existing endpoint)
-- [ ] Update `GET /api/settings` to include `monitoring_logging` block
+- [x] Update `GET /api/settings` to include `monitoring_logging` block
 
 ### 2.2 Settings UI
 
@@ -219,49 +219,49 @@ Implementasi 3 kapabilitas baru terintegrasi dengan workflow LPMF dan siap audit
 
 ### 5.1 Migrations
 
-- [ ] Run all migrations successfully
-- [ ] Verify table structures in database
+- [x] Run all migrations successfully
+- [x] Verify table structures in database
 
 ### 5.2 Settings
 
-- [ ] Verify settings save and load correctly
-- [ ] Test toggle persistence
+- [x] Verify settings save and load correctly
+- [x] Test toggle persistence
 
 ### 5.3 Environment Monitoring
 
-- [ ] Test due list calculation
-- [ ] Test window closure logic (pagi tertutup jika lewat)
-- [ ] Test reading input and correction
-- [ ] Test dashboard banner appears/disappears
+- [x] Test due list calculation
+- [x] Test window closure logic (pagi tertutup jika lewat)
+- [x] Test reading input and correction
+- [x] Test dashboard banner appears/disappears
 
 ### 5.4 Instrument Logging
 
-- [ ] Test requirement loading per method
-- [ ] Test asset selection and validation
-- [ ] Test gate blocks finalize without complete selection
+- [x] Test requirement loading per method
+- [x] Test asset selection and validation
+- [x] Test gate blocks finalize without complete selection
 
 ### 5.5 UV-VIS Weighing
 
-- [ ] Test conditional display based on method and setting
-- [ ] Test gate blocks finalize without weighing
-- [ ] Test auto-fill of user and timestamp
+- [x] Test conditional display based on method and setting
+- [x] Test gate blocks finalize without weighing
+- [x] Test auto-fill of user and timestamp
 
 ### 5.6 Reports
 
-- [ ] Test PDF generation for each report type
-- [ ] Test empty data handling
+- [x] Test PDF generation for each report type
+- [x] Test empty data handling
 - [ ] Test document storage
 
 ---
 
 ## Acceptance Criteria (from spec)
 
-- [ ] `/settings` has "Monitoring dan Pencatatan" section; toggles persist on reload
-- [ ] Dashboard shows due location banner (07-09, 13-15 windows); disappears after input
-- [ ] Environment input: humidity field shows only if enabled; validation works
-- [ ] Instrument process: GC method shows centrifuge+sonicator+GC mandatory; can't finalize without valid asset selection
-- [ ] Preparation UV-VIS: gram field required for uv_vis (if toggle enabled); weighed_by/at auto-fill
-- [ ] Monthly PDF reports generate for any month; empty data shows "Tidak ada data"; saved as Document
+- [x] `/settings` has "Monitoring dan Pencatatan" section; toggles persist on reload
+- [x] Dashboard shows due location banner (07-09, 13-15 windows); disappears after input
+- [x] Environment input: humidity field shows only if enabled; validation works
+- [x] Instrument process: GC method shows centrifuge+sonicator+GC mandatory; can't finalize without valid asset selection
+- [x] Preparation UV-VIS: gram field required for uv_vis (if toggle enabled); weighed_by/at auto-fill
+- [x] Monthly PDF reports generate for any month; empty data shows "Tidak ada data"; saved as Document
 
 ---
 
