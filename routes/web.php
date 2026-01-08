@@ -237,6 +237,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/preview', [SettingsController::class, 'preview'])->name('preview');
         Route::post('/test', [SettingsController::class, 'test'])->name('test');
         Route::post('/brand-asset', [SettingsController::class, 'uploadBrandAsset'])->name('brand.upload');
+        Route::post('/instrument-requirements', [SettingsController::class, 'saveInstrumentRequirements'])->name('instrument-requirements.save');
 
         Route::get('/templates', [SettingsTemplateController::class, 'index'])->name('templates.index');
         Route::post('/templates', [SettingsTemplateController::class, 'store'])->name('templates.store');

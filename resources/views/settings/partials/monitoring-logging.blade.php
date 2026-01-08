@@ -157,16 +157,98 @@
                 </label>
             </div>
 
-            <div x-show="client.state.form.monitoring_logging?.instrument?.enabled" x-cloak class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                <p class="text-sm text-blue-800">
-                    <strong>Cara Kerja:</strong> Sistem akan memvalidasi bahwa instrumen yang diperlukan oleh metode pengujian (UV-VIS, GC-MS, LC-MS) 
-                    sudah dicatat sebelum tahap INSTRUMENTATION dapat diselesaikan.
+            <div x-show="!client.state.form.monitoring_logging?.instrument?.enabled" x-cloak class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <p class="text-sm text-gray-600">
+                    <strong>Cara Kerja:</strong> Ketika diaktifkan, sistem akan memvalidasi bahwa instrumen yang diperlukan 
+                    oleh metode pengujian (UV-VIS, GC-MS, LC-MS) sudah dicatat sebelum tahap INSTRUMENTATION dapat diselesaikan.
                 </p>
-                <ul class="text-xs text-blue-700 mt-2 space-y-1 list-disc list-inside">
-                    <li>Persyaratan instrumen per metode diatur di tabel <code>method_instrument_requirements</code></li>
-                    <li>Pencatatan instrumen dilakukan di halaman proses pengujian</li>
-                    <li>Log tidak dapat dihapus/diubah - koreksi membuat record baru</li>
-                </ul>
+            </div>
+
+            <div x-show="client.state.form.monitoring_logging?.instrument?.enabled" x-cloak class="mt-4 space-y-4">
+                <div class="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                    <p class="text-sm text-blue-800 mb-3">
+                        <strong>Konfigurasi Instrumen per Metode:</strong> Atur instrumen yang wajib dicatat untuk setiap metode pengujian.
+                    </p>
+                </div>
+
+                <template x-for="methodCode in (instrumentRequirements?.available_methods || ['uv_vis', 'gc_ms', 'lc_ms'])" :key="methodCode">
+                    <div class="border border-gray-200 rounded-lg overflow-hidden">
+                        <button type="button" 
+                                @click="toggleMethodAccordion(methodCode)"
+                                class="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition">
+                            <div class="flex items-center gap-3">
+                                <span class="text-sm font-semibold text-gray-800 uppercase" x-text="methodCode.replace('_', '-')"></span>
+                                <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800"
+                                      x-text="(instrumentRequirementsState[methodCode] || []).length + ' instrumen'"></span>
+                            </div>
+                            <svg class="w-5 h-5 text-gray-500 transition-transform" 
+                                 :class="openMethodAccordions[methodCode] ? 'rotate-180' : ''"
+                                 fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        
+                        <div x-show="openMethodAccordions[methodCode]" x-cloak class="p-4 border-t border-gray-200 bg-white">
+                            <div class="space-y-3">
+                                <template x-for="(req, reqIndex) in (instrumentRequirementsState[methodCode] || [])" :key="reqIndex">
+                                    <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                        <span class="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-gray-200 text-xs font-medium text-gray-700" x-text="req.sequence"></span>
+                                        
+                                        <select x-model="req.instrument_id" 
+                                                @change="updateRequirementInstrument(methodCode, reqIndex, $event.target.value)"
+                                                class="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                            <option value="">-- Pilih Instrumen --</option>
+                                            <template x-for="inst in (instrumentRequirements?.instruments_master || [])" :key="inst.id">
+                                                <option :value="inst.id" x-text="inst.name" :selected="inst.id == req.instrument_id"></option>
+                                            </template>
+                                        </select>
+
+                                        <select x-model="req.usage_type" class="w-24 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                                            <option value="PREP">PREP</option>
+                                            <option value="RUN">RUN</option>
+                                        </select>
+
+                                        <label class="flex items-center gap-1.5 cursor-pointer">
+                                            <input type="checkbox" x-model="req.mandatory" class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                            <span class="text-xs text-gray-600">Wajib</span>
+                                        </label>
+
+                                        <button type="button" @click="removeRequirement(methodCode, reqIndex)"
+                                                class="p-1.5 text-red-500 hover:bg-red-50 rounded transition">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </template>
+
+                                <div x-show="(instrumentRequirementsState[methodCode] || []).length === 0" class="text-center py-4 text-sm text-gray-500">
+                                    Belum ada instrumen. Klik tombol di bawah untuk menambah.
+                                </div>
+                            </div>
+
+                            <button type="button" @click="addRequirement(methodCode)"
+                                    class="mt-3 w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                </svg>
+                                Tambah Instrumen
+                            </button>
+                        </div>
+                    </div>
+                </template>
+
+                <div class="flex justify-end pt-2">
+                    <button type="button" @click="saveInstrumentRequirements()"
+                            :disabled="savingInstrumentRequirements"
+                            class="inline-flex items-center px-4 py-2 text-sm font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700 focus:ring-4 focus:ring-green-300 disabled:opacity-50 disabled:cursor-not-allowed transition">
+                        <svg x-show="savingInstrumentRequirements" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span x-text="savingInstrumentRequirements ? 'Menyimpan...' : 'Simpan Mapping Instrumen'"></span>
+                    </button>
+                </div>
             </div>
         </div>
 

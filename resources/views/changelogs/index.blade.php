@@ -10,6 +10,117 @@
     </x-slot>
 
     <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+        {{-- Version 1.0.7 --}}
+        <div class="card mb-6">
+            <div class="flex items-start gap-4 mb-6">
+                <div class="flex-shrink-0 h-12 w-12 bg-emerald-100 rounded-full flex items-center justify-center">
+                    <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-1">
+                        <h2 class="text-xl font-bold text-gray-900">LPMF LIMS v1.0.7</h2>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Latest
+                        </span>
+                    </div>
+                    <p class="text-sm text-gray-500">Dirilis: 8 Januari 2026</p>
+                </div>
+            </div>
+
+            {{-- New Features --}}
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-green-100 text-green-600">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                    </span>
+                    Fitur Baru
+                </h3>
+                <ul class="space-y-2 text-sm text-gray-700">
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span><strong>Editor Mapping Instrumen:</strong> Accordion editor di Settings untuk mengkonfigurasi instrumen yang diperlukan per metode pengujian (UV-VIS, GC-MS, LC-MS)</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span><strong>Mapping Many-to-Many:</strong> Satu instrumen (mis. Centrifuge) dapat dipakai di beberapa metode sekaligus</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span><strong>Konfigurasi per Requirement:</strong> Setiap instrumen dapat dikonfigurasi tipe penggunaan (PREP/RUN), wajib/opsional, dan urutan</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span><strong>Instrument Seeder:</strong> 8 instrumen default (Centrifuge, Sonicator, Vortex, Balance, UV-VIS, GC-MS, LC-MS, HPLC) beserta default requirements</span>
+                    </li>
+                </ul>
+            </div>
+
+            {{-- Bug Fixes --}}
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-red-100 text-red-600">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </span>
+                    Perbaikan Bug
+                </h3>
+                <ul class="space-y-2 text-sm text-gray-700">
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <span><strong>Missing Instrument View:</strong> Fix error <code class="bg-gray-100 px-1 rounded">View [monitoring.instruments.index] not found</code></span>
+                    </li>
+                </ul>
+            </div>
+
+            {{-- Technical Improvements --}}
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-indigo-100 text-indigo-600">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                    </span>
+                    Peningkatan Teknis
+                </h3>
+                <ul class="space-y-2 text-sm text-gray-700">
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        <span><strong>API Settings:</strong> Endpoint <code class="bg-gray-100 px-1 rounded">GET /settings/data</code> sekarang include <code class="bg-gray-100 px-1 rounded">instrument_requirements</code></span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        <span><strong>Atomic Save:</strong> Endpoint <code class="bg-gray-100 px-1 rounded">POST /settings/instrument-requirements</code> dengan transaction untuk sync requirements</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        <span><strong>Alpine.js State:</strong> Penambahan state dan methods untuk accordion, add/remove requirements, dan save</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
         {{-- Version 1.0.5 --}}
         <div class="card mb-6">
             <div class="flex items-start gap-4 mb-6">
@@ -21,9 +132,6 @@
                 <div class="flex-1">
                     <div class="flex items-center gap-3 mb-1">
                         <h2 class="text-xl font-bold text-gray-900">LPMF LIMS v1.0.5</h2>
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Latest
-                        </span>
                     </div>
                     <p class="text-sm text-gray-500">Dirilis: 5 Januari 2026</p>
                 </div>

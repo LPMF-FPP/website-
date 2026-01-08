@@ -49,3 +49,6 @@ test.txt
 _bmad/
 /docs/
 
+.agent/workflows/post-coding.md
+.agent/workflows/pre-pr-checks.md
+.agent/workflows/setup.md

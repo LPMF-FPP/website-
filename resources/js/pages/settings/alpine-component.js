@@ -244,6 +244,10 @@ export function registerSettingsComponent() {
                 error: "",
                 data: null,
             },
+            instrumentRequirements: null,
+            instrumentRequirementsState: {},
+            openMethodAccordions: {},
+            savingInstrumentRequirements: false,
             get selectedDocType() {
                 return this.documentTemplateState.selectedDocumentType;
             },
@@ -336,8 +340,9 @@ export function registerSettingsComponent() {
                 console.log("✅ [Alpine] State initialized, loading data...");
 
                 // Load all data
-                this.client.loadAll().finally(() => {
+                this.client.loadAll().then(() => {
                     this.fetchTimePreview();
+                    this.loadInstrumentRequirements();
                 });
 
                 // Backward-compatible deep link: /settings#template-dokumen -> /settings/blade-templates
@@ -2743,6 +2748,157 @@ export function registerSettingsComponent() {
                         error.message || "Gagal menyimpan pengaturan.";
                 } finally {
                     this.client.state.loadingSections.monitoring_logging = false;
+                }
+            },
+
+            initInstrumentRequirements(data) {
+                if (!data) return;
+                this.instrumentRequirements = data;
+                this.instrumentRequirementsState = {};
+                const methods = data.available_methods || [
+                    "uv_vis",
+                    "gc_ms",
+                    "lc_ms",
+                ];
+                methods.forEach((methodCode) => {
+                    this.instrumentRequirementsState[methodCode] = (
+                        data.requirements_by_method?.[methodCode] || []
+                    ).map((req) => ({
+                        instrument_id: req.instrument_id,
+                        mandatory: req.mandatory,
+                        usage_type: req.usage_type,
+                        sequence: req.sequence,
+                    }));
+                    this.openMethodAccordions[methodCode] = false;
+                });
+            },
+
+            async loadInstrumentRequirements() {
+                try {
+                    const response = await fetch("/settings/data", {
+                        headers: { Accept: "application/json" },
+                    });
+                    const data = await response.json();
+                    if (data.instrument_requirements) {
+                        this.initInstrumentRequirements(
+                            data.instrument_requirements,
+                        );
+                    }
+                } catch (error) {
+                    console.error(
+                        "Failed to load instrument requirements:",
+                        error,
+                    );
+                }
+            },
+
+            toggleMethodAccordion(methodCode) {
+                this.openMethodAccordions[methodCode] =
+                    !this.openMethodAccordions[methodCode];
+            },
+
+            addRequirement(methodCode) {
+                if (!this.instrumentRequirementsState[methodCode]) {
+                    this.instrumentRequirementsState[methodCode] = [];
+                }
+                const currentReqs =
+                    this.instrumentRequirementsState[methodCode];
+                const nextSequence =
+                    currentReqs.length > 0
+                        ? Math.max(...currentReqs.map((r) => r.sequence)) + 1
+                        : 1;
+                currentReqs.push({
+                    instrument_id: "",
+                    mandatory: true,
+                    usage_type: "PREP",
+                    sequence: nextSequence,
+                });
+            },
+
+            removeRequirement(methodCode, index) {
+                if (!this.instrumentRequirementsState[methodCode]) return;
+                this.instrumentRequirementsState[methodCode].splice(index, 1);
+                this.instrumentRequirementsState[methodCode].forEach(
+                    (req, i) => {
+                        req.sequence = i + 1;
+                    },
+                );
+            },
+
+            updateRequirementInstrument(methodCode, index, instrumentId) {
+                if (!this.instrumentRequirementsState[methodCode]) return;
+                this.instrumentRequirementsState[methodCode][
+                    index
+                ].instrument_id = instrumentId
+                    ? parseInt(instrumentId, 10)
+                    : "";
+            },
+
+            async saveInstrumentRequirements() {
+                this.savingInstrumentRequirements = true;
+                this.client.state.sectionErrors.monitoring_logging = "";
+
+                try {
+                    const requirementsByMethod = {};
+                    const methods = this.instrumentRequirements
+                        ?.available_methods || ["uv_vis", "gc_ms", "lc_ms"];
+
+                    methods.forEach((methodCode) => {
+                        requirementsByMethod[methodCode] = (
+                            this.instrumentRequirementsState[methodCode] || []
+                        )
+                            .filter((req) => req.instrument_id)
+                            .map((req, index) => ({
+                                instrument_id: parseInt(req.instrument_id, 10),
+                                mandatory: Boolean(req.mandatory),
+                                usage_type: req.usage_type || "PREP",
+                                sequence: index + 1,
+                            }));
+                    });
+
+                    const response = await fetch(
+                        "/settings/instrument-requirements",
+                        {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                Accept: "application/json",
+                                "X-CSRF-TOKEN":
+                                    document.querySelector(
+                                        'meta[name="csrf-token"]',
+                                    )?.content || "",
+                            },
+                            body: JSON.stringify({
+                                requirements_by_method: requirementsByMethod,
+                            }),
+                        },
+                    );
+
+                    const data = await response.json();
+
+                    if (response.ok && data.ok) {
+                        this.client.state.sectionStatus.monitoring_logging = {
+                            message:
+                                data.message ||
+                                "Mapping instrumen berhasil disimpan.",
+                            intentClass: "text-green-600",
+                        };
+                        if (data.instrument_requirements) {
+                            this.initInstrumentRequirements(
+                                data.instrument_requirements,
+                            );
+                        }
+                    } else {
+                        throw new Error(
+                            data.error || "Gagal menyimpan mapping instrumen.",
+                        );
+                    }
+                } catch (error) {
+                    console.error("Instrument requirements save error:", error);
+                    this.client.state.sectionErrors.monitoring_logging =
+                        error.message || "Gagal menyimpan mapping instrumen.";
+                } finally {
+                    this.savingInstrumentRequirements = false;
                 }
             },
 

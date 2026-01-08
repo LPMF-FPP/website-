@@ -170,7 +170,7 @@ find tests/ -name "*.php"
 ## 10. Execution Protocol
 
 ### Pre-Coding Phase
-1. Check `todos.md` for current task
+1. Check `todos.md` and overwrite if new task
 2. For unclear requirements → consult `oracle`
 3. For architecture decisions → consult `Planner-Sisyphus`
 4. For API/library questions → consult `librarian`

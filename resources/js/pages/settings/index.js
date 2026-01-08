@@ -1059,6 +1059,13 @@ export class SettingsClient {
         };
 
         form.monitoring_logging ??= {};
+        // Ensure monitoring_logging is an object, not an array (server may return empty array)
+        if (
+            Array.isArray(form.monitoring_logging) ||
+            typeof form.monitoring_logging !== "object"
+        ) {
+            form.monitoring_logging = {};
+        }
         form.monitoring_logging.environment ??= {
             enabled: false,
             work_start: "07:00",

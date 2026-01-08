@@ -15,13 +15,13 @@ Completed verification of the LPMF monitoring and logging features implemented i
 
 **Features Verified:**
 
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Environment Monitoring | ✅ Working | Location cards, status indicators, input forms |
-| Instrument Logging | ✅ Working | Asset selection, usage log creation |
-| UV-VIS Weighing | ✅ Working | Conditional display, auto-fill user/timestamp |
-| Settings UI | ✅ Working | All 3 toggles persist on reload |
-| Monthly PDF Reports | ✅ Working | Environment, Instrument, Weighing reports generate |
+| Feature                | Status     | Notes                                              |
+| ---------------------- | ---------- | -------------------------------------------------- |
+| Environment Monitoring | ✅ Working | Location cards, status indicators, input forms     |
+| Instrument Logging     | ✅ Working | Asset selection, usage log creation                |
+| UV-VIS Weighing        | ✅ Working | Conditional display, auto-fill user/timestamp      |
+| Settings UI            | ✅ Working | All 3 toggles persist on reload                    |
+| Monthly PDF Reports    | ✅ Working | Environment, Instrument, Weighing reports generate |
 
 **Acceptance Criteria Met:**
 
@@ -36,6 +36,32 @@ Completed verification of the LPMF monitoring and logging features implemented i
 
 - `todos.md` - Marked 22 Phase 5 testing items as complete
 - `GET /api/settings` - Confirmed `monitoring_logging` block already included
+
+#### 🐛 Bug Fixes
+
+- **Missing Instrument View**: Fixed `View [monitoring.instruments.index] not found` error by creating the missing view file.
+    - **File created**: `resources/views/monitoring/instruments/index.blade.php`
+
+#### 🆕 New Features
+
+- **Instrument-to-Method Mapping Editor in Settings**: Added accordion-based editor in `/settings` → "Monitoring dan Pencatatan" section for configuring which instruments are required for each test method (UV-VIS, GC-MS, LC-MS).
+    - **UI Features**:
+        - Accordion per method (expandable/collapsible)
+        - Add/remove instrument requirements per method
+        - Configure: instrument selection, usage type (PREP/RUN), mandatory flag, sequence
+        - One instrument can be mapped to multiple methods (many-to-many)
+    - **Backend**:
+        - `GET /settings/data` now includes `instrument_requirements` with `instruments_master`, `requirements_by_method`, `available_methods`, `usage_types`
+        - `POST /settings/instrument-requirements` - atomic save of all method requirements (transaction-wrapped delete + insert)
+    - **Database**:
+        - Created `InstrumentSeeder` with 8 default instruments (Centrifuge, Sonicator, Vortex, Balance, UV-VIS, GC-MS, LC-MS, HPLC)
+        - Default requirements seeded for uv_vis, gc_ms, lc_ms methods
+    - **Files Changed**:
+        - `app/Http/Controllers/SettingsController.php` - Added `getInstrumentRequirementsData()` and `saveInstrumentRequirements()` methods
+        - `resources/views/settings/partials/monitoring-logging.blade.php` - Added accordion editor UI
+        - `resources/js/pages/settings/alpine-component.js` - Added state and methods for accordion, add/remove, save
+        - `database/seeders/InstrumentSeeder.php` - New seeder for instruments and default requirements
+        - `routes/web.php` - Added route for `saveInstrumentRequirements`
 
 ---
 

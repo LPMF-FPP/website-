@@ -4,11 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Settings\LocalizationSettingsRequest;
 use App\Models\DocumentTemplate;
+use App\Models\Instrument;
+use App\Models\MethodInstrumentRequirement;
 use App\Models\SystemSetting;
 use App\Services\NumberingService;
 use App\Support\Audit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
@@ -47,6 +50,8 @@ class SettingsController extends Controller
 
         $templates = DocumentTemplate::orderBy('name')->get();
 
+        $instrumentRequirementsData = $this->getInstrumentRequirementsData();
+
         return response()->json([
             'settings' => $settings,
             'numbering' => Arr::get($settings, 'numbering', []),
@@ -61,6 +66,7 @@ class SettingsController extends Controller
                 'list' => $templates,
             ],
             'security' => Arr::get($settings, 'security.roles', []),
+            'instrument_requirements' => $instrumentRequirementsData,
             'options' => [
                 'timezones' => LocalizationSettingsRequest::timezones(),
                 'date_formats' => self::ALLOWED_DATE_FORMATS,
@@ -368,5 +374,95 @@ class SettingsController extends Controller
         }
 
         return $filtered;
+    }
+
+    protected function getInstrumentRequirementsData(): array
+    {
+        $instruments = Instrument::where('is_active', true)
+            ->orderBy('category')
+            ->orderBy('name')
+            ->get(['id', 'code', 'name', 'category', 'is_active']);
+
+        $requirements = MethodInstrumentRequirement::with('instrument:id,code,name')
+            ->orderBy('method_code')
+            ->orderBy('sequence')
+            ->get();
+
+        $requirementsByMethod = [];
+        foreach ($requirements as $req) {
+            $methodCode = $req->method_code;
+            if (! isset($requirementsByMethod[$methodCode])) {
+                $requirementsByMethod[$methodCode] = [];
+            }
+            $requirementsByMethod[$methodCode][] = [
+                'id' => $req->id,
+                'instrument_id' => $req->instrument_id,
+                'instrument_code' => $req->instrument?->code,
+                'instrument_name' => $req->instrument?->name,
+                'mandatory' => $req->mandatory,
+                'usage_type' => $req->usage_type->value ?? $req->usage_type,
+                'sequence' => $req->sequence,
+            ];
+        }
+
+        return [
+            'instruments_master' => $instruments,
+            'requirements_by_method' => $requirementsByMethod,
+            'available_methods' => ['uv_vis', 'gc_ms', 'lc_ms'],
+            'usage_types' => ['PREP', 'RUN'],
+        ];
+    }
+
+    public function saveInstrumentRequirements(Request $request)
+    {
+        Gate::authorize('manage-settings');
+
+        $validated = $request->validate([
+            'requirements_by_method' => ['required', 'array'],
+            'requirements_by_method.*' => ['array'],
+            'requirements_by_method.*.*.instrument_id' => ['required', 'integer', 'exists:instruments,id'],
+            'requirements_by_method.*.*.mandatory' => ['required', 'boolean'],
+            'requirements_by_method.*.*.usage_type' => ['required', 'string', 'in:PREP,RUN'],
+            'requirements_by_method.*.*.sequence' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $requirementsByMethod = $validated['requirements_by_method'];
+        $allowedMethods = ['uv_vis', 'gc_ms', 'lc_ms'];
+
+        try {
+            DB::transaction(function () use ($requirementsByMethod, $allowedMethods) {
+                foreach ($allowedMethods as $methodCode) {
+                    MethodInstrumentRequirement::where('method_code', $methodCode)->delete();
+
+                    $requirements = $requirementsByMethod[$methodCode] ?? [];
+                    foreach ($requirements as $req) {
+                        MethodInstrumentRequirement::create([
+                            'method_code' => $methodCode,
+                            'instrument_id' => $req['instrument_id'],
+                            'mandatory' => $req['mandatory'],
+                            'usage_type' => $req['usage_type'],
+                            'sequence' => $req['sequence'],
+                        ]);
+                    }
+                }
+            });
+
+            Audit::log('UPDATE_INSTRUMENT_REQUIREMENTS', null, null, [
+                'methods_updated' => array_keys($requirementsByMethod),
+            ]);
+
+            return response()->json([
+                'ok' => true,
+                'message' => 'Instrument requirements saved successfully',
+                'instrument_requirements' => $this->getInstrumentRequirementsData(),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Failed to save instrument requirements:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json(['error' => 'Failed to save instrument requirements: ' . $e->getMessage()], 500);
+        }
     }
 }
