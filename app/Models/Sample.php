@@ -66,6 +66,11 @@ class Sample extends Model
         'uvvis_weighed_grams',
         'uvvis_weighed_by',
         'uvvis_weighed_at',
+        'weighed_items_count',
+        'weighed_mass_value',
+        'weighed_mass_unit',
+        'weighed_by',
+        'weighed_at',
 
     ];
 
@@ -84,6 +89,10 @@ class Sample extends Model
         'testing_completed_at' => 'datetime',
         'uvvis_weighed_grams' => 'decimal:4',
         'uvvis_weighed_at' => 'datetime',
+        'weighed_items_count' => 'integer',
+        'weighed_mass_value' => 'decimal:6',
+        'weighed_mass_unit' => \App\Enums\WeighedMassUnit::class,
+        'weighed_at' => 'datetime',
     ];
 
     protected static function boot()
@@ -182,6 +191,11 @@ class Sample extends Model
     public function uvvisWeighedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'uvvis_weighed_by');
+    }
+
+    public function weighedByUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'weighed_by');
     }
 
     public function getCurrentTestProcess(): ?SampleTestProcess

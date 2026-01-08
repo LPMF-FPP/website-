@@ -14,7 +14,7 @@ class InstrumentSeeder extends Seeder
             ['code' => 'CENTRIFUGE', 'name' => 'Centrifuge', 'category' => 'prep', 'is_active' => true],
             ['code' => 'SONICATOR', 'name' => 'Sonicator', 'category' => 'prep', 'is_active' => true],
             ['code' => 'VORTEX', 'name' => 'Vortex Mixer', 'category' => 'prep', 'is_active' => true],
-            ['code' => 'BALANCE', 'name' => 'Analytical Balance', 'category' => 'prep', 'is_active' => true],
+            ['code' => 'ANALYTICAL_BALANCE', 'name' => 'Analytical Balance', 'category' => 'prep', 'is_active' => true],
             ['code' => 'UV_VIS', 'name' => 'UV-VIS Spectrophotometer', 'category' => 'analytical', 'is_active' => true],
             ['code' => 'GC_MS', 'name' => 'GC-MS (Gas Chromatography Mass Spectrometry)', 'category' => 'analytical', 'is_active' => true],
             ['code' => 'LC_MS', 'name' => 'LC-MS (Liquid Chromatography Mass Spectrometry)', 'category' => 'analytical', 'is_active' => true],

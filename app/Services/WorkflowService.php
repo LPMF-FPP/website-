@@ -118,10 +118,10 @@ class WorkflowService
 
     protected function validatePreparationGate(Sample $sample): void
     {
-        if ($this->instrumentLoggingService->requiresUvvisWeighing($sample)) {
-            if (! $this->instrumentLoggingService->hasCompletedUvvisWeighing($sample)) {
+        if ($this->instrumentLoggingService->requiresWeighing($sample)) {
+            if (! $this->instrumentLoggingService->hasCompletedWeighing($sample)) {
                 throw ValidationException::withMessages([
-                    'uvvis_weighing' => ['Sample dengan metode UV-VIS wajib memiliki data penimbangan. Silakan isi berat gram sebelum menyelesaikan preparasi.'],
+                    'weighing' => ['Sample membutuhkan penimbangan (Analytical Balance). Silakan isi data penimbangan sebelum menyelesaikan preparasi.'],
                 ]);
             }
         }

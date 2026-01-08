@@ -1,11 +1,82 @@
-# WALKTHROUGH - LPMF LIMS v1.0.6
+# WALKTHROUGH - LPMF LIMS v1.0.8
 
 > **Laboratory Information Management System untuk Laboratorium Pengujian Mutu Farmasi**
 > **Dokumen ini menggabungkan PRD (Product Requirements) dan ERD (Entity Relationship)**
 
 ---
 
-## 📝 Changelog
+## Changelog
+
+### v1.0.8 (8 Januari 2026)
+
+#### Refactor: Penimbangan Berbasis Requirement Instrumen
+
+Migrasi sistem penimbangan dari UV-VIS specific menjadi requirement-based (Analytical Balance).
+
+**Konsep Baru:**
+
+- Penimbangan wajib muncul pada tahap PREPARATION jika salah satu metode pada sampel memiliki requirement ANALYTICAL_BALANCE (usage_type=PREP, mandatory=true)
+- Penimbangan bisa wajib di UV-VIS, GC-MS, LC-MS, atau metode lain - selama metode tersebut membutuhkan Analytical Balance
+- Toggle "Penimbangan UV-VIS" di /settings dihapus - aktivasi penimbangan sepenuhnya melalui konfigurasi instrumen per metode
+
+**Database Changes:**
+
+- New columns on `samples` table:
+    - `weighed_items_count` (integer) - jumlah item/aliquot yang ditimbang
+    - `weighed_mass_value` (decimal 12,6) - nilai massa dari Analytical Balance
+    - `weighed_mass_unit` (enum: ug, mg, g) - unit massa
+    - `weighed_by` (FK users) - user yang melakukan penimbangan
+    - `weighed_at` (timestamp) - waktu penimbangan dicatat
+- New enum: `App\Enums\WeighedMassUnit` (UG, MG, G)
+- Data migration: existing `uvvis_*` data migrated to new `weighed_*` columns
+- InstrumentSeeder updated: BALANCE renamed to ANALYTICAL_BALANCE
+
+**Backend Changes:**
+
+- `InstrumentLoggingService`:
+    - New method `requiresWeighing($sample)` - checks ANALYTICAL_BALANCE requirement
+    - New method `hasCompletedWeighing($sample)` - validates all weighing fields filled
+    - New method `recordWeighing($sample, $itemsCount, $massValue, $massUnit, $user)`
+    - New method `getWeighingDataForSample($sample)` - returns weighing status and data
+    - Legacy methods `requiresUvvisWeighing`, `hasCompletedUvvisWeighing`, `recordUvvisWeighing` now delegate to new methods
+- `WorkflowService::validatePreparationGate()` updated to use `requiresWeighing()` instead of UV-VIS specific check
+- `InstrumentLoggingController`:
+    - New endpoints: `GET/POST /api/samples/{sample}/weighing`
+    - Legacy endpoints still work for backward compatibility
+- `MonthlyLogReportController::weighingReport()` updated to query both old and new columns
+
+**Frontend Changes:**
+
+- `/settings` "Penimbangan UV-VIS" section removed entirely
+- PREPARATION stage form updated:
+    - Block title changed to "Penimbangan (Analytical Balance)"
+    - New fields: Jumlah Item (integer), Massa Terbaca (decimal), Unit (dropdown: ug/mg/g)
+    - Block shows when ANALYTICAL_BALANCE requirement exists for sample's methods
+- PDF report `weighing-monthly.blade.php` updated with new columns and mass unit display
+
+**Acceptance Criteria:**
+
+1. Add Analytical Balance to GC-MS method in /settings -> sample GC-MS shows weighing block in PREPARATION
+2. Remove Analytical Balance from method -> weighing block disappears
+3. Finalize PREPARATION for sample that requires weighing without data -> backend rejects with error
+4. Unit ug/mg/g saved and displayed consistently in forms and reports
+
+**Files Changed:**
+
+- `database/migrations/2026_01_08_071922_add_generic_weighing_columns_to_samples_table.php` (new)
+- `database/seeders/InstrumentSeeder.php` (updated BALANCE -> ANALYTICAL_BALANCE)
+- `app/Enums/WeighedMassUnit.php` (new)
+- `app/Models/Sample.php` (new fillables, casts, weighedByUser relationship)
+- `app/Services/InstrumentLoggingService.php` (new weighing methods)
+- `app/Services/WorkflowService.php` (updated preparation gate)
+- `app/Http/Controllers/InstrumentLoggingController.php` (new weighing endpoints)
+- `app/Http/Controllers/Reports/MonthlyLogReportController.php` (updated query)
+- `resources/views/settings/partials/monitoring-logging.blade.php` (removed UV-VIS section)
+- `resources/views/sample-processes/edit.blade.php` (updated weighing form)
+- `resources/views/pdf/weighing-monthly.blade.php` (updated columns)
+- `routes/web.php` (new weighing routes)
+
+---
 
 ### v1.0.7 (8 Januari 2026)
 

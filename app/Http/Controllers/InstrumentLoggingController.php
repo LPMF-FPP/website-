@@ -154,4 +154,42 @@ class InstrumentLoggingController extends Controller
             ],
         ]);
     }
+
+    public function checkWeighing(Request $request, Sample $sample): JsonResponse
+    {
+        return response()->json($this->service->getWeighingDataForSample($sample));
+    }
+
+    public function storeWeighing(Request $request, Sample $sample): JsonResponse
+    {
+        if (! $this->service->requiresWeighing($sample)) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Sampel ini tidak memerlukan penimbangan (tidak ada requirement Analytical Balance).',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'items_count' => ['required', 'integer', 'min:1', 'max:999'],
+            'mass_value' => ['required', 'numeric', 'min:0.000001', 'max:99999999.999999'],
+            'mass_unit' => ['required', 'in:ug,mg,g'],
+        ]);
+
+        $user = $request->user();
+        $this->service->recordWeighing(
+            $sample,
+            (int) $validated['items_count'],
+            (float) $validated['mass_value'],
+            $validated['mass_unit'],
+            $user
+        );
+
+        $weighingData = $this->service->getWeighingDataForSample($sample->fresh());
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Data penimbangan berhasil disimpan.',
+            'weighing_data' => $weighingData['weighing_data'],
+        ]);
+    }
 }

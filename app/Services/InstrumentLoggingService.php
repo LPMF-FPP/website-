@@ -282,31 +282,77 @@ class InstrumentLoggingService
 
     public function requiresUvvisWeighing(Sample $sample): bool
     {
-        $uvvisEnabled = (bool) settings('monitoring_logging.uvvis_weighing.enabled', false);
-
-        if (! $uvvisEnabled) {
-            return false;
-        }
-
-        $methods = $this->getMethodsFromSample($sample);
-
-        return in_array('uv_vis', $methods, true);
+        return $this->requiresWeighing($sample);
     }
 
     public function hasCompletedUvvisWeighing(Sample $sample): bool
     {
-        return $sample->uvvis_weighed_grams !== null
-            && $sample->uvvis_weighed_by !== null
-            && $sample->uvvis_weighed_at !== null;
+        return $this->hasCompletedWeighing($sample);
     }
 
     public function recordUvvisWeighing(Sample $sample, float $grams, User $user): Sample
     {
-        $sample->uvvis_weighed_grams = $grams;
-        $sample->uvvis_weighed_by = $user->id;
-        $sample->uvvis_weighed_at = Carbon::now();
+        return $this->recordWeighing($sample, 1, $grams, 'g', $user);
+    }
+
+    public function requiresWeighing(Sample $sample): bool
+    {
+        $methods = $this->getMethodsFromSample($sample);
+
+        if (empty($methods)) {
+            return false;
+        }
+
+        return MethodInstrumentRequirement::whereIn('method_code', $methods)
+            ->whereHas('instrument', fn ($q) => $q->where('code', 'ANALYTICAL_BALANCE'))
+            ->where('mandatory', true)
+            ->where('usage_type', InstrumentUsageType::PREP->value)
+            ->exists();
+    }
+
+    public function hasCompletedWeighing(Sample $sample): bool
+    {
+        return $sample->weighed_mass_value !== null
+            && $sample->weighed_mass_unit !== null
+            && $sample->weighed_by !== null
+            && $sample->weighed_at !== null
+            && $sample->weighed_items_count !== null
+            && $sample->weighed_items_count >= 1;
+    }
+
+    public function recordWeighing(
+        Sample $sample,
+        int $itemsCount,
+        float $massValue,
+        string $massUnit,
+        User $user
+    ): Sample {
+        $sample->weighed_items_count = $itemsCount;
+        $sample->weighed_mass_value = $massValue;
+        $sample->weighed_mass_unit = $massUnit;
+        $sample->weighed_by = $user->id;
+        $sample->weighed_at = Carbon::now();
         $sample->save();
 
         return $sample;
+    }
+
+    public function getWeighingDataForSample(Sample $sample): array
+    {
+        $requiresWeighing = $this->requiresWeighing($sample);
+        $hasWeighing = $this->hasCompletedWeighing($sample);
+
+        return [
+            'requires_weighing' => $requiresWeighing,
+            'has_weighing' => $hasWeighing,
+            'weighing_data' => $hasWeighing ? [
+                'items_count' => $sample->weighed_items_count,
+                'mass_value' => $sample->weighed_mass_value,
+                'mass_unit' => $sample->weighed_mass_unit?->value ?? $sample->weighed_mass_unit,
+                'mass_display' => $sample->weighed_mass_value . ' ' . ($sample->weighed_mass_unit?->symbol() ?? $sample->weighed_mass_unit ?? ''),
+                'weighed_by' => $sample->weighedByUser?->name ?? '-',
+                'weighed_at' => $sample->weighed_at?->format('d/m/Y H:i'),
+            ] : null,
+        ];
     }
 }

@@ -252,33 +252,6 @@
             </div>
         </div>
 
-        {{-- UV-VIS Weighing Section --}}
-        <div class="pb-4">
-            <h3 class="text-sm font-semibold text-gray-800 mb-3">Penimbangan UV-VIS</h3>
-            
-            <div class="flex items-center justify-between py-3">
-                <div>
-                    <label class="text-sm font-medium text-gray-700">Wajibkan Penimbangan untuk UV-VIS</label>
-                    <p class="text-xs text-gray-500">Validasi gram ditimbang sebelum tahap PREPARATION selesai</p>
-                </div>
-                <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" x-model="client.state.form.monitoring_logging.uvvis_weighing.enabled" class="sr-only peer">
-                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                </label>
-            </div>
-
-            <div x-show="client.state.form.monitoring_logging?.uvvis_weighing?.enabled" x-cloak class="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-100">
-                <p class="text-sm text-purple-800">
-                    <strong>Validasi:</strong> Sampel dengan metode UV-VIS wajib memiliki data penimbangan 
-                    (gram, teknisi, tanggal/waktu) sebelum tahap PREPARATION dapat diselesaikan.
-                </p>
-                <ul class="text-xs text-purple-700 mt-2 space-y-1 list-disc list-inside">
-                    <li>Field penimbangan muncul hanya untuk sampel dengan metode UV-VIS</li>
-                    <li>Data tersimpan di kolom <code>uvvis_weighed_grams</code>, <code>uvvis_weighed_by</code>, <code>uvvis_weighed_at</code></li>
-                </ul>
-            </div>
-        </div>
-
         {{-- Save Button --}}
         <div class="flex justify-end pt-4 border-t border-gray-100">
             <button type="button" @click="saveMonitoringLoggingSettings()"

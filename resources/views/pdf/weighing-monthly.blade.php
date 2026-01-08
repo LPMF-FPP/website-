@@ -9,7 +9,7 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<title>Log Penimbangan UV-VIS — {{ $monthLabel }}</title>
+<title>Log Penimbangan — {{ $monthLabel }}</title>
 <style>
   @page { size: A4; margin: 12mm; }
   body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #000; line-height: 1.28; margin:0; }
@@ -47,11 +47,11 @@
     <div class="center">
       <div class="instansi">PUSAT KEDOKTERAN DAN KESEHATAN POLRI</div>
       <div class="lab">LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN</div>
-      <div class="meta">Log Penimbangan Sampel UV-VIS</div>
+      <div class="meta">Log Penimbangan Sampel (Analytical Balance)</div>
     </div>
   </div>
 
-  <h1 class="title">Log Penimbangan UV-VIS Bulanan</h1>
+  <h1 class="title">Log Penimbangan Bulanan</h1>
   <div class="subtitle">Periode: {{ $monthLabel }}</div>
 
   <table class="info-table">
@@ -68,31 +68,33 @@
     <thead>
       <tr>
         <th style="width:5%;">No</th>
-        <th style="width:18%;">Tanggal/Waktu</th>
-        <th style="width:18%;">No. Tanda Terima</th>
-        <th style="width:22%;">Sampel</th>
-        <th style="width:12%;">Berat (gram)</th>
+        <th style="width:14%;">Tanggal/Waktu</th>
+        <th style="width:16%;">No. Tanda Terima</th>
+        <th style="width:18%;">Sampel</th>
+        <th style="width:8%;">Qty</th>
+        <th style="width:14%;">Massa</th>
         <th style="width:25%;">Ditimbang Oleh</th>
       </tr>
     </thead>
     <tbody>
-      @php $totalWeight = 0; @endphp
       @foreach($samples as $index => $sample)
-      @php $totalWeight += $sample->uvvis_weighed_grams; @endphp
+      @php
+        $massDisplay = $sample->weighed_mass_value
+          ? number_format($sample->weighed_mass_value, 6) . ' ' . ($sample->weighed_mass_unit?->symbol() ?? $sample->weighed_mass_unit ?? '')
+          : (number_format($sample->uvvis_weighed_grams ?? 0, 4) . ' g');
+        $weighedAt = $sample->weighed_at ?? $sample->uvvis_weighed_at;
+        $weighedBy = $sample->weighedByUser ?? $sample->uvvisWeighedBy;
+      @endphp
       <tr>
         <td class="center">{{ $index + 1 }}</td>
-        <td>{{ $sample->uvvis_weighed_at ? $sample->uvvis_weighed_at->format('d/m/Y H:i') : '-' }}</td>
+        <td>{{ $weighedAt ? $weighedAt->format('d/m/Y H:i') : '-' }}</td>
         <td>{{ $sample->testRequest->receipt_number ?? $sample->testRequest->request_number ?? '-' }}</td>
         <td>{{ $sample->short_description ?? 'Sampel #' . $sample->id }}</td>
-        <td class="right">{{ number_format($sample->uvvis_weighed_grams, 4) }}</td>
-        <td>{{ $sample->uvvisWeighedBy->name ?? '-' }}</td>
+        <td class="center">{{ $sample->weighed_items_count ?? 1 }}</td>
+        <td class="right">{{ $massDisplay }}</td>
+        <td>{{ $weighedBy?->name ?? '-' }}</td>
       </tr>
       @endforeach
-      <tr class="total">
-        <td colspan="4" style="text-align:right;">Total Berat:</td>
-        <td class="right">{{ number_format($totalWeight, 4) }}</td>
-        <td></td>
-      </tr>
     </tbody>
   </table>
   @endif

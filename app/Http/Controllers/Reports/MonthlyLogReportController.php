@@ -168,10 +168,18 @@ class MonthlyLogReportController extends Controller
         $startOfMonth = $month->copy()->startOfMonth();
         $endOfMonth = $month->copy()->endOfMonth();
 
-        $samples = Sample::whereNotNull('uvvis_weighed_grams')
-            ->whereBetween('uvvis_weighed_at', [$startOfMonth, $endOfMonth])
-            ->with(['testRequest', 'uvvisWeighedBy'])
-            ->orderBy('uvvis_weighed_at')
+        $samples = Sample::where(function ($query) use ($startOfMonth, $endOfMonth) {
+            $query->where(function ($q) use ($startOfMonth, $endOfMonth) {
+                $q->whereNotNull('weighed_mass_value')
+                    ->whereBetween('weighed_at', [$startOfMonth, $endOfMonth]);
+            })->orWhere(function ($q) use ($startOfMonth, $endOfMonth) {
+                $q->whereNotNull('uvvis_weighed_grams')
+                    ->whereNull('weighed_mass_value')
+                    ->whereBetween('uvvis_weighed_at', [$startOfMonth, $endOfMonth]);
+            });
+        })
+            ->with(['testRequest', 'uvvisWeighedBy', 'weighedByUser'])
+            ->orderByRaw('COALESCE(weighed_at, uvvis_weighed_at)')
             ->get();
 
         $html = view('pdf.weighing-monthly', [
@@ -182,16 +190,15 @@ class MonthlyLogReportController extends Controller
 
         $pdf = $this->pdfService->htmlToPdf($html);
 
-        $filename = "log_penimbangan_uvvis_{$month->format('Y_m')}.pdf";
+        $filename = "log_penimbangan_{$month->format('Y_m')}.pdf";
 
-        // Save to Documents if requested
         if ($request->boolean('save')) {
-            $baseName = "Log-Penimbangan-UVVIS-{$month->format('Y-m')}";
+            $baseName = "Log-Penimbangan-{$month->format('Y-m')}";
             
             $this->documentService->storeStandaloneReport(
                 binary: $pdf,
                 ext: 'pdf',
-                type: 'uvvis_weighing_monthly_log',
+                type: 'weighing_monthly_log',
                 baseName: $baseName,
                 metadata: [
                     'month' => $validated['month'],

@@ -320,13 +320,13 @@
                     </div>
                 @endif
 
-                {{-- PREPARATION STAGE: UV-VIS Weighing --}}
+                {{-- PREPARATION STAGE: Weighing (Analytical Balance) --}}
                 @if($selectedStage === 'preparation')
                     <div class="rounded-lg border border-gray-200 bg-gray-50 p-4"
-                        x-data="uvvisWeighing({{ $process->sample_id }})"
+                        x-data="analyticalBalanceWeighing({{ $process->sample_id }})"
                         x-init="checkWeighingStatus()">
-                        <h3 class="text-sm font-semibold text-gray-900">Penimbangan UV-VIS</h3>
-                        <p class="mt-1 text-xs text-gray-500">Catat berat sampel yang ditimbang untuk pengujian UV-VIS.</p>
+                        <h3 class="text-sm font-semibold text-gray-900">Penimbangan (Analytical Balance)</h3>
+                        <p class="mt-1 text-xs text-gray-500">Catat data penimbangan sampel menggunakan Analytical Balance.</p>
 
                         <template x-if="loading">
                             <div class="mt-4 flex items-center gap-2 text-sm text-gray-500">
@@ -340,7 +340,7 @@
 
                         <template x-if="!loading && !requiresWeighing">
                             <div class="mt-4 rounded-md bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-700">
-                                Sampel ini tidak memerlukan penimbangan UV-VIS (metode pengujian bukan UV-VIS atau fitur tidak diaktifkan).
+                                Sampel ini tidak memerlukan penimbangan (tidak ada requirement Analytical Balance pada metode pengujian yang dipilih).
                             </div>
                         </template>
 
@@ -354,10 +354,14 @@
                                             </svg>
                                             <span class="font-medium">Data penimbangan sudah tercatat</span>
                                         </div>
-                                        <dl class="mt-2 grid grid-cols-3 gap-2 text-xs">
+                                        <dl class="mt-2 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                                             <div>
-                                                <dt class="text-gray-500">Berat</dt>
-                                                <dd class="font-medium text-gray-900" x-text="weighingData.grams + ' gram'"></dd>
+                                                <dt class="text-gray-500">Jumlah Item</dt>
+                                                <dd class="font-medium text-gray-900" x-text="weighingData.items_count"></dd>
+                                            </div>
+                                            <div>
+                                                <dt class="text-gray-500">Massa Terbaca</dt>
+                                                <dd class="font-medium text-gray-900" x-text="weighingData.mass_display"></dd>
                                             </div>
                                             <div>
                                                 <dt class="text-gray-500">Ditimbang oleh</dt>
@@ -373,15 +377,39 @@
 
                                 <template x-if="!hasWeighing">
                                     <div class="space-y-3">
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700">
-                                                Berat Sampel (gram) <span class="text-red-500">*</span>
-                                            </label>
-                                            <input type="number" step="0.0001" min="0.0001" max="99999.9999"
-                                                x-model="grams"
-                                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                                                placeholder="0.0000">
-                                            <p class="mt-1 text-xs text-gray-500">Masukkan berat sampel dalam gram (hingga 4 desimal).</p>
+                                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700">
+                                                    Jumlah Item <span class="text-red-500">*</span>
+                                                </label>
+                                                <input type="number" step="1" min="1" max="999"
+                                                    x-model="itemsCount"
+                                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                                    placeholder="1">
+                                                <p class="mt-1 text-xs text-gray-500">Berapa banyak sampel/aliquot yang ditimbang.</p>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700">
+                                                    Massa Terbaca <span class="text-red-500">*</span>
+                                                </label>
+                                                <input type="number" step="0.000001" min="0.000001" max="99999999.999999"
+                                                    x-model="massValue"
+                                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                                    placeholder="0.000000">
+                                                <p class="mt-1 text-xs text-gray-500">Nilai massa dari Analytical Balance.</p>
+                                            </div>
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700">
+                                                    Unit <span class="text-red-500">*</span>
+                                                </label>
+                                                <select x-model="massUnit"
+                                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                                    <option value="">-- Pilih Unit --</option>
+                                                    <option value="ug">Mikrogram (μg)</option>
+                                                    <option value="mg">Miligram (mg)</option>
+                                                    <option value="g">Gram (g)</option>
+                                                </select>
+                                            </div>
                                         </div>
                                         <div class="grid grid-cols-2 gap-4 text-sm">
                                             <div>
@@ -398,7 +426,7 @@
 
                                         <div class="flex justify-end">
                                             <button type="button" @click="saveWeighing()"
-                                                :disabled="saving || !grams"
+                                                :disabled="saving || !itemsCount || !massValue || !massUnit"
                                                 class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed">
                                                 <span x-show="!saving">Simpan Data Penimbangan</span>
                                                 <span x-show="saving" class="flex items-center gap-2">
@@ -515,20 +543,22 @@
         };
     }
 
-    function uvvisWeighing(sampleId) {
+    function analyticalBalanceWeighing(sampleId) {
         return {
             sampleId: sampleId,
             loading: true,
             requiresWeighing: false,
             hasWeighing: false,
             weighingData: {},
-            grams: '',
+            itemsCount: 1,
+            massValue: '',
+            massUnit: '',
             saving: false,
             error: null,
 
             async checkWeighingStatus() {
                 try {
-                    const response = await fetch(`/api/samples/${this.sampleId}/uvvis-weighing`);
+                    const response = await fetch(`/api/samples/${this.sampleId}/weighing`);
                     const data = await response.json();
                     this.requiresWeighing = data.requires_weighing;
                     this.hasWeighing = data.has_weighing;
@@ -541,8 +571,16 @@
             },
 
             async saveWeighing() {
-                if (!this.grams || parseFloat(this.grams) <= 0) {
-                    this.error = 'Masukkan berat yang valid.';
+                if (!this.itemsCount || parseInt(this.itemsCount) < 1) {
+                    this.error = 'Jumlah item minimal 1.';
+                    return;
+                }
+                if (!this.massValue || parseFloat(this.massValue) <= 0) {
+                    this.error = 'Masukkan nilai massa yang valid.';
+                    return;
+                }
+                if (!this.massUnit) {
+                    this.error = 'Pilih unit massa.';
                     return;
                 }
 
@@ -550,13 +588,17 @@
                 this.error = null;
 
                 try {
-                    const response = await fetch(`/api/samples/${this.sampleId}/uvvis-weighing`, {
+                    const response = await fetch(`/api/samples/${this.sampleId}/weighing`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                         },
-                        body: JSON.stringify({ grams: parseFloat(this.grams) })
+                        body: JSON.stringify({
+                            items_count: parseInt(this.itemsCount),
+                            mass_value: parseFloat(this.massValue),
+                            mass_unit: this.massUnit
+                        })
                     });
 
                     const data = await response.json();

@@ -226,6 +226,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/instrument-usage', [InstrumentLoggingController::class, 'storeUsage'])->name('instrument-usage');
         Route::get('/uvvis-weighing', [InstrumentLoggingController::class, 'checkUvvisWeighing'])->name('uvvis-weighing.check');
         Route::post('/uvvis-weighing', [InstrumentLoggingController::class, 'storeUvvisWeighing'])->name('uvvis-weighing.store');
+        Route::get('/weighing', [InstrumentLoggingController::class, 'checkWeighing'])->name('weighing.check');
+        Route::post('/weighing', [InstrumentLoggingController::class, 'storeWeighing'])->name('weighing.store');
     });
 
     Route::middleware('can:manage-settings')->prefix('settings')->name('settings.')->group(function () {
