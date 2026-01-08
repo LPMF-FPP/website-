@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['auth', 'verified'])->prefix('settings')->group(function () {
     Route::get('/', [ApiSettingsController::class, 'index']);
+    Route::put('/', [\App\Http\Controllers\SettingsController::class, 'update']);
 
     Route::get('/numbering/current', [NumberingController::class, 'current']);
     Route::put('/numbering/{scope}', [NumberingController::class, 'updateScope']);
