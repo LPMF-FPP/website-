@@ -83,7 +83,7 @@ Implementasi 3 kapabilitas baru terintegrasi dengan workflow LPMF dan siap audit
 
 ### 3.1 Service Layer
 
-- [ ] Create `EnvironmentMonitoringService`
+- [x] Create `EnvironmentMonitoringService`
     - `getDueListForUser($user, $date)` - returns locations due/overdue based on window
     - `getActiveWindow($location, $datetime)` - returns current window or null if outside
     - `canInputForWindow($location, $window, $datetime)` - window pagi tertutup jika lewat, siang masih bisa
@@ -94,31 +94,29 @@ Implementasi 3 kapabilitas baru terintegrasi dengan workflow LPMF dan siap audit
 
 ### 3.2 Controller & Routes
 
-- [ ] Create `EnvironmentMonitoringController`
+- [x] Create `EnvironmentMonitoringController`
     - `index()` - list locations with status
     - `storeReading(Request)` - submit reading
     - `showCorrectionForm($reading)` - form for correction
     - `storeCorrection(Request, $reading)` - submit correction
-- [ ] Create API controller for dashboard banner
+- [x] Create API controller for dashboard banner
     - `GET /api/monitoring/environment/due` - returns due locations for current user
-- [ ] Register routes in web.php and api.php
+- [x] Register routes in web.php and api.php
 
 ### 3.3 Views
 
-- [ ] Create `monitoring/environment/index.blade.php`
+- [x] Create `monitoring/environment/index.blade.php`
     - Location cards with status (due/filled/overdue/out-of-range)
     - Quick input modal/form
     - Correction modal
-- [ ] Create JS `resources/js/pages/environment-monitoring.js`
-    - Form submission via fetch
-    - Real-time validation
-    - Refresh list after submit
+- [x] Create `monitoring/environment/manage.blade.php` - Admin CRUD for locations
+- [x] Create `monitoring/environment/correction.blade.php` - Correction form
 
 ### 3.4 Dashboard Integration
 
-- [ ] Update `DashboardController::index()` to fetch due environment tasks
-- [ ] Add banner section in `dashboard.blade.php` for environment notifications
-- [ ] Banner shows "Anda belum menginput suhu/kelembaban untuk [Lokasi X]" with "Isi sekarang" button
+- [x] Update `DashboardController::index()` to fetch due environment tasks
+- [x] Add banner section in `dashboard.blade.php` for environment notifications
+- [x] Banner shows due/overdue locations with "Input Monitoring Sekarang" button
 
 ---
 
@@ -126,7 +124,7 @@ Implementasi 3 kapabilitas baru terintegrasi dengan workflow LPMF dan siap audit
 
 ### 3.1 Service Layer
 
-- [ ] Create `InstrumentLoggingService`
+- [x] Create `InstrumentLoggingService`
     - `requirementsForMethod($method_code)` - get required instruments from settings/DB
     - `getAvailableAssets($instrument_id)` - assets with valid status
     - `validateSelections($method_code, $selections)` - check all mandatory filled
@@ -135,19 +133,21 @@ Implementasi 3 kapabilitas baru terintegrasi dengan workflow LPMF dan siap audit
 
 ### 3.2 Controller & Routes
 
-- [ ] Create `InstrumentLoggingController` or extend `SampleTestProcessController`
-    - `GET /api/process/{sampleId}/instrument-requirements` - return requirements + available assets
-    - `POST /api/process/{sampleId}/instrument-usage` - submit selections
-- [ ] Add gate in `WorkflowService::completeTestProcess()` for INSTRUMENTATION stage
+- [x] Create `InstrumentLoggingController` or extend `SampleTestProcessController`
+    - `GET /api/samples/{sample}/instrument-requirements` - return requirements + available assets
+    - `POST /api/samples/{sample}/instrument-usage` - submit selections
+    - `GET /api/samples/{sample}/uvvis-weighing` - check weighing status
+    - `POST /api/samples/{sample}/uvvis-weighing` - submit weighing data
+- [x] Add gate in `WorkflowService::completeTestProcess()` for INSTRUMENTATION stage
 
 ### 3.3 Views & UI Integration
 
-- [ ] Update `sample-processes/edit.blade.php` for INSTRUMENTATION stage
+- [x] Update `sample-processes/edit.blade.php` for INSTRUMENTATION stage
     - Add "Instrumen yang digunakan" block
     - Auto-populate required instruments based on sample's test_methods
     - Dropdown for asset selection per requirement
     - Validation before finalize
-- [ ] Create/update JS for instrument selection UI
+- [x] Create/update JS for instrument selection UI (Alpine.js components)
 
 ---
 
@@ -155,23 +155,24 @@ Implementasi 3 kapabilitas baru terintegrasi dengan workflow LPMF dan siap audit
 
 ### 3.1 Service/Validation
 
-- [ ] Add method in `WorkflowService` or new service to check weighing requirement
+- [x] Add method in `InstrumentLoggingService` to check weighing requirement
     - `requiresUvvisWeighing($sample)` - check if test_methods contains uv_vis AND setting enabled
-    - `validateWeighingComplete($sample)` - check if uvvis_weighed_grams is filled
+    - `hasCompletedUvvisWeighing($sample)` - check if uvvis_weighed_grams is filled
+    - `recordUvvisWeighing($sample, $grams, $user)` - record weighing data
 
 ### 3.2 Gate Integration
 
-- [ ] Add gate in preparation stage completion
+- [x] Add gate in `WorkflowService::validatePreparationGate()`
     - Block finalize if uv_vis method AND weighing enabled AND fields null
-- [ ] Auto-set `uvvis_weighed_by` and `uvvis_weighed_at` on save
+- [x] Auto-set `uvvis_weighed_by` and `uvvis_weighed_at` on save (via API endpoint)
 
 ### 3.3 Views
 
-- [ ] Update preparation form/view to show weighing field conditionally
+- [x] Update preparation form/view to show weighing field conditionally
     - Input for gram (decimal)
     - Read-only display of technician (current user)
     - Timestamp after save
-- [ ] Conditional display based on test_methods and settings toggle
+- [x] Conditional display based on test_methods and settings toggle (Alpine.js component)
 
 ---
 
@@ -179,35 +180,37 @@ Implementasi 3 kapabilitas baru terintegrasi dengan workflow LPMF dan siap audit
 
 ### 4.1 Report Controller
 
-- [ ] Create `Reports/MonthlyLogReportController`
-    - `environmentReport(Request)` - GET /reports/environment/monthly.pdf?location_id=&month=YYYY-MM
-    - `instrumentReport(Request)` - GET /reports/instruments/monthly.pdf?asset_id=&month=YYYY-MM
-    - `weighingReport(Request)` - GET /reports/weighing/monthly.pdf?month=YYYY-MM
+- [x] Create `Reports/MonthlyLogReportController`
+    - `index()` - Report generation UI
+    - `environmentReport(Request)` - GET /reports/monthly-logs/environment?location_id=&month=YYYY-MM
+    - `instrumentReport(Request)` - GET /reports/monthly-logs/instrument?asset_id=&month=YYYY-MM
+    - `weighingReport(Request)` - GET /reports/monthly-logs/weighing?month=YYYY-MM
 
 ### 4.2 PDF Templates
 
-- [ ] Create `pdf/environment-monthly.blade.php`
+- [x] Create `pdf/environment-monthly.blade.php`
     - Header with location name, month, generated date
     - Table: Date, Window, Temp, Humidity, Status, Entered By, Notes
     - Handle empty data: "Tidak ada data untuk periode ini"
-- [ ] Create `pdf/instrument-monthly.blade.php`
+- [x] Create `pdf/instrument-monthly.blade.php`
     - Header with asset info, month
     - Table: Date, Sample Code, Request Number, Usage Type, Performed By, Notes
-- [ ] Create `pdf/weighing-monthly.blade.php`
+- [x] Create `pdf/weighing-monthly.blade.php`
     - Header with month, generated date
     - Table: Date, Receipt Number, Sample Code, Grams, Technician
 
 ### 4.3 Document Integration
 
-- [ ] Use `DocumentService::storeGenerated()` to save reports
+- [ ] Use `DocumentService::storeGenerated()` to save reports (optional - manual download currently)
 - [ ] Add document_types: environment_monthly_log, instrument_monthly_log, uvvis_weighing_monthly_log
 - [ ] Add metadata: month, location_id/asset_id, generated_by
 
 ### 4.4 Report Access UI
 
-- [ ] Add report generation buttons in appropriate locations
-    - Environment: in monitoring page
-    - Instrument: in settings or dedicated report page
+- [x] Create `reports/monthly-logs.blade.php` - Report generation UI with forms for each report type
+    - Environment: location selector, month picker
+    - Instrument: asset selector, month picker
+    - Weighing: month picker only
     - Weighing: in settings or dedicated report page
 
 ---

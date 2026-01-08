@@ -6,7 +6,10 @@ use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ProcessController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Reports\MonthlyLogReportController;
 use App\Http\Controllers\Reports\SurveyExportController;
+use App\Http\Controllers\EnvironmentMonitoringController;
+use App\Http\Controllers\InstrumentLoggingController;
 use App\Http\Controllers\RequestController;
 use App\Http\Controllers\SampleTestController;
 use App\Http\Controllers\SampleTestProcessController;
@@ -193,6 +196,36 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::middleware('can:manage-settings')->prefix('reports')->name('reports.')->group(function () {
         Route::get('/surveys/export', SurveyExportController::class)->name('surveys.export');
+        Route::get('/monthly-logs', [MonthlyLogReportController::class, 'index'])->name('monthly-logs');
+        Route::get('/monthly-logs/environment', [MonthlyLogReportController::class, 'environmentReport'])->name('monthly-logs.environment');
+        Route::get('/monthly-logs/instrument', [MonthlyLogReportController::class, 'instrumentReport'])->name('monthly-logs.instrument');
+        Route::get('/monthly-logs/weighing', [MonthlyLogReportController::class, 'weighingReport'])->name('monthly-logs.weighing');
+    });
+
+    // Environment Monitoring
+    Route::prefix('monitoring')->name('monitoring.')->group(function () {
+        Route::prefix('environment')->name('environment.')->group(function () {
+            Route::get('/', [EnvironmentMonitoringController::class, 'index'])->name('index');
+            Route::post('/readings', [EnvironmentMonitoringController::class, 'storeReading'])->name('readings.store');
+            Route::get('/readings/{reading}/correction', [EnvironmentMonitoringController::class, 'showCorrectionForm'])->name('readings.correction');
+            Route::post('/readings/{reading}/correction', [EnvironmentMonitoringController::class, 'storeCorrection'])->name('readings.correction.store');
+            Route::get('/manage', [EnvironmentMonitoringController::class, 'manage'])->name('manage');
+            Route::get('/locations', [EnvironmentMonitoringController::class, 'apiLocationsList'])->name('locations.index');
+            Route::post('/locations', [EnvironmentMonitoringController::class, 'storeLocation'])->name('locations.store');
+            Route::put('/locations/{location}', [EnvironmentMonitoringController::class, 'updateLocation'])->name('locations.update');
+            Route::delete('/locations/{location}', [EnvironmentMonitoringController::class, 'destroyLocation'])->name('locations.destroy');
+        });
+        Route::get('/instruments', function () {
+            return view('monitoring.instruments.index');
+        })->name('instruments.index');
+    });
+
+    // Instrument Logging API routes for sample workflow
+    Route::prefix('api/samples/{sample}')->name('api.samples.')->group(function () {
+        Route::get('/instrument-requirements', [InstrumentLoggingController::class, 'getRequirements'])->name('instrument-requirements');
+        Route::post('/instrument-usage', [InstrumentLoggingController::class, 'storeUsage'])->name('instrument-usage');
+        Route::get('/uvvis-weighing', [InstrumentLoggingController::class, 'checkUvvisWeighing'])->name('uvvis-weighing.check');
+        Route::post('/uvvis-weighing', [InstrumentLoggingController::class, 'storeUvvisWeighing'])->name('uvvis-weighing.store');
     });
 
     Route::middleware('can:manage-settings')->prefix('settings')->name('settings.')->group(function () {
