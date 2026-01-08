@@ -31,8 +31,10 @@ class SettingsResponseBuilder
             'localization' => Arr::get($nested, 'localization', Arr::get($nested, 'locale', [])),
             'retention' => $retention,
             'notifications' => Arr::get($nested, 'notifications', Arr::get($nested, 'automation', [])),
+            'monitoring_logging' => Arr::get($nested, 'monitoring_logging', []),
             'smtp' => $this->composeSmtp(Arr::get($nested, 'smtp', [])),
             'security' => Arr::get($nested, 'security.roles', []),
+
             'iku' => $this->ikuService->getConfig(),
         ];
     }

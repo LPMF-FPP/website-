@@ -34,6 +34,7 @@ class SettingsApiTest extends TestCase
                     'localization',
                     'retention' => ['storage_folder_path', 'resolved_storage_path'],
                     'notifications',
+                    'monitoring_logging',
                     'security',
                 ],
                 'options' => ['timezones', 'date_formats', 'number_formats', 'languages'],

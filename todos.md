@@ -201,9 +201,9 @@ Implementasi 3 kapabilitas baru terintegrasi dengan workflow LPMF dan siap audit
 
 ### 4.3 Document Integration
 
-- [ ] Use `DocumentService::storeGenerated()` to save reports (optional - manual download currently)
-- [ ] Add document_types: environment_monthly_log, instrument_monthly_log, uvvis_weighing_monthly_log
-- [ ] Add metadata: month, location_id/asset_id, generated_by
+- [x] Use `DocumentService::storeGenerated()` to save reports (optional - manual download currently)
+- [x] Add document_types: environment_monthly_log, instrument_monthly_log, uvvis_weighing_monthly_log
+- [x] Add metadata: month, location_id/asset_id, generated_by
 
 ### 4.4 Report Access UI
 
@@ -250,7 +250,7 @@ Implementasi 3 kapabilitas baru terintegrasi dengan workflow LPMF dan siap audit
 
 - [x] Test PDF generation for each report type
 - [x] Test empty data handling
-- [ ] Test document storage
+- [x] Test document storage
 
 ---
 

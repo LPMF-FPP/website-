@@ -5,13 +5,15 @@ namespace App\Http\Controllers;
 use App\Models\Sample;
 use App\Models\TestRequest;
 use App\Models\TestResult;
+use App\Services\EnvironmentMonitoringService;
 use App\Services\IkuService;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     public function __construct(
-        private readonly IkuService $ikuService
+        private readonly IkuService $ikuService,
+        private readonly EnvironmentMonitoringService $environmentService
     ) {}
 
     public function index()
@@ -37,6 +39,9 @@ class DashboardController extends Controller
                 ->pluck('total', 'status')
                 ->toArray();
 
+            // 5. Environment monitoring due tasks
+            $environmentMonitoring = $this->getEnvironmentMonitoringData();
+
             $dashboardData = [
                 'stats' => [
                     'total_requests' => $totalRequests,
@@ -48,6 +53,7 @@ class DashboardController extends Controller
                 'iku_data' => $ikuData,
                 'recent_activities' => $recentActivities,
                 'status_breakdown' => $statusBreakdown,
+                'environment_monitoring' => $environmentMonitoring,
             ];
 
         } catch (\Exception $e) {
@@ -63,6 +69,12 @@ class DashboardController extends Controller
                 'iku_data' => null,
                 'recent_activities' => collect([]),
                 'status_breakdown' => [],
+                'environment_monitoring' => [
+                    'enabled' => false,
+                    'due_locations' => collect([]),
+                    'is_work_day' => false,
+                    'active_window' => null,
+                ],
             ];
         }
 
@@ -171,6 +183,40 @@ class DashboardController extends Controller
                 'iku_category' => 'F',
                 'iku_data' => null,
             ]);
+        }
+    }
+
+    private function getEnvironmentMonitoringData(): array
+    {
+        try {
+            if (! $this->environmentService->isEnabled()) {
+                return [
+                    'enabled' => false,
+                    'due_locations' => collect([]),
+                    'is_work_day' => false,
+                    'active_window' => null,
+                ];
+            }
+
+            $now = \Carbon\Carbon::now();
+            $user = auth()->user();
+            $isWorkDay = $this->environmentService->isWorkDay($now);
+            $activeWindow = $this->environmentService->getActiveWindow($now);
+            $dueList = $this->environmentService->getDueListForUser($user, $now);
+
+            return [
+                'enabled' => true,
+                'due_locations' => $dueList,
+                'is_work_day' => $isWorkDay,
+                'active_window' => $activeWindow,
+            ];
+        } catch (\Exception $e) {
+            return [
+                'enabled' => false,
+                'due_locations' => collect([]),
+                'is_work_day' => false,
+                'active_window' => null,
+            ];
         }
     }
 }

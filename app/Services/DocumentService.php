@@ -371,6 +371,62 @@ class DocumentService
     }
 
     /**
+     * Store a standalone generated report (not associated with an investigator/request)
+     *
+     * Used for system-level reports like monthly environment logs, instrument usage logs, etc.
+     *
+     * @param  string  $binary  Binary content of the file
+     * @param  string  $ext  File extension (e.g., 'pdf')
+     * @param  string  $type  Document type (e.g., 'environment_monthly_log')
+     * @param  string  $baseName  Base name for the file
+     * @param  array  $metadata  Additional metadata (month, location_id, asset_id, generated_by)
+     * @return Document
+     */
+    public function storeStandaloneReport(
+        string $binary,
+        string $ext,
+        string $type,
+        string $baseName,
+        array $metadata = []
+    ): Document {
+        return DB::transaction(function () use ($binary, $ext, $type, $baseName, $metadata) {
+            // Build path: reports/{type}/{YYYY}/{MM}/
+            $month = $metadata['month'] ?? now()->format('Y-m');
+            [$year, $monthNum] = explode('-', $month);
+            $basePath = "reports/{$type}/{$year}/{$monthNum}";
+
+            // Generate filename: timestamp-slug.ext
+            $slug = Str::slug($baseName);
+            $timestamp = now()->format('YmdHis');
+            $filename = "{$timestamp}-{$slug}.{$ext}";
+            $originalFilename = "{$baseName}.{$ext}";
+
+            // Store file
+            $relPath = "{$basePath}/{$filename}";
+            Storage::disk($this->disk)->put($relPath, $binary);
+
+            // Determine MIME type from extension
+            $mimeType = $this->getMimeTypeFromExtension($ext);
+
+            // Create document record with metadata in extra field
+            return Document::create([
+                'investigator_id' => null,  // Standalone report
+                'test_request_id' => null,  // Standalone report
+                'document_type' => $type,
+                'source' => 'generated',
+                'storage_disk' => $this->disk,
+                'filename' => $originalFilename,
+                'original_filename' => $originalFilename,
+                'file_path' => $relPath,
+                'path' => $relPath,
+                'mime_type' => $mimeType,
+                'file_size' => strlen($binary),
+                'extra' => !empty($metadata) ? json_encode($metadata) : null,
+            ]);
+        });
+    }
+
+    /**
      * Get documents for an investigator
      *
      * @param  array  $filters  Optional filters (type, source, request_id)

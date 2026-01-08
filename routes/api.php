@@ -90,6 +90,12 @@ Route::middleware(['auth', 'verified'])->prefix('settings')->group(function () {
     });
 });
 
+// Environment Monitoring API
+Route::middleware(['auth', 'verified'])->prefix('monitoring')->group(function () {
+    Route::get('/environment/due', [\App\Http\Controllers\EnvironmentMonitoringController::class, 'apiDueList']);
+    Route::get('/environment/locations', [\App\Http\Controllers\EnvironmentMonitoringController::class, 'apiLocations']);
+});
+
 Route::middleware([
     'auth',
     'throttle:search',

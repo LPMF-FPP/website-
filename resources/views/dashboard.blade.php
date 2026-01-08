@@ -16,6 +16,53 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
+            @if(isset($environment_monitoring) && $environment_monitoring['enabled'] && $environment_monitoring['is_work_day'] && $environment_monitoring['due_locations']->isNotEmpty())
+            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                    </svg>
+                    <div class="flex-1">
+                        <h4 class="text-sm font-medium text-yellow-800">Monitoring Lingkungan - Input Diperlukan</h4>
+                        <div class="mt-2 text-sm text-yellow-700">
+                            <p class="mb-2">
+                                @if($environment_monitoring['active_window'])
+                                    Window aktif: <strong>{{ $environment_monitoring['active_window']['label'] }}</strong> 
+                                    ({{ $environment_monitoring['active_window']['start'] }} - {{ $environment_monitoring['active_window']['end'] }})
+                                @else
+                                    Mohon segera input data monitoring lingkungan.
+                                @endif
+                            </p>
+                            <ul class="list-disc list-inside space-y-1">
+                                @foreach($environment_monitoring['due_locations']->take(5) as $item)
+                                    <li>
+                                        <span class="font-medium">{{ $item['location']->name }}</span>
+                                        @if($item['status'] === 'overdue')
+                                            <span class="text-red-600">(Terlambat)</span>
+                                        @else
+                                            <span class="text-yellow-600">(Perlu Input)</span>
+                                        @endif
+                                    </li>
+                                @endforeach
+                            </ul>
+                            @if($environment_monitoring['due_locations']->count() > 5)
+                                <p class="mt-1 text-yellow-600">...dan {{ $environment_monitoring['due_locations']->count() - 5 }} lokasi lainnya</p>
+                            @endif
+                        </div>
+                        <div class="mt-3">
+                            <a href="{{ route('monitoring.environment.index') }}" 
+                               class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-yellow-800 bg-yellow-100 border border-yellow-300 rounded-lg hover:bg-yellow-200">
+                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                                Input Monitoring Sekarang
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endif
+
             <!-- Stats Cards (SSR) -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 @php $cards = [

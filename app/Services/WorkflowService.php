@@ -12,6 +12,12 @@ use Illuminate\Validation\ValidationException;
 
 class WorkflowService
 {
+    public function __construct(
+        protected ?InstrumentLoggingService $instrumentLoggingService = null
+    ) {
+        $this->instrumentLoggingService = $instrumentLoggingService ?? new InstrumentLoggingService();
+    }
+
     public function startTestProcess(Sample $sample, TestProcessStage $stage): SampleTestProcess
     {
         if ($sample->status !== $stage->getRequiredStatus()) {
@@ -46,6 +52,8 @@ class WorkflowService
                 'process' => ['Tidak dapat menyelesaikan proses yang belum dimulai'],
             ]);
         }
+
+        $this->validateStageGates($sample, $stage);
 
         DB::transaction(function () use ($process, $sample, $stage) {
             $process->completed_at = now();
@@ -95,5 +103,43 @@ class WorkflowService
             $delivery->status = $newStatus;
             $delivery->save();
         });
+    }
+
+    protected function validateStageGates(Sample $sample, TestProcessStage $stage): void
+    {
+        if ($stage === TestProcessStage::PREPARATION) {
+            $this->validatePreparationGate($sample);
+        }
+
+        if ($stage === TestProcessStage::INSTRUMENTATION) {
+            $this->validateInstrumentationGate($sample);
+        }
+    }
+
+    protected function validatePreparationGate(Sample $sample): void
+    {
+        if ($this->instrumentLoggingService->requiresUvvisWeighing($sample)) {
+            if (! $this->instrumentLoggingService->hasCompletedUvvisWeighing($sample)) {
+                throw ValidationException::withMessages([
+                    'uvvis_weighing' => ['Sample dengan metode UV-VIS wajib memiliki data penimbangan. Silakan isi berat gram sebelum menyelesaikan preparasi.'],
+                ]);
+            }
+        }
+    }
+
+    protected function validateInstrumentationGate(Sample $sample): void
+    {
+        if (! $this->instrumentLoggingService->isEnabled()) {
+            return;
+        }
+
+        if (! $this->instrumentLoggingService->hasCompletedAllRequirementsForSample($sample)) {
+            $missing = $this->instrumentLoggingService->getMissingRequirements($sample);
+            $missingNames = collect($missing)->pluck('instrument_name')->join(', ');
+
+            throw ValidationException::withMessages([
+                'instrument_usage' => ["Instrumen berikut wajib dicatat sebelum menyelesaikan tahap instrumentasi: {$missingNames}"],
+            ]);
+        }
     }
 }
