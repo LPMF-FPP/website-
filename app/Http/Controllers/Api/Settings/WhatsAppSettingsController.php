@@ -28,6 +28,8 @@ class WhatsAppSettingsController extends Controller
             'basic_pass' => 'nullable|string|max:255',
             'enabled_milestones' => 'nullable|array',
             'enabled_milestones.*' => 'string|in:' . implode(',', $this->notificationService->getAvailableMilestones()),
+            'templates' => 'nullable|array',
+            'templates.*' => 'nullable|string|max:1000',
         ]);
 
         if ($validator->fails()) {
@@ -39,6 +41,25 @@ class WhatsAppSettingsController extends Controller
 
         $data = $validator->validated();
 
+        if (isset($data['templates']) && is_array($data['templates'])) {
+            $allowed = $this->notificationService->getAvailableMilestones();
+            $invalidKeys = array_diff(array_keys($data['templates']), $allowed);
+
+            if (!empty($invalidKeys)) {
+                return response()->json([
+                    'message' => 'Validation failed',
+                    'errors' => [
+                        'templates' => ['Invalid milestone keys: ' . implode(', ', $invalidKeys)],
+                    ],
+                ], 422);
+            }
+
+            $data['templates'] = array_filter(
+                array_map(fn ($value) => is_string($value) ? trim($value) : $value, $data['templates']),
+                fn ($value) => is_string($value) && $value !== ''
+            );
+        }
+
         if (!empty($data['basic_pass'])) {
             $data['basic_pass'] = encrypt($data['basic_pass']);
         }
@@ -48,6 +69,7 @@ class WhatsAppSettingsController extends Controller
         \App\Models\SystemSetting::updateOrCreate(['key' => 'notifications.whatsapp.basic_user'], ['value' => $data['basic_user'] ?? null]);
         \App\Models\SystemSetting::updateOrCreate(['key' => 'notifications.whatsapp.basic_pass'], ['value' => $data['basic_pass'] ?? null]);
         \App\Models\SystemSetting::updateOrCreate(['key' => 'notifications.whatsapp.enabled_milestones'], ['value' => $data['enabled_milestones'] ?? []]);
+        \App\Models\SystemSetting::updateOrCreate(['key' => 'notifications.whatsapp.templates'], ['value' => $data['templates'] ?? []]);
 
         settings_forget_cache();
 
@@ -58,6 +80,7 @@ class WhatsAppSettingsController extends Controller
                 'base_url' => rtrim($data['base_url'], '/'),
                 'basic_user' => $data['basic_user'] ?? null,
                 'enabled_milestones' => $data['enabled_milestones'] ?? [],
+                'templates' => $data['templates'] ?? [],
             ],
         ]);
     }

@@ -168,6 +168,26 @@
                             </div>
                         </div>
 
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-2">Template Pesan</label>
+                            <p class="text-xs text-gray-500 mb-3">
+                                Gunakan <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{resi}</code> untuk menyisipkan nomor resi.
+                            </p>
+                            <div class="space-y-3">
+                                <template x-for="milestone in whatsappMilestones" :key="'tpl-' + milestone.key">
+                                    <div>
+                                        <label class="block text-xs font-medium text-gray-700 mb-1" x-text="milestone.label"></label>
+                                        <textarea 
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+                                            rows="2"
+                                            x-model="client.state.form.notifications.whatsapp.templates[milestone.key]"
+                                            :disabled="!client.state.form.notifications.whatsapp.enabled"
+                                            placeholder="Masukkan template pesan..."></textarea>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
                         <div class="pt-3 border-t border-gray-200">
                             <label class="block text-sm font-medium text-gray-700 mb-2">Test WhatsApp</label>
                             <div class="flex gap-2">

@@ -143,14 +143,21 @@
                             <p class="text-xs text-gray-500">Anda tidak dapat menonaktifkan akun sendiri.</p>
                         @else
                             @if($analyst->is_active)
-                                <form method="POST" action="{{ route('analysts.disable', $analyst) }}" class="space-y-3"
-                                    onsubmit="return confirm('Nonaktifkan pengguna ini?');">
+                                <form method="POST" action="{{ route('analysts.disable', $analyst) }}" class="space-y-3" x-data>
                                     @csrf
                                     <div>
                                         <label class="block text-xs font-medium text-gray-500">Alasan (opsional)</label>
                                         <textarea name="reason" rows="3" class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500"></textarea>
                                     </div>
-                                    <button type="submit" class="w-full rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700">Nonaktifkan</button>
+                                    <button type="button" 
+                                        class="w-full rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700"
+                                        @click.prevent="showConfirmDialog({
+                                            type: 'warning',
+                                            title: 'Nonaktifkan Pengguna',
+                                            message: 'Nonaktifkan pengguna ini?',
+                                            confirmButtonText: 'Ya, Nonaktifkan',
+                                            onConfirm: () => $el.closest('form').submit()
+                                        })">Nonaktifkan</button>
                                 </form>
                             @else
                                 <form method="POST" action="{{ route('analysts.enable', $analyst) }}">
@@ -161,11 +168,18 @@
                         @endif
 
                         @if(auth()->id() !== $analyst->id)
-                            <form method="POST" action="{{ route('analysts.destroy', $analyst) }}"
-                                onsubmit="return confirm('Hapus pengguna ini? Data akan diarsipkan (soft delete).');">
+                            <form method="POST" action="{{ route('analysts.destroy', $analyst) }}" x-data>
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="w-full rounded-md bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-800">Hapus Pengguna</button>
+                                <button type="button" 
+                                    class="w-full rounded-md bg-gray-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-800"
+                                    @click.prevent="showConfirmDialog({
+                                        type: 'danger',
+                                        title: 'Hapus Pengguna',
+                                        message: 'Hapus pengguna ini? Data akan diarsipkan (soft delete).',
+                                        confirmButtonText: 'Ya, Hapus',
+                                        onConfirm: () => $el.closest('form').submit()
+                                    })">Hapus Pengguna</button>
                             </form>
                         @endif
                     </div>

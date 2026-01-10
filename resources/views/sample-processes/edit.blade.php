@@ -8,11 +8,18 @@
         <a href="{{ route('process.processes.show', ['sample_process' => $process->id]) }}"
             class="inline-flex items-center text-sm font-semibold text-primary-700 hover:text-primary-800">&larr; Kembali ke detail</a>
 
-            <form method="POST" action="{{ route('process.processes.destroy', ['sample_process' => $process->id]) }}"
-                onsubmit="return confirm('Hapus proses ini?');">
+            <form method="POST" action="{{ route('process.processes.destroy', ['sample_process' => $process->id]) }}" x-data>
                 @csrf
                 @method('DELETE')
-                <button type="submit" class="text-sm font-semibold text-red-600 hover:text-red-700">Hapus</button>
+                <button type="button" 
+                    class="text-sm font-semibold text-red-600 hover:text-red-700"
+                    @click.prevent="showConfirmDialog({
+                        type: 'danger',
+                        title: 'Hapus Proses',
+                        message: 'Hapus proses ini?',
+                        confirmButtonText: 'Ya, Hapus',
+                        onConfirm: () => $el.closest('form').submit()
+                    })">Hapus</button>
             </form>
         </div>
 

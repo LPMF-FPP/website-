@@ -75,7 +75,7 @@
                     }
                 @endphp
                 @if(!empty($readyOptions))
-                    <form id="readyForm" method="POST" action="" onsubmit="return confirm('Kirim sampel ini ke Penyerahan?')" class="flex items-center gap-2">
+                    <form id="readyForm" method="POST" action="" class="flex items-center gap-2" x-data>
                         @csrf
                         <select id="readySampleSelect" class="block w-64 rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
                             <option value="">Pilih sampel siap diserahkan…</option>
@@ -83,7 +83,17 @@
                                 <option value="{{ $id }}">{{ $label }}</option>
                             @endforeach
                         </select>
-                        <button type="submit" id="readySubmit" disabled class="inline-flex items-center rounded-md bg-secondary-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition enabled:hover:bg-secondary-600 disabled:opacity-50">
+                        <button type="button" 
+                            id="readySubmit" 
+                            disabled 
+                            class="inline-flex items-center rounded-md bg-secondary-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition enabled:hover:bg-secondary-600 disabled:opacity-50"
+                            @click.prevent="showConfirmDialog({
+                                type: 'info',
+                                title: 'Konfirmasi',
+                                message: 'Kirim sampel ini ke Penyerahan?',
+                                confirmButtonText: 'Ya, Kirim',
+                                onConfirm: () => $el.closest('form').submit()
+                            })">
                             Siapkan Penyerahan
                         </button>
                     </form>
@@ -92,7 +102,7 @@
                             const sel = document.getElementById('readySampleSelect');
                             const btn = document.getElementById('readySubmit');
                             const frm = document.getElementById('readyForm');
-                            const base = '{{ url('samples') }}';
+                            const base = @json(url('samples'));
                             sel?.addEventListener('change', () => {
                                 if (sel.value) {
                                     frm.action = base + '/' + sel.value + '/ready-for-delivery';

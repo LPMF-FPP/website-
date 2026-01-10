@@ -5,12 +5,12 @@
 ### 1. Custom Confirm Dialog Deployment
 
 - [x] Add confirm-dialog component to app layout
-- [ ] Replace confirm() in analysts/edit.blade.php (line 13)
-- [ ] Replace confirm() in analysts/show.blade.php (lines 147, 165)
-- [ ] Replace confirm() in analysts/index.blade.php (lines 138, 156)
-- [ ] Replace confirm() in sample-processes/edit.blade.php (line 12)
-- [ ] Replace confirm() in sample-processes/index.blade.php (line 78)
-- [ ] Replace confirm() in requests/index.blade.php (line 108)
+- [x] Replace confirm() in analysts/edit.blade.php (line 13)
+- [x] Replace confirm() in analysts/show.blade.php (lines 147, 165)
+- [x] Replace confirm() in analysts/index.blade.php (lines 138, 156)
+- [x] Replace confirm() in sample-processes/edit.blade.php (line 12)
+- [x] Replace confirm() in sample-processes/index.blade.php (line 78)
+- [x] Replace confirm() in requests/index.blade.php (line 108)
 - [ ] Replace confirm() in delivery/show.blade.php (line 69)
 - [ ] Replace confirm() in partials/label-section.blade.php (line 62)
 - [ ] Replace confirm() in partials/remaining-label-section.blade.php (line 152)
@@ -39,5 +39,5 @@
 
 ---
 
-**Status**: 1/22 tasks completed
+**Status**: 8/22 tasks completed
 **Started**: 2026-01-10

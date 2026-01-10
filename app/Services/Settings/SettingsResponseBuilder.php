@@ -4,13 +4,15 @@ namespace App\Services\Settings;
 
 use App\Models\DocumentTemplate;
 use App\Services\IkuService;
+use App\Services\WhatsApp\NotificationService;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 
 class SettingsResponseBuilder
 {
     public function __construct(
-        private readonly IkuService $ikuService
+        private readonly IkuService $ikuService,
+        private readonly NotificationService $notificationService
     ) {}
 
     public function build(): array
@@ -47,6 +49,13 @@ class SettingsResponseBuilder
         if (isset($notifications['whatsapp']['basic_pass']) && $notifications['whatsapp']['basic_pass']) {
             $notifications['whatsapp']['basic_pass'] = '••••••••';
         }
+
+        $defaultTemplates = $this->notificationService->getAllTemplates();
+        $templates = $notifications['whatsapp']['templates'] ?? [];
+        if (!is_array($templates)) {
+            $templates = [];
+        }
+        $notifications['whatsapp']['templates'] = array_replace($defaultTemplates, $templates);
 
         return $notifications;
     }

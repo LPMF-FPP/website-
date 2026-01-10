@@ -18,9 +18,15 @@ class NotificationService
 
     public function getMilestoneMessage(string $milestone, array $replacements = []): ?string
     {
-        $template = self::MILESTONE_TEMPLATES[$milestone] ?? null;
+        $templates = settings('notifications.whatsapp.templates', []);
 
-        if (!$template) {
+        if (!is_array($templates) || empty($templates)) {
+            $templates = self::MILESTONE_TEMPLATES;
+        }
+
+        $template = $templates[$milestone] ?? self::MILESTONE_TEMPLATES[$milestone] ?? null;
+
+        if (!is_string($template) || trim($template) === '') {
             return null;
         }
 

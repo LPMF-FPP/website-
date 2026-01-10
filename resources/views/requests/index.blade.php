@@ -105,10 +105,18 @@
                                                 <a href="{{ route('requests.edit', $request) }}"
                                                    class="text-warning-600 transition hover:text-warning-700">Edit</a>
                                                 <form method="POST" action="{{ route('requests.destroy', $request) }}"
-                                                      class="inline" onsubmit="return confirm('Yakin ingin menghapus?')">
+                                                      class="inline" x-data>
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="text-danger-600 transition hover:text-danger-700">Hapus</button>
+                                                    <button type="button" 
+                                                        class="text-danger-600 transition hover:text-danger-700"
+                                                        @click.prevent="showConfirmDialog({
+                                                            type: 'danger',
+                                                            title: 'Hapus Permintaan',
+                                                            message: 'Yakin ingin menghapus?',
+                                                            confirmButtonText: 'Ya, Hapus',
+                                                            onConfirm: () => $el.closest('form').submit()
+                                                        })">Hapus</button>
                                                 </form>
                                             </div>
                                         </td>

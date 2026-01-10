@@ -5,18 +5,21 @@ You are strictly required to follow these workflow rules for every task.
 ## 0. Agent Roles & Responsibilities
 
 ### Core Agents
+
 - **Sisyphus** (`google/antigravity-claude-sonnet-4-5-thinking`) - Primary coding agent for implementation, refactoring, debugging with deep reasoning
 - **Planner-Sisyphus** (`google/antigravity-claude-opus-4-5-thinking`) - Strategic planning, task breakdown, architectural decisions
 - **oracle** (`google/antigravity-claude-opus-4-5-thinking`) - Problem-solving, Q&A, technical reasoning, code review
 - **librarian** (`openai/gpt-5.2-codex-xhigh`) - Documentation research, API references, library usage
 
 ### Specialized Agents
+
 - **frontend-ui-ux-engineer** (`google/antigravity-gemini-3-pro-high`) - UI/UX design, frontend implementation, accessibility
 - **document-writer** (`openai/gpt-5.2-codex-xhigh`) - Writing documentation, summaries, walkthroughs, changelog updates
 - **multimodal-looker** (`google/antigravity-claude-sonnet-4-5`) - Image analysis, visual debugging, design reviews
 - **explore** (`openai/gpt-5.2-codex-xhigh`) - Fast codebase exploration, quick searches, file discovery
 
 ### MCP Integrations
+
 - **shadcn** - UI component generation and management
 - **supabase** - Database operations, authentication, storage
 
@@ -52,7 +55,7 @@ npm run test
 ## 3. Universal Conventions
 
 - **Code Style**: PHP PSR-12, ESLint + Stylelint for JS/CSS
-- **CSS Rules**: Overlay CSS (pd-*.css) MUST NOT use layout properties (enforced by `audit:guard`)
+- **CSS Rules**: Overlay CSS (pd-\*.css) MUST NOT use layout properties (enforced by `audit:guard`)
 - **Commits**: Descriptive messages (e.g., `feat: implement login page UI`, `fix: resolve jwt token error`)
 - **Documentation**: NEVER create new .md files - always update `WALKTHROUGH.md`
 - **Audit URLs**: Set via `AUDIT_URLS` env or `.env` file for a11y/coverage scans
@@ -68,36 +71,37 @@ npm run test
 ## 5. JIT Index - Directory Map
 
 ### Main Application Structure
-- **Laravel App**: `app/` → Models, Controllers, Services, Repositories  
-  - Controllers: `app/Http/Controllers/**`
-  - Models: `app/Models/**`
-  - Services: `app/Services/**`
-  - Helpers: `app/helpers.php`
 
-- **Frontend Resources**: `resources/`  
-  - Views: `resources/views/**/*.blade.php`
-  - CSS: `resources/css/**`
-  - JS: `resources/js/**`
-  - Tokens: `resources/design-tokens.example.json`
+- **Laravel App**: `app/` → Models, Controllers, Services, Repositories
+    - Controllers: `app/Http/Controllers/**`
+    - Models: `app/Models/**`
+    - Services: `app/Services/**`
+    - Helpers: `app/helpers.php`
 
-- **Routes**: `routes/`  
-  - Web: `routes/web.php`
-  - API: `routes/api.php`
-  - Auth: `routes/auth.php`
+- **Frontend Resources**: `resources/`
+    - Views: `resources/views/**/*.blade.php`
+    - CSS: `resources/css/**`
+    - JS: `resources/js/**`
+    - Tokens: `resources/design-tokens.example.json`
 
-- **Frontend Styles**: `styles/`  
-  - Base: `styles/base.css`
-  - Components: `styles/components.css`
-  - Safe overlays: `styles/pd-*.css` (strict layout rules)
-  - Tokens: `styles/tokens.css`
+- **Routes**: `routes/`
+    - Web: `routes/web.php`
+    - API: `routes/api.php`
+    - Auth: `routes/auth.php`
 
-- **Design System**: `dokpol-style/` → [see dokpol-style/README.md]  
-  - Apps: `dokpol-style/apps/**`
-  - Packages: `dokpol-style/packages/**`
+- **Frontend Styles**: `styles/`
+    - Base: `styles/base.css`
+    - Components: `styles/components.css`
+    - Safe overlays: `styles/pd-*.css` (strict layout rules)
+    - Tokens: `styles/tokens.css`
 
-- **Audit System**: `scripts/audit/` + `report/` → [see report/README.md]  
-  - CSS/JS linting, accessibility, coverage, performance audits
-  - All reports output to `report/`
+- **Design System**: `dokpol-style/` → [see dokpol-style/README.md]
+    - Apps: `dokpol-style/apps/**`
+    - Packages: `dokpol-style/packages/**`
+
+- **Audit System**: `scripts/audit/` + `report/` → [see report/README.md]
+    - CSS/JS linting, accessibility, coverage, performance audits
+    - All reports output to `report/`
 
 - **Documentation**: `patcher/` → Deployment, audit, and design docs
 
@@ -135,9 +139,10 @@ find tests/ -name "*.php"
 - **Structure**: Comprehensive list of tasks from development start to finish.
 - **Status**: Use `[ ]` for pending and `[x]` for completed tasks.
 - **Update**: MUST mark tasks as `[x]` immediately after completion.
-- **Agent Delegation**: 
-  - Complex planning → `Planner-Sisyphus`
-  - Task prioritization → `oracle`
+- **Cleanup**: Once ALL tasks are marked `[x]`, CLEAR `todos.md` content (leave file empty or with header only).
+- **Agent Delegation**:
+    - Complex planning → `Planner-Sisyphus`
+    - Task prioritization → `oracle`
 
 ## 7. Documentation & Change Tracking (WALKTHROUGH.md)
 
@@ -145,14 +150,14 @@ find tests/ -name "*.php"
 - **Rule**: WALKTHROUGH.md already exists - NEVER create new .md files for documentation.
 - **Format**: Append changes to relevant sections with proper markdown hierarchy.
 - **Update Protocol**:
-  1. After completing meaningful tasks → Update WALKTHROUGH.md with details
-  2. Document new features, fixes, and architectural decisions
-  3. Include code examples and explanations where relevant
-  4. Use proper date stamps: `Updated on YYYY-MM-DD`
+    1. After completing meaningful tasks → Update WALKTHROUGH.md with details
+    2. Document new features, fixes, and architectural decisions
+    3. Include code examples and explanations where relevant
+    4. Use proper date stamps: `Updated on YYYY-MM-DD`
 - **Agent Delegation**:
-  - Documentation writing → `document-writer`
-  - Technical summaries → `oracle`
-  - Code examples → `Sisyphus`
+    - Documentation writing → `document-writer`
+    - Technical summaries → `oracle`
+    - Code examples → `Sisyphus`
 
 ## 8. Changelog Page Updates
 
@@ -170,6 +175,7 @@ find tests/ -name "*.php"
 ## 10. Execution Protocol
 
 ### Pre-Coding Phase
+
 1. Check `todos.md` and overwrite if new task
 2. For unclear requirements → consult `oracle`
 3. For architecture decisions → consult `Planner-Sisyphus`
@@ -177,6 +183,7 @@ find tests/ -name "*.php"
 5. For visual/design questions → consult `multimodal-looker`
 
 ### Coding Phase
+
 1. **Backend/Logic** → `Sisyphus`
 2. **Frontend/UI** → `frontend-ui-ux-engineer`
 3. **File discovery** → `explore`
@@ -185,6 +192,7 @@ find tests/ -name "*.php"
 6. **Database operations** → Use `supabase` MCP
 
 ### Post-Coding Phase
+
 1. Run tests/verification
 2. Code review → `oracle`
 3. Update `WALKTHROUGH.md` → `document-writer`
@@ -194,19 +202,19 @@ find tests/ -name "*.php"
 
 ## 11. Agent Selection Matrix
 
-| Task Type | Primary Agent | Support Agent |
-|-----------|---------------|---------------|
-| Code implementation | Sisyphus | oracle |
-| Planning & architecture | Planner-Sisyphus | oracle |
-| Frontend/UI work | frontend-ui-ux-engineer | multimodal-looker |
-| Documentation | document-writer | librarian |
-| Research/learning | librarian | oracle |
-| Debugging | Sisyphus | oracle |
-| Visual analysis | multimodal-looker | frontend-ui-ux-engineer |
-| Quick exploration | explore | Sisyphus |
-| Database work | Sisyphus + supabase MCP | oracle |
-| UI components | frontend-ui-ux-engineer + shadcn MCP | multimodal-looker |
-| Changelog updates | document-writer | Sisyphus |
+| Task Type               | Primary Agent                        | Support Agent           |
+| ----------------------- | ------------------------------------ | ----------------------- |
+| Code implementation     | Sisyphus                             | oracle                  |
+| Planning & architecture | Planner-Sisyphus                     | oracle                  |
+| Frontend/UI work        | frontend-ui-ux-engineer              | multimodal-looker       |
+| Documentation           | document-writer                      | librarian               |
+| Research/learning       | librarian                            | oracle                  |
+| Debugging               | Sisyphus                             | oracle                  |
+| Visual analysis         | multimodal-looker                    | frontend-ui-ux-engineer |
+| Quick exploration       | explore                              | Sisyphus                |
+| Database work           | Sisyphus + supabase MCP              | oracle                  |
+| UI components           | frontend-ui-ux-engineer + shadcn MCP | multimodal-looker       |
+| Changelog updates       | document-writer                      | Sisyphus                |
 
 ## 12. Collaboration Protocol
 
@@ -218,6 +226,30 @@ find tests/ -name "*.php"
 - **Sisyphus handles** the final implementation and git commits
 - **document-writer creates summaries** after significant changes
 - **Never create standalone .md files** - always update WALKTHROUGH.md
+
+### Party Mode: Multi-Agent Orchestration
+
+For complex tasks requiring multiple perspectives, activate **Party Mode** by launching 2-4 background agents in parallel:
+
+```bash
+# Example: Parallel exploration for new feature
+background_task(agent="explore", description="Explore Laravel structure", prompt="...")
+background_task(agent="librarian", description="Research framework docs", prompt="...")
+background_task(agent="explore", description="Analyze audit system", prompt="...")
+background_task(agent="librarian", description="Find implementation examples", prompt="...")
+```
+
+**When to use Party Mode**:
+
+- ✅ Complex features spanning multiple domains (backend + frontend + external APIs)
+- ✅ Need comprehensive codebase understanding before implementation
+- ✅ Researching unfamiliar frameworks/libraries
+- ✅ Debugging after 2+ failed attempts requiring fresh perspective
+- ❌ Simple bug fixes or trivial changes
+
+**Party Mode delivers 60-70% time savings** through parallel execution vs sequential agent work.
+
+See `WALKTHROUGH.md` v1.0.10 and `PARTY_MODE_SESSION_EXAMPLE.md` for detailed workflow and real session example.
 
 ## 13. Definition of Done
 
@@ -249,7 +281,7 @@ Before any PR is ready:
 
 ## 15. Common Gotchas
 
-- **CSS Safe Mode**: pd-*.css files CANNOT use layout properties (enforced by `audit:guard`)
+- **CSS Safe Mode**: pd-\*.css files CANNOT use layout properties (enforced by `audit:guard`)
 - **Laravel Server**: Must be running (`php artisan serve`) for a11y/coverage audits
 - **Puppeteer**: Downloads Chromium automatically; see `report/README.md` for troubleshooting
 - **Audit URLs**: Configure in `.env` or `AUDIT_URLS` environment variable

@@ -134,11 +134,16 @@
                                                 <div class="px-4 py-2 text-xs text-gray-400">Akun Anda</div>
                                             @else
                                                 @if($analyst->is_active)
-                                                    <form method="POST" action="{{ route('analysts.disable', $analyst) }}"
-                                                        onsubmit="return confirm('Nonaktifkan pengguna ini?');">
+                                                    <form method="POST" action="{{ route('analysts.disable', $analyst) }}" x-data>
                                                         @csrf
-                                                        <x-dropdown-link :href="route('analysts.disable', $analyst)"
-                                                            onclick="event.preventDefault(); this.closest('form').submit();">
+                                                        <x-dropdown-link href="#"
+                                                            @click.prevent="showConfirmDialog({
+                                                                type: 'warning',
+                                                                title: 'Nonaktifkan Pengguna',
+                                                                message: 'Nonaktifkan pengguna ini?',
+                                                                confirmButtonText: 'Ya, Nonaktifkan',
+                                                                onConfirm: () => $el.closest('form').submit()
+                                                            })">
                                                             Nonaktifkan
                                                         </x-dropdown-link>
                                                     </form>
@@ -152,12 +157,17 @@
                                                     </form>
                                                 @endif
 
-                                                <form method="POST" action="{{ route('analysts.destroy', $analyst) }}"
-                                                    onsubmit="return confirm('Hapus pengguna ini? Data akan diarsipkan (soft delete).');">
+                                                <form method="POST" action="{{ route('analysts.destroy', $analyst) }}" x-data>
                                                     @csrf
                                                     @method('DELETE')
-                                                    <x-dropdown-link :href="route('analysts.destroy', $analyst)"
-                                                        onclick="event.preventDefault(); this.closest('form').submit();">
+                                                    <x-dropdown-link href="#"
+                                                        @click.prevent="showConfirmDialog({
+                                                            type: 'danger',
+                                                            title: 'Hapus Pengguna',
+                                                            message: 'Hapus pengguna ini? Data akan diarsipkan (soft delete).',
+                                                            confirmButtonText: 'Ya, Hapus',
+                                                            onConfirm: () => $el.closest('form').submit()
+                                                        })">
                                                         Hapus
                                                     </x-dropdown-link>
                                                 </form>

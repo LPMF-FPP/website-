@@ -862,6 +862,10 @@ export class SettingsClient {
             enabled_milestones: Array.isArray(wa.enabled_milestones)
                 ? wa.enabled_milestones
                 : [],
+            templates:
+                wa.templates && typeof wa.templates === "object"
+                    ? wa.templates
+                    : {},
         };
 
         await this.apiFetch(this.api.whatsappSettings, {
@@ -1157,6 +1161,11 @@ export class SettingsClient {
                 )
                     ? source.whatsapp.enabled_milestones
                     : [],
+                templates:
+                    source?.whatsapp?.templates &&
+                    typeof source.whatsapp.templates === "object"
+                        ? source.whatsapp.templates
+                        : {},
             },
         };
     }

@@ -9,11 +9,18 @@
                 class="inline-flex items-center text-sm font-semibold text-primary-600 hover:text-primary-700">&larr; Kembali ke daftar pengguna</a>
 
             @if(auth()->id() !== $analyst->id)
-                <form method="POST" action="{{ route('analysts.destroy', $analyst) }}"
-                    onsubmit="return confirm('Hapus pengguna ini? Data akan diarsipkan (soft delete).');">
+                <form method="POST" action="{{ route('analysts.destroy', $analyst) }}" x-data>
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="text-sm font-semibold text-red-600 hover:text-red-700">Hapus</button>
+                    <button type="button" 
+                        class="text-sm font-semibold text-red-600 hover:text-red-700"
+                        @click.prevent="showConfirmDialog({
+                            type: 'danger',
+                            title: 'Hapus Pengguna',
+                            message: 'Hapus pengguna ini? Data akan diarsipkan (soft delete).',
+                            confirmButtonText: 'Ya, Hapus',
+                            onConfirm: () => $el.closest('form').submit()
+                        })">Hapus</button>
                 </form>
             @else
                 <span class="text-xs text-gray-400">Akun Anda</span>

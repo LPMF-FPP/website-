@@ -46,7 +46,7 @@ Thumbs.db
 
 # Temporary and generated files
 test.txt
-_bmad/
+
 /docs/
 
 .agent/workflows/post-coding.md

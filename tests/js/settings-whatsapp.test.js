@@ -20,6 +20,10 @@ class SettingsClientStub {
                         basic_user: "lpmf",
                         basic_pass: "lpmfjaya1",
                         enabled_milestones: ["REQUEST_RECEIVED"],
+                        templates: {
+                            REQUEST_RECEIVED: "Permintaan diterima {resi}.",
+                            READY_FOR_PICKUP: "Permintaan siap diambil {resi}.",
+                        },
                     },
                     email: { enabled: false },
                 },
@@ -178,6 +182,10 @@ describe("SettingsClient WhatsApp Save", () => {
         assert.deepStrictEqual(payload.enabled_milestones, [
             "REQUEST_RECEIVED",
         ]);
+        assert.deepStrictEqual(payload.templates, {
+            REQUEST_RECEIVED: "Permintaan diterima {resi}.",
+            READY_FOR_PICKUP: "Permintaan siap diambil {resi}.",
+        });
     });
 
     it("should handle empty whatsapp settings gracefully", async () => {
@@ -192,6 +200,7 @@ describe("SettingsClient WhatsApp Save", () => {
         assert.strictEqual(payload.basic_user, null);
         assert.strictEqual(payload.basic_pass, null);
         assert.deepStrictEqual(payload.enabled_milestones, []);
+        assert.deepStrictEqual(payload.templates, {});
     });
 
     it("should not call whatsapp endpoint for other sections", async () => {
