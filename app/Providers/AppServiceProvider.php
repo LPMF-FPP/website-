@@ -106,6 +106,11 @@ class AppServiceProvider extends ServiceProvider
             return in_array($user->role ?? null, $allowed, true);
         });
 
+        Gate::define('viewPulse', function ($user) {
+            // Allow admin and supervisor to view Pulse dashboard
+            return in_array($user->role ?? null, ['admin', 'supervisor'], true);
+        });
+
         TestRequest::observe(TestRequestObserver::class);
         Sample::observe(SampleObserver::class);
         Document::observe(DocumentObserver::class);

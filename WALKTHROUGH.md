@@ -25,12 +25,103 @@
 | [report/README.md](./report/README.md)                           | Frontend audit system guide             |
 | [patcher/](./patcher/)                                           | Deployment & design documentation       |
 
-**Current Version:** v1.2.4 (10 Januari 2026)  
-**Latest Feature:** Production-Ready Observability & Monitoring
+**Current Version:** v1.2.5 (10 Januari 2026)  
+**Latest Feature:** Advanced Monitoring Tools (Telescope, Pulse, Sentry)
 
 ---
 
 ## 📰 Recent Changes (v1.2.x)
+
+### v1.2.5 (10 Januari 2026) - Advanced Monitoring Tools
+
+**📌 What Changed:**
+
+Installation and configuration of enterprise-grade monitoring tools for comprehensive application observability.
+
+**🔧 Monitoring Tools Installed:**
+
+1. **Laravel Telescope v5.16** (Dev/Staging)
+    - Real-time request/response debugging
+    - Query inspection and optimization
+    - Exception tracking
+    - Job monitoring
+    - Cache operations
+    - Log viewing
+    - Dashboard: `/telescope` (admin/supervisor only)
+
+2. **Laravel Pulse v1.4** (Production)
+    - Real-time application metrics
+    - Slow queries tracking (threshold: 1000ms)
+    - Exception monitoring
+    - Job performance metrics
+    - Server metrics
+    - Cache hit rates
+    - Dashboard: `/pulse` (admin/supervisor only)
+    - Requires: `php artisan pulse:work` in production
+
+3. **Sentry v4.20** (Error Tracking)
+    - Automatic error capture and reporting
+    - Performance monitoring (10% sample rate)
+    - Release tracking
+    - User context and breadcrumbs
+    - Configured in `bootstrap/app.php` and `config/sentry.php`
+
+4. **Slack Alerting**
+    - Critical error notifications
+    - Configured via `LOG_SLACK_WEBHOOK_URL`
+    - Automatic routing through stack log channel
+    - Customizable username and emoji
+
+**🔐 Authorization:**
+
+- Added `viewTelescope` gate in `TelescopeServiceProvider`
+- Added `viewPulse` gate in `AppServiceProvider`
+- Both dashboards accessible by `admin` and `supervisor` roles only
+
+**📦 Files Modified:**
+
+- `composer.json` / `composer.lock` - Added packages
+- `config/telescope.php` - Telescope configuration
+- `config/pulse.php` - Pulse configuration
+- `config/sentry.php` - Sentry configuration
+- `config/logging.php` - Slack channel configuration
+- `app/Providers/TelescopeServiceProvider.php` - Authorization gate
+- `app/Providers/AppServiceProvider.php` - viewPulse gate
+- `.env.example` - Added monitoring configuration
+- `database/migrations/*_create_telescope_entries_table.php`
+- `database/migrations/*_create_pulse_tables.php`
+- `resources/views/vendor/pulse/dashboard.blade.php`
+
+**📖 Documentation:** `PRODUCTION_READINESS.md` - Updated with complete monitoring tools setup guide
+
+**⚙️ Configuration Required:**
+
+```env
+# Sentry
+SENTRY_LARAVEL_DSN=https://your-key@sentry.io/project-id
+SENTRY_TRACES_SAMPLE_RATE=0.1
+
+# Slack
+LOG_SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+LOG_STACK=single,slack
+
+# Telescope (dev only)
+TELESCOPE_ENABLED=false
+
+# Pulse
+PULSE_ENABLED=true
+PULSE_INGEST_DRIVER=database
+```
+
+**✅ Next Steps:**
+
+1. Configure Sentry DSN from https://sentry.io
+2. Set up Slack webhook for critical alerts
+3. Run migrations: `php artisan migrate`
+4. Start Pulse worker in production: `php artisan pulse:work`
+5. Access dashboards at `/telescope` and `/pulse`
+
+---
 
 ### v1.2.4 (10 Januari 2026) - Production-Ready Observability & Monitoring
 

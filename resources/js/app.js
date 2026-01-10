@@ -1,10 +1,16 @@
 import "./bootstrap";
 
 import Alpine from "alpinejs";
+import collapse from "@alpinejs/collapse";
+import focus from "@alpinejs/focus";
 import { createListFetcher } from "./utils/list-fetcher";
 import { initSearchPage } from "./pages/search";
 import { registerSettingsComponent } from "./pages/settings/alpine-component";
 import toastStore from "./stores/toast";
+
+// Register Alpine plugins
+Alpine.plugin(collapse);
+Alpine.plugin(focus);
 
 // Theme manager
 (function () {

@@ -23,11 +23,22 @@ Add these to your `.env`:
 # Observability
 DB_SLOW_QUERY_THRESHOLD_MS=1000
 
-# Error Tracking (choose one)
-SENTRY_LARAVEL_DSN=https://your-sentry-dsn
+# Error Tracking
+SENTRY_LARAVEL_DSN=https://your-sentry-dsn@sentry.io/project-id
 SENTRY_TRACES_SAMPLE_RATE=0.1
-# OR
-FLARE_KEY=your-flare-key
+
+# Slack Error Alerting
+LOG_SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+LOG_SLACK_USERNAME="LIMS Production"
+LOG_SLACK_EMOJI=":rotating_light:"
+LOG_SLACK_LEVEL=critical
+
+# Laravel Telescope (dev/staging only)
+TELESCOPE_ENABLED=false
+
+# Laravel Pulse
+PULSE_ENABLED=true
+PULSE_INGEST_DRIVER=database
 
 # WhatsApp Service Timeouts
 WHATSAPP_GOWA_TIMEOUT=30
@@ -171,51 +182,142 @@ public function backoff(): array
 }
 ```
 
-## Next Steps (Optional)
+## Advanced Monitoring (Installed)
 
-### Install Laravel Telescope (Dev/Staging)
+### Laravel Telescope (Dev/Staging) ✅
+
+**Access:** `/telescope` (admin/supervisor only)
+
+**Features:**
+
+- Request/response inspection
+- Query debugging
+- Exception tracking
+- Job monitoring
+- Cache operations
+- Log viewing
+
+**Usage:**
 
 ```bash
-composer require laravel/telescope --dev
-php artisan telescope:install
-php artisan migrate
+# Access dashboard (local/staging)
+http://localhost:8000/telescope
+
+# Authorization: admin and supervisor roles only
 ```
 
-### Install Laravel Pulse (Production Metrics)
+**Configuration:** `config/telescope.php`, `app/Providers/TelescopeServiceProvider.php`
+
+### Laravel Pulse (Production Metrics) ✅
+
+**Access:** `/pulse` (admin/supervisor only)
+
+**Features:**
+
+- Real-time application metrics
+- Slow queries tracking
+- Exception monitoring
+- Job performance
+- Server metrics
+- Cache hit rates
+
+**Usage:**
 
 ```bash
-composer require laravel/pulse
-php artisan pulse:install
-php artisan migrate
+# Run Pulse worker in production
+php artisan pulse:work
+
+# Access dashboard
+http://localhost:8000/pulse
+
+# Check Pulse status
+php artisan pulse:check
 ```
 
-### Setup Alerting
+**Configuration:** `config/pulse.php`
 
-Configure Slack webhook for critical errors:
+**Recorders Enabled:**
+
+- Cache interactions
+- Exceptions
+- Queues
+- Slow jobs (threshold: 1000ms)
+- Slow queries (threshold: 1000ms)
+- Slow outgoing requests (threshold: 1000ms)
+- Server metrics
+- User requests
+- User jobs
+
+### Sentry Error Tracking ✅
+
+**Setup:**
+
+1. Create account at https://sentry.io
+2. Get your DSN from project settings
+3. Add to `.env`:
+
+```env
+SENTRY_LARAVEL_DSN=https://your-key@sentry.io/your-project-id
+SENTRY_TRACES_SAMPLE_RATE=0.1
+```
+
+4. Test:
+
+```bash
+php artisan tinker
+>>> throw new \Exception('Test Sentry');
+```
+
+**Configuration:** `config/sentry.php`, `bootstrap/app.php`
+
+### Slack Alerting ✅
+
+Critical errors automatically sent to Slack.
+
+**Setup:**
+
+1. Create Slack webhook at https://api.slack.com/messaging/webhooks
+2. Add to `.env`:
 
 ```env
 LOG_SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+LOG_SLACK_USERNAME="LIMS Production"
+LOG_SLACK_EMOJI=":rotating_light:"
+LOG_SLACK_LEVEL=critical
 ```
+
+3. Update `LOG_STACK` in `.env`:
+
+```env
+LOG_STACK=single,slack
+```
+
+**Configuration:** `config/logging.php`
 
 ## Monitoring Checklist
 
 ### Daily
 
 - [ ] Check `/health` endpoint
+- [ ] Review `/pulse` dashboard metrics
+- [ ] Check Slack for critical error notifications
 - [ ] Review error logs for critical issues
-- [ ] Monitor slow query logs
+- [ ] Monitor slow query logs in Pulse
 
 ### Weekly
 
-- [ ] Review Sentry/Flare error trends
+- [ ] Review Sentry error trends
+- [ ] Check `/telescope` for debugging insights (dev/staging)
 - [ ] Check queue health: `php artisan queue:monitor`
 - [ ] Verify backup success
+- [ ] Review Pulse job performance metrics
 
 ### Monthly
 
 - [ ] Review security advisories
 - [ ] Update dependencies
-- [ ] Performance audit
+- [ ] Performance audit using Pulse metrics
+- [ ] Review and clean up old Pulse/Telescope data
 
 ## Troubleshooting
 
@@ -240,14 +342,30 @@ php artisan config:clear && php artisan cache:clear
 
 ### Error Tracking Not Working
 
-1. Verify Sentry DSN: `php artisan tinker` → `config('services.monitoring.sentry.dsn')`
+1. Verify Sentry DSN: `php artisan tinker` → `config('sentry.dsn')`
 2. Check error logs for Sentry errors
-3. Test manually: `throw new \Exception('Test Sentry');`
+3. Test manually: `php artisan tinker` → `throw new \Exception('Test Sentry');`
+
+### Telescope/Pulse Not Accessible
+
+1. Check authorization gates in `app/Providers/AppServiceProvider.php` and `app/Providers/TelescopeServiceProvider.php`
+2. Verify user role is `admin` or `supervisor`
+3. Clear config cache: `php artisan config:clear`
+4. Check routes: `php artisan route:list | grep telescope` or `php artisan route:list | grep pulse`
+
+### Pulse Not Recording Metrics
+
+1. Check if Pulse is enabled: `config('pulse.enabled')`
+2. Run Pulse worker: `php artisan pulse:work`
+3. Check database tables exist: `pulse_*` tables
+4. Verify recorders are enabled in `config/pulse.php`
 
 ## Files Modified
 
+### Initial Production-Ready Implementation (v1.2.4)
+
 - `app/Http/Controllers/HealthController.php` - Enhanced health checks
-- `app/Providers/AppServiceProvider.php` - Query monitoring
+- `app/Providers/AppServiceProvider.php` - Query monitoring + Pulse authorization
 - `bootstrap/app.php` - Exception handling
 - `config/database.php` - Slow query threshold
 - `config/services.php` - Service timeouts & monitoring
@@ -255,6 +373,20 @@ php artisan config:clear && php artisan cache:clear
 - `routes/api.php` - Rate limiting
 - `.env.example` - Configuration templates
 - `app/Models/TestRequest.php` - PII encryption
+
+### Advanced Monitoring Tools Installation (v1.2.5)
+
+- `composer.json` / `composer.lock` - Added laravel/telescope, laravel/pulse, sentry/sentry-laravel
+- `config/telescope.php` - Telescope configuration
+- `config/pulse.php` - Pulse configuration
+- `config/sentry.php` - Sentry configuration
+- `config/logging.php` - Slack channel configuration
+- `app/Providers/TelescopeServiceProvider.php` - Telescope authorization
+- `app/Providers/AppServiceProvider.php` - viewPulse gate
+- `.env.example` - Added Telescope, Pulse, Sentry, Slack configuration
+- `database/migrations/*_create_telescope_entries_table.php` - Telescope database
+- `database/migrations/*_create_pulse_tables.php` - Pulse database
+- `resources/views/vendor/pulse/dashboard.blade.php` - Pulse dashboard
 
 ## Documentation
 

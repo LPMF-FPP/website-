@@ -77,6 +77,9 @@
         </footer>
     </div>
 
+    {{-- Modal Portal Target --}}
+    <div id="modal-portal"></div>
+
     {{-- Global Confirm Dialog Component --}}
     <x-confirm-dialog />
 

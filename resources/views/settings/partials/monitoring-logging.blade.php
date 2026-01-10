@@ -188,7 +188,7 @@
                             </svg>
                         </button>
                         
-                        <div x-show="openMethodAccordions[methodCode]" x-cloak class="p-4 border-t border-gray-200 bg-white">
+                        <div x-show="openMethodAccordions[methodCode]" x-collapse x-cloak class="p-4 border-t border-gray-200 bg-white">
                             <div class="space-y-3">
                                 <template x-for="(req, reqIndex) in (instrumentRequirementsState[methodCode] || [])" :key="reqIndex">
                                     <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
