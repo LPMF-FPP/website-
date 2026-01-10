@@ -18,6 +18,8 @@ return [
 
     'default' => env('DB_CONNECTION', 'pgsql'),
 
+    'slow_query_threshold_ms' => env('DB_SLOW_QUERY_THRESHOLD_MS', 1000),
+
     /*
     |--------------------------------------------------------------------------
     | Database Connections

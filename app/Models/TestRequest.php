@@ -40,6 +40,10 @@ class TestRequest extends Model
 
         'completed_at' => 'datetime',
 
+        'suspect_name' => 'encrypted',
+
+        'suspect_address' => 'encrypted',
+
     ];
 
     protected static function boot()

@@ -40,5 +40,23 @@ return Application::configure(basePath: dirname(__DIR__))
         Schedule::command('lims:purge-old-files')->dailyAt('02:00');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        $exceptions->reportable(function (Throwable $e) {
+            if (app()->bound('sentry') && app()->environment('production')) {
+                app('sentry')->captureException($e);
+            }
+        });
+
+        $exceptions->dontReport([
+            \Illuminate\Auth\AuthenticationException::class,
+            \Illuminate\Validation\ValidationException::class,
+            \Symfony\Component\HttpKernel\Exception\HttpException::class,
+        ]);
+
+        $exceptions->throttle(function (Throwable $e) {
+            return \Illuminate\Support\Facades\RateLimiter::attempt(
+                'error-reporting:' . get_class($e),
+                perMinute: 5,
+                callback: fn () => true
+            );
+        });
     })->create();

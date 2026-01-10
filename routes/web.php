@@ -28,6 +28,8 @@ Route::post('/locale/{locale}', [LocaleController::class, 'switch'])->name('loca
 
 // Public Routes
 Route::get('/health', [\App\Http\Controllers\HealthController::class, 'index'])->name('health');
+Route::get('/health/liveness', [\App\Http\Controllers\HealthController::class, 'liveness'])->name('health.liveness');
+Route::get('/health/readiness', [\App\Http\Controllers\HealthController::class, 'readiness'])->name('health.readiness');
 Route::get('/', function () {
     if (Auth::check()) {
         return redirect()->route('dashboard');

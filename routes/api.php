@@ -23,6 +23,8 @@ use App\Http\Controllers\Api\JobStatusController;
 use App\Models\TestRequest;
 use Illuminate\Support\Facades\Route;
 
+Route::middleware(['throttle:60,1'])->group(function () {
+
 Route::middleware(['auth', 'verified'])->prefix('settings')->group(function () {
     Route::get('/', [ApiSettingsController::class, 'index']);
     Route::put('/', [\App\Http\Controllers\SettingsController::class, 'update']);
@@ -274,4 +276,6 @@ Route::get('/sample-processes/{processId}', function ($processId) {
         'instrument_label' => $metadata['instrument'] ?? $metadata['instrument_pengujian'] ?? $sample?->test_type ?? '-',
         'report_date' => now()->format('d F Y'),
     ]);
+});
+
 });

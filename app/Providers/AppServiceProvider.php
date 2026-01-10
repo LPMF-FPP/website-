@@ -34,6 +34,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        $this->registerQueryMonitoring();
+
         // Apply runtime locale/timezone from settings (also for CLI/queue)
         try {
             AppTimezone::apply();
@@ -107,5 +109,33 @@ class AppServiceProvider extends ServiceProvider
         TestRequest::observe(TestRequestObserver::class);
         Sample::observe(SampleObserver::class);
         Document::observe(DocumentObserver::class);
+    }
+
+    protected function registerQueryMonitoring(): void
+    {
+        if (!app()->environment('production')) {
+            return;
+        }
+
+        \Illuminate\Support\Facades\DB::listen(function ($query) {
+            $threshold = config('database.slow_query_threshold_ms', 1000);
+            
+            if ($query->time > $threshold) {
+                \Illuminate\Support\Facades\Log::warning('Slow query detected', [
+                    'sql' => $query->sql,
+                    'bindings' => $query->bindings,
+                    'time_ms' => $query->time,
+                    'connection' => $query->connectionName,
+                ]);
+            }
+
+            if ($query->time > ($threshold * 3)) {
+                \Illuminate\Support\Facades\Log::error('Critical slow query', [
+                    'sql' => $query->sql,
+                    'time_ms' => $query->time,
+                    'connection' => $query->connectionName,
+                ]);
+            }
+        });
     }
 }

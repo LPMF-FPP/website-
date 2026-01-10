@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v1.1.6
+# WALKTHROUGH - LPMF LIMS v1.2.4
 
 > **Laboratory Information Management System untuk Laboratorium Pengujian Mutu Farmasi**
 
@@ -7,7 +7,7 @@
 ## 📋 Table of Contents
 
 - [🚀 Quick Links](#-quick-links)
-- [📰 Recent Changes](#-recent-changes-v11x)
+- [📰 Recent Changes](#-recent-changes-v12x)
 - [📖 Project Overview](#-project-overview)
 - [📚 Product Documentation](#-product-documentation)
 - [📜 Changelog Archive](#-changelog-archive)
@@ -21,15 +21,110 @@
 | [AGENTS.md](./AGENTS.md)                                         | Workflow rules & agent delegation guide |
 | [UI-UX-IMPROVEMENT-PLAN.md](./UI-UX-IMPROVEMENT-PLAN.md)         | UI/UX improvement roadmap               |
 | [PARTY_MODE_SESSION_EXAMPLE.md](./PARTY_MODE_SESSION_EXAMPLE.md) | Multi-agent collaboration examples      |
+| [PRODUCTION_READINESS.md](./PRODUCTION_READINESS.md)             | Production observability & monitoring   |
 | [report/README.md](./report/README.md)                           | Frontend audit system guide             |
 | [patcher/](./patcher/)                                           | Deployment & design documentation       |
 
-**Current Version:** v1.1.8 (10 Januari 2026)  
-**Latest Feature:** Search Debouncing & Type Safety
+**Current Version:** v1.2.4 (10 Januari 2026)  
+**Latest Feature:** Production-Ready Observability & Monitoring
 
 ---
 
-## 📰 Recent Changes (v1.1.x)
+## 📰 Recent Changes (v1.2.x)
+
+### v1.2.4 (10 Januari 2026) - Production-Ready Observability & Monitoring
+
+**📌 What Changed:**
+
+Comprehensive backend production-readiness improvements with focus on observability, security, and resilience.
+
+**🔍 Observability Improvements:**
+
+- Enhanced health check endpoints (`/health`, `/health/liveness`, `/health/readiness`)
+- Automatic slow query monitoring (logs queries > 1000ms)
+- Exception handling with Sentry/Flare integration
+- Error reporting rate limiting (5/minute per exception type)
+
+**🔒 Security Improvements:**
+
+- PII encryption for `TestRequest::suspect_name` and `suspect_address`
+- API rate limiting (60 requests/minute)
+- Improved exception filtering (don't report validation/auth errors)
+
+**🛡️ Resilience Improvements:**
+
+- Service timeout configurations (WhatsApp, S3)
+- Enhanced job retry logic with exponential backoff
+- Transaction management review (25 usages confirmed)
+
+**📦 Files Modified:**
+
+- `app/Http/Controllers/HealthController.php` - Enhanced health checks
+- `app/Providers/AppServiceProvider.php` - Query monitoring
+- `bootstrap/app.php` - Exception handling
+- `config/database.php` - Slow query threshold
+- `config/services.php` - Service timeouts & monitoring
+- `routes/web.php` - Health endpoints
+- `routes/api.php` - Rate limiting
+- `.env.example` - Configuration templates
+- `app/Models/TestRequest.php` - PII encryption
+
+**📖 Documentation:** `PRODUCTION_READINESS.md` - Complete setup and monitoring guide
+
+**✅ Verification:**
+
+- All health routes registered
+- Queue configuration tests passing
+- Configuration templates updated
+
+---
+
+### v1.2.3 (10 Januari 2026) - Laravel Precognition & Optimistic UI Guide
+
+**📌 What Changed:**
+
+- Added project-specific guide for Laravel Precognition setup and usage
+- Documented optimistic UI patterns with rollback, toasts, and a11y announcements
+- Included code templates, testing strategies, and real-world adoption map
+
+**📦 Files:** `WALKTHROUGH.md`, `resources/views/changelogs/index.blade.php`
+
+---
+
+### v1.2.2 (10 Januari 2026) - Alpine.js Frontend Patterns Guide
+
+**📌 What Changed:**
+
+- Added comprehensive Alpine.js frontend patterns documentation (state, modals, transitions, accessibility, performance, toasts)
+- Documented repo-specific motion tokens, a11y utilities, and loading-state matrix
+- Included troubleshooting guidance and official references
+
+**📦 Files:** `WALKTHROUGH.md`, `resources/views/changelogs/index.blade.php`
+
+---
+
+### v1.1.9 (10 Januari 2026) - UI/UX Phase 7: Alpine.js Plugin Integration
+
+**📌 What Changed:**
+
+- Integrated Alpine.js plugins for enhanced interaction
+- `x-teleport` for Modals and Confirm Dialogs (resolves z-index stacking)
+- `x-collapse` for smooth Accordion animations
+- `x-trap` for robust focus management
+
+**✅ Benefits:**
+
+- **Z-Index Solved:** Modals now render at `body` level via `#modal-portal`
+- **Smooth Animations:** Accordions animate height naturally
+- **Accessibility:** Better focus trapping in modals
+- **Cleaner Code:** Removed manual transition logic
+
+**📦 Files:** `resources/js/app.js`, `resources/views/components/modal.blade.php`, `resources/views/components/confirm-dialog.blade.php`, `resources/views/settings/partials/monitoring-logging.blade.php`
+
+**⚠️ Requirement:**
+Run `npm install @alpinejs/collapse @alpinejs/focus`
+
+---
 
 ### v1.1.8 (10 Januari 2026) - UI/UX Phase 6: Performance & Type Safety
 
@@ -380,6 +475,7 @@ npm run test
 6. [API Endpoints](#api-endpoints)
 7. [Konfigurasi & Deployment](#konfigurasi--deployment)
 8. [Panduan Pengembangan](#panduan-pengembangan)
+9. [Laravel Precognition & Optimistic UI Implementation Guide](#laravel-precognition--optimistic-ui-implementation-guide)
 
 ---
 
@@ -885,6 +981,382 @@ async function fetchData() {
     <textarea x-model.lazy="notes"></textarea>
     ```
 
+#### Alpine.js Frontend Patterns (Comprehensive)
+
+`Updated on 2026-01-10`
+
+##### 1. Alpine.js State Management
+
+- Use `x-data` for page- or component-scoped state (most Blade views).
+- Use `Alpine.store()` for cross-component/global state (toast, settings shared across tabs).
+- Persist user preferences with `localStorage` (theme manager in `resources/js/app.js`).
+
+**Global store registration (current pattern):**
+
+```javascript
+// resources/js/app.js
+document.addEventListener("alpine:init", () => {
+    Alpine.store("toast", toastStore);
+});
+```
+
+**Toast store (current implementation):**
+
+```javascript
+// resources/js/stores/toast.js
+export default {
+    notifications: [],
+    show(message, type = "info", duration = 3000) {
+        const id =
+            Date.now().toString(36) + Math.random().toString(36).substr(2);
+        this.notifications.push({ id, message, type, duration });
+        this.announce(message, type);
+        if (duration > 0) setTimeout(() => this.dismiss(id), duration);
+        return id;
+    },
+    announce(message, type) {
+        const announcer = document.getElementById("toast-announcer");
+        if (announcer) {
+            const prefix =
+                type === "error"
+                    ? "Error: "
+                    : type === "warning"
+                      ? "Warning: "
+                      : "";
+            announcer.textContent = prefix + message;
+            setTimeout(() => {
+                announcer.textContent = "";
+            }, 1000);
+        }
+    },
+};
+```
+
+**Settings store (recommended when multiple tabs/components share state):**
+
+```javascript
+// Suggested shape based on settingsPageAlpine client state
+Alpine.store("settings", {
+    state: {
+        loadingSections: {},
+        form: {},
+    },
+    async saveSection(key) {
+        return this.client.saveSection(key);
+    },
+});
+```
+
+**Persistence pattern (theme example):**
+
+```javascript
+// resources/js/app.js
+const STORAGE_KEY = "ui.theme";
+localStorage.setItem(STORAGE_KEY, theme);
+```
+
+##### 2. Transitions and Animations
+
+- Use tokenized timings from `styles/pd.ultrasafe.tokens.css`:
+    - `--pd-dur-fast` (150ms), `--pd-dur` (200ms), `--pd-dur-slow` (300ms)
+    - `--pd-transition-modal` for dialog timing consistency
+- Prefer `x-transition` with explicit easing + duration; keep motion consistent with `styles/ui.tokens.css` and `styles/tokens.css`.
+
+**Modal transition (current pattern):**
+
+```html
+<!-- resources/views/components/modal.blade.php -->
+<div
+    x-show="show"
+    x-transition:enter="ease-out duration-300"
+    x-transition:enter-start="opacity-0"
+    x-transition:enter-end="opacity-100"
+    x-transition:leave="ease-in duration-200"
+    x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0"
+></div>
+```
+
+**Accordion with `x-collapse` (current pattern):**
+
+```html
+<!-- resources/views/settings/partials/monitoring-logging.blade.php -->
+<div
+    x-show="openMethodAccordions[methodCode]"
+    x-collapse
+    x-cloak
+    class="p-4 border-t border-gray-200 bg-white"
+>
+    <!-- accordion content -->
+</div>
+```
+
+**Reduced motion (respect user preference):**
+
+```css
+/* styles/a11y.css */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+```
+
+##### 3. Form Patterns
+
+- Numeric inputs: use `x-model.number` (prevents string coercion).
+- Large textareas: use `x-model.lazy` (updates on blur).
+- Search inputs: debounce user input to reduce API calls.
+
+**Numeric input (current pattern):**
+
+```html
+<!-- resources/views/monitoring/environment/manage.blade.php -->
+<input type="number" step="0.1" x-model.number="modal.form.target_temp_min" />
+```
+
+**Lazy textarea (current pattern):**
+
+```html
+<!-- resources/views/monitoring/environment/index.blade.php -->
+<textarea x-model.lazy="inputModal.form.notes" rows="2"></textarea>
+```
+
+**Debounce (current JS helper + Alpine equivalent):**
+
+```javascript
+// resources/js/pages/search.js
+function debounce(fn, delay) {
+    let timer = null;
+    return function debounced(...args) {
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => fn.apply(this, args), delay);
+    };
+}
+```
+
+```html
+<!-- Alpine pattern for inputs -->
+<input x-model="query" @input.debounce.300ms="search()" />
+```
+
+**Validation + error display (current pattern):**
+
+```html
+<!-- resources/views/settings/partials/numbering.blade.php -->
+<input x-model="client.state.form.numbering[scope].pattern" />
+<p
+    x-show="client.state.scopeErrors[scope]?.pattern"
+    class="text-xs text-red-600"
+    x-text="client.state.scopeErrors[scope]?.pattern"
+></p>
+```
+
+##### 4. Accessibility Patterns
+
+- Always include `role`, `aria-labelledby`, and `aria-modal` on dialogs.
+- Trap focus during modal open via `x-trap.noscroll.inert`.
+- Use live regions for async status (toasts, background tasks).
+
+**Accessible modal shell (current pattern):**
+
+```html
+<!-- resources/views/components/confirm-dialog.blade.php -->
+<div
+    x-show="isOpen"
+    aria-labelledby="confirm-dialog-title"
+    role="dialog"
+    aria-modal="true"
+>
+    <!-- dialog content -->
+</div>
+```
+
+**Live region announcer (current pattern):**
+
+```html
+<!-- resources/views/components/toast-container.blade.php -->
+<div
+    id="toast-announcer"
+    class="sr-only"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+></div>
+```
+
+**Screen reader utility (current CSS):**
+
+```css
+/* styles/a11y.css */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+```
+
+**Modal accessibility checklist:**
+
+- Focus trap enabled (`x-trap.noscroll.inert`)
+- Escape key closes dialog
+- Backdrop click behavior defined
+- `aria-labelledby` points to visible title
+- Live region for async status (if needed)
+
+##### 5. Modal and Dialog Patterns
+
+- Use `x-teleport="#modal-portal"` to avoid z-index conflicts.
+- Apply `x-trap.noscroll.inert` for focus + scroll lock.
+- Escape key handling lives on the wrapper (`@keydown.escape.window`).
+
+**Production modal template (current component):**
+
+```html
+<!-- resources/views/components/modal.blade.php -->
+<template x-teleport="#modal-portal">
+    <div x-show="show" x-trap.noscroll.inert="show" class="fixed inset-0 z-50">
+        <div x-show="show" @click="show = false" class="fixed inset-0"></div>
+        <div x-show="show" class="bg-white rounded-lg shadow-xl">
+            {{ $slot }}
+        </div>
+    </div>
+</template>
+```
+
+**Confirm dialog usage (current pattern):**
+
+```javascript
+// resources/views/requests/show.blade.php
+showConfirmDialog({
+    type: "danger",
+    title: "Hapus Dokumen",
+    message: "Apakah Anda yakin ingin menghapus dokumen?",
+    confirmButtonText: "Ya, Hapus",
+    confirmButtonLoadingText: "Menghapus...",
+    cancelButtonText: "Batal",
+    onConfirm: async () => {
+        // async delete
+    },
+});
+```
+
+**Before → After (confirm dialog migration):**
+
+```javascript
+// Before: resources/js/pages/requests/documents.js
+if (!confirm("Yakin hapus dokumen ini?")) return;
+```
+
+```javascript
+// After: resources/views/requests/show.blade.php
+showConfirmDialog({
+    type: "danger",
+    title: "Hapus Dokumen",
+    onConfirm: async () => {
+        /* ... */
+    },
+});
+```
+
+##### 6. Performance Optimization
+
+- Debounce input events (search, filters) to reduce network noise.
+- Use `x-show` for frequent toggles; use `x-if` for heavy DOM that should be destroyed.
+- Defer heavy work to `init()` and use `document.addEventListener('alpine:init', ...)` in `resources/js/app.js`.
+
+**`x-if` for heavy blocks (current pattern):**
+
+```html
+<!-- resources/views/sample-processes/edit.blade.php -->
+<template x-if="loading">
+    <div class="mt-4 flex items-center gap-2">Memuat data instrumen...</div>
+</template>
+```
+
+**Reactivity pitfall → fix (spread + reassign):**
+
+```javascript
+// Before (anti-pattern): nested mutation may not trigger updates
+this.state.previewLoading[scope] = true;
+
+// After (current pattern): resources/js/pages/settings/index.js
+this.state.previewLoading = {
+    ...this.state.previewLoading,
+    [scope]: true,
+};
+```
+
+##### 7. Toast Notifications
+
+- Use `$store.toast` for user-visible async feedback.
+- Default durations: success/info 3000ms, warning 4000ms, error 5000ms.
+- Live region announcements handled by `toastStore.announce()`.
+
+**Usage examples (current store):**
+
+```javascript
+$store.toast.success("Data tersimpan");
+$store.toast.error("Gagal menyimpan", 5000);
+$store.toast.warning("Periksa input", 4000);
+$store.toast.info("Proses berjalan");
+```
+
+##### 8. Loading States Matrix
+
+| Scenario        | Pattern                    | Example                                                    |
+| --------------- | -------------------------- | ---------------------------------------------------------- |
+| Full page load  | Skeleton screens           | `<x-skeleton-table>` with `x-show="loading"` in list views |
+| Button action   | Inline spinner             | `animate-spin` inside button with `x-show="loading"`       |
+| Data refresh    | Subtle overlay/placeholder | Toggle `x-show` on list container / empty states           |
+| Background task | Toast notification         | `$store.toast.info("Sedang memproses...")`                 |
+
+**Example implementations:**
+
+```html
+<!-- Skeleton: resources/views/sample-processes/index.blade.php -->
+<div x-show="loading" class="mt-2">
+    <x-skeleton-table :columns="6" :rows="8" />
+</div>
+```
+
+```html
+<!-- Inline spinner: resources/views/monitoring/environment/manage.blade.php -->
+<button type="submit" :disabled="modal.loading">
+    <svg x-show="modal.loading" class="animate-spin h-4 w-4"></svg>
+    <span x-text="modal.loading ? 'Menyimpan...' : 'Simpan'"></span>
+</button>
+```
+
+```html
+<!-- Data refresh placeholder: resources/views/requests/partials/documents.blade.php -->
+<p x-show="documentsClient.state.loading">Memuat daftar dokumen...</p>
+```
+
+```javascript
+// Background task toast
+$store.toast.info("Backup berjalan...");
+```
+
+##### Troubleshooting
+
+- **x-cloak flash**: ensure `[x-cloak] { display: none !important; }` exists (see `resources/views/settings/blade-templates.blade.php`).
+- **State not updating**: reassign objects/arrays to trigger reactivity (use spread as in `resources/js/pages/settings/index.js`).
+- **Debugging**: `window.Alpine` is available (see `resources/js/app.js`) → inspect stores with `Alpine.store('toast')`.
+
+##### References
+
+- Alpine store: https://alpinejs.dev/globals/alpine-store
+- `x-transition`: https://alpinejs.dev/directives/transition
+- `x-teleport`: https://alpinejs.dev/directives/teleport
+- `x-trap`/Focus: https://alpinejs.dev/plugins/focus
+- `x-collapse`: https://alpinejs.dev/plugins/collapse
+- WAI-ARIA APG: https://www.w3.org/WAI/ARIA/apg/
+- WCAG 2.2: https://www.w3.org/TR/WCAG22/
+- ARIA in HTML: https://www.w3.org/TR/html-aria/
+
 #### Testing
 
 ```bash
@@ -939,6 +1411,517 @@ refactor: extract document service class
 test: add sample process tests
 chore: update dependencies
 ```
+
+---
+
+### Laravel Precognition & Optimistic UI Implementation Guide
+
+```
+Updated on 2026-01-10
+```
+
+#### 1. Laravel Precognition
+
+**Apa itu Precognition?**
+
+Laravel Precognition menjalankan middleware + validasi tanpa mengeksekusi controller. Hasilnya: **validasi realtime** (tanpa submit penuh), **error feedback instan**, dan **UX form lebih halus**.
+
+**Kenapa dipakai di LPMF LIMS?**
+
+- Form `requests/create` punya banyak field dan validasi kompleks
+- Pengguna perlu tahu error lebih awal (NRP format, field wajib, dsb.)
+- Mengurangi submit ulang dan error “hidden” di section lain
+
+**Instalasi (wajib diuji di lingkungan lokal):**
+
+```bash
+composer require laravel/precognition
+npm install laravel-precognition-alpine
+```
+
+**Setup Route (contoh `requests.store`):**
+
+```php
+use Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests;
+
+Route::post('/requests', [RequestController::class, 'store'])
+    ->name('requests.store')
+    ->middleware([HandlePrecognitiveRequests::class]);
+```
+
+**Integrasi dengan validasi existing**
+
+Saat ini validasi form ada di `RequestController::store()` (`$request->validate(...)`). Untuk Precognition, pindahkan rules ke FormRequest agar Precognition dapat mengeksekusi validasi tanpa menjalankan controller.
+
+```php
+namespace App\Http\Requests\Requests;
+
+use Illuminate\Foundation\Http\FormRequest;
+
+class StoreRequest extends FormRequest
+{
+    public function rules(): array
+    {
+        return [
+            'investigator_name' => 'required|string|min:3|max:255',
+            'investigator_nrp' => 'required|string|max:50',
+            'to_office' => 'required|string|max:255',
+            'suspects' => 'sometimes|array|min:1',
+            'suspects.*.name' => 'required|string|max:255',
+            'samples' => 'required|array|min:1',
+            'samples.*.short_description' => 'required|string|max:255',
+            'samples.*.active_substance' => 'required|string|max:255',
+            // File rules: jangan paksa upload di precognition
+            'request_letter' => $this->isPrecognitive()
+                ? 'nullable|file|mimes:pdf|max:10240'
+                : 'required|file|mimes:pdf|max:10240',
+        ];
+    }
+}
+```
+
+**Controller update (ringkas):**
+
+```php
+public function store(StoreRequest $request)
+{
+    $validated = $request->validated();
+    // ...lanjutkan proses existing...
+}
+```
+
+**Alpine.js plugin setup (`resources/js/app.js`):**
+
+```javascript
+import Alpine from "alpinejs";
+import Precognition from "laravel-precognition-alpine";
+
+window.Alpine = Alpine;
+Alpine.plugin(Precognition);
+Alpine.start();
+```
+
+**Alpine + Precognition pattern:**
+
+```html
+<form
+    x-data="{
+        form: $form('post', '{{ route('requests.store') }}', {
+            investigator_name: '{{ old('investigator_name') }}',
+            investigator_nrp: '{{ old('investigator_nrp') }}',
+            to_office: '{{ old('to_office', 'KaPusdokkes Polri') }}',
+        }),
+    }"
+    @submit.prevent="form.submit()"
+>
+    @csrf
+    <input
+        name="investigator_name"
+        x-model="form.investigator_name"
+        @change="form.validate('investigator_name')"
+    />
+    <p class="text-sm text-red-600" x-text="form.errors.investigator_name"></p>
+</form>
+```
+
+**Catatan penting:**
+
+- File upload **tidak divalidasi** saat precognition kecuali dipanggil `form.validateFiles()`
+- Gunakan `isPrecognitive()` untuk menurunkan rule berat (contoh: `Password::uncompromised()`)
+- Precognition **tidak menjalankan controller**, jadi side-effect (cache lock, insert, dsb.) aman
+
+**Contoh sebelum/sesudah (`requests/create.blade.php`)**
+
+**Before (existing):**
+
+```html
+<form
+    id="request-create-form"
+    action="{{ route('requests.store') }}"
+    method="POST"
+    x-data="{ isSubmitting: false }"
+    @submit="if(isSubmitting){$event.preventDefault();return false;} isSubmitting = true;"
+>
+    @csrf
+    <input
+        type="text"
+        name="investigator_name"
+        value="{{ old('investigator_name') }}"
+    />
+    @error('investigator_name')
+    <p class="text-sm text-red-600">{{ $message }}</p>
+    @enderror
+</form>
+```
+
+**After (Precognition):**
+
+```html
+<form
+    x-data="{
+        form: $form('post', '{{ route('requests.store') }}', {
+            investigator_name: '{{ old('investigator_name') }}',
+        }),
+        isSubmitting: false,
+    }"
+    @submit.prevent="isSubmitting = true; form.submit().finally(() => isSubmitting = false);"
+>
+    @csrf
+    <input
+        type="text"
+        name="investigator_name"
+        x-model="form.investigator_name"
+        @change="form.validate('investigator_name')"
+        :class="form.invalid('investigator_name') ? 'border-red-500' : ''"
+    />
+    <p class="text-sm text-red-600" x-text="form.errors.investigator_name"></p>
+</form>
+```
+
+**UX benefit:** error tampil segera saat user mengetik/keluar field, tanpa submit penuh.
+
+---
+
+#### 2. Optimistic UI Patterns
+
+**Optimistic UI** = UI langsung berubah **seolah-olah sukses**, API call jalan di background. Jika gagal → rollback + error toast.
+
+**Kapan dipakai:**
+
+- Toggle status (aktif/nonaktif)
+- Inline edit sederhana (settings, label, nama)
+- Non-kritis, reversible, tidak mempengaruhi transaksi finansial
+
+**Kapan TIDAK dipakai:**
+
+- Pembayaran, pengiriman resmi, tindakan irreversible
+- Data dengan konsekuensi legal tinggi
+- Operasi multi-step yang harus konsisten server-side
+
+**Prinsip inti:**
+
+1. Update UI segera
+2. Simpan state lama untuk rollback
+3. API call di background
+4. Jika gagal → rollback + toast + a11y announcement
+5. Gunakan loading kecil (subtle) untuk transparansi
+
+---
+
+#### 3. Common Optimistic UI Scenarios
+
+##### A. Toggle Active Status (Analysts, Inventory Items, Environment Locations)
+
+**Target aktual:**
+
+- `resources/views/monitoring/environment/manage.blade.php` → `toggleActive(location)`
+- `resources/views/analysts/index.blade.php` (aktif/nonaktif via form POST)
+- `resources/views/inventory/items/form.blade.php` (`is_active` checkbox)
+
+```javascript
+async toggleActive(location) {
+    const previous = location.is_active;
+    location.is_active = !location.is_active;
+    this.$store.toast.info("Mengubah status lokasi...");
+
+    try {
+        const response = await fetch(`/monitoring/environment/locations/${location.id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+                "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').content,
+            },
+            body: JSON.stringify({
+                name: location.name,
+                type: location.type,
+                target_temp_min: location.target_temp_min,
+                target_temp_max: location.target_temp_max,
+                target_humidity_min: location.target_humidity_min,
+                target_humidity_max: location.target_humidity_max,
+                is_active: location.is_active,
+            }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.message || "Gagal mengubah status.");
+        }
+
+        this.$store.toast.success(data.message || "Status lokasi diperbarui.");
+    } catch (error) {
+        location.is_active = previous; // rollback
+        this.$store.toast.error(error.message || "Perubahan dibatalkan.");
+    }
+}
+```
+
+**Aksesibilitas:** `toast` store akan mengumumkan status via `#toast-announcer`.
+
+---
+
+##### B. Quick Edits (Settings Values)
+
+**Target aktual:** `resources/js/pages/settings/alpine-component.js` (save per-section)
+
+```html
+<div x-data="{
+    value: client.state.form.notifications.email.sender_name,
+    saving: false,
+    async save() {
+        const previous = client.state.form.notifications.email.sender_name;
+        client.state.form.notifications.email.sender_name = this.value;
+        this.saving = true;
+        try {
+            await client.apiFetch("/api/settings/notifications", {
+                method: "PUT",
+                body: { notifications: client.state.form.notifications },
+            });
+            $store.toast.success("Nama pengirim diperbarui.");
+        } catch (error) {
+            client.state.form.notifications.email.sender_name = previous;
+            this.value = previous;
+            $store.toast.error(error.message || "Gagal menyimpan.");
+        } finally {
+            this.saving = false;
+        }
+    },
+}">
+    <input
+        class="w-full"
+        x-model.lazy="value"
+        @blur="save()"
+        :disabled="saving"
+    />
+</div>
+```
+
+---
+
+##### C. List Operations (Delete + Undo)
+
+Gunakan pattern ini hanya jika delete **reversible** (soft delete atau ada undo window). Untuk delete permanen, tampilkan konfirmasi dan tunggu response sukses.
+
+**Target aktual:** `resources/js/pages/requests/documents.js` (`deleteDocument`)
+
+```javascript
+async deleteDocumentOptimistic(doc) {
+    if (!doc?.id) return;
+
+    const snapshot = [...this.state.documents];
+    this.state.documents = this.state.documents.filter((item) => item.id !== doc.id);
+
+    const undo = () => {
+        this.state.documents = snapshot;
+        this.$store.toast.info("Penghapusan dibatalkan.");
+    };
+
+    const timeout = setTimeout(async () => {
+        try {
+            await this.apiFetch(`/api/documents/${doc.id}`, { method: "DELETE" });
+            this.$store.toast.success("Dokumen berhasil dihapus.");
+        } catch (error) {
+            undo();
+            this.$store.toast.error(error.message || "Gagal menghapus dokumen.");
+        }
+    }, 250);
+
+    // Optional: hubungkan Undo ke UI toast custom
+}
+```
+
+---
+
+#### 4. Implementation Checklist
+
+- [ ] Is operation reversible? (if no, don't use optimistic UI)
+- [ ] Have you implemented error rollback?
+- [ ] Does UI show loading state?
+- [ ] Are errors communicated clearly?
+- [ ] Is screen reader announcement included?
+- [ ] Have you tested with slow network?
+- [ ] Does it work offline gracefully?
+
+---
+
+#### 5. Code Templates
+
+**Template 1: Optimistic Toggle (Alpine.js)**
+
+```javascript
+function optimisticToggle() {
+    return {
+        loading: false,
+        async toggle(entity) {
+            if (this.loading) return;
+            const previous = entity.is_active;
+            entity.is_active = !entity.is_active;
+            this.loading = true;
+
+            try {
+                const response = await fetch(`/api/entities/${entity.id}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Accept: "application/json",
+                        "X-CSRF-TOKEN": document.querySelector(
+                            'meta[name="csrf-token"]',
+                        ).content,
+                    },
+                    body: JSON.stringify({ is_active: entity.is_active }),
+                });
+
+                const data = await response.json();
+                if (!response.ok)
+                    throw new Error(data.message || "Gagal menyimpan.");
+                $store.toast.success(data.message || "Status diperbarui.");
+            } catch (error) {
+                entity.is_active = previous;
+                $store.toast.error(error.message || "Perubahan dibatalkan.");
+            } finally {
+                this.loading = false;
+            }
+        },
+    };
+}
+```
+
+**Template 2: Precognition Form (Blade + Alpine)**
+
+```blade
+<form
+    x-data="{
+        form: $form('post', '{{ route('requests.store') }}', {
+            investigator_name: '{{ old('investigator_name') }}',
+            investigator_nrp: '{{ old('investigator_nrp') }}',
+            to_office: '{{ old('to_office', 'KaPusdokkes Polri') }}',
+        }),
+    }"
+    @submit.prevent="form.submit()"
+>
+    @csrf
+    <label class="block">Nama Penyidik</label>
+    <input
+        name="investigator_name"
+        x-model="form.investigator_name"
+        @change="form.validate('investigator_name')"
+        :class="form.invalid('investigator_name') ? 'border-red-500' : ''"
+    />
+    <p class="text-sm text-red-600" x-text="form.errors.investigator_name"></p>
+</form>
+```
+
+**Template 3: Optimistic Delete with Undo**
+
+```javascript
+function optimisticDelete(state) {
+    return {
+        async remove(item) {
+            const snapshot = [...state.items];
+            state.items = state.items.filter((entry) => entry.id !== item.id);
+
+            const undo = () => {
+                state.items = snapshot;
+                $store.toast.info("Penghapusan dibatalkan.");
+            };
+
+            const timer = setTimeout(async () => {
+                try {
+                    await fetch(`/api/items/${item.id}`, { method: "DELETE" });
+                    $store.toast.success("Item terhapus.");
+                } catch (error) {
+                    undo();
+                    $store.toast.error(error.message || "Gagal menghapus.");
+                }
+            }, 250);
+
+            // Optional: simpan timer untuk cancel jika undo
+        },
+    };
+}
+```
+
+---
+
+#### 6. Best Practices
+
+- Selalu tampilkan feedback visual (loading kecil, warna, status text)
+- Selalu simpan state lama untuk rollback
+- Gunakan `$store.toast.*` untuk pesan + screen reader announcement
+- Gunakan timeout konservatif (hindari spam request cepat)
+- Catat optimistic failures ke log/monitoring
+
+---
+
+#### 7. Testing Strategies
+
+- **Slow network:** DevTools → Throttle (Slow 3G)
+- **API failure:** Matikan endpoint sementara atau force `500` di dev
+- **Rollback:** Pastikan state kembali ke data lama saat error
+- **Accessibility:** Pastikan toast announcement terdengar di screen reader
+- **Precognition:** Gunakan `withPrecognition()` di test Laravel
+
+```php
+$response = $this->withPrecognition()->post('/requests', ['investigator_name' => 'Test']);
+$response->assertSuccessfulPrecognition();
+```
+
+---
+
+#### 8. Real-World Examples in This Codebase
+
+1. **Analyst Active/Inactive**
+    - Current: form POST di `resources/views/analysts/index.blade.php`
+    - Optimistic: ganti dropdown action dengan fetch + update label tanpa reload
+    - UX: status berubah instan, tanpa page refresh
+
+2. **Inventory Item Active Toggle**
+    - Current: checkbox `is_active` di `resources/views/inventory/items/form.blade.php`
+    - Optimistic: simpan perubahan tanpa full page reload (inline edit di list)
+    - UX: status terlihat berubah saat klik
+
+3. **Environment Location Toggle**
+    - Current: `toggleActive(location)` reload list setelah sukses
+    - Optimistic: update `location.is_active` lokal + rollback jika error
+
+4. **Settings Save (Monitoring/Notifications/Branding)**
+    - Current: save via `resources/js/pages/settings/alpine-component.js`
+    - Optimistic: update UI state terlebih dulu + rollback jika save gagal
+
+5. **Document Deletion (Request detail)**
+    - Current: hapus setelah response sukses
+    - Optimistic: remove dahulu + undo toast
+
+6. **Search Filters**
+    - Current: loader/skeleton manual di `resources/views/search/index.blade.php`
+    - Optimistic: update filter UI segera + cancel in-flight request (AbortController)
+
+---
+
+#### 9. Troubleshooting
+
+- **Race condition:** simpan `requestId` terakhir dan ignore response lama
+- **State desync:** selalu refresh data saat error berat
+- **Timeout:** gunakan `AbortController` untuk batalkan request lama
+- **Precognition file rules:** gunakan `isPrecognitive()` untuk file required
+
+---
+
+#### 10. Performance Considerations
+
+- Optimistic UI meningkatkan **perceived performance**
+- Jangan spam request: debounce toggle cepat
+- Track metric: waktu respons API vs waktu update UI
+- Optimistic UI justru memperlambat jika rollback sering terjadi
+
+---
+
+#### References
+
+- Laravel Precognition docs: https://laravel.com/docs/11.x/precognition
+- Alpine.js form patterns
+- UX research on optimistic UI
+- Accessibility considerations (ARIA live regions)
 
 ---
 
@@ -1260,5 +2243,5 @@ php artisan storage:cleanup --days=30 --dry-run
 ---
 
 **Last Updated:** 10 Januari 2026  
-**Current Version:** v1.1.8  
-**Total Versions:** 19 (v1.0.1 - v1.1.8)
+**Current Version:** v1.2.3  
+**Total Versions:** 22 (v1.0.1 - v1.2.3)
