@@ -39,6 +39,15 @@
                     @csrf
                     <input type="hidden" name="_submission_token" value="{{ Str::random(40) }}">
 
+                    {{-- Form Progress Stepper --}}
+                    <x-form-stepper :steps="[
+                        ['id' => 'step-investigator', 'label' => 'Data Penyidik'],
+                        ['id' => 'step-letter', 'label' => 'Info Surat'],
+                        ['id' => 'step-suspects', 'label' => 'Tersangka'],
+                        ['id' => 'step-documents', 'label' => 'Dokumen'],
+                        ['id' => 'step-samples', 'label' => 'Sampel']
+                    ]" />
+
                     {{-- Investigator Type Question --}}
                     <div class="bg-indigo-50 p-6 rounded-lg border border-indigo-200 mb-6">
                         <h3 class="text-lg font-semibold text-indigo-900 mb-4 flex items-center">
@@ -64,7 +73,7 @@
                     </div>
 
                     {{-- Investigator Section (Polri) --}}
-                    <div class="block-investigator bg-blue-50 p-6 rounded-lg border border-blue-200">
+                    <div id="step-investigator" class="block-investigator bg-blue-50 p-6 rounded-lg border border-blue-200 scroll-mt-24">
                         <h3 class="text-lg font-semibold text-blue-900 mb-4 flex items-center">
                             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
@@ -181,7 +190,7 @@
                     </div>
 
                     {{-- External Section (Non-Polri) - Hidden by default --}}
-                    <div class="block-external bg-green-50 p-6 rounded-lg border border-green-200" style="display: none;">
+                    <div id="step-investigator" class="block-external bg-green-50 p-6 rounded-lg border border-green-200 scroll-mt-24" style="display: none;">
                         <h3 class="text-lg font-semibold text-green-900 mb-4 flex items-center">
                             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
@@ -283,7 +292,7 @@
 
                     <!-- 2. Informasi Surat Section (Direvisi) -->
 
-                    <div class="bg-primary-50 p-6 rounded-lg border border-primary-200">
+                    <div id="step-letter" class="bg-primary-50 p-6 rounded-lg border border-primary-200 scroll-mt-24">
 
                         <h3 class="text-lg font-semibold text-primary-900 mb-4 flex items-center">
 
@@ -391,7 +400,7 @@
                         </div> {{-- End Informasi Surat Section --}}
 
                     {{-- 3. Data Tersangka Section --}}
-                    <div class="bg-orange-50 p-6 rounded-lg border border-orange-200">
+                    <div id="step-suspects" class="bg-orange-50 p-6 rounded-lg border border-orange-200 scroll-mt-24">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-lg font-semibold text-orange-900 flex items-center">
                                 <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -472,7 +481,7 @@
                     </div>
 
                     {{-- 4. Upload Dokumen Section --}}
-                    <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                    <div id="step-documents" class="bg-gray-50 p-6 rounded-lg border border-gray-200 scroll-mt-24">
                         <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
@@ -540,7 +549,7 @@
 
                     <!-- 3. Daftar Sampel Section (Direvisi dengan Foto) -->
 
-                    <div class="bg-orange-50 p-6 rounded-lg border border-orange-200">
+                    <div id="step-samples" class="bg-orange-50 p-6 rounded-lg border border-orange-200 scroll-mt-24">
 
                         <h3 class="text-lg font-semibold text-orange-900 mb-4 flex items-center">
 

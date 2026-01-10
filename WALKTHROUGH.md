@@ -2626,46 +2626,46 @@ Implemented critical UI/UX fixes identified through Party Mode analysis. This ph
 **Issues Fixed:**
 
 1. **🔴 CRITICAL: Breadcrumb Links Broken**
-   - **Impact**: Navigation tidak berfungsi di 2+ pages
-   - **Root Cause**: Component `breadcrumbs.blade.php` expects `href` key, tapi beberapa views menggunakan `url` key
-   - **Files Modified**:
-     - `resources/views/search/index.blade.php:20` - Fixed breadcrumb href
-     - `resources/views/monitoring/environment/manage.blade.php:5` - Fixed breadcrumb href
-   - **Fix**: Replaced all `'url' =>` with `'href' =>` in breadcrumb arrays
-   
-   ```php
-   // Before (BROKEN)
-   <x-breadcrumbs :items="[
-       ['label' => 'Home', 'url' => route('dashboard')],  // ❌ 'url' not read
-       ['label' => 'Search', 'url' => null]
-   ]" />
-   
-   // After (FIXED)
-   <x-breadcrumbs :items="[
-       ['label' => 'Home', 'href' => route('dashboard')],  // ✅ 'href' works
-       ['label' => 'Pencarian', 'href' => null]
-   ]" />
-   ```
+    - **Impact**: Navigation tidak berfungsi di 2+ pages
+    - **Root Cause**: Component `breadcrumbs.blade.php` expects `href` key, tapi beberapa views menggunakan `url` key
+    - **Files Modified**:
+        - `resources/views/search/index.blade.php:20` - Fixed breadcrumb href
+        - `resources/views/monitoring/environment/manage.blade.php:5` - Fixed breadcrumb href
+    - **Fix**: Replaced all `'url' =>` with `'href' =>` in breadcrumb arrays
+
+    ```php
+    // Before (BROKEN)
+    <x-breadcrumbs :items="[
+        ['label' => 'Home', 'url' => route('dashboard')],  // ❌ 'url' not read
+        ['label' => 'Search', 'url' => null]
+    ]" />
+
+    // After (FIXED)
+    <x-breadcrumbs :items="[
+        ['label' => 'Home', 'href' => route('dashboard')],  // ✅ 'href' works
+        ['label' => 'Pencarian', 'href' => null]
+    ]" />
+    ```
 
 2. **🔴 CRITICAL: Tables Not Responsive (Mobile Clipping)**
-   - **Impact**: Data terpotong di mobile, critical information tidak accessible
-   - **Root Cause**: Tables wrapped in `overflow-hidden` causing column truncation on small screens
-   - **Files Modified**:
-     - `resources/views/delivery/index.blade.php:29` - Added `overflow-x-auto`
-     - `resources/views/sample-processes/index.blade.php:118` - Added `overflow-x-auto`
-   - **Fix**: Changed `overflow-hidden` to `overflow-x-auto` with `min-w-full` table class
-   
-   ```php
-   // Before (BROKEN)
-   <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-       <table>...</table>
-   </div>
-   
-   // After (FIXED)
-   <div class="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-       <table class="min-w-full divide-y divide-gray-300">...</table>
-   </div>
-   ```
+    - **Impact**: Data terpotong di mobile, critical information tidak accessible
+    - **Root Cause**: Tables wrapped in `overflow-hidden` causing column truncation on small screens
+    - **Files Modified**:
+        - `resources/views/delivery/index.blade.php:29` - Added `overflow-x-auto`
+        - `resources/views/sample-processes/index.blade.php:118` - Added `overflow-x-auto`
+    - **Fix**: Changed `overflow-hidden` to `overflow-x-auto` with `min-w-full` table class
+
+    ```php
+    // Before (BROKEN)
+    <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+        <table>...</table>
+    </div>
+
+    // After (FIXED)
+    <div class="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+        <table class="min-w-full divide-y divide-gray-300">...</table>
+    </div>
+    ```
 
 **Verification:**
 
@@ -2707,7 +2707,6 @@ Based on `UI-UX-IMPROVEMENT-PLAN.md`, the following issues remain:
 
 ---
 
-
 ### v1.0.12 (10 Januari 2026)
 
 #### UI/UX: Phase 2 - Accessibility & Component Improvements
@@ -2719,105 +2718,110 @@ Implemented HIGH priority UI/UX improvements focusing on accessibility (ARIA att
 **Components Created:**
 
 1. **✅ Form Stepper Component (`form-stepper.blade.php`)**
-   - **Purpose**: Visual progress indicator for multi-section forms
-   - **Features**:
-     - Sticky top navigation with step circles
-     - Auto-tracking current step based on scroll position
-     - Click-to-scroll navigation
-     - Smooth scroll behavior with offset for sticky header
-     - Responsive design (labels hidden on mobile)
-     - Accessibility: ARIA current-step indicator
-   
-   **Usage Example**:
-   ```php
-   <x-form-stepper 
-       :steps="[
-           ['id' => 'step-investigator', 'label' => 'Data Penyidik'],
-           ['id' => 'step-letter', 'label' => 'Info Surat'],
-           ['id' => 'step-suspects', 'label' => 'Tersangka'],
-           ['id' => 'step-documents', 'label' => 'Dokumen'],
-           ['id' => 'step-samples', 'label' => 'Sampel']
-       ]"
-   />
-   ```
+    - **Purpose**: Visual progress indicator for multi-section forms
+    - **Features**:
+        - Sticky top navigation with step circles
+        - Auto-tracking current step based on scroll position
+        - Click-to-scroll navigation
+        - Smooth scroll behavior with offset for sticky header
+        - Responsive design (labels hidden on mobile)
+        - Accessibility: ARIA current-step indicator
+
+    **Usage Example**:
+
+    ```php
+    <x-form-stepper
+        :steps="[
+            ['id' => 'step-investigator', 'label' => 'Data Penyidik'],
+            ['id' => 'step-letter', 'label' => 'Info Surat'],
+            ['id' => 'step-suspects', 'label' => 'Tersangka'],
+            ['id' => 'step-documents', 'label' => 'Dokumen'],
+            ['id' => 'step-samples', 'label' => 'Sampel']
+        ]"
+    />
+    ```
 
 2. **✅ Confirm Dialog Component (`confirm-dialog.blade.php`)**
-   - **Purpose**: Replacement for native `confirm()` dialogs
-   - **Features**:
-     - Custom modal with consistent design
-     - Three types: danger (red), warning (yellow), info (blue)
-     - Async/Promise support
-     - Loading states during async operations
-     - Keyboard navigation (Escape to close, Tab to trap focus)
-     - ARIA attributes for screen readers
-     - Customizable button text and messages
-   
-   **Usage Example**:
-   ```javascript
-   // Simple confirm
-   showConfirmDialog({
-       type: 'danger',
-       title: 'Hapus Data',
-       message: 'Apakah Anda yakin ingin menghapus <strong>Permintaan #REQ-001</strong>? Tindakan ini tidak dapat dibatalkan.',
-       confirmButtonText: 'Ya, Hapus',
-       cancelButtonText: 'Batal',
-       onConfirm: async () => {
-           await fetch('/api/delete', { method: 'DELETE' });
-           window.location.reload();
-       }
-   });
-   
-   // With loading state
-   showConfirmDialog({
-       confirmButtonLoadingText: 'Menghapus...',
-       onConfirm: async () => {
-           const response = await fetch('/api/delete', { method: 'DELETE' });
-           if (!response.ok) {
-               alert('Gagal menghapus!');
-               return false; // Don't close dialog
-           }
-           return true; // Close dialog
-       }
-   });
-   ```
+    - **Purpose**: Replacement for native `confirm()` dialogs
+    - **Features**:
+        - Custom modal with consistent design
+        - Three types: danger (red), warning (yellow), info (blue)
+        - Async/Promise support
+        - Loading states during async operations
+        - Keyboard navigation (Escape to close, Tab to trap focus)
+        - ARIA attributes for screen readers
+        - Customizable button text and messages
+
+    **Usage Example**:
+
+    ```javascript
+    // Simple confirm
+    showConfirmDialog({
+        type: "danger",
+        title: "Hapus Data",
+        message:
+            "Apakah Anda yakin ingin menghapus <strong>Permintaan #REQ-001</strong>? Tindakan ini tidak dapat dibatalkan.",
+        confirmButtonText: "Ya, Hapus",
+        cancelButtonText: "Batal",
+        onConfirm: async () => {
+            await fetch("/api/delete", { method: "DELETE" });
+            window.location.reload();
+        },
+    });
+
+    // With loading state
+    showConfirmDialog({
+        confirmButtonLoadingText: "Menghapus...",
+        onConfirm: async () => {
+            const response = await fetch("/api/delete", { method: "DELETE" });
+            if (!response.ok) {
+                alert("Gagal menghapus!");
+                return false; // Don't close dialog
+            }
+            return true; // Close dialog
+        },
+    });
+    ```
 
 **Accessibility Improvements:**
 
 3. **✅ Enhanced Dropdown Component with ARIA**
-   - **Changes Made**:
-     - Added `aria-haspopup="true"` to trigger button
-     - Added `aria-expanded` state management (false/true)
-     - Added `role="menu"` to dropdown panel
-     - Added `aria-hidden` state management
-     - Added keyboard navigation:
-       - `Escape` key closes dropdown
-       - `Tab` key closes dropdown (prevents focus trap)
-   
-   **Before**:
-   ```php
-   <button type="button" data-dropdown-trigger>
-       {{ $trigger }}
-   </button>
-   <div data-dropdown-panel class="hidden">
-       {{ $content }}
-   </div>
-   ```
-   
-   **After**:
-   ```php
-   <button type="button" 
-           data-dropdown-trigger
-           aria-haspopup="true"
-           aria-expanded="false">  {{-- JS updates this --}}
-       {{ $trigger }}
-   </button>
-   <div data-dropdown-panel 
-        class="hidden"
-        role="menu"
-        aria-hidden="true">  {{-- JS updates this --}}
-       {{ $content }}
-   </div>
-   ```
+    - **Changes Made**:
+        - Added `aria-haspopup="true"` to trigger button
+        - Added `aria-expanded` state management (false/true)
+        - Added `role="menu"` to dropdown panel
+        - Added `aria-hidden` state management
+        - Added keyboard navigation:
+            - `Escape` key closes dropdown
+            - `Tab` key closes dropdown (prevents focus trap)
+
+    **Before**:
+
+    ```php
+    <button type="button" data-dropdown-trigger>
+        {{ $trigger }}
+    </button>
+    <div data-dropdown-panel class="hidden">
+        {{ $content }}
+    </div>
+    ```
+
+    **After**:
+
+    ```php
+    <button type="button"
+            data-dropdown-trigger
+            aria-haspopup="true"
+            aria-expanded="false">  {{-- JS updates this --}}
+        {{ $trigger }}
+    </button>
+    <div data-dropdown-panel
+         class="hidden"
+         role="menu"
+         aria-hidden="true">  {{-- JS updates this --}}
+        {{ $content }}
+    </div>
+    ```
 
 **Impact & Benefits:**
 
@@ -2874,7 +2878,6 @@ Remaining items from `UI-UX-IMPROVEMENT-PLAN.md`:
 
 ---
 
-
 ### v1.0.13 (10 Januari 2026)
 
 #### UI/UX: Phase 3 - Confirm Dialog Deployment \u0026 Form Components
@@ -2890,31 +2893,26 @@ Replaced all 14 instances of native `confirm()` dialogs with custom `showConfirm
 **Files Modified (Confirm Dialog Replacements):**
 
 1. **✅ User Management (Analysts)**
-   - `resources/views/analysts/edit.blade.php:13` - Delete user confirmation
-   - `resources/views/analysts/show.blade.php:147, 165` - Disable/delete user confirmations
-   - `resources/views/analysts/index.blade.php:138, 156` - Dropdown delete/disable actions
-   
+    - `resources/views/analysts/edit.blade.php:13` - Delete user confirmation
+    - `resources/views/analysts/show.blade.php:147, 165` - Disable/delete user confirmations
+    - `resources/views/analysts/index.blade.php:138, 156` - Dropdown delete/disable actions
 2. **✅ Sample Processing Workflow**
-   - `resources/views/sample-processes/edit.blade.php:12` - Delete process confirmation
-   - `resources/views/sample-processes/index.blade.php:78` - Ready for delivery confirmation
-   
+    - `resources/views/sample-processes/edit.blade.php:12` - Delete process confirmation
+    - `resources/views/sample-processes/index.blade.php:78` - Ready for delivery confirmation
 3. **✅ Request Management**
-   - `resources/views/requests/index.blade.php:108` - Delete request confirmation
-   
+    - `resources/views/requests/index.blade.php:108` - Delete request confirmation
 4. **✅ Delivery \u0026 Labels**
-   - `resources/views/delivery/show.blade.php:69` - Complete delivery confirmation
-   - `resources/views/partials/label-section.blade.php:62` - Generate labels confirmation
-   - `resources/views/partials/remaining-label-section.blade.php:152` - Delete label confirmation
-   
+    - `resources/views/delivery/show.blade.php:69` - Complete delivery confirmation
+    - `resources/views/partials/label-section.blade.php:62` - Generate labels confirmation
+    - `resources/views/partials/remaining-label-section.blade.php:152` - Delete label confirmation
 5. **✅ Settings Management**
-   - `resources/views/settings/document-templates.blade.php:194` - Activate template confirmation
-   - `resources/views/settings/blade-templates.blade.php:361, 548, 579` - Three confirmations:
-     - Switch template with unsaved changes
-     - Restore from backup
-     - Revert all changes
-   
+    - `resources/views/settings/document-templates.blade.php:194` - Activate template confirmation
+    - `resources/views/settings/blade-templates.blade.php:361, 548, 579` - Three confirmations:
+        - Switch template with unsaved changes
+        - Restore from backup
+        - Revert all changes
 6. **✅ Inventory Management**
-   - `resources/views/inventory/items/index.blade.php:168` - Delete item with critical warning
+    - `resources/views/inventory/items/index.blade.php:168` - Delete item with critical warning
 
 **Replacement Pattern:**
 
@@ -2941,17 +2939,17 @@ Replaced all 14 instances of native `confirm()` dialogs with custom `showConfirm
 
 ```javascript
 // ❌ BEFORE: Blocking confirm()
-if (!confirm('Yakin ingin menghapus?')) return;
+if (!confirm("Yakin ingin menghapus?")) return;
 doDelete();
 
 // ✅ AFTER: Async confirm dialog
 showConfirmDialog({
-    type: 'danger',
-    title: 'Konfirmasi Hapus',
-    message: 'Yakin ingin menghapus?',
+    type: "danger",
+    title: "Konfirmasi Hapus",
+    message: "Yakin ingin menghapus?",
     onConfirm: async () => {
         await doDelete();
-    }
+    },
 });
 ```
 
@@ -2962,6 +2960,7 @@ Created reusable `<x-form-field>` component for consistent form field rendering 
 **File**: `resources/views/components/form-field.blade.php`
 
 **Features:**
+
 - Auto-wired to Laravel validation errors
 - Required field indicator (red asterisk)
 - Help text support
@@ -2973,7 +2972,7 @@ Created reusable `<x-form-field>` component for consistent form field rendering 
 
 ```php
 {{-- Simple text input --}}
-<x-form-field 
+<x-form-field
     name="user_name"
     label="Nama Pengguna"
     type="text"
@@ -2983,7 +2982,7 @@ Created reusable `<x-form-field>` component for consistent form field rendering 
 />
 
 {{-- Email input with validation --}}
-<x-form-field 
+<x-form-field
     name="email"
     label="Email"
     type="email"
@@ -2992,7 +2991,7 @@ Created reusable `<x-form-field>` component for consistent form field rendering 
 />
 
 {{-- Number input --}}
-<x-form-field 
+<x-form-field
     name="quantity"
     label="Jumlah"
     type="number"
@@ -3009,17 +3008,19 @@ Created reusable `<x-form-field>` component for consistent form field rendering 
         Nama Pengguna
         <span class="text-red-500">*</span>
     </label>
-    
+
     <p class="text-xs text-gray-500">Nama akan ditampilkan di profil</p>
-    
-    <input type="text"
-           id="user_name"
-           name="user_name"
-           value="..."
-           placeholder="Masukkan nama lengkap"
-           required
-           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
-    
+
+    <input
+        type="text"
+        id="user_name"
+        name="user_name"
+        value="..."
+        placeholder="Masukkan nama lengkap"
+        required
+        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+    />
+
     <!-- Error displayed if validation fails -->
     <p class="mt-1 text-sm text-red-600">Field ini wajib diisi</p>
 </div>
@@ -3069,9 +3070,9 @@ ls -la resources/views/components/form-field.blade.php
 **Deferred to Phase 4:**
 
 - ⏭️ Form stepper integration into `requests/create.blade.php` (1166 lines, requires extensive testing)
-  - Reason: Large file complexity, low priority (form already functional)
-  - Stepper component is ready and tested, just needs integration
-  
+    - Reason: Large file complexity, low priority (form already functional)
+    - Stepper component is ready and tested, just needs integration
+
 **Developer Notes:**
 
 - Confirm dialog available globally after `<x-confirm-dialog />` in `app.blade.php`
@@ -3085,8 +3086,97 @@ ls -la resources/views/components/form-field.blade.php
 - `89c4d58` - Integrate confirm-dialog component into app layout
 - `a7f0b8c` - Replace confirm() in analysts and requests files
 - `51c6ae2` - Complete all confirm() dialog replacements
-- *(final commit)* - Add form-field component and documentation
+- _(final commit)_ - Add form-field component and documentation
 
 ---
 
+### v1.0.14 (10 Januari 2026)
 
+#### UI/UX: Phase 4 - Form Stepper Integration
+
+**Updated on 2026-01-10**
+
+Integrated the form-stepper component into the request creation form (`requests/create.blade.php`), providing visual progress tracking through the 5-step form submission process.
+
+**File Modified:**
+
+- `resources/views/requests/create.blade.php` (1166 lines)
+    - Added form-stepper component at line 43
+    - Added section IDs: step-investigator, step-letter, step-suspects, step-documents, step-samples
+    - Added scroll-mt-24 class to all sections for proper scroll offset
+
+**Form Sections:**
+
+1. **Data Penyidik** (Investigator) - Lines 76 & 193
+    - Polri investigator form (shown when "Ya, saya penyidik" selected)
+    - External requester form (shown when "Bukan anggota Polri" selected)
+    - Both use same ID `step-investigator` since only one is visible at a time
+
+2. **Info Surat** (Letter Information) - Line 295
+    - Request letter details (number, date, case description)
+
+3. **Tersangka** (Suspects) - Line 403
+    - Suspect information with dynamic add/remove
+
+4. **Dokumen** (Documents) - Line 484
+    - File uploads for supporting documents
+
+5. **Sampel** (Sample List) - Line 552
+    - Sample details with dynamic add/remove functionality
+
+**How It Works:**
+
+```php
+// Form stepper component at top of form
+<x-form-stepper :steps="[
+    ['id' => 'step-investigator', 'label' => 'Data Penyidik'],
+    ['id' => 'step-letter', 'label' => 'Info Surat'],
+    ['id' => 'step-suspects', 'label' => 'Tersangka'],
+    ['id' => 'step-documents', 'label' => 'Dokumen'],
+    ['id' => 'step-samples', 'label' => 'Sampel']
+]" />
+
+// Each section has matching ID and scroll offset
+<div id="step-investigator" class="... scroll-mt-24">
+    <!-- Form content -->
+</div>
+```
+
+**User Experience:**
+
+- Sticky progress bar at top of form shows current step
+- As user scrolls, active step highlights automatically
+- Click step number to jump to that section
+- Mobile-friendly (labels hidden on small screens)
+- Reduces form abandonment by showing progress
+
+**Testing:**
+
+```bash
+# Access form
+Visit: /requests/create
+
+# Test scroll tracking
+1. Scroll through form → active step should update
+2. Click step 3 → should jump to "Tersangka" section
+3. Test on mobile (375px width) → labels should hide
+
+# Verify integration
+grep -n "id=\"step-" resources/views/requests/create.blade.php
+# Should show 6 matches (5 sections + 1 conditional)
+```
+
+**Impact:**
+
+- ✅ Better UX for 1166-line long form
+- ✅ Visual progress reduces user anxiety
+- ✅ Jump-to-section improves navigation
+- ✅ Accessible with ARIA attributes
+- ✅ Mobile responsive design
+
+**Related Commits:**
+
+- _(completed)_ - Form stepper integration into requests/create.blade.php
+- _(final commit)_ - Documentation update and Phase 4 completion
+
+---
