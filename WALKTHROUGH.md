@@ -24,12 +24,43 @@
 | [report/README.md](./report/README.md)                           | Frontend audit system guide             |
 | [patcher/](./patcher/)                                           | Deployment & design documentation       |
 
-**Current Version:** v1.1.6 (10 Januari 2026)  
-**Latest Feature:** Semantic versioning constraint applied
+**Current Version:** v1.1.7 (10 Januari 2026)  
+**Latest Feature:** Toast Notification System
 
 ---
 
 ## 📰 Recent Changes (v1.1.x)
+
+### v1.1.7 (10 Januari 2026) - UI/UX Phase 5: Toast Notification System
+
+**📌 What Changed:**
+
+- Implemented production-ready Toast Notification System using Alpine.js + Blade
+- Created centralized `toast` store for global state management
+- Added accessibility-first announcer for screen readers
+- Replaced direct `alert()` usage with accessible toast notifications
+
+**✅ Features:**
+
+- **Types:** Success (Green), Error (Red), Warning (Yellow), Info (Blue)
+- **Behavior:** Auto-dismiss (3-5s), stacked layout, hover to pause (implicit via structure)
+- **Accessibility:** ARIA live regions, focus management, semantic icons
+- **Architecture:** Alpine.js Store (`resources/js/stores/toast.js`) + Blade Component (`<x-toast-container>`)
+
+**📦 Usage:**
+
+```javascript
+// In Alpine.js components
+$store.toast.success("Operation completed successfully");
+$store.toast.error("Something went wrong");
+
+// With custom duration
+$store.toast.warning("Please check your input", 5000);
+```
+
+**📦 Files:** `resources/js/stores/toast.js`, `resources/views/components/toast-container.blade.php`, `resources/js/app.js`
+
+---
 
 ### v1.1.6 (10 Januari 2026) - Semantic Versioning Constraint
 
@@ -1181,5 +1212,5 @@ php artisan storage:cleanup --days=30 --dry-run
 ---
 
 **Last Updated:** 10 Januari 2026  
-**Current Version:** v1.1.6  
-**Total Versions:** 17 (v1.0.1 - v1.1.6)
+**Current Version:** v1.1.7  
+**Total Versions:** 18 (v1.0.1 - v1.1.7)
