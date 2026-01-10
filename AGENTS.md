@@ -149,6 +149,7 @@ find tests/ -name "*.php"
 - **Purpose**: Central documentation hub for all project changes, features, and fixes.
 - **Rule**: WALKTHROUGH.md already exists - NEVER create new .md files for documentation.
 - **Format**: Append changes to relevant sections with proper markdown hierarchy.
+- **Versioning**: Use semantic versioning (MAJOR.MINOR.PATCH). Each segment MUST NOT exceed 9 — when reaching 10, increment the next higher segment instead (e.g., `1.0.9` → `1.1.0`, `1.9.9` → `2.0.0`).
 - **Update Protocol**:
     1. After completing meaningful tasks → Update WALKTHROUGH.md with details
     2. Document new features, fixes, and architectural decisions
