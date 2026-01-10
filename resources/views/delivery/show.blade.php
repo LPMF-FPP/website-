@@ -63,10 +63,16 @@
                             </p>
                         @endif
                     </div>
-                    <form method="POST" action="{{ route('delivery.complete', $request) }}" class="flex-shrink-0">
+                    <form method="POST" action="{{ route('delivery.complete', $request) }}" class="flex-shrink-0" x-data>
                         @csrf
-                        <button type="submit"
-                            onclick="return confirm('Tandai penyerahan sebagai selesai?\n\nTanggal selesai akan diset ke waktu sekarang dan status akan berubah menjadi Selesai.')"
+                        <button type="button"
+                            @click.prevent="showConfirmDialog({
+                                type: 'info',
+                                title: 'Konfirmasi Penyerahan Selesai',
+                                message: 'Tandai penyerahan sebagai selesai?\\n\\nTanggal selesai akan diset ke waktu sekarang dan status akan berubah menjadi Selesai.',
+                                confirmButtonText: 'Ya, Selesaikan',
+                                onConfirm: () => $el.closest('form').submit()
+                            })"
                             class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                             @disabled(!$surveyComplete)>
                             <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

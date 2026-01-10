@@ -358,13 +358,20 @@ function bladeTemplateEditor() {
 
         async selectTemplate(key) {
             if (this.hasChanges) {
-                if (!confirm('Ada perubahan yang belum disimpan. Yakin ingin pindah template?')) {
-                    return;
-                }
+                showConfirmDialog({
+                    type: 'warning',
+                    title: 'Perubahan Belum Disimpan',
+                    message: 'Ada perubahan yang belum disimpan. Yakin ingin pindah template?',
+                    confirmButtonText: 'Ya, Pindah',
+                    onConfirm: async () => {
+                        this.selectedTemplate = key;
+                        await this.loadTemplateContent(key);
+                    }
+                });
+            } else {
+                this.selectedTemplate = key;
+                await this.loadTemplateContent(key);
             }
-
-            this.selectedTemplate = key;
-            await this.loadTemplateContent(key);
         },
 
         async loadTemplateContent(key) {
@@ -545,41 +552,51 @@ function bladeTemplateEditor() {
         },
 
         async restoreBackup(backupPath) {
-            if (!confirm('Yakin ingin memulihkan template dari backup ini? Template saat ini akan diganti.')) {
-                return;
-            }
+            showConfirmDialog({
+                type: 'warning',
+                title: 'Restore Backup',
+                message: 'Yakin ingin memulihkan template dari backup ini? Template saat ini akan diganti.',
+                confirmButtonText: 'Ya, Pulihkan',
+                onConfirm: async () => {
+                    try {
+                        const response = await fetch(`/api/settings/blade-templates/${this.selectedTemplate}/restore`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                            },
+                            body: JSON.stringify({
+                                backup_file: backupPath
+                            })
+                        });
 
-            try {
-                const response = await fetch(`/api/settings/blade-templates/${this.selectedTemplate}/restore`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    },
-                    body: JSON.stringify({
-                        backup_file: backupPath
-                    })
-                });
-
-                const data = await response.json();
-                
-                if (data.success) {
-                    this.showNotification('success', 'Template berhasil dipulihkan!');
-                    this.showBackups = false;
-                    await this.loadTemplateContent(this.selectedTemplate);
-                } else {
-                    this.showNotification('error', data.message || 'Gagal memulihkan template');
+                        const data = await response.json();
+                        
+                        if (data.success) {
+                            this.showNotification('success', 'Template berhasil dipulihkan!');
+                            this.showBackups = false;
+                            await this.loadTemplateContent(this.selectedTemplate);
+                        } else {
+                            this.showNotification('error', data.message || 'Gagal memulihkan template');
+                        }
+                    } catch (error) {
+                        this.showNotification('error', 'Error: ' + error.message);
+                    }
                 }
-            } catch (error) {
-                this.showNotification('error', 'Error: ' + error.message);
-            }
+            });
         },
 
         revertChanges() {
-            if (confirm('Yakin ingin membatalkan semua perubahan?')) {
-                this.currentContent = this.originalContent;
-                this.hasChanges = false;
-            }
+            showConfirmDialog({
+                type: 'warning',
+                title: 'Batalkan Perubahan',
+                message: 'Yakin ingin membatalkan semua perubahan?',
+                confirmButtonText: 'Ya, Batalkan',
+                onConfirm: () => {
+                    this.currentContent = this.originalContent;
+                    this.hasChanges = false;
+                }
+            });
         },
 
         updateEditorInfo() {

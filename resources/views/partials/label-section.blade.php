@@ -59,49 +59,55 @@
                 {{-- Script for Label Generation --}}
                 <script>
                     function generateLabels() {
-                        if(!confirm('Apakah Anda yakin ingin membuat label untuk semua sampel dalam permintaan ini?')) return;
+                        showConfirmDialog({
+                            type: 'info',
+                            title: 'Generate Labels',
+                            message: 'Apakah Anda yakin ingin membuat label untuk semua sampel dalam permintaan ini?',
+                            confirmButtonText: 'Ya, Buat Label',
+                            onConfirm: () => {
+                                const btn = document.getElementById('btn-generate-label');
+                                const btnText = document.getElementById('label-btn-text');
+                                const btnLoading = document.getElementById('label-btn-loading');
 
-                        const btn = document.getElementById('btn-generate-label');
-                        const btnText = document.getElementById('label-btn-text');
-                        const btnLoading = document.getElementById('label-btn-loading');
+                                btn.disabled = true;
+                                btnText.classList.add('hidden');
+                                btnLoading.classList.remove('hidden');
 
-                        btn.disabled = true;
-                        btnText.classList.add('hidden');
-                        btnLoading.classList.remove('hidden');
+                                // Prepare sample IDs (all samples in request)
+                                const sampleIds = @json($request->samples->pluck('id'));
 
-                        // Prepare sample IDs (all samples in request)
-                        const sampleIds = @json($request->samples->pluck('id'));
-
-                        fetch('/labels/evidence-units', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Accept': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                request_id: {{ $request->id }},
-                                sample_ids: sampleIds
-                            })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if(data.success) {
-                                // Reload page to show buttons
-                                window.location.reload();
-                            } else {
-                                alert('Error: ' + (data.message || 'Gagal membuat label'));
-                                btn.disabled = false;
-                                btnText.classList.remove('hidden');
-                                btnLoading.classList.add('hidden');
+                                fetch('/labels/evidence-units', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                        'Accept': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        request_id: {{ $request->id }},
+                                        sample_ids: sampleIds
+                                    })
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if(data.success) {
+                                        // Reload page to show buttons
+                                        window.location.reload();
+                                    } else {
+                                        alert('Error: ' + (data.message || 'Gagal membuat label'));
+                                        btn.disabled = false;
+                                        btnText.classList.remove('hidden');
+                                        btnLoading.classList.add('hidden');
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error:', error);
+                                    alert('Terjadi kesalahan jaringan');
+                                    btn.disabled = false;
+                                    btnText.classList.remove('hidden');
+                                    btnLoading.classList.add('hidden');
+                                });
                             }
-                        })
-                        .catch(error => {
-                            console.error('Error:', error);
-                            alert('Terjadi kesalahan jaringan');
-                            btn.disabled = false;
-                            btnText.classList.remove('hidden');
-                            btnLoading.classList.add('hidden');
                         });
                     }
                 </script>

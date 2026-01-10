@@ -149,30 +149,36 @@
                                     },
 
                                     async deleteLabel(id) {
-                                        if(!confirm('Anda yakin ingin menghapus label ini?')) return;
-                                        
-                                        try {
-                                            const res = await fetch(`/labels/remaining-units/${id}`, {
-                                                method: 'DELETE',
-                                                headers: {
-                                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                                    'Accept': 'application/json'
+                                        showConfirmDialog({
+                                            type: 'danger',
+                                            title: 'Hapus Label',
+                                            message: 'Anda yakin ingin menghapus label ini?',
+                                            confirmButtonText: 'Ya, Hapus',
+                                            onConfirm: async () => {
+                                                try {
+                                                    const res = await fetch(`/labels/remaining-units/${id}`, {
+                                                        method: 'DELETE',
+                                                        headers: {
+                                                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                                            'Accept': 'application/json'
+                                                        }
+                                                    });
+                                                    
+                                                    const data = await res.json();
+                                                    
+                                                    if(data.success) {
+                                                        // Remove from list
+                                                        this.remainingUnits = this.remainingUnits.filter(u => u.id !== id);
+                                                        alert('Label berhasil dihapus.');
+                                                    } else {
+                                                        alert('Gagal menghapus: ' + data.message);
+                                                    }
+                                                } catch(e) {
+                                                    console.error(e);
+                                                    alert('Terjadi kesalahan jaringan');
                                                 }
-                                            });
-                                            
-                                            const data = await res.json();
-                                            
-                                            if(data.success) {
-                                                // Remove from list
-                                                this.remainingUnits = this.remainingUnits.filter(u => u.id !== id);
-                                                alert('Label berhasil dihapus.');
-                                            } else {
-                                                alert('Gagal menghapus: ' + data.message);
                                             }
-                                        } catch(e) {
-                                            console.error(e);
-                                            alert('Terjadi kesalahan jaringan');
-                                        }
+                                        });
                                     }
                                 }
                             }

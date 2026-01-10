@@ -165,11 +165,17 @@
     {{-- Delete Confirmation Script --}}
     <script>
         function confirmDelete(itemId, itemName) {
-            if (confirm('⚠️ PERINGATAN!\n\nAnda akan menghapus item: ' + itemName + '\n\nSemua data terkait (lot, saldo, mutasi) akan DIHAPUS PERMANEN.\n\nApakah Anda yakin?')) {
-                const form = document.getElementById('delete-form');
-                form.action = '{{ url("referensi/inventori/items") }}/' + itemId;
-                form.submit();
-            }
+            showConfirmDialog({
+                type: 'danger',
+                title: '⚠️ PERINGATAN!',
+                message: 'Anda akan menghapus item: ' + itemName + '\n\nSemua data terkait (lot, saldo, mutasi) akan DIHAPUS PERMANEN.\n\nApakah Anda yakin?',
+                confirmButtonText: 'Ya, Hapus Permanen',
+                onConfirm: () => {
+                    const form = document.getElementById('delete-form');
+                    form.action = '{{ url("referensi/inventori/items") }}/' + itemId;
+                    form.submit();
+                }
+            });
         }
     </script>
 </x-app-layout>

@@ -191,29 +191,33 @@ async function previewTemplate(type, format) {
 }
 
 async function activateTemplate(templateId) {
-    if (!confirm('Activate this template? It will replace the currently active template.')) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/api/settings/document-templates/${templateId}/activate`, {
-            method: 'PUT',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+    showConfirmDialog({
+        type: 'info',
+        title: 'Activate Template',
+        message: 'Activate this template? It will replace the currently active template.',
+        confirmButtonText: 'Yes, Activate',
+        onConfirm: async () => {
+            try {
+                const response = await fetch(`/api/settings/document-templates/${templateId}/activate`, {
+                    method: 'PUT',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    }
+                });
+                
+                if (response.ok) {
+                    loadTemplates();
+                    alert('Template activated successfully');
+                } else {
+                    throw new Error('Activation failed');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
             }
-        });
-        
-        if (response.ok) {
-            loadTemplates();
-            alert('Template activated successfully');
-        } else {
-            throw new Error('Activation failed');
         }
-    } catch (error) {
-        alert('Error: ' + error.message);
-    }
+    });
 }
 
 function showUploadModal() {
