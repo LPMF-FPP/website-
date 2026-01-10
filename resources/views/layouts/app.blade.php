@@ -77,6 +77,9 @@
         </footer>
     </div>
 
+    {{-- Global Confirm Dialog Component --}}
+    <x-confirm-dialog />
+
     @stack('scripts')
 </body>
 </html>
