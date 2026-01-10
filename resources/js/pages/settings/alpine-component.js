@@ -129,6 +129,9 @@ export function registerSettingsComponent() {
                         });
                     }
                 }
+                if (value === "backup") {
+                    this.fetchEmergencyBackups();
+                }
             },
             _activeSection: "numbering", // Default active section
             labels: {
@@ -238,12 +241,28 @@ export function registerSettingsComponent() {
                 lab_analyst: "Petugas Lab (Analis)",
                 petugas_lab: "Petugas Lab",
             },
+            whatsappMilestones: [
+                { key: "REQUEST_RECEIVED", label: "Permintaan Diterima" },
+                {
+                    key: "REVIEW_DONE_READY_FOR_TEST",
+                    label: "Kajian Selesai, Siap Uji",
+                },
+                { key: "PREPARATION_DONE", label: "Preparasi Selesai" },
+                {
+                    key: "INSTRUMENTATION_DONE",
+                    label: "Pengujian Instrumen Selesai",
+                },
+                { key: "INTERPRETATION_DONE", label: "Interpretasi Selesai" },
+                { key: "READY_FOR_PICKUP", label: "Siap Diambil" },
+                { key: "HANDOVER_COMPLETED", label: "Serah Terima Selesai" },
+            ],
             nowPreview: initialNowPreview,
             timePreview: {
                 loading: false,
                 error: "",
                 data: null,
             },
+            backupPollTimer: null,
             instrumentRequirements: null,
             instrumentRequirementsState: {},
             openMethodAccordions: {},
@@ -343,6 +362,7 @@ export function registerSettingsComponent() {
                 this.client.loadAll().then(() => {
                     this.fetchTimePreview();
                     this.loadInstrumentRequirements();
+                    this.fetchEmergencyBackups();
                 });
 
                 // Backward-compatible deep link: /settings#template-dokumen -> /settings/blade-templates
@@ -501,6 +521,123 @@ export function registerSettingsComponent() {
                 } finally {
                     this.timePreview.loading = false;
                 }
+            },
+
+            async fetchEmergencyBackups() {
+                await this.client.fetchEmergencyBackups();
+            },
+
+            async startEmergencyBackup() {
+                if (this.client.state.backupRunning) return;
+
+                this.client.state.backupRunning = true;
+                this.client.state.backupProgress =
+                    "Menjalankan emergency backup...";
+                this.client.state.backupProgressPercent = 0;
+                this.client.state.backupJobId = null;
+
+                try {
+                    const response = await this.client.apiFetch(
+                        this.client.api.emergencyBackup,
+                        { method: "POST" },
+                    );
+                    const jobId = response?.job_id || null;
+                    this.client.state.backupJobId = jobId;
+                    await this.fetchEmergencyBackups();
+                    if (jobId) {
+                        await this.pollEmergencyBackup(jobId);
+                    } else {
+                        this.client.state.backupRunning = false;
+                        this.client.state.backupProgress = "Backup selesai.";
+                    }
+                } catch (error) {
+                    console.error("Emergency backup start error:", error);
+                    this.client.state.backupRunning = false;
+                    this.client.state.backupProgress = "Gagal memulai backup.";
+                }
+            },
+
+            async pollEmergencyBackup(jobId) {
+                if (!jobId) {
+                    this.client.state.backupRunning = false;
+                    return;
+                }
+                if (this.backupPollTimer) {
+                    clearInterval(this.backupPollTimer);
+                    this.backupPollTimer = null;
+                }
+
+                const poll = async () => {
+                    try {
+                        const status = await this.client.apiFetch(
+                            `${this.client.api.jobStatus}/${jobId}`,
+                        );
+                        const current = Number(status?.progress?.current ?? 0);
+                        const total = Number(status?.progress?.total ?? 0);
+                        const percent = Number(
+                            status?.progress?.percentage ??
+                                (total > 0
+                                    ? Math.round((current / total) * 100)
+                                    : 0),
+                        );
+
+                        this.client.state.backupProgressPercent = percent;
+                        this.client.state.backupProgress =
+                            this.formatBackupProgress(
+                                status?.status,
+                                current,
+                                total,
+                            );
+
+                        if (
+                            ["completed", "failed", "not_found"].includes(
+                                status?.status,
+                            )
+                        ) {
+                            if (this.backupPollTimer) {
+                                clearInterval(this.backupPollTimer);
+                                this.backupPollTimer = null;
+                            }
+                            this.client.state.backupRunning = false;
+                            if (status?.status === "completed") {
+                                this.client.state.backupProgressPercent = 100;
+                                this.client.state.backupProgress =
+                                    "Backup selesai.";
+                            } else if (status?.status === "failed") {
+                                this.client.state.backupProgress =
+                                    "Backup gagal.";
+                            } else {
+                                this.client.state.backupProgress =
+                                    "Status backup tidak ditemukan.";
+                            }
+                            await this.fetchEmergencyBackups();
+                        }
+                    } catch (error) {
+                        console.error("Emergency backup poll error:", error);
+                    }
+                };
+
+                await poll();
+                this.backupPollTimer = setInterval(poll, 2000);
+            },
+
+            formatBackupProgress(status, current, total) {
+                if (status === "queued") {
+                    return "Backup dalam antrean...";
+                }
+                if (status === "running") {
+                    if (total > 0) {
+                        return `Backup berjalan (${current}/${total})...`;
+                    }
+                    return "Backup berjalan...";
+                }
+                if (status === "completed") {
+                    return "Backup selesai.";
+                }
+                if (status === "failed") {
+                    return "Backup gagal.";
+                }
+                return "Backup berjalan...";
             },
 
             // IKU Settings Methods

@@ -1,5 +1,10 @@
 # LPMF Feature Implementation: Monitoring, Instruments & Weighing
 
+## Pekerjaan Saat Ini
+
+- [x] Dokumentasi perbaikan emergency backup
+- [x] Perbaikan WhatsApp settings (base_url, basic_user, basic_pass tidak tersimpan)
+
 ## Overview
 
 Implementasi 3 kapabilitas baru terintegrasi dengan workflow LPMF dan siap audit (ISO 17025/QMS):

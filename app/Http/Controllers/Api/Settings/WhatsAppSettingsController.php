@@ -1,0 +1,172 @@
+<?php
+
+namespace App\Http\Controllers\Api\Settings;
+
+use App\Http\Controllers\Controller;
+use App\Jobs\SendWhatsAppNotificationJob;
+use App\Models\WhatsappOutbox;
+use App\Services\WhatsApp\GowaClient;
+use App\Services\WhatsApp\NotificationService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+
+class WhatsAppSettingsController extends Controller
+{
+    public function __construct(
+        private NotificationService $notificationService,
+        private GowaClient $client
+    ) {
+    }
+
+    public function update(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'enabled' => 'required|boolean',
+            'base_url' => 'required|string|url',
+            'basic_user' => 'nullable|string|max:255',
+            'basic_pass' => 'nullable|string|max:255',
+            'enabled_milestones' => 'nullable|array',
+            'enabled_milestones.*' => 'string|in:' . implode(',', $this->notificationService->getAvailableMilestones()),
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $data = $validator->validated();
+
+        if (!empty($data['basic_pass'])) {
+            $data['basic_pass'] = encrypt($data['basic_pass']);
+        }
+
+        \App\Models\SystemSetting::updateOrCreate(['key' => 'notifications.whatsapp.enabled'], ['value' => $data['enabled']]);
+        \App\Models\SystemSetting::updateOrCreate(['key' => 'notifications.whatsapp.base_url'], ['value' => rtrim($data['base_url'], '/')]);
+        \App\Models\SystemSetting::updateOrCreate(['key' => 'notifications.whatsapp.basic_user'], ['value' => $data['basic_user'] ?? null]);
+        \App\Models\SystemSetting::updateOrCreate(['key' => 'notifications.whatsapp.basic_pass'], ['value' => $data['basic_pass'] ?? null]);
+        \App\Models\SystemSetting::updateOrCreate(['key' => 'notifications.whatsapp.enabled_milestones'], ['value' => $data['enabled_milestones'] ?? []]);
+
+        settings_forget_cache();
+
+        return response()->json([
+            'message' => 'WhatsApp settings saved successfully',
+            'data' => [
+                'enabled' => $data['enabled'],
+                'base_url' => rtrim($data['base_url'], '/'),
+                'basic_user' => $data['basic_user'] ?? null,
+                'enabled_milestones' => $data['enabled_milestones'] ?? [],
+            ],
+        ]);
+    }
+
+    public function test(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'phone' => 'required|string|max:20',
+            'message' => 'nullable|string|max:1000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $phone = $request->input('phone');
+        $message = $request->input('message', 'Test message from LPMF LIMS');
+
+        $jid = $this->notificationService->formatJID($phone);
+
+        try {
+            $outbox = WhatsappOutbox::create([
+                'test_request_id' => null,
+                'milestone_key' => 'TEST',
+                'to_phone_e164' => \App\Support\PhoneNormalizer::toE164($phone),
+                'to_jid' => $jid,
+                'message_text' => $message,
+                'status' => 'queued',
+                'attempts' => 0,
+            ]);
+
+            SendWhatsAppNotificationJob::dispatch($outbox->id);
+
+            return response()->json([
+                'message' => 'Test message queued successfully',
+                'data' => [
+                    'outbox_id' => $outbox->id,
+                    'jid' => $jid,
+                ],
+            ]);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Failed to queue test message',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function checkHealth(): JsonResponse
+    {
+        try {
+            $health = $this->client->checkHealth();
+
+            return response()->json([
+                'message' => $health['reachable'] ? 'Service is reachable' : 'Service is unreachable',
+                'data' => $health,
+            ], $health['reachable'] ? 200 : 503);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Health check failed',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function getOutboxLogs(Request $request): JsonResponse
+    {
+        $limit = $request->input('limit', 50);
+        $limit = min(max((int) $limit, 1), 200);
+
+        $logs = WhatsappOutbox::with(['testRequest:id,receipt_number'])
+            ->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get()
+            ->map(function ($outbox) {
+                return [
+                    'id' => $outbox->id,
+                    'test_request_id' => $outbox->test_request_id,
+                    'milestone_key' => $outbox->milestone_key,
+                    'receipt_number' => $outbox->testRequest?->receipt_number ?? null,
+                    'to_phone' => $outbox->to_phone_e164,
+                    'to_jid' => $outbox->to_jid,
+                    'message' => $outbox->message_text,
+                    'status' => $outbox->status,
+                    'attempts' => $outbox->attempts,
+                    'provider_message_id' => $outbox->provider_message_id,
+                    'last_error' => $outbox->last_error,
+                    'created_at' => $outbox->created_at->toISOString(),
+                ];
+            });
+
+        return response()->json([
+            'data' => $logs,
+            'meta' => [
+                'count' => $logs->count(),
+                'limit' => $limit,
+            ],
+        ]);
+    }
+
+    public function getTemplates(): JsonResponse
+    {
+        return response()->json([
+            'data' => $this->notificationService->getAllTemplates(),
+        ]);
+    }
+}

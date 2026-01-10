@@ -26,6 +26,9 @@ export class SettingsClient {
             ikuPreview: "/api/settings/iku/preview",
             surveyExport: "/reports/surveys/export",
             monitoringLogging: "/api/settings",
+            emergencyBackup: "/api/settings/emergency-backup",
+            jobStatus: "/api/jobs",
+            whatsappSettings: "/api/settings/notifications/whatsapp",
             ...config.api,
         };
 
@@ -181,6 +184,13 @@ export class SettingsClient {
             cleanupOrphanedLoading: false,
             cleanupDuplicatesLoading: false,
             cleanupResult: null,
+            // Backup-related state (for backup-maintenance section)
+            backupRunning: false,
+            backupProgress: "Menyiapkan backup...",
+            backupProgressPercent: 0,
+            backupJobId: null,
+            backups: [],
+            backupsLoading: false,
         };
     }
 
@@ -693,10 +703,24 @@ export class SettingsClient {
         controller.message = "";
 
         try {
-            const data = await this.apiFetch(this.api.notificationsTest, {
-                method: "POST",
-                body: { channel, target: controller.target },
-            });
+            let data;
+            if (channel === "whatsapp") {
+                data = await this.apiFetch(
+                    "/api/settings/notifications/whatsapp/test",
+                    {
+                        method: "POST",
+                        body: {
+                            phone: controller.target,
+                            message: "Test message from LPMF LIMS",
+                        },
+                    },
+                );
+            } else {
+                data = await this.apiFetch(this.api.notificationsTest, {
+                    method: "POST",
+                    body: { channel, target: controller.target },
+                });
+            }
 
             controller.message = data.message || "Pengiriman test berhasil.";
             controller.intentClass = "text-emerald-600";
@@ -798,6 +822,10 @@ export class SettingsClient {
                 body: this.sanitizePayload(config.body),
             });
 
+            if (key === "notifications") {
+                await this.saveWhatsAppSettings();
+            }
+
             this.setSectionStatus(
                 key,
                 "Pengaturan tersimpan.",
@@ -820,6 +848,26 @@ export class SettingsClient {
         } finally {
             this.setSectionLoading(key, false);
         }
+    }
+
+    async saveWhatsAppSettings() {
+        const wa = this.state.form.notifications?.whatsapp;
+        if (!wa) return;
+
+        const payload = {
+            enabled: !!wa.enabled,
+            base_url: wa.base_url || "http://localhost:3000",
+            basic_user: wa.basic_user || null,
+            basic_pass: wa.basic_pass || null,
+            enabled_milestones: Array.isArray(wa.enabled_milestones)
+                ? wa.enabled_milestones
+                : [],
+        };
+
+        await this.apiFetch(this.api.whatsappSettings, {
+            method: "PUT",
+            body: payload,
+        });
     }
 
     /**
@@ -909,6 +957,7 @@ export class SettingsClient {
                                 can_manage_settings: [
                                     ...this.state.roles.manage,
                                 ],
+                                can_manage_users: [],
                                 can_issue_number: [...this.state.roles.issue],
                             },
                         },
@@ -1084,6 +1133,11 @@ export class SettingsClient {
             enabled: false,
         };
 
+        form.backup ??= {
+            retention_days: 14,
+        };
+        form.backups ??= [];
+
         return form;
     }
 
@@ -1095,7 +1149,14 @@ export class SettingsClient {
             },
             whatsapp: {
                 enabled: !!source?.whatsapp?.enabled,
-                number: source?.whatsapp?.number || "",
+                base_url: source?.whatsapp?.base_url || "http://localhost:3000",
+                basic_user: source?.whatsapp?.basic_user || "",
+                basic_pass: source?.whatsapp?.basic_pass || "",
+                enabled_milestones: Array.isArray(
+                    source?.whatsapp?.enabled_milestones,
+                )
+                    ? source.whatsapp.enabled_milestones
+                    : [],
             },
         };
     }
@@ -1502,6 +1563,21 @@ export class SettingsClient {
         } catch (e) {
             console.error("Failed to convert to plain object:", e);
             return {};
+        }
+    }
+
+    async fetchEmergencyBackups() {
+        this.state.backupsLoading = true;
+        try {
+            const data = await this.apiFetch(this.api.emergencyBackup);
+            this.state.backups = Array.isArray(data?.backups)
+                ? data.backups
+                : [];
+        } catch (error) {
+            console.error("fetchEmergencyBackups error:", error);
+            this.state.backups = [];
+        } finally {
+            this.state.backupsLoading = false;
         }
     }
 

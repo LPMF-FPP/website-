@@ -16,7 +16,10 @@ use App\Http\Controllers\Api\Settings\NotificationsController;
 use App\Http\Controllers\Api\Settings\NumberingController;
 use App\Http\Controllers\Api\Settings\SettingsLocalizationController;
 use App\Http\Controllers\Api\Settings\TemplateController as ApiTemplateController;
+use App\Http\Controllers\Api\Settings\EmergencyBackupController;
+use App\Http\Controllers\Api\Settings\WhatsAppSettingsController;
 use App\Http\Controllers\Api\SettingsController as ApiSettingsController;
+use App\Http\Controllers\Api\JobStatusController;
 use App\Models\TestRequest;
 use Illuminate\Support\Facades\Route;
 
@@ -89,6 +92,28 @@ Route::middleware(['auth', 'verified'])->prefix('settings')->group(function () {
         Route::get('/{template}/backups', [BladeTemplateEditorController::class, 'backups'])->name('backups');
         Route::post('/{template}/restore', [BladeTemplateEditorController::class, 'restore'])->name('restore');
     });
+
+    // Emergency Backup
+    Route::prefix('emergency-backup')->group(function () {
+        Route::post('/', [EmergencyBackupController::class, 'start']);
+        Route::get('/', [EmergencyBackupController::class, 'list']);
+        Route::get('/{id}', [EmergencyBackupController::class, 'show']);
+        Route::get('/{id}/download/{file}', [EmergencyBackupController::class, 'download']);
+    });
+
+    // WhatsApp Notifications
+    Route::prefix('notifications/whatsapp')->group(function () {
+        Route::put('/', [WhatsAppSettingsController::class, 'update']);
+        Route::post('/test', [WhatsAppSettingsController::class, 'test']);
+        Route::get('/health', [WhatsAppSettingsController::class, 'checkHealth']);
+        Route::get('/logs', [WhatsAppSettingsController::class, 'getOutboxLogs']);
+        Route::get('/templates', [WhatsAppSettingsController::class, 'getTemplates']);
+    });
+});
+
+// Job Status Polling (Global)
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/jobs/{id}', [JobStatusController::class, 'show']);
 });
 
 // Environment Monitoring API

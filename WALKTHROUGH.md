@@ -7,6 +7,192 @@
 
 ## Changelog
 
+### v1.0.9.1 (10 Januari 2026)
+
+#### Bugfix: WhatsApp Notification System
+
+**Issues Fixed:**
+
+1. **GowaClient API Parameter Mismatch**
+    - **Problem**: GowaClient was sending `jid` parameter to go-whatsapp-web-multidevice API, but the API expects `phone` parameter
+    - **Error**: `{"code":"VALIDATION_ERROR","message":"phone: cannot be blank."}`
+    - **Fix**: Modified `GowaClient::sendMessage()` to extract phone number from JID and send as `phone` parameter
+    - **File**: `app/Services/WhatsApp/GowaClient.php:40-44`
+
+2. **Database Constraint Violation**
+    - **Problem**: `SendWhatsAppNotificationJob` was setting status to `'sending'` which violated the `whatsapp_outbox_status_check` constraint
+    - **Allowed values**: `['queued', 'sent', 'failed', 'delivered', 'read']`
+    - **Error**: `SQLSTATE[23514]: Check violation: new row for relation "whatsapp_outbox" violates check constraint`
+    - **Fix**: Removed intermediate `'sending'` status from job handler
+    - **File**: `app/Jobs/SendWhatsAppNotificationJob.php:41-43`
+
+3. **DNS Resolution Issue**
+    - **Problem**: WhatsApp base URL was configured as `http://gowa.lpmf.local:3000` but domain wasn't resolvable
+    - **Error**: `cURL error 6: Could not resolve host: gowa.lpmf.local`
+    - **Fix**: Updated base URL to `http://localhost:3000` in system settings
+    - **Note**: go-whatsapp-web-multidevice service is running locally on port 3000
+
+4. **Message ID Extraction**
+    - **Problem**: Message ID wasn't being extracted from GOWA API response
+    - **Fix**: Updated message ID extraction to check `data['results']['message_id']` first
+    - **File**: `app/Services/WhatsApp/GowaClient.php:51`
+
+**Testing Results:**
+
+- Successfully sent 5 WhatsApp messages to +6285956592404
+- All messages delivered with provider message IDs
+- Queue processing works correctly with exponential backoff retry
+- Phone number normalization verified for Indonesian numbers (+62xxx, 08xxx formats)
+
+**Files Modified:**
+
+- `app/Services/WhatsApp/GowaClient.php` - Fixed API parameter and message ID extraction
+- `app/Jobs/SendWhatsAppNotificationJob.php` - Removed invalid 'sending' status
+- System settings: Updated `notifications.whatsapp.base_url` from `http://gowa.lpmf.local:3000` to `http://localhost:3000`
+
+### v1.0.9 (9 Januari 2026)
+
+#### Feature: WhatsApp Notification System
+
+Implemented automated WhatsApp notifications for test request milestones using go-whatsapp-web-multidevice integration.
+
+**Features:**
+
+- Automatic WhatsApp notifications sent to investigators when samples reach specific milestones
+- Configurable milestone selection (enable/disable specific notifications)
+- Queue-based sending with automatic retry on failures (max 5 attempts, exponential backoff)
+- Message outbox tracking with full audit trail
+- Health check endpoint for GOWA service connectivity
+- Test message functionality
+- Phone number normalization (Indonesia E.164 format)
+
+**Milestone Messages:**
+
+| Milestone                  | Trigger Event                  | Template                                                                   |
+| -------------------------- | ------------------------------ | -------------------------------------------------------------------------- |
+| REQUEST_RECEIVED           | TestRequest created            | Permintaan Anda telah diterima. Resi: {resi}.                              |
+| REVIEW_DONE_READY_FOR_TEST | Sample → ADMIN_DONE            | Permintaan {resi} telah selesai dikaji ulang dan siap dilakukan pengujian. |
+| PREPARATION_DONE           | Sample → PREPARATION_DONE      | Permintaan {resi} telah selesai dipreparasi sampel.                        |
+| INSTRUMENTATION_DONE       | Sample → INSTRUMENTATION_DONE  | Permintaan {resi} telah selesai diuji instrumen.                           |
+| INTERPRETATION_DONE        | Sample → INTERPRETATION_DONE   | Permintaan {resi} telah selesai dilakukan interpretasi hasil.              |
+| READY_FOR_PICKUP           | Sample → READY_FOR_DELIVERY    | Permintaan {resi} siap diambil.                                            |
+| HANDOVER_COMPLETED         | TestRequest → status completed | Permintaan {resi} telah diambil dan serah terima telah dicatat.            |
+
+**Database Changes:**
+
+- New table: `whatsapp_outbox`
+    - Polymorphic relation to track message origins (test_request, etc.)
+    - Status tracking: queued → sending → sent/failed
+    - Retry count and error logging
+    - External message ID from GOWA
+    - Response data storage (JSON)
+- New settings:
+    - `notifications.whatsapp.enabled` (boolean)
+    - `notifications.whatsapp.base_url` (string) - GOWA service URL
+    - `notifications.whatsapp.basic_user` (string, nullable) - HTTP Basic Auth
+    - `notifications.whatsapp.basic_pass` (encrypted, nullable)
+    - `notifications.whatsapp.enabled_milestones` (array) - active notification types
+
+**Backend Components:**
+
+- `App\Services\WhatsApp\GowaClient` - HTTP client for go-whatsapp-web-multidevice API
+- `App\Services\WhatsApp\NotificationService` - message templates, milestone mapping
+- `App\Support\PhoneNormalizer` - E.164 phone normalization, JID formatting
+- `App\Jobs\SendWhatsAppNotificationJob` - queued message sending with retry logic
+- `App\Http\Controllers\Api\Settings\WhatsAppSettingsController` - settings management
+    - `PUT /api/settings/notifications/whatsapp` - save config
+    - `POST /api/settings/notifications/whatsapp/test` - send test message
+    - `GET /api/settings/notifications/whatsapp/health` - check GOWA connectivity
+    - `GET /api/settings/notifications/whatsapp/logs` - recent outbox messages
+    - `GET /api/settings/notifications/whatsapp/templates` - all message templates
+- Updated observers:
+    - `App\Observers\TestRequestObserver` - REQUEST_RECEIVED, HANDOVER_COMPLETED
+    - `App\Observers\SampleObserver` - all sample status milestone triggers
+
+**Queue Configuration:**
+
+- Job: `SendWhatsAppNotificationJob`
+- Max retries: 5
+- Backoff strategy: Exponential (60s, 120s, 240s, 480s, 960s)
+- Timeout: 120 seconds
+- Idempotency: Uses `updateOrCreate` to prevent duplicate messages
+
+**External Dependencies:**
+
+- [go-whatsapp-web-multidevice](https://github.com/aldinokemal/go-whatsapp-web-multidevice) service
+- Default URL: `http://localhost:3000`
+- Required endpoints:
+    - `POST /send/message` - send WhatsApp message
+    - `GET /health` - service health check
+
+**Security:**
+
+- Basic auth password encrypted at rest using Laravel's `encrypt()` helper
+- Masked password display in API responses (•••••••••)
+- Phone numbers normalized to prevent injection attacks
+
+**Testing:**
+
+- Test message endpoint: Send arbitrary WhatsApp to validate configuration
+- Health check: Verify GOWA service connectivity before enabling
+- Outbox logs: Review sent/failed messages with full error details
+
+**Files Changed:**
+
+- `database/migrations/2026_01_09_000003_create_whatsapp_outbox_table.php` (new)
+- `database/migrations/2026_01_09_091635_add_default_whatsapp_settings.php` (new)
+- `app/Models/WhatsappOutbox.php` (new)
+- `app/Support/PhoneNormalizer.php` (new)
+- `app/Services/WhatsApp/GowaClient.php` (new)
+- `app/Services/WhatsApp/NotificationService.php` (new)
+- `app/Jobs/SendWhatsAppNotificationJob.php` (new)
+- `app/Http/Controllers/Api/Settings/WhatsAppSettingsController.php` (new)
+- `app/Observers/TestRequestObserver.php` (updated)
+- `app/Observers/SampleObserver.php` (updated)
+- `app/Services/Settings/SettingsResponseBuilder.php` (updated)
+- `routes/api.php` (added WhatsApp routes)
+
+**Configuration Example:**
+
+```json
+{
+    "enabled": true,
+    "base_url": "http://localhost:3000",
+    "basic_user": "admin",
+    "basic_pass": "encrypted_password_here",
+    "enabled_milestones": [
+        "REQUEST_RECEIVED",
+        "REVIEW_DONE_READY_FOR_TEST",
+        "PREPARATION_DONE",
+        "INSTRUMENTATION_DONE",
+        "INTERPRETATION_DONE",
+        "READY_FOR_PICKUP",
+        "HANDOVER_COMPLETED"
+    ]
+}
+```
+
+**Acceptance Criteria:**
+
+1. ✅ WhatsApp settings configurable in `/settings` (when UI implemented)
+2. ✅ Messages automatically queued when samples reach milestones
+3. ✅ Failed messages retry up to 5 times with exponential backoff
+4. ✅ Test message sends successfully when GOWA service is running
+5. ✅ Health check accurately reports GOWA service status
+6. ✅ Outbox logs show complete message history with statuses
+7. ✅ Phone numbers normalized to Indonesia E.164 format (+62...)
+8. ✅ Investigators receive notifications on their registered phone numbers
+
+**Next Steps (Frontend UI):**
+
+- Create `/settings` WhatsApp configuration panel
+- Add milestone checkboxes for granular control
+- Real-time health status indicator
+- Test message form
+- Recent messages table with status badges
+
+---
+
 ### v1.0.8 (8 Januari 2026)
 
 #### Refactor: Penimbangan Berbasis Requirement Instrumen
@@ -1417,3 +1603,507 @@ Untuk menambah dokumentasi baru, tambahkan section di bagian bawah file ini.
 ---
 
 _Dokumen ini terakhir diperbarui: 7 Januari 2026_
+
+---
+
+## 📦 Emergency Backup System
+
+```
+Source: Updated on 2026-01-09
+```
+
+### Overview
+
+Sistem backup otomatis untuk pre-deployment safety. Mencakup database dump, storage archive, dan integrity verification dengan manifest.
+
+### Features
+
+- **Emergency Backup**: Full snapshot sebelum deploy/update
+- **Job Polling**: Real-time progress tracking via frontend
+- **Integrity Verification**: SHA256 checksums untuk semua file
+- **Auto Retention**: Cleanup otomatis backup lama berdasarkan retention policy
+- **Download Artifacts**: DB dump, storage archive, dan manifest tersedia via UI
+
+### Database Schema
+
+#### `job_statuses` Table
+
+Generic job tracking untuk polling status.
+
+```sql
+CREATE TABLE job_statuses (
+    id UUID PRIMARY KEY,
+    type VARCHAR,  -- 'emergency_backup', 'whatsapp_send', dll
+    status ENUM('queued', 'running', 'completed', 'failed'),
+    result JSON,
+    error TEXT,
+    progress_current INTEGER,
+    progress_total INTEGER,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    completed_at TIMESTAMP
+);
+```
+
+#### `backup_runs` Table
+
+Audit trail untuk semua backup execution.
+
+```sql
+CREATE TABLE backup_runs (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    mode ENUM('emergency', 'scheduled'),
+    status ENUM('queued', 'running', 'success', 'failed'),
+    started_at TIMESTAMP,
+    finished_at TIMESTAMP,
+    triggered_by BIGINT FK users,
+    artifact_dir VARCHAR,
+    db_dump_path VARCHAR,
+    storage_archive_path VARCHAR,
+    manifest_path VARCHAR,
+    db_size_bytes BIGINT,
+    storage_size_bytes BIGINT,
+    git_commit VARCHAR(40),
+    sha256_manifest TEXT,
+    error_message TEXT,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+```
+
+### Backend Components
+
+#### Models
+
+- **`JobStatus`**: Job tracking with helper methods (`markAsRunning`, `markAsCompleted`, `markAsFailed`, `updateProgress`)
+- **`BackupRun`**: Backup execution record dengan helper methods (`getTotalSizeBytes`, `getFormattedSize`)
+
+#### Services
+
+**`BackupService`** (`app/Services/BackupService.php`):
+
+- `createDatabaseDump($outputPath)`: mysqldump/pg_dump → gzip
+- `createStorageArchive($outputPath)`: tar.gz dari `storage/app` (exclude backups)
+- `generateManifest($outputPath, $files)`: manifest.json + SHA256 checksums
+- `getGitCommit()`: current git commit hash
+- `createBackupDirectory($mode)`: buat folder `storage/app/backups/emergency/YYYYMMDD_HHMMSS/`
+- `cleanupOldBackups($retentionDays, $mode)`: hapus backup lama
+
+#### Jobs
+
+**`EmergencyBackupJob`** (`app/Jobs/EmergencyBackupJob.php`):
+
+- Dispatched via queue (asynchronous execution)
+- Progress: 5 steps (create dir → dump DB → archive storage → generate manifest → finalize)
+- Updates both `BackupRun` and `JobStatus` models
+- Timeout: 1800s (30 minutes)
+- Retry: 1 attempt (no retries - fail immediately)
+
+#### Controllers
+
+**`EmergencyBackupController`** (`app/Http/Controllers/Api/Settings/EmergencyBackupController.php`):
+
+- `POST /api/settings/emergency-backup`: Start backup → returns `job_id` + `backup_run_id`
+- `GET /api/settings/emergency-backup`: List 20 most recent backups
+- `GET /api/settings/emergency-backup/{id}`: Backup detail + metadata
+- `GET /api/settings/emergency-backup/{id}/download/{file}`: Download db/storage/manifest
+
+**`JobStatusController`** (`app/Http/Controllers/Api/JobStatusController.php`):
+
+- `GET /api/jobs/{id}`: Polling endpoint untuk frontend (returns status, progress, result, error)
+
+#### Commands
+
+**`BackupCleanupCommand`** (`app/Console/Commands/BackupCleanupCommand.php`):
+
+```bash
+php artisan backup:cleanup --days=14
+```
+
+- Hapus folder backup > retention days
+- Delete corresponding DB records
+
+### Frontend UI
+
+**Location**: `/settings` → Sidebar "Backup & Maintenance"
+
+**Partial**: `resources/views/settings/partials/backup-maintenance.blade.php`
+
+**Features**:
+
+- Emergency Backup Now button dengan progress bar
+- List 20 backup terakhir dengan status indicators
+- Download links untuk DB/storage/manifest (hanya untuk status=success)
+- Retention policy setting (days input)
+- Real-time polling progress updates
+
+**Alpine.js Integration** (`resources/js/pages/settings/alpine-component.js`):
+
+```javascript
+// State
+client.state.backupRunning = false;
+client.state.backupProgress = 'Initializing...';
+client.state.backupProgressPercent = 0;
+client.state.backups = [];
+
+// Methods
+async startEmergencyBackup() {
+    // POST /api/settings/emergency-backup
+    // Poll job status via /api/jobs/{job_id}
+    // Update progress bar + status text
+}
+
+async pollBackupJob(jobId, maxAttempts = 120) {
+    // 2-second intervals
+    // Max 4 minutes polling
+    // Update progress: "1/5 - 20%", "2/5 - 40%", dll
+}
+
+async loadBackupList() {
+    // GET /api/settings/emergency-backup
+    // Populate backup list
+}
+```
+
+### Update: Emergency Backup UI Handler
+
+```
+Source: Updated on 2026-01-10
+```
+
+Handler di `resources/js/pages/settings/alpine-component.js` kini menginisiasi state progress, memulai polling job, dan memastikan daftar backup di-refresh sebelum serta setelah polling selesai. Test baru di `tests/js/settings-emergency-backup.test.js` memverifikasi handler dan state emergency backup terekspos di Alpine component.
+
+### Backup Workflow
+
+1. **User clicks "Emergency Backup Now"**
+2. **Frontend** → `POST /api/settings/emergency-backup`
+3. **Backend**:
+    - Create `BackupRun` record (status=queued)
+    - Create `JobStatus` record (UUID)
+    - Dispatch `EmergencyBackupJob` to queue
+    - Return `{job_id, backup_run_id}`
+4. **Frontend** → Start polling `GET /api/jobs/{job_id}` every 2 seconds
+5. **Job Execution** (EmergencyBackupJob):
+    - Step 1/5: Create backup directory
+    - Step 2/5: Database dump → `db.sql.gz`
+    - Step 3/5: Storage archive → `storage.tar.gz`
+    - Step 4/5: Generate manifest.json + SHA256 checksums
+    - Step 5/5: Finalize (mark success/failed)
+6. **Frontend** → Display result (success message + backup size) or error
+7. **Frontend** → Refresh backup list
+
+### Backup Artifacts Structure
+
+```
+storage/app/backups/emergency/20260109_143000/
+├── db.sql.gz           # Database dump (gzipped SQL)
+├── storage.tar.gz      # Storage archive (tar.gz)
+├── manifest.json       # Metadata + checksums
+└── backup.log          # Optional log (future)
+```
+
+**manifest.json** Example:
+
+```json
+{
+    "created_at": "2026-01-09T14:30:00+07:00",
+    "laravel_version": "12.0.1",
+    "php_version": "8.3.2",
+    "git_commit": "abc1234def567890",
+    "files": {
+        "database": {
+            "path": "db.sql.gz",
+            "size": 1234567,
+            "sha256": "a1b2c3d4..."
+        },
+        "storage": {
+            "path": "storage.tar.gz",
+            "size": 9876543,
+            "sha256": "e5f6g7h8..."
+        }
+    }
+}
+```
+
+### Configuration
+
+**Settings Storage** (via `SystemSetting` model):
+
+- Key: `backup.retention_days`
+- Value: `14` (default)
+- Editable via `/settings` UI
+
+**Settings Response** (`SettingsResponseBuilder`):
+
+```php
+'backup' => [
+    'retention_days' => (int) Arr::get($nested, 'backup.retention_days', 14),
+]
+```
+
+### Testing
+
+```bash
+# 1. Run migrations
+php artisan migrate
+
+# 2. Start queue worker (required)
+php artisan queue:listen
+
+# 3. Access settings page
+# Navigate to /settings → Backup & Maintenance
+
+# 4. Click "Emergency Backup Now"
+# Watch progress: "1/5 - 20%" → "5/5 - 100%"
+
+# 5. Verify artifacts created
+ls -lh storage/app/backups/emergency/
+
+# 6. Download files via UI
+# Click DB/Storage/Manifest links
+
+# 7. Test cleanup command
+php artisan backup:cleanup --days=7
+```
+
+### Production Usage
+
+**Pre-deployment SOP**:
+
+```bash
+# 1. Emergency backup via UI or artisan
+php artisan migrate:status  # Check pending migrations
+# → Visit /settings → Backup & Maintenance → Emergency Backup Now
+# OR
+# php artisan lpmf:backup --mode=emergency (future artisan command)
+
+# 2. Wait for completion (check status in UI)
+
+# 3. Verify backup success
+ls -lh storage/app/backups/emergency/latest/
+
+# 4. Proceed with deployment
+git pull
+php artisan migrate --force
+php artisan optimize:clear
+# ...
+
+# 5. If issues occur, restore from backup manually
+```
+
+**Scheduled Cleanup** (add to `app/Console/Kernel.php`):
+
+```php
+$schedule->command('backup:cleanup --days=14')->daily();
+```
+
+### Known Limitations
+
+1. **No automated restore**: Restore harus dilakukan manual
+2. **No remote storage**: Backup hanya lokal di `storage/app/backups/`
+3. **No encryption**: Backup disimpan plain (tanpa enkripsi)
+4. **Single-server only**: Tidak support multi-server deployment
+5. **No incremental backup**: Selalu full backup
+
+### Future Enhancements
+
+- [ ] Artisan command: `php artisan lpmf:backup --mode=emergency`
+- [ ] Automated restore command
+- [ ] S3/Remote storage integration
+- [ ] Incremental backup support
+- [ ] Backup encryption (GPG)
+- [ ] Email notification on backup completion
+- [ ] Slack/WhatsApp notification
+- [ ] Pre-deployment automation hook
+
+### Security Considerations
+
+- **File Permissions**: Backup folder harus `0755`, files `0644`
+- **Download Authorization**: Hanya user dengan `manage-settings` permission
+- **No Public Access**: Backup folder di `storage/app` (tidak accessible via web)
+- **Retention Enforcement**: Auto-cleanup mencegah backup menumpuk indefinitely
+
+### Troubleshooting
+
+**Issue**: Backup timeout
+
+- **Solution**: Increase `EmergencyBackupJob::$timeout` (default 1800s)
+
+**Issue**: mysqldump/pg_dump command not found
+
+- **Solution**: Install MySQL/PostgreSQL client tools di server
+
+**Issue**: Permission denied saat tar/gzip
+
+- **Solution**: Check `storage/app` folder permissions
+
+**Issue**: Queue not processing
+
+- **Solution**: Start queue worker: `php artisan queue:listen`
+
+**Issue**: Progress stuck at "1/5"
+
+- **Solution**: Check `storage/logs/laravel.log` untuk error messages
+
+### API Reference
+
+#### POST /api/settings/emergency-backup
+
+**Request**: None (auth required)
+**Response**:
+
+```json
+{
+    "job_id": "9d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a",
+    "backup_run_id": 123
+}
+```
+
+#### GET /api/jobs/{id}
+
+**Response**:
+
+```json
+{
+    "id": "uuid",
+    "type": "emergency_backup",
+    "status": "running",
+    "progress": {
+        "current": 3,
+        "total": 5,
+        "percentage": 60
+    },
+    "result": null,
+    "error": null,
+    "created_at": "ISO8601",
+    "completed_at": null
+}
+```
+
+#### GET /api/settings/emergency-backup
+
+**Response**:
+
+```json
+{
+    "backups": [
+        {
+            "id": 123,
+            "mode": "emergency",
+            "status": "success",
+            "created_at": "ISO8601",
+            "finished_at": "ISO8601",
+            "triggered_by": "Admin User",
+            "size": "1.23 GB",
+            "size_bytes": 1234567890,
+            "git_commit": "abc1234",
+            "error_message": null
+        }
+    ]
+}
+```
+
+---
+
+## WhatsApp Notifications Settings
+
+```
+Source: Updated on 2026-01-10
+```
+
+### Bug Fix: WhatsApp Settings Not Saved
+
+**Problem**: Ketika user menyimpan pengaturan notifikasi di halaman `/settings`, field WhatsApp berikut **tidak tersimpan**:
+
+- `base_url` (GOWA Service URL)
+- `basic_user` (Basic Auth Username)
+- `basic_pass` (Basic Auth Password)
+- `enabled_milestones` (Milestone aktif)
+
+**Root Cause**: Button "Simpan" memanggil `saveSection('notifications')` yang hanya mengirim request ke `PUT /api/settings/notifications-security`. Endpoint ini tidak memproses field WhatsApp tersebut.
+
+Field WhatsApp memerlukan endpoint terpisah: `PUT /api/settings/notifications/whatsapp` (WhatsAppSettingsController).
+
+**Fix** (`resources/js/pages/settings/index.js`):
+
+1. Tambah endpoint baru:
+
+```javascript
+whatsappSettings: "/api/settings/notifications/whatsapp",
+```
+
+2. Tambah method `saveWhatsAppSettings()`:
+
+```javascript
+async saveWhatsAppSettings() {
+    const wa = this.state.form.notifications?.whatsapp;
+    if (!wa) return;
+
+    const payload = {
+        enabled: !!wa.enabled,
+        base_url: wa.base_url || "http://localhost:3000",
+        basic_user: wa.basic_user || null,
+        basic_pass: wa.basic_pass || null,
+        enabled_milestones: Array.isArray(wa.enabled_milestones)
+            ? wa.enabled_milestones
+            : [],
+    };
+
+    await this.apiFetch(this.api.whatsappSettings, {
+        method: "PUT",
+        body: payload,
+    });
+}
+```
+
+3. Update `saveSection()` untuk memanggil WhatsApp endpoint:
+
+```javascript
+if (key === "notifications") {
+    await this.saveWhatsAppSettings();
+}
+```
+
+### WhatsApp Configuration Flow
+
+```
+User → Enable WhatsApp toggle → Fill base_url, basic_user, basic_pass
+     → Select milestones → Click "Simpan"
+     → Frontend calls both endpoints:
+         1. PUT /api/settings/notifications-security (email, security)
+         2. PUT /api/settings/notifications/whatsapp (whatsapp-specific)
+     → Backend encrypts basic_pass → Saves to system_settings
+```
+
+### Available Milestones
+
+| Key                        | Label                       |
+| -------------------------- | --------------------------- |
+| REQUEST_RECEIVED           | Permintaan Diterima         |
+| REVIEW_DONE_READY_FOR_TEST | Kajian Selesai, Siap Uji    |
+| PREPARATION_DONE           | Preparasi Selesai           |
+| INSTRUMENTATION_DONE       | Pengujian Instrumen Selesai |
+| INTERPRETATION_DONE        | Interpretasi Selesai        |
+| READY_FOR_PICKUP           | Siap Diambil                |
+| HANDOVER_COMPLETED         | Serah Terima Selesai        |
+
+### Security
+
+- `basic_pass` disimpan terenkripsi menggunakan Laravel `encrypt()`
+- Saat ditampilkan di UI, password ditampilkan sebagai `••••••••`
+- GOWA client (`GowaClient.php`) mendekripsi password saat membuat request HTTP
+
+### Testing
+
+```bash
+# Run JS tests
+node --test tests/js/settings-whatsapp.test.js
+
+# Verify settings via tinker
+php artisan tinker
+>>> settings('notifications.whatsapp.enabled')
+>>> settings('notifications.whatsapp.base_url')
+>>> decrypt(settings('notifications.whatsapp.basic_pass'))
+```
+
+---

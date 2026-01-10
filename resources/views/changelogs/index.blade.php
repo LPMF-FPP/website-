@@ -67,6 +67,32 @@
                 </ul>
             </div>
 
+            {{-- Bug Fixes --}}
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-red-100 text-red-600">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </span>
+                    Perbaikan Bug
+                </h3>
+                <ul class="space-y-2 text-sm text-gray-700">
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <span><strong>Emergency Backup:</strong> Tombol "Emergency Backup Now" kini memicu update progress dan refresh daftar backup secara otomatis</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                        <span><strong>WhatsApp Settings:</strong> Pengaturan GOWA URL, Basic Auth, dan Milestone kini tersimpan dengan benar saat menyimpan pengaturan notifikasi</span>
+                    </li>
+                </ul>
+            </div>
+ 
             {{-- Technical Details --}}
             <div class="p-4 bg-gray-50 rounded-lg text-xs text-gray-600">
                 <strong>Detail Teknis:</strong> Kolom baru: weighed_items_count, weighed_mass_value, weighed_mass_unit, weighed_by, weighed_at. Enum WeighedMassUnit (ug/mg/g). Data existing dimigrasikan otomatis.

@@ -30,13 +30,25 @@ class SettingsResponseBuilder
             'pdf' => Arr::get($nested, 'pdf', []),
             'localization' => Arr::get($nested, 'localization', Arr::get($nested, 'locale', [])),
             'retention' => $retention,
-            'notifications' => Arr::get($nested, 'notifications', Arr::get($nested, 'automation', [])),
+            'notifications' => $this->composeNotifications(Arr::get($nested, 'notifications', Arr::get($nested, 'automation', []))),
             'monitoring_logging' => Arr::get($nested, 'monitoring_logging', []),
             'smtp' => $this->composeSmtp(Arr::get($nested, 'smtp', [])),
             'security' => Arr::get($nested, 'security.roles', []),
+            'backup' => [
+                'retention_days' => (int) Arr::get($nested, 'backup.retention_days', 14),
+            ],
 
             'iku' => $this->ikuService->getConfig(),
         ];
+    }
+
+    private function composeNotifications(array $notifications): array
+    {
+        if (isset($notifications['whatsapp']['basic_pass']) && $notifications['whatsapp']['basic_pass']) {
+            $notifications['whatsapp']['basic_pass'] = '••••••••';
+        }
+
+        return $notifications;
     }
 
     private function composeSmtp(array $smtp): array

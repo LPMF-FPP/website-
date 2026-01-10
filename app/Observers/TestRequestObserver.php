@@ -2,12 +2,20 @@
 
 namespace App\Observers;
 
+use App\Jobs\SendWhatsAppNotificationJob;
 use App\Models\TestRequest;
+use App\Models\WhatsappOutbox;
+use App\Services\WhatsApp\NotificationService;
 use App\Support\ActivityLogger;
 use Illuminate\Support\Arr;
 
 class TestRequestObserver
 {
+    public function __construct(
+        private NotificationService $notificationService
+    ) {
+    }
+
     public function created(TestRequest $testRequest): void
     {
         ActivityLogger::log(
@@ -21,6 +29,8 @@ class TestRequestObserver
                 'receipt_number' => $testRequest->receipt_number,
             ]
         );
+
+        $this->sendWhatsAppNotification($testRequest, 'REQUEST_RECEIVED');
     }
 
     public function updated(TestRequest $testRequest): void
@@ -44,6 +54,10 @@ class TestRequestObserver
             $meta['changes'] = Arr::except($changes, ['status']);
             $before = ['status' => $before['status'] ?? null];
             $changes = ['status' => $changes['status']];
+
+            if ($testRequest->status === 'completed') {
+                $this->sendWhatsAppNotification($testRequest, 'HANDOVER_COMPLETED');
+            }
         }
 
         ActivityLogger::log(
@@ -85,5 +99,53 @@ class TestRequestObserver
             'received_at' => optional($testRequest->received_at)->toISOString(),
             'completed_at' => optional($testRequest->completed_at)->toISOString(),
         ];
+    }
+
+    private function sendWhatsAppNotification(TestRequest $testRequest, string $milestone): void
+    {
+        if (!$this->notificationService->isWhatsAppEnabled()) {
+            return;
+        }
+
+        if (!$this->notificationService->shouldNotify($milestone)) {
+            return;
+        }
+
+        $testRequest->load('investigator');
+
+        if (!$testRequest->investigator) {
+            return;
+        }
+
+        $phone = $testRequest->investigator->phone_number ?? null;
+
+        if (!$phone) {
+            return;
+        }
+
+        $jid = $this->notificationService->formatJID($phone);
+        $message = $this->notificationService->getMilestoneMessage($milestone, [
+            'resi' => $testRequest->receipt_number,
+        ]);
+
+        if (!$message) {
+            return;
+        }
+
+        $outbox = WhatsappOutbox::updateOrCreate(
+            [
+                'test_request_id' => $testRequest->id,
+                'milestone_key' => $milestone,
+            ],
+            [
+                'to_phone_e164' => \App\Support\PhoneNormalizer::toE164($phone),
+                'to_jid' => $jid,
+                'message_text' => $message,
+                'status' => 'queued',
+                'attempts' => 0,
+            ]
+        );
+
+        SendWhatsAppNotificationJob::dispatch($outbox->id);
     }
 }

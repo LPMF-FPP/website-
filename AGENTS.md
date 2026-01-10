@@ -5,16 +5,16 @@ You are strictly required to follow these workflow rules for every task.
 ## 0. Agent Roles & Responsibilities
 
 ### Core Agents
-- **Sisyphus** (`google/antigravity-claude-opus-4-5-thinking-high`) - Primary coding agent for implementation, refactoring, debugging with deep reasoning
-- **Planner-Sisyphus** (`openai/gpt-5.2-codex`) - Strategic planning, task breakdown, architectural decisions
-- **oracle** (`openai/gpt-5.2-codex`) - Problem-solving, Q&A, technical reasoning, code review
-- **librarian** (`google/antigravity-claude-sonnet-4-5`) - Documentation research, API references, library usage
+- **Sisyphus** (`google/antigravity-claude-sonnet-4-5-thinking`) - Primary coding agent for implementation, refactoring, debugging with deep reasoning
+- **Planner-Sisyphus** (`google/antigravity-claude-opus-4-5-thinking`) - Strategic planning, task breakdown, architectural decisions
+- **oracle** (`google/antigravity-claude-opus-4-5-thinking`) - Problem-solving, Q&A, technical reasoning, code review
+- **librarian** (`openai/gpt-5.2-codex-xhigh`) - Documentation research, API references, library usage
 
 ### Specialized Agents
 - **frontend-ui-ux-engineer** (`google/antigravity-gemini-3-pro-high`) - UI/UX design, frontend implementation, accessibility
-- **document-writer** (`openai/gpt-5.2-codex`) - Writing documentation, summaries, walkthroughs, changelog updates
+- **document-writer** (`openai/gpt-5.2-codex-xhigh`) - Writing documentation, summaries, walkthroughs, changelog updates
 - **multimodal-looker** (`google/antigravity-claude-sonnet-4-5`) - Image analysis, visual debugging, design reviews
-- **explore** (`openai/gpt-5.2-codex`) - Fast codebase exploration, quick searches, file discovery
+- **explore** (`openai/gpt-5.2-codex-xhigh`) - Fast codebase exploration, quick searches, file discovery
 
 ### MCP Integrations
 - **shadcn** - UI component generation and management
@@ -131,7 +131,7 @@ find tests/ -name "*.php"
 
 ## 6. Master Plan (todos.md)
 
-- **Initiation**: If `todos.md` does not exist, delegate to `Planner-Sisyphus` to CREATE IT immediately.
+- **Initiation**: Delegate to `Planner-Sisyphus` to CREATE or OVERWRITE `todos.md` for each new feature/task implementation.
 - **Structure**: Comprehensive list of tasks from development start to finish.
 - **Status**: Use `[ ]` for pending and `[x]` for completed tasks.
 - **Update**: MUST mark tasks as `[x]` immediately after completion.
