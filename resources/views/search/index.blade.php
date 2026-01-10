@@ -17,7 +17,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex flex-col gap-2">
-            <x-breadcrumbs :items="[['label' => 'Beranda', 'url' => url('/')], ['label' => 'Pencarian']]" />
+            <x-breadcrumbs :items="[['label' => 'Beranda', 'href' => url('/')], ['label' => 'Pencarian']]" />
             <div>
                 <h1 class="text-2xl font-semibold text-primary-900">Pencarian Dokumen</h1>
                 <p class="text-sm text-accent-600">Telusuri tersangka/penyidik dan berita acara dalam satu tampilan terpadu.</p>

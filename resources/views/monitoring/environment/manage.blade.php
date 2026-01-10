@@ -2,7 +2,7 @@
     <x-slot name="header">
         <x-page-header
             title="Kelola Lokasi Monitoring"
-            :breadcrumbs="[['label' => 'Monitoring'], ['label' => 'Lingkungan', 'url' => route('monitoring.environment.index')], ['label' => 'Kelola Lokasi']]"
+            :breadcrumbs="[['label' => 'Monitoring'], ['label' => 'Lingkungan', 'href' => route('monitoring.environment.index')], ['label' => 'Kelola Lokasi']]"
             description="Tambah dan edit lokasi untuk pencatatan suhu/kelembaban"
         />
     </x-slot>

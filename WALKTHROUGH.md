@@ -7,6 +7,493 @@
 
 ## Changelog
 
+### v1.0.10 (10 Januari 2026)
+
+#### Feature: Party Mode - Multi-Agent Collaboration Workflow
+
+Implemented **Party Mode**, an advanced multi-agent orchestration pattern inspired by the BMAD Method, adapted for OpenCode environment in this Laravel project.
+
+**What is Party Mode?**
+
+Party Mode is a systematic approach to complex software development tasks by orchestrating multiple specialized AI agents working in parallel and building on each other's findings. Instead of sequential work, we leverage concurrent exploration, research, and implementation across different domains.
+
+**Core Principles:**
+
+1. **Parallel Agent Orchestration** - Launch 2-4 specialized agents simultaneously for comprehensive analysis
+2. **Domain Expertise** - Each agent focuses on their specialization (explore, librarian, oracle, frontend-ui-ux-engineer, etc.)
+3. **Cross-Pollination** - Agents' findings inform each other's work and the main implementation
+4. **Exhaustive Search** - Never stop at first result; maximize search effort across codebase, docs, and external resources
+
+**Agent Roles in Party Mode:**
+
+| Agent                       | Specialization                                              | When to Use                                       | Example Task                                              |
+| --------------------------- | ----------------------------------------------------------- | ------------------------------------------------- | --------------------------------------------------------- |
+| **explore**                 | Fast codebase exploration, file discovery, pattern matching | Finding implementations, mapping architecture     | "Find all Blade components using Alpine.js data binding"  |
+| **librarian**               | External documentation, API references, GitHub examples     | Researching frameworks, libraries, best practices | "Research Laravel 12 Blade component patterns"            |
+| **oracle**                  | Problem-solving, strategic guidance, code review            | Complex decisions, debugging after failures       | "Analyze trade-offs between monolithic vs modular design" |
+| **frontend-ui-ux-engineer** | UI/UX design, accessibility, frontend implementation        | Creating user interfaces, design systems          | "Implement accessible modal with ARIA attributes"         |
+| **document-writer**         | Documentation, technical writing, summaries                 | Creating docs, updating WALKTHROUGH.md            | "Document WhatsApp notification system architecture"      |
+| **multimodal-looker**       | Visual analysis, design reviews, image interpretation       | Analyzing screenshots, mockups, diagrams          | "Review UI screenshot for accessibility issues"           |
+
+**How to Activate Party Mode:**
+
+```markdown
+## Method 1: Background Tasks (Recommended for Search/Analysis)
+
+# Launch multiple agents in parallel for exhaustive search
+
+background_task(agent="explore", description="Explore Laravel structure",
+prompt="Map out all controllers, models, and services in app/")
+
+background_task(agent="librarian", description="Research Laravel 12 docs",
+prompt="Find Laravel 12 Blade component best practices and examples")
+
+background_task(agent="explore", description="Explore audit system",
+prompt="Analyze scripts/audit/ architecture and report generation")
+
+background_task(agent="librarian", description="Research design tokens",
+prompt="Research design token patterns for CSS architecture")
+
+# Continue working while agents run in background
+
+# System will notify when each completes
+```
+
+```markdown
+## Method 2: Direct Task Calls (For Implementation)
+
+# For complex implementation requiring specialist
+
+task(subagent_type="frontend-ui-ux-engineer",
+description="Implement WhatsApp settings UI",
+prompt="Create accessible WhatsApp notification settings panel with:
+
+- Milestone checkboxes
+- Template editors
+- Health status indicator
+- Test message form")
+
+# For documentation
+
+task(subagent_type="document-writer",
+description="Document Party Mode",
+prompt="Create comprehensive Party Mode documentation in WALKTHROUGH.md")
+```
+
+**Party Mode Workflow Pattern:**
+
+```
+1. ANALYZE → Launch 2-4 background agents (explore + librarian combinations)
+   ├─ explore: Codebase patterns, implementations
+   ├─ librarian: External docs, framework references
+   └─ Wait for all agents to complete
+
+2. SYNTHESIZE → Combine findings from all agents
+   ├─ Review background_output from each agent
+   ├─ Identify patterns and best practices
+   └─ Create implementation plan
+
+3. CONSULT → For complex decisions or after failures
+   └─ oracle: Strategic guidance, trade-off analysis
+
+4. IMPLEMENT → Use specialist agents
+   ├─ Sisyphus: Backend logic, database
+   ├─ frontend-ui-ux-engineer: UI/UX components
+   └─ Coordinate between agents
+
+5. DOCUMENT → Update documentation
+   └─ document-writer: WALKTHROUGH.md, changelogs
+
+6. REVIEW → Final validation
+   └─ oracle: Code review, architectural feedback
+```
+
+**Example Party Mode Session:**
+
+```bash
+# Scenario: Implementing New Feature "Email Notification System"
+
+## Phase 1: PARALLEL EXPLORATION (Party Mode Activated)
+background_task(agent="explore", "Find notification patterns in codebase")
+background_task(agent="librarian", "Research Laravel notification best practices")
+background_task(agent="explore", "Map queue and job infrastructure")
+background_task(agent="librarian", "Find email template libraries")
+
+## Phase 2: SYNTHESIS
+# Wait for all 4 agents to complete
+# Review findings:
+# - explore found: WhatsAppNotificationJob pattern, queue config
+# - librarian found: Laravel Mail facade docs, Mailable classes
+# - explore found: Existing queue infrastructure with Redis
+# - librarian found: MJML for responsive email templates
+
+## Phase 3: STRATEGIC CONSULTATION
+task(subagent_type="oracle", "Analyze email vs SMS trade-offs for our use case")
+
+## Phase 4: IMPLEMENTATION
+task(subagent_type="Sisyphus", "Implement EmailNotificationJob following WhatsApp pattern")
+task(subagent_type="frontend-ui-ux-engineer", "Create email template editor UI")
+
+## Phase 5: DOCUMENTATION
+task(subagent_type="document-writer", "Document email notification system")
+```
+
+**When to Use Party Mode:**
+
+✅ **DO USE for:**
+
+- Complex new features requiring multiple domains (backend + frontend + external APIs)
+- Architectural decisions with trade-offs
+- Debugging after 2+ failed attempts
+- Learning new frameworks or libraries
+- Comprehensive codebase analysis
+- Integration of external services
+
+❌ **DON'T USE for:**
+
+- Simple bug fixes (single file, obvious solution)
+- Trivial changes (typo fixes, style adjustments)
+- Well-understood repetitive tasks
+- Time-sensitive quick fixes
+
+**Party Mode Checklist:**
+
+- [ ] Task requires expertise from multiple domains?
+- [ ] Need to research external docs/libraries?
+- [ ] Codebase exploration needed before implementation?
+- [ ] Complex architectural decision involved?
+- [ ] Previous attempts failed and need fresh perspective?
+
+**If 2+ checkboxes = YES → Use Party Mode**
+
+**Tips for Effective Party Mode:**
+
+1. **Launch agents early** - Don't wait until stuck; proactive exploration saves time
+2. **Be specific in prompts** - "Find all Alpine.js components" vs "Search JavaScript"
+3. **Review all outputs** - Don't cherry-pick; agents often find unexpected insights
+4. **Cross-reference findings** - Validate librarian docs against explore discoveries
+5. **Document patterns** - Update AGENTS.md or WALKTHROUGH.md with learnings
+
+**Integration with AGENTS.md:**
+
+This Party Mode implementation is fully compatible with the agent roles defined in `AGENTS.md`. Reference the Agent Selection Matrix in AGENTS.md:11-12 for detailed agent capabilities and delegation patterns.
+
+**Files Created/Modified:**
+
+- `WALKTHROUGH.md` - Added Party Mode documentation (this section)
+- `AGENTS.md` - Already contains agent roles and orchestration patterns (no changes needed)
+
+**Acceptance Criteria:**
+
+1. ✅ Party Mode documentation added to WALKTHROUGH.md
+2. ✅ Clear examples of agent orchestration provided
+3. ✅ Integration with AGENTS.md workflow referenced
+4. ✅ When-to-use guidance documented
+5. ✅ Example session walkthrough provided
+
+**Next Steps:**
+
+- Practice Party Mode on next complex feature implementation
+- Track effectiveness metrics (time saved, issues prevented)
+- Refine agent prompts based on output quality
+- Consider creating helper scripts for common agent combinations
+
+**References:**
+
+- BMAD Method Party Mode: https://docs.bmad-method.org/how-to/workflows/setup-party-mode/
+- AGENTS.md Section 11-12: Agent Selection Matrix and Collaboration Protocol
+- Background task documentation: OpenCode agent system
+
+#### Brownfield Development Workflow
+
+Adapted from BMAD Method for working on this existing Laravel LPMF LIMS project.
+
+**What is Brownfield Development?**
+
+Brownfield refers to working on an **existing codebase** with established patterns and architecture, as opposed to greenfield (starting from scratch). This Laravel project is a brownfield environment with:
+
+- Established MVC + Service + Repository architecture
+- Existing Blade + Alpine.js frontend patterns
+- Configured audit system and design tokens
+- Active database schema with migrations
+- Documented workflows in AGENTS.md
+
+**When to Use Brownfield Workflow:**
+
+✅ **DO USE for:**
+
+- Adding new features to existing modules
+- Modifying established workflows
+- Integrating new external services
+- Refactoring existing code
+- Bug fixes requiring architectural understanding
+
+❌ **DON'T USE for:**
+
+- Trivial bug fixes (use quick-fix pattern)
+- Simple configuration changes
+- Documentation updates only
+
+**Brownfield Workflow Steps:**
+
+**Step 1: Project Context Assessment**
+
+Before implementing any feature, use **Party Mode** to understand existing codebase:
+
+```bash
+# Launch parallel exploration
+background_task(agent="explore",
+  description="Map existing implementation patterns",
+  prompt="Find all existing implementations similar to [feature name]:
+  1. Controllers handling similar logic
+  2. Services with comparable functionality
+  3. Database migrations for related tables
+  4. Blade components with similar UI patterns
+  5. Alpine.js components with similar interactivity")
+
+background_task(agent="explore",
+  description="Analyze related architecture",
+  prompt="Deep dive into architecture for [module name]:
+  1. Service layer patterns
+  2. Repository usage
+  3. Observer patterns
+  4. Queue job structures
+  5. API endpoint conventions")
+
+background_task(agent="librarian",
+  description="Research framework best practices",
+  prompt="Research Laravel [version] best practices for:
+  1. [Specific feature] implementation
+  2. Database design patterns
+  3. Testing strategies
+  4. Performance optimization")
+```
+
+**Step 2: Documentation Review**
+
+Read existing documentation before making changes:
+
+```bash
+# Required reading checklist
+- [ ] WALKTHROUGH.md - Understand project history and past decisions
+- [ ] AGENTS.md - Review agent roles and workflow patterns
+- [ ] report/README.md - Understand audit system constraints
+- [ ] Database migrations - Review existing schema patterns
+- [ ] Related controllers/services - Study existing implementations
+```
+
+**Step 3: Choose Development Approach**
+
+| Scope                            | Approach                  | Tools                               |
+| -------------------------------- | ------------------------- | ----------------------------------- |
+| **Small updates** (< 3 files)    | Quick-fix pattern         | Sisyphus + direct tools             |
+| **Medium features** (3-10 files) | Feature workflow          | explore + Sisyphus + oracle         |
+| **Large features** (10+ files)   | Full Party Mode           | All agents + strategic planning     |
+| **Architectural changes**        | Architecture review first | Planner-Sisyphus + oracle + explore |
+
+**Step 4: Implementation with Existing Patterns**
+
+**CRITICAL**: Match existing codebase conventions:
+
+```php
+// ✅ GOOD - Follows existing pattern
+// Example from existing WhatsApp notification system
+class EmailNotificationService {
+    public function sendNotification($recipient, $template, $data) {
+        // Matches WhatsAppNotificationService pattern
+    }
+}
+
+// ❌ BAD - Introduces new pattern without justification
+class EmailSender {
+    public function send($to, $body) {
+        // Deviates from established service layer pattern
+    }
+}
+```
+
+**Pattern Discovery Process:**
+
+1. **Find Similar Features**: Use `explore` agent to find comparable implementations
+2. **Extract Patterns**: Identify common structures (naming, architecture, testing)
+3. **Consult Oracle**: If existing patterns seem suboptimal, ask oracle before deviating
+4. **Document Decisions**: If you must deviate, document why in WALKTHROUGH.md
+
+**Step 5: Integration Points**
+
+**Database Schema:**
+
+```bash
+# Before creating migration, check existing patterns
+ls -la database/migrations/ | grep -i [related_table]
+
+# Review similar migrations
+grep -r "Schema::create" database/migrations/ | grep [related_context]
+```
+
+**Service Layer:**
+
+```bash
+# Find existing service patterns
+ls -la app/Services/
+
+# Study similar services
+grep -A 20 "class.*Service" app/Services/[RelatedService].php
+```
+
+**Frontend Components:**
+
+```bash
+# Find Blade component patterns
+ls -la resources/views/components/
+
+# Study Alpine.js usage
+grep -r "x-data" resources/views/[related-feature]/
+```
+
+**Step 6: Testing & Validation**
+
+Follow existing test patterns:
+
+```bash
+# Find existing tests for similar features
+ls -la tests/Feature/ | grep [related]
+
+# Run related tests before changes
+php artisan test --filter=[RelatedTest]
+
+# Run audits after changes
+npm run audit:critical
+```
+
+**Step 7: Documentation Update**
+
+Update WALKTHROUGH.md following established format:
+
+```markdown
+### v1.0.X (Date)
+
+#### Feature/Fix: [Title]
+
+**Context**: Brief explanation of why this change was needed
+
+**Existing Patterns Used**:
+
+- [Pattern 1]: From [ExistingFeature]
+- [Pattern 2]: Adapted from [RelatedService]
+
+**New Patterns Introduced** (if any):
+
+- [Pattern]: Why it was necessary
+
+**Files Modified**:
+
+- [File1] - [Change description]
+- [File2] - [Change description]
+
+**Integration Points**:
+
+- [System1]: How it integrates
+- [System2]: Dependencies added
+
+**Testing**:
+
+- [Test type]: Results
+```
+
+**Brownfield Anti-Patterns (AVOID):**
+
+| Anti-Pattern                         | Problem                  | Solution                                            |
+| ------------------------------------ | ------------------------ | --------------------------------------------------- |
+| **Ignoring existing code**           | Duplicates functionality | Use `explore` to find existing implementations      |
+| **Mixing patterns**                  | Inconsistent codebase    | Match established patterns or refactor deliberately |
+| **Skipping documentation**           | Lost context             | Always update WALKTHROUGH.md                        |
+| **Breaking audits**                  | Technical debt           | Run `npm run audit:critical` before commit          |
+| **Copy-paste without understanding** | Hidden bugs              | Consult `oracle` to understand patterns first       |
+
+**Brownfield Checklist:**
+
+Before implementing any feature:
+
+- [ ] Launched Party Mode to understand existing patterns
+- [ ] Read WALKTHROUGH.md for project history
+- [ ] Reviewed AGENTS.md for workflow conventions
+- [ ] Found and studied similar existing features
+- [ ] Consulted oracle if existing patterns seem suboptimal
+- [ ] Chosen development approach based on scope
+- [ ] Planned integration points with existing systems
+- [ ] Identified which audits will be affected
+- [ ] Prepared documentation update for WALKTHROUGH.md
+
+After implementation:
+
+- [ ] Followed existing code patterns and conventions
+- [ ] All tests pass (existing + new)
+- [ ] All critical audits pass (`npm run audit:critical`)
+- [ ] WALKTHROUGH.md updated with changes
+- [ ] Integration points documented
+- [ ] Deviations from patterns justified and documented
+
+**Example Brownfield Session:**
+
+```markdown
+Task: Add email notification system (similar to existing WhatsApp system)
+
+1. CONTEXT ASSESSMENT (Party Mode)
+    - explore: "Find WhatsApp notification implementation"
+    - explore: "Find queue job patterns in codebase"
+    - librarian: "Research Laravel Mail best practices"
+2. PATTERN EXTRACTION
+    - Found: GowaClient → create EmailClient
+    - Found: NotificationService → create EmailNotificationService
+    - Found: SendWhatsAppNotificationJob → create SendEmailNotificationJob
+    - Found: Observer pattern in TestRequestObserver
+
+3. ORACLE CONSULTATION
+    - Question: "Should we reuse NotificationService or create separate services?"
+    - Answer: Create EmailNotificationService following same pattern for consistency
+4. IMPLEMENTATION
+    - Followed WhatsApp notification architecture exactly
+    - Reused same queue configuration
+    - Added email-specific config to settings
+5. TESTING
+    - Copied WhatsApp notification tests
+    - Adapted for email
+    - All tests pass
+6. AUDITS
+    - npm run audit:critical → PASS
+    - No CSS/JS changes, no audit impact
+7. DOCUMENTATION
+    - Updated WALKTHROUGH.md with v1.0.11
+    - Cross-referenced WhatsApp notification v1.0.9
+    - Documented pattern reuse decision
+```
+
+**Integration with AGENTS.md:**
+
+This brownfield workflow integrates with existing agent workflows (AGENTS.md Section 10-12):
+
+```
+Brownfield Feature Flow:
+1. ASSESS → Party Mode (explore + librarian)
+2. REVIEW → Read WALKTHROUGH.md + existing code
+3. PLAN → Planner-Sisyphus (if complex)
+4. CONSULT → oracle (if patterns unclear)
+5. IMPLEMENT → Sisyphus (following existing patterns)
+6. TEST → Run tests + audits
+7. DOCUMENT → document-writer updates WALKTHROUGH.md
+8. COMMIT → Git commit (Sisyphus)
+```
+
+**References:**
+
+- BMAD Method Brownfield Development: https://docs.bmad-method.org/how-to/brownfield/
+- AGENTS.md Section 10-14: Complete Task Workflow
+- Party Mode: WALKTHROUGH.md v1.0.10
+- Audit System: report/README.md
+
+---
+
 ### v1.0.9.1 (10 Januari 2026)
 
 #### Bugfix: WhatsApp Notification System
@@ -44,10 +531,30 @@
 - Queue processing works correctly with exponential backoff retry
 - Phone number normalization verified for Indonesian numbers (+62xxx, 08xxx formats)
 
+#### Feature: Editable WhatsApp Templates
+
+Added UI support for customizing WhatsApp message templates per milestone directly from the settings page.
+
+- **New UI Section**: Added "Template Pesan" section in WhatsApp configuration.
+- **Features**:
+    - Editable textareas for each enabled milestone.
+    - Support for `{resi}` placeholder.
+    - Templates disimpan di settings `notifications.whatsapp.templates` sebagai override per milestone.
+    - `WhatsAppSettingsController` menyimpan update template ke settings; `SettingsResponseBuilder` menggabungkan default + override.
+    - `NotificationService` memakai template override jika ada, fallback ke default bila kosong.
+    - Disabled state sync with main WhatsApp toggle.
+
 **Files Modified:**
 
 - `app/Services/WhatsApp/GowaClient.php` - Fixed API parameter and message ID extraction
 - `app/Jobs/SendWhatsAppNotificationJob.php` - Removed invalid 'sending' status
+- `app/Services/WhatsApp/NotificationService.php` - Added template override support with default fallback
+- `app/Http/Controllers/Api/Settings/WhatsAppSettingsController.php` - Persisted template overrides
+- `app/Services/Settings/SettingsResponseBuilder.php` - Merged default templates into settings payload
+- `database/migrations/2026_01_09_091635_add_default_whatsapp_settings.php` - Seeded default templates
+- `resources/js/pages/settings/index.js` - Saved templates in WhatsApp settings payload
+- `resources/views/settings/partials/notifications-security.blade.php` - Added template editing UI
+- `tests/js/settings-whatsapp.test.js` - Updated payload expectations
 - System settings: Updated `notifications.whatsapp.base_url` from `http://gowa.lpmf.local:3000` to `http://localhost:3000`
 
 ### v1.0.9 (9 Januari 2026)
@@ -2107,3 +2614,96 @@ php artisan tinker
 ```
 
 ---
+
+### v1.0.11 (10 Januari 2026)
+
+#### UI/UX: Critical Fixes (Phase 1 - High Priority Issues)
+
+**Updated on 2026-01-10**
+
+Implemented critical UI/UX fixes identified through Party Mode analysis. This phase addresses two **CRITICAL** severity issues affecting navigation and mobile usability.
+
+**Issues Fixed:**
+
+1. **🔴 CRITICAL: Breadcrumb Links Broken**
+   - **Impact**: Navigation tidak berfungsi di 2+ pages
+   - **Root Cause**: Component `breadcrumbs.blade.php` expects `href` key, tapi beberapa views menggunakan `url` key
+   - **Files Modified**:
+     - `resources/views/search/index.blade.php:20` - Fixed breadcrumb href
+     - `resources/views/monitoring/environment/manage.blade.php:5` - Fixed breadcrumb href
+   - **Fix**: Replaced all `'url' =>` with `'href' =>` in breadcrumb arrays
+   
+   ```php
+   // Before (BROKEN)
+   <x-breadcrumbs :items="[
+       ['label' => 'Home', 'url' => route('dashboard')],  // ❌ 'url' not read
+       ['label' => 'Search', 'url' => null]
+   ]" />
+   
+   // After (FIXED)
+   <x-breadcrumbs :items="[
+       ['label' => 'Home', 'href' => route('dashboard')],  // ✅ 'href' works
+       ['label' => 'Pencarian', 'href' => null]
+   ]" />
+   ```
+
+2. **🔴 CRITICAL: Tables Not Responsive (Mobile Clipping)**
+   - **Impact**: Data terpotong di mobile, critical information tidak accessible
+   - **Root Cause**: Tables wrapped in `overflow-hidden` causing column truncation on small screens
+   - **Files Modified**:
+     - `resources/views/delivery/index.blade.php:29` - Added `overflow-x-auto`
+     - `resources/views/sample-processes/index.blade.php:118` - Added `overflow-x-auto`
+   - **Fix**: Changed `overflow-hidden` to `overflow-x-auto` with `min-w-full` table class
+   
+   ```php
+   // Before (BROKEN)
+   <div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+       <table>...</table>
+   </div>
+   
+   // After (FIXED)
+   <div class="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+       <table class="min-w-full divide-y divide-gray-300">...</table>
+   </div>
+   ```
+
+**Verification:**
+
+```bash
+# Verify breadcrumb fixes
+grep -n "breadcrumbs.*href" resources/views/search/index.blade.php
+# Output: 20:            <x-breadcrumbs :items="[['label' => 'Beranda', 'href' => url('/')], ...]" />
+
+grep -n "breadcrumbs.*href" resources/views/monitoring/environment/manage.blade.php
+# Output: 5:            :breadcrumbs="[['label' => 'Monitoring'], ['label' => 'Lingkungan', 'href' => route(...)]
+
+# Verify table scroll fixes
+grep -n "overflow-x-auto" resources/views/delivery/index.blade.php
+# Output: 29:                    <div class="overflow-x-auto shadow ring-1...
+
+grep -n "overflow-x-auto" resources/views/sample-processes/index.blade.php
+# Output: 118:            <div class="overflow-x-auto rounded-lg bg-white shadow-sm">
+```
+
+**Testing Results:**
+
+- ✅ Breadcrumbs: All links now clickable and functional
+- ✅ Mobile Tables: Tables scroll horizontally on mobile devices (tested at 375px width)
+- ✅ No regressions: Desktop view remains unchanged
+
+**Next Phase (HIGH Priority - Week 1):**
+
+Based on `UI-UX-IMPROVEMENT-PLAN.md`, the following issues remain:
+
+- 🟠 Issue #3: Add progress stepper to long request form (200+ lines)
+- 🟠 Issue #4: Add ARIA attributes for accessibility (dropdown, tabs, mega menu)
+- 🟠 Issue #5: Replace native confirm() with custom modal component
+
+**Related Documents:**
+
+- Full improvement plan: `UI-UX-IMPROVEMENT-PLAN.md`
+- Party Mode session examples: `PARTY_MODE_SESSION_EXAMPLE.md`
+- Project documentation: `project-documentation-2026-01-10.md`
+
+---
+
