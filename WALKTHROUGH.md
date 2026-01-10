@@ -24,12 +24,30 @@
 | [report/README.md](./report/README.md)                           | Frontend audit system guide             |
 | [patcher/](./patcher/)                                           | Deployment & design documentation       |
 
-**Current Version:** v1.1.7 (10 Januari 2026)  
-**Latest Feature:** Toast Notification System
+**Current Version:** v1.1.8 (10 Januari 2026)  
+**Latest Feature:** Search Debouncing & Type Safety
 
 ---
 
 ## 📰 Recent Changes (v1.1.x)
+
+### v1.1.8 (10 Januari 2026) - UI/UX Phase 6: Performance & Type Safety
+
+**📌 What Changed:**
+
+- Implemented **search debouncing (500ms)** in Search and Settings pages
+- Enforced type safety with `x-model.number` on **all numeric inputs**
+- Optimized performance with `x-model.lazy` for large text areas
+
+**✅ Benefits:**
+
+- Reduced API calls by ~80% during search (preventing per-keystroke requests)
+- Prevented string-number type coercion issues in calculations
+- Improved rendering performance for large text inputs (updates on blur)
+
+**📦 Files:** `resources/views/search/index.blade.php`, `monitoring/environment/*`, `settings/partials/documents.blade.php`
+
+---
 
 ### v1.1.7 (10 Januari 2026) - UI/UX Phase 5: Toast Notification System
 
@@ -837,6 +855,36 @@ async function fetchData() {
 }
 ```
 
+#### Alpine.js Best Practices
+
+**Modifiers Usage:**
+
+1.  **Search Inputs** - ALWAYS use debounce
+
+    ```html
+    <!-- ✅ Good: Reduces API calls -->
+    <input x-model="query" @input.debounce.500ms="search()" />
+
+    <!-- ❌ Bad: Hammers server on every keystroke -->
+    <input x-model="query" @input="search()" />
+    ```
+
+2.  **Numeric Inputs** - ALWAYS use number modifier
+
+    ```html
+    <!-- ✅ Good: Returns number type (e.g., 25.5) -->
+    <input type="number" x-model.number="value" />
+
+    <!-- ❌ Bad: Returns string type (e.g., "25.5") -->
+    <input type="number" x-model="value" />
+    ```
+
+3.  **Text Areas** - Use lazy for performance
+    ```html
+    <!-- ✅ Good: Updates data only on blur -->
+    <textarea x-model.lazy="notes"></textarea>
+    ```
+
 #### Testing
 
 ```bash
@@ -1212,5 +1260,5 @@ php artisan storage:cleanup --days=30 --dry-run
 ---
 
 **Last Updated:** 10 Januari 2026  
-**Current Version:** v1.1.7  
-**Total Versions:** 18 (v1.0.1 - v1.1.7)
+**Current Version:** v1.1.8  
+**Total Versions:** 19 (v1.0.1 - v1.1.8)

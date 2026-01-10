@@ -173,13 +173,13 @@
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-1">Suhu Min (°C)</label>
-                                        <input type="number" step="0.1" x-model="modal.form.target_temp_min" 
+                                        <input type="number" step="0.1" x-model.number="modal.form.target_temp_min" 
                                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                placeholder="Contoh: 18">
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-1">Suhu Max (°C)</label>
-                                        <input type="number" step="0.1" x-model="modal.form.target_temp_max" 
+                                        <input type="number" step="0.1" x-model.number="modal.form.target_temp_max" 
                                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                placeholder="Contoh: 25">
                                     </div>
@@ -188,13 +188,13 @@
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-1">Kelembaban Min (%)</label>
-                                        <input type="number" step="0.1" x-model="modal.form.target_humidity_min" 
+                                        <input type="number" step="0.1" x-model.number="modal.form.target_humidity_min" 
                                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                placeholder="Contoh: 40">
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700 mb-1">Kelembaban Max (%)</label>
-                                        <input type="number" step="0.1" x-model="modal.form.target_humidity_max" 
+                                        <input type="number" step="0.1" x-model.number="modal.form.target_humidity_max" 
                                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                placeholder="Contoh: 60">
                                     </div>

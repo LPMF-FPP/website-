@@ -207,7 +207,10 @@
                             type="text"
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                             placeholder="Nama file, investigator, #request"
-                            x-model="client.state.documentsFilters.query">
+                            x-model="client.state.documentsFilters.query"
+                            @input.debounce.500ms="client.fetchDocuments({ page: 1 })"
+                            <!-- Debounced search for better performance -->
+                        >
                     </div>
                     <div>
                         <label class="block text-xs font-medium text-gray-700 mb-1">Nomor Permintaan</label>

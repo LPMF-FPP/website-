@@ -73,13 +73,13 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Suhu (°C) <span class="text-red-500">*</span></label>
-                            <input type="number" step="0.1" x-model="form.temperature_c" 
+                            <input type="number" step="0.1" x-model.number="form.temperature_c" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                    placeholder="Contoh: 25.5">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-1">Kelembaban (%RH)</label>
-                            <input type="number" step="0.1" x-model="form.humidity_rh" 
+                            <input type="number" step="0.1" x-model.number="form.humidity_rh" 
                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                    placeholder="Contoh: 65">
                         </div>
@@ -87,14 +87,14 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
-                        <textarea x-model="form.notes" rows="2"
+                        <textarea x-model.lazy="form.notes" rows="2"
                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                   placeholder="Opsional"></textarea>
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Alasan Koreksi <span class="text-red-500">*</span></label>
-                        <textarea x-model="form.correction_reason" rows="3"
+                        <textarea x-model.lazy="form.correction_reason" rows="3"
                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                   placeholder="Jelaskan alasan mengapa data perlu dikoreksi"></textarea>
                     </div>

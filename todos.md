@@ -1,12 +1,9 @@
-# Toast Notification System Implementation
+# Search Debouncing and Modifier Enhancements
 
-- [x] Explore existing Alpine.js setup and component structure
-- [x] Create Alpine.js toast store (`resources/js/stores/toast.js`)
-- [x] Create Blade toast container component (`resources/views/components/toast-container.blade.php`)
-- [x] Register toast store in `resources/js/app.js`
-- [x] Verify implementation and build assets
-- [x] Update documentation (`WALKTHROUGH.md`)
-
-## Next Steps
-
-- Replace existing `alert()` calls with `$store.toast` in the codebase (separate task).
+- [x] Analyze search implementation in `resources/views/search/index.blade.php`
+- [x] Implement debounce in `resources/views/search/index.blade.php` using Alpine.js
+- [x] Implement debounce in `resources/views/settings/partials/documents.blade.php`
+- [x] Update numeric inputs with `x-model.number` in `monitoring/environment`
+- [x] Update text areas with `x-model.lazy` in `monitoring/environment`
+- [x] Verify settings pages for numeric inputs
+- [x] Update `WALKTHROUGH.md` with changes and usage guide

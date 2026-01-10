@@ -90,7 +90,7 @@
         </style>
 
         <div class="search-card">
-            <form data-search-form class="search-toolbar" autocomplete="off">
+            <form data-search-form class="search-toolbar" autocomplete="off" x-data="{ q: '' }" x-init="q = $el.querySelector('#search-query').value">
                 <div class="search-input-group" data-search-input>
                     <input
                         type="search"
@@ -99,6 +99,9 @@
                         placeholder="Cari nama, nomor LP, atau judul dokumen (min 2 karakter)"
                         maxlength="80"
                         aria-label="Kata kunci pencarian"
+                        x-model="q"
+                        @input.debounce.500ms="$dispatch('trigger-search', q)"
+                        <!-- Added debounce to reduce API calls and improve performance -->
                     />
                     <button type="button" class="clear-btn" data-action="clear" aria-label="Hapus pencarian">
                         <span aria-hidden="true">&times;</span>
@@ -272,6 +275,7 @@
 
                 const updateQueryString = () => {
                     const params = new URLSearchParams();
+                    // Use state.q which is updated by the event listener
                     const trimmed = state.q.trim();
                     if (trimmed) params.set('q', trimmed);
                     if (state.doc_type && state.doc_type !== 'all') {
@@ -297,7 +301,11 @@
                     if (Number.isNaN(state.page_people) || state.page_people < 1) state.page_people = 1;
                     if (Number.isNaN(state.page_docs) || state.page_docs < 1) state.page_docs = 1;
 
-                    if (elements.queryInput) elements.queryInput.value = state.q;
+                    if (elements.queryInput) {
+                        elements.queryInput.value = state.q;
+                        // Dispatch input event so Alpine x-model stays in sync
+                        elements.queryInput.dispatchEvent(new Event('input'));
+                    }
                     if (elements.docType) elements.docType.value = state.doc_type;
                     setText(elements.queryLabel, state.q ? `"${state.q}"` : '—');
                 };
@@ -628,19 +636,9 @@
                     }
                 };
 
-                const debounce = (fn, delay = 400) => {
-                    let timer;
-                    return (...args) => {
-                        clearTimeout(timer);
-                        timer = setTimeout(() => fn.apply(null, args), delay);
-                    };
-                };
-
-                const debouncedFetch = debounce(() => {
-                    state.page_people = 1;
-                    state.page_docs = 1;
-                    fetchResults();
-                }, 400);
+                // Vanilla debounce removed in favor of Alpine @input.debounce
+                // const debounce = (fn, delay = 400) => { ... };
+                // const debouncedFetch = debounce(() => { ... }, 400);
 
                 const attachEvents = () => {
                     elements.form?.addEventListener('submit', (event) => {
@@ -650,10 +648,22 @@
                         fetchResults();
                     });
 
+                    // Listen for Alpine debounce event
+                    root.addEventListener('trigger-search', (event) => {
+                        state.q = event.detail;
+                        // Reset pages on new search
+                        state.page_people = 1;
+                        state.page_docs = 1;
+                        fetchResults();
+                    });
+
+                    // Original input listener replaced by Alpine
+                    /*
                     elements.queryInput?.addEventListener('input', (event) => {
                         state.q = event.target.value;
                         debouncedFetch();
                     });
+                    */
 
                     elements.docType?.addEventListener('change', (event) => {
                         state.doc_type = event.target.value || 'all';
@@ -667,6 +677,8 @@
                             elements.queryInput.value = '';
                             state.q = '';
                             elements.queryInput.focus();
+                            // Sync Alpine
+                            elements.queryInput.dispatchEvent(new Event('input'));
                         }
                         state.page_people = 1;
                         state.page_docs = 1;
