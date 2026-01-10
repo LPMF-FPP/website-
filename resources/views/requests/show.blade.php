@@ -302,32 +302,43 @@
                 },
                 async deleteDocument(doc) {
                     if (!doc?.id) return;
-                    if (!confirm('Yakin hapus dokumen ini?')) return;
-                    this.deleting = { ...this.deleting, [doc.id]: true };
-                    this.error = '';
-                    try {
-                        const response = await fetch(`/api/documents/${doc.id}`, {
-                            method: 'DELETE',
-                            headers: {
-                                'X-CSRF-TOKEN': this.csrf,
-                                'X-Requested-With': 'XMLHttpRequest',
-                                'Accept': 'application/json',
-                            },
-                            credentials: 'same-origin',
-                        });
-                        if (!response.ok) {
-                            const data = await response.json().catch(() => ({}));
-                            throw new Error(data.message || 'Gagal menghapus dokumen.');
+                    
+                    // Use custom confirm dialog instead of native confirm()
+                    showConfirmDialog({
+                        type: 'danger',
+                        title: 'Hapus Dokumen',
+                        message: `Apakah Anda yakin ingin menghapus dokumen <strong>${doc.name}</strong>?<br><br>Tindakan ini tidak dapat dibatalkan.`,
+                        confirmButtonText: 'Ya, Hapus',
+                        confirmButtonLoadingText: 'Menghapus...',
+                        cancelButtonText: 'Batal',
+                        onConfirm: async () => {
+                            this.deleting = { ...this.deleting, [doc.id]: true };
+                            this.error = '';
+                            try {
+                                const response = await fetch(`/api/documents/${doc.id}`, {
+                                    method: 'DELETE',
+                                    headers: {
+                                        'X-CSRF-TOKEN': this.csrf,
+                                        'X-Requested-With': 'XMLHttpRequest',
+                                        'Accept': 'application/json',
+                                    },
+                                    credentials: 'same-origin',
+                                });
+                                if (!response.ok) {
+                                    const data = await response.json().catch(() => ({}));
+                                    throw new Error(data.message || 'Gagal menghapus dokumen.');
+                                }
+                                this.documents = this.documents.filter((item) => item.id !== doc.id);
+                                if (this.selectedDocument && this.selectedDocument.id === doc.id) {
+                                    this.clearPreview();
+                                }
+                            } catch (error) {
+                                this.error = error.message || 'Gagal menghapus dokumen.';
+                            } finally {
+                                this.deleting = { ...this.deleting, [doc.id]: false };
+                            }
                         }
-                        this.documents = this.documents.filter((item) => item.id !== doc.id);
-                        if (this.selectedDocument && this.selectedDocument.id === doc.id) {
-                            this.clearPreview();
-                        }
-                    } catch (error) {
-                        this.error = error.message || 'Gagal menghapus dokumen.';
-                    } finally {
-                        this.deleting = { ...this.deleting, [doc.id]: false };
-                    }
+                    });
                 },
                 isDeleting(id) {
                     return !!this.deleting[id];
