@@ -2707,3 +2707,170 @@ Based on `UI-UX-IMPROVEMENT-PLAN.md`, the following issues remain:
 
 ---
 
+
+### v1.0.12 (10 Januari 2026)
+
+#### UI/UX: Phase 2 - Accessibility & Component Improvements
+
+**Updated on 2026-01-10**
+
+Implemented HIGH priority UI/UX improvements focusing on accessibility (ARIA attributes), reusable components, and better user experience patterns.
+
+**Components Created:**
+
+1. **✅ Form Stepper Component (`form-stepper.blade.php`)**
+   - **Purpose**: Visual progress indicator for multi-section forms
+   - **Features**:
+     - Sticky top navigation with step circles
+     - Auto-tracking current step based on scroll position
+     - Click-to-scroll navigation
+     - Smooth scroll behavior with offset for sticky header
+     - Responsive design (labels hidden on mobile)
+     - Accessibility: ARIA current-step indicator
+   
+   **Usage Example**:
+   ```php
+   <x-form-stepper 
+       :steps="[
+           ['id' => 'step-investigator', 'label' => 'Data Penyidik'],
+           ['id' => 'step-letter', 'label' => 'Info Surat'],
+           ['id' => 'step-suspects', 'label' => 'Tersangka'],
+           ['id' => 'step-documents', 'label' => 'Dokumen'],
+           ['id' => 'step-samples', 'label' => 'Sampel']
+       ]"
+   />
+   ```
+
+2. **✅ Confirm Dialog Component (`confirm-dialog.blade.php`)**
+   - **Purpose**: Replacement for native `confirm()` dialogs
+   - **Features**:
+     - Custom modal with consistent design
+     - Three types: danger (red), warning (yellow), info (blue)
+     - Async/Promise support
+     - Loading states during async operations
+     - Keyboard navigation (Escape to close, Tab to trap focus)
+     - ARIA attributes for screen readers
+     - Customizable button text and messages
+   
+   **Usage Example**:
+   ```javascript
+   // Simple confirm
+   showConfirmDialog({
+       type: 'danger',
+       title: 'Hapus Data',
+       message: 'Apakah Anda yakin ingin menghapus <strong>Permintaan #REQ-001</strong>? Tindakan ini tidak dapat dibatalkan.',
+       confirmButtonText: 'Ya, Hapus',
+       cancelButtonText: 'Batal',
+       onConfirm: async () => {
+           await fetch('/api/delete', { method: 'DELETE' });
+           window.location.reload();
+       }
+   });
+   
+   // With loading state
+   showConfirmDialog({
+       confirmButtonLoadingText: 'Menghapus...',
+       onConfirm: async () => {
+           const response = await fetch('/api/delete', { method: 'DELETE' });
+           if (!response.ok) {
+               alert('Gagal menghapus!');
+               return false; // Don't close dialog
+           }
+           return true; // Close dialog
+       }
+   });
+   ```
+
+**Accessibility Improvements:**
+
+3. **✅ Enhanced Dropdown Component with ARIA**
+   - **Changes Made**:
+     - Added `aria-haspopup="true"` to trigger button
+     - Added `aria-expanded` state management (false/true)
+     - Added `role="menu"` to dropdown panel
+     - Added `aria-hidden` state management
+     - Added keyboard navigation:
+       - `Escape` key closes dropdown
+       - `Tab` key closes dropdown (prevents focus trap)
+   
+   **Before**:
+   ```php
+   <button type="button" data-dropdown-trigger>
+       {{ $trigger }}
+   </button>
+   <div data-dropdown-panel class="hidden">
+       {{ $content }}
+   </div>
+   ```
+   
+   **After**:
+   ```php
+   <button type="button" 
+           data-dropdown-trigger
+           aria-haspopup="true"
+           aria-expanded="false">  {{-- JS updates this --}}
+       {{ $trigger }}
+   </button>
+   <div data-dropdown-panel 
+        class="hidden"
+        role="menu"
+        aria-hidden="true">  {{-- JS updates this --}}
+       {{ $content }}
+   </div>
+   ```
+
+**Impact & Benefits:**
+
+- **🎯 Better Navigation**: Form stepper reduces abandonment on long forms
+- **♿ Accessibility**: ARIA attributes improve screen reader compatibility
+- **🎨 Consistency**: Custom confirm dialog provides unified UX
+- **⌨️ Keyboard Users**: Enhanced keyboard navigation support
+- **📱 Mobile**: Form stepper responsive design works on all devices
+
+**Files Modified:**
+
+- ✅ `resources/views/components/form-stepper.blade.php` (NEW)
+- ✅ `resources/views/components/confirm-dialog.blade.php` (NEW)
+- ✅ `resources/views/components/dropdown.blade.php` (ARIA attributes added)
+
+**Testing Guidelines:**
+
+```bash
+# Test dropdown keyboard navigation
+1. Click dropdown trigger
+2. Press ESC key → should close
+3. Press TAB key → should close
+4. Use screen reader → should announce "has popup", "expanded/collapsed"
+
+# Test confirm dialog
+1. Call showConfirmDialog() from browser console
+2. Verify modal appears with correct styling
+3. Test async operations with loading state
+4. Test keyboard navigation (ESC to cancel)
+
+# Test form stepper (when integrated)
+1. Scroll through long form
+2. Verify active step highlights correctly
+3. Click step numbers → should scroll to section
+4. Test on mobile (375px width) → labels should hide
+```
+
+**Next Steps (MEDIUM Priority):**
+
+Remaining items from `UI-UX-IMPROVEMENT-PLAN.md`:
+
+- 🟡 Integrate form-stepper into `requests/create.blade.php`
+- 🟡 Add ARIA to document tabs (`requests/partials/documents.blade.php`)
+- 🟡 Add ARIA to mega menu navigation
+- 🟡 Replace native `confirm()` calls with custom dialog
+- 🟡 Add field-level validation to settings forms
+
+**Developer Notes:**
+
+- Form stepper uses Intersection Observer API for scroll tracking
+- Confirm dialog dispatches `confirm-dialog` custom event
+- All components work with Alpine.js ecosystem
+- ARIA state management handled automatically by JavaScript
+
+---
+

@@ -14,11 +14,18 @@ $width = match ($width) {
 @endphp
 
 <div class="relative" data-dropdown>
-    <button type="button" class="inline-flex items-center focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-accent-900 rounded-full" data-dropdown-trigger>
+    <button type="button" 
+            class="inline-flex items-center focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-accent-900 rounded-full" 
+            data-dropdown-trigger
+            aria-haspopup="true"
+            aria-expanded="false">
         {{ $trigger }}
     </button>
 
-    <div class="absolute z-50 mt-2 {{ $width }} rounded-md shadow-lg bg-white {{ $alignmentClasses }} hidden" data-dropdown-panel>
+    <div class="absolute z-50 mt-2 {{ $width }} rounded-md shadow-lg bg-white {{ $alignmentClasses }} hidden" 
+         data-dropdown-panel
+         role="menu"
+         aria-hidden="true">
         <div class="rounded-md ring-1 ring-black ring-opacity-5 {{ $contentClasses }}">
             {{ $content }}
         </div>
@@ -34,11 +41,28 @@ $width = match ($width) {
                     const panel = el.querySelector('[data-dropdown-panel]');
                     if(!trigger || !panel) return;
                     let open = false;
-                    const show = ()=>{ panel.classList.remove('hidden'); open = true; }
-                    const hide = ()=>{ panel.classList.add('hidden'); open = false; }
+                    const show = ()=>{ 
+                        panel.classList.remove('hidden'); 
+                        open = true; 
+                        trigger.setAttribute('aria-expanded', 'true');
+                        panel.setAttribute('aria-hidden', 'false');
+                    }
+                    const hide = ()=>{ 
+                        panel.classList.add('hidden'); 
+                        open = false; 
+                        trigger.setAttribute('aria-expanded', 'false');
+                        panel.setAttribute('aria-hidden', 'true');
+                    }
                     const toggle = ()=> open ? hide() : show();
                     trigger.addEventListener('click', (e)=>{ e.stopPropagation(); toggle(); });
+                    trigger.addEventListener('keydown', (e)=>{ 
+                        if(e.key === 'Escape' && open) hide();
+                    });
                     panel.addEventListener('click', ()=> hide());
+                    panel.addEventListener('keydown', (e)=>{ 
+                        if(e.key === 'Escape') hide();
+                        if(e.key === 'Tab') hide();
+                    });
                     document.addEventListener('click', (e)=>{
                         if(!el.contains(e.target)) hide();
                     });
