@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v1.0.8
+# WALKTHROUGH - LPMF LIMS v1.1.0
 
 > **Laboratory Information Management System untuk Laboratorium Pengujian Mutu Farmasi**
 > **Dokumen ini menggabungkan PRD (Product Requirements) dan ERD (Entity Relationship)**
@@ -7,7 +7,49 @@
 
 ## Changelog
 
-### v1.0.10 (10 Januari 2026)
+### v1.1.0 (10 Januari 2026)
+
+#### Enhancement: Workflow Rules - Versioning & Task Management
+
+Updated AGENTS.md workflow rules to improve project management and documentation standards.
+
+**Versioning Rules:**
+
+Added semantic versioning constraint to prevent version number overflow:
+
+- Each version segment (MAJOR.MINOR.PATCH) MUST NOT exceed 9
+- When a segment reaches 10, increment the next higher segment instead
+- Examples:
+    - `1.0.9` → `1.1.0` (not `1.0.10`)
+    - `1.9.9` → `2.0.0` (not `1.9.10`)
+    - `0.0.9` → `0.1.0` (not `0.0.10`)
+
+This prevents version numbering inconsistencies and maintains cleaner semantic versioning throughout the project lifecycle.
+
+**Task Management Rules:**
+
+Enhanced todos.md workflow with cleanup protocol:
+
+- All tasks use `[ ]` for pending and `[x]` for completed
+- Tasks must be marked `[x]` immediately after completion
+- **NEW:** Once ALL tasks are marked `[x]`, CLEAR `todos.md` content (leave file empty or with header only)
+- This ensures todos.md always reflects current work, never accumulates stale completed tasks
+
+**Files Modified:**
+
+- `AGENTS.md` - Added versioning rules to section 7 (Documentation & Change Tracking)
+- `AGENTS.md` - Added cleanup rule to section 6 (Master Plan)
+
+**Benefits:**
+
+- Cleaner version history in WALKTHROUGH.md
+- Prevents confusion from double-digit version segments
+- Automatic cleanup of completed todos improves focus on current work
+- Reduces visual clutter in project management files
+
+---
+
+### v1.0.9 (10 Januari 2026)
 
 #### Feature: Party Mode - Multi-Agent Collaboration Workflow
 
@@ -2615,7 +2657,7 @@ php artisan tinker
 
 ---
 
-### v1.0.11 (10 Januari 2026)
+### v1.1.1 (10 Januari 2026)
 
 #### UI/UX: Critical Fixes (Phase 1 - High Priority Issues)
 
@@ -2707,7 +2749,7 @@ Based on `UI-UX-IMPROVEMENT-PLAN.md`, the following issues remain:
 
 ---
 
-### v1.0.12 (10 Januari 2026)
+### v1.1.2 (10 Januari 2026)
 
 #### UI/UX: Phase 2 - Accessibility & Component Improvements
 
@@ -2878,7 +2920,7 @@ Remaining items from `UI-UX-IMPROVEMENT-PLAN.md`:
 
 ---
 
-### v1.0.13 (10 Januari 2026)
+### v1.1.3 (10 Januari 2026)
 
 #### UI/UX: Phase 3 - Confirm Dialog Deployment \u0026 Form Components
 
@@ -3090,7 +3132,7 @@ ls -la resources/views/components/form-field.blade.php
 
 ---
 
-### v1.0.14 (10 Januari 2026)
+### v1.1.4 (10 Januari 2026)
 
 #### UI/UX: Phase 4 - Form Stepper Integration
 

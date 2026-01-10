@@ -150,6 +150,14 @@ find tests/ -name "*.php"
 - **Rule**: WALKTHROUGH.md already exists - NEVER create new .md files for documentation.
 - **Format**: Append changes to relevant sections with proper markdown hierarchy.
 - **Versioning**: Use semantic versioning (MAJOR.MINOR.PATCH). Each segment MUST NOT exceed 9 — when reaching 10, increment the next higher segment instead (e.g., `1.0.9` → `1.1.0`, `1.9.9` → `2.0.0`).
+- **Versioning**: Use semantic versioning (MAJOR.MINOR.PATCH) with strict constraints:
+    - Each segment MUST NOT exceed 9
+    - When reaching 10, increment the next higher segment instead
+    - Examples:
+        - `1.0.9` → `1.1.0` (not `1.0.10`)
+        - `1.9.9` → `2.0.0` (not `1.9.10`)
+        - `0.0.9` → `0.1.0` (not `0.0.10`)
+    - This prevents version numbering inconsistencies and maintains cleaner semantic versioning
 - **Update Protocol**:
     1. After completing meaningful tasks → Update WALKTHROUGH.md with details
     2. Document new features, fixes, and architectural decisions
