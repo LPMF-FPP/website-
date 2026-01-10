@@ -19,12 +19,12 @@ return new class extends Migration
 
         SystemSetting::updateOrCreate(
             ['key' => 'notifications.whatsapp.basic_user'],
-            ['value' => null]
+            ['value' => '']
         );
 
         SystemSetting::updateOrCreate(
             ['key' => 'notifications.whatsapp.basic_pass'],
-            ['value' => null]
+            ['value' => '']
         );
 
         SystemSetting::updateOrCreate(
@@ -40,6 +40,19 @@ return new class extends Migration
             ]]
         );
 
+        SystemSetting::updateOrCreate(
+            ['key' => 'notifications.whatsapp.templates'],
+            ['value' => [
+                'REQUEST_RECEIVED' => 'Permintaan Anda telah diterima. Resi: {resi}.',
+                'REVIEW_DONE_READY_FOR_TEST' => 'Permintaan {resi} telah selesai dikaji ulang dan siap dilakukan pengujian.',
+                'PREPARATION_DONE' => 'Permintaan {resi} telah selesai dipreparasi sampel.',
+                'INSTRUMENTATION_DONE' => 'Permintaan {resi} telah selesai diuji instrumen.',
+                'INTERPRETATION_DONE' => 'Permintaan {resi} telah selesai dilakukan interpretasi hasil.',
+                'READY_FOR_PICKUP' => 'Permintaan {resi} siap diambil.',
+                'HANDOVER_COMPLETED' => 'Permintaan {resi} telah diambil dan serah terima telah dicatat.',
+            ]]
+        );
+
         settings_forget_cache();
     }
 
@@ -51,6 +64,7 @@ return new class extends Migration
             'notifications.whatsapp.basic_user',
             'notifications.whatsapp.basic_pass',
             'notifications.whatsapp.enabled_milestones',
+            'notifications.whatsapp.templates',
         ])->delete();
 
         settings_forget_cache();
