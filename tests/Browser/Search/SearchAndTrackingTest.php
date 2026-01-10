@@ -22,10 +22,13 @@ class SearchAndTrackingTest extends DuskTestCase
         $this->browse(function (Browser $browser) use ($request) {
             $browser->visit('/track')
                 ->assertSee('Track Your Request')
+                ->assertPresent('input[name="tracking_number"]')
                 ->type('tracking_number', 'TRACK-12345')
                 ->press('Track')
+                ->waitForText('TRACK-12345')
                 ->assertSee('TRACK-12345')
-                ->assertSee('in_progress');
+                ->assertSee('in_progress')
+                ->assertSee($request->case_number);
         });
     }
 
@@ -37,53 +40,64 @@ class SearchAndTrackingTest extends DuskTestCase
 
         $this->browse(function (Browser $browser) use ($request) {
             $browser->visit('/track/TRACK-99999.json')
-                ->assertSee('TRACK-99999');
+                ->assertSee('TRACK-99999')
+                ->assertSee($request->case_number)
+                ->assertSee($request->status);
         });
     }
 
     public function test_authenticated_search_functionality(): void
     {
         $user = User::factory()->create();
-        TestRequest::factory()->count(5)->create();
+        $specificRequest = TestRequest::factory()->create(['request_number' => 'REQ-SEARCH-001']);
+        TestRequest::factory()->count(4)->create();
 
-        $this->browse(function (Browser $browser) use ($user) {
+        $this->browse(function (Browser $browser) use ($user, $specificRequest) {
             $browser->loginAs($user)
                 ->visit('/search')
                 ->assertSee('Search')
+                ->assertPresent('input[name="q"]')
                 ->type('q', 'REQ')
                 ->keys('input[name="q"]', '{enter}')
                 ->waitForText('Results')
-                ->assertSee('Results');
+                ->assertSee('Results')
+                ->assertSee($specificRequest->request_number);
         });
     }
 
     public function test_search_suggestions(): void
     {
         $user = User::factory()->create();
-        TestRequest::factory()->create(['request_letter_number' => 'REQ-2026-001']);
+        $request = TestRequest::factory()->create(['request_letter_number' => 'REQ-2026-001']);
 
-        $this->browse(function (Browser $browser) use ($user) {
+        $this->browse(function (Browser $browser) use ($user, $request) {
             $browser->loginAs($user)
                 ->visit('/search')
+                ->assertPresent('input[name="q"]')
                 ->type('q', 'REQ-202')
                 ->waitForText('REQ-2026-001')
-                ->assertSee('REQ-2026-001');
+                ->assertSee('REQ-2026-001')
+                ->assertSee($request->case_number);
         });
     }
 
     public function test_search_filters_and_sorting(): void
     {
         $user = User::factory()->create();
-        TestRequest::factory()->count(10)->create();
+        $pendingRequest = TestRequest::factory()->create(['status' => 'pending']);
+        TestRequest::factory()->count(9)->create();
 
-        $this->browse(function (Browser $browser) use ($user) {
+        $this->browse(function (Browser $browser) use ($user, $pendingRequest) {
             $browser->loginAs($user)
                 ->visit('/search')
+                ->assertPresent('select[name="filter[status]"]')
+                ->assertPresent('select[name="sort"]')
                 ->select('filter[status]', 'pending')
                 ->select('sort', 'created_at_desc')
                 ->press('Apply Filters')
                 ->waitForText('Results')
-                ->assertSee('Results');
+                ->assertSee('Results')
+                ->assertSee($pendingRequest->request_number);
         });
     }
 }
