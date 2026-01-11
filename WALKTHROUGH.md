@@ -104,6 +104,27 @@ Implemented command-based WhatsApp bot using existing GOWA (go-whatsapp-web-mult
 💬 Butuh bantuan? Ketik /help
 ```
 
+**✅ GOWA Webhook Configuration - COMPLETE**
+
+Configuration successfully completed on 11 Jan 2026:
+
+**GOWA Settings:**
+
+- Webhook URL: `http://host.docker.internal:8000/api/whatsapp/webhook`
+- Webhook Secret: `l6yrhLD9zRE5x0aJbDmT72xg86nwMpY8EhWTzRkPdLg=`
+- Events: `message` only
+- SSL Verification: Enabled ✅
+
+**Docker Networking:**
+
+- GOWA runs in Docker container (port 3000)
+- Laravel runs on host machine (0.0.0.0:8000)
+- Communication via `host.docker.internal`
+
+**Status:** 🟢 FULLY OPERATIONAL
+
+---
+
 **🔧 Troubleshooting: Bot Tidak Merespons**
 
 Jika bot tidak merespons, follow checklist ini:
@@ -111,7 +132,10 @@ Jika bot tidak merespons, follow checklist ini:
 1. **Verify GOWA webhook configured** ⚠️ PALING PENTING
 
     ```bash
-    # Set di GOWA environment atau config
+    # Docker environment
+    WEBHOOK_URL=http://host.docker.internal:8000/api/whatsapp/webhook
+
+    # Non-Docker environment
     WEBHOOK_URL=http://localhost:8000/api/whatsapp/webhook
     ```
 
