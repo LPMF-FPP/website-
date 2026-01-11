@@ -173,6 +173,7 @@
                             <p class="text-xs text-gray-500 mb-3">
                                 Gunakan <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{greeting}</code> untuk sapaan dinamis dan <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{resi}</code> untuk nomor resi.
                             </p>
+                            
                             <div class="space-y-4">
                                 <template x-for="milestone in whatsappMilestones" :key="'tpl-' + milestone.key">
                                     <div class="border border-gray-200 rounded-lg p-3 bg-gray-50">

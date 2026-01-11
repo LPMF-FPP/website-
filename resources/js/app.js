@@ -13,7 +13,7 @@ Alpine.plugin(collapse);
 Alpine.plugin(focus);
 
 // Register custom Alpine components
-registerSettingsComponent(Alpine);
+registerSettingsComponent();
 
 // Theme manager
 (function () {

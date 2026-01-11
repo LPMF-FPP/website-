@@ -737,7 +737,7 @@ export class SettingsClient {
      */
     async testMilestone(milestoneKey) {
         const target = this.state.notificationsTest.whatsapp?.target;
-        
+
         if (!target) {
             alert("Masukkan nomor telepon test terlebih dahulu");
             return;
@@ -747,12 +747,12 @@ export class SettingsClient {
         if (!this.state.notificationsTest.milestones) {
             this.state.notificationsTest.milestones = {};
         }
-        
+
         if (!this.state.notificationsTest.milestones[milestoneKey]) {
             this.state.notificationsTest.milestones[milestoneKey] = {
                 loading: false,
                 message: "",
-                success: false
+                success: false,
             };
         }
 
@@ -779,7 +779,7 @@ export class SettingsClient {
             milestone.message = "❌ " + (error.message || "Test gagal");
         } finally {
             milestone.loading = false;
-            
+
             // Clear message after 5 seconds
             setTimeout(() => {
                 milestone.message = "";
