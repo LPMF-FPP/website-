@@ -24,12 +24,94 @@
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 | [dokpol-style/README.md](./dokpol-style/README.md)         | Design system documentation             |
 
-**Current Version:** v1.3.3 (11 Januari 2026)  
-**Latest Feature:** Dynamic Greeting System & Milestone Test Buttons
+**Current Version:** v1.3.4 (11 Januari 2026)  
+**Latest Feature:** WhatsApp Notification Queue Worker Fix
 
 ---
 
 ## 📰 Recent Changes (v1.3.x)
+
+### v1.3.4 (11 Januari 2026) - WhatsApp Notification Queue Worker Fix
+
+**📌 Issue Fixed:**
+
+WhatsApp notification test buttons (Test General & Test Milestone) tidak mengirim pesan meskipun konfigurasi benar.
+
+**🔍 Root Cause Analysis:**
+
+Menggunakan systematic debugging dari skill `superpowers:systematic-debugging`, ditemukan:
+
+1. ✅ Frontend code: Button handler berfungsi normal
+2. ✅ API endpoint: Route `/api/settings/notifications/whatsapp/test` terdaftar
+3. ✅ Backend controller: `WhatsAppSettingsController::test()` membuat outbox dan dispatch job
+4. ✅ GOWA service: Running di port 3000
+5. ✅ WhatsApp settings: Enabled dengan base_url configured
+6. ❌ **Queue worker: TIDAK BERJALAN** ← Root cause
+
+**Evidence:**
+
+- 33 pending jobs di `jobs` table
+- 0 messages sent (stuck di status "queued")
+- No `php artisan queue:work` process
+
+**🛠️ Solution Implemented:**
+
+**Immediate fix:**
+
+```bash
+php artisan queue:work --tries=3 --timeout=90
+```
+
+**Verification:**
+
+- Before: 33 pending jobs, 0 sent
+- After: 0 pending jobs, 50 sent (100% success rate ke +6285956592404)
+
+**Permanent fix (systemd service):**
+
+```bash
+# Create service file
+sudo nano /etc/systemd/system/laravel-queue.service
+
+# Content:
+[Unit]
+Description=Laravel Queue Worker
+After=network.target
+
+[Service]
+Type=simple
+User=lpmf-dev
+WorkingDirectory=/home/lpmf-dev/website-
+ExecStart=/usr/bin/php /home/lpmf-dev/website-/artisan queue:work --sleep=3 --tries=3 --max-time=3600 --timeout=90
+Restart=always
+RestartSec=5
+StandardOutput=append:/home/lpmf-dev/website-/storage/logs/queue-worker.log
+StandardError=append:/home/lpmf-dev/website-/storage/logs/queue-worker.log
+
+[Install]
+WantedBy=multi-user.target
+
+# Enable and start
+sudo systemctl daemon-reload
+sudo systemctl enable laravel-queue.service
+sudo systemctl start laravel-queue.service
+```
+
+**📊 Impact:**
+
+- Test General button: ✅ Working
+- Test Milestone buttons: ✅ Working
+- All 50 queued messages: ✅ Sent successfully
+- No failed jobs: ✅ 0 failures
+
+**Related Files:**
+
+- `app/Http/Controllers/Api/Settings/WhatsAppSettingsController.php:88-146` - Test endpoint
+- `app/Jobs/SendWhatsAppNotificationJob.php` - Queue job handler
+- `app/Models/WhatsappOutbox.php` - Outbox model
+- `resources/js/pages/settings/index.js:738-798` - Frontend test methods
+
+---
 
 ### v1.3.3 (11 Januari 2026) - Dynamic Greeting System
 
