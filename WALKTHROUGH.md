@@ -25,12 +25,118 @@
 | [report/README.md](./report/README.md)                           | Frontend audit system guide             |
 | [patcher/](./patcher/)                                           | Deployment & design documentation       |
 
-**Current Version:** v1.3.2 (11 Januari 2026)  
-**Latest Feature:** WhatsApp Templates Enhancement with Professional Structure
+**Current Version:** v1.3.3 (11 Januari 2026)  
+**Latest Feature:** Dynamic Greeting System & Milestone Test Buttons
 
 ---
 
 ## 📰 Recent Changes (v1.3.x)
+
+### v1.3.3 (11 Januari 2026) - Dynamic Greeting System
+
+**📌 What Changed:**
+
+Sistem sapaan WhatsApp kini dinamis berdasarkan waktu dan jabatan penerima dengan tombol test individual per milestone.
+
+**🕐 Time-Based Greeting:**
+
+Sapaan otomatis berubah sesuai waktu lokal (Asia/Jakarta):
+- **Selamat Pagi** (05:00 - 10:59 WIB)
+- **Selamat Siang** (11:00 - 14:59 WIB)
+- **Selamat Sore** (15:00 - 18:59 WIB)
+- **Selamat Malam** (19:00 - 04:59 WIB)
+
+**👮 Role-Based Salutation:**
+
+Sapaan disesuaikan dengan jabatan:
+- **POLRI Members**: Gunakan pangkat/jabatan
+  - Contoh: `"Selamat Pagi IPDA Ahmad Yani"`
+  - Berdasarkan field `is_polri = true` dan `pangkat` di tabel `investigators`
+- **Non-POLRI**: Gunakan Bapak/Ibu
+  - Contoh: `"Selamat Siang Bapak/Ibu Budi Santoso"`
+  - Untuk pegawai umum tanpa pangkat
+
+**🧪 Milestone Test Buttons:**
+
+UI Settings kini memiliki tombol test individual untuk setiap milestone:
+- Tombol 🧪 **Test** di setiap template milestone
+- Feedback real-time per milestone
+- Auto-clear message setelah 5 detik
+- Testing dengan resi dummy dan nomor HP dari form
+- Mendukung testing tanpa harus membuat sample sungguhan
+
+**📝 Template Placeholder Update:**
+
+```diff
+- {nama_penyidik}  // Static placeholder
++ {greeting}       // Dynamic placeholder
+```
+
+**Contoh Dynamic Greeting:**
+
+```
+POLRI @ 08:00 WIB:
+"Selamat Pagi IPDA Ahmad Yani,
+
+Permohonan uji Anda dengan kode resi RESI123 telah kami terima..."
+
+Non-POLRI @ 14:00 WIB:
+"Selamat Siang Bapak/Ibu Budi Santoso,
+
+Permohonan uji Anda dengan kode resi RESI456 telah kami terima..."
+```
+
+**🔧 Technical Implementation:**
+
+```php
+// NotificationService.php - New methods
+public function getTimeBasedGreeting(): string
+{
+    $hour = Carbon::now(config('app.timezone'))->hour;
+    // Returns: Pagi, Siang, Sore, or Malam
+}
+
+public function getSalutation(Investigator $investigator): string
+{
+    return $investigator->is_polri && $investigator->pangkat
+        ? $investigator->pangkat . ' ' . $investigator->name
+        : 'Bapak/Ibu ' . $investigator->name;
+}
+
+public function getGreeting(Investigator $investigator): string
+{
+    return 'Selamat ' . $this->getTimeBasedGreeting() 
+           . ' ' . $this->getSalutation($investigator);
+}
+```
+
+**📁 Files Modified:**
+
+- `app/Services/WhatsApp/NotificationService.php`: Dynamic greeting logic
+- `app/Observers/SampleObserver.php`: Use `{greeting}` instead of `{nama_penyidik}`
+- `app/Observers/TestRequestObserver.php`: Use `{greeting}` instead of `{nama_penyidik}`
+- `app/Http/Controllers/Api/Settings/WhatsAppSettingsController.php`: Support milestone parameter
+- `resources/views/settings/partials/notifications-security.blade.php`: Add test buttons per milestone
+- `resources/js/pages/settings/index.js`: Add `testMilestone()` method
+- `WHATSAPP_TEMPLATES.md`: Documentation update
+
+**✅ Testing Results:**
+
+```
+✓ Time greeting: "Selamat Siang" at 14:30 WIB
+✓ POLRI member: "Selamat Siang IPDA Ahmad Yani"
+✓ Non-POLRI: "Selamat Siang Bapak/Ibu Budi Santoso"
+✓ Full template rendering with proper structure
+✓ All 7 milestone templates working correctly
+✓ Individual test buttons functional with feedback
+```
+
+**📚 References:**
+
+- See [WHATSAPP_TEMPLATES.md](./WHATSAPP_TEMPLATES.md) for complete template documentation
+- See [WHATSAPP_NOTIFICATION_TEST_REPORT.md](./WHATSAPP_NOTIFICATION_TEST_REPORT.md) for testing logs
+
+---
 
 ### v1.3.2 (11 Januari 2026) - WhatsApp Templates Enhancement
 
