@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v1.2.8
+# WALKTHROUGH - LPMF LIMS v1.3.3
 
 > **Laboratory Information Management System untuk Laboratorium Pengujian Mutu Farmasi**
 
@@ -6,8 +6,7 @@
 
 ## 📋 Table of Contents
 
-- [🚀 Quick Links](#-quick-links)
-- [📰 Recent Changes](#-recent-changes-v12x)
+- [📰 Recent Changes](#-recent-changes-v13x)
 - [📖 Project Overview](#-project-overview)
 - [📚 Product Documentation](#-product-documentation)
 - [📜 Changelog Archive](#-changelog-archive)
@@ -16,14 +15,14 @@
 
 ## 🚀 Quick Links
 
-| Resource                                                         | Description                             |
-| ---------------------------------------------------------------- | --------------------------------------- |
-| [AGENTS.md](./AGENTS.md)                                         | Workflow rules & agent delegation guide |
-| [UI-UX-IMPROVEMENT-PLAN.md](./UI-UX-IMPROVEMENT-PLAN.md)         | UI/UX improvement roadmap               |
-| [PARTY_MODE_SESSION_EXAMPLE.md](./PARTY_MODE_SESSION_EXAMPLE.md) | Multi-agent collaboration examples      |
-| [PRODUCTION_READINESS.md](./PRODUCTION_READINESS.md)             | Production observability & monitoring   |
-| [report/README.md](./report/README.md)                           | Frontend audit system guide             |
-| [patcher/](./patcher/)                                           | Deployment & design documentation       |
+| Resource                                                   | Description                             |
+| ---------------------------------------------------------- | --------------------------------------- |
+| [AGENTS.md](./AGENTS.md)                                   | Workflow rules & agent delegation guide |
+| [todos.md](./todos.md)                                     | Current task list                       |
+| [docs/ALPINE_JS_PATTERNS.md](./docs/ALPINE_JS_PATTERNS.md) | Alpine.js coding patterns               |
+| [report/README.md](./report/README.md)                     | Frontend audit system guide             |
+| [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
+| [dokpol-style/README.md](./dokpol-style/README.md)         | Design system documentation             |
 
 **Current Version:** v1.3.3 (11 Januari 2026)  
 **Latest Feature:** Dynamic Greeting System & Milestone Test Buttons
@@ -41,6 +40,7 @@ Sistem sapaan WhatsApp kini dinamis berdasarkan waktu dan jabatan penerima denga
 **🕐 Time-Based Greeting:**
 
 Sapaan otomatis berubah sesuai waktu lokal (Asia/Jakarta):
+
 - **Selamat Pagi** (05:00 - 10:59 WIB)
 - **Selamat Siang** (11:00 - 14:59 WIB)
 - **Selamat Sore** (15:00 - 18:59 WIB)
@@ -49,16 +49,18 @@ Sapaan otomatis berubah sesuai waktu lokal (Asia/Jakarta):
 **👮 Role-Based Salutation:**
 
 Sapaan disesuaikan dengan jabatan:
+
 - **POLRI Members**: Gunakan pangkat/jabatan
-  - Contoh: `"Selamat Pagi IPDA Ahmad Yani"`
-  - Berdasarkan field `is_polri = true` dan `pangkat` di tabel `investigators`
+    - Contoh: `"Selamat Pagi IPDA Ahmad Yani"`
+    - Berdasarkan field `is_polri = true` dan `pangkat` di tabel `investigators`
 - **Non-POLRI**: Gunakan Bapak/Ibu
-  - Contoh: `"Selamat Siang Bapak/Ibu Budi Santoso"`
-  - Untuk pegawai umum tanpa pangkat
+    - Contoh: `"Selamat Siang Bapak/Ibu Budi Santoso"`
+    - Untuk pegawai umum tanpa pangkat
 
 **🧪 Milestone Test Buttons:**
 
 UI Settings kini memiliki tombol test individual untuk setiap milestone:
+
 - Tombol 🧪 **Test** di setiap template milestone
 - Feedback real-time per milestone
 - Auto-clear message setelah 5 detik
@@ -105,7 +107,7 @@ public function getSalutation(Investigator $investigator): string
 
 public function getGreeting(Investigator $investigator): string
 {
-    return 'Selamat ' . $this->getTimeBasedGreeting() 
+    return 'Selamat ' . $this->getTimeBasedGreeting()
            . ' ' . $this->getSalutation($investigator);
 }
 ```
@@ -139,20 +141,21 @@ public function getGreeting(Investigator $investigator): string
 
 Comprehensive testing performed on all milestone notifications:
 
-| Test Category | Result | Details |
-|--------------|--------|---------|
-| API Endpoint | ✅ PASS | `/api/settings/notifications/whatsapp/test` functional |
-| All 7 Milestones | ✅ PASS | 100% success rate |
-| Dynamic Greeting | ✅ PASS | "Selamat Siang" at 14:38 WIB |
-| Role-Based Salutation | ✅ PASS | "Bapak/Ibu" for non-POLRI |
-| Message Delivery | ✅ PASS | 17 messages sent successfully |
-| Queue Processing | ✅ PASS | All jobs processed without error |
+| Test Category         | Result  | Details                                                |
+| --------------------- | ------- | ------------------------------------------------------ |
+| API Endpoint          | ✅ PASS | `/api/settings/notifications/whatsapp/test` functional |
+| All 7 Milestones      | ✅ PASS | 100% success rate                                      |
+| Dynamic Greeting      | ✅ PASS | "Selamat Siang" at 14:38 WIB                           |
+| Role-Based Salutation | ✅ PASS | "Bapak/Ibu" for non-POLRI                              |
+| Message Delivery      | ✅ PASS | 17 messages sent successfully                          |
+| Queue Processing      | ✅ PASS | All jobs processed without error                       |
 
 **Sample Output:**
+
 ```
 Selamat Siang Bapak/Ibu (Test),
 
-Terima kasih! Laporan Hasil Uji untuk sampel Anda 
+Terima kasih! Laporan Hasil Uji untuk sampel Anda
 telah diserahkan dan diterima.
 
 🎉 *Laporan Telah Diserahkan*
@@ -163,6 +166,7 @@ Status: Selesai - Laporan telah diterima
 ```
 
 **Testing Commands:**
+
 ```bash
 # Test single milestone
 POST /api/settings/notifications/whatsapp/test
@@ -179,6 +183,7 @@ SELECT status, count(*) FROM whatsapp_outbox GROUP BY status;
 ```
 
 **Production Notes:**
+
 - Queue worker must be running (supervisor/systemd recommended)
 - WhatsApp service (GOWA) running on localhost:3000
 - Basic auth configured: lpmf:lpmfjaya1
@@ -196,6 +201,7 @@ Enhanced WhatsApp notification templates dengan struktur profesional 5-bagian un
 **🎯 Template Structure:**
 
 Setiap template kini memiliki struktur lengkap:
+
 1. **Greetings**: Salam pembuka dengan personalisasi nama (`Assalamu'alaikum {nama_penyidik}`)
 2. **Nama Penyidik**: Personalisasi dengan placeholder `{nama_penyidik}`
 3. **Isi**: Informasi status dan detail milestone dengan emoji
@@ -205,6 +211,7 @@ Setiap template kini memiliki struktur lengkap:
 **📋 Complete Milestone Coverage:**
 
 ✅ 7 milestones dengan template lengkap:
+
 - `REQUEST_RECEIVED` - Permohonan diterima (📋)
 - `REVIEW_DONE_READY_FOR_TEST` - Review selesai, siap diuji (📦)
 - `PREPARATION_DONE` - Preparasi selesai (🧪)
@@ -216,22 +223,23 @@ Setiap template kini memiliki struktur lengkap:
 **🔧 Technical Updates:**
 
 1. **Observer Enhancement**
-   - Updated `SampleObserver` dan `TestRequestObserver`
-   - Added `{nama_penyidik}` placeholder support
-   - Automatic replacement dari `investigator->name`
+    - Updated `SampleObserver` dan `TestRequestObserver`
+    - Added `{nama_penyidik}` placeholder support
+    - Automatic replacement dari `investigator->name`
 
 2. **Template Storage**
-   - All templates saved in `system_settings` table
-   - Key: `notifications.whatsapp.templates`
-   - Enabled milestones: `notifications.whatsapp.enabled_milestones`
+    - All templates saved in `system_settings` table
+    - Key: `notifications.whatsapp.templates`
+    - Enabled milestones: `notifications.whatsapp.enabled_milestones`
 
 3. **Placeholder Support**
-   - `{nama_penyidik}` → Nama penyidik/investigator (e.g., "Bapak Ahmad Yani")
-   - `{resi}` → Nomor resi pengujian (e.g., "LPMF-2026-0001")
+    - `{nama_penyidik}` → Nama penyidik/investigator (e.g., "Bapak Ahmad Yani")
+    - `{resi}` → Nomor resi pengujian (e.g., "LPMF-2026-0001")
 
 **📝 Documentation:**
 
 Created `WHATSAPP_TEMPLATES.md` with complete reference:
+
 - All 7 milestone templates in full
 - Template structure explanation
 - Workflow mapping diagram
@@ -240,10 +248,11 @@ Created `WHATSAPP_TEMPLATES.md` with complete reference:
 - Testing instructions
 
 **✨ Template Example:**
+
 ```
 Assalamu'alaikum {nama_penyidik},
 
-Terima kasih telah mempercayakan pengujian kepada 
+Terima kasih telah mempercayakan pengujian kepada
 Laboratorium Pengujian Mutu Farmasi dan Pangan (LPMF).
 
 📋 *Permohonan Pengujian Anda Telah Diterima*
@@ -262,17 +271,20 @@ Laboratorium Pengujian Mutu Farmasi dan Pangan
 ```
 
 **📊 Statistics:**
+
 - Average template length: ~560 characters
 - Professional tone: Islamic greeting + formal language
 - Clear status updates with emojis
 - Support contact in all templates
 
 **🔄 Files Modified:**
+
 - [app/Observers/SampleObserver.php](app/Observers/SampleObserver.php) - Added nama_penyidik placeholder
 - [app/Observers/TestRequestObserver.php](app/Observers/TestRequestObserver.php) - Added nama_penyidik placeholder
 - Database: Updated `notifications.whatsapp.templates` with all 7 templates
 
 **📚 Files Created:**
+
 - [WHATSAPP_TEMPLATES.md](WHATSAPP_TEMPLATES.md) - Complete template documentation
 
 ---
@@ -285,8 +297,8 @@ Comprehensive cleanup of codebase to follow clean architecture principles by rem
 
 **🗑️ Deleted Files:**
 
-- 7 redundant .md files (IMPLEMENTATION*\*, TESTING*_, VERIFICATION\__, PRE\__\_CHECKLIST, project-documentation-_)
-- 7 debug/test .php scripts (fix*\*, test*_, search\__, verify*\*, activate*\*)
+- 7 redundant .md files (IMPLEMENTATION*\*, TESTING*\_, VERIFICATION\_\_, PRE\__\_CHECKLIST, project-documentation-_)
+- 7 debug/test .php scripts (fix*\*, test*\_, search\_\_, verify*\*, activate*\*)
 - 3 test documentation files (TEST_INVENTORY.md, CROSS_BROWSER_TESTING.md, browser-verification.md)
 - 3 obsolete migration files
 
