@@ -1,0 +1,86 @@
+name: Parallel E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  matrix-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        test-suite:
+          - Auth
+          - Inventory
+          - Monitoring
+          - EdgeCases
+          - Visual
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: lis_db_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: 8.3
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, pdo_pgsql, bcmath, soap, intl, gd, exif, iconv
+          coverage: none
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: |
+          composer install --prefer-dist --no-interaction
+          npm ci
+          npm run build
+
+      - name: Prepare environment
+        run: |
+          cp .env.example .env.testing
+          php artisan key:generate --env=testing
+          php artisan migrate:fresh --seed --env=testing
+
+      - name: Start services
+        run: |
+          php artisan dusk:chrome-driver --detect
+          ./vendor/laravel/dusk/bin/chromedriver-linux &
+          php artisan serve --env=testing &
+          sleep 5
+
+      - name: Run test suite - ${{ matrix.test-suite }}
+        run: php artisan dusk tests/Browser/${{ matrix.test-suite }} --env=testing
+
+      - name: Upload artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failures-${{ matrix.test-suite }}
+          path: |
+            tests/Browser/screenshots
+            tests/Browser/console
+            storage/logs
+          retention-days: 7
