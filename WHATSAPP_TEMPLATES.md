@@ -2,17 +2,46 @@
 
 ## 📱 Overview
 
-Template pesan WhatsApp untuk notifikasi otomatis kepada penyidik pada setiap milestone pengujian di LPMF LIMS.
+Template pesan WhatsApp untuk notifikasi otomatis kepada penyidik pada setiap milestone pengujian di LPMF LIMS dengan **sapaan dinamis** berdasarkan waktu dan role.
 
 ## 🎯 Template Structure
 
 Setiap template memiliki struktur sebagai berikut:
 
-1. **Greetings**: Salam pembuka dengan nama penyidik
-2. **Nama Penyidik**: Personalisasi pesan dengan nama
+1. **Greetings**: Sapaan dinamis berdasarkan waktu dan role
+2. **Personalisasi**: Nama dengan pangkat (anggota) atau Bapak/Ibu (non-anggota)
 3. **Isi**: Informasi status dan detail milestone
 4. **Penutup**: Salam hormat dari Tim LPMF
 5. **Follow Up**: Informasi kontak untuk pertanyaan
+
+## ⏰ Dynamic Greeting System
+
+### Time-Based Greeting
+
+Sistem otomatis memilih sapaan berdasarkan waktu (timezone dari settings):
+
+| Waktu | Sapaan |
+|-------|--------|
+| 05:00 - 10:59 | Selamat Pagi |
+| 11:00 - 14:59 | Selamat Siang |
+| 15:00 - 18:59 | Selamat Sore |
+| 19:00 - 04:59 | Selamat Malam |
+
+### Role-Based Salutation
+
+| Type Investigator | Sapaan | Contoh |
+|-------------------|--------|--------|
+| Anggota POLRI (`is_polri = true`) | Pangkat + Nama | "Selamat Pagi IPDA Ahmad Yani" |
+| Non-POLRI (`is_polri = false`) | Bapak/Ibu + Nama | "Selamat Pagi Bapak/Ibu Ahmad Yani" |
+
+## 🔧 Placeholders
+
+Template menggunakan placeholder yang akan diganti secara otomatis:
+
+| Placeholder | Deskripsi | Contoh |
+|------------|-----------|--------|
+| `{greeting}` | Sapaan dinamis (waktu + role + nama) | "Selamat Pagi IPDA Ahmad Yani" |
+| `{resi}` | Nomor resi pengujian | "LPMF-2026-0001" |
 
 ## 📋 Available Milestones
 
@@ -21,7 +50,7 @@ Setiap template memiliki struktur sebagai berikut:
 
 **Template**:
 ```
-Assalamu'alaikum {nama_penyidik},
+{greeting},
 
 Terima kasih telah mempercayakan pengujian kepada Laboratorium Pengujian Mutu Farmasi dan Pangan (LPMF).
 

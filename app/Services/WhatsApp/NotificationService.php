@@ -3,6 +3,7 @@
 namespace App\Services\WhatsApp;
 
 use App\Support\PhoneNormalizer;
+use Carbon\Carbon;
 
 class NotificationService
 {
@@ -66,5 +67,59 @@ class NotificationService
     public function getAllTemplates(): array
     {
         return self::MILESTONE_TEMPLATES;
+    }
+
+    /**
+     * Generate time-based greeting
+     */
+    public function getTimeBasedGreeting(): string
+    {
+        $hour = Carbon::now(settings('locale.timezone', 'Asia/Jakarta'))->hour;
+
+        if ($hour >= 5 && $hour < 11) {
+            return 'Selamat Pagi';
+        } elseif ($hour >= 11 && $hour < 15) {
+            return 'Selamat Siang';
+        } elseif ($hour >= 15 && $hour < 19) {
+            return 'Selamat Sore';
+        } else {
+            return 'Selamat Malam';
+        }
+    }
+
+    /**
+     * Get proper salutation for investigator
+     * - For POLRI members (is_polri = true): Use rank
+     * - For non-POLRI: Use Bapak/Ibu
+     */
+    public function getSalutation($investigator): string
+    {
+        if (!$investigator) {
+            return 'Bapak/Ibu';
+        }
+
+        // Check if investigator is POLRI member
+        if (isset($investigator->is_polri) && $investigator->is_polri) {
+            // Use rank if available
+            return $investigator->rank ?? 'Bapak/Ibu';
+        }
+
+        // For non-POLRI, use Bapak/Ibu
+        return 'Bapak/Ibu';
+    }
+
+    /**
+     * Get complete greeting with name
+     */
+    public function getGreeting($investigator): string
+    {
+        $timeGreeting = $this->getTimeBasedGreeting();
+        $salutation = $this->getSalutation($investigator);
+        
+        if (!$investigator || !isset($investigator->name)) {
+            return $timeGreeting . ' ' . $salutation;
+        }
+
+        return $timeGreeting . ' ' . $salutation . ' ' . $investigator->name;
     }
 }

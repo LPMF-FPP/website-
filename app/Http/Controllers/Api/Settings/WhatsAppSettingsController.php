@@ -90,6 +90,7 @@ class WhatsAppSettingsController extends Controller
         $validator = Validator::make($request->all(), [
             'phone' => 'required|string|max:20',
             'message' => 'nullable|string|max:1000',
+            'milestone' => 'nullable|string|in:' . implode(',', $this->notificationService->getAvailableMilestones()),
         ]);
 
         if ($validator->fails()) {
@@ -100,7 +101,18 @@ class WhatsAppSettingsController extends Controller
         }
 
         $phone = $request->input('phone');
-        $message = $request->input('message', 'Test message from LPMF LIMS');
+        $milestone = $request->input('milestone');
+        
+        // If milestone specified, use template
+        if ($milestone) {
+            $greeting = $this->notificationService->getTimeBasedGreeting() . ' Bapak/Ibu (Test)';
+            $message = $this->notificationService->getMilestoneMessage($milestone, [
+                'greeting' => $greeting,
+                'resi' => 'TEST-' . date('Ymd-His'),
+            ]);
+        } else {
+            $message = $request->input('message', 'Test message from LPMF LIMS');
+        }
 
         $jid = $this->notificationService->formatJID($phone);
 

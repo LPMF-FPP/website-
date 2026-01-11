@@ -124,9 +124,10 @@ class TestRequestObserver
         }
 
         $jid = $this->notificationService->formatJID($phone);
+        $greeting = $this->notificationService->getGreeting($testRequest->investigator);
         $message = $this->notificationService->getMilestoneMessage($milestone, [
             'resi' => $testRequest->receipt_number,
-            'nama_penyidik' => $testRequest->investigator->name ?? 'Bapak/Ibu',
+            'greeting' => $greeting,
         ]);
 
         if (!$message) {

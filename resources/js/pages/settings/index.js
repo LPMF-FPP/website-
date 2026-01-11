@@ -733,6 +733,61 @@ export class SettingsClient {
     }
 
     /**
+     * Test milestone notification
+     */
+    async testMilestone(milestoneKey) {
+        const target = this.state.notificationsTest.whatsapp?.target;
+        
+        if (!target) {
+            alert("Masukkan nomor telepon test terlebih dahulu");
+            return;
+        }
+
+        // Initialize milestones state if not exists
+        if (!this.state.notificationsTest.milestones) {
+            this.state.notificationsTest.milestones = {};
+        }
+        
+        if (!this.state.notificationsTest.milestones[milestoneKey]) {
+            this.state.notificationsTest.milestones[milestoneKey] = {
+                loading: false,
+                message: "",
+                success: false
+            };
+        }
+
+        const milestone = this.state.notificationsTest.milestones[milestoneKey];
+        milestone.loading = true;
+        milestone.message = "";
+
+        try {
+            const data = await this.apiFetch(
+                "/api/settings/notifications/whatsapp/test",
+                {
+                    method: "POST",
+                    body: {
+                        phone: target,
+                        milestone: milestoneKey,
+                    },
+                },
+            );
+
+            milestone.success = true;
+            milestone.message = data.message || "✅ Test berhasil dikirim!";
+        } catch (error) {
+            milestone.success = false;
+            milestone.message = "❌ " + (error.message || "Test gagal");
+        } finally {
+            milestone.loading = false;
+            
+            // Clear message after 5 seconds
+            setTimeout(() => {
+                milestone.message = "";
+            }, 5000);
+        }
+    }
+
+    /**
      * Save numbering for a specific scope
      */
     async saveNumberingScope(scope) {

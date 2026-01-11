@@ -171,35 +171,50 @@
                         <div>
                             <label class="block text-xs font-medium text-gray-600 mb-2">Template Pesan</label>
                             <p class="text-xs text-gray-500 mb-3">
-                                Gunakan <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{resi}</code> untuk menyisipkan nomor resi.
+                                Gunakan <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{greeting}</code> untuk sapaan dinamis dan <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{resi}</code> untuk nomor resi.
                             </p>
-                            <div class="space-y-3">
+                            <div class="space-y-4">
                                 <template x-for="milestone in whatsappMilestones" :key="'tpl-' + milestone.key">
-                                    <div>
-                                        <label class="block text-xs font-medium text-gray-700 mb-1" x-text="milestone.label"></label>
+                                    <div class="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                                        <div class="flex items-center justify-between mb-2">
+                                            <label class="block text-xs font-medium text-gray-700" x-text="milestone.label"></label>
+                                            <button type="button"
+                                                    class="px-2 py-1 text-xs font-medium text-white bg-blue-500 rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    :disabled="!client.state.form.notifications.whatsapp.enabled || !client.state.notificationsTest.whatsapp.target"
+                                                    @click="client.testMilestone(milestone.key)"
+                                                    title="Test template ini">
+                                                <span x-show="!client.state.notificationsTest.milestones?.[milestone.key]?.loading">🧪 Test</span>
+                                                <span x-show="client.state.notificationsTest.milestones?.[milestone.key]?.loading">⏳</span>
+                                            </button>
+                                        </div>
                                         <textarea 
                                             class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-                                            rows="2"
+                                            rows="3"
                                             x-model="client.state.form.notifications.whatsapp.templates[milestone.key]"
                                             :disabled="!client.state.form.notifications.whatsapp.enabled"
                                             placeholder="Masukkan template pesan..."></textarea>
+                                        <div x-show="client.state.notificationsTest.milestones?.[milestone.key]?.message" 
+                                             class="mt-2 text-xs"
+                                             :class="client.state.notificationsTest.milestones?.[milestone.key]?.success ? 'text-green-600' : 'text-red-600'"
+                                             x-text="client.state.notificationsTest.milestones?.[milestone.key]?.message"></div>
                                     </div>
                                 </template>
                             </div>
                         </div>
 
                         <div class="pt-3 border-t border-gray-200">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Test WhatsApp</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nomor Test WhatsApp</label>
+                            <p class="text-xs text-gray-500 mb-2">Masukkan nomor untuk test semua milestone</p>
                             <div class="flex gap-2">
                                 <input type="text" 
                                        class="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
                                        x-model="client.state.notificationsTest.whatsapp.target"
-                                       placeholder="08123456789">
+                                       placeholder="08123456789 atau +6285956592404">
                                 <button type="button"
                                         class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
                                         :disabled="client.state.notificationsTest.whatsapp.loading"
                                         @click="client.testNotification('whatsapp')">
-                                    <span x-show="!client.state.notificationsTest.whatsapp.loading">Test</span>
+                                    <span x-show="!client.state.notificationsTest.whatsapp.loading">Test General</span>
                                     <span x-show="client.state.notificationsTest.whatsapp.loading">Sending...</span>
                                 </button>
                             </div>
