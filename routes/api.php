@@ -20,8 +20,14 @@ use App\Http\Controllers\Api\Settings\EmergencyBackupController;
 use App\Http\Controllers\Api\Settings\WhatsAppSettingsController;
 use App\Http\Controllers\Api\SettingsController as ApiSettingsController;
 use App\Http\Controllers\Api\JobStatusController;
+use App\Http\Controllers\Api\WhatsApp\IncomingMessageController;
 use App\Models\TestRequest;
 use Illuminate\Support\Facades\Route;
+
+// WhatsApp Webhook (No Auth - GOWA service calls this)
+Route::post('/whatsapp/webhook', [IncomingMessageController::class, 'webhook'])
+    ->middleware('throttle:60,1')
+    ->name('whatsapp.webhook');
 
 Route::middleware(['throttle:60,1'])->group(function () {
 

@@ -31,6 +31,19 @@ class PhoneNormalizer
         return $digits . '@s.whatsapp.net';
     }
 
+    public static function fromJid(string $jid): string
+    {
+        // Extract phone number from JID (remove @s.whatsapp.net suffix)
+        $phone = str_replace(['@s.whatsapp.net', '@c.us'], '', $jid);
+        
+        // Add + prefix if it doesn't exist
+        if (!str_starts_with($phone, '+')) {
+            $phone = '+' . $phone;
+        }
+        
+        return $phone;
+    }
+
     public static function formatForDisplay(string $e164Phone): string
     {
         if (str_starts_with($e164Phone, '+62')) {

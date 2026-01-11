@@ -22,6 +22,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'audit.activity' => \App\Http\Middleware\AuditActivity::class,
         ]);
 
+        // Exclude WhatsApp webhook from CSRF verification
+        $middleware->validateCsrfTokens(except: [
+            'api/whatsapp/webhook',
+        ]);
+
         // Replace API middleware to include session support
         // This enables API routes to use session-based authentication with cookies
         $middleware->group('api', [
