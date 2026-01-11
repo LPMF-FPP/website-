@@ -19,7 +19,12 @@
         "audit:critical": "npm-run-all -s audit:guard audit:cascade audit:contrast",
         "test:php": "php vendor/bin/pest --parallel --stop-on-failure",
         "test:php:watch": "php vendor/bin/pest --watch",
-        "test:search": "node --test tests/js/search.test.js"
+        "test:search": "node --test tests/js/search.test.js",
+        "test:e2e": "php artisan dusk",
+        "test:e2e:headed": "php artisan dusk --without-headless",
+        "test:e2e:specific": "php artisan dusk tests/Browser",
+        "test:all": "npm-run-all -p test:php test:e2e",
+        "test": "npm run test:all"
     },
     "devDependencies": {
         "@lhci/cli": "^0.14.0",
