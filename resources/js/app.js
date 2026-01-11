@@ -12,6 +12,9 @@ import toastStore from "./stores/toast";
 Alpine.plugin(collapse);
 Alpine.plugin(focus);
 
+// Register custom Alpine components
+registerSettingsComponent(Alpine);
+
 // Theme manager
 (function () {
     const STORAGE_KEY = "ui.theme";
