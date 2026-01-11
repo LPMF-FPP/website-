@@ -25,12 +25,102 @@
 | [report/README.md](./report/README.md)                           | Frontend audit system guide             |
 | [patcher/](./patcher/)                                           | Deployment & design documentation       |
 
-**Current Version:** v1.3.1 (11 Januari 2026)  
-**Latest Feature:** Codebase Cleanup - Clean Architecture Achieved
+**Current Version:** v1.3.2 (11 Januari 2026)  
+**Latest Feature:** WhatsApp Templates Enhancement with Professional Structure
 
 ---
 
 ## 📰 Recent Changes (v1.3.x)
+
+### v1.3.2 (11 Januari 2026) - WhatsApp Templates Enhancement
+
+**📌 What Changed:**
+
+Enhanced WhatsApp notification templates dengan struktur profesional 5-bagian untuk setiap milestone.
+
+**🎯 Template Structure:**
+
+Setiap template kini memiliki struktur lengkap:
+1. **Greetings**: Salam pembuka dengan personalisasi nama (`Assalamu'alaikum {nama_penyidik}`)
+2. **Nama Penyidik**: Personalisasi dengan placeholder `{nama_penyidik}`
+3. **Isi**: Informasi status dan detail milestone dengan emoji
+4. **Penutup**: Salam hormat dari Tim LPMF
+5. **Follow Up**: Informasi kontak support
+
+**📋 Complete Milestone Coverage:**
+
+✅ 7 milestones dengan template lengkap:
+- `REQUEST_RECEIVED` - Permohonan diterima (📋)
+- `REVIEW_DONE_READY_FOR_TEST` - Review selesai, siap diuji (📦)
+- `PREPARATION_DONE` - Preparasi selesai (🧪)
+- `INSTRUMENTATION_DONE` - Instrumentasi selesai (🔬)
+- `INTERPRETATION_DONE` - Interpretasi selesai (✅)
+- `READY_FOR_PICKUP` - Siap diambil (📄)
+- `HANDOVER_COMPLETED` - Serah terima selesai (🎉)
+
+**🔧 Technical Updates:**
+
+1. **Observer Enhancement**
+   - Updated `SampleObserver` dan `TestRequestObserver`
+   - Added `{nama_penyidik}` placeholder support
+   - Automatic replacement dari `investigator->name`
+
+2. **Template Storage**
+   - All templates saved in `system_settings` table
+   - Key: `notifications.whatsapp.templates`
+   - Enabled milestones: `notifications.whatsapp.enabled_milestones`
+
+3. **Placeholder Support**
+   - `{nama_penyidik}` → Nama penyidik/investigator (e.g., "Bapak Ahmad Yani")
+   - `{resi}` → Nomor resi pengujian (e.g., "LPMF-2026-0001")
+
+**📝 Documentation:**
+
+Created `WHATSAPP_TEMPLATES.md` with complete reference:
+- All 7 milestone templates in full
+- Template structure explanation
+- Workflow mapping diagram
+- Usage examples in code
+- Customization guide
+- Testing instructions
+
+**✨ Template Example:**
+```
+Assalamu'alaikum {nama_penyidik},
+
+Terima kasih telah mempercayakan pengujian kepada 
+Laboratorium Pengujian Mutu Farmasi dan Pangan (LPMF).
+
+📋 *Permohonan Pengujian Anda Telah Diterima*
+
+Nomor Resi: *{resi}*
+Status: Permohonan telah terdaftar dalam sistem kami
+
+...
+
+Salam Hormat,
+*Tim LPMF*
+Laboratorium Pengujian Mutu Farmasi dan Pangan
+
+---
+💬 Jika ada pertanyaan, silakan hubungi kami di nomor ini.
+```
+
+**📊 Statistics:**
+- Average template length: ~560 characters
+- Professional tone: Islamic greeting + formal language
+- Clear status updates with emojis
+- Support contact in all templates
+
+**🔄 Files Modified:**
+- [app/Observers/SampleObserver.php](app/Observers/SampleObserver.php) - Added nama_penyidik placeholder
+- [app/Observers/TestRequestObserver.php](app/Observers/TestRequestObserver.php) - Added nama_penyidik placeholder
+- Database: Updated `notifications.whatsapp.templates` with all 7 templates
+
+**📚 Files Created:**
+- [WHATSAPP_TEMPLATES.md](WHATSAPP_TEMPLATES.md) - Complete template documentation
+
+---
 
 ### v1.3.1 (11 Januari 2026) - Codebase Cleanup
 

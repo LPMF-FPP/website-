@@ -116,6 +116,7 @@ class SampleObserver
         $jid = $this->notificationService->formatJID($phone);
         $message = $this->notificationService->getMilestoneMessage($milestone, [
             'resi' => $testRequest->receipt_number,
+            'nama_penyidik' => $testRequest->investigator->name ?? 'Bapak/Ibu',
         ]);
 
         if (!$message) {
