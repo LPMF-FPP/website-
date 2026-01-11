@@ -25,11 +25,32 @@ class IncomingMessageController extends Controller
             Log::info('WhatsApp incoming webhook', ['payload' => $data]);
 
             // Extract message info from GOWA webhook format
-            // Format may vary based on GOWA configuration, adjust as needed
-            $from = $data['from'] ?? $data['sender'] ?? null;
-            $message = $data['message'] ?? $data['text'] ?? $data['body'] ?? null;
+            // GOWA can send multiple formats, handle them all:
+            
+            // Format 1: Nested in data.message (most common)
+            if (isset($data['data']['message'])) {
+                $msg = $data['data']['message'];
+                $from = $msg['from'] ?? $msg['sender'] ?? null;
+                $message = $msg['body'] ?? $msg['text'] ?? $msg['message'] ?? null;
+            }
+            // Format 2: Nested in message object
+            elseif (isset($data['message']) && is_array($data['message'])) {
+                $msg = $data['message'];
+                $from = $msg['from'] ?? $msg['sender'] ?? null;
+                $message = $msg['body'] ?? $msg['text'] ?? $msg['message'] ?? null;
+            }
+            // Format 3: Direct fields in root
+            else {
+                $from = $data['from'] ?? $data['sender'] ?? null;
+                $message = $data['body'] ?? $data['text'] ?? $data['message'] ?? null;
+            }
 
             if (! $from || ! $message) {
+                Log::warning('WhatsApp webhook missing data', [
+                    'from' => $from,
+                    'message' => $message,
+                    'payload' => $data
+                ]);
                 return response()->json(['status' => 'ignored', 'reason' => 'missing_data']);
             }
 
