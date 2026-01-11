@@ -24,12 +24,134 @@
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 | [dokpol-style/README.md](./dokpol-style/README.md)         | Design system documentation             |
 
-**Current Version:** v1.3.4 (11 Januari 2026)  
-**Latest Feature:** WhatsApp Notification Queue Worker Fix
+**Current Version:** v1.4.0 (11 Januari 2026)  
+**Latest Feature:** WhatsApp Bot Command `/resi` Implementation
 
 ---
 
 ## 📰 Recent Changes (v1.3.x)
+
+### v1.4.0 (11 Januari 2026) - WhatsApp Bot Command `/resi` Implementation
+
+**🤖 New Feature: Interactive WhatsApp Bot**
+
+Implemented command-based WhatsApp bot using existing GOWA (go-whatsapp-web-multidevice) infrastructure.
+
+**🐛 Critical Bug Fix:** Fixed HTML entity encoding in PHP opening tags (`\u003c?php` → `<?php`). This bug prevented Laravel from parsing WhatsApp bot files, causing webhook endpoints to return PHP source code instead of executing. All affected files have been corrected:
+
+- `IncomingMessageController.php`
+- `CommandDispatcher.php`
+- `ResiCommand.php`
+- `HelpCommand.php`
+- `WhatsappCommandLog.php`
+
+**Bot Commands:**
+
+- `/resi {nomor_resi}` - Track test request status and journey
+- `/help` or `/bantuan` - Display available commands
+
+**Architecture:**
+
+1. **Webhook Endpoint**: `POST /api/whatsapp/webhook`
+2. **Command Dispatcher**: Routes commands to appropriate handlers
+3. **Command Handlers**: `ResiCommand`, `HelpCommand`
+4. **Database Logging**: `whatsapp_command_logs` table tracks all interactions
+
+**New Files:**
+
+- `app/Models/WhatsappCommandLog.php` - Command log model
+- `app/Http/Controllers/Api/WhatsApp/IncomingMessageController.php` - Webhook handler
+- `app/Services/WhatsApp/CommandDispatcher.php` - Command routing service
+- `app/Services/WhatsApp/Commands/ResiCommand.php` - /resi command handler
+- `app/Services/WhatsApp/Commands/HelpCommand.php` - /help command handler
+- `database/migrations/2026_01_11_163142_create_whatsapp_command_logs_table.php`
+
+**Enhanced Services:**
+
+- `PhoneNormalizer::fromJid()` - Convert WhatsApp JID to E164 format
+
+**Configuration:**
+
+- GOWA webhook URL: `http://your-app.com/api/whatsapp/webhook`
+- Environment variables added to `.env.example`
+
+**Sample Bot Response:**
+
+```
+📋 *TRACKING PERMINTAAN PENGUJIAN*
+
+📝 Resi: *LPMF/001/2026*
+📄 No. Permintaan: BP/2026/001
+
+👤 Penyidik: IPDA John Doe
+
+📍 *STATUS PERJALANAN:*
+
+✅ 1️⃣ Permintaan Disubmit - *SELESAI*
+   └ 10 Jan 2026, 09:30
+
+✅ 2️⃣ Permintaan Diverifikasi - *SELESAI*
+   └ 10 Jan 2026, 10:15
+
+⏳ 3️⃣ Permintaan Diterima - *PENDING*
+
+🔔 Status Saat Ini:
+*✅ Terverifikasi - Menunggu Penerimaan*
+
+📦 Jumlah Sampel: 3
+
+─────────────────
+💬 Butuh bantuan? Ketik /help
+```
+
+**🔧 Troubleshooting: Bot Tidak Merespons**
+
+Jika bot tidak merespons, follow checklist ini:
+
+1. **Verify GOWA webhook configured** ⚠️ PALING PENTING
+
+    ```bash
+    # Set di GOWA environment atau config
+    WEBHOOK_URL=http://localhost:8000/api/whatsapp/webhook
+    ```
+
+2. **Check Laravel server running**
+
+    ```bash
+    ps aux | grep "php artisan serve"
+    ```
+
+3. **Check webhook logs**
+
+    ```bash
+    tail -f storage/logs/laravel.log | grep -i whatsapp
+    ```
+
+    Expected: `WhatsApp incoming webhook {"payload": ...}`
+
+4. **Verify database logs**
+
+    ```bash
+    php artisan tinker
+    >>> DB::table('whatsapp_command_logs')->latest()->first()
+    ```
+
+5. **Test webhook manually**
+    ```bash
+    curl -X POST http://localhost:8000/api/whatsapp/webhook \
+      -H "Content-Type: application/json" \
+      -d '{"from": "628xxx@s.whatsapp.net", "message": "/help"}'
+    ```
+
+**Quick Fix:** Configure GOWA webhook via API:
+
+```bash
+curl -X POST http://localhost:3000/api/settings/webhook \
+  -H "Content-Type: application/json" \
+  -d '{"url": "http://localhost:8000/api/whatsapp/webhook", "events": ["message"]}'
+```
+
+---
 
 ### v1.3.4 (11 Januari 2026) - WhatsApp Notification Queue Worker Fix
 
