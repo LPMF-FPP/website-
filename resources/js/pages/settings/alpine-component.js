@@ -373,7 +373,6 @@ export function registerSettingsComponent() {
             },
 
             ensureLocaleDefaults() {
-                // Ensure locale is an object, not an array (server may return empty array)
                 if (
                     !this.client.state.form.locale ||
                     Array.isArray(this.client.state.form.locale) ||
@@ -393,6 +392,7 @@ export function registerSettingsComponent() {
                 if (!this.client.state.form.locale.language)
                     this.client.state.form.locale.language =
                         this.languages[0]?.value ?? "id";
+
                 this.client.state.form.retention ??= {};
                 const driver = this.client.state.form.retention.storage_driver;
                 const allowedDrivers = new Set(this.storageDrivers || []);
@@ -403,7 +403,25 @@ export function registerSettingsComponent() {
                     this.client.state.form.retention.storage_driver =
                         this.storageDrivers[0] ?? "public";
                 }
-                // SMTP defaults
+
+                if (
+                    !("storage_folder_path" in this.client.state.form.retention)
+                ) {
+                    this.client.state.form.retention.storage_folder_path = "";
+                }
+                if (!("purge_after_days" in this.client.state.form.retention)) {
+                    this.client.state.form.retention.purge_after_days = 365;
+                }
+                if (
+                    !(
+                        "export_filename_pattern" in
+                        this.client.state.form.retention
+                    )
+                ) {
+                    this.client.state.form.retention.export_filename_pattern =
+                        "";
+                }
+
                 this.client.state.form.smtp ??= {};
                 if (!this.client.state.form.smtp.host)
                     this.client.state.form.smtp.host = "127.0.0.1";
@@ -411,9 +429,7 @@ export function registerSettingsComponent() {
                     this.client.state.form.smtp.port = 1025;
                 if (!this.client.state.form.smtp.from_name)
                     this.client.state.form.smtp.from_name = "LPMF LIMS";
-                // Detect preset based on current values
                 this.detectSmtpPreset();
-                // IKU defaults
                 this.ensureIkuDefaults();
             },
 

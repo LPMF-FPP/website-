@@ -25,12 +25,77 @@
 | [report/README.md](./report/README.md)                           | Frontend audit system guide             |
 | [patcher/](./patcher/)                                           | Deployment & design documentation       |
 
-**Current Version:** v1.2.8 (11 Januari 2026)  
-**Latest Feature:** Phase 5 Advanced Testing (CI/CD Integration, Load Testing, Accessibility)
+**Current Version:** v1.2.9 (11 Januari 2026)  
+**Latest Feature:** Settings Page Timezone Save Fix
 
 ---
 
 ## 📰 Recent Changes (v1.2.x)
+
+### v1.2.9 (11 Januari 2026) - Settings Page Timezone Save Fix
+
+**📌 What Changed:**
+
+Fixed timezone change functionality in `/settings` page that was failing silently due to undefined retention fields in API payload.
+
+**🎯 Bug Fix Details:**
+
+1. **Root Cause Identified**
+    - Timezone save was failing because `retention` object fields (`storage_folder_path`, `purge_after_days`, `export_filename_pattern`) were `undefined`
+    - When fields are `undefined`, they don't serialize in JSON payload, causing backend validation issues
+    - The `sectionEndpoint("localization")` method sends both `localization` and `retention` objects to `/api/settings/localization-retention`
+
+2. **Solution Applied**
+    - Modified `ensureLocaleDefaults()` in `/resources/js/pages/settings/alpine-component.js`
+    - Added explicit initialization for all retention fields with default values
+    - Used `in` operator to check field existence (not just falsy check)
+    - Ensures API payload always contains complete `retention` object structure
+
+3. **Code Changes**
+
+    ```javascript
+    // Before: Only checked storage_driver
+    this.client.state.form.retention ??= {};
+    if (!driver || ...) { ... }
+
+    // After: Ensure ALL retention fields exist
+    if (!('storage_folder_path' in this.client.state.form.retention)) {
+        this.client.state.form.retention.storage_folder_path = "";
+    }
+    if (!('purge_after_days' in this.client.state.form.retention)) {
+        this.client.state.form.retention.purge_after_days = 365;
+    }
+    if (!('export_filename_pattern' in this.client.state.form.retention)) {
+        this.client.state.form.retention.export_filename_pattern = "";
+    }
+    ```
+
+4. **Technical Flow**
+    - **Frontend**: User changes timezone → `saveLocalizationSection()` → `client.saveSection("localization")`
+    - **Payload**: `{ localization: { timezone, date_format, ... }, retention: { storage_driver, ... } }`
+    - **API**: `PUT /api/settings/localization-retention`
+    - **Backend**: `LocalizationRetentionController@update` validates via `LocalizationSettingsRequest`
+    - **Validation**: All fields must exist (even if empty) to pass validation rules
+
+5. **Testing Instructions**
+    - Navigate to `/settings` → "Lokalisasi & Retensi"
+    - Change timezone (e.g., `Asia/Jakarta` → `Asia/Makassar`)
+    - Click "Simpan" button
+    - Verify success message: "Pengaturan tersimpan."
+    - Check "Preview Waktu" updates with new timezone
+
+**📂 Files Modified:**
+
+- `resources/js/pages/settings/alpine-component.js:375-418` (ensureLocaleDefaults function)
+
+**🔍 Related Components:**
+
+- `resources/views/settings/partials/localization-retention.blade.php` (UI)
+- `app/Http/Controllers/Api/Settings/LocalizationRetentionController.php` (API handler)
+- `app/Http/Requests/Settings/LocalizationSettingsRequest.php` (validation)
+- `routes/api.php:73` (route definition)
+
+---
 
 ### v1.2.8 (11 Januari 2026) - Phase 5 Advanced Testing Features
 
