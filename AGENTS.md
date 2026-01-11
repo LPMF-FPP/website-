@@ -144,11 +144,28 @@ find tests/ -name "*.php"
     - Complex planning → `Planner-Sisyphus`
     - Task prioritization → `oracle`
 
-## 7. Documentation & Change Tracking (WALKTHROUGH.md)
+## 7. Documentation & Change Tracking
 
-- **Purpose**: Central documentation hub for all project changes, features, and fixes.
-- **Rule**: WALKTHROUGH.md already exists - NEVER create new .md files for documentation.
-- **Format**: Append changes to relevant sections with proper markdown hierarchy.
+**Root Directory - Only 3 .md files allowed:**
+
+1. **WALKTHROUGH.md** - Central changelog for ALL project changes
+    - Record semua perubahan (features, fixes, improvements)
+    - Update version number untuk perubahan signifikan
+    - NEVER create new .md files - append to this file only
+
+2. **todos.md** - Task tracker for current/upcoming work
+    - Track task yang sedang/akan dikerjakan
+    - Mark [x] when done, archive when complete
+
+3. **AGENTS.md** - Workflow rules (this file)
+    - DO NOT modify unless updating workflow rules
+
+**Technical Documentation** - Place in appropriate subdirectories:
+
+- `docs/` - Code patterns, architecture
+- `report/` - Audit system documentation
+- `tests/` - Testing documentation
+- Module-specific - In module's directory (e.g., `dokpol-style/README.md`)
 - **Versioning**: Use semantic versioning (MAJOR.MINOR.PATCH). Each segment MUST NOT exceed 9 — when reaching 10, increment the next higher segment instead (e.g., `1.0.9` → `1.1.0`, `1.9.9` → `2.0.0`).
 - **Versioning**: Use semantic versioning (MAJOR.MINOR.PATCH) with strict constraints:
     - Each segment MUST NOT exceed 9
