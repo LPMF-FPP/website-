@@ -25,12 +25,35 @@
 | [report/README.md](./report/README.md)                           | Frontend audit system guide             |
 | [patcher/](./patcher/)                                           | Deployment & design documentation       |
 
-**Current Version:** v1.3.0 (11 Januari 2026)  
-**Latest Feature:** WhatsApp Notification Activated & Tested
+**Current Version:** v1.3.1 (11 Januari 2026)  
+**Latest Feature:** Codebase Cleanup - Clean Architecture Achieved
 
 ---
 
 ## 📰 Recent Changes (v1.3.x)
+
+### v1.3.1 (11 Januari 2026) - Codebase Cleanup
+
+**📌 What Changed:**
+
+Comprehensive cleanup of codebase to follow clean architecture principles by removing 20 redundant files (4,388 lines removed).
+
+**🗑️ Deleted Files:**
+
+- 7 redundant .md files (IMPLEMENTATION*\*, TESTING*_, VERIFICATION\__, PRE\__\_CHECKLIST, project-documentation-_)
+- 7 debug/test .php scripts (fix*\*, test*_, search\__, verify*\*, activate*\*)
+- 3 test documentation files (TEST_INVENTORY.md, CROSS_BROWSER_TESTING.md, browser-verification.md)
+- 3 obsolete migration files
+
+**✅ Retained Functional Documentation:**
+
+- AGENTS.md, WALKTHROUGH.md, CHANGELOG.md, todos.md
+- UI-UX-IMPROVEMENT-PLAN.md, PARTY_MODE_SESSION_EXAMPLE.md, PRODUCTION_READINESS.md
+- docs/ALPINE_JS_PATTERNS.md, report/README.md, tests/Load/README.md, dokpol-style/README.md
+
+**📦 Git Commit:** `a14b393` - chore: clean up redundant files and debug scripts
+
+---
 
 ### v1.3.0 (11 Januari 2026) - WhatsApp Notification Activation & Testing
 
