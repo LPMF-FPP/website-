@@ -25,12 +25,68 @@
 | [report/README.md](./report/README.md)                           | Frontend audit system guide             |
 | [patcher/](./patcher/)                                           | Deployment & design documentation       |
 
-**Current Version:** v1.2.9 (11 Januari 2026)  
-**Latest Feature:** Settings Page Timezone Save Fix
+**Current Version:** v1.3.0 (11 Januari 2026)  
+**Latest Feature:** WhatsApp Notification Activated & Tested
 
 ---
 
-## 📰 Recent Changes (v1.2.x)
+## 📰 Recent Changes (v1.3.x)
+
+### v1.3.0 (11 Januari 2026) - WhatsApp Notification Activation & Testing
+
+**📌 What Changed:**
+
+Successfully activated and tested WhatsApp notification feature in `/settings` page with message delivery to +6285956592404.
+
+**🎯 Test Results:**
+
+1. **Configuration Activated**
+    - ✅ WhatsApp notification enabled via system settings
+    - ✅ Base URL configured: `http://localhost:3000`
+    - ✅ Basic authentication: `lpmf:lpmfjaya1`
+    - ✅ Enabled milestones: request_received, samples_registered, testing_started, testing_completed, report_ready, delivered
+    - ✅ Default templates configured for all milestones
+
+2. **Message Delivery Verified**
+    - ✅ Phone normalization: `+6285956592404` → `6285956592404@s.whatsapp.net`
+    - ✅ 3 test messages sent successfully
+    - ✅ Message IDs: `3EB0A7B0D02BEF8883075A`, `3EB0CBD1E294705CC19D09`, `3EB039BE1AA1F7D7BDDF71`
+    - ✅ Status: All marked as `sent` in `whatsapp_outbox` table
+    - ✅ Attempts: 1 (success on first try)
+
+3. **System Components Verified**
+    - ✅ `App\Support\PhoneNormalizer` - E.164 formatting and JID conversion
+    - ✅ `App\Services\WhatsApp\GowaClient` - GOWA service communication
+    - ✅ `App\Jobs\SendWhatsAppNotificationJob` - Async queue processing
+    - ✅ `App\Models\WhatsappOutbox` - Message tracking
+    - ✅ API endpoint: `POST /api/settings/notifications/whatsapp/test`
+    - ✅ Docker container: `go-whatsapp-web-multidevice` running on port 3000
+
+**📝 Files Created:**
+
+- `WHATSAPP_NOTIFICATION_TEST_REPORT.md` - Complete test documentation with logs and configuration
+
+**🔧 Integration Details:**
+
+- GOWA Service: go-whatsapp-web-multidevice running in Docker
+- Authentication: Basic auth with credentials from environment variables
+- Queue Processing: Messages queued and processed via Laravel queue workers
+- Database Tracking: All messages logged in `whatsapp_outbox` table with status tracking
+
+**🚀 How to Use:**
+
+1. Navigate to `/settings` page
+2. Scroll to "Notifikasi & Security" section
+3. Enable WhatsApp notification checkbox
+4. Configure GOWA service URL and credentials
+5. Select active milestones
+6. Customize message templates (use `{resi}` placeholder)
+7. Test with phone number in "Test WhatsApp" section
+8. Ensure queue worker is running: `php artisan queue:work`
+
+**✅ Status:** Production Ready - All tests passed
+
+---
 
 ### v1.2.9 (11 Januari 2026) - Settings Page Timezone Save Fix
 
