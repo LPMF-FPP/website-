@@ -8,43 +8,51 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('settings', function (Blueprint $table) {
-            $table->id();
-            $table->string('key')->unique();
-            $table->json('value');
-            $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('settings')) {
+            Schema::create('settings', function (Blueprint $table) {
+                $table->id();
+                $table->string('key')->unique();
+                $table->json('value');
+                $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+                $table->timestamps();
+            });
+        }
 
-        Schema::create('sequences', function (Blueprint $table) {
-            $table->id();
-            $table->string('scope');
-            $table->string('bucket');
-            $table->unsignedInteger('current_value')->default(0);
-            $table->unique(['scope', 'bucket']);
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('sequences')) {
+            Schema::create('sequences', function (Blueprint $table) {
+                $table->id();
+                $table->string('scope');
+                $table->string('bucket');
+                $table->unsignedInteger('current_value')->default(0);
+                $table->unique(['scope', 'bucket']);
+                $table->timestamps();
+            });
+        }
 
-        Schema::create('document_templates', function (Blueprint $table) {
-            $table->id();
-            $table->string('code')->unique();
-            $table->string('name');
-            $table->string('storage_path');
-            $table->json('meta')->nullable();
-            $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('document_templates')) {
+            Schema::create('document_templates', function (Blueprint $table) {
+                $table->id();
+                $table->string('code')->unique();
+                $table->string('name');
+                $table->string('storage_path');
+                $table->json('meta')->nullable();
+                $table->foreignId('updated_by')->nullable()->constrained('users')->nullOnDelete();
+                $table->timestamps();
+            });
+        }
 
-        Schema::create('audit_logs', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('actor_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->string('action');
-            $table->string('target')->nullable();
-            $table->json('before')->nullable();
-            $table->json('after')->nullable();
-            $table->json('context')->nullable();
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('audit_logs')) {
+            Schema::create('audit_logs', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('actor_id')->nullable()->constrained('users')->nullOnDelete();
+                $table->string('action');
+                $table->string('target')->nullable();
+                $table->json('before')->nullable();
+                $table->json('after')->nullable();
+                $table->json('context')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     public function down(): void
