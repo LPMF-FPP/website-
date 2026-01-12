@@ -24,12 +24,74 @@
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 | [dokpol-style/README.md](./dokpol-style/README.md)         | Design system documentation             |
 
-**Current Version:** v1.4.1 (12 Januari 2026)  
-**Latest Feature:** Renaming flow Pengujian/Kaji Ulang Permintaan + review enhancements
+**Current Version:** v1.4.3 (12 Januari 2026)  
+**Latest Feature:** Form Stepper Redesign
 
 ---
 
-## 📰 Recent Changes (v1.3.x)
+## 📰 Recent Changes (v1.4.x)
+
+### v1.4.3 (12 Januari 2026) - Form Stepper Redesign
+
+```
+Updated on 2026-01-12
+```
+
+**🎨 UI Overhaul:**
+
+- **Modern Aesthetic:** Added glassmorphism (`backdrop-blur-md`), refined shadows, and smoother transitions.
+- **Improved Interaction:**
+    - **Active Step:** Highlighted with a primary ring and scaling effect.
+    - **Completed Step:** Filled primary color with checkmark.
+    - **Progress Bar:** Smoother filling animation with `transition-all duration-500`.
+- **Responsive Design:**
+    - Optimized for mobile with cleaner layout.
+    - Sticky header ensures visibility on long forms.
+    - Adjusted z-index and spacing for better layering.
+
+**📁 Files Updated:**
+
+- `resources/views/components/form-stepper.blade.php`
+
+### v1.4.2 (12 Januari 2026) - Stylelint & CSS Audit Fixes
+
+```
+Updated on 2026-01-12
+```
+
+**🎨 Stylelint Configuration Update:**
+
+- Updated `.stylelintrc.cjs` to move `report-*` options to root level
+- Added `scss/at-rule-no-unknown` rule to support Tailwind directives (`@tailwind`, `@apply`, etc.)
+
+**🧹 CSS Codebase Cleanup:**
+
+- **Standardization:**
+    - Converted all color functions to modern syntax (`rgb(r g b / a)`)
+    - Enforced lowercase keywords for font names (`BlinkMacSystemFont` → `blinkmacsystemfont`)
+    - Converted named colors (`white`, `black`) to hex (`#fff`, `#000`)
+    - Fixed import notation (`url('./...')`) across all files
+
+- **Formatting & Syntax:**
+    - Fixed syntax error in `resources/css/fonts.css` (media query blocks)
+    - Enforced empty lines between rules and comments
+    - Fixed alpha value notation (`.5` → `50%`)
+    - Updated media queries to range context notation (`width >= 640px`)
+
+- **Accessibility & Specificity:**
+    - Reduced selector specificity in dark mode overrides
+    - Fixed universal selector usage in `a11y.css` for reduced motion
+    - Ensured WCAG compliance in color definitions
+
+**📁 Files Updated:**
+
+- `.stylelintrc.cjs`
+- `resources/css/app.css`
+- `resources/css/fonts.css`
+- `resources/css/icons.css`
+- `resources/css/theme-dark.css`
+- `resources/css/theme-semantic.css`
+- `public/styles/a11y.css`
 
 ### v1.4.1 (12 Januari 2026) - Kaji Ulang Permintaan & Pengujian Flow Update
 
