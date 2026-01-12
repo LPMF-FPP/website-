@@ -24,12 +24,45 @@
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 | [dokpol-style/README.md](./dokpol-style/README.md)         | Design system documentation             |
 
-**Current Version:** v1.4.0 (11 Januari 2026)  
-**Latest Feature:** WhatsApp Bot Command `/resi` Implementation
+**Current Version:** v1.4.1 (12 Januari 2026)  
+**Latest Feature:** Renaming flow Pengujian/Kaji Ulang Permintaan + review enhancements
 
 ---
 
 ## 📰 Recent Changes (v1.3.x)
+
+### v1.4.1 (12 Januari 2026) - Kaji Ulang Permintaan & Pengujian Flow Update
+
+```
+Updated on 2026-01-12
+```
+
+**🔁 Renaming Tahapan:**
+
+- **Pengujian** → **Kaji Ulang Permintaan** (tahap review hasil permintaan)
+- **Proses** → **Pengujian** (tahap eksekusi uji lab)
+
+**🧪 Review Flow Locking & Seleksi Tambahan:**
+
+- Metode uji yang diminta saat submit sekarang **terkunci** saat review
+- Reviewer masih bisa **menambahkan** metode uji tambahan tanpa mengubah request awal
+
+**❌ Rejection Flow Enhancements:**
+
+- Penolakan permintaan kini wajib menyertakan **alasan penolakan**
+- Notifikasi WhatsApp mengirim template **REQUEST_REJECTED** ke pemohon
+
+**🔀 Legacy Route Redirects:**
+
+- Rute lama dialihkan ke rute baru agar link lama tetap valid
+
+**✅ Test Suite Update:**
+
+- Test diperbarui agar sesuai rute baru dan rejection flow terbaru
+
+**🐛 Bug Fixes:**
+
+- Fixed 500 error in Review Form (`syntax error, unexpected token "endforeach"`). Single-line `@php` directives were confusing the Blade compiler.
 
 ### v1.4.0 (11 Januari 2026) - WhatsApp Bot Command `/resi` Implementation
 
@@ -110,18 +143,23 @@ Configuration successfully completed on 11 Jan 2026:
 
 **GOWA Settings:**
 
-- Webhook URL: `http://host.docker.internal:8000/api/whatsapp/webhook`
+- Webhook URL: `http://172.17.0.1:8000/api/whatsapp/webhook`
 - Webhook Secret: `l6yrhLD9zRE5x0aJbDmT72xg86nwMpY8EhWTzRkPdLg=`
 - Events: `message` only
 - SSL Verification: Enabled ✅
 
-**Docker Networking:**
+**Payload Format Fix:**
 
-- GOWA runs in Docker container (port 3000)
-- Laravel runs on host machine (0.0.0.0:8000)
-- Communication via `host.docker.internal`
+- Payload dari GOWA dinormalisasi ke format yang diharapkan handler webhook
+- Parsing pesan & command tidak lagi gagal karena mismatch struktur payload
 
-**Status:** 🟢 FULLY OPERATIONAL
+**Docker Networking Update:**
+
+- GOWA berjalan di Docker container (port 3000)
+- Laravel berjalan di host machine (0.0.0.0:8000)
+- Akses host dari container via `172.17.0.1` (bridge gateway)
+
+**Status:** 🟢 WEBHOOK OPERASIONAL (event masuk & parsing perintah stabil)
 
 ---
 

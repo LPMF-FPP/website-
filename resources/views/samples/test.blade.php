@@ -1,13 +1,15 @@
 <x-app-layout>
     @if(!isset($firstSampleId))
-    @php($firstSampleId = optional($selectedRequest?->samples->first())->id)
-@endif
+        @php
+            $firstSampleId = optional($selectedRequest?->samples->first())->id;
+        @endphp
+    @endif
 
 
     <x-slot name="header">
         <x-page-header
-            title="Form Pengujian Sampel"
-            :breadcrumbs="[[ 'label' => 'Permintaan', 'href' => route('requests.index') ], [ 'label' => 'Pengujian' ]]"
+            title="Form Kaji Ulang Permintaan"
+            :breadcrumbs="[[ 'label' => 'Permintaan', 'href' => route('requests.index') ], [ 'label' => 'Kaji Ulang Permintaan' ]]"
         />
     </x-slot>
 
@@ -17,13 +19,13 @@
                class="inline-flex items-center rounded-md border border-transparent bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm transition hover:text-primary-700">
                 Daftar Permintaan
             </a>
-            <a href="{{ route('samples.test.create') }}"
+            <a href="{{ route('review.create') }}"
                class="inline-flex items-center rounded-md border border-primary-600 bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700">
-                Pengujian Sampel
+                Kaji Ulang Permintaan
             </a>
-            <a href="{{ route('process.index') }}"
+            <a href="{{ route('testing.index') }}"
                class="inline-flex items-center rounded-md border border-transparent bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm transition hover:text-primary-700">
-                Proses Pengujian
+                Pengujian
             </a>
             <a href="{{ route('delivery.index') }}"
                class="inline-flex items-center rounded-md border border-transparent bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm transition hover:text-primary-700">
@@ -49,10 +51,12 @@
                     </div>
                 @endif
 
-                @php($selectedId = old('request_id', $selectedRequestId))
-                @php($firstSampleId = optional($selectedRequest?->samples->first())->id)
+                @php
+                    $selectedId = old('request_id', $selectedRequestId);
+                    $firstSampleId = optional($selectedRequest?->samples->first())->id;
+                @endphp
 
-                <form action="{{ route('samples.test.store') }}" method="POST" class="space-y-6">
+                <form action="{{ route('review.store') }}" method="POST" class="space-y-6">
                     @csrf
 
                     <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -77,7 +81,9 @@
                     </div>
 
                     @if($selectedRequest)
-                        @php($requestSamples = $selectedRequest->samples)
+                        @php
+                            $requestSamples = $selectedRequest->samples;
+                        @endphp
                         @if($requestSamples->isEmpty())
                             <div class="rounded border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
                                 Tidak ada sampel yang terdaftar pada permintaan ini.
@@ -85,9 +91,33 @@
                         @else
                             <div class="space-y-6">
                                 @foreach($requestSamples as $sample)
-                                    @php($sampleIndex = $loop->index)
-                                    @php($selectedMethods = collect(old("samples.$sampleIndex.test_methods", $sample->test_methods ?? []))->filter()->all())
-                                    @php($selectedOtherCategory = old("samples.$sampleIndex.other_sample_category", $sample->other_sample_category))
+                                    @php
+                                        $sampleIndex = $loop->index;
+                                        $selectedMethodsRaw = old("samples.$sampleIndex.test_methods", $sample->test_methods ?? []);
+                                    @endphp
+                                    @php
+                                        if (is_string($selectedMethodsRaw)) {
+                                            $selectedMethods = json_decode($selectedMethodsRaw, true) ?? [];
+                                        } else {
+                                            $selectedMethods = $selectedMethodsRaw ?? [];
+                                        }
+                                        if (!is_array($selectedMethods)) {
+                                            $selectedMethods = [];
+                                        }
+
+                                        $requestedMethodsRaw = $sample->requested_test_methods;
+                                        if (is_string($requestedMethodsRaw)) {
+                                            $requestedMethods = json_decode($requestedMethodsRaw, true) ?? [];
+                                        } else {
+                                            $requestedMethods = $requestedMethodsRaw ?? $sample->test_methods ?? [];
+                                        }
+                                        if (!is_array($requestedMethods)) {
+                                            $requestedMethods = [];
+                                        }
+                                    @endphp
+                                    @php
+                                        $selectedOtherCategory = old("samples.$sampleIndex.other_sample_category", $sample->other_sample_category);
+                                    @endphp
                                     <div class="rounded-lg border border-gray-200 p-5 shadow-sm">
                                         <div class="flex flex-col gap-2 border-b border-gray-100 pb-3 md:flex-row md:items-center md:justify-between">
                                             <div>
@@ -121,10 +151,14 @@
                                                         Belum ada data analis yang tersedia. Silakan tambah pengguna dengan peran analis terlebih dahulu.
                                                     </p>
                                                 @else
-                                                    @php($selectedAnalystId = (int) old("samples.$sampleIndex.assigned_analyst_id", $sample->assigned_analyst_id))
+                                                    @php
+                                                        $selectedAnalystId = (int) old("samples.$sampleIndex.assigned_analyst_id", $sample->assigned_analyst_id);
+                                                    @endphp
                                                     <div class="mt-3 grid gap-3 sm:grid-cols-2">
                                                         @foreach($analysts as $analyst)
-                                                            @php($inputId = 'sample-' . $sample->id . '-analyst-' . $analyst->id)
+                                                            @php
+                                                                $inputId = 'sample-' . $sample->id . '-analyst-' . $analyst->id;
+                                                            @endphp
                                                             <label for="{{ $inputId }}" class="relative block cursor-pointer">
                                                                 <input type="radio"
                                                                     id="{{ $inputId }}"
@@ -155,14 +189,22 @@
                                                 <label class="block text-sm font-medium text-gray-700">Metode Pengujian</label>
                                                 <div class="mt-2 flex flex-wrap gap-3">
                                                     @foreach($methodOptions as $methodKey => $methodLabel)
+                                                        @php
+                                                            $isRequested = in_array($methodKey, $requestedMethods);
+                                                            $isChecked = ($isRequested || in_array($methodKey, $selectedMethods, true));
+                                                        @endphp
                                                         <label class="inline-flex items-center gap-2 text-sm text-gray-700">
                                                             <input type="checkbox"
                                                                 name="samples[{{ $sampleIndex }}][test_methods][]"
                                                                 value="{{ $methodKey }}"
-                                                                @checked(in_array($methodKey, $selectedMethods, true))
-                                                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                                                                {{ $isChecked ? 'checked' : '' }}
+                                                                {{ $isRequested ? 'disabled' : '' }}
+                                                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 {{ $isRequested ? 'bg-gray-100 cursor-not-allowed' : '' }}">
                                                             {{ $methodLabel }}
                                                         </label>
+                                                        @if($isRequested)
+                                                            <input type="hidden" name="samples[{{ $sampleIndex }}][test_methods][]" value="{{ $methodKey }}">
+                                                        @endif
                                                     @endforeach
                                                 </div>
                                             </div>
@@ -284,23 +326,45 @@
                             class="inline-flex items-center rounded-md px-6 py-2 text-sm font-semibold text-white shadow-sm transition focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 {{ $selectedRequest ? 'bg-primary-600 hover:bg-primary-700' : 'bg-primary-600/60 cursor-not-allowed' }}"
                             aria-disabled="{{ $selectedRequest ? 'false' : 'true' }}"
                             {{ $selectedRequest ? '' : 'disabled' }}>
-                            Simpan Pengujian
+                            Simpan Kaji Ulang
                         </button>
                     </div>
                 </form>
+
+                @if($selectedRequest)
+                <div class="mt-8 border-t pt-6">
+                    <h3 class="text-lg font-medium text-red-600">Tolak Permintaan</h3>
+                    <p class="text-sm text-gray-500 mb-4">Jika permintaan tidak memenuhi syarat, Anda dapat menolaknya. Aksi ini tidak dapat dibatalkan.</p>
+                    <form action="{{ route('review.reject', $selectedRequest->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin menolak permintaan ini?');">
+                        @csrf
+                        <div class="space-y-4">
+                            <div>
+                                <label for="rejection_reason" class="block text-sm font-medium text-gray-700">Alasan Penolakan</label>
+                                <textarea id="rejection_reason" name="rejection_reason" rows="3" required
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500"
+                                    placeholder="Jelaskan alasan penolakan..."></textarea>
+                            </div>
+                            <button type="submit" class="inline-flex items-center justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:w-auto">
+                                Tolak Permintaan
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                @endif
             </div>
         </div>
     </div>
 
     @push('scripts')
         <script>
+            const reviewBaseUrl = "{{ url('/kaji-ulang-permintaan') }}";
             document.getElementById('request_id').addEventListener('change', function () {
                 const value = this.value;
                 if (!value) {
-                    window.location.href = '{{ url('/samples/test') }}';
+                    window.location.href = reviewBaseUrl;
                     return;
                 }
-                const url = new URL('{{ url('/samples/test') }}', window.location.origin);
+                const url = new URL(reviewBaseUrl, window.location.origin);
                 url.searchParams.set('request_id', value);
                 window.location.href = url.toString();
             });
