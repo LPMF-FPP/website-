@@ -34,7 +34,7 @@ class TestRequestFactory extends Factory
             'case_description' => fake()->paragraph(),
             'incident_date' => fake()->dateTimeBetween('-1 year', 'now'),
             'incident_location' => fake()->address(),
-            'status' => fake()->randomElement(['submitted', 'verified', 'received', 'in_testing', 'analysis', 'quality_check', 'ready_for_delivery', 'completed']),
+            'status' => fake()->randomElement(['submitted', 'verified', 'received', 'in_testing', 'analysis', 'quality_check', 'ready_for_delivery', 'completed', 'rejected']),
             'official_letter_path' => null,
             'evidence_photo_path' => null,
             'submitted_at' => $submittedAt,

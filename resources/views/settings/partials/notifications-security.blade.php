@@ -171,7 +171,7 @@
                         <div>
                             <label class="block text-xs font-medium text-gray-600 mb-2">Template Pesan</label>
                             <p class="text-xs text-gray-500 mb-3">
-                                Gunakan <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{greeting}</code> untuk sapaan dinamis dan <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{resi}</code> untuk nomor resi.
+                                Gunakan <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{greeting}</code>, <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{resi}</code>, dan <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{reason}</code> (khusus penolakan) untuk template pesan.
                             </p>
                             
                             <div class="space-y-4">

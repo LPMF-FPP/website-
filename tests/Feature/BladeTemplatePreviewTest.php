@@ -194,6 +194,34 @@ BLADE;
         $this->assertStringContainsString('MDMA', $html);
     }
 
+    public function test_preview_includes_required_variables_for_label_evidence(): void
+    {
+        $template = <<<'BLADE'
+<html>
+<body>
+    @foreach($labels as $label)
+        <p>{{ $label['resi'] }}</p>
+        <p>{{ $label['kode_sampel'] }}</p>
+        <p>{{ $label['deskripsi_singkat'] }}</p>
+        <p>{{ $label['penyidik'] }}</p>
+    @endforeach
+</body>
+</html>
+BLADE;
+
+        $response = $this->postJson('/api/settings/blade-templates/label-barang-bukti-sheet/preview', [
+            'content' => $template,
+        ]);
+
+        $response->assertStatus(200);
+        $html = $response->json('html');
+
+        $this->assertStringContainsString('RESI-2025-0001', $html);
+        $this->assertStringContainsString('BB-2025-001', $html);
+        $this->assertStringContainsString('Tablet warna putih logo X', $html);
+        $this->assertStringContainsString('IPDA Budi Santoso', $html);
+    }
+
     public function test_preview_requires_authentication(): void
     {
         auth()->logout();

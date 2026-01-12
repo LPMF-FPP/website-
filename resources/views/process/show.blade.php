@@ -1,8 +1,8 @@
 <x-app-layout>
     <x-slot name="header">
         <x-page-header
-            title="Detail Proses"
-            :breadcrumbs="[[ 'label' => 'Pengujian', 'href' => route('samples.test.create') ], [ 'label' => 'Proses', 'href' => route('process.index') ], [ 'label' => ($testRequest->receipt_number ?? $testRequest->request_number) ]]"
+            title="Detail Pengujian"
+            :breadcrumbs="[[ 'label' => 'Kaji Ulang Permintaan', 'href' => route('review.create') ], [ 'label' => 'Pengujian', 'href' => route('testing.index') ], [ 'label' => ($testRequest->receipt_number ?? $testRequest->request_number) ]]"
         />
     </x-slot>
 
@@ -46,7 +46,7 @@
             </div>
             <div class="flex gap-2">
                 @if($readyForDelivery)
-                    <form action="{{ route('process.ready-for-delivery', $testRequest) }}" method="POST">
+                    <form action="{{ route('testing.ready-for-delivery', $testRequest) }}" method="POST">
                         @csrf
                         <button type="submit" class="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700">
                             <x-icon name="truck" size="sm" :decorative="true" />
@@ -55,7 +55,7 @@
                     </form>
                 @endif
                 <a
-                    href="{{ route('process.processes.create', ['request_id' => $testRequest->id]) }}"
+                    href="{{ route('testing.processes.create', ['request_id' => $testRequest->id]) }}"
                     class="inline-flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700">
                     <x-icon name="plus" size="sm" :decorative="true" />
                     Tambah Proses
@@ -88,7 +88,7 @@
         </div>
 
         <div class="rounded-lg bg-white p-6 shadow-sm space-y-4">
-            <form method="GET" action="{{ route('process.show', $testRequest) }}" class="flex flex-wrap items-end gap-3">
+            <form method="GET" action="{{ route('testing.show', $testRequest) }}" class="flex flex-wrap items-end gap-3">
                 <div>
                     <label for="filter_stage" class="block text-xs font-semibold uppercase tracking-wide text-gray-500">Tahapan</label>
                     <select id="filter_stage" name="stage" class="mt-1 block w-48 rounded-md border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500">
@@ -169,7 +169,7 @@
                                     <div class="inline-flex overflow-hidden rounded-md border border-gray-200 shadow-sm">
                                         @if($sample->current_process)
                                             <a
-                                                href="{{ route('process.processes.show', $sample->current_process) }}"
+                                                href="{{ route('testing.processes.show', $sample->current_process) }}"
                                                 class="inline-flex items-center px-3 py-2 text-sm font-semibold text-primary-700 hover:bg-primary-50">
                                                 Lihat
                                             </a>

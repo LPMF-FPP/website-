@@ -31,6 +31,63 @@
 
 ## 📰 Recent Changes (v1.4.x)
 
+### v1.4.8 (12 Januari 2026) - UI Revamp: Clinical Precision Theme
+
+```
+Updated on 2026-01-12
+```
+
+**🎨 UI Redesign:**
+
+- **Theme Concept:** Implemented "Clinical Precision" design language focusing on sterility, accuracy, and professionalism suitable for medical/police context.
+- **Visual Changes:**
+    - **Tighter Radius:** Reduced global border radius from `10px` to `4px` (`--pd-radius-md`) for a sharper, more technical look.
+    - **Flat Aesthetics:** Removed default shadows (`--pd-shadow-sm`) to reduce visual noise.
+    - **Solid Header:** Replaced glassmorphism (`backdrop-blur`) with solid white/dark backgrounds for better contrast and "paper-like" feel.
+- **Logo Treatment:**
+    - Added vertical divider between logo and text in navigation bar.
+    - Optimized spacing using `gap` instead of `space-x`.
+
+**📁 Files Updated:**
+
+- `styles/pd-safe-layers.css` (CSS Variables)
+- `resources/views/layouts/navigation.blade.php` (Logo structure)
+- `resources/views/layouts/app.blade.php` (Header style)
+
+### v1.4.7 (12 Januari 2026) - Dynamic Instrument Auto-Selection (Refined)
+
+```
+Updated on 2026-01-12
+```
+
+**✨ Enhancement:**
+
+- **Refined Auto-Selection:** The interpretation form now automatically selects the _suggested_ instrument based on the sample's requested test method (e.g., UV-VIS requests auto-select "UV-VIS Spectrophotometer").
+- **Full Flexibility:** Unlike the previous iteration, this update **keeps all instrument options available** in the dropdown. Users can still manually change the instrument if needed, but the default selection is now smarter.
+- **Improved Workflow:** Solves the "interconnected process" confusion by providing intelligent defaults while maintaining full control for the analyst.
+
+**📁 Files Updated:**
+
+- `app/Http/Controllers/SampleTestProcessController.php`
+- `resources/views/sample-processes/edit.blade.php`
+
+### v1.4.6 (12 Januari 2026) - Template Preview Data Fix
+
+```
+Updated on 2026-01-12
+```
+
+**🐛 Bug Fixes:**
+
+- **Fixed Undefined Array Key in Preview:** Resolved `Undefined array key "deskripsi_singkat"` error when previewing Evidence Label templates (`evidence-sheet.blade.php` and `evidence-single.blade.php`).
+- **Data Consistency:** Updated `TemplatePreviewData.php` to include `deskripsi_singkat` in both real and dummy data generators, ensuring compatibility with the view templates.
+- **Regression Testing:** Added a new test case `test_preview_includes_required_variables_for_label_evidence` to prevent future regressions.
+
+**📁 Files Updated:**
+
+- `app/Support/TemplatePreviewData.php`
+- `tests/Feature/BladeTemplatePreviewTest.php`
+
 ### v1.4.5 (12 Januari 2026) - Form Stepper Scroll Tracking Fix
 
 ```

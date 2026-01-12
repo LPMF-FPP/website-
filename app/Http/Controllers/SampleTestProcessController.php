@@ -186,7 +186,7 @@ class SampleTestProcessController extends Controller
         ]);
 
         return redirect()
-            ->route('process.processes.show', $sampleProcess)
+            ->route('testing.processes.show', $sampleProcess)
             ->with('success', 'Proses pengujian berhasil dibuat.');
     }
 
@@ -314,6 +314,34 @@ class SampleTestProcessController extends Controller
             ? asset('storage/'.ltrim($attachmentPath, '/'))
             : null;
 
+        // Map test methods to instrument names
+        $methodToInstrumentMap = [
+            'uv_vis' => 'UV-VIS Spectrophotometer',
+            'gc_ms' => 'GC-MS (Gas Chromatography-Mass Spectrometry)',
+            'lc_ms' => 'LC-MS (Liquid Chromatography-Mass Spectrometry)',
+        ];
+
+        // Define ALL available instrument options (User wants to be able to choose others)
+        $instrumentOptions = [
+            'UV-VIS Spectrophotometer' => 'UV-VIS Spectrophotometer',
+            'GC-MS (Gas Chromatography-Mass Spectrometry)' => 'GC-MS (Gas Chromatography-Mass Spectrometry)',
+            'LC-MS (Liquid Chromatography-Mass Spectrometry)' => 'LC-MS (Liquid Chromatography-Mass Spectrometry)',
+        ];
+
+        // Determine suggested instrument based on requested test methods
+        $sampleTestMethods = $sampleProcess->sample->test_methods ?? [];
+        if (is_string($sampleTestMethods)) {
+            $sampleTestMethods = json_decode($sampleTestMethods, true) ?? [];
+        }
+
+        $suggestedInstrument = null;
+        foreach ($sampleTestMethods as $method) {
+            if (isset($methodToInstrumentMap[$method])) {
+                $suggestedInstrument = $methodToInstrumentMap[$method];
+                break; // Take the first match as default
+            }
+        }
+
         // Secondary (optional) interpretation for multi-instrument cases
         $multi = (isset($metadata['multi_interpretations']) && is_array($metadata['multi_interpretations']))
             ? $metadata['multi_interpretations']
@@ -347,6 +375,8 @@ class SampleTestProcessController extends Controller
             'secondaryResultAttachmentPath' => $secondaryAttachmentPath,
             'secondaryResultAttachmentOriginal' => $secondaryAttachmentOriginal,
             'secondaryResultAttachmentUrl' => $secondaryAttachmentUrl,
+            'instrumentOptions' => $instrumentOptions,
+            'suggestedInstrument' => $suggestedInstrument,
         ]);
     }
 
@@ -559,7 +589,7 @@ class SampleTestProcessController extends Controller
         ]);
 
         return redirect()
-            ->route('process.processes.show', $sampleProcess)
+            ->route('testing.processes.show', $sampleProcess)
             ->with('success', 'Proses pengujian berhasil diperbarui.');
     }
 
@@ -824,8 +854,8 @@ class SampleTestProcessController extends Controller
         $sampleProcess->delete();
 
         $redirect = $testRequest
-            ? redirect()->route('process.show', $testRequest)
-            : redirect()->route('process.index');
+            ? redirect()->route('testing.show', $testRequest)
+            : redirect()->route('testing.index');
 
         return $redirect
             ->with('success', 'Proses pengujian berhasil dihapus.');

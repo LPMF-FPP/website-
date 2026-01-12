@@ -247,6 +247,7 @@ export function registerSettingsComponent() {
                     key: "REVIEW_DONE_READY_FOR_TEST",
                     label: "Kajian Selesai, Siap Uji",
                 },
+                { key: "REQUEST_REJECTED", label: "Permintaan Ditolak" },
                 { key: "PREPARATION_DONE", label: "Preparasi Selesai" },
                 {
                     key: "INSTRUMENTATION_DONE",

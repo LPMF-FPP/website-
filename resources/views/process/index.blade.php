@@ -2,7 +2,7 @@
     <x-slot name="header">
         <x-page-header
             title="Pilih Nomor Resi"
-            :breadcrumbs="[[ 'label' => 'Pengujian', 'href' => route('samples.test.create') ], [ 'label' => 'Proses' ]]"
+            :breadcrumbs="[[ 'label' => 'Kaji Ulang Permintaan', 'href' => route('review.create') ], [ 'label' => 'Pengujian' ]]"
         />
     </x-slot>
 
@@ -11,10 +11,10 @@
             <div class="flex flex-col gap-4">
                 <div>
                     <h3 class="text-base font-semibold text-primary-900">Cari nomor resi</h3>
-                    <p class="mt-1 text-sm text-gray-500">Masukkan nomor resi atau filter lain untuk menemukan permintaan.</p>
+                    <p class="mt-1 text-sm text-gray-500">Masukkan nomor resi atau filter lain untuk menemukan permintaan yang siap diuji.</p>
                 </div>
 
-                <form method="GET" action="{{ route('process.index') }}" class="flex flex-wrap items-center gap-3">
+                <form method="GET" action="{{ route('testing.index') }}" class="flex flex-wrap items-center gap-3">
                     <div class="min-w-[160px]">
                         <label for="scope" class="sr-only">Filter pencarian</label>
                         <select
@@ -70,7 +70,7 @@
                             @endphp
                             <li>
                                 <a
-                                    href="{{ route('process.show', $request) }}"
+                                    href="{{ route('testing.show', $request) }}"
                                     class="flex flex-wrap items-center justify-between gap-4 py-4 transition hover:bg-gray-50/70">
                                     <div>
                                         <div class="text-base font-semibold text-primary-900">

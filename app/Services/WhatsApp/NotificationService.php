@@ -10,6 +10,7 @@ class NotificationService
     private const MILESTONE_TEMPLATES = [
         'REQUEST_RECEIVED' => 'Permintaan Anda telah diterima. Resi: {resi}.',
         'REVIEW_DONE_READY_FOR_TEST' => 'Permintaan {resi} telah selesai dikaji ulang dan siap dilakukan pengujian.',
+        'REQUEST_REJECTED' => '{greeting}, permintaan {resi} ditolak setelah kaji ulang. Alasan: {reason}.',
         'PREPARATION_DONE' => 'Permintaan {resi} telah selesai dipreparasi sampel.',
         'INSTRUMENTATION_DONE' => 'Permintaan {resi} telah selesai diuji instrumen.',
         'INTERPRETATION_DONE' => 'Permintaan {resi} telah selesai dilakukan interpretasi hasil.',

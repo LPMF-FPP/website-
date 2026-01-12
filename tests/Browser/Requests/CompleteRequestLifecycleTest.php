@@ -97,12 +97,8 @@ class CompleteRequestLifecycleTest extends DuskTestCase
 
         $this->browse(function (Browser $browser) use ($user, $request) {
             $browser->loginAs($user)
-                ->visit("/samples/test?request_id={$request->id}")
-                ->assertSee('Sample Testing')
-                ->type('test_method', 'Chromatography')
-                ->type('test_result', 'Positive')
-                ->press('Save Test Results')
-                ->assertSee('Test results saved');
+                ->visit("/kaji-ulang-permintaan?request_id={$request->id}")
+                ->assertSee('Form Kaji Ulang Permintaan');
         });
     }
 

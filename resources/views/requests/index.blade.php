@@ -82,14 +82,14 @@
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             @php($firstSampleId = optional($request->samples->first())->id)
                                             <div class="flex flex-wrap gap-2">
-                                                <a href="{{ route('samples.test.create', ['request_id' => $request->id]) }}"
+                                                <a href="{{ route('review.create', ['request_id' => $request->id]) }}"
                                                    class="inline-flex items-center rounded-lg border border-primary-600 px-3 py-1 text-sm font-semibold text-primary-600 transition hover:bg-primary-50">
-                                                    Pengujian
+                                                    Kaji Ulang
                                                 </a>
                                                 @if($firstSampleId)
-                                                    <a href="{{ route('process.show', $request) }}"
+                                                    <a href="{{ route('testing.show', $request) }}"
                                                        class="inline-flex items-center rounded-lg border border-primary-200 px-3 py-1 text-sm font-semibold text-primary-700 transition hover:border-primary-500 hover:text-primary-600">
-                                                        Proses
+                                                        Pengujian
                                                     </a>
                                                 @endif
                                                 @if($request->status === 'ready_for_delivery')

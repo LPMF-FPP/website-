@@ -5,10 +5,10 @@
 
     <div class="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-6">
         <div class="flex items-center justify-between">
-        <a href="{{ route('process.processes.show', ['sample_process' => $process->id]) }}"
+        <a href="{{ route('testing.processes.show', ['sample_process' => $process->id]) }}"
             class="inline-flex items-center text-sm font-semibold text-primary-700 hover:text-primary-800">&larr; Kembali ke detail</a>
 
-            <form method="POST" action="{{ route('process.processes.destroy', ['sample_process' => $process->id]) }}" x-data>
+            <form method="POST" action="{{ route('testing.processes.destroy', ['sample_process' => $process->id]) }}" x-data>
                 @csrf
                 @method('DELETE')
                 <button type="button" 
@@ -31,7 +31,7 @@
                     @endif
                 </div>
             </div>
-            <form method="POST" action="{{ route('process.processes.update', ['sample_process' => $process->id]) }}" class="space-y-6" enctype="multipart/form-data">
+            <form method="POST" action="{{ route('testing.processes.update', ['sample_process' => $process->id]) }}" class="space-y-6" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
 
@@ -52,11 +52,10 @@
                             <label class="block text-xs font-semibold uppercase tracking-wide text-gray-700">Instrumen Pengujian yang Digunakan <span class="text-red-500">*</span></label>
                             @php
                                 $currentInstrument = old('instrument', $currentInstrument ?? null);
-                                $instrumentOptions = [
-                                    'UV-VIS Spectrophotometer' => 'UV-VIS Spectrophotometer',
-                                    'GC-MS (Gas Chromatography-Mass Spectrometry)' => 'GC-MS (Gas Chromatography-Mass Spectrometry)',
-                                    'LC-MS (Liquid Chromatography-Mass Spectrometry)' => 'LC-MS (Liquid Chromatography-Mass Spectrometry)',
-                                ];
+                                // Use suggested instrument if no current selection
+                                if (empty($currentInstrument) && !empty($suggestedInstrument)) {
+                                    $currentInstrument = $suggestedInstrument;
+                                }
                             @endphp
                             <select name="instrument"
                                 class="mt-2 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500">
@@ -152,11 +151,7 @@
                             <label class="block text-xs font-semibold uppercase tracking-wide text-gray-700">Instrumen Pengujian</label>
                             @php
                                 $currentInstrument2 = old('instrument_2', $secondaryInstrument ?? null);
-                                $instrumentOptions = [
-                                    'UV-VIS Spectrophotometer' => 'UV-VIS Spectrophotometer',
-                                    'GC-MS (Gas Chromatography-Mass Spectrometry)' => 'GC-MS (Gas Chromatography-Mass Spectrometry)',
-                                    'LC-MS (Liquid Chromatography-Mass Spectrometry)' => 'LC-MS (Liquid Chromatography-Mass Spectrometry)',
-                                ];
+                                // instrumentOptions passed from controller
                             @endphp
                             <select name="instrument_2"
                                 class="mt-2 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500">
@@ -453,7 +448,7 @@
                 @endif
 
                 <div class="flex justify-end gap-3">
-                    <a href="{{ route('process.processes.show', ['sample_process' => $process->id]) }}"
+                    <a href="{{ route('testing.processes.show', ['sample_process' => $process->id]) }}"
                         class="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-200 transition hover:text-primary-700">Batal</a>
                     <button type="submit"
                         class="inline-flex items-center rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700">Perbarui</button>

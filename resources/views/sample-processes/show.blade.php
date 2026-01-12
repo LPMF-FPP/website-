@@ -5,7 +5,7 @@
     <x-slot name="header">
         <x-page-header
             title="Detail Proses Pengujian"
-            :breadcrumbs="[[ 'label' => 'Proses', 'href' => route('process.index') ], [ 'label' => 'Detail' ]]"
+            :breadcrumbs="[[ 'label' => 'Pengujian', 'href' => route('testing.index') ], [ 'label' => 'Detail' ]]"
         />
     </x-slot>
 
@@ -53,7 +53,7 @@
 
         <div class="flex flex-wrap items-center justify-between gap-3">
 
-            <a href="{{ route('process.index') }}"
+            <a href="{{ route('testing.index') }}"
 
                 class="inline-flex items-center text-sm font-semibold text-primary-700 hover:text-primary-800">&larr; Kembali ke daftar</a>
 
@@ -72,13 +72,13 @@
                 @endphp
                 @if($stageVal === 'preparation')
                     <div class="flex gap-2">
-                        <a href="{{ route('process.processes.generate-form', ['sample_process' => $sampleProcess->id, 'stage' => 'preparation']) }}"
+                        <a href="{{ route('testing.processes.generate-form', ['sample_process' => $sampleProcess->id, 'stage' => 'preparation']) }}"
                            target="_blank"
                            class="inline-flex items-center gap-2 rounded-md bg-primary-50 px-3 py-2 text-sm font-semibold text-primary-700 ring-1 ring-inset ring-primary-200 hover:bg-primary-100">
                             <x-icon name="document" class="h-4 w-4" aria-hidden="true" />
                             Lihat Formulir Preparasi
                         </a>
-                        <a href="{{ route('process.processes.generate-form', ['sample_process' => $sampleProcess->id, 'stage' => 'preparation']) }}?download=1"
+                        <a href="{{ route('testing.processes.generate-form', ['sample_process' => $sampleProcess->id, 'stage' => 'preparation']) }}?download=1"
                            class="inline-flex items-center gap-2 rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -87,25 +87,25 @@
                         </a>
                     </div>
                 @elseif($stageVal === 'instrumentation')
-                    <a href="{{ route('process.processes.generate-form', ['sample_process' => $sampleProcess->id, 'stage' => 'instrumentation']) }}"
+                    <a href="{{ route('testing.processes.generate-form', ['sample_process' => $sampleProcess->id, 'stage' => 'instrumentation']) }}"
                        class="inline-flex items-center gap-2 rounded-md bg-primary-50 px-3 py-2 text-sm font-semibold text-primary-700 ring-1 ring-inset ring-primary-200 hover:bg-primary-100">
                         <x-icon name="document" class="h-4 w-4" aria-hidden="true" />
                         Generate Formulir Pengujian Instrumen
                     </a>
                 @elseif($stageVal === 'interpretation')
-                    <a href="{{ route('process.processes.lab-report', $sampleProcess) }}" target="_blank"
+                    <a href="{{ route('testing.processes.lab-report', $sampleProcess) }}" target="_blank"
                        class="inline-flex items-center gap-2 rounded-md bg-primary-50 px-3 py-2 text-sm font-semibold text-primary-700 ring-1 ring-inset ring-primary-200 hover:bg-primary-100">
                         <x-icon name="document" class="h-4 w-4" aria-hidden="true" />
                         Lihat Laporan Hasil Uji
                     </a>
-                    <a href="{{ route('process.processes.lab-report', ['sample_process' => $sampleProcess, 'download' => 1]) }}"
+                    <a href="{{ route('testing.processes.lab-report', ['sample_process' => $sampleProcess, 'download' => 1]) }}"
                        class="inline-flex items-center gap-2 rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white hover:bg-primary-700">
                         <x-icon name="download" class="h-4 w-4" aria-hidden="true" />
                         Download Laporan
                     </a>
                 @endif
 
-                <a href="{{ route('process.processes.edit', ['sample_process' => $sampleProcess->id]) }}"
+                <a href="{{ route('testing.processes.edit', ['sample_process' => $sampleProcess->id]) }}"
                    class="inline-flex items-center rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700">Ubah Proses</a>
 
             </div>

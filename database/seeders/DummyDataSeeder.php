@@ -80,7 +80,7 @@ class DummyDataSeeder extends Seeder
             ['name' => 'Cairan Bening Diduga Ketamin', 'form' => 'liquid', 'category' => 'narkotika', 'color' => 'bening'],
         ];
 
-        $statuses = ['submitted', 'verified', 'received', 'in_testing', 'analysis', 'quality_check', 'ready_for_delivery', 'completed'];
+        $statuses = ['submitted', 'verified', 'received', 'in_testing', 'analysis', 'quality_check', 'ready_for_delivery', 'completed', 'rejected'];
         $packagingTypes = ['plastik klip', 'kertas', 'amplop', 'botol'];
 
         $baseNumber = TestRequest::max('id') ?? 0;
@@ -108,6 +108,9 @@ class DummyDataSeeder extends Seeder
                 'verified_at' => in_array($status, ['verified', 'received', 'in_testing', 'analysis', 'quality_check', 'ready_for_delivery', 'completed']) ? now()->subDays(rand(0, 10)) : null,
                 'received_at' => in_array($status, ['received', 'in_testing', 'analysis', 'quality_check', 'ready_for_delivery', 'completed']) ? now()->subDays(rand(0, 7)) : null,
                 'completed_at' => $status === 'completed' ? now() : null,
+                'rejected_at' => $status === 'rejected' ? now() : null,
+                'rejected_reason' => $status === 'rejected' ? 'Permintaan ditolak pada data dummy.' : null,
+                'rejected_by' => $status === 'rejected' ? $admin->id : null,
             ]);
 
             // Add 1-3 samples per request

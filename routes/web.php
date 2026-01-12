@@ -81,17 +81,30 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/requests/{testRequest}/berita-acara/view', [RequestController::class, 'viewBeritaAcara'])
         ->name('requests.berita-acara.view');
 
-    // Sample Testing
-    Route::prefix('samples')->group(function () {
-        Route::get('/test', [SampleTestController::class, 'create'])->name('samples.test.create');
-        Route::post('/test', [SampleTestController::class, 'store'])->name('samples.test.store');
-        Route::get('/test/{sampleDetail}', [SampleTestController::class, 'show'])->name('samples.test.show');
-        Route::get('/', function () {
-            return redirect()->route('samples.test.create');
-        })->name('samples.index');
+    // Kaji Ulang Permintaan (Review)
+    Route::prefix('kaji-ulang-permintaan')->name('review.')->group(function () {
+        Route::get('/', [SampleTestController::class, 'create'])->name('create');
+        Route::post('/', [SampleTestController::class, 'store'])->name('store');
+        Route::post('{testRequest}/reject', [SampleTestController::class, 'reject'])->name('reject');
+        Route::get('{sampleDetail}', [SampleTestController::class, 'show'])->name('show');
     });
 
-    Route::prefix('proses')->name('process.')->group(function () {
+    // Legacy Pengujian routes (redirect to review)
+    Route::prefix('samples')->group(function () {
+        Route::get('/test', function () {
+            return redirect()->route('review.create', request()->query());
+        });
+        Route::post('/test', [SampleTestController::class, 'store']);
+        Route::get('/test/{sampleDetail}', function ($sampleDetail) {
+            return redirect()->route('review.show', ['sampleDetail' => $sampleDetail] + request()->query());
+        });
+        Route::get('/', function () {
+            return redirect()->route('review.create', request()->query());
+        });
+    });
+
+    // Pengujian (Process)
+    Route::prefix('pengujian')->name('testing.')->group(function () {
         Route::get('/', [ProcessController::class, 'index'])->name('index');
 
         Route::prefix('processes')->name('processes.')->group(function () {
@@ -114,36 +127,46 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('{testRequest}', [ProcessController::class, 'show'])->name('show');
     });
 
+    // Legacy Proses routes (redirect to pengujian)
+    Route::prefix('proses')->group(function () {
+        Route::get('/', function () {
+            return redirect()->route('testing.index', request()->query());
+        });
+        Route::get('{testRequest}', function ($testRequest) {
+            return redirect()->route('testing.show', ['testRequest' => $testRequest] + request()->query());
+        });
+    });
+
     Route::prefix('sample-processes')->name('sample-processes.')->group(function () {
         Route::get('/', function () {
-            return redirect()->route('process.index', request()->query());
+            return redirect()->route('testing.index', request()->query());
         })->name('index');
 
         Route::get('create', function () {
-            return redirect()->route('process.processes.create', request()->query());
+            return redirect()->route('testing.processes.create', request()->query());
         })->name('create');
 
         Route::get('{sample_process}/form/{stage}', function ($sample_process, $stage) {
-            return redirect()->route('process.processes.generate-form', [
+            return redirect()->route('testing.processes.generate-form', [
                 'sample_process' => $sample_process,
                 'stage' => $stage,
             ] + request()->query());
         })->name('generate-form');
 
         Route::get('{sample_process}/lab-report', function ($sample_process) {
-            return redirect()->route('process.processes.lab-report', [
+            return redirect()->route('testing.processes.lab-report', [
                 'sample_process' => $sample_process,
             ] + request()->query());
         })->name('lab-report');
 
         Route::get('{sample_process}/edit', function ($sample_process) {
-            return redirect()->route('process.processes.edit', [
+            return redirect()->route('testing.processes.edit', [
                 'sample_process' => $sample_process,
             ] + request()->query());
         })->name('edit');
 
         Route::get('{sample_process}', function ($sample_process) {
-            return redirect()->route('process.processes.show', [
+            return redirect()->route('testing.processes.show', [
                 'sample_process' => $sample_process,
             ] + request()->query());
         })->name('show');

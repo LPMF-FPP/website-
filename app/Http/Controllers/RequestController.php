@@ -377,6 +377,7 @@ class RequestController extends Controller
                     'package_quantity' => (int) $sampleData['package_quantity'],
                     'unit' => $sampleData['unit'],
                     'test_methods' => json_encode(array_values($sampleData['test_types'])),
+                    'requested_test_methods' => json_encode(array_values($sampleData['test_types'])),
                     'active_substance' => $sampleData['active_substance'],
                     'condition' => 'baik',
                     'sample_status' => 'received',
@@ -415,8 +416,8 @@ class RequestController extends Controller
 
             DB::commit();
 
-            return redirect()->route('samples.test.create', ['request_id' => $testRequest->id])
-                ->with('success', 'Permintaan pengujian berhasil dibuat dengan nomor: '.$testRequest->request_number.'. Lanjutkan untuk mengisi data pengujian sampel.');
+            return redirect()->route('review.create', ['request_id' => $testRequest->id])
+                ->with('success', 'Permintaan pengujian berhasil dibuat dengan nomor: '.$testRequest->request_number.'. Lanjutkan ke kaji ulang permintaan.');
 
         } catch (\Exception $e) {
             DB::rollback();

@@ -58,6 +58,12 @@ class TestRequestObserver
             if ($testRequest->status === 'completed') {
                 $this->sendWhatsAppNotification($testRequest, 'HANDOVER_COMPLETED');
             }
+
+            if ($testRequest->status === 'rejected') {
+                $this->sendWhatsAppNotification($testRequest, 'REQUEST_REJECTED', [
+                    'reason' => $testRequest->rejected_reason ?? '-',
+                ]);
+            }
         }
 
         ActivityLogger::log(
@@ -101,7 +107,7 @@ class TestRequestObserver
         ];
     }
 
-    private function sendWhatsAppNotification(TestRequest $testRequest, string $milestone): void
+    private function sendWhatsAppNotification(TestRequest $testRequest, string $milestone, array $extraReplacements = []): void
     {
         if (!$this->notificationService->isWhatsAppEnabled()) {
             return;
@@ -125,10 +131,10 @@ class TestRequestObserver
 
         $jid = $this->notificationService->formatJID($phone);
         $greeting = $this->notificationService->getGreeting($testRequest->investigator);
-        $message = $this->notificationService->getMilestoneMessage($milestone, [
+        $message = $this->notificationService->getMilestoneMessage($milestone, array_merge([
             'resi' => $testRequest->receipt_number,
             'greeting' => $greeting,
-        ]);
+        ], $extraReplacements));
 
         if (!$message) {
             return;

@@ -23,7 +23,7 @@ class ProcessController extends Controller
         $scope = $request->query('scope', 'all');
 
         $query = TestRequest::with(['investigator'])
-            ->whereNotIn('status', ['ready_for_delivery', 'completed'])
+            ->whereNotIn('status', ['ready_for_delivery', 'completed', 'rejected'])
             ->orderByDesc('created_at');
 
         if ($search !== '') {
@@ -186,7 +186,7 @@ class ProcessController extends Controller
     {
         $this->touchRecent($testRequest, $request->user());
 
-        return redirect()->route('process.show', $testRequest);
+        return redirect()->route('testing.show', $testRequest);
     }
 
     public function markReadyForDelivery(TestRequest $testRequest): RedirectResponse
@@ -243,7 +243,7 @@ class ProcessController extends Controller
         ]);
 
         return redirect()
-            ->route('process.show', $testRequest)
+            ->route('testing.show', $testRequest)
             ->with('success', 'Proses berhasil ditambahkan.');
     }
 

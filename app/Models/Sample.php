@@ -47,6 +47,7 @@ class Sample extends Model
         'received_at',
         'sample_status',
         'test_methods',
+        'requested_test_methods',
         'active_substance',
         'testing_notes',
         'tested_by',

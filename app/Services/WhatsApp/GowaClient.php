@@ -10,12 +10,14 @@ class GowaClient
     private string $baseUrl;
     private ?string $basicUser;
     private ?string $basicPass;
+    private ?string $deviceId;
 
     public function __construct()
     {
         $this->baseUrl = settings('notifications.whatsapp.base_url', 'http://localhost:3000');
         $this->basicUser = settings('notifications.whatsapp.basic_user');
         $this->basicPass = settings('notifications.whatsapp.basic_pass');
+        $this->deviceId = settings('notifications.whatsapp.device_id');
         
         if ($this->basicPass) {
             try {
@@ -36,7 +38,12 @@ class GowaClient
                 $http = $http->withBasicAuth($this->basicUser, $this->basicPass);
             }
 
-            // Extract phone number from JID (remove @s.whatsapp.net suffix)
+            if ($this->deviceId) {
+                $http = $http->withHeaders([
+                    'X-Device-Id' => $this->deviceId,
+                ]);
+            }
+
             $phone = str_replace('@s.whatsapp.net', '', $jid);
 
             $response = $http->post("{$this->baseUrl}/send/message", [
@@ -46,12 +53,23 @@ class GowaClient
 
             if ($response->successful()) {
                 $data = $response->json();
+                Log::info('WhatsApp message sent successfully', [
+                    'to' => $phone,
+                    'message_id' => $data['results']['message_id'] ?? $data['message_id'] ?? $data['id'] ?? null,
+                ]);
+                
                 return [
                     'success' => true,
                     'message_id' => $data['results']['message_id'] ?? $data['message_id'] ?? $data['id'] ?? null,
                     'data' => $data,
                 ];
             }
+
+            Log::error('WhatsApp GOWA send failed', [
+                'to' => $phone,
+                'status' => $response->status(),
+                'error' => $response->body(),
+            ]);
 
             return [
                 'success' => false,

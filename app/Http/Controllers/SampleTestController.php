@@ -105,6 +105,17 @@ class SampleTestController extends Controller
                     ->lockForUpdate()
                     ->firstOrFail();
 
+                $requestedMethods = $this->normalizeMethods($sample->requested_test_methods ?? $sample->test_methods);
+                $submittedMethods = array_values(array_unique($sampleData['test_methods']));
+
+                $missingRequested = array_diff($requestedMethods, $submittedMethods);
+
+                if (! empty($missingRequested)) {
+                    throw ValidationException::withMessages([
+                        "samples.$index.test_methods" => 'Metode pengujian pada permintaan tidak dapat dihapus.',
+                    ]);
+                }
+
                 $otherCategory = $sampleData['other_sample_category'] ?? null;
 
                 if ($sample->sample_type === 'other') {
@@ -119,7 +130,7 @@ class SampleTestController extends Controller
 
                 $sample->update([
                     'assigned_analyst_id' => $sampleData['assigned_analyst_id'],
-                    'test_methods' => $sampleData['test_methods'],
+                    'test_methods' => $submittedMethods,
                     'test_type' => $sampleData['test_type'] ?? null,
                     'physical_identification' => $sampleData['physical_identification'],
                     'quantity' => $sampleData['quantity'],
@@ -176,8 +187,34 @@ class SampleTestController extends Controller
         });
 
         return redirect()
-            ->route('process.show', $validated['request_id'])
-            ->with('success', 'Data pengujian sampel berhasil diperbarui. Lanjutkan pengelolaan proses pengujian.');
+            ->route('testing.show', $validated['request_id'])
+            ->with('success', 'Kaji ulang permintaan berhasil disimpan. Lanjutkan ke pengujian.');
+    }
+
+    public function reject(Request $request, TestRequest $testRequest)
+    {
+        $validated = $request->validate([
+            'rejection_reason' => ['required', 'string', 'max:1000'],
+        ]);
+
+        $allowedStatusesForReview = ['submitted', 'verified', 'received'];
+
+        if (! in_array($testRequest->status, $allowedStatusesForReview, true)) {
+            return back()->withErrors([
+                'rejection_reason' => 'Permintaan tidak dapat ditolak pada status ini.',
+            ]);
+        }
+
+        $testRequest->update([
+            'status' => 'rejected',
+            'rejected_reason' => $validated['rejection_reason'],
+            'rejected_at' => now(),
+            'rejected_by' => $request->user()?->id,
+        ]);
+
+        return redirect()
+            ->route('review.create')
+            ->with('success', 'Permintaan berhasil ditolak.');
     }
 
     protected function loadRequestWithSamples(?int $requestId): ?TestRequest
@@ -191,5 +228,20 @@ class SampleTestController extends Controller
             $query->where('status', '!=', SampleStatus::READY_FOR_DELIVERY->value)
                 ->orderBy('id');
         }])->find($requestId);
+    }
+
+    private function normalizeMethods($value): array
+    {
+        if (empty($value)) {
+            return [];
+        }
+
+        if (is_string($value)) {
+            $decoded = json_decode($value, true);
+
+            return is_array($decoded) ? $decoded : [];
+        }
+
+        return is_array($value) ? $value : [];
     }
 }

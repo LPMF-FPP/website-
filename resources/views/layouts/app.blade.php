@@ -45,7 +45,7 @@
 
         <!-- Page Heading -->
         @isset($header)
-            <header class="bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60 border-b border-primary-100">
+            <header class="bg-white dark:bg-accent-900 border-b border-gray-200 dark:border-accent-800 shadow-none">
                 <div class="container mx-auto max-w-7xl py-4 px-4 sm:px-6 lg:px-8">
                     {{ $header }}
                 </div>

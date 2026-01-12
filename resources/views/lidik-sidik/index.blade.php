@@ -100,22 +100,22 @@
                         </div>
                         <div class="ml-4">
                             <h3 class="text-lg font-semibold text-gray-900">Pengujian Sampel</h3>
-                            <p class="text-sm text-gray-600">Input hasil pengujian lab</p>
+                            <p class="text-sm text-gray-600">Kaji ulang dan pengujian lab</p>
                         </div>
                     </div>
                     <div class="bg-primary-50 border border-primary-100 rounded-lg p-4 text-sm text-primary-900">
                         <strong>Fitur lab:</strong>
                         <ul class="mt-2 space-y-1 list-disc list-inside">
+                            <li>Kaji ulang permintaan</li>
                             <li>Penugasan analis &amp; jadwal uji</li>
                             <li>Pencatatan identifikasi sampel</li>
-                            <li>Metode pengujian multi-instrumen</li>
                         </ul>
                     </div>
                 </div>
                 <div class="border-t border-gray-100 px-6 py-4">
-                    <a href="{{ route('samples.test.create') }}"
+                    <a href="{{ route('review.create') }}"
                        class="inline-flex items-center justify-center w-full px-4 py-3 text-sm font-semibold rounded-lg shadow-sm transition-colors bg-primary-600 text-white hover:bg-primary-700">
-                        Proses Pengujian <span class="ml-2"></span>
+                        Kaji Ulang Permintaan <span class="ml-2"></span>
                     </a>
                 </div>
             </div>

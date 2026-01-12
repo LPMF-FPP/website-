@@ -2,13 +2,13 @@
     <x-slot name="header">
         <x-page-header
             title="Proses Pengujian Sampel"
-            :breadcrumbs="[[ 'label' => 'Pengujian', 'href' => route('samples.test.create') ], [ 'label' => 'Proses' ]]"
+            :breadcrumbs="[[ 'label' => 'Kaji Ulang Permintaan', 'href' => route('review.create') ], [ 'label' => 'Pengujian' ]]"
         />
     </x-slot>
 
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6" x-data="listFetcher()" x-init="init()">
         <div class="flex flex-wrap items-center justify-between gap-3">
-            <form method="GET" action="{{ route('process.index') }}" class="flex flex-wrap items-end gap-3" @submit.prevent="handleFilterSubmit($event)">
+            <form method="GET" action="{{ route('testing.index') }}" class="flex flex-wrap items-end gap-3" @submit.prevent="handleFilterSubmit($event)">
                 <div>
                     <label for="filter_stage" class="block text-xs font-medium text-gray-600 uppercase tracking-wide">Tahapan</label>
                     <select id="filter_stage" name="stage"
@@ -60,7 +60,7 @@
             </form>
 
             <div class="flex flex-col items-start sm:items-end gap-2">
-                <a href="{{ route('process.processes.create') }}"
+                <a href="{{ route('testing.processes.create') }}"
                     class="inline-flex items-center rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700">
                     Tambah Proses
                 </a>
@@ -97,23 +97,23 @@
                             Siapkan Penyerahan
                         </button>
                     </form>
-                    <script>
-                        (function(){
-                            const sel = document.getElementById('readySampleSelect');
-                            const btn = document.getElementById('readySubmit');
-                            const frm = document.getElementById('readyForm');
-                            const base = @json(url('samples'));
-                            sel?.addEventListener('change', () => {
-                                if (sel.value) {
-                                    frm.action = base + '/' + sel.value + '/ready-for-delivery';
-                                    btn.disabled = false;
-                                } else {
-                                    frm.action = '';
-                                    btn.disabled = true;
-                                }
-                            });
-                        })();
-                    </script>
+                        <script>
+                            (function(){
+                                const sel = document.getElementById('readySampleSelect');
+                                const btn = document.getElementById('readySubmit');
+                                const frm = document.getElementById('readyForm');
+                                const base = @json(url('pengujian'));
+                                sel?.addEventListener('change', () => {
+                                    if (sel.value) {
+                                        frm.action = base + '/' + sel.value + '/ready-for-delivery';
+                                        btn.disabled = false;
+                                    } else {
+                                        frm.action = '';
+                                        btn.disabled = true;
+                                    }
+                                });
+                            })();
+                        </script>
                 @endif
             </div>
         </div>
@@ -174,8 +174,8 @@
                                 </td>
                                 <td class="px-4 py-3 text-right">
                                     <div class="flex items-center justify-end gap-2">
-                                        <a href="{{ route('process.processes.show', ['sample_process' => $process->id]) }}" class="text-sm font-semibold text-primary-700 hover:text-primary-800">Detail</a>
-                                        <a href="{{ route('process.processes.edit', ['sample_process' => $process->id]) }}" class="text-sm font-semibold text-gray-600 hover:text-gray-800">Ubah</a>
+                                        <a href="{{ route('testing.processes.show', ['sample_process' => $process->id]) }}" class="text-sm font-semibold text-primary-700 hover:text-primary-800">Detail</a>
+                                        <a href="{{ route('testing.processes.edit', ['sample_process' => $process->id]) }}" class="text-sm font-semibold text-gray-600 hover:text-gray-800">Ubah</a>
                                     </div>
                                 </td>
                             </tr>
@@ -185,8 +185,8 @@
                                     <div class="space-y-2">
                                         <p>Belum ada data proses pengujian.</p>
                                         <p class="text-sm">
-                                            <a href="{{ route('samples.test.create') }}" class="text-primary-700 hover:text-primary-800 underline">
-                                                Input data pengujian sampel terlebih dahulu →
+                                            <a href="{{ route('review.create') }}" class="text-primary-700 hover:text-primary-800 underline">
+                                                Input data kaji ulang permintaan terlebih dahulu →
                                             </a>
                                         </p>
                                     </div>

@@ -3,8 +3,9 @@
         <div class="flex justify-between h-16">
             <!-- Logo Section -->
             <div class="flex items-center gap-4">
-                <a href="{{ route('dashboard') }}" class="flex items-center space-x-3 group">
+                <a href="{{ route('dashboard') }}" class="flex items-center gap-3 group">
                     <img src="/images/logo-pusdokkes-polri.png" alt="Logo Pusdokkes Polri" class="h-10 w-auto group-hover:scale-105 transition-transform duration-200">
+                    <div class="hidden lg:block h-8 w-px bg-gray-200 dark:bg-white/10"></div>
                     <div class="hidden lg:block">
                         <h1 class="text-lg font-bold text-primary-900 dark:text-white leading-tight">
                             Farmapol
@@ -34,13 +35,13 @@
                     </x-nav-link>
 
                     @if(in_array($user->role, $labRoles, true))
-                        <x-nav-link href="{{ route('samples.test.create') }}" :active="request()->routeIs('samples.*')">
-                            Pengujian
-                        </x-nav-link>
+                    <x-nav-link href="{{ route('review.create') }}" :active="request()->routeIs('review.*')">
+                        Kaji Ulang Permintaan
+                    </x-nav-link>
 
-                        <x-nav-link href="{{ route('process.index') }}" :active="request()->routeIs('process.*')">
-                            Proses
-                        </x-nav-link>
+                    <x-nav-link href="{{ route('testing.index') }}" :active="request()->routeIs('testing.*')">
+                        Pengujian
+                    </x-nav-link>
 
                         <x-nav-link href="{{ route('delivery.index') }}" :active="request()->routeIs('delivery.*')">
                             Penyerahan
@@ -260,13 +261,13 @@
                     </x-responsive-nav-link>
 
                     @if(in_array($user->role, $labRoles, true))
-                        <x-responsive-nav-link href="{{ route('samples.test.create') }}" :active="request()->routeIs('samples.*')">
-                            Pengujian
-                        </x-responsive-nav-link>
+                    <x-responsive-nav-link href="{{ route('review.create') }}" :active="request()->routeIs('review.*')">
+                        Kaji Ulang Permintaan
+                    </x-responsive-nav-link>
 
-                        <x-responsive-nav-link href="{{ route('process.index') }}" :active="request()->routeIs('process.*')">
-                            Proses
-                        </x-responsive-nav-link>
+                    <x-responsive-nav-link href="{{ route('testing.index') }}" :active="request()->routeIs('testing.*')">
+                        Pengujian
+                    </x-responsive-nav-link>
 
                         <x-responsive-nav-link href="{{ route('delivery.index') }}" :active="request()->routeIs('delivery.*')">
                             Penyerahan
