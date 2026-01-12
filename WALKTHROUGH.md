@@ -24,12 +24,28 @@
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 | [dokpol-style/README.md](./dokpol-style/README.md)         | Design system documentation             |
 
-**Current Version:** v1.4.4 (12 Januari 2026)  
-**Latest Feature:** Form Stepper Connector Fix
+**Current Version:** v1.4.5 (12 Januari 2026)  
+**Latest Feature:** Form Stepper Scroll Tracking Fix
 
 ---
 
 ## 📰 Recent Changes (v1.4.x)
+
+### v1.4.5 (12 Januari 2026) - Form Stepper Scroll Tracking Fix
+
+```
+Updated on 2026-01-12
+```
+
+**🐛 Bug Fixes:**
+
+- **Fixed Step Activation:** Resolved issue where Steps 4 and 5 were not marking as active/completed even when scrolled to the bottom.
+- **Improved Tracking Logic:** Replaced `IntersectionObserver` with a robust `onScroll` event listener using standard ScrollSpy logic.
+- **Bottom-of-Page Detection:** Added explicit check for end-of-page scroll to force the last step to activate, ensuring short final sections are correctly highlighted.
+
+**📁 Files Updated:**
+
+- `resources/views/components/form-stepper.blade.php`
 
 ### v1.4.4 (12 Januari 2026) - Form Stepper Connector Fix
 

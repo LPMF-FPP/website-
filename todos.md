@@ -1,3 +1,3 @@
 # todos.md
 
-- [x] Fix form-stepper connector lines and responsiveness
+- [x] Fix form-stepper scroll tracking (Step 4 & 5 not activating)

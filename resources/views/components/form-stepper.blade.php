@@ -3,6 +3,7 @@
 <div 
     class="sticky top-16 z-40 bg-white/90 backdrop-blur-md border-b border-gray-200/80 shadow-[0_1px_2px_rgba(0,0,0,0.05)] transition-all duration-300" 
     x-data="formStepperData(@js($steps))"
+    @scroll.window.throttle.100ms="onScroll"
 >
     <div class="max-w-4xl mx-auto px-4 py-4 sm:px-6">
         <nav aria-label="Progress">
@@ -72,44 +73,49 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('formStepperData', (initialSteps) => ({
         currentStep: 0,
         steps: initialSteps || [],
-        observer: null,
-
+        
         init() {
-            this.setupObserver();
-            // Check initial scroll position
-            this.checkVisibleSection();
+            // Initial check
+            this.onScroll();
         },
 
-        setupObserver() {
-            // Intersection Observer to track which section is currently visible
-            this.observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const stepId = entry.target.id;
-                        const stepIndex = this.steps.findIndex(s => s.id === stepId);
-                        if (stepIndex !== -1) {
-                            this.currentStep = stepIndex;
-                        }
-                    }
-                });
-            }, {
-                threshold: 0.5,
-                rootMargin: '-100px 0px -50% 0px'
-            });
+        onScroll() {
+            // 1. Check if we are at the very bottom of the page
+            const scrollPosition = window.innerHeight + window.pageYOffset;
+            const bodyHeight = document.body.offsetHeight;
+            
+            // If scrolled to bottom (within 50px buffer), select the last step
+            if (scrollPosition >= bodyHeight - 50) {
+                this.currentStep = this.steps.length - 1;
+                return;
+            }
 
-            // Observe all step sections
-            this.steps.forEach(step => {
+            // 2. Standard ScrollSpy Logic
+            // Find the last section whose top is above the "trigger line"
+            // Trigger line = Top of viewport + Offset (e.g., 200px for header + buffer)
+            const triggerLine = 250; // pixels from top
+            
+            let activeIndex = 0;
+
+            this.steps.forEach((step, index) => {
                 const element = document.getElementById(step.id);
                 if (element) {
-                    this.observer.observe(element);
+                    const rect = element.getBoundingClientRect();
+                    // If the top of the element is above the trigger line (rect.top is relative to viewport)
+                    // We consider it "passed" or "active"
+                    if (rect.top <= triggerLine) {
+                        activeIndex = index;
+                    }
                 }
             });
+
+            this.currentStep = activeIndex;
         },
 
         scrollToStep(stepId) {
             const element = document.getElementById(stepId);
             if (element) {
-                const offset = 100; // Account for sticky header
+                const offset = 120; // Slightly larger offset to clear the sticky header
                 const elementPosition = element.getBoundingClientRect().top;
                 const offsetPosition = elementPosition + window.pageYOffset - offset;
 
@@ -118,20 +124,6 @@ document.addEventListener('alpine:init', () => {
                     behavior: 'smooth'
                 });
             }
-        },
-
-        checkVisibleSection() {
-            // Find which section is currently in view
-            this.steps.forEach((step, index) => {
-                const element = document.getElementById(step.id);
-                if (element) {
-                    const rect = element.getBoundingClientRect();
-                    const isVisible = rect.top < window.innerHeight / 2 && rect.bottom > window.innerHeight / 2;
-                    if (isVisible) {
-                        this.currentStep = index;
-                    }
-                }
-            });
         }
     }));
 });
