@@ -6,25 +6,15 @@
 >
     <div class="max-w-4xl mx-auto px-4 py-4 sm:px-6">
         <nav aria-label="Progress">
-            <ol role="list" class="flex items-center">
+            <ol role="list" class="flex items-center w-full">
                 <template x-for="(step, index) in steps" :key="step.id">
-                    <li class="relative flex items-center" :class="index < steps.length - 1 ? 'flex-1' : ''">
+                    <li class="flex items-center pr-4 sm:pr-0" :class="index < steps.length - 1 ? 'flex-1' : 'flex-none'">
                         
-                        {{-- Connector Line --}}
-                        <template x-if="index < steps.length - 1">
-                            <div class="absolute top-1/2 left-0 w-[calc(100%-2rem)] ml-8 -translate-y-1/2 h-[2px] bg-gray-100 rounded-full overflow-hidden" aria-hidden="true">
-                                <div 
-                                    class="h-full bg-primary-600 transition-all duration-500 ease-out origin-left"
-                                    :class="index < currentStep ? 'w-full' : 'w-0'"
-                                ></div>
-                            </div>
-                        </template>
-
-                        {{-- Step Item --}}
+                        {{-- Step Item (Anchor) --}}
                         <a 
                             :href="'#' + step.id"
                             @click.prevent="scrollToStep(step.id)"
-                            class="group relative flex items-center focus:outline-none"
+                            class="group flex items-center gap-3 flex-shrink-0 focus:outline-none"
                             :aria-current="index === currentStep ? 'step' : null"
                         >
                             {{-- Circle Indicator --}}
@@ -51,7 +41,7 @@
 
                             {{-- Label --}}
                             <span 
-                                class="ml-3 text-sm font-medium hidden sm:inline-block transition-colors duration-300"
+                                class="text-sm font-medium hidden sm:inline-block transition-colors duration-300"
                                 :class="{
                                     'text-primary-700 font-semibold': index === currentStep,
                                     'text-gray-900': index < currentStep,
@@ -60,6 +50,16 @@
                                 x-text="step.label"
                             ></span>
                         </a>
+
+                        {{-- Connector Line --}}
+                        <template x-if="index < steps.length - 1">
+                            <div class="flex-1 h-[2px] mx-2 sm:mx-4 bg-gray-200 rounded" aria-hidden="true">
+                                <div 
+                                    class="h-full bg-primary-600 transition-all duration-500 ease-out origin-left"
+                                    :class="index < currentStep ? 'w-full' : 'w-0'"
+                                ></div>
+                            </div>
+                        </template>
                     </li>
                 </template>
             </ol>

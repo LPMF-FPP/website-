@@ -24,12 +24,28 @@
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 | [dokpol-style/README.md](./dokpol-style/README.md)         | Design system documentation             |
 
-**Current Version:** v1.4.3 (12 Januari 2026)  
-**Latest Feature:** Form Stepper Redesign
+**Current Version:** v1.4.4 (12 Januari 2026)  
+**Latest Feature:** Form Stepper Connector Fix
 
 ---
 
 ## 📰 Recent Changes (v1.4.x)
+
+### v1.4.4 (12 Januari 2026) - Form Stepper Connector Fix
+
+```
+Updated on 2026-01-12
+```
+
+**🐛 Bug Fixes:**
+
+- **Fixed Broken Connectors:** Replaced absolute positioning with Flex-Grow implementation to ensure connector lines consistently bridge steps regardless of label width.
+- **Improved Responsiveness:** Adjusted line rendering for mobile devices (hidden labels, simplified flow).
+- **Layout Stability:** Fixed issue where lines would disconnect or misalign when steps wrapped.
+
+**📁 Files Updated:**
+
+- `resources/views/components/form-stepper.blade.php`
 
 ### v1.4.3 (12 Januari 2026) - Form Stepper Redesign
 

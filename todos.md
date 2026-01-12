@@ -1,3 +1,3 @@
 # todos.md
 
-- [x] Redesign form-stepper component
+- [x] Fix form-stepper connector lines and responsiveness
