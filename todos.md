@@ -1,3 +1,5 @@
 # todos.md
 
-- [x] Fix form-stepper scroll tracking (Step 4 & 5 not activating)
+No active tasks. All previous work completed.
+
+Last completed: Fix form-stepper scroll tracking (Step 4 & 5 activation)
