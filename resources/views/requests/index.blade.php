@@ -10,7 +10,6 @@
 
     <x-slot name="header">
         <div>
-            <x-breadcrumbs :items="[[ 'label' => 'Permintaan' ]]" />
             <h2 class="font-semibold text-xl text-primary-900 leading-tight">
                 📋 Daftar Permintaan Pengujian
             </h2>

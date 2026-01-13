@@ -2,7 +2,6 @@
     <x-slot name="header">
         <div class="d-flex align-items-center justify-content-between py-3 flex items-center justify-between">
             <div>
-                <x-breadcrumbs :items="[]" class="small text-xs" navClass="mb-1" />
                 <h1 class="h4 mb-0 fw-semibold text-primary-900">
                     {{ __('Dashboard') }}
                 </h1>

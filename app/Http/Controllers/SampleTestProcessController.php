@@ -205,10 +205,11 @@ class SampleTestProcessController extends Controller
                 'negative' => 'Negatif',
                 default => 'Belum ditentukan',
             };
-            $reportNumber = $sampleProcess->report_number
+            $reportNumber = $metadata['lhu_number']
+                ?? $sampleProcess->report_number
                 ?? $sampleProcess->lab_report_no
                 ?? $metadata['report_number']
-                ?? $this->computeFLHUFromSampleCode($sampleProcess->sample);
+                ?? '-';
 
             // Check if report document exists in documents table
             $reportDoc = \App\Models\Document::where('test_request_id', $sampleProcess->sample->test_request_id)

@@ -5,7 +5,6 @@
 ])
 
 <div class="{{ $class }}">
-    <x-breadcrumbs :items="$breadcrumbs" />
     <div class="flex items-start justify-between gap-4">
         <h2 class="font-semibold text-xl text-primary-900 leading-tight">{{ $title }}</h2>
         @if (isset($actions))

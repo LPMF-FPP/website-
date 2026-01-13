@@ -24,7 +24,8 @@ use App\Http\Controllers\Api\WhatsApp\IncomingMessageController;
 use App\Models\TestRequest;
 use Illuminate\Support\Facades\Route;
 
-// WhatsApp Webhook (No Auth - GOWA service calls this)
+// Updated WhatsApp Webhook (HMAC verified + Legacy support)
+// Reusing existing controller to maintain compatibility
 Route::post('/whatsapp/webhook', [IncomingMessageController::class, 'webhook'])
     ->middleware('throttle:60,1')
     ->name('whatsapp.webhook');

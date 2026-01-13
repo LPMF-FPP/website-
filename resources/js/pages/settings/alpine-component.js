@@ -243,17 +243,7 @@ export function registerSettingsComponent() {
             },
             whatsappMilestones: [
                 { key: "REQUEST_RECEIVED", label: "Permintaan Diterima" },
-                {
-                    key: "REVIEW_DONE_READY_FOR_TEST",
-                    label: "Kajian Selesai, Siap Uji",
-                },
                 { key: "REQUEST_REJECTED", label: "Permintaan Ditolak" },
-                { key: "PREPARATION_DONE", label: "Preparasi Selesai" },
-                {
-                    key: "INSTRUMENTATION_DONE",
-                    label: "Pengujian Instrumen Selesai",
-                },
-                { key: "INTERPRETATION_DONE", label: "Interpretasi Selesai" },
                 { key: "READY_FOR_PICKUP", label: "Siap Diambil" },
                 { key: "HANDOVER_COMPLETED", label: "Serah Terima Selesai" },
             ],

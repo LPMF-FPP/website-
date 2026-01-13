@@ -14,25 +14,6 @@
     </x-slot>
 
     <div class="max-w-6xl mx-auto sm:px-6 lg:px-8 space-y-6">
-        <div class="flex flex-wrap items-center gap-3">
-            <a href="{{ route('requests.index') }}"
-               class="inline-flex items-center rounded-md border border-transparent bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm transition hover:text-primary-700">
-                Daftar Permintaan
-            </a>
-            <a href="{{ route('review.create') }}"
-               class="inline-flex items-center rounded-md border border-primary-600 bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700">
-                Kaji Ulang Permintaan
-            </a>
-            <a href="{{ route('testing.index') }}"
-               class="inline-flex items-center rounded-md border border-transparent bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm transition hover:text-primary-700">
-                Pengujian
-            </a>
-            <a href="{{ route('delivery.index') }}"
-               class="inline-flex items-center rounded-md border border-transparent bg-white px-4 py-2 text-sm font-medium text-gray-600 shadow-sm transition hover:text-primary-700">
-                Penyerahan
-            </a>
-        </div>
-
         <div class="bg-white shadow-sm sm:rounded-lg">
             <div class="p-6 bg-white border-b border-gray-200 space-y-6">
                 @if(session('success'))
