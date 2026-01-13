@@ -19,12 +19,16 @@ class RestartWorkerCommand
 
         try {
             Artisan::call('queue:restart');
-            
             Artisan::call('cache:clear');
+
+            dispatch(function () {
+                \Illuminate\Support\Facades\Log::warning("KILLING QUEUE WORKER PID: " . getmypid());
+                posix_kill(getmypid(), SIGKILL);
+            })->afterCommit();
 
             Log::info("Queue worker restart triggered via WhatsApp by {$senderNumber}");
 
-            return "🔄 *Sistem Restarted*\n\nQueue worker telah di-restart.\nCache aplikasi telah dibersihkan.\n\nSilakan tunggu 10-20 detik sebelum mencoba command lain.";
+            return "🔄 *Sistem Restarted (Hard Kill)*\n\nWorker akan dimatikan paksa setelah pesan ini terkirim.\nSystemd akan menghidupkannya kembali otomatis.\n\nTunggu ~10 detik.";
         } catch (\Exception $e) {
             Log::error("Failed to restart worker via WhatsApp: " . $e->getMessage());
             return "❌ Gagal melakukan restart: " . $e->getMessage();

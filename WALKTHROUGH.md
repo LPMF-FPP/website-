@@ -24,12 +24,34 @@
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 | [dokpol-style/README.md](./dokpol-style/README.md)         | Design system documentation             |
 
-**Current Version:** v1.5.6 (13 Januari 2026)  
-**Latest Feature:** Settings Page State Reactivity Fix
+**Current Version:** v1.5.8 (13 Januari 2026)  
+**Latest Feature:** Search Page Cleanup
 
 ---
 
 ## 📰 Recent Changes (v1.5.x)
+
+### v1.5.8 (13 Januari 2026) - Search Page Cleanup
+
+```
+Updated on 2026-01-13
+```
+
+**🔧 UI/UX Improvements:**
+
+- **Fixed Search Input Rendering Artifact:**
+    - **Issue:** Malformed HTML comment inside `<input>` tag caused `/>` to render in the UI.
+    - **Fix:** Removed the invalid comment block.
+    - **Result:** Search input now renders cleanly without visual artifacts.
+
+- **Removed Redundant Navigation:**
+    - **Issue:** Breadcrumb navigation was redundant and cluttered the search header.
+    - **Fix:** Removed `<x-breadcrumbs>` component from the search page.
+    - **Result:** Cleaner, more focused search interface.
+
+**📁 Files Modified:**
+
+- `resources/views/search/index.blade.php`
 
 ### v1.5.7 (13 Januari 2026) - Search Results UI/UX Fixes
 

@@ -45,14 +45,21 @@ class ResiCommand
         $milestones = $this->getMilestones($testRequest);
 
         foreach ($milestones as $milestone) {
-            $icon = $milestone['completed'] ? '✅' : '⏳';
-            $status = $milestone['completed'] ? 'SELESAI' : 'PENDING';
-            $timestamp = $milestone['timestamp'] ?? null;
+            if ($milestone['completed']) {
+                $icon = '✅';
+                $statusText = '';
+            } elseif ($milestone['current'] ?? false) {
+                $icon = '▶️'; // Sedang berjalan
+                $statusText = ' (PROSES)';
+            } else {
+                $icon = '⚪'; // Belum
+                $statusText = '';
+            }
+            
+            $response .= "{$icon} *{$milestone['label']}*{$statusText}\n";
 
-            $response .= "{$icon} {$milestone['label']} - *{$status}*\n";
-
-            if ($timestamp) {
-                $response .= "   └ {$timestamp}\n";
+            if (!empty($milestone['timestamp'])) {
+                $response .= "   🕒 {$milestone['timestamp']}\n";
             }
 
             $response .= "\n";
@@ -79,42 +86,58 @@ class ResiCommand
     {
         $tz = settings('locale.timezone', 'Asia/Jakarta');
 
+        // 1. Permintaan
         $milestones = [
             [
-                'label' => '1️⃣ Permintaan Disubmit',
+                'label' => '1. Permintaan',
                 'completed' => $testRequest->submitted_at !== null,
                 'timestamp' => $testRequest->submitted_at ?
                     Carbon::parse($testRequest->submitted_at)->timezone($tz)->format('d M Y, H:i') : null,
             ],
-            [
-                'label' => '2️⃣ Permintaan Diverifikasi',
-                'completed' => $testRequest->verified_at !== null,
-                'timestamp' => $testRequest->verified_at ?
-                    Carbon::parse($testRequest->verified_at)->timezone($tz)->format('d M Y, H:i') : null,
-            ],
-            [
-                'label' => '3️⃣ Permintaan Diterima',
-                'completed' => $testRequest->received_at !== null,
-                'timestamp' => $testRequest->received_at ?
-                    Carbon::parse($testRequest->received_at)->timezone($tz)->format('d M Y, H:i') : null,
-            ],
         ];
 
-        // Add completed milestone if status is completed
-        if ($testRequest->status === 'completed') {
-            $milestones[] = [
-                'label' => '4️⃣ Serah Terima Selesai',
-                'completed' => true,
-                'timestamp' => $testRequest->completed_at ?
-                    Carbon::parse($testRequest->completed_at)->timezone($tz)->format('d M Y, H:i') : null,
-            ];
-        } else {
-            $milestones[] = [
-                'label' => '4️⃣ Serah Terima Selesai',
-                'completed' => false,
-                'timestamp' => null,
-            ];
-        }
+        // 2. Kaji Ulang Permintaan
+        $milestones[] = [
+            'label' => '2. Kaji Ulang Permintaan',
+            'completed' => $testRequest->verified_at !== null,
+            'timestamp' => $testRequest->verified_at ?
+                Carbon::parse($testRequest->verified_at)->timezone($tz)->format('d M Y, H:i') : null,
+        ];
+
+        // 3. Pengujian (With substeps visualization)
+        $isTestingStarted = $testRequest->received_at !== null;
+        $isTestingDone = $testRequest->completed_at !== null || $testRequest->status === 'completed';
+        
+        $substeps = $isTestingStarted 
+            ? "\n      a. Preparasi sampel\n      b. Pengujian pada instrumen\n      c. Interpretasi hasil" 
+            : "";
+
+        $milestones[] = [
+            'label' => '3. Pengujian' . $substeps,
+            'completed' => $isTestingDone,
+            'current' => $isTestingStarted && !$isTestingDone, // Flag custom untuk icon 'sedang jalan'
+            'timestamp' => $testRequest->received_at ?
+                Carbon::parse($testRequest->received_at)->timezone($tz)->format('d M Y, H:i') : null,
+        ];
+
+        // 4. Siap Diserahkan
+        $milestones[] = [
+            'label' => '4. Siap Diserahkan',
+            'completed' => $testRequest->completed_at !== null,
+            'timestamp' => $testRequest->completed_at ?
+                Carbon::parse($testRequest->completed_at)->timezone($tz)->format('d M Y, H:i') : null,
+        ];
+
+        // 5. Selesai (Asumsi delivered jika ada flag/status tertentu, atau manual check)
+        // Untuk saat ini kita anggap 'Selesai' jika status final, atau sama dengan completed jika belum ada fitur delivery tracking
+        // Kita cek status == 'delivered' jika ada, atau gunakan completed_at sebagai proxy sementara
+        $isDelivered = $testRequest->status === 'delivered'; 
+        
+        $milestones[] = [
+            'label' => '5. Selesai',
+            'completed' => $isDelivered,
+            'timestamp' => null, // Tambahkan delivered_at jika kolom ada
+        ];
 
         return $milestones;
     }
@@ -122,14 +145,17 @@ class ResiCommand
     private function getCurrentStatusText(string $status): string
     {
         return match ($status) {
-            'draft' => '📝 Draft - Belum disubmit',
-            'pending_verification' => '🔍 Menunggu Verifikasi',
-            'verified' => '✅ Terverifikasi - Menunggu Penerimaan',
-            'pending_review' => '🔍 Menunggu Kajian Ulang',
-            'ready_for_test' => '🧪 Siap Dilakukan Pengujian',
-            'in_testing' => '⚗️ Sedang Dalam Pengujian',
-            'completed' => '✅ Selesai - Sudah Diserahterimakan',
-            default => '❓ Status: '.$status,
+            'draft' => '1. Permintaan (Draft)',
+            'submitted' => '1. Permintaan (Disubmit)',
+            'pending_verification' => '1. Permintaan (Menunggu Verifikasi)',
+            'verified' => '2. Kaji Ulang Permintaan (Selesai)',
+            'pending_review' => '2. Kaji Ulang Permintaan (Sedang Review)',
+            'ready_for_test' => '3. Pengujian (Siap)',
+            'in_testing' => '3. Pengujian (Sedang Berjalan)',
+            'processing' => '3. Pengujian (Proses)',
+            'completed' => '4. Siap Diserahkan',
+            'delivered' => '5. Selesai',
+            default => 'Status: ' . ucfirst(str_replace('_', ' ', $status)),
         };
     }
 }

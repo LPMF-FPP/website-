@@ -17,7 +17,6 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex flex-col gap-2">
-            <x-breadcrumbs :items="[['label' => 'Beranda', 'href' => url('/')], ['label' => 'Pencarian']]" />
             <div>
                 <h1 class="text-2xl font-semibold text-primary-900">Pencarian Dokumen</h1>
                 <p class="text-sm text-accent-600">Telusuri tersangka/penyidik dan berita acara dalam satu tampilan terpadu.</p>
@@ -103,7 +102,6 @@
                         aria-label="Kata kunci pencarian"
                         x-model="q"
                         @input.debounce.500ms="$dispatch('trigger-search', q)"
-                        <!-- Added debounce to reduce API calls and improve performance -->
                     />
                     <button type="button" class="clear-btn" data-action="clear" aria-label="Hapus pencarian">
                         <span aria-hidden="true">&times;</span>
