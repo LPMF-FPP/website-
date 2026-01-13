@@ -57,9 +57,10 @@
             .search-shell .panel-body { flex: 1; padding: 1.25rem 1.75rem 1rem; display: flex; flex-direction: column; gap: 1rem; }
             .search-shell .panel-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1rem; }
             .search-shell .panel-card { border: 1px solid #f2f4f7; border-radius: 1rem; padding: 1rem; display: flex; gap: 1rem; transition: border-color .2s ease, transform .2s ease; }
+            .search-shell .panel-card > div { flex: 1; min-width: 0; }
             .search-shell .panel-card:hover { border-color: #c7d7fe; transform: translateY(-2px); }
             .search-shell .panel-card img { width: 72px; height: 72px; border-radius: 18px; object-fit: cover; background: #f1f5f9; }
-            .search-shell .panel-card h3 { font-size: 1rem; margin: 0; }
+            .search-shell .panel-card h3 { font-size: 1rem; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
             .search-shell .panel-card h3 a { color: inherit; text-decoration: none; }
             .search-shell .panel-card h3 a:hover { color: #1d4ed8; }
             .search-shell .role-pill { display: inline-flex; align-items: center; gap: .35rem; background: #eef2ff; color: #4338ca; border-radius: 999px; padding: .1rem .65rem; font-size: .8rem; font-weight: 600; }
@@ -71,6 +72,7 @@
             .search-shell .download-btn { border-radius: 0.85rem; border: 1px solid #c7d7fe; background: #e0edff; color: #1d4ed8; padding: 0.45rem 0.9rem; font-weight: 600; font-size: .9rem; text-decoration: none; transition: background .2s ease, color .2s ease; }
             .search-shell .download-btn:hover { background: #c7d7fe; color: #102a74; }
             .search-shell .skeleton-list { display: flex; flex-direction: column; gap: 1rem; }
+            .search-shell .skeleton-list[hidden] { display: none !important; }
             .search-shell .skeleton-card { border-radius: 1rem; background: #f8fafc; height: 96px; position: relative; overflow: hidden; }
             .search-shell .skeleton-card::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(226,232,240,0.9) 50%, rgba(255,255,255,0) 100%); animation: shimmer 1.4s infinite; }
             .search-shell .empty-state { text-align: center; color: #94a3b8; padding: 1.5rem 1rem; border: 1px dashed #cbd5f5; border-radius: 1rem; background: #f8fafc; }

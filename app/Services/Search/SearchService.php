@@ -6,6 +6,7 @@ use App\Models\Investigator;
 use Carbon\Carbon;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 
 class SearchService
@@ -174,10 +175,17 @@ class SearchService
                 $timestamp = $tr->submitted_at ?? $tr->created_at;
                 $createdAt = $timestamp ? Carbon::parse($timestamp) : null;
 
+                $suspectName = $tr->suspect_name;
+                try {
+                    $suspectName = Crypt::decryptString($suspectName);
+                } catch (\Throwable $e) {
+                    // Keep original if not encrypted
+                }
+
                 return (object) [
                     'id' => $tr->id,
                     'type' => 'test_request',
-                    'name' => $tr->suspect_name ?? 'Tersangka (Tanpa Nama)',
+                    'name' => $suspectName ?? 'Tersangka (Tanpa Nama)',
                     'role_label' => 'Tersangka',
                     'request_number' => $tr->request_number ?? '',
                     'subtitle' => $tr->request_number
@@ -275,6 +283,14 @@ class SearchService
         foreach ($dbDocs as $doc) {
             $createdAt = $doc->created_at ? Carbon::parse($doc->created_at) : null;
 
+            // Decrypt suspect name
+            $suspectName = $doc->suspect_name;
+            try {
+                $suspectName = Crypt::decryptString($suspectName);
+            } catch (\Throwable $e) {
+                // Keep original
+            }
+
             // Generate signed URLs for document access
             $downloadUrl = \Illuminate\Support\Facades\URL::temporarySignedRoute(
                 'investigator.documents.download',
@@ -291,7 +307,7 @@ class SearchService
                 'document_type_label' => self::DOC_TYPE_LABELS[$doc->document_type] ?? ucfirst(str_replace('_', ' ', $doc->document_type)),
                 'name' => $doc->original_filename ?? 'Dokumen',
                 'request_number' => $doc->request_number ?? '',
-                'suspect_name' => $doc->suspect_name ?? '',
+                'suspect_name' => $suspectName ?? '',
                 'investigator_name' => $doc->investigator_name ?? '',
                 'download_url' => $downloadUrl,
                 'preview_url' => $previewUrl,

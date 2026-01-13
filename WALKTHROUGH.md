@@ -31,6 +31,29 @@
 
 ## 📰 Recent Changes (v1.5.x)
 
+### v1.5.7 (13 Januari 2026) - Search Results UI/UX Fixes
+
+```
+Updated on 2026-01-13
+```
+
+**🔧 Bug Fixes:**
+
+- **Fixed Encrypted Suspect Name Display in Search Results:**
+    - **Root Cause:** Backend API returned raw encrypted string for `suspect_name` in search results.
+    - **Fix:** Implemented automatic decryption in `SearchService` using `Crypt::decryptString`.
+    - **Frontend Safeguard:** Added text truncation (`text-overflow: ellipsis`) and `min-width: 0` to result cards to prevent layout breakage from long strings.
+
+- **Fixed Skeleton Loading Animation Alignment:**
+    - **Root Cause:** CSS `display: flex` on `.skeleton-list` overrode the browser's default `[hidden]` behavior (user agent stylesheet).
+    - **Fix:** Added `.search-shell .skeleton-list[hidden] { display: none !important; }` to forcibly hide the skeleton when content is loaded.
+    - **Result:** Loading state properly disappears when results are rendered.
+
+**📁 Files Modified:**
+
+- `app/Services/Search/SearchService.php` (Decryption logic)
+- `resources/views/search/index.blade.php` (CSS fixes for hidden state and text overflow)
+
 ### v1.5.6 (13 Januari 2026) - Settings Page State Reactivity Fix
 
 ```
@@ -53,6 +76,7 @@ Updated on 2026-01-13
 **File Modified**: `resources/js/pages/settings/index.js`
 
 - Updated `applyServerData()` method (lines 1099-1120):
+
     ```javascript
     const merged = this.mergeDefaults(this.clone(data));
 
