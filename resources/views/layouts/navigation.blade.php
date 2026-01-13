@@ -111,6 +111,16 @@
                                     <div>
                                         <h3 class="text-xs font-semibold text-primary-500 uppercase tracking-wider mb-4">Sistem & Inventori</h3>
                                         <div class="space-y-3">
+                                            <a href="{{ route('monitoring.sensors.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition duration-150">
+                                                <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400">
+                                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                                </div>
+                                                <div class="ml-4">
+                                                    <p class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-700 dark:group-hover:text-blue-400">Monitoring Suhu</p>
+                                                    <p class="text-sm text-gray-500 dark:text-gray-400">Sensor & Peringatan</p>
+                                                </div>
+                                            </a>
+
                                             <a href="{{ route('inventory.dashboard') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/30 transition duration-150">
                                                 <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-400">
                                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>

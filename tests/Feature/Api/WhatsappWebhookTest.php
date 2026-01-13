@@ -69,10 +69,10 @@ class WhatsappWebhookTest extends TestCase
         
         $log = WhatsappCommandLog::where('from_jid', '123456789')
             ->where('message_text', 'test logging')
-            ->where('response_status', 'received')
             ->first();
 
         $this->assertNotNull($log);
+        $this->assertEquals('ignored', $log->response_status); // Job processes non-command messages
         $this->assertJsonStringEqualsJsonString(json_encode($data), json_encode($log->params));
     }
 }

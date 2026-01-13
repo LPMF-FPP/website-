@@ -4,6 +4,10 @@ namespace App\Services\WhatsApp;
 
 use App\Services\WhatsApp\Commands\HelpCommand;
 use App\Services\WhatsApp\Commands\ResiCommand;
+use App\Services\WhatsApp\Commands\RestartWorkerCommand;
+use App\Services\WhatsApp\Commands\StatusRequestCommand;
+use App\Services\WhatsApp\Commands\StockTransactionCommand;
+use App\Services\WhatsApp\Commands\TemperatureInputCommand;
 use Illuminate\Support\Facades\Log;
 
 class CommandDispatcher
@@ -14,12 +18,20 @@ class CommandDispatcher
         private GowaClient $client,
         private ResiCommand $resiCommand,
         private HelpCommand $helpCommand,
+        private TemperatureInputCommand $temperatureCommand,
+        private StockTransactionCommand $stockCommand,
+        private StatusRequestCommand $statusCommand,
+        private RestartWorkerCommand $restartCommand,
     ) {
         // Register commands
         $this->commands = [
             '/resi' => $this->resiCommand,
             '/help' => $this->helpCommand,
             '/bantuan' => $this->helpCommand,
+            '/suhu' => $this->temperatureCommand,
+            '/stok' => $this->stockCommand,
+            '/status' => $this->statusCommand,
+            '/restart' => $this->restartCommand,
         ];
     }
 

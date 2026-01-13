@@ -229,6 +229,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Environment Monitoring
     Route::prefix('monitoring')->name('monitoring.')->group(function () {
+        // Automatic Sensors Dashboard
+        Route::get('/sensors', [\App\Http\Controllers\MonitoringDashboardController::class, 'index'])->name('sensors.index');
+
         Route::prefix('environment')->name('environment.')->group(function () {
             Route::get('/', [EnvironmentMonitoringController::class, 'index'])->name('index');
             Route::post('/readings', [EnvironmentMonitoringController::class, 'storeReading'])->name('readings.store');

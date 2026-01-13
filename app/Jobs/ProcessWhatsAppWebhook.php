@@ -32,12 +32,19 @@ class ProcessWhatsAppWebhook implements ShouldQueue
         try {
             $result = $dispatcher->handle($this->from, $this->message);
             
-            WhatsappCommandLog::where('id', $this->logId)->update([
+            // Only update command-related fields, preserve original params
+            $updates = [
                 'command' => $result['command'] ?? null,
-                'params' => $result['params'] ?? null,
                 'response_status' => $result['status'],
                 'response_text' => $result['response'],
-            ]);
+            ];
+            
+            // Only update params if dispatcher provides new params (for commands)
+            if (isset($result['params'])) {
+                $updates['params'] = $result['params'];
+            }
+            
+            WhatsappCommandLog::where('id', $this->logId)->update($updates);
         } catch (\Throwable $e) {
             Log::error('Job command processing error', [
                 'log_id' => $this->logId,

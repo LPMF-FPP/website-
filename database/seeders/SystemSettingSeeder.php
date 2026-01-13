@@ -126,7 +126,11 @@ class SystemSettingSeeder extends Seeder
                         'body' => 'Pesan pengujian siap dikirim.',
                     ],
                     'whatsapp' => [
-                        'enabled' => false,
+                        'enabled' => true,
+                        'base_url' => env('WHATSAPP_API_URL', 'http://localhost:3000'),
+                        'basic_user' => env('WHATSAPP_BASIC_USER', 'lpmf'),
+                        'basic_pass' => env('WHATSAPP_BASIC_PASS') ? encrypt(env('WHATSAPP_BASIC_PASS')) : (env('APP_ENV') === 'local' ? encrypt('lpmfjaya1') : null),
+                        'device_id' => env('WHATSAPP_DEVICE_ID', '03663e24-efdb-48fe-961d-456436bfb219'),
                         'default_target' => '',
                         'message' => '*[LIMS]* Pesan percobaan notifikasi.',
                     ],

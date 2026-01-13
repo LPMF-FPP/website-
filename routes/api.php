@@ -21,14 +21,19 @@ use App\Http\Controllers\Api\Settings\WhatsAppSettingsController;
 use App\Http\Controllers\Api\SettingsController as ApiSettingsController;
 use App\Http\Controllers\Api\JobStatusController;
 use App\Http\Controllers\Api\WhatsApp\IncomingMessageController;
+use App\Http\Controllers\Api\WhatsappWebhookController;
 use App\Models\TestRequest;
 use Illuminate\Support\Facades\Route;
 
-// Updated WhatsApp Webhook (HMAC verified + Legacy support)
-// Reusing existing controller to maintain compatibility
-Route::post('/whatsapp/webhook', [IncomingMessageController::class, 'webhook'])
+// WhatsApp Webhook (HMAC verified - Story 1.1)
+Route::post('/whatsapp/webhook', [WhatsappWebhookController::class, 'handle'])
     ->middleware('throttle:60,1')
     ->name('whatsapp.webhook');
+
+// Monitoring API
+Route::prefix('monitoring')->middleware('throttle:60,1')->group(function () {
+    Route::post('/data', [\App\Http\Controllers\Api\MonitoringController::class, 'store']);
+});
 
 Route::middleware(['throttle:60,1'])->group(function () {
 

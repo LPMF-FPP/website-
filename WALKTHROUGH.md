@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v1.3.3
+# WALKTHROUGH - LPMF LIMS v1.5.4
 
 > **Laboratory Information Management System untuk Laboratorium Pengujian Mutu Farmasi**
 
@@ -24,12 +24,299 @@
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 | [dokpol-style/README.md](./dokpol-style/README.md)         | Design system documentation             |
 
-**Current Version:** v1.4.9 (13 Januari 2026)  
-**Latest Feature:** CSS Audit Fixes & WhatsApp Webhook Security
+**Current Version:** v1.5.4 (13 Januari 2026)  
+**Latest Feature:** Database Migration Fixes for Seeder
 
 ---
 
-## 📰 Recent Changes (v1.4.x)
+## 📰 Recent Changes (v1.5.x)
+
+### v1.5.4 (13 Januari 2026) - Database Migration Fixes
+
+```
+Updated on 2026-01-13
+```
+
+**🔧 Bug Fixes:**
+
+- **Fixed Missing Database Columns:**
+    - Added `folder_key` column to `investigators` table
+        - Type: `string`, unique, nullable
+        - Used for generating unique folder paths for investigator documents
+        - Auto-generated from NRP and name slug
+    - Added `to_office` column to `test_requests` table
+        - Type: `string`, nullable
+        - Stores destination office information
+    - Added `receipt_number` column to `test_requests` table
+        - Type: `string`, nullable
+        - Stores receipt tracking number
+
+**📝 Database Changes:**
+
+Migration files created:
+- `2026_01_13_035040_add_folder_key_to_investigators_table.php`
+- `2026_01_13_035258_add_missing_fields_to_test_requests_table.php`
+
+**✅ Seeder Now Working:**
+- `DummyDataSeeder` can now run successfully
+- Creates 3 investigators, 10 test requests, 23 samples, 4 LHU documents, 3 surveys, and 8 inventory items
+
+### v1.5.3 (13 Januari 2026) - WhatsApp Information Commands
+
+```
+Updated on 2026-01-13
+```
+
+**📊 New Information Commands:**
+
+- **List Stok:**
+    - Command: `/stok` (tanpa parameter)
+    - Output: Menampilkan daftar 15 item teratas beserta stok on-hand.
+
+- **List Sensor Suhu:**
+    - Command: `/suhu` (tanpa parameter)
+    - Output: Menampilkan daftar lokasi sensor dan pembacaan terakhir.
+
+- **Status Permintaan:**
+    - Command: `/status`
+    - Output: Statistik total permintaan pengujian berdasarkan status (Pending, Selesai, dll).
+
+### v1.5.2 (13 Januari 2026) - WhatsApp Manual Input Commands
+
+```
+Updated on 2026-01-13
+```
+
+**📱 New WhatsApp Commands:**
+
+- **Input Suhu Manual:**
+    - Command: `/suhu {lokasi} {nilai} {pagi/siang}`
+    - Logic: Searches `EnvironmentLocation` by name, records reading at 08:00 or 14:00.
+    - Example: `/suhu R01 24.5 pagi`
+
+- **Input Stok (Transaksi):**
+    - Command: `/stok {masuk/keluar} {nama_barang} {jumlah}`
+    - Logic: Searches `InventoryItem`, creates/updates balance at default location.
+    - Example: `/stok masuk alkohol 5`
+
+- **Updated Help:**
+    - `/help` now lists these new manual commands.
+    - Admin users see additional `/restart` command.
+
+**🛠️ Admin Tools:**
+
+- **Restart Command:**
+    - `/restart`: Restarts Queue Worker & clears cache.
+    - Restricted to Admin number only.
+
+### v1.5.1 (13 Januari 2026) - WhatsApp Credentials Restoration
+
+```
+Updated on 2026-01-13
+```
+
+**🐛 Critical Bug Fixes:**
+
+- **WhatsApp 401 Unauthorized Error:**
+    - **Issue:** Webhook replies (`/help`, etc) failing with 401.
+    - **Cause:** Database settings for WhatsApp credentials were lost/empty.
+    - **Fix:** Restored credentials (`lpmf:lpmfjaya1`) in `system_settings`.
+    - **Prevention:** Updated `SystemSettingSeeder` to include default GOWA credentials from `.env` or hardcoded fallback for local dev.
+
+- **Help Command Updated:**
+    - Added information about automatic alerts (Temperature & Stock) to `/help` response.
+    - Users now know the bot handles monitoring notifications.
+
+**🔧 System Verification:**
+
+- Verified GOWA service connectivity.
+- Confirmed message delivery to admin number (+6285956592404).
+- Validated Queue Worker status.
+
+---
+
+### v1.5.0 (13 Januari 2026) - Temperature Monitoring & Stock Alerts
+
+```
+Updated on 2026-01-13
+```
+
+**🌡️ Temperature Monitoring Feature:**
+
+- **Backend Architecture:**
+    - New tables: `monitoring_sensors`, `monitoring_logs`, `monitoring_alerts`
+    - API Endpoint: `POST /api/monitoring/data` to receive sensor data
+    - Models: `MonitoringSensor`, `MonitoringLog`, `MonitoringAlert`
+- **Alert System:**
+    - Automatic threshold checking (Min/Max temperature)
+    - WhatsApp notifications via `AlertService`
+    - Logic to prevent alert spam (only one OPEN alert per sensor/type)
+
+- **Frontend UI:**
+    - **Dashboard:** `monitoring.sensors.index` showing all sensors and active alerts.
+    - **Integration:** Added "Monitoring Suhu" to the main navigation menu.
+    - **Visuals:** Real-time temperature display, color-coded alerts (Red for active warnings).
+
+**📦 Stock Management Enhancements:**
+
+- **WhatsApp Alerts:**
+    - Implemented `InventoryAlertService` to check:
+        - **Low Stock:** Items below `min_stock` level
+        - **Near Expiry:** Lots expiring within 30 days
+    - Scheduled Command: `inventory:check-alerts` running daily at 08:00
+- **Integration:**
+    - Uses shared `GowaClient` for reliable message delivery
+    - Alerts sent to configured admin number
+
+**🔧 Configuration & Integration:**
+
+```
+Updated on 2026-01-13
+```
+
+**🔧 Configuration & Integration:**
+
+- **GOWA Docker Service Verified:**
+    - Container: `go-whatsapp-web-multidevice_whatsapp_go_1` running on port 3000
+    - Device ID: `03663e24-efdb-48fe-961d-456436bfb219`
+    - Authentication: Basic Auth configured
+    - Network: Successfully connected to Laravel application
+
+- **Laravel WhatsApp Settings Configured:**
+    - **Location:** Database `system_settings` table
+    - **Settings:**
+      ```
+      notifications.whatsapp.base_url: http://localhost:3000
+      notifications.whatsapp.basic_user: lpmf
+      notifications.whatsapp.basic_pass: (encrypted)
+      notifications.whatsapp.device_id: 03663e24-efdb-48fe-961d-456436bfb219
+      notifications.whatsapp.enabled: true
+      ```
+    - **Configuration via:** `SystemSetting::updateOrCreate()`
+
+**✅ Testing & Verification:**
+
+- **End-to-End Flow Tested:**
+    - ✅ Webhooks from GOWA → Laravel (Status: 200)
+    - ✅ Command processing (`/help`, `/bantuan`, `/resi`)
+    - ✅ Message sending Laravel → GOWA → WhatsApp
+    - ✅ Queue worker processing jobs successfully
+    - ✅ Database logging with correct status tracking
+
+- **Test Numbers Authorized:**
+    - `+6285956592404` (Gifari Muhammad Syaba)
+    - `+6285369401629`
+    - **Note:** All future tests restricted to these numbers only
+
+- **Successful Test Results:**
+    ```
+    [00:46:40] Message sent successfully (ID: 3EB02907E29EF1E0654A75)
+    [00:46:48] Message sent successfully (ID: 3EB0620B2875E1503C203C)
+    ```
+
+**🐛 Issues Fixed:**
+
+- **401 Unauthorized Error:**
+    - **Cause:** WhatsApp settings in database were empty
+    - **Fix:** Populated settings with GOWA credentials from Docker service
+    - **Result:** Messages now send successfully
+
+- **Job Params Preservation:**
+    - **Issue:** Job overwrote original webhook `params` with `null` for non-command messages
+    - **Fix:** Only update `params` when dispatcher provides new values
+    - **Impact:** Original webhook payload now preserved in database
+
+**📊 System Status:**
+
+- Docker container: ✅ Running
+- GOWA service: ✅ Connected
+- Queue worker: ✅ Active (PID: 20024)
+- Laravel settings: ✅ Configured
+- Message delivery: ✅ Working
+- Command processing: ✅ Functional
+
+---
+
+### v1.4.10 (13 Januari 2026) - WhatsApp Webhook Architecture Refactor
+
+```
+Updated on 2026-01-13
+```
+
+**🔧 Critical Fixes:**
+
+- **WhatsApp Webhook Job Dispatch Enabled:**
+    - **Issue:** Job dispatch was commented out in new controller, breaking `/help` command processing
+    - **Fix:** Uncommented `ProcessWhatsAppWebhook::dispatch()` in `WhatsappWebhookController`
+    - **Flow:** Webhook → Log (status: received) → Job → CommandDispatcher → HelpCommand/ResiCommand → Reply
+    - **Impact:** `/help`, `/bantuan`, `/resi` commands now work in production WhatsApp
+
+- **Job Params Preservation Fix:**
+    - **Issue:** Job was setting `params => null` for non-command messages, destroying original webhook payload
+    - **Root Cause:** CommandDispatcher only returns 'params' for actual commands, not for regular messages
+    - **Fix:** Modified job to only update `params` if dispatcher provides new params
+    - **Code:**
+      ```php
+      // Only update params if dispatcher provides new params (for commands)
+      if (isset($result['params'])) {
+          $updates['params'] = $result['params'];
+      }
+      ```
+    - **Result:** Original webhook payload preserved in database for non-command messages
+
+**🏗️ Architecture Improvements:**
+
+- **WhatsApp Webhook Controller Refactor:**
+    - Created `app/Http/Controllers/Api/WhatsappWebhookController.php` per design specification (Story 1.1)
+    - Moved webhook logic from legacy `IncomingMessageController` to dedicated controller
+    - Route: `POST /api/whatsapp/webhook` → `WhatsappWebhookController@handle`
+    - **Security:** HMAC-SHA256 signature verification via `X-Hub-Signature-256` header
+    - **Throttling:** 60 requests per minute rate limiting
+
+**🐛 Critical Bug Fixes:**
+
+- **Double JSON Encoding Fix:**
+    - **Issue:** Controller was calling `json_encode($data)` before saving to `params` column
+    - **Root Cause:** `WhatsappCommandLog` model already casts `params` to `array`, causing Laravel to auto-encode
+    - **Result:** Database stored double-encoded strings like `"\"{\\"from\\":\\"123\\"}\""` instead of `{"from":"123"}`
+    - **Fix:** Removed manual `json_encode()`, let Laravel's model casting handle it
+    - **Impact:** Test assertion `assertJsonStringEqualsJsonString` now passes correctly
+
+- **Request Payload Parsing Fix:**
+    - **Issue:** Tests send raw JSON string without `Content-Type: application/json` header
+    - **Symptom:** `$request->all()` returned empty array, causing "missing_data" errors
+    - **Fix:** Added fallback JSON decoding when `$request->all()` is empty
+    - **Code:**
+      ```php
+      $data = $request->all();
+      if (empty($data)) {
+          $data = json_decode($request->getContent(), true) ?? [];
+      }
+      ```
+    - **Result:** Now handles both test format (raw JSON) and production format (application/json)
+
+**✅ Test Coverage:**
+
+- All 4 acceptance criteria tests passing:
+    - `test_webhook_returns_403_when_signature_is_missing` ✅
+    - `test_webhook_returns_403_when_signature_is_invalid` ✅
+    - `test_webhook_returns_200_when_signature_is_valid` ✅
+    - `test_valid_payload_is_logged` ✅
+- Test location: `tests/Feature/Api/WhatsappWebhookTest.php`
+
+**📁 Files Changed:**
+
+- Created: `app/Http/Controllers/Api/WhatsappWebhookController.php`
+- Modified: `routes/api.php` (updated route to use new controller)
+- Story: `_bmad-output/implementation-artifacts/1-1-webhook-receiver-security.md` (marked completed)
+
+**🔗 Related Migration:**
+
+- Table: `whatsapp_command_logs` (exists)
+- Migration: `database/migrations/2026_01_13_000001_add_received_to_whatsapp_command_logs_response_status.php`
+- Added `received` status to enum for webhook acknowledgment
+
+---
 
 ### v1.4.9 (13 Januari 2026) - CSS Audit Fixes & WhatsApp Webhook Security
 

@@ -1,6 +1,6 @@
 # Story 1.1: Webhook Receiver & Security
 
-Status: in-progress
+Status: completed
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -21,19 +21,19 @@ so that only valid requests are processed.
 
 ## Tasks / Subtasks
 
-- [ ] Webhook Route & Controller Skeleton (AC: 1, 5)
-    - [ ] Define route in `routes/api.php`
-    - [ ] Create `WhatsappWebhookController` with `handle` method
-    - [ ] Implement `200 OK` response
-- [ ] Security Verification (HMAC) (AC: 2, 3)
-    - [ ] Implement HMAC-SHA256 verification logic
-    - [ ] Verify `X-Hub-Signature-256` header
-    - [ ] Handle missing/invalid signature with 403
-- [ ] Logging (AC: 4)
-    - [ ] Log incoming payload to `whatsapp_command_logs`
-    - [ ] Extract sender number and message body
-- [ ] Throttling (AC: 6)
-    - [ ] Apply `throttle:api` or custom throttle middleware
+- [x] Webhook Route & Controller Skeleton (AC: 1, 5)
+    - [x] Define route in `routes/api.php`
+    - [x] Create `WhatsappWebhookController` with `handle` method
+    - [x] Implement `200 OK` response
+- [x] Security Verification (HMAC) (AC: 2, 3)
+    - [x] Implement HMAC-SHA256 verification logic
+    - [x] Verify `X-Hub-Signature-256` header
+    - [x] Handle missing/invalid signature with 403
+- [x] Logging (AC: 4)
+    - [x] Log incoming payload to `whatsapp_command_logs`
+    - [x] Extract sender number and message body
+- [x] Throttling (AC: 6)
+    - [x] Apply `throttle:60,1` middleware
 
 ## Dev Notes
 
@@ -71,6 +71,9 @@ Google Antigravity (Sisyphus)
 - Design document successfully analyzed and integrated
 - Existing table `whatsapp_command_logs` identified for logging
 - Security requirements (HMAC) explicitly defined
+- All 4 acceptance criteria tests passing (2026-01-13)
+- Fixed double-encoding bug (params column) - Model casts to array, removed json_encode
+- Fixed payload parsing for both test (raw JSON) and production (application/json) formats
 
 ### File List
 
