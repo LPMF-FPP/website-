@@ -24,12 +24,65 @@
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 | [dokpol-style/README.md](./dokpol-style/README.md)         | Design system documentation             |
 
-**Current Version:** v1.4.5 (12 Januari 2026)  
-**Latest Feature:** Form Stepper Scroll Tracking Fix
+**Current Version:** v1.4.9 (13 Januari 2026)  
+**Latest Feature:** CSS Audit Fixes & WhatsApp Webhook Security
 
 ---
 
 ## 📰 Recent Changes (v1.4.x)
+
+### v1.4.9 (13 Januari 2026) - CSS Audit Fixes & WhatsApp Webhook Security
+
+```
+Updated on 2026-01-13
+```
+
+**🔧 Critical Fixes:**
+
+- **Safe Mode v2 Compliance:** Moved `@keyframes pd-spin` animation containing `transform` property from overlay file (`styles/pd.components.css`) to non-overlay file (`styles/components.css`).
+    - **Issue:** Layout property `transform` was flagged as critical violation in overlay CSS.
+    - **Solution:** Keyframe animations are visual-only when properly scoped; moved to appropriate location.
+    - **Result:** ✅ Non-layout Guard: 0 violations (previously 1 critical).
+
+**🔒 Security Enhancements:**
+
+- **WhatsApp Webhook Signature Verification:** Added HMAC SHA-256 signature verification to `IncomingMessageController`.
+    - Validates `X-Hub-Signature-256` header against configured webhook secret.
+    - Returns 403 Forbidden for missing or invalid signatures.
+    - Configurable via `WHATSAPP_WEBHOOK_SECRET` environment variable.
+
+**🧹 Code Quality:**
+
+- **Removed Duplicate Migration:** Deleted empty stub migration `2026_01_12_234734_add_received_to_whatsapp_command_logs_response_status.php`.
+- **Database Schema:** Added `received` status to `whatsapp_command_logs.response_status` enum constraint.
+- **UI Cleanup:** Removed redundant breadcrumb components from page headers (dashboard, requests, samples).
+- **Simplified WhatsApp Milestones:** Reduced notification milestone options in settings to essential stages only:
+    - REQUEST_RECEIVED
+    - REQUEST_REJECTED
+    - READY_FOR_PICKUP
+    - HANDOVER_COMPLETED
+
+**📊 Audit Results:**
+
+| Audit                | Before | After | Status |
+| -------------------- | ------ | ----- | ------ |
+| Non-layout Guard     | 1 🔴   | 0 ✅  | PASS   |
+| CSS Cascade Critical | 1 🔴   | 0 ✅  | PASS   |
+| Color Contrast       | 0 ✅   | 0 ✅  | PASS   |
+| Build                | ✅     | ✅    | PASS   |
+| PHP Syntax           | ✅     | ✅    | PASS   |
+
+**📁 Files Modified:**
+
+- `styles/pd.components.css` (removed keyframe)
+- `styles/components.css` (added keyframe)
+- `app/Http/Controllers/Api/WhatsApp/IncomingMessageController.php`
+- `resources/js/pages/settings/alpine-component.js`
+- `resources/views/components/page-header.blade.php`
+- `resources/views/dashboard.blade.php`
+- `resources/views/requests/index.blade.php`
+- `resources/views/samples/test.blade.php`
+- `database/migrations/2026_01_13_000001_add_received_to_whatsapp_command_logs_response_status.php`
 
 ### v1.4.8 (12 Januari 2026) - UI Revamp: Clinical Precision Theme
 
