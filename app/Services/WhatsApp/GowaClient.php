@@ -14,18 +14,21 @@ class GowaClient
 
     public function __construct()
     {
-        $this->baseUrl = settings('notifications.whatsapp.base_url', 'http://localhost:3000');
-        $this->basicUser = settings('notifications.whatsapp.basic_user');
-        $this->basicPass = settings('notifications.whatsapp.basic_pass');
-        $this->deviceId = settings('notifications.whatsapp.device_id');
+        $this->baseUrl = settings('notifications.whatsapp.base_url', env('WHATSAPP_API_URL', 'http://localhost:3000'));
+        $this->basicUser = settings('notifications.whatsapp.basic_user', env('WHATSAPP_BASIC_USER', 'lpmf'));
+        $this->deviceId = settings('notifications.whatsapp.device_id', env('WHATSAPP_DEVICE_ID', '03663e24-efdb-48fe-961d-456436bfb219'));
         
-        if ($this->basicPass) {
+        $encPass = settings('notifications.whatsapp.basic_pass');
+        
+        if ($encPass) {
             try {
-                $this->basicPass = decrypt($this->basicPass);
+                $this->basicPass = decrypt($encPass);
             } catch (\Throwable $e) {
-                Log::warning('Failed to decrypt WhatsApp basic password', ['error' => $e->getMessage()]);
-                $this->basicPass = null;
+                Log::warning('Failed to decrypt WhatsApp basic password from DB', ['error' => $e->getMessage()]);
+                $this->basicPass = env('WHATSAPP_BASIC_PASS', 'lpmfjaya1');
             }
+        } else {
+            $this->basicPass = env('WHATSAPP_BASIC_PASS', 'lpmfjaya1');
         }
     }
 

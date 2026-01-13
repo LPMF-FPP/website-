@@ -100,12 +100,38 @@
                     <input type="checkbox" class="rounded border-gray-300" x-model="client.state.form.notifications.email.enabled">
                     <span>Enable Email</span>
                 </label>
-                <input 
-                    type="email" 
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" 
-                    x-model="client.state.form.notifications.email.address" 
-                    placeholder="ops@lab.go.id"
-                    :disabled="!client.state.form.notifications.email.enabled">
+                
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Email Recipient</label>
+                        <input 
+                            type="email" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" 
+                            x-model="client.state.form.notifications.email.default_recipient" 
+                            placeholder="ops@lab.go.id"
+                            :disabled="!client.state.form.notifications.email.enabled">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Email Subject</label>
+                        <input 
+                            type="text" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" 
+                            x-model="client.state.form.notifications.email.subject" 
+                            placeholder="[LIMS] Notification"
+                            :disabled="!client.state.form.notifications.email.enabled">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs font-medium text-gray-600 mb-1">Email Body</label>
+                        <textarea 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" 
+                            rows="3"
+                            x-model="client.state.form.notifications.email.body" 
+                            placeholder="Email message body..."
+                            :disabled="!client.state.form.notifications.email.enabled"></textarea>
+                    </div>
+                </div>
             </div>
 
             {{-- WhatsApp Notification --}}

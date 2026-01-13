@@ -1,0 +1,182 @@
+<!doctype html>
+<html>
+    <head>
+        <title>Settings Save Test</title>
+        <script>
+            async function testBrandingSave() {
+                const csrf = document.querySelector(
+                    'meta[name="csrf-token"]',
+                )?.content;
+
+                const testPayload = {
+                    branding: {
+                        organization_name: "TEST ORG " + Date.now(),
+                        logo_url: "",
+                        primary_color: "#0000FF",
+                    },
+                    pdf: {
+                        header: {
+                            show_logo: true,
+                        },
+                        footer: {
+                            show_page_number: true,
+                        },
+                    },
+                };
+
+                console.log("Sending:", testPayload);
+
+                try {
+                    const response = await fetch("/api/settings/branding", {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRF-TOKEN": csrf,
+                            "X-Requested-With": "XMLHttpRequest",
+                            Accept: "application/json",
+                        },
+                        credentials: "same-origin",
+                        body: JSON.stringify(testPayload),
+                    });
+
+                    console.log("Response status:", response.status);
+                    const data = await response.json();
+                    console.log("Response data:", data);
+
+                    // Verify by fetching again
+                    const verifyResponse = await fetch("/api/settings", {
+                        headers: {
+                            "X-Requested-With": "XMLHttpRequest",
+                            Accept: "application/json",
+                        },
+                        credentials: "same-origin",
+                    });
+                    const verifyData = await verifyResponse.json();
+                    console.log("Verified branding:", verifyData.branding);
+
+                    if (
+                        verifyData.branding.organization_name ===
+                        testPayload.branding.organization_name
+                    ) {
+                        console.log("✅ SUCCESS: Data saved correctly!");
+                    } else {
+                        console.error("❌ FAIL: Data not saved!");
+                        console.error(
+                            "Expected:",
+                            testPayload.branding.organization_name,
+                        );
+                        console.error(
+                            "Got:",
+                            verifyData.branding.organization_name,
+                        );
+                    }
+                } catch (error) {
+                    console.error("Error:", error);
+                }
+            }
+
+            async function testNotificationsSave() {
+                const csrf = document.querySelector(
+                    'meta[name="csrf-token"]',
+                )?.content;
+
+                const testPayload = {
+                    notifications: {
+                        email: {
+                            enabled: true,
+                            default_recipient:
+                                "test" + Date.now() + "@example.com",
+                            subject: "Test Subject",
+                            body: "Test Body",
+                        },
+                        whatsapp: {
+                            enabled: false,
+                            default_target: "",
+                            message: "",
+                        },
+                    },
+                    smtp: {
+                        host: "127.0.0.1",
+                        port: 1025,
+                        username: "",
+                        password: "",
+                        from_address: "",
+                        from_name: "LPMF LIMS",
+                    },
+                    security: {
+                        roles: {
+                            can_manage_settings: ["admin"],
+                            can_manage_users: [],
+                            can_issue_number: ["admin"],
+                        },
+                    },
+                };
+
+                console.log("Sending notifications:", testPayload);
+
+                try {
+                    const response = await fetch(
+                        "/api/settings/notifications-security",
+                        {
+                            method: "PUT",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "X-CSRF-TOKEN": csrf,
+                                "X-Requested-With": "XMLHttpRequest",
+                                Accept: "application/json",
+                            },
+                            credentials: "same-origin",
+                            body: JSON.stringify(testPayload),
+                        },
+                    );
+
+                    console.log("Response status:", response.status);
+                    const data = await response.json();
+                    console.log("Response data:", data);
+
+                    // Verify
+                    const verifyResponse = await fetch("/api/settings", {
+                        headers: {
+                            "X-Requested-With": "XMLHttpRequest",
+                            Accept: "application/json",
+                        },
+                        credentials: "same-origin",
+                    });
+                    const verifyData = await verifyResponse.json();
+                    console.log(
+                        "Verified notifications:",
+                        verifyData.notifications,
+                    );
+
+                    if (
+                        verifyData.notifications.email.default_recipient ===
+                        testPayload.notifications.email.default_recipient
+                    ) {
+                        console.log(
+                            "✅ SUCCESS: Notifications saved correctly!",
+                        );
+                    } else {
+                        console.error("❌ FAIL: Notifications not saved!");
+                    }
+                } catch (error) {
+                    console.error("Error:", error);
+                }
+            }
+        </script>
+    </head>
+    <body>
+        <h1>Settings Save Test</h1>
+        <p>Open browser console (F12) and run:</p>
+        <ul>
+            <li><code>testBrandingSave()</code> - Test branding settings</li>
+            <li>
+                <code>testNotificationsSave()</code> - Test notification
+                settings
+            </li>
+        </ul>
+        <button onclick="testBrandingSave()">Test Branding Save</button>
+        <button onclick="testNotificationsSave()">
+            Test Notifications Save
+        </button>
+    </body>
+</html>

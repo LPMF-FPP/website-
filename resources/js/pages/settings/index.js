@@ -1007,9 +1007,28 @@ export class SettingsClient {
                     url: this.api.notificationsSecurity,
                     method: "PUT",
                     body: {
-                        notifications: this.clone(
-                            this.state.form.notifications,
-                        ),
+                        notifications: {
+                            email: {
+                                enabled:
+                                    this.state.form.notifications.email.enabled,
+                                default_recipient:
+                                    this.state.form.notifications.email
+                                        .default_recipient || "",
+                                subject:
+                                    this.state.form.notifications.email
+                                        .subject || "",
+                                body:
+                                    this.state.form.notifications.email.body ||
+                                    "",
+                            },
+                            whatsapp: {
+                                enabled:
+                                    this.state.form.notifications.whatsapp
+                                        .enabled,
+                                default_target: "",
+                                message: "",
+                            },
+                        },
                         smtp: this.clone(this.state.form.smtp),
                         security: {
                             roles: {
@@ -1081,17 +1100,16 @@ export class SettingsClient {
         const data =
             (payload && (payload.settings || payload.data)) || payload || {};
 
-        // Map backend keys to frontend keys before merging
-        // Backend returns 'localization', frontend uses 'locale'
         if (data.localization && !data.locale) {
             data.locale = data.localization;
         }
 
-        // Merge form data instead of replacing to preserve default state structure
-        this.state.form = {
-            ...this.state.form,
-            ...this.mergeDefaults(this.clone(data)),
-        };
+        const merged = this.mergeDefaults(this.clone(data));
+
+        for (const key in merged) {
+            this.state.form[key] = merged[key];
+        }
+
         this.hydrateActiveTemplates(
             data.templates?.active ?? this.state.activeTemplates,
         );
@@ -1204,7 +1222,12 @@ export class SettingsClient {
         return {
             email: {
                 enabled: !!source?.email?.enabled,
-                address: source?.email?.address || "",
+                default_recipient:
+                    source?.email?.default_recipient ||
+                    source?.email?.address ||
+                    "",
+                subject: source?.email?.subject || "",
+                body: source?.email?.body || "",
             },
             whatsapp: {
                 enabled: !!source?.whatsapp?.enabled,

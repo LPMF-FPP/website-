@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v1.5.4
+# WALKTHROUGH - LPMF LIMS v1.5.6
 
 > **Laboratory Information Management System untuk Laboratorium Pengujian Mutu Farmasi**
 
@@ -24,12 +24,155 @@
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 | [dokpol-style/README.md](./dokpol-style/README.md)         | Design system documentation             |
 
-**Current Version:** v1.5.4 (13 Januari 2026)  
-**Latest Feature:** Database Migration Fixes for Seeder
+**Current Version:** v1.5.6 (13 Januari 2026)  
+**Latest Feature:** Settings Page State Reactivity Fix
 
 ---
 
 ## 📰 Recent Changes (v1.5.x)
+
+### v1.5.6 (13 Januari 2026) - Settings Page State Reactivity Fix
+
+```
+Updated on 2026-01-13
+```
+
+**🔧 Bug Fixes:**
+
+- **Fixed Settings Not Updating After Save (False Positive Success)**
+    - **Root Cause:** Alpine.js reactivity not triggered after fetching updated data from server
+    - **Impact:** All sections in `/settings` page showed "Success" message but UI displayed old values
+    - **Symptoms:** Timezone stayed "UTC" even after saving "Asia/Jakarta", branding changes not reflected, etc.
+
+**📝 Technical Details:**
+
+**Problem**: Shallow object merge `{ ...this.state.form, ...mergedData }` doesn't trigger Alpine.js reactivity for nested objects.
+
+**Solution**: Individual property assignment to force reactivity
+
+**File Modified**: `resources/js/pages/settings/index.js`
+
+- Updated `applyServerData()` method (lines 1099-1120):
+    ```javascript
+    const merged = this.mergeDefaults(this.clone(data));
+
+    for (const key in merged) {
+        this.state.form[key] = merged[key];
+    }
+    ```
+
+**Why This Works**:
+
+- Each `this.state.form[key] = value` triggers Alpine's reactive setter
+- Forces UI to re-render with updated values
+- Maintains deep reactivity for nested objects
+
+**Additional Fixes**:
+
+- Cleared Laravel caches: `php artisan cache:clear`
+- Seeded missing initial settings: `php artisan db:seed --class=SystemSettingSeeder`
+- Rebuilt frontend assets with fix: `npm run build`
+
+**✅ Verification Steps**:
+
+1. Hard refresh browser (`Ctrl+Shift+R`) to clear JS cache
+2. Save any setting in `/settings` page
+3. UI should immediately reflect new values
+4. Refresh page → values should persist
+
+**🔍 Root Cause Timeline**:
+
+1. User runs `php artisan test` → test database migrations may have reset settings table
+2. Settings page loads but shows empty/default values (UTC timezone)
+3. User saves → backend writes to database successfully
+4. Frontend refetches data → but Alpine reactivity not triggered
+5. UI still shows old values despite database having new values
+
+**📊 Before vs After**:
+
+| Action         | Before (v1.5.5)    | After (v1.5.6)     |
+| -------------- | ------------------ | ------------------ |
+| Save timezone  | ✅ Saved to DB     | ✅ Saved to DB     |
+| UI updates     | ❌ Shows old value | ✅ Shows new value |
+| After refresh  | ❌ Shows old value | ✅ Shows new value |
+| Other sections | ❌ Same issue      | ✅ All working     |
+
+**✅ Tests**:
+
+- Manual testing: All settings sections (Branding, Localization, Notifications, etc.)
+- Backend save verified via database inspection
+- Frontend reactivity verified via DevTools
+
+### v1.5.5 (13 Januari 2026) - Notification Settings Validation Fix
+
+```
+Updated on 2026-01-13
+```
+
+**🔧 Bug Fixes:**
+
+- **Fixed HTTP 422 Error on Notification Settings Save:**
+    - **Root Cause:** Frontend/backend field name mismatch causing validation failure
+    - **Impact:** Users unable to save email notification settings in `/settings` page
+    - **Error:** `PUT /api/settings/notifications-security 422 (Unprocessable Content)`
+
+**📝 Changes Made:**
+
+**Frontend State Management** (`resources/js/pages/settings/index.js`):
+
+- Updated `mergeNotifications()` method (lines 1203-1226):
+    - Changed `email.address` → `email.default_recipient` (matches backend validation)
+    - Added missing fields: `email.subject`, `email.body`
+    - Maintained backward compatibility with `source?.email?.address || ""`
+- Updated `sectionEndpoint()` for notifications (lines 1005-1024):
+    - Explicitly map email fields to backend-expected structure
+    - Strip WhatsApp extended fields (sent to separate endpoint)
+    - Send only legacy WhatsApp fields (`default_target`, `message`) as empty strings
+
+**Frontend UI** (`resources/views/settings/partials/notifications-security.blade.php`):
+
+- Line 106: Changed `x-model="client.state.form.notifications.email.address"` → `default_recipient`
+- Added missing UI fields:
+    - Email Subject (text input)
+    - Email Body (textarea)
+- Improved field layout with proper labels and spacing
+
+**✅ Validation Rules Matched:**
+
+Backend expects (`NotificationsSecurityRequest.php`):
+
+```php
+'notifications.email.default_recipient' => ['sometimes', 'nullable', 'email']
+'notifications.email.subject' => ['sometimes', 'nullable', 'string', 'max:150']
+'notifications.email.body' => ['sometimes', 'nullable', 'string']
+```
+
+Frontend now sends:
+
+```javascript
+{
+  email: {
+    enabled: boolean,
+    default_recipient: string,
+    subject: string,
+    body: string
+  }
+}
+```
+
+**🔍 Architecture Notes:**
+
+The system uses **dual WhatsApp endpoints**:
+
+1. `/api/settings/notifications-security` - Legacy email + basic WhatsApp fields
+2. `/api/settings/notifications/whatsapp` - Modern WhatsApp settings (base_url, templates, milestones)
+
+Frontend correctly separates these concerns by calling `saveWhatsAppSettings()` after main save.
+
+**✅ Tests:**
+
+- ✅ `NotificationsApiTest::test_notifications_and_security_can_be_updated` - PASS
+- ✅ `NotificationsApiTest::test_notification_test_endpoint_sends_email` - PASS
 
 ### v1.5.4 (13 Januari 2026) - Database Migration Fixes
 
@@ -54,10 +197,12 @@ Updated on 2026-01-13
 **📝 Database Changes:**
 
 Migration files created:
+
 - `2026_01_13_035040_add_folder_key_to_investigators_table.php`
 - `2026_01_13_035258_add_missing_fields_to_test_requests_table.php`
 
 **✅ Seeder Now Working:**
+
 - `DummyDataSeeder` can now run successfully
 - Creates 3 investigators, 10 test requests, 23 samples, 4 LHU documents, 3 surveys, and 8 inventory items
 
@@ -185,13 +330,13 @@ Updated on 2026-01-13
 - **Laravel WhatsApp Settings Configured:**
     - **Location:** Database `system_settings` table
     - **Settings:**
-      ```
-      notifications.whatsapp.base_url: http://localhost:3000
-      notifications.whatsapp.basic_user: lpmf
-      notifications.whatsapp.basic_pass: (encrypted)
-      notifications.whatsapp.device_id: 03663e24-efdb-48fe-961d-456436bfb219
-      notifications.whatsapp.enabled: true
-      ```
+        ```
+        notifications.whatsapp.base_url: http://localhost:3000
+        notifications.whatsapp.basic_user: lpmf
+        notifications.whatsapp.basic_pass: (encrypted)
+        notifications.whatsapp.device_id: 03663e24-efdb-48fe-961d-456436bfb219
+        notifications.whatsapp.enabled: true
+        ```
     - **Configuration via:** `SystemSetting::updateOrCreate()`
 
 **✅ Testing & Verification:**
@@ -256,12 +401,12 @@ Updated on 2026-01-13
     - **Root Cause:** CommandDispatcher only returns 'params' for actual commands, not for regular messages
     - **Fix:** Modified job to only update `params` if dispatcher provides new params
     - **Code:**
-      ```php
-      // Only update params if dispatcher provides new params (for commands)
-      if (isset($result['params'])) {
-          $updates['params'] = $result['params'];
-      }
-      ```
+        ```php
+        // Only update params if dispatcher provides new params (for commands)
+        if (isset($result['params'])) {
+            $updates['params'] = $result['params'];
+        }
+        ```
     - **Result:** Original webhook payload preserved in database for non-command messages
 
 **🏗️ Architecture Improvements:**
@@ -287,12 +432,12 @@ Updated on 2026-01-13
     - **Symptom:** `$request->all()` returned empty array, causing "missing_data" errors
     - **Fix:** Added fallback JSON decoding when `$request->all()` is empty
     - **Code:**
-      ```php
-      $data = $request->all();
-      if (empty($data)) {
-          $data = json_decode($request->getContent(), true) ?? [];
-      }
-      ```
+        ```php
+        $data = $request->all();
+        if (empty($data)) {
+            $data = json_decode($request->getContent(), true) ?? [];
+        }
+        ```
     - **Result:** Now handles both test format (raw JSON) and production format (application/json)
 
 **✅ Test Coverage:**
