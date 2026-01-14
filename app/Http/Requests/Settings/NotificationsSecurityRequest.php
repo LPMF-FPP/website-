@@ -82,11 +82,11 @@ class NotificationsSecurityRequest extends FormRequest
 
             'security' => ['sometimes', 'required', 'array'],
             'security.roles' => ['sometimes', 'required', 'array'],
-            'security.roles.can_manage_settings' => ['sometimes', 'required', 'array'],
+            'security.roles.can_manage_settings' => ['sometimes', 'nullable', 'array'],
             'security.roles.can_manage_settings.*' => ['string', 'max:50'],
-            'security.roles.can_manage_users' => ['sometimes', 'required', 'array'],
+            'security.roles.can_manage_users' => ['sometimes', 'nullable', 'array'],
             'security.roles.can_manage_users.*' => ['string', 'max:50'],
-            'security.roles.can_issue_number' => ['sometimes', 'required', 'array'],
+            'security.roles.can_issue_number' => ['sometimes', 'nullable', 'array'],
             'security.roles.can_issue_number.*' => ['string', 'max:50'],
         ];
     }
