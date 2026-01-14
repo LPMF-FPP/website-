@@ -23,12 +23,53 @@
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 
-**Current Version:** v1.5.9 (14 Januari 2026)  
-**Latest Feature:** Codebase Cleanup & Optimization
+**Current Version:** v1.6.0 (14 Januari 2026)  
+**Latest Feature:** Intelephense LSP Integration for Enhanced PHP Development
 
 ---
 
 ## 📰 Recent Changes (v1.5.x)
+
+### v1.6.0 (14 Januari 2026) - Intelephense LSP Integration
+
+```
+Updated on 2026-01-14
+```
+
+**🔧 Developer Experience Enhancement:**
+
+- **Intelephense Language Server Protocol (LSP) Installed:**
+    - Comprehensive PHP IntelliSense for Laravel 12 + PHP 8.3.29
+    - Installed `intelephense` v1.x via npm (local project dependency)
+    - Configured for optimal performance with 256MB memory allocation
+- **Laravel IDE Helper Integration:**
+    - Added `barryvdh/laravel-ide-helper` v3.6.1 to dev dependencies
+    - Generated IDE helper files:
+        - `_ide_helper.php` (979KB) - Facades & magic methods documentation
+        - `.phpstorm.meta.php` (263KB) - Metadata for better autocomplete
+- **Optimized VSCode Configuration:**
+    - Created `.vscode/settings.json` with comprehensive Intelephense settings
+    - PHP 8.3 stubs configured (42+ extensions including PDO, Redis, OpenSSL)
+    - Performance optimizations: Excluded `vendor/` and `storage/` from file watcher
+    - Environment-specific paths and include configurations
+- **Benefits for Development Team:**
+    - Full autocomplete for Laravel Facades (Route, DB, Auth, etc.)
+    - Intelligent type inference for Eloquent models
+    - Reduced "undefined method" false positives
+    - Jump-to-definition across entire codebase including vendor packages
+    - Real-time PHP syntax checking and error detection
+- **Repository Configuration:**
+    - Updated `.gitignore` to track `.vscode/settings.json` (shared team config)
+    - IDE helper files committed for team-wide consistency
+    - Custom `.intelephense/stubs/settings.php` preserved for global helpers
+
+**📚 Documentation:**
+
+- All Intelephense configuration details are in `.vscode/settings.json`
+- To regenerate helper files: `php artisan ide-helper:generate && php artisan ide-helper:meta`
+- LSP automatically activates for `.php` files in OpenCode/VSCode
+
+---
 
 ### v1.5.9 (14 Januari 2026) - Codebase Cleanup & Optimization
 

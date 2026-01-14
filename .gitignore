@@ -39,8 +39,12 @@ __pycache__/
 /storage/pail
 Thumbs.db
 /vendor
-/.vscode
+# Keep .vscode/settings.json for shared Intelephense config, ignore the rest
+/.vscode/*
+!/.vscode/settings.json
 /.zed
+# Keep IDE helper files (generated but useful for team)
+# _ide_helper.php and .phpstorm.meta.php are tracked
 /storage/framework/views/*.php
 /storage/framework/views/*.blade.php
 

@@ -1,0 +1,82 @@
+{
+    // ====================================
+    // Intelephense Configuration
+    // Optimized for Laravel 12 + PHP 8.3
+    // ====================================
+    
+    // Performance: Hide vendor from file explorer but allow Intelephense to index it
+    "files.exclude": {
+        "**/node_modules": true,
+        "**/vendor": true,
+        "**/.git": true
+    },
+    
+    // PHP Language Server Configuration
+    "intelephense.files.associations": [
+        "*.php",
+        "*.module",
+        "*.inc"
+    ],
+    
+    // Environment Settings
+    "intelephense.environment.phpVersion": "8.3.29",
+    "intelephense.environment.documentRoot": "/home/lpmf-dev/website-",
+    "intelephense.files.maxSize": 5000000,
+    
+    // Memory optimization for large Laravel projects
+    "intelephense.maxMemory": 256,
+    
+    // Diagnostics: Enable comprehensive type checking
+    "intelephense.diagnostics.undefinedTypes": true,
+    "intelephense.diagnostics.undefinedMethods": true,
+    "intelephense.diagnostics.undefinedProperties": true,
+    
+    // PHP Stubs: Comprehensive list for PHP 8.3 + Laravel
+    "intelephense.stubs": [
+        "apache", "bcmath", "bz2", "calendar", "com_dotnet", "Core", "ctype", "curl", "date",
+        "dba", "dom", "enchant", "exif", "FFI", "fileinfo", "filter", "fpm", "ftp", "gd", 
+        "gettext", "gmp", "hash", "iconv", "imap", "intl", "json", "ldap", "libxml", 
+        "mbstring", "meta", "mysqli", "oci8", "odbc", "openssl", "pcntl", "pcre", "PDO", 
+        "pdo_ibm", "pdo_mysql", "pdo_pgsql", "pdo_sqlite", "pgsql", "Phar", "posix", 
+        "pspell", "readline", "Reflection", "session", "shmop", "SimpleXML", "snmp", "soap", 
+        "sockets", "sodium", "SPL", "sqlite3", "standard", "superglobals", "sysvmsg", 
+        "sysvsem", "sysvshm", "tidy", "tokenizer", "xml", "xmlreader", "xmlrpc", "xmlwriter", 
+        "xsl", "Zend OPcache", "zip", "zlib"
+    ],
+    
+    // Include Paths: Explicitly whitelist important directories
+    "intelephense.environment.includePaths": [
+        "vendor",
+        "app",
+        "database",
+        "tests",
+        ".intelephense"
+    ],
+    
+    // File Watcher Exclusions (performance optimization)
+    "files.watcherExclude": {
+        "**/vendor/**": true,
+        "**/storage/**": true,
+        "**/node_modules/**": true,
+        "**/_bmad/**": true,
+        "**/report/**": true
+    },
+    
+    // ====================================
+    // Additional Editor Settings
+    // ====================================
+    
+    // PHP Formatting
+    "[php]": {
+        "editor.defaultFormatter": "bmewburn.vscode-intelephense-client",
+        "editor.formatOnSave": false,
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true
+    },
+    
+    // Files Associations
+    "files.associations": {
+        "*.blade.php": "blade",
+        ".php-cs-fixer.php": "php"
+    }
+}
