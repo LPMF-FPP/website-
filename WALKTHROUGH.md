@@ -23,12 +23,43 @@
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 
-**Current Version:** v1.5.8 (13 Januari 2026)  
-**Latest Feature:** Search Page Cleanup
+**Current Version:** v1.5.9 (14 Januari 2026)  
+**Latest Feature:** Codebase Cleanup & Optimization
 
 ---
 
 ## 📰 Recent Changes (v1.5.x)
+
+### v1.5.9 (14 Januari 2026) - Codebase Cleanup & Optimization
+
+```
+Updated on 2026-01-14
+```
+
+**🧹 Codebase Optimization:**
+
+- **Removed Unused Files & Dependencies:**
+    - Removed entire `dokpol-style` directory (unused Next.js design system).
+    - Removed `app/Services/CLIProxy` (incomplete/unused integration).
+    - Cleaned up root directory (removed demo HTML files, logs, backup files).
+    - Removed legacy `theme-toggle` scripts in favor of `ui.theme-toggle.js`.
+    - Removed unused view/debug files (`test-localization-debug.blade.php`, `debug-file-upload.html`).
+
+- **UI Cleanup:**
+    - Removed "Lacak Permintaan" and "Statistik" links from footer layout (`layouts/app.blade.php`).
+    - Standardized `resources/css/app.css` imports.
+
+**📊 Stats:**
+
+- Deleted 50+ unused files.
+- Reduced project size by removing unused monorepo packages.
+
+**📁 Files Modified:**
+
+- `resources/views/layouts/app.blade.php`
+- `resources/css/app.css`
+- `scripts/` (removed legacy scripts)
+- `public/scripts/` (synced cleanup)
 
 ### v1.5.8 (13 Januari 2026) - Search Page Cleanup
 
