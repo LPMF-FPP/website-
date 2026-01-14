@@ -67,12 +67,7 @@
         <footer class="border-t border-primary-100 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60">
             <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 text-sm text-primary-600 flex flex-col sm:flex-row items-center justify-between gap-2">
                 <div class="opacity-90">&copy; {{ date('Y') }} Pusdokkes Polri · Farmasi Kepolisian</div>
-                <div class="flex items-center gap-3">
-                    <span class="hidden sm:inline">•</span>
-                    <a href="{{ url('/track') }}" class="hover:text-primary-800">Lacak Permintaan</a>
-                    <span>•</span>
-                    <a href="{{ url('/statistics') }}" class="hover:text-primary-800">Statistik</a>
-                </div>
+
             </div>
         </footer>
     </div>

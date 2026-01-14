@@ -1,10 +1,7 @@
-/* Optional tokens import: uncomment when tokens are available in the workspace */
-
-/* @import '../../dokpol-style/packages/ui/src/tokens.css'; */
 @import url("./fonts.css");
 @import url("./icons.css");
-@import url("./theme-dark.css"); /* bundled dark overrides */
-@import url("./theme-semantic.css"); /* semantic alias tokens */
+@import url("./theme-dark.css");
+@import url("./theme-semantic.css");
 
 @tailwind base;
 @tailwind components;

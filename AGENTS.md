@@ -25,9 +25,9 @@ You are strictly required to follow these workflow rules for every task.
 
 ## 1. Project Snapshot
 
-**Type**: Laravel 12 monorepo with integrated design system  
+**Type**: Laravel 12 application with frontend audit system  
 **Stack**: PHP 8.3+, Laravel 12, Blade + Alpine.js + Tailwind CSS, Node.js 20+  
-**Structure**: Main app + dokpol-style package + frontend audit system  
+**Structure**: Main app + frontend audit system  
 **Docs**: Sub-packages reference `patcher/` and `report/README.md` for detailed guides
 
 ## 2. Root Setup Commands
@@ -95,10 +95,6 @@ npm run test
     - Safe overlays: `styles/pd-*.css` (strict layout rules)
     - Tokens: `styles/tokens.css`
 
-- **Design System**: `dokpol-style/` → [see dokpol-style/README.md]
-    - Apps: `dokpol-style/apps/**`
-    - Packages: `dokpol-style/packages/**`
-
 - **Audit System**: `scripts/audit/` + `report/` → [see report/README.md]
     - CSS/JS linting, accessibility, coverage, performance audits
     - All reports output to `report/`
@@ -165,7 +161,6 @@ find tests/ -name "*.php"
 - `docs/` - Code patterns, architecture
 - `report/` - Audit system documentation
 - `tests/` - Testing documentation
-- Module-specific - In module's directory (e.g., `dokpol-style/README.md`)
 - **Versioning**: Use semantic versioning (MAJOR.MINOR.PATCH). Each segment MUST NOT exceed 9 — when reaching 10, increment the next higher segment instead (e.g., `1.0.9` → `1.1.0`, `1.9.9` → `2.0.0`).
 - **Versioning**: Use semantic versioning (MAJOR.MINOR.PATCH) with strict constraints:
     - Each segment MUST NOT exceed 9

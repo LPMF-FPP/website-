@@ -22,7 +22,6 @@
 | [docs/ALPINE_JS_PATTERNS.md](./docs/ALPINE_JS_PATTERNS.md) | Alpine.js coding patterns               |
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
-| [dokpol-style/README.md](./dokpol-style/README.md)         | Design system documentation             |
 
 **Current Version:** v1.5.8 (13 Januari 2026)  
 **Latest Feature:** Search Page Cleanup
