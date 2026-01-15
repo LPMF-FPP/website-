@@ -197,7 +197,7 @@
                         <div>
                             <label class="block text-xs font-medium text-gray-600 mb-2">Template Pesan</label>
                             <p class="text-xs text-gray-500 mb-3">
-                                Gunakan <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{greetings}</code>, <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{resi}</code>, <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{pangkat}</code>, <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{nama}</code>, <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{nomor surat}</code>, <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{tersangka}</code>, dan <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{reason}</code> (khusus penolakan) untuk template pesan.
+                                Gunakan <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{greetings}</code> (sapaan otomatis), <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{pangkat}</code>, <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{nama}</code>, <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{nomor surat}</code>, <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{tersangka}</code>, <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{resi}</code>, dan <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{reason}</code> (khusus penolakan) untuk template pesan.
                             </p>
                             
                             <div class="space-y-4">

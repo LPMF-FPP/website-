@@ -62,6 +62,8 @@ Route::middleware(['auth', 'verified'])->prefix('settings')->group(function () {
         Route::get('/change-logs', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'changeLogs']);
         Route::get('/{scope}/status', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'counterStatus']);
         Route::get('/{scope}/scan', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'scan']);
+        Route::get('/{scope}/search', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'search']);
+        Route::get('/{scope}/document/{id}', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'getDocument']);
         Route::post('/{scope}/reset', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'reset']);
         Route::post('/{scope}/sync', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'sync']);
         Route::put('/{scope}/{id}', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'repair']);

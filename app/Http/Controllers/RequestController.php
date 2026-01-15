@@ -266,7 +266,7 @@ class RequestController extends Controller
         try {
             // 1. Create or find investigator based on type
             if ($isInvestigator) {
-                $investigator = Investigator::firstOrCreate(
+                $investigator = Investigator::updateOrCreate(
                     ['nrp' => $validated['investigator_nrp']],
                     [
                         'is_polri' => true,

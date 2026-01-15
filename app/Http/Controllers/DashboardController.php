@@ -166,6 +166,7 @@ class DashboardController extends Controller
 
             return response()->json([
                 'total_requests' => TestRequest::count(),
+                'total_samples' => Sample::count(),
                 'pending_samples' => Sample::whereHas('testRequest', function ($query) {
                     $query->whereIn('status', ['submitted', 'verified', 'received']);
                 })->count(),
@@ -177,6 +178,7 @@ class DashboardController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'total_requests' => 0,
+                'total_samples' => 0,
                 'pending_samples' => 0,
                 'completed_tests' => 0,
                 'iku_value' => 0,

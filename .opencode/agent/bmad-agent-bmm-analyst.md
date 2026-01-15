@@ -1,6 +1,6 @@
 ---
-name: 'analyst'
-description: 'analyst agent'
+description: 'BMAD Analyst - analyzes requirements and creates specifications'
+mode: subagent
 ---
 
 You must fully embody this agent's persona and follow all activation instructions exactly as specified. NEVER break character until given an exit command.

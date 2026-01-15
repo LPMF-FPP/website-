@@ -587,4 +587,74 @@ class NumberingRepairService
             ->orderBy('created_at', 'desc')
             ->get();
     }
+
+    /**
+     * Search documents by number (partial match)
+     */
+    public function searchDocuments(string $scope, string $query, int $limit = 20): Collection
+    {
+        $config = $this->getScopeConfig($scope);
+        if (!$config) {
+            throw new \InvalidArgumentException("Unknown scope: {$scope}");
+        }
+
+        $model = $config['model'];
+        $column = $config['column'];
+
+        $dbQuery = $model::query();
+
+        // Search based on column type
+        if ($scope === 'lhu') {
+            $dbQuery->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.lhu_number')) LIKE ?", ["%{$query}%"]);
+        } elseif ($scope === 'ba_penyerahan') {
+            $dbQuery->where('document_type', 'ba_penyerahan')
+                    ->where($column, 'like', "%{$query}%");
+        } else {
+            $dbQuery->where($column, 'like', "%{$query}%");
+        }
+
+        return $dbQuery->orderBy('created_at', 'desc')
+            ->limit($limit)
+            ->get()
+            ->map(fn($doc) => [
+                'entity_id' => $doc->id,
+                'entity_type' => get_class($doc),
+                'current_number' => $this->getDocumentNumber($scope, $doc),
+                'entity_name' => $this->getEntityName($scope, $doc),
+                'created_at' => $doc->created_at?->format('Y-m-d H:i'),
+                'sequence_number' => $this->extractSequenceNumber($scope, $doc),
+            ]);
+    }
+
+    /**
+     * Get single document by ID
+     */
+    public function getDocument(string $scope, int $id): ?array
+    {
+        $config = $this->getScopeConfig($scope);
+        if (!$config) {
+            throw new \InvalidArgumentException("Unknown scope: {$scope}");
+        }
+
+        $model = $config['model'];
+        $doc = $model::find($id);
+
+        if (!$doc) {
+            return null;
+        }
+
+        // For ba_penyerahan, verify document_type
+        if ($scope === 'ba_penyerahan' && $doc->document_type !== 'ba_penyerahan') {
+            return null;
+        }
+
+        return [
+            'entity_id' => $doc->id,
+            'entity_type' => get_class($doc),
+            'current_number' => $this->getDocumentNumber($scope, $doc),
+            'entity_name' => $this->getEntityName($scope, $doc),
+            'created_at' => $doc->created_at?->format('Y-m-d H:i'),
+            'sequence_number' => $this->extractSequenceNumber($scope, $doc),
+        ];
+    }
 }

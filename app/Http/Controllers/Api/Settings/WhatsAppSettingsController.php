@@ -105,10 +105,17 @@ class WhatsAppSettingsController extends Controller
         
         // If milestone specified, use template
         if ($milestone) {
-            $greeting = $this->notificationService->getTimeBasedGreeting() . ' Bapak/Ibu (Test)';
+            $greetings = $this->notificationService->getTimeBasedGreeting();
+            $testResi = 'TEST-' . date('Ymd-His');
             $message = $this->notificationService->getMilestoneMessage($milestone, [
-                'greeting' => $greeting,
-                'resi' => 'TEST-' . date('Ymd-His'),
+                'greetings' => $greetings,
+                'greeting' => $greetings . ' Bapak/Ibu (Test)',
+                'pangkat' => 'IPDA',
+                'nama' => 'User Test',
+                'nomor surat' => 'TEST/001',
+                'tersangka' => 'Tersangka Test',
+                'reason' => 'Data belum lengkap',
+                'resi' => $testResi,
             ]);
         } else {
             $message = $request->input('message', 'Test message from LPMF LIMS');

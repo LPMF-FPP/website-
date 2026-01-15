@@ -43,13 +43,13 @@ return new class extends Migration
         SystemSetting::updateOrCreate(
             ['key' => 'notifications.whatsapp.templates'],
             ['value' => [
-                'REQUEST_RECEIVED' => 'Permintaan Anda telah diterima. Resi: {resi}.',
+                'REQUEST_RECEIVED' => '{greetings}, {pangkat} {nama} 👋. Kami informasikan bahwa surat permintaan Anda nomor {nomor surat} atas nama tersangka {tersangka} sudah kami terima ✅. Kode resi Anda: {resi}. Salam Staff Laboratorium Farmapol Pusdokkes Polri. Salam Presisi 🙏',
                 'REVIEW_DONE_READY_FOR_TEST' => 'Permintaan {resi} telah selesai dikaji ulang dan siap dilakukan pengujian.',
                 'PREPARATION_DONE' => 'Permintaan {resi} telah selesai dipreparasi sampel.',
                 'INSTRUMENTATION_DONE' => 'Permintaan {resi} telah selesai diuji instrumen.',
                 'INTERPRETATION_DONE' => 'Permintaan {resi} telah selesai dilakukan interpretasi hasil.',
-                'READY_FOR_PICKUP' => 'Permintaan {resi} siap diambil.',
-                'HANDOVER_COMPLETED' => 'Permintaan {resi} telah diambil dan serah terima telah dicatat.',
+                'READY_FOR_PICKUP' => '{greetings}, {pangkat} {nama} 👋. Dokumen dengan kode resi {resi} atas nama tersangka {tersangka} sudah dapat diambil 📦. Salam Staff Laboratorium Farmapol Pusdokkes Polri. Salam Presisi 🙏',
+                'HANDOVER_COMPLETED' => '{greetings}, {pangkat} {nama} 👋. Dokumen dengan kode resi {resi} atas nama tersangka {tersangka} telah selesai serah terima 🤝✅. Salam Staff Laboratorium Farmapol Pusdokkes Polri. Salam Presisi 🙏',
             ]]
         );
 

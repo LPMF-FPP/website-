@@ -116,11 +116,12 @@ class SampleObserver
         $jid = $this->notificationService->formatJID($phone);
         $greeting = $this->notificationService->getGreeting($testRequest->investigator);
         $timeBasedGreeting = $this->notificationService->getTimeBasedGreeting();
+        $salutation = $this->notificationService->getSalutation($testRequest->investigator);
         $message = $this->notificationService->getMilestoneMessage($milestone, [
             'resi' => $testRequest->receipt_number,
             'nomor surat' => $testRequest->request_number,
             'tersangka' => $testRequest->suspect_name ?? '-',
-            'pangkat' => $testRequest->investigator->rank ?? '-',
+            'pangkat' => $salutation,
             'nama' => $testRequest->investigator->name ?? '-',
             'greetings' => $timeBasedGreeting,
             'greeting' => $greeting,

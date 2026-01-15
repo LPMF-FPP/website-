@@ -22,7 +22,7 @@ return new class extends Migration
         $templates = is_array($templates) ? $templates : [];
 
         if (!array_key_exists('REQUEST_REJECTED', $templates)) {
-            $templates['REQUEST_REJECTED'] = 'Permintaan {resi} ditolak setelah kaji ulang. Alasan: {reason}.';
+            $templates['REQUEST_REJECTED'] = '{greetings}, {pangkat} {nama} 👋. Mohon maaf, permintaan Anda nomor {nomor surat} atas nama tersangka {tersangka} belum dapat kami proses dan dinyatakan ditolak ❌. Silakan menghubungi kami kembali untuk informasi selanjutnya. Salam Staff Laboratorium Farmapol Pusdokkes Polri. Salam Presisi 🙏';
             SystemSetting::updateOrCreate(
                 ['key' => 'notifications.whatsapp.templates'],
                 ['value' => $templates]

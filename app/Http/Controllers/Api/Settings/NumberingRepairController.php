@@ -196,4 +196,54 @@ class NumberingRepairController extends Controller
             ]),
         ]);
     }
+
+    /**
+     * Search documents by number
+     */
+    public function search(Request $request, string $scope): JsonResponse
+    {
+        $validated = $request->validate([
+            'q' => 'required|string|min:1|max:100',
+        ], [
+            'q.required' => 'Query pencarian wajib diisi',
+            'q.min' => 'Query minimal 1 karakter',
+        ]);
+
+        try {
+            $results = $this->repairService->searchDocuments(
+                $scope,
+                $validated['q'],
+                20
+            );
+
+            return response()->json([
+                'success' => true,
+                'results' => $results,
+                'count' => $results->count(),
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * Get single document by ID
+     */
+    public function getDocument(string $scope, int $id): JsonResponse
+    {
+        try {
+            $document = $this->repairService->getDocument($scope, $id);
+
+            if (!$document) {
+                return response()->json(['error' => 'Dokumen tidak ditemukan'], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'document' => $document,
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+    }
 }

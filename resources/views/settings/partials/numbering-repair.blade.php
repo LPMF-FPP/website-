@@ -32,6 +32,62 @@
             </div>
         </div>
 
+        {{-- Search Document Section --}}
+        <template x-if="selectedScope">
+            <div class="bg-blue-50 rounded-lg p-4 border border-blue-200 mb-6">
+                <h3 class="text-sm font-semibold text-blue-900 mb-3">Cari & Edit Nomor Dokumen</h3>
+                <div class="flex items-end gap-3">
+                    <div class="flex-1">
+                        <label class="block text-xs text-blue-700 mb-1">Cari berdasarkan nomor</label>
+                        <input 
+                            type="text"
+                            x-model="searchQuery"
+                            @keyup.enter="searchDocuments()"
+                            placeholder="Ketik nomor dokumen..."
+                            class="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm bg-white">
+                    </div>
+                    <button 
+                        type="button"
+                        @click="searchDocuments()"
+                        :disabled="!searchQuery || searching"
+                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                        <span x-show="!searching">Cari</span>
+                        <span x-show="searching">Mencari...</span>
+                    </button>
+                </div>
+
+                {{-- Search Results --}}
+                <template x-if="searchResults.length > 0">
+                    <div class="mt-4">
+                        <p class="text-xs text-blue-700 mb-2">Ditemukan <span x-text="searchResults.length"></span> dokumen:</p>
+                        <div class="bg-white rounded-lg border border-blue-200 divide-y divide-blue-100 max-h-64 overflow-y-auto">
+                            <template x-for="doc in searchResults" :key="doc.entity_id">
+                                <div class="flex items-center justify-between p-3 hover:bg-blue-50">
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-mono font-medium text-gray-900 truncate" x-text="doc.current_number"></p>
+                                        <p class="text-xs text-gray-500 truncate" x-text="doc.entity_name + ' - ' + doc.created_at"></p>
+                                    </div>
+                                    <button 
+                                        type="button"
+                                        @click="openEditModalFromSearch(doc)"
+                                        class="ml-3 px-3 py-1.5 text-xs font-medium text-white bg-amber-500 rounded hover:bg-amber-600">
+                                        Edit Nomor
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+
+                {{-- No Results --}}
+                <template x-if="searchPerformed && searchResults.length === 0">
+                    <div class="mt-4 text-sm text-blue-700">
+                        Tidak ditemukan dokumen dengan nomor tersebut.
+                    </div>
+                </template>
+            </div>
+        </template>
+
         {{-- Counter Status --}}
         <template x-if="counterStatus">
             <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 mb-6">
@@ -358,6 +414,12 @@ function numberingRepair() {
         problems: [],
         changeLogs: [],
         
+        // Search state
+        searchQuery: '',
+        searchResults: [],
+        searchPerformed: false,
+        searching: false,
+        
         // Request abort controller
         abortController: null,
         
@@ -389,6 +451,53 @@ function numberingRepair() {
 
         init() {
             this.fetchChangeLogs();
+        },
+
+        async searchDocuments() {
+            if (!this.selectedScope || !this.searchQuery.trim()) return;
+            
+            this.searching = true;
+            this.searchPerformed = false;
+            
+            try {
+                const response = await fetch(`/api/settings/numbering/repair/${this.selectedScope}/search?q=${encodeURIComponent(this.searchQuery)}`, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                    },
+                    credentials: 'same-origin',
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    this.searchResults = data.results || [];
+                    this.searchPerformed = true;
+                } else {
+                    alert(data.error || 'Terjadi kesalahan saat mencari');
+                    this.searchResults = [];
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                alert('Gagal melakukan pencarian');
+                this.searchResults = [];
+            } finally {
+                this.searching = false;
+            }
+        },
+
+        openEditModalFromSearch(doc) {
+            this.editingProblem = {
+                entity_id: doc.entity_id,
+                entity_type: doc.entity_type,
+                current_number: doc.current_number,
+                entity_name: doc.entity_name,
+                created_at: doc.created_at,
+                suggested_number: null,
+            };
+            this.editNewNumber = doc.current_number;
+            this.editReason = '';
+            this.showEditModal = true;
         },
 
         async scanScope() {
@@ -463,6 +572,11 @@ function numberingRepair() {
             this.scanned = false;
             this.counterStatus = null;
             this.problems = [];
+            
+            // Reset search state
+            this.searchQuery = '';
+            this.searchResults = [];
+            this.searchPerformed = false;
             
             // Don't auto-scan, let user click the button
             // This prevents race conditions
@@ -600,7 +714,17 @@ function numberingRepair() {
                 
                 if (response.ok) {
                     this.showEditModal = false;
-                    this.scanScope();
+                    
+                    // Refresh search results if we came from search
+                    if (this.searchQuery && this.searchPerformed) {
+                        this.searchDocuments();
+                    }
+                    
+                    // Refresh scan results if we have them
+                    if (this.scanned) {
+                        this.scanScope();
+                    }
+                    
                     this.fetchChangeLogs();
                     alert('Nomor berhasil diperbarui');
                 } else {
