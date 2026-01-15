@@ -12,7 +12,7 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1">Pilih Scope</label>
                 <select 
                     x-model="selectedScope" 
-                    @change="scanScope()"
+                    @change="onScopeChange()"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
                     <option value="">-- Pilih Scope --</option>
                     <template x-for="(label, key) in scopeLabels" :key="key">
@@ -358,6 +358,9 @@ function numberingRepair() {
         problems: [],
         changeLogs: [],
         
+        // Request abort controller
+        abortController: null,
+        
         // Modals
         showResetModal: false,
         showEditModal: false,
@@ -391,17 +394,36 @@ function numberingRepair() {
         async scanScope() {
             if (!this.selectedScope) return;
             
+            // Abort any pending request
+            if (this.abortController) {
+                this.abortController.abort();
+            }
+            this.abortController = new AbortController();
+            
+            // Capture the scope at the time of the request
+            const scopeToScan = this.selectedScope;
+            
+            // Reset state for new scope
             this.loading = true;
             this.scanned = false;
+            this.counterStatus = null;
+            this.problems = [];
             
             try {
-                const response = await fetch(`/api/settings/numbering/repair/${this.selectedScope}/scan`, {
+                const response = await fetch(`/api/settings/numbering/repair/${scopeToScan}/scan`, {
                     headers: {
                         'Accept': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
                     },
                     credentials: 'same-origin',
+                    signal: this.abortController.signal,
                 });
+                
+                // Check if scope changed during request
+                if (this.selectedScope !== scopeToScan) {
+                    console.log('Scope changed during request, discarding result');
+                    return;
+                }
                 
                 const data = await response.json();
                 
@@ -413,11 +435,37 @@ function numberingRepair() {
                     alert(data.error || 'Terjadi kesalahan');
                 }
             } catch (error) {
+                // Ignore abort errors
+                if (error.name === 'AbortError') {
+                    console.log('Request aborted for scope change');
+                    return;
+                }
                 console.error('Scan error:', error);
                 alert('Gagal melakukan scan');
             } finally {
-                this.loading = false;
+                // Only reset loading if this is still the active request
+                if (this.selectedScope === scopeToScan) {
+                    this.loading = false;
+                }
+                this.abortController = null;
             }
+        },
+
+        onScopeChange() {
+            // Abort any pending request when scope changes
+            if (this.abortController) {
+                this.abortController.abort();
+                this.abortController = null;
+            }
+            
+            // Reset state when scope changes
+            this.loading = false;
+            this.scanned = false;
+            this.counterStatus = null;
+            this.problems = [];
+            
+            // Don't auto-scan, let user click the button
+            // This prevents race conditions
         },
 
         async fetchChangeLogs() {
