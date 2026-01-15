@@ -220,11 +220,12 @@
             }
 
             .hero-section {
-                padding-top: 20vh;
                 min-height: 100vh;
                 display: flex;
                 flex-direction: column;
-                justify-content: flex-start;
+                justify-content: center;
+                align-items: center;
+                text-align: center;
             }
 
             /* --- SECTION: WHATSAPP SIMULATOR --- */
@@ -367,32 +368,7 @@
                         FARMAPOL PUSDOKKES POLRI
                     </div>
                 </div>
-                <div class="hidden md:flex gap-8 font-medium text-sm">
-                    <a
-                        href="#mission"
-                        style="
-                            color: var(--text-secondary);
-                            text-decoration: none;
-                        "
-                        >Tentang</a
-                    >
-                    <a
-                        href="#network"
-                        style="
-                            color: var(--text-secondary);
-                            text-decoration: none;
-                        "
-                        >Pelacakan</a
-                    >
-                    <a
-                        href="#telemetry"
-                        style="
-                            color: var(--text-secondary);
-                            text-decoration: none;
-                        "
-                        >Monitoring</a
-                    >
-                </div>
+
                 @auth
                     <a
                         href="{{ route('dashboard') }}"
@@ -413,9 +389,9 @@
 
         <!-- Hero Section -->
         <header class="hero-section container relative z-10">
-            <div style="max-width: 900px">
+            <div style="max-width: 800px">
                 <div
-                    class="flex items-center gap-2 mb-6 reveal-text"
+                    class="flex items-center justify-center gap-2 mb-6 reveal-text"
                     style="
                         transition-delay: 100ms;
                         color: var(--text-secondary);
@@ -439,7 +415,7 @@
                     style="
                         color: var(--text-secondary);
                         max-width: 600px;
-                        margin-bottom: 3rem;
+                        margin: 0 auto 3rem auto;
                         transition-delay: 300ms;
                     "
                 >
@@ -448,7 +424,7 @@
                     diubah, dan telemetri real-time.
                 </p>
                 <div
-                    class="flex gap-4 reveal-text"
+                    class="flex justify-center gap-4 reveal-text"
                     style="transition-delay: 400ms"
                 >
                     <a href="{{ route('public.tracking') }}" class="btn btn-primary"
@@ -698,10 +674,10 @@
                 canvas.height = height;
             }
 
-            // Particles
+            // Particles - Denser network for high-impact look
             const particles = [];
-            const particleCount = 60;
-            const connectionDistance = 150;
+            const particleCount = Math.min(Math.floor(window.innerWidth * 0.08), 120); // Responsive, max 120
+            const connectionDistance = 180; // Increased for more connections
 
             class Particle {
                 constructor() {
