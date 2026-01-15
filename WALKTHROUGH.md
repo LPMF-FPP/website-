@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v1.5.6
+# WALKTHROUGH - LPMF LIMS v1.6.3
 
 > **Laboratory Information Management System untuk Laboratorium Pengujian Mutu Farmasi**
 
@@ -23,12 +23,67 @@
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 
-**Current Version:** v1.6.1 (15 Januari 2026)  
-**Latest Feature:** Updated WhatsApp Notification Templates
+**Current Version:** v1.6.3 (15 Januari 2026)  
+**Latest Feature:** Professional WhatsApp Templates with Formal Format
 
 ---
 
 ## 📰 Recent Changes (v1.5.x)
+
+### v1.6.3 (15 Januari 2026) - Professional WhatsApp Templates
+
+```
+Updated on 2026-01-15
+```
+
+**📱 WhatsApp Notification Template Overhaul:**
+
+- **Formal Professional Format:**
+    - Restructured all 4 main templates with professional multi-line format
+    - Clear sections: greeting, information details, action/status, closing
+    - Time-based greetings (Selamat Pagi/Siang/Sore/Malam) via `{greetings}`
+
+- **Updated Templates:**
+    1. **REQUEST_RECEIVED** - Permintaan diterima dengan nomor surat, tersangka, dan resi
+    2. **REQUEST_REJECTED** - Permintaan ditolak dengan instruksi follow-up
+    3. **READY_FOR_PICKUP** - Dokumen siap diambil dengan informasi lokasi
+    4. **HANDOVER_COMPLETED** - Serah terima selesai dengan ucapan terima kasih
+
+- **Professional Emoticons:**
+    - 📄 Nomor Surat | 👤 Tersangka | 🔖 Kode Resi
+    - ✅ Diterima/Selesai | ❌ Ditolak | 📦 Siap Diambil | 🙏 Salam Presisi
+
+- **Consistent Closing:**
+    - "Salam Presisi 🙏" + "Staff Laboratorium Farmapol Pusdokkes Polri"
+
+**📁 Files Modified:**
+
+- `app/Services/WhatsApp/NotificationService.php`
+- `database/migrations/2026_01_15_053246_update_whatsapp_templates_formal_format.php` (new)
+
+### v1.6.2 (15 Januari 2026) - Friendly WhatsApp Templates with Emojis
+
+```
+Updated on 2026-01-15
+```
+
+**📱 WhatsApp Notification Improvements:**
+
+- **Friendly Message Wording:**
+    - Replaced placeholder `{greetings}` with a direct greeting sentence (e.g., "Halo ...") for clearer, more user-friendly messages.
+    - Simplified connectors so the message flow is easier to read.
+- **Emoji Support:**
+    - Added friendly emojis (👋 ✅ ❌ 📦 🤝 🙏) to reduce stiffness and improve readability.
+- **Default + Stored Templates Updated:**
+    - Updated default templates and applied migration to refresh existing saved templates.
+
+**📁 Files Modified:**
+
+- `app/Services/WhatsApp/NotificationService.php`
+- `database/migrations/2026_01_09_091635_add_default_whatsapp_settings.php`
+- `database/migrations/2026_01_12_120002_add_request_rejected_whatsapp_defaults.php`
+- `database/migrations/2026_01_15_120500_update_whatsapp_templates_to_friendly_v3.php`
+- `resources/views/settings/partials/notifications-security.blade.php`
 
 ### v1.6.1 (15 Januari 2026) - Update WhatsApp Notification Templates
 
