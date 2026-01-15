@@ -76,8 +76,8 @@
                                 <option value="daily">Daily</option>
                             </select>
                             <p x-show="client.state.scopeErrors[scope]?.reset" class="text-xs text-red-600 mt-1" x-text="client.state.scopeErrors[scope]?.reset"></p>
-                        </div>
-                        
+ </div>
+
                         {{-- Start From --}}
                         <div>
                             <label class="block text-xs font-medium text-gray-700 mb-1">Start From</label>
@@ -141,3 +141,6 @@
         </div>
     </div>
 </div>
+
+{{-- Include Repair Section --}}
+@include('settings.partials.numbering-repair')
