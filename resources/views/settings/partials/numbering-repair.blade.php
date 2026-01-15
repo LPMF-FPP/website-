@@ -208,6 +208,110 @@
             </div>
         </template>
 
+        {{-- Document List Section --}}
+        <template x-if="selectedScope">
+            <div class="border border-gray-200 rounded-lg overflow-hidden mb-6">
+                <div class="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                    <h3 class="text-sm font-semibold text-gray-900">
+                        Daftar Dokumen Berurutan
+                        <span x-show="documentList.length > 0" class="text-gray-500 font-normal">
+                            (<span x-text="documentListMeta.total"></span> dokumen)
+                        </span>
+                    </h3>
+                    <button 
+                        type="button"
+                        @click="fetchDocumentList(1)"
+                        :disabled="loadingList"
+                        class="text-sm text-blue-600 hover:text-blue-800 disabled:opacity-50">
+                        <span x-show="!loadingList">Muat Daftar</span>
+                        <span x-show="loadingList">Memuat...</span>
+                    </button>
+                </div>
+                
+                <template x-if="documentList.length > 0">
+                    <div>
+                        <div class="overflow-x-auto max-h-96 overflow-y-auto">
+                            <table class="w-full text-sm">
+                                <thead class="bg-gray-50 sticky top-0">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 w-16">#</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Nomor Dokumen</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Entitas</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Tanggal</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 w-24">Status</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 w-20">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-200">
+                                    <template x-for="(doc, index) in documentList" :key="doc.entity_id">
+                                        <tr :class="doc.has_issue ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50'">
+                                            <td class="px-3 py-2 text-sm text-gray-500" x-text="doc.sequence_number || '-'"></td>
+                                            <td class="px-3 py-2 font-mono text-sm font-medium" x-text="doc.current_number"></td>
+                                            <td class="px-3 py-2 text-sm text-gray-700 truncate max-w-[200px]" x-text="doc.entity_name"></td>
+                                            <td class="px-3 py-2 text-sm text-gray-500" x-text="doc.created_at"></td>
+                                            <td class="px-3 py-2">
+                                                <template x-if="doc.has_issue">
+                                                    <div class="flex flex-wrap gap-1">
+                                                        <template x-for="issue in doc.issues" :key="issue">
+                                                            <span 
+                                                                class="inline-flex px-1.5 py-0.5 text-xs font-medium rounded"
+                                                                :class="issue === 'duplicate' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'"
+                                                                x-text="issue === 'duplicate' ? 'Duplikat' : 'Gap'">
+                                                            </span>
+                                                        </template>
+                                                    </div>
+                                                </template>
+                                                <template x-if="!doc.has_issue">
+                                                    <span class="text-green-600 text-xs">OK</span>
+                                                </template>
+                                            </td>
+                                            <td class="px-3 py-2">
+                                                <button 
+                                                    type="button"
+                                                    @click="openEditModalFromSearch(doc)"
+                                                    class="text-blue-600 hover:text-blue-800 text-xs font-medium">
+                                                    Edit
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        {{-- Pagination --}}
+                        <div class="bg-gray-50 px-4 py-3 border-t border-gray-200 flex justify-between items-center">
+                            <span class="text-xs text-gray-500">
+                                Halaman <span x-text="documentListMeta.current_page"></span> dari <span x-text="documentListMeta.last_page"></span>
+                            </span>
+                            <div class="flex gap-2">
+                                <button 
+                                    type="button"
+                                    @click="fetchDocumentList(documentListMeta.current_page - 1)"
+                                    :disabled="documentListMeta.current_page <= 1 || loadingList"
+                                    class="px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    Sebelumnya
+                                </button>
+                                <button 
+                                    type="button"
+                                    @click="fetchDocumentList(documentListMeta.current_page + 1)"
+                                    :disabled="!documentListMeta.has_more || loadingList"
+                                    class="px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                    Selanjutnya
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                
+                <template x-if="documentList.length === 0 && !loadingList">
+                    <div class="px-4 py-8 text-center text-sm text-gray-500">
+                        Klik "Muat Daftar" untuk melihat urutan dokumen
+                    </div>
+                </template>
+            </div>
+        </template>
+
         {{-- Change Logs --}}
         <div class="border border-gray-200 rounded-lg overflow-hidden">
             <div class="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
@@ -420,6 +524,11 @@ function numberingRepair() {
         searchPerformed: false,
         searching: false,
         
+        // Document list state
+        documentList: [],
+        documentListMeta: { current_page: 1, last_page: 1, total: 0, has_more: false },
+        loadingList: false,
+        
         // Request abort controller
         abortController: null,
         
@@ -578,8 +687,42 @@ function numberingRepair() {
             this.searchResults = [];
             this.searchPerformed = false;
             
+            // Reset document list state
+            this.documentList = [];
+            this.documentListMeta = { current_page: 1, last_page: 1, total: 0, has_more: false };
+            
             // Don't auto-scan, let user click the button
             // This prevents race conditions
+        },
+
+        async fetchDocumentList(page = 1) {
+            if (!this.selectedScope) return;
+            
+            this.loadingList = true;
+            
+            try {
+                const response = await fetch(`/api/settings/numbering/repair/${this.selectedScope}/list?page=${page}&per_page=50`, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                    },
+                    credentials: 'same-origin',
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    this.documentList = data.documents || [];
+                    this.documentListMeta = data.meta || { current_page: 1, last_page: 1, total: 0, has_more: false };
+                } else {
+                    alert(data.error || 'Gagal memuat daftar dokumen');
+                }
+            } catch (error) {
+                console.error('Fetch document list error:', error);
+                alert('Gagal memuat daftar dokumen');
+            } finally {
+                this.loadingList = false;
+            }
         },
 
         async fetchChangeLogs() {
@@ -723,6 +866,11 @@ function numberingRepair() {
                     // Refresh scan results if we have them
                     if (this.scanned) {
                         this.scanScope();
+                    }
+                    
+                    // Refresh document list if loaded
+                    if (this.documentList.length > 0) {
+                        this.fetchDocumentList(this.documentListMeta.current_page);
                     }
                     
                     this.fetchChangeLogs();

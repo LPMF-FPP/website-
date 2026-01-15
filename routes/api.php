@@ -63,6 +63,7 @@ Route::middleware(['auth', 'verified'])->prefix('settings')->group(function () {
         Route::get('/{scope}/status', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'counterStatus']);
         Route::get('/{scope}/scan', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'scan']);
         Route::get('/{scope}/search', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'search']);
+        Route::get('/{scope}/list', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'documentList']);
         Route::get('/{scope}/document/{id}', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'getDocument']);
         Route::post('/{scope}/reset', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'reset']);
         Route::post('/{scope}/sync', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'sync']);

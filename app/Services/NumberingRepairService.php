@@ -657,4 +657,80 @@ class NumberingRepairService
             'sequence_number' => $this->extractSequenceNumber($scope, $doc),
         ];
     }
+
+    /**
+     * Get paginated document list sorted by sequence number
+     */
+    public function getDocumentList(string $scope, int $page = 1, int $perPage = 50): array
+    {
+        $config = $this->getScopeConfig($scope);
+        if (!$config) {
+            throw new \InvalidArgumentException("Unknown scope: {$scope}");
+        }
+
+        $bucket = $this->getCurrentBucket($scope);
+        $reset = settings("numbering.$scope.reset") ?? 'never';
+        
+        // Get all documents in bucket
+        $allDocuments = $this->getDocumentsInBucket($scope, $bucket, $reset);
+        
+        // Map and sort by sequence number
+        $mapped = $allDocuments->map(fn($doc) => [
+            'entity_id' => $doc->id,
+            'entity_type' => get_class($doc),
+            'current_number' => $this->getDocumentNumber($scope, $doc),
+            'entity_name' => $this->getEntityName($scope, $doc),
+            'created_at' => $doc->created_at?->format('Y-m-d H:i'),
+            'sequence_number' => $this->extractSequenceNumber($scope, $doc),
+        ])->sortBy('sequence_number')->values();
+        
+        // Detect issues for each document
+        $sequenceNumbers = $mapped->pluck('sequence_number')->filter()->toArray();
+        $numberCounts = array_count_values(
+            $mapped->pluck('current_number')->filter()->toArray()
+        );
+        
+        // Add issue flags
+        $mapped = $mapped->map(function ($doc, $index) use ($sequenceNumbers, $numberCounts, $mapped) {
+            $issues = [];
+            
+            // Check for duplicate
+            $currentNumber = $doc['current_number'];
+            if ($currentNumber && ($numberCounts[$currentNumber] ?? 0) > 1) {
+                $issues[] = 'duplicate';
+            }
+            
+            // Check for gap (compare with previous)
+            if ($index > 0) {
+                $prevSeq = $mapped[$index - 1]['sequence_number'] ?? 0;
+                $currentSeq = $doc['sequence_number'] ?? 0;
+                if ($currentSeq > 0 && $prevSeq > 0 && ($currentSeq - $prevSeq) > 1) {
+                    $issues[] = 'gap';
+                }
+            }
+            
+            $doc['issues'] = $issues;
+            $doc['has_issue'] = !empty($issues);
+            
+            return $doc;
+        });
+        
+        // Paginate
+        $total = $mapped->count();
+        $lastPage = (int) ceil($total / $perPage);
+        $offset = ($page - 1) * $perPage;
+        
+        $items = $mapped->slice($offset, $perPage)->values();
+        
+        return [
+            'data' => $items,
+            'meta' => [
+                'current_page' => $page,
+                'per_page' => $perPage,
+                'total' => $total,
+                'last_page' => $lastPage,
+                'has_more' => $page < $lastPage,
+            ],
+        ];
+    }
 }

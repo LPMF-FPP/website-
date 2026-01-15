@@ -246,4 +246,25 @@ class NumberingRepairController extends Controller
             return response()->json(['error' => $e->getMessage()], 400);
         }
     }
+
+    /**
+     * Get paginated document list sorted by sequence number
+     */
+    public function documentList(Request $request, string $scope): JsonResponse
+    {
+        $page = max(1, (int) $request->query('page', 1));
+        $perPage = min(100, max(10, (int) $request->query('per_page', 50)));
+
+        try {
+            $result = $this->repairService->getDocumentList($scope, $page, $perPage);
+
+            return response()->json([
+                'success' => true,
+                'documents' => $result['data'],
+                'meta' => $result['meta'],
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+    }
 }
