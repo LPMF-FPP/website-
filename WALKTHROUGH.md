@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v1.6.3
+# WALKTHROUGH - LPMF LIMS v1.6.5
 
 > **Laboratory Information Management System untuk Laboratorium Pengujian Mutu Farmasi**
 
@@ -23,12 +23,70 @@
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 
-**Current Version:** v1.6.3 (15 Januari 2026)  
-**Latest Feature:** Professional WhatsApp Templates with Formal Format
+**Current Version:** v1.6.5 (15 Januari 2026)  
+**Latest Feature:** Numbering Repair & Sync System
 
 ---
 
 ## 📰 Recent Changes (v1.5.x)
+
+### v1.6.5 (15 Januari 2026) - Numbering Repair & Sync System
+
+```
+Updated on 2026-01-15
+```
+
+**🔧 New Feature: Document Numbering Repair Tool**
+
+Fitur baru di halaman Settings untuk memperbaiki dan menyinkronkan nomor dokumen (BA, Sample Code, LHU) yang bermasalah seperti duplikat, melompat, atau tidak sinkron.
+
+**Fitur Utama:**
+
+- **Reset Manual Counter:** Admin dapat mengatur counter ke nilai tertentu dengan alasan wajib
+- **Auto-Sync Counter:** Sistem menghitung otomatis counter dari nomor tertinggi atau jumlah dokumen
+- **Edit Nomor Individual:** Perbaiki nomor dokumen spesifik yang duplikat atau melompat
+- **Deteksi Masalah:** Scan otomatis untuk menemukan duplikat dan gap dalam penomoran
+- **Audit Logging:** Semua perubahan tercatat di `numbering_change_logs` dengan alasan wajib
+
+**API Endpoints:**
+
+| Method | Endpoint                                              | Fungsi                 |
+| ------ | ----------------------------------------------------- | ---------------------- |
+| GET    | `/api/settings/numbering/repair/{scope}/status`       | Get counter status     |
+| GET    | `/api/settings/numbering/repair/{scope}/scan`         | Scan for problems      |
+| POST   | `/api/settings/numbering/repair/{scope}/reset`        | Reset counter          |
+| POST   | `/api/settings/numbering/repair/{scope}/sync`         | Sync counter           |
+| PUT    | `/api/settings/numbering/repair/{scope}/{id}`         | Edit individual number |
+| GET    | `/api/settings/numbering/repair/{scope}/{id}/history` | Get entity history     |
+| GET    | `/api/settings/numbering/repair/change-logs`          | Get change logs        |
+
+**Scope yang Didukung:**
+
+- `ba` - Berita Acara Penerimaan
+- `sample_code` - Kode Sampel
+- `lhu` - Laporan Hasil Uji
+- `ba_penyerahan` - Berita Acara Penyerahan
+- `tracking` - Tracking/Resi Number
+
+**📁 Files Created:**
+
+- `database/migrations/2026_01_15_141523_create_numbering_change_logs_table.php`
+- `app/Models/NumberingChangeLog.php`
+- `app/Services/NumberingRepairService.php`
+- `app/Http/Controllers/Api/Settings/NumberingRepairController.php`
+- `resources/views/settings/partials/numbering-repair.blade.php`
+- `tests/Feature/NumberingRepairTest.php`
+
+**📁 Files Modified:**
+
+- `routes/api.php` - Added 7 repair API routes
+- `resources/views/settings/partials/numbering.blade.php` - Include repair partial
+
+**✅ Test Results:**
+
+- 8 tests passing with 36 assertions
+- Counter status, scan, reset, sync, change logs all functional
+- Authentication and validation working correctly
 
 ### v1.6.4 (15 Januari 2026) - Clinical Theme Restoration
 
