@@ -363,6 +363,9 @@
                         alt="Pusdokkes Polri"
                         style="height: 45px; width: auto"
                     />
+                    <div style="font-family: var(--font-display); font-weight: 800; font-size: 1.25rem; color: var(--text-primary); letter-spacing: -0.01em;">
+                        FARMAPOL PUSDOKKES POLRI
+                    </div>
                 </div>
                 <div class="hidden md:flex gap-8 font-medium text-sm">
                     <a
