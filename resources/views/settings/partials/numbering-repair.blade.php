@@ -1,0 +1,570 @@
+{{-- Partial: Perbaikan & Sinkronisasi Nomor --}}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 mt-6" x-data="numberingRepair()">
+    <div class="p-6 border-b border-gray-200">
+        <h2 class="text-lg font-semibold text-gray-900">Perbaikan & Sinkronisasi Nomor</h2>
+        <p class="text-sm text-gray-500 mt-1">Deteksi dan perbaiki masalah penomoran dokumen</p>
+    </div>
+
+    <div class="p-6">
+        {{-- Scope Selector --}}
+        <div class="flex items-center gap-4 mb-6">
+            <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Pilih Scope</label>
+                <select 
+                    x-model="selectedScope" 
+                    @change="scanScope()"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
+                    <option value="">-- Pilih Scope --</option>
+                    <template x-for="(label, key) in scopeLabels" :key="key">
+                        <option :value="key" x-text="label"></option>
+                    </template>
+                </select>
+            </div>
+            <div class="pt-6">
+                <button 
+                    type="button"
+                    @click="scanScope()"
+                    :disabled="!selectedScope || loading"
+                    class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span x-show="!loading">Scan Masalah</span>
+                    <span x-show="loading">Scanning...</span>
+                </button>
+            </div>
+        </div>
+
+        {{-- Counter Status --}}
+        <template x-if="counterStatus">
+            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 mb-6">
+                <h3 class="text-sm font-semibold text-gray-900 mb-3">Status Counter</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <p class="text-xs text-gray-500">Scope</p>
+                        <p class="text-sm font-medium" x-text="scopeLabels[counterStatus.scope]"></p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">Bucket</p>
+                        <p class="text-sm font-mono" x-text="counterStatus.bucket"></p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">Counter Saat Ini</p>
+                        <p class="text-sm font-bold text-blue-600" x-text="counterStatus.current_counter"></p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500">Total Dokumen</p>
+                        <p class="text-sm font-medium" x-text="counterStatus.total_documents"></p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="bg-white rounded-lg p-3 border">
+                        <p class="text-xs text-gray-500 mb-1">Dari Nomor Tertinggi</p>
+                        <p class="text-lg font-bold" x-text="counterStatus.from_max"></p>
+                        <p class="text-xs text-gray-400" x-text="counterStatus.max_document ? 'MAX: ' + counterStatus.max_document : 'Tidak ada dokumen'"></p>
+                    </div>
+                    <div class="bg-white rounded-lg p-3 border">
+                        <p class="text-xs text-gray-500 mb-1">Dari Jumlah Dokumen</p>
+                        <p class="text-lg font-bold" x-text="counterStatus.from_count"></p>
+                        <p class="text-xs text-gray-400" x-text="'COUNT: ' + counterStatus.total_documents + ' dokumen'"></p>
+                    </div>
+                </div>
+
+                {{-- Action Buttons --}}
+                <div class="flex flex-wrap gap-2">
+                    <button 
+                        type="button"
+                        @click="showResetModal = true"
+                        class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Reset Manual
+                    </button>
+                    <button 
+                        type="button"
+                        @click="syncCounter('max')"
+                        :disabled="syncing"
+                        class="px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50">
+                        Sync Tertinggi
+                    </button>
+                    <button 
+                        type="button"
+                        @click="syncCounter('count')"
+                        :disabled="syncing"
+                        class="px-3 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50">
+                        Sync Jumlah
+                    </button>
+                </div>
+            </div>
+        </template>
+
+        {{-- Problems Table --}}
+        <template x-if="problems.length > 0">
+            <div class="border border-gray-200 rounded-lg overflow-hidden mb-6">
+                <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                    <h3 class="text-sm font-semibold text-gray-900">
+                        Dokumen Bermasalah (<span x-text="problems.length"></span> ditemukan)
+                    </h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Nomor</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Tanggal</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Entitas</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Masalah</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Saran</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            <template x-for="problem in problems" :key="problem.entity_id || problem.gap_position">
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-4 py-3 font-mono text-sm" x-text="problem.current_number || '-'"></td>
+                                    <td class="px-4 py-3 text-sm" x-text="problem.created_at || '-'"></td>
+                                    <td class="px-4 py-3 text-sm" x-text="problem.entity_name || '-'"></td>
+                                    <td class="px-4 py-3">
+                                        <span 
+                                            class="inline-flex px-2 py-1 text-xs font-medium rounded-full"
+                                            :class="problem.type === 'duplicate' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'"
+                                            x-text="problem.type === 'duplicate' ? 'Duplikat' : 'Gap: ' + problem.gap_position">
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-sm text-gray-500" x-text="problem.suggested_number || (problem.is_first ? 'Pertahankan' : problem.missing_number || '-')"></td>
+                                    <td class="px-4 py-3">
+                                        <button 
+                                            x-show="problem.entity_id"
+                                            type="button"
+                                            @click="openEditModal(problem)"
+                                            class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                            Edit
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </template>
+
+        {{-- No Problems Message --}}
+        <template x-if="scanned && problems.length === 0">
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                <p class="text-sm text-green-800">Tidak ada masalah penomoran ditemukan untuk scope ini.</p>
+            </div>
+        </template>
+
+        {{-- Change Logs --}}
+        <div class="border border-gray-200 rounded-lg overflow-hidden">
+            <div class="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
+                <h3 class="text-sm font-semibold text-gray-900">History Perubahan Terakhir</h3>
+                <button 
+                    type="button"
+                    @click="fetchChangeLogs()"
+                    class="text-sm text-blue-600 hover:text-blue-800">
+                    Refresh
+                </button>
+            </div>
+            <div class="max-h-64 overflow-y-auto">
+                <template x-if="changeLogs.length > 0">
+                    <div class="divide-y divide-gray-200">
+                        <template x-for="log in changeLogs" :key="log.id">
+                            <div class="px-4 py-3">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <span class="text-sm font-medium text-gray-900" x-text="log.user"></span>
+                                        <span class="text-sm text-gray-500" x-text="log.action_label"></span>
+                                        <span class="text-sm text-gray-500" x-text="log.scope_label"></span>
+                                    </div>
+                                    <span class="text-xs text-gray-400" x-text="log.created_at"></span>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    <span x-text="log.old_value"></span> → <span class="font-medium" x-text="log.new_value"></span>
+                                </p>
+                                <p class="text-xs text-gray-400 mt-1" x-text="'Alasan: ' + log.reason"></p>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+                <template x-if="changeLogs.length === 0">
+                    <div class="px-4 py-8 text-center text-sm text-gray-500">
+                        Belum ada perubahan tercatat
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    {{-- Reset Modal --}}
+    <div x-show="showResetModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="fixed inset-0 bg-black/50" @click="showResetModal = false"></div>
+            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Reset Counter Manual</h3>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nilai Counter Baru</label>
+                    <input 
+                        type="number" 
+                        x-model.number="resetValue"
+                        min="0"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Alasan Perubahan *</label>
+                    <textarea 
+                        x-model="resetReason"
+                        rows="3"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="Jelaskan alasan reset counter..."></textarea>
+                </div>
+
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                    <p class="text-xs text-yellow-800">
+                        <strong>Perhatian:</strong> Reset counter dapat menyebabkan duplikasi nomor jika nilai baru lebih kecil dari nomor tertinggi yang sudah terbit.
+                    </p>
+                </div>
+
+                <div class="flex justify-end gap-2">
+                    <button 
+                        type="button"
+                        @click="showResetModal = false"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Batal
+                    </button>
+                    <button 
+                        type="button"
+                        @click="resetCounter()"
+                        :disabled="!resetReason || resetValue < 0"
+                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                        Reset Counter
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Edit Modal --}}
+    <div x-show="showEditModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="fixed inset-0 bg-black/50" @click="showEditModal = false"></div>
+            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Edit Nomor Dokumen</h3>
+                
+                <div class="mb-4">
+                    <p class="text-sm text-gray-500">Entitas: <span class="font-medium" x-text="editingProblem?.entity_name"></span></p>
+                    <p class="text-sm text-gray-500">Tanggal: <span class="font-medium" x-text="editingProblem?.created_at"></span></p>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nomor Saat Ini</label>
+                    <input 
+                        type="text" 
+                        :value="editingProblem?.current_number"
+                        disabled
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 font-mono">
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nomor Baru</label>
+                    <input 
+                        type="text" 
+                        x-model="editNewNumber"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono">
+                    <p x-show="editingProblem?.suggested_number" class="text-xs text-gray-500 mt-1">
+                        Saran: <span x-text="editingProblem?.suggested_number"></span>
+                    </p>
+                </div>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Alasan Perubahan *</label>
+                    <textarea 
+                        x-model="editReason"
+                        rows="3"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="Jelaskan alasan perubahan nomor..."></textarea>
+                </div>
+
+                <div class="flex justify-end gap-2">
+                    <button 
+                        type="button"
+                        @click="showEditModal = false"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Batal
+                    </button>
+                    <button 
+                        type="button"
+                        @click="saveEdit()"
+                        :disabled="!editNewNumber || !editReason || saving"
+                        class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                        <span x-show="!saving">Simpan Perubahan</span>
+                        <span x-show="saving">Menyimpan...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Sync Reason Modal --}}
+    <div x-show="showSyncModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="fixed inset-0 bg-black/50" @click="showSyncModal = false"></div>
+            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Konfirmasi Sinkronisasi</h3>
+                
+                <p class="text-sm text-gray-500 mb-4">
+                    Counter akan diubah dari <strong x-text="counterStatus?.current_counter"></strong> 
+                    ke <strong x-text="syncMethod === 'max' ? counterStatus?.from_max : counterStatus?.from_count"></strong>
+                </p>
+
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Alasan Sinkronisasi *</label>
+                    <textarea 
+                        x-model="syncReason"
+                        rows="3"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        placeholder="Jelaskan alasan sinkronisasi..."></textarea>
+                </div>
+
+                <div class="flex justify-end gap-2">
+                    <button 
+                        type="button"
+                        @click="showSyncModal = false"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Batal
+                    </button>
+                    <button 
+                        type="button"
+                        @click="confirmSync()"
+                        :disabled="!syncReason || syncing"
+                        class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:opacity-50">
+                        <span x-show="!syncing">Sinkronkan</span>
+                        <span x-show="syncing">Menyinkronkan...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function numberingRepair() {
+    return {
+        selectedScope: '',
+        loading: false,
+        scanned: false,
+        syncing: false,
+        saving: false,
+        counterStatus: null,
+        problems: [],
+        changeLogs: [],
+        
+        // Modals
+        showResetModal: false,
+        showEditModal: false,
+        showSyncModal: false,
+        
+        // Reset form
+        resetValue: 0,
+        resetReason: '',
+        
+        // Edit form
+        editingProblem: null,
+        editNewNumber: '',
+        editReason: '',
+        
+        // Sync form
+        syncMethod: '',
+        syncReason: '',
+        
+        scopeLabels: {
+            'ba': 'BA Penerimaan',
+            'sample_code': 'Kode Sampel',
+            'lhu': 'Laporan Hasil Uji',
+            'ba_penyerahan': 'BA Penyerahan',
+            'tracking': 'Nomor Resi',
+        },
+
+        init() {
+            this.fetchChangeLogs();
+        },
+
+        async scanScope() {
+            if (!this.selectedScope) return;
+            
+            this.loading = true;
+            this.scanned = false;
+            
+            try {
+                const response = await fetch(`/api/settings/numbering/repair/${this.selectedScope}/scan`, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                    },
+                    credentials: 'same-origin',
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    this.counterStatus = data.counter_status;
+                    this.problems = data.problems;
+                    this.scanned = true;
+                } else {
+                    alert(data.error || 'Terjadi kesalahan');
+                }
+            } catch (error) {
+                console.error('Scan error:', error);
+                alert('Gagal melakukan scan');
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        async fetchChangeLogs() {
+            try {
+                const url = this.selectedScope 
+                    ? `/api/settings/numbering/repair/change-logs?scope=${this.selectedScope}`
+                    : '/api/settings/numbering/repair/change-logs';
+                    
+                const response = await fetch(url, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                    },
+                    credentials: 'same-origin',
+                });
+                
+                const data = await response.json();
+                this.changeLogs = data.logs || [];
+            } catch (error) {
+                console.error('Fetch logs error:', error);
+            }
+        },
+
+        syncCounter(method) {
+            this.syncMethod = method;
+            this.syncReason = '';
+            this.showSyncModal = true;
+        },
+
+        async confirmSync() {
+            if (!this.syncReason) return;
+            
+            this.syncing = true;
+            
+            try {
+                const response = await fetch(`/api/settings/numbering/repair/${this.selectedScope}/sync`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        method: this.syncMethod,
+                        reason: this.syncReason,
+                    }),
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    this.showSyncModal = false;
+                    this.scanScope();
+                    this.fetchChangeLogs();
+                    alert('Counter berhasil disinkronkan');
+                } else {
+                    alert(data.error || 'Terjadi kesalahan');
+                }
+            } catch (error) {
+                console.error('Sync error:', error);
+                alert('Gagal melakukan sinkronisasi');
+            } finally {
+                this.syncing = false;
+            }
+        },
+
+        async resetCounter() {
+            if (!this.resetReason || this.resetValue < 0) return;
+            
+            try {
+                const response = await fetch(`/api/settings/numbering/repair/${this.selectedScope}/reset`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        new_value: this.resetValue,
+                        reason: this.resetReason,
+                    }),
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    this.showResetModal = false;
+                    this.resetValue = 0;
+                    this.resetReason = '';
+                    this.scanScope();
+                    this.fetchChangeLogs();
+                    alert('Counter berhasil direset');
+                } else {
+                    alert(data.error || 'Terjadi kesalahan');
+                }
+            } catch (error) {
+                console.error('Reset error:', error);
+                alert('Gagal melakukan reset');
+            }
+        },
+
+        openEditModal(problem) {
+            this.editingProblem = problem;
+            this.editNewNumber = problem.suggested_number || problem.current_number;
+            this.editReason = '';
+            this.showEditModal = true;
+        },
+
+        async saveEdit() {
+            if (!this.editNewNumber || !this.editReason) return;
+            
+            this.saving = true;
+            
+            try {
+                const response = await fetch(`/api/settings/numbering/repair/${this.selectedScope}/${this.editingProblem.entity_id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        new_number: this.editNewNumber,
+                        reason: this.editReason,
+                    }),
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    this.showEditModal = false;
+                    this.scanScope();
+                    this.fetchChangeLogs();
+                    alert('Nomor berhasil diperbarui');
+                } else {
+                    alert(data.error || 'Terjadi kesalahan');
+                }
+            } catch (error) {
+                console.error('Save error:', error);
+                alert('Gagal menyimpan perubahan');
+            } finally {
+                this.saving = false;
+            }
+        },
+    };
+}
+</script>
