@@ -30,6 +30,32 @@
 
 ## 📰 Recent Changes (v1.5.x)
 
+### v1.6.4 (15 Januari 2026) - Clinical Theme Restoration
+
+```
+Updated on 2026-01-15
+```
+
+**🎨 UI Restoration:**
+
+- **Reverted to Clinical Precision Theme:**
+    - Restored light mode palette (`--bg-body: #f3f5f7`, `--text-primary: #111827`).
+    - Removed Cyber-Noir dark mode elements (scanlines, glitches, void black backgrounds).
+    - Restored "Network Nodes" canvas animation with clean blue connections.
+
+- **Branding Integration:**
+    - **Official Logo:** Replaced text logo with official Pusdokkes Polri logo in navbar.
+    - **Attribution:** Added "Powered by Pusdokkes Polri" badge in the hero section.
+
+- **WhatsApp Simulator Update:**
+    - **Style:** Switched to standard "Chat Bubble" aesthetics (Green/White) for realism.
+    - **Timing:** Implemented natural typing delays (1.0s - 1.5s).
+    - **Content:** Updated conversation flow to match `/resi` command usage.
+
+**📁 Files Modified:**
+
+- `landing-page-lpmf.html`
+
 ### v1.6.3 (15 Januari 2026) - Professional WhatsApp Templates
 
 ```
