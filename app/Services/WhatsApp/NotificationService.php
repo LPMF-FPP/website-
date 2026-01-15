@@ -8,14 +8,14 @@ use Carbon\Carbon;
 class NotificationService
 {
     private const MILESTONE_TEMPLATES = [
-        'REQUEST_RECEIVED' => 'Permintaan Anda telah diterima. Resi: {resi}.',
+        'REQUEST_RECEIVED' => '{greetings}, {pangkat} {nama} telah diterima dengan nomor surat {nomor surat} atas nama tersangka {tersangka} berikut {resi} anda. Salam Staff Laboratorium Farmapol Pusdokkes Polri, Salam Presisi',
         'REVIEW_DONE_READY_FOR_TEST' => 'Permintaan {resi} telah selesai dikaji ulang dan siap dilakukan pengujian.',
-        'REQUEST_REJECTED' => '{greeting}, permintaan {resi} ditolak setelah kaji ulang. Alasan: {reason}.',
+        'REQUEST_REJECTED' => '{greetings}, {pangkat} {nama} permintaan anda dengan nomor surat {nomor surat} atas nama tersangka {tersangka} ditolak, harap menghubungi kami kembali untuk informasi selanjutnya. Salam Staff Laboratorium Farmapol Pusdokkes Polri, Salam Presisi',
         'PREPARATION_DONE' => 'Permintaan {resi} telah selesai dipreparasi sampel.',
         'INSTRUMENTATION_DONE' => 'Permintaan {resi} telah selesai diuji instrumen.',
         'INTERPRETATION_DONE' => 'Permintaan {resi} telah selesai dilakukan interpretasi hasil.',
-        'READY_FOR_PICKUP' => 'Permintaan {resi} siap diambil.',
-        'HANDOVER_COMPLETED' => 'Permintaan {resi} telah diambil dan serah terima telah dicatat.',
+        'READY_FOR_PICKUP' => '{greetings}, {pangkat} {nama} {resi} anda atas nama tersangka {tersangka} sudah dapat diambil. Salam Staff Laboratorium Farmapol Pusdokkes Polri, Salam Presisi',
+        'HANDOVER_COMPLETED' => '{greetings}, {pangkat} {nama} {resi} anda atas nama tersangka {tersangka} sudah selesai serah terima. Salam Staff Laboratorium Farmapol Pusdokkes Polri, Salam Presisi',
     ];
 
     public function getMilestoneMessage(string $milestone, array $replacements = []): ?string

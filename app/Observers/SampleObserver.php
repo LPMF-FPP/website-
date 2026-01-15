@@ -107,7 +107,7 @@ class SampleObserver
             return;
         }
 
-        $phone = $testRequest->investigator->phone_number ?? null;
+        $phone = $testRequest->investigator->phone ?? null;
 
         if (!$phone) {
             return;
@@ -115,8 +115,14 @@ class SampleObserver
 
         $jid = $this->notificationService->formatJID($phone);
         $greeting = $this->notificationService->getGreeting($testRequest->investigator);
+        $timeBasedGreeting = $this->notificationService->getTimeBasedGreeting();
         $message = $this->notificationService->getMilestoneMessage($milestone, [
             'resi' => $testRequest->receipt_number,
+            'nomor surat' => $testRequest->request_number,
+            'tersangka' => $testRequest->suspect_name ?? '-',
+            'pangkat' => $testRequest->investigator->rank ?? '-',
+            'nama' => $testRequest->investigator->name ?? '-',
+            'greetings' => $timeBasedGreeting,
             'greeting' => $greeting,
         ]);
 

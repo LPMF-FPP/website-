@@ -23,12 +23,36 @@
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 
-**Current Version:** v1.6.0 (14 Januari 2026)  
-**Latest Feature:** Intelephense LSP Integration for Enhanced PHP Development
+**Current Version:** v1.6.1 (15 Januari 2026)  
+**Latest Feature:** Updated WhatsApp Notification Templates
 
 ---
 
 ## 📰 Recent Changes (v1.5.x)
+
+### v1.6.1 (15 Januari 2026) - Update WhatsApp Notification Templates
+
+```
+Updated on 2026-01-15
+```
+
+**📱 WhatsApp Notification Enhancements:**
+
+- **Updated Notification Templates:**
+    - Implemented new standardized templates for `REQUEST_RECEIVED`, `REQUEST_REJECTED`, `READY_FOR_PICKUP`, and `HANDOVER_COMPLETED`.
+    - Added "Salam Staff Laboratorium Farmapol Pusdokkes Polri, Salam Presisi" closing.
+- **Enhanced Placeholder Support:**
+    - Added support for `{pangkat}`, `{nama}`, `{nomor surat}`, `{tersangka}`, `{greetings}`.
+    - Updated `TestRequestObserver` and `SampleObserver` to populate these placeholders dynamically.
+- **Settings UI Update:**
+    - Updated instructions in `/settings` page to list available placeholders.
+
+**📁 Files Modified:**
+
+- `app/Services/WhatsApp/NotificationService.php`
+- `app/Observers/TestRequestObserver.php`
+- `app/Observers/SampleObserver.php`
+- `resources/views/settings/partials/notifications-security.blade.php`
 
 ### v1.6.0 (14 Januari 2026) - Intelephense LSP Integration
 
