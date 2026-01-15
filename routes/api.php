@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\Settings\EmergencyBackupController;
 use App\Http\Controllers\Api\Settings\WhatsAppSettingsController;
 use App\Http\Controllers\Api\SettingsController as ApiSettingsController;
 use App\Http\Controllers\Api\JobStatusController;
+use App\Http\Controllers\Api\SystemController;
 use App\Http\Controllers\Api\WhatsApp\IncomingMessageController;
 use App\Http\Controllers\Api\WhatsappWebhookController;
 use App\Models\TestRequest;
@@ -29,6 +30,16 @@ use Illuminate\Support\Facades\Route;
 Route::post('/whatsapp/webhook', [WhatsappWebhookController::class, 'handle'])
     ->middleware('throttle:60,1')
     ->name('whatsapp.webhook');
+
+// System API (called from WhatsApp bot)
+Route::post('/system/restart-queue', [SystemController::class, 'restartQueue'])
+    ->middleware('throttle:5,1')
+    ->name('system.restart-queue');
+
+// Dashboard Stats (called from WhatsApp bot)
+Route::get('/dashboard-stats', [\App\Http\Controllers\DashboardController::class, 'getStats'])
+    ->middleware('throttle:60,1')
+    ->name('api.dashboard.stats');
 
 // Monitoring API
 Route::prefix('monitoring')->middleware('throttle:60,1')->group(function () {
@@ -45,6 +56,17 @@ Route::middleware(['auth', 'verified'])->prefix('settings')->group(function () {
     Route::put('/numbering/{scope}', [NumberingController::class, 'updateScope']);
     Route::put('/numbering', [NumberingController::class, 'update']);
     Route::post('/numbering/preview', [NumberingController::class, 'preview']);
+
+    // Numbering Repair (Admin/Manager only)
+    Route::prefix('numbering/repair')->group(function () {
+        Route::get('/change-logs', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'changeLogs']);
+        Route::get('/{scope}/status', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'counterStatus']);
+        Route::get('/{scope}/scan', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'scan']);
+        Route::post('/{scope}/reset', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'reset']);
+        Route::post('/{scope}/sync', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'sync']);
+        Route::put('/{scope}/{id}', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'repair']);
+        Route::get('/{scope}/{id}/history', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'entityHistory']);
+    });
 
     Route::get('/templates', [ApiTemplateController::class, 'index']);
     Route::post('/templates/upload', [ApiTemplateController::class, 'upload']);
