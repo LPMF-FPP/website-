@@ -368,4 +368,223 @@ class NumberingRepairService
 
         return 'Unknown';
     }
+
+    /**
+     * Reset counter manually
+     */
+    public function resetCounter(string $scope, int $newValue, string $reason): array
+    {
+        $config = $this->getScopeConfig($scope);
+        if (!$config) {
+            throw new \InvalidArgumentException("Unknown scope: {$scope}");
+        }
+
+        if ($newValue < 0) {
+            throw new \InvalidArgumentException("Counter value cannot be negative");
+        }
+
+        $bucket = $this->getCurrentBucket($scope);
+
+        return DB::transaction(function () use ($scope, $bucket, $newValue, $reason) {
+            $sequence = Sequence::where('scope', $scope)
+                ->where('bucket', $bucket)
+                ->lockForUpdate()
+                ->first();
+
+            $oldValue = $sequence?->current_value ?? 0;
+
+            if ($sequence) {
+                $sequence->current_value = $newValue;
+                $sequence->save();
+            } else {
+                Sequence::create([
+                    'scope' => $scope,
+                    'bucket' => $bucket,
+                    'current_value' => $newValue,
+                ]);
+            }
+
+            NumberingChangeLog::log(
+                $scope,
+                NumberingChangeLog::ACTION_RESET,
+                (string) $oldValue,
+                (string) $newValue,
+                $reason
+            );
+
+            return [
+                'success' => true,
+                'old_value' => $oldValue,
+                'new_value' => $newValue,
+            ];
+        });
+    }
+
+    /**
+     * Sync counter from max or count
+     */
+    public function syncCounter(string $scope, string $method, string $reason): array
+    {
+        $config = $this->getScopeConfig($scope);
+        if (!$config) {
+            throw new \InvalidArgumentException("Unknown scope: {$scope}");
+        }
+
+        if (!in_array($method, ['max', 'count'])) {
+            throw new \InvalidArgumentException("Invalid sync method: {$method}");
+        }
+
+        $status = $this->getCounterStatus($scope);
+        $newValue = $method === 'max' ? $status['from_max'] : $status['from_count'];
+        $actionType = $method === 'max' 
+            ? NumberingChangeLog::ACTION_SYNC_MAX 
+            : NumberingChangeLog::ACTION_SYNC_COUNT;
+
+        $bucket = $this->getCurrentBucket($scope);
+
+        return DB::transaction(function () use ($scope, $bucket, $newValue, $reason, $actionType, $status) {
+            $sequence = Sequence::where('scope', $scope)
+                ->where('bucket', $bucket)
+                ->lockForUpdate()
+                ->first();
+
+            $oldValue = $sequence?->current_value ?? 0;
+
+            if ($sequence) {
+                $sequence->current_value = $newValue;
+                $sequence->save();
+            } else {
+                Sequence::create([
+                    'scope' => $scope,
+                    'bucket' => $bucket,
+                    'current_value' => $newValue,
+                ]);
+            }
+
+            NumberingChangeLog::log(
+                $scope,
+                $actionType,
+                (string) $oldValue,
+                (string) $newValue,
+                $reason
+            );
+
+            return [
+                'success' => true,
+                'old_value' => $oldValue,
+                'new_value' => $newValue,
+                'method' => $actionType,
+            ];
+        });
+    }
+
+    /**
+     * Edit individual document number
+     */
+    public function editNumber(string $scope, int $entityId, string $newNumber, string $reason): array
+    {
+        $config = $this->getScopeConfig($scope);
+        if (!$config) {
+            throw new \InvalidArgumentException("Unknown scope: {$scope}");
+        }
+
+        $model = $config['model'];
+        $column = $config['column'];
+
+        $entity = $model::findOrFail($entityId);
+        $oldNumber = $this->getDocumentNumber($scope, $entity);
+
+        // Validate not same
+        if ($oldNumber === $newNumber) {
+            throw new \InvalidArgumentException("New number must be different from current number");
+        }
+
+        // Validate not duplicate
+        if ($this->isNumberDuplicate($scope, $newNumber, $entityId)) {
+            throw new \InvalidArgumentException("Number is already used by another document");
+        }
+
+        return DB::transaction(function () use ($scope, $entity, $column, $oldNumber, $newNumber, $reason, $config) {
+            if ($scope === 'lhu') {
+                $metadata = $entity->metadata ?? [];
+                $metadata['lhu_number'] = $newNumber;
+                $entity->metadata = $metadata;
+            } else {
+                $entity->{$column} = $newNumber;
+            }
+
+            $entity->save();
+
+            NumberingChangeLog::log(
+                $scope,
+                NumberingChangeLog::ACTION_EDIT,
+                $oldNumber ?? '',
+                $newNumber,
+                $reason,
+                get_class($entity),
+                $entity->id
+            );
+
+            return [
+                'success' => true,
+                'old_number' => $oldNumber,
+                'new_number' => $newNumber,
+                'entity_id' => $entity->id,
+            ];
+        });
+    }
+
+    /**
+     * Check if a number is duplicate
+     */
+    protected function isNumberDuplicate(string $scope, string $number, ?int $excludeId = null): bool
+    {
+        $config = $this->getScopeConfig($scope);
+        $model = $config['model'];
+        $column = $config['column'];
+
+        $query = $model::query();
+
+        if ($scope === 'lhu') {
+            $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.lhu_number')) = ?", [$number]);
+        } elseif ($scope === 'ba_penyerahan') {
+            $query->where('document_type', 'ba_penyerahan')
+                  ->where($column, $number);
+        } else {
+            $query->where($column, $number);
+        }
+
+        if ($excludeId) {
+            $query->where('id', '!=', $excludeId);
+        }
+
+        return $query->exists();
+    }
+
+    /**
+     * Get change logs for a scope
+     */
+    public function getChangeLogs(?string $scope = null, int $limit = 20): Collection
+    {
+        $query = NumberingChangeLog::with('user')
+            ->orderBy('created_at', 'desc')
+            ->limit($limit);
+
+        if ($scope) {
+            $query->where('scope', $scope);
+        }
+
+        return $query->get();
+    }
+
+    /**
+     * Get entity change history
+     */
+    public function getEntityHistory(string $entityType, int $entityId): Collection
+    {
+        return NumberingChangeLog::where('entity_type', $entityType)
+            ->where('entity_id', $entityId)
+            ->orderBy('created_at', 'desc')
+            ->get();
+    }
 }
