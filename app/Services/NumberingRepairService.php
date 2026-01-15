@@ -222,4 +222,150 @@ class NumberingRepairService
 
         return null;
     }
+
+    /**
+     * Scan for problems in a scope
+     */
+    public function scanProblems(string $scope): array
+    {
+        $config = $this->getScopeConfig($scope);
+        if (!$config) {
+            throw new \InvalidArgumentException("Unknown scope: {$scope}");
+        }
+
+        $bucket = $this->getCurrentBucket($scope);
+        $reset = settings("numbering.$scope.reset") ?? 'never';
+        $documents = $this->getDocumentsInBucket($scope, $bucket, $reset);
+
+        $problems = [];
+        $duplicates = $this->detectDuplicates($scope, $documents);
+        $gaps = $this->detectGaps($scope, $documents);
+
+        foreach ($duplicates as $duplicate) {
+            $problems[] = array_merge($duplicate, ['type' => 'duplicate']);
+        }
+
+        foreach ($gaps as $gap) {
+            $problems[] = array_merge($gap, ['type' => 'gap']);
+        }
+
+        // Sort by sequence number
+        usort($problems, fn($a, $b) => 
+            ($a['sequence_number'] ?? 0) <=> ($b['sequence_number'] ?? 0)
+        );
+
+        return [
+            'scope' => $scope,
+            'bucket' => $bucket,
+            'problems' => $problems,
+            'problem_count' => [
+                'duplicate' => count($duplicates),
+                'gap' => count($gaps),
+                'total' => count($problems),
+            ],
+        ];
+    }
+
+    /**
+     * Detect duplicate numbers
+     */
+    protected function detectDuplicates(string $scope, Collection $documents): array
+    {
+        $numberCounts = [];
+        $documentsByNumber = [];
+
+        foreach ($documents as $doc) {
+            $number = $this->getDocumentNumber($scope, $doc);
+            if (!$number) continue;
+
+            $numberCounts[$number] = ($numberCounts[$number] ?? 0) + 1;
+            $documentsByNumber[$number][] = $doc;
+        }
+
+        $duplicates = [];
+        $suggestedSeq = $documents->count() + 1;
+
+        foreach ($numberCounts as $number => $count) {
+            if ($count <= 1) continue;
+
+            $docs = $documentsByNumber[$number];
+            $isFirst = true;
+
+            foreach ($docs as $doc) {
+                $duplicates[] = [
+                    'entity_type' => get_class($doc),
+                    'entity_id' => $doc->id,
+                    'current_number' => $number,
+                    'sequence_number' => $this->extractSequenceNumber($scope, $doc),
+                    'entity_name' => $this->getEntityName($scope, $doc),
+                    'created_at' => $doc->created_at?->format('Y-m-d'),
+                    'suggested_number' => $isFirst ? null : $this->numberingService->preview($scope, [], $suggestedSeq++),
+                    'is_first' => $isFirst,
+                ];
+                $isFirst = false;
+            }
+        }
+
+        return $duplicates;
+    }
+
+    /**
+     * Detect gaps in sequence
+     */
+    protected function detectGaps(string $scope, Collection $documents): array
+    {
+        $sequenceNumbers = $documents
+            ->map(fn($doc) => $this->extractSequenceNumber($scope, $doc))
+            ->filter(fn($num) => $num !== null && $num > 0)
+            ->unique()
+            ->sort()
+            ->values();
+
+        if ($sequenceNumbers->isEmpty()) {
+            return [];
+        }
+
+        $gaps = [];
+        $max = $sequenceNumbers->max();
+        $existingNumbers = $sequenceNumbers->flip();
+
+        for ($i = 1; $i <= $max; $i++) {
+            if (!isset($existingNumbers[$i])) {
+                $gaps[] = [
+                    'sequence_number' => $i,
+                    'missing_number' => $this->numberingService->preview($scope, [], $i),
+                    'gap_position' => $i,
+                ];
+            }
+        }
+
+        return $gaps;
+    }
+
+    /**
+     * Get entity name for display
+     */
+    protected function getEntityName(string $scope, $document): string
+    {
+        if ($scope === 'ba' || $scope === 'tracking') {
+            $investigator = $document->investigator;
+            return $investigator ? ($investigator->name ?? 'Unknown') : 'Unknown';
+        }
+
+        if ($scope === 'sample_code') {
+            return $document->short_description ?? $document->sample_code ?? 'Unknown';
+        }
+
+        if ($scope === 'lhu') {
+            $sample = $document->sample;
+            return $sample?->short_description ?? 'Unknown';
+        }
+
+        if ($scope === 'ba_penyerahan') {
+            $request = $document->testRequest;
+            return $request?->investigator?->name ?? 'Unknown';
+        }
+
+        return 'Unknown';
+    }
 }
