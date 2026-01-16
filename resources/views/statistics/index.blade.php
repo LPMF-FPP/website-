@@ -87,6 +87,9 @@
                     </div>
                     <div class="relative flex-1 min-h-[400px]">
                         <canvas id="userOriginChart"></canvas>
+                        <p data-chart-error="userOrigin" class="mt-4 text-sm text-red-600 text-center hidden">
+                            Data tidak dapat dimuat. Silakan coba lagi.
+                        </p>
                     </div>
                 </div>
             </div>
@@ -250,7 +253,7 @@
                             </tr>
                             <tr>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Jumlah Sampel</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ \App\Models\Sample::whereMonth('created_at', now()->month)->count() }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ \App\Models\Sample::whereYear('created_at', now()->year)->whereMonth('created_at', now()->month)->count() }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $samples_this_year }}</td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">200/tahun (IKU)</td>
                                 <td class="px-6 py-4 whitespace-nowrap">
@@ -317,6 +320,8 @@
 
         // 1. User Origin Pie Chart
         function loadUserOriginChart() {
+            hideChartError('userOrigin');
+
             fetch('{{ route("statistics.data") }}?type=user_origin')
                 .then(response => {
                     if (!response.ok) {
@@ -325,6 +330,11 @@
                     return response.json();
                 })
                 .then(data => {
+                    // Check if data is empty
+                    if (!data.labels || data.labels.length === 0) {
+                        throw new Error('No data available');
+                    }
+
                     const ctx = document.getElementById('userOriginChart').getContext('2d');
 
                     if (charts.userOrigin) {
@@ -381,29 +391,12 @@
                 .catch(error => {
                     console.error('Error loading user origin chart:', error);
 
-                    const dummyData = {
-                        labels: ['Polda Metro Jaya', 'Polres Jakarta Selatan', 'Polres Jakarta Utara', 'Polres Jakarta Barat', 'Polres Bogor'],
-                        data: [85, 42, 38, 28, 15],
-                        percentages: [40.9, 20.2, 18.3, 13.5, 7.2],
-                        colors: ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6']
-                    };
+                    if (charts.userOrigin) {
+                        charts.userOrigin.destroy();
+                        delete charts.userOrigin;
+                    }
 
-                    const ctx = document.getElementById('userOriginChart').getContext('2d');
-                    charts.userOrigin = new Chart(ctx, {
-                        type: 'pie',
-                        data: {
-                            labels: dummyData.labels,
-                            datasets: [{
-                                data: dummyData.data,
-                                backgroundColor: dummyData.colors
-                            }]
-                        },
-                        options: {
-                            plugins: {
-                                legend: { position: 'right' }
-                            }
-                        }
-                    });
+                    showChartError('userOrigin', 'Data tidak dapat dimuat. Silakan coba lagi.');
                 });
         }
 
@@ -419,6 +412,11 @@
                     return response.json();
                 })
                 .then(data => {
+                    // Check if data is empty
+                    if (!data.labels || data.labels.length === 0) {
+                        throw new Error('No data available');
+                    }
+
                     const ctx = document.getElementById('activeSubstancesChart').getContext('2d');
 
                     if (charts.activeSubstances) {
@@ -491,6 +489,11 @@
                     return response.json();
                 })
                 .then(data => {
+                    // Check if data is empty
+                    if (!data.labels || data.labels.length === 0) {
+                        throw new Error('No data available');
+                    }
+
                     const ctx = document.getElementById('suspectGenderChart').getContext('2d');
 
                     if (charts.suspectGender) {
@@ -568,6 +571,12 @@
                     return response.json();
                 })
                 .then(data => {
+                    // Check if data is empty (all zeros)
+                    const hasData = data.data && data.data.some(v => v > 0);
+                    if (!data.labels || data.labels.length === 0 || !hasData) {
+                        throw new Error('No data available');
+                    }
+
                     const ctx = document.getElementById('suspectAgeChart').getContext('2d');
 
                     if (charts.suspectAge) {
@@ -666,6 +675,11 @@
                     return response.json();
                 })
                 .then(data => {
+                    // Check if data has valid structure
+                    if (!data.labels || data.labels.length === 0) {
+                        throw new Error('No data available');
+                    }
+
                     const ctx = document.getElementById('monthlyRequestsChart').getContext('2d');
 
                     if (charts.monthlyRequests) {
@@ -746,6 +760,11 @@
                     return response.json();
                 })
                 .then(data => {
+                    // Check if data has valid structure
+                    if (!data.labels || data.labels.length === 0 || !data.datasets || data.datasets.length === 0) {
+                        throw new Error('No data available');
+                    }
+
                     const ctx = document.getElementById('monthlySamplesChart').getContext('2d');
 
                     if (charts.monthlySamples) {

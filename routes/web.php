@@ -179,6 +179,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('samples.ready-for-delivery');
     Route::get('analysts/{analyst}/logs', [AnalystController::class, 'logs'])->name('analysts.logs');
     Route::put('analysts/{analyst}/role', [AnalystController::class, 'updateRole'])->name('analysts.role.update');
+    Route::put('analysts/{analyst}/permissions', [AnalystController::class, 'updatePermissions'])->name('analysts.permissions.update');
+    Route::post('analysts/{analyst}/permissions/reset', [AnalystController::class, 'resetPermissions'])->name('analysts.permissions.reset');
     Route::post('analysts/{analyst}/disable', [AnalystController::class, 'disable'])->name('analysts.disable');
     Route::post('analysts/{analyst}/enable', [AnalystController::class, 'enable'])->name('analysts.enable');
     Route::resource('analysts', AnalystController::class);

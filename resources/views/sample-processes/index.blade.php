@@ -145,12 +145,12 @@
                             <tr class="hover:bg-gray-50/60 {{ $isReadyForDelivery ? 'bg-blue-50/30' : '' }}">
                                 <td class="px-4 py-3">
                                     <div class="font-semibold text-gray-900">
-                                        {{ $process->sample->short_description ?? '—' }}
+                                        {{ $process->sample->sample_code ?? '—' }}
                                         @if($isReadyForDelivery)
                                             <span class="ml-2 inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">Siap Diserahkan</span>
                                         @endif
                                     </div>
-                                    <div class="text-xs text-gray-500">Permintaan: {{ $process->sample->testRequest?->request_number ?? '-' }}</div>
+                                    <div class="text-xs text-gray-500">{{ $process->sample->short_description ?? '-' }}</div>
                                 </td>
                                 <td class="px-4 py-3">{{ $process->stage_label }}</td>
                                 <td class="px-4 py-3">

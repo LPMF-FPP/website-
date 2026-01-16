@@ -22,31 +22,37 @@
                 @auth
                     @php
                         $user = Auth::user();
-                        $labRoles = ['admin', 'supervisor', 'analyst', 'lab_analyst', 'petugas_lab'];
-                        $supervisorRoles = ['admin', 'supervisor'];
                     @endphp
 
+                    @can('dashboard.view')
                     <x-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')">
                         Dashboard
                     </x-nav-link>
+                    @endcan
 
+                    @can('permintaan.view')
                     <x-nav-link href="{{ route('requests.index') }}" :active="request()->routeIs('requests.*')">
                         Permintaan
                     </x-nav-link>
+                    @endcan
 
-                    @if(in_array($user->role, $labRoles, true))
+                    @can('kaji-ulang.view')
                     <x-nav-link href="{{ route('review.create') }}" :active="request()->routeIs('review.*')">
                         Kaji Ulang Permintaan
                     </x-nav-link>
+                    @endcan
 
+                    @can('pengujian.view')
                     <x-nav-link href="{{ route('testing.index') }}" :active="request()->routeIs('testing.*')">
                         Pengujian
                     </x-nav-link>
+                    @endcan
 
-                        <x-nav-link href="{{ route('delivery.index') }}" :active="request()->routeIs('delivery.*')">
-                            Penyerahan
-                        </x-nav-link>
-                    @endif
+                    @can('penyerahan.view')
+                    <x-nav-link href="{{ route('delivery.index') }}" :active="request()->routeIs('delivery.*')">
+                        Penyerahan
+                    </x-nav-link>
+                    @endcan
 
                     <!-- Referensi Mega Menu -->
                     <div class="relative ml-1" x-data="{ open: false }" @click.away="open = false">
@@ -77,6 +83,7 @@
                                     <div>
                                         <h3 class="text-xs font-semibold text-primary-500 uppercase tracking-wider mb-4">Referensi Data</h3>
                                         <div class="space-y-3">
+                                            @can('tracking.view')
                                             <a href="{{ route('tracking.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
                                                 <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-primary-100 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400">
                                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
@@ -86,6 +93,8 @@
                                                     <p class="text-sm text-gray-500 dark:text-gray-400">Lacak progres permintaan</p>
                                                 </div>
                                             </a>
+                                            @endcan
+                                            @can('pencarian.view')
                                             <a href="{{ route('search.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
                                                 <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-primary-100 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400">
                                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -95,6 +104,8 @@
                                                     <p class="text-sm text-gray-500 dark:text-gray-400">Cari data & dokumen</p>
                                                 </div>
                                             </a>
+                                            @endcan
+                                            @can('statistik.view')
                                             <a href="{{ route('statistics.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
                                                 <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-primary-100 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400">
                                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
@@ -104,6 +115,7 @@
                                                     <p class="text-sm text-gray-500 dark:text-gray-400">Analisa data laboratorium</p>
                                                 </div>
                                             </a>
+                                            @endcan
                                         </div>
                                     </div>
 
@@ -111,6 +123,7 @@
                                     <div>
                                         <h3 class="text-xs font-semibold text-primary-500 uppercase tracking-wider mb-4">Sistem & Inventori</h3>
                                         <div class="space-y-3">
+                                            @can('monitoring.view')
                                             <a href="{{ route('monitoring.sensors.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition duration-150">
                                                 <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400">
                                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
@@ -120,7 +133,9 @@
                                                     <p class="text-sm text-gray-500 dark:text-gray-400">Sensor & Peringatan</p>
                                                 </div>
                                             </a>
+                                            @endcan
 
+                                            @can('inventori.view')
                                             <a href="{{ route('inventory.dashboard') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/30 transition duration-150">
                                                 <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-400">
                                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
@@ -130,7 +145,9 @@
                                                     <p class="text-sm text-gray-500 dark:text-gray-400">Manajemen stok reagen</p>
                                                 </div>
                                             </a>
+                                            @endcan
                                             
+                                            @can('changelogs.view')
                                             <a href="{{ route('changelogs.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
                                                 <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-primary-100 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400">
                                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -140,24 +157,25 @@
                                                     <p class="text-sm text-gray-500 dark:text-gray-400">Riwayat perubahan</p>
                                                 </div>
                                             </a>
+                                            @endcan
 
-                                            @if(in_array($user->role, $supervisorRoles, true) || in_array($user->role, ['admin'], true))
+                                            @canany(['analysts.view', 'settings.view'])
                                                 <div class="border-t border-gray-100 dark:border-white/10 my-2"></div>
 
-                                                @if(in_array($user->role, $supervisorRoles, true))
+                                                @can('analysts.view')
                                                 <a href="{{ route('analysts.index') }}" class="group flex items-center p-2 rounded-md hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
                                                     <svg class="w-5 h-5 text-primary-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                                                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Manajemen Staff</span>
                                                 </a>
-                                                @endif
+                                                @endcan
 
-                                                @if(in_array($user->role, ['admin', 'supervisor'], true))
+                                                @can('settings.view')
                                                 <a href="{{ route('settings.index') }}" class="group flex items-center p-2 rounded-md hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
                                                     <svg class="w-5 h-5 text-primary-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                                                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Pengaturan Sistem</span>
                                                 </a>
-                                                @endif
-                                            @endif
+                                                @endcan
+                                            @endcanany
                                         </div>
                                     </div>
                                 </div>
@@ -262,27 +280,35 @@
 
             <div class="px-2 py-4 space-y-1">
                 @auth
+                    @can('dashboard.view')
                     <x-responsive-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')">
                         Dashboard
                     </x-responsive-nav-link>
+                    @endcan
 
+                    @can('permintaan.view')
                     <x-responsive-nav-link href="{{ route('requests.index') }}" :active="request()->routeIs('requests.*')">
                         Permintaan
                     </x-responsive-nav-link>
+                    @endcan
 
-                    @if(in_array($user->role, $labRoles, true))
+                    @can('kaji-ulang.view')
                     <x-responsive-nav-link href="{{ route('review.create') }}" :active="request()->routeIs('review.*')">
                         Kaji Ulang Permintaan
                     </x-responsive-nav-link>
+                    @endcan
 
+                    @can('pengujian.view')
                     <x-responsive-nav-link href="{{ route('testing.index') }}" :active="request()->routeIs('testing.*')">
                         Pengujian
                     </x-responsive-nav-link>
+                    @endcan
 
-                        <x-responsive-nav-link href="{{ route('delivery.index') }}" :active="request()->routeIs('delivery.*')">
-                            Penyerahan
-                        </x-responsive-nav-link>
-                    @endif
+                    @can('penyerahan.view')
+                    <x-responsive-nav-link href="{{ route('delivery.index') }}" :active="request()->routeIs('delivery.*')">
+                        Penyerahan
+                    </x-responsive-nav-link>
+                    @endcan
 
                     <!-- Mobile Reference Section -->
                     <div x-data="{ refExpanded: false }" class="space-y-1">
@@ -293,18 +319,28 @@
                             </svg>
                         </button>
                         <div x-show="refExpanded" class="pl-4 space-y-1" style="display: none;">
+                            @can('tracking.view')
                             <x-responsive-nav-link href="{{ route('tracking.index') }}" :active="request()->routeIs('tracking.*')">Tracking</x-responsive-nav-link>
+                            @endcan
+                            @can('pencarian.view')
                             <x-responsive-nav-link href="{{ route('search.index') }}" :active="request()->routeIs('search.*')">Pencarian</x-responsive-nav-link>
+                            @endcan
+                            @can('statistik.view')
                             <x-responsive-nav-link href="{{ route('statistics.index') }}" :active="request()->routeIs('statistics.*')">Statistik</x-responsive-nav-link>
+                            @endcan
+                            @can('inventori.view')
                             <x-responsive-nav-link href="{{ route('inventory.dashboard') }}" :active="request()->routeIs('inventory.*')">Inventori</x-responsive-nav-link>
+                            @endcan
+                            @can('changelogs.view')
                             <x-responsive-nav-link href="{{ route('changelogs.index') }}" :active="request()->routeIs('changelogs.*')">Changelogs</x-responsive-nav-link>
+                            @endcan
                             
-                            @if(in_array($user->role, $supervisorRoles, true))
-                                <x-responsive-nav-link href="{{ route('analysts.index') }}" :active="request()->routeIs('analysts.*')">Manajemen Staff</x-responsive-nav-link>
-                            @endif
-                            @if(in_array($user->role, ['admin', 'supervisor'], true))
-                                <x-responsive-nav-link href="{{ route('settings.index') }}" :active="request()->routeIs('settings.*')">Pengaturan</x-responsive-nav-link>
-                            @endif
+                            @can('analysts.view')
+                            <x-responsive-nav-link href="{{ route('analysts.index') }}" :active="request()->routeIs('analysts.*')">Manajemen Staff</x-responsive-nav-link>
+                            @endcan
+                            @can('settings.view')
+                            <x-responsive-nav-link href="{{ route('settings.index') }}" :active="request()->routeIs('settings.*')">Pengaturan</x-responsive-nav-link>
+                            @endcan
                         </div>
                     </div>
                 @endauth

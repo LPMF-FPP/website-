@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
+use App\Models\Permission;
 use App\Models\User;
+use App\Services\PermissionService;
 use App\Support\ActivityLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,8 +20,9 @@ class AnalystController extends Controller
 {
     protected array $manageableRoles = ['analis', 'penyelia', 'manajer_teknis', 'admin'];
 
-    public function __construct()
-    {
+    public function __construct(
+        protected PermissionService $permissionService
+    ) {
         $this->middleware(function ($request, $next) {
             Gate::authorize('manage-users');
 
@@ -111,11 +114,17 @@ class AnalystController extends Controller
             ->limit(10)
             ->get();
 
+        // Get permission data for UI
+        $permissionsData = $this->permissionService->getPermissionsForUI($analyst);
+        $allModules = $this->permissionService->getAllModules();
+
         return view('analysts.show', [
             'analyst' => $analyst,
             'lastActivity' => $lastActivity,
             'roles' => $this->roleOptions($analyst->role),
             'recentLogs' => $recentLogs,
+            'permissionsData' => $permissionsData,
+            'allModules' => $allModules,
         ]);
     }
 
@@ -207,6 +216,9 @@ class AnalystController extends Controller
 
         $analyst->update(['role' => $validated['role']]);
 
+        // Reset permissions to new role defaults
+        $analyst->resetPermissionsToRole();
+
         ActivityLogger::log(
             'USER_ROLE_CHANGED',
             $analyst->id,
@@ -216,10 +228,101 @@ class AnalystController extends Controller
             [
                 'from' => $previousRole,
                 'to' => $validated['role'],
+                'permissions_reset' => true,
             ]
         );
 
-        return back()->with('success', 'Peran pengguna berhasil diperbarui.');
+        return back()->with('success', 'Peran pengguna berhasil diperbarui. Permission telah direset ke default role baru.');
+    }
+
+    public function updatePermissions(Request $request, User $analyst): RedirectResponse
+    {
+        if ($analyst->id === $request->user()->id) {
+            return back()->withErrors(['user' => 'Anda tidak dapat mengubah permission sendiri.']);
+        }
+
+        $validated = $request->validate([
+            'permissions' => ['required', 'array'],
+            'permissions.*' => ['boolean'],
+        ]);
+
+        // Get current permissions before update for logging
+        $beforePermissions = $analyst->getAllPermissions()
+            ->filter(fn($p) => $p['is_custom'])
+            ->pluck('has_access', 'name')
+            ->toArray();
+
+        // Sync permissions
+        $this->permissionService->syncUserPermissions($analyst, $validated['permissions']);
+
+        // Get updated permissions for logging
+        $afterPermissions = $analyst->getAllPermissions()
+            ->filter(fn($p) => $p['is_custom'])
+            ->pluck('has_access', 'name')
+            ->toArray();
+
+        // Log changes
+        $granted = [];
+        $revoked = [];
+
+        foreach ($validated['permissions'] as $permissionId => $isGranted) {
+            $permission = Permission::find($permissionId);
+            if ($permission) {
+                if ($isGranted) {
+                    $granted[] = $permission->display_name;
+                } else {
+                    $revoked[] = $permission->display_name;
+                }
+            }
+        }
+
+        if (!empty($granted) || !empty($revoked)) {
+            ActivityLogger::log(
+                'USER_PERMISSIONS_UPDATED',
+                $analyst->id,
+                $analyst,
+                $beforePermissions,
+                $afterPermissions,
+                [
+                    'granted' => $granted,
+                    'revoked' => $revoked,
+                ]
+            );
+        }
+
+        return back()->with('success', 'Akses halaman berhasil diperbarui.');
+    }
+
+    public function resetPermissions(Request $request, User $analyst): RedirectResponse
+    {
+        if ($analyst->id === $request->user()->id) {
+            return back()->withErrors(['user' => 'Anda tidak dapat mereset permission sendiri.']);
+        }
+
+        // Get current custom permissions before reset for logging
+        $beforePermissions = $analyst->getAllPermissions()
+            ->filter(fn($p) => $p['is_custom'])
+            ->pluck('has_access', 'name')
+            ->toArray();
+
+        // Reset to role defaults
+        $analyst->resetPermissionsToRole();
+
+        if (!empty($beforePermissions)) {
+            ActivityLogger::log(
+                'USER_PERMISSIONS_RESET',
+                $analyst->id,
+                $analyst,
+                $beforePermissions,
+                null,
+                [
+                    'role' => $analyst->role,
+                    'message' => 'Permission direset ke default role',
+                ]
+            );
+        }
+
+        return back()->with('success', 'Akses halaman berhasil direset ke default role.');
     }
 
     public function disable(Request $request, User $analyst): RedirectResponse

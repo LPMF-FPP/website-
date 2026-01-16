@@ -589,8 +589,16 @@ class SampleTestProcessController extends Controller
             'metadata' => $metadata,
         ]);
 
+        // Redirect back to testing.show (parent test request) for better UX flow
+        $testRequest = $sampleProcess->sample?->testRequest;
+        if ($testRequest) {
+            return redirect()
+                ->route('testing.show', $testRequest)
+                ->with('success', 'Proses pengujian berhasil diperbarui.');
+        }
+
         return redirect()
-            ->route('testing.processes.show', $sampleProcess)
+            ->route('testing.index')
             ->with('success', 'Proses pengujian berhasil diperbarui.');
     }
 

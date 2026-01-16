@@ -13,7 +13,7 @@
                 <option value="">-- pilih sampel --</option>
                 @foreach($samples as $sample)
                     <option value="{{ $sample->id }}" @selected(old('sample_id', $process->sample_id ?? $selectedSample ?? null) == $sample->id)>
-                        {{ $sample->short_description ?? '—' }} ({{ $sample->testRequest?->request_number ?? 'Tanpa Permintaan' }})
+                        {{ $sample->sample_code ?? '—' }} - {{ $sample->short_description ?? '-' }}
                     </option>
                 @endforeach
             </select>

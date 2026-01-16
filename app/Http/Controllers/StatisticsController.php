@@ -116,7 +116,9 @@ class StatisticsController extends Controller
                     'success_rate' => 0,
                     'sla_compliance' => 0,
                     'total_investigators' => Investigator::count(),
-                    'active_this_month' => TestRequest::whereMonth('created_at', now()->month)->count(),
+                    'active_this_month' => TestRequest::whereYear('created_at', now()->year)
+                        ->whereMonth('created_at', now()->month)
+                        ->count(),
                 ],
                 'trendData' => [],
                 'surveyStats' => [
@@ -184,15 +186,22 @@ class StatisticsController extends Controller
                 'success_rate' => round($successRate, 1),
                 'sla_compliance' => round($slaCompliance, 1),
                 'total_investigators' => Investigator::count(),
-                'active_this_month' => TestRequest::whereMonth('created_at', now()->month)->count(),
+                'active_this_month' => TestRequest::whereYear('created_at', now()->year)
+                    ->whereMonth('created_at', now()->month)
+                    ->count(),
             ];
         } catch (\Exception $e) {
+            // Log error for debugging
+            \Log::warning('Performance metrics calculation error: ' . $e->getMessage());
+
             return [
-                'avg_processing_time' => 5.5,
-                'success_rate' => 95.2,
-                'sla_compliance' => 88.5,
-                'total_investigators' => 25,
-                'active_this_month' => 42,
+                'avg_processing_time' => 0,
+                'success_rate' => 0,
+                'sla_compliance' => 0,
+                'total_investigators' => Investigator::count(),
+                'active_this_month' => TestRequest::whereYear('created_at', now()->year)
+                    ->whereMonth('created_at', now()->month)
+                    ->count(),
             ];
         }
     }
@@ -372,12 +381,13 @@ class StatisticsController extends Controller
         $yearlyTarget = 200;
         $monthlyTarget = round($yearlyTarget / 12, 1);
 
-        for ($i = 1; $i <= 12; $i++) {
-            $date = now()->month($i);
-            $months[] = $date->format('M');
+        // Use same pattern as getMonthlyRequestsData() - 12 months back
+        for ($i = 11; $i >= 0; $i--) {
+            $date = now()->subMonths($i);
+            $months[] = $date->format('M Y');
 
-            $samplesCount = Sample::whereYear('created_at', now()->year)
-                ->whereMonth('created_at', $i)
+            $samplesCount = Sample::whereYear('created_at', $date->year)
+                ->whereMonth('created_at', $date->month)
                 ->count();
 
             $samplesData[] = $samplesCount;
@@ -420,6 +430,7 @@ class StatisticsController extends Controller
         try {
             $genderData = TestRequest::select('suspect_gender', DB::raw('count(*) as total'))
                 ->whereNotNull('suspect_gender')
+                ->where('suspect_gender', '!=', '')
                 ->groupBy('suspect_gender')
                 ->get();
 
@@ -427,11 +438,28 @@ class StatisticsController extends Controller
                 throw new \Exception('No gender data');
             }
 
-            $labels = $genderData->map(function ($item) {
-                return $item->suspect_gender === 'male' ? 'Laki-laki' : 'Perempuan';
-            })->toArray();
+            // Normalize gender values to handle inconsistent data
+            // Possible values: 'male', 'female', 'Laki-laki', 'Perempuan'
+            $normalizedData = ['Laki-laki' => 0, 'Perempuan' => 0];
 
-            $data = $genderData->pluck('total')->toArray();
+            foreach ($genderData as $item) {
+                $gender = strtolower(trim($item->suspect_gender));
+                if (in_array($gender, ['male', 'laki-laki', 'l', 'pria'])) {
+                    $normalizedData['Laki-laki'] += $item->total;
+                } elseif (in_array($gender, ['female', 'perempuan', 'p', 'wanita'])) {
+                    $normalizedData['Perempuan'] += $item->total;
+                }
+            }
+
+            // Filter out zero values
+            $normalizedData = array_filter($normalizedData, fn($v) => $v > 0);
+
+            if (empty($normalizedData)) {
+                throw new \Exception('No valid gender data after normalization');
+            }
+
+            $labels = array_keys($normalizedData);
+            $data = array_values($normalizedData);
 
             $total = array_sum($data);
             $percentages = array_map(function ($value) use ($total) {

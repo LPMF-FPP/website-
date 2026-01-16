@@ -187,6 +187,195 @@
             </div>
         </x-page-section>
 
+        {{-- Section: Akses Halaman --}}
+        <x-page-section title="Akses Halaman">
+            <div class="rounded-lg bg-white p-6 shadow-sm" x-data="permissionManager()">
+                <div class="mb-4 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600">Atur halaman apa saja yang boleh diakses oleh pengguna ini.</p>
+                        <p class="mt-1 text-xs text-gray-500">
+                            <span class="inline-flex items-center gap-1">
+                                <span class="h-3 w-3 rounded-full bg-gray-200 border border-gray-300"></span>
+                                <span>Default dari role</span>
+                            </span>
+                            <span class="ml-3 inline-flex items-center gap-1">
+                                <span class="h-3 w-3 rounded-full bg-emerald-500"></span>
+                                <span>Custom (granted)</span>
+                            </span>
+                            <span class="ml-3 inline-flex items-center gap-1">
+                                <span class="h-3 w-3 rounded-full bg-red-500"></span>
+                                <span>Custom (revoked)</span>
+                            </span>
+                        </p>
+                    </div>
+                    @if(auth()->id() !== $analyst->id)
+                        <form method="POST" action="{{ route('analysts.permissions.reset', $analyst) }}" x-ref="resetForm">
+                            @csrf
+                            <button type="button"
+                                class="text-sm text-gray-500 hover:text-gray-700 underline"
+                                @click.prevent="showConfirmDialog({
+                                    type: 'warning',
+                                    title: 'Reset Permission',
+                                    message: 'Reset semua permission ke default role?',
+                                    confirmButtonText: 'Ya, Reset',
+                                    onConfirm: () => $refs.resetForm.submit()
+                                })">
+                                Reset ke Default
+                            </button>
+                        </form>
+                    @endif
+                </div>
+
+                <form method="POST" action="{{ route('analysts.permissions.update', $analyst) }}" x-ref="permForm">
+                    @csrf
+                    @method('PUT')
+
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Halaman</th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 w-20">Lihat</th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 w-20">Tambah</th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 w-20">Edit</th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 w-20">Hapus</th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 w-20">Export</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 bg-white">
+                                @php
+                                    $moduleOrder = [
+                                        'dashboard' => 'Dashboard',
+                                        'permintaan' => 'Permintaan',
+                                        'kaji-ulang' => 'Kaji Ulang Permintaan',
+                                        'pengujian' => 'Pengujian',
+                                        'penyerahan' => 'Penyerahan',
+                                        'tracking' => 'Tracking',
+                                        'pencarian' => 'Pencarian',
+                                        'statistik' => 'Statistik',
+                                        'monitoring' => 'Monitoring Suhu',
+                                        'inventori' => 'Inventori',
+                                        'changelogs' => 'Changelogs',
+                                        'analysts' => 'Manajemen Staff',
+                                        'settings' => 'Pengaturan Sistem',
+                                    ];
+                                    $allActions = ['view', 'create', 'edit', 'delete', 'export'];
+                                @endphp
+
+                                @foreach($moduleOrder as $moduleKey => $moduleName)
+                                    @php
+                                        $moduleData = $permissionsData[$moduleKey] ?? null;
+                                        $availableActions = $allModules[$moduleKey] ?? [];
+                                        $isReferensi = in_array($moduleKey, ['tracking', 'pencarian', 'statistik', 'monitoring', 'inventori', 'changelogs', 'analysts', 'settings']);
+                                    @endphp
+                                    <tr class="{{ $isReferensi ? 'bg-gray-50/50' : '' }}">
+                                        <td class="px-4 py-3 text-sm text-gray-900">
+                                            @if($isReferensi)
+                                                <span class="text-gray-400 mr-1">└</span>
+                                            @endif
+                                            {{ $moduleName }}
+                                        </td>
+                                        @foreach($allActions as $action)
+                                            <td class="px-4 py-3 text-center">
+                                                @if(in_array($action, $availableActions) && $moduleData)
+                                                    @php
+                                                        $actionData = $moduleData['actions'][$action] ?? null;
+                                                        $hasAccess = $actionData['has_access'] ?? false;
+                                                        $isCustom = $actionData['is_custom'] ?? false;
+                                                        $isRoleDefault = $actionData['is_role_default'] ?? false;
+                                                        $permId = $actionData['id'] ?? null;
+                                                    @endphp
+                                                    @if($permId)
+                                                        <label class="inline-flex items-center justify-center cursor-pointer"
+                                                            @if(auth()->id() === $analyst->id) title="Tidak dapat mengubah permission sendiri" @endif>
+                                                            <input type="hidden" name="permissions[{{ $permId }}]" value="0">
+                                                            <input type="checkbox"
+                                                                name="permissions[{{ $permId }}]"
+                                                                value="1"
+                                                                {{ $hasAccess ? 'checked' : '' }}
+                                                                {{ auth()->id() === $analyst->id ? 'disabled' : '' }}
+                                                                @change="markChanged()"
+                                                                class="h-5 w-5 rounded transition-colors
+                                                                    {{ $isCustom ? ($hasAccess ? 'text-emerald-600 border-emerald-600' : 'text-red-600 border-red-600') : 'text-gray-400 border-gray-300' }}
+                                                                    focus:ring-primary-500 focus:ring-offset-0
+                                                                    {{ auth()->id() === $analyst->id ? 'opacity-50 cursor-not-allowed' : '' }}">
+                                                        </label>
+                                                    @endif
+                                                @else
+                                                    <span class="text-gray-300">-</span>
+                                                @endif
+                                            </td>
+                                        @endforeach
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @if(auth()->id() !== $analyst->id)
+                        <div class="mt-6 flex items-center justify-between border-t border-gray-100 pt-4">
+                            <p class="text-xs text-gray-500" x-show="hasChanges" x-cloak>
+                                <span class="text-amber-600">*</span> Ada perubahan yang belum disimpan
+                            </p>
+                            <div class="flex gap-3 ml-auto">
+                                <button type="button"
+                                    @click="resetForm()"
+                                    x-show="hasChanges"
+                                    x-cloak
+                                    class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
+                                    Batal
+                                </button>
+                                <button type="submit"
+                                    class="rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700 disabled:opacity-50"
+                                    :disabled="!hasChanges">
+                                    Simpan Akses
+                                </button>
+                            </div>
+                        </div>
+                    @endif
+                </form>
+            </div>
+
+            <script>
+                function permissionManager() {
+                    return {
+                        hasChanges: false,
+                        initialState: null,
+
+                        init() {
+                            this.saveInitialState();
+                        },
+
+                        saveInitialState() {
+                            const form = this.$refs.permForm;
+                            if (form) {
+                                this.initialState = new FormData(form);
+                            }
+                        },
+
+                        markChanged() {
+                            this.hasChanges = true;
+                        },
+
+                        resetForm() {
+                            const form = this.$refs.permForm;
+                            if (form && this.initialState) {
+                                form.reset();
+                                // Restore checkboxes to initial state
+                                for (const [key, value] of this.initialState.entries()) {
+                                    const input = form.querySelector(`[name="${key}"]`);
+                                    if (input && input.type === 'checkbox') {
+                                        input.checked = value === '1';
+                                    }
+                                }
+                            }
+                            this.hasChanges = false;
+                        }
+                    }
+                }
+            </script>
+        </x-page-section>
+
         <x-page-section title="Aktivitas Terakhir">
             <div class="overflow-hidden rounded-lg bg-white shadow-sm">
                 <table class="min-w-full divide-y divide-gray-200">

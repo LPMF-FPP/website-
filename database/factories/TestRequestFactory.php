@@ -27,7 +27,7 @@ class TestRequestFactory extends Factory
             'user_id' => \App\Models\User::factory(),
             'to_office' => fake()->randomElement(['Pusdokkes Polri', 'Labfor Polri', 'Puslabfor Bareskrim']),
             'suspect_name' => fake()->name(),
-            'suspect_gender' => fake()->randomElement(['Laki-laki', 'Perempuan']),
+            'suspect_gender' => fake()->randomElement(['male', 'female']),
             'suspect_age' => fake()->numberBetween(17, 65),
             'suspect_address' => fake()->address(),
             'case_number' => fake()->bothify('BP/#????/###/????/???'),

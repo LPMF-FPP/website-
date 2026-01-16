@@ -416,8 +416,8 @@ class RequestController extends Controller
 
             DB::commit();
 
-            return redirect()->route('review.create', ['request_id' => $testRequest->id])
-                ->with('success', 'Permintaan pengujian berhasil dibuat dengan nomor: '.$testRequest->request_number.'. Lanjutkan ke kaji ulang permintaan.');
+            return redirect()->route('requests.show', $testRequest->id)
+                ->with('success', 'Permintaan pengujian berhasil dibuat dengan nomor: '.$testRequest->request_number);
 
         } catch (\Exception $e) {
             DB::rollback();

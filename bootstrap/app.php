@@ -20,6 +20,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->appendToGroup('web', \App\Http\Middleware\EnsureUserIsActive::class);
         $middleware->alias([
             'audit.activity' => \App\Http\Middleware\AuditActivity::class,
+            'permission' => \App\Http\Middleware\CheckPermission::class,
         ]);
 
         // Exclude WhatsApp webhook and system endpoints from CSRF verification

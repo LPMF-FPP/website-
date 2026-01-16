@@ -53,9 +53,9 @@
 
         <div class="flex flex-wrap items-center justify-between gap-3">
 
-            <a href="{{ route('testing.index') }}"
+            <a href="javascript:history.back()"
 
-                class="inline-flex items-center text-sm font-semibold text-primary-700 hover:text-primary-800">&larr; Kembali ke daftar</a>
+                class="inline-flex items-center text-sm font-semibold text-primary-700 hover:text-primary-800">&larr; Kembali</a>
 
             <div class="flex flex-wrap items-center gap-2">
 

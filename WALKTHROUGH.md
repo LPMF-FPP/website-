@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v1.6.5
+# WALKTHROUGH - LPMF LIMS v1.7.0
 
 > **Laboratory Information Management System untuk Laboratorium Pengujian Mutu Farmasi**
 
@@ -23,12 +23,185 @@
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 
-**Current Version:** v1.6.5 (15 Januari 2026)  
-**Latest Feature:** Numbering Repair & Sync System
+**Current Version:** v1.7.1 (16 Januari 2026)  
+**Latest Feature:** Process Workflow & UX Improvements
 
 ---
 
 ## 📰 Recent Changes (v1.5.x)
+
+### v1.7.1 (16 Januari 2026) - Process Workflow & UX Improvements
+
+```
+Updated on 2026-01-16
+```
+
+**🎯 Problem Solved:**
+
+Memperbaiki alur kerja proses pengujian dengan redirect yang lebih baik, quick actions, dan konsistensi tampilan sample code di seluruh aplikasi.
+
+**✨ Improvements:**
+
+- **Redirect setelah create permintaan:** Sekarang redirect ke detail page `/requests/{id}` bukan ke `/kaji-ulang-permintaan`
+- **Redirect setelah update proses:** Kembali ke halaman testing.show (parent) bukan ke proses detail
+- **Sample code ditampilkan konsisten:** Di index, form dropdown, dan tabel proses
+- **Quick actions dropdown:** Mulai/selesaikan proses langsung dari tabel tanpa masuk ke halaman edit
+- **Quick View modal:** Lihat detail proses dalam popup tanpa berpindah halaman
+- **Toast notifications:** Feedback visual setelah aksi berhasil
+- **Row highlight:** Baris yang baru diproses di-highlight hijau selama 5 detik
+
+**📁 Files Created:**
+
+- `app/Http/Controllers/Api/SampleProcessController.php` - API controller untuk quick actions
+
+**📁 Files Modified:**
+
+- `app/Http/Controllers/RequestController.php` - Changed redirect after create
+- `app/Http/Controllers/SampleTestProcessController.php` - Changed redirect after update
+- `routes/api.php` - Added 4 API routes for process quick actions
+- `resources/views/process/show.blade.php` - Added dropdown, modal, toast, highlight
+- `resources/views/sample-processes/_form.blade.php` - Show sample_code in dropdown
+- `resources/views/sample-processes/index.blade.php` - Show sample_code as main text
+- `resources/views/sample-processes/show.blade.php` - Changed back button to history.back()
+
+**🔌 API Routes Added:**
+
+| Method | Endpoint                       | Fungsi               |
+| ------ | ------------------------------ | -------------------- |
+| GET    | `/api/processes/{id}`          | Get process details  |
+| POST   | `/api/processes/{id}/start`    | Start process        |
+| POST   | `/api/processes/{id}/complete` | Complete process     |
+| PUT    | `/api/processes/{id}/notes`    | Update process notes |
+
+---
+
+### v1.7.0 (16 Januari 2026) - User Permission Management
+
+```
+Updated on 2026-01-16
+```
+
+**🎯 Problem Solved:**
+
+Sebelumnya akses halaman dikontrol berdasarkan role saja. Sekarang admin dapat mengatur permission per user dengan granularity sampai level CRUD (Create, Read, Update, Delete) untuk setiap halaman.
+
+**✨ New Features:**
+
+- **Permission per Menu/Route:** Setiap user bisa di-assign permission ke halaman tertentu
+- **CRUD Granularity:** Kontrol akses sampai level aksi (Lihat, Tambah, Edit, Hapus, Export)
+- **Role-based Defaults:** Setiap role punya default permission yang bisa di-override per user
+- **Visual Permission Matrix:** UI tabel dengan checkbox untuk mengatur permission
+- **Custom Override:** Admin bisa grant/revoke permission spesifik untuk user tertentu
+- **Reset to Default:** Tombol untuk reset permission ke default role
+- **Auto-reset on Role Change:** Permission direset otomatis saat role user berubah
+
+**📁 Database Schema:**
+
+| Table              | Purpose                                   |
+| ------------------ | ----------------------------------------- |
+| `permissions`      | Daftar semua permission (33 entries)      |
+| `role_permissions` | Default permission per role (184 entries) |
+| `user_permissions` | Custom override per user                  |
+
+**📁 Files Created:**
+
+- `database/migrations/2026_01_16_011933_create_permissions_tables.php`
+- `database/seeders/PermissionSeeder.php`
+- `app/Models/Permission.php`
+- `app/Models/RolePermission.php`
+- `app/Models/UserPermission.php`
+- `app/Services/PermissionService.php`
+- `app/Http/Middleware/CheckPermission.php`
+- `resources/views/errors/403.blade.php`
+- `docs/plans/2026-01-16-user-permission-management-design.md`
+
+**📁 Files Modified:**
+
+- `app/Models/User.php` - Added permission relationships & helper methods
+- `app/Http/Controllers/AnalystController.php` - Added updatePermissions, resetPermissions methods
+- `app/Providers/AppServiceProvider.php` - Dynamic Gate registration from database
+- `bootstrap/app.php` - Registered 'permission' middleware alias
+- `routes/web.php` - Added permission routes
+- `resources/views/analysts/show.blade.php` - Added "Akses Halaman" section
+- `resources/views/layouts/navigation.blade.php` - Permission-based menu visibility
+
+**🔌 Routes Added:**
+
+| Method | Endpoint                                | Fungsi                  |
+| ------ | --------------------------------------- | ----------------------- |
+| PUT    | `/analysts/{analyst}/permissions`       | Update user permissions |
+| POST   | `/analysts/{analyst}/permissions/reset` | Reset to role defaults  |
+
+**📊 Permission Modules:**
+
+| Module     | Available Actions          |
+| ---------- | -------------------------- |
+| Dashboard  | view                       |
+| Permintaan | view, create, edit, delete |
+| Kaji Ulang | view, create, edit, delete |
+| Pengujian  | view, create, edit, delete |
+| Penyerahan | view, create, edit, delete |
+| Tracking   | view                       |
+| Pencarian  | view                       |
+| Statistik  | view, export               |
+| Monitoring | view                       |
+| Inventori  | view, create, edit, delete |
+| Changelogs | view                       |
+| Analysts   | view, create, edit, delete |
+| Settings   | view, edit                 |
+
+**Usage:**
+
+1. Navigate to `/analysts/{id}` (user detail page)
+2. Scroll to "Akses Halaman" section
+3. Check/uncheck permissions as needed
+4. Click "Simpan Akses" to save
+5. Use "Reset ke Default" to restore role defaults
+
+### v1.6.6 (16 Januari 2026) - UX Improvements: Testing Workflow
+
+```
+Updated on 2026-01-16
+```
+
+**🎯 Problem Solved:**
+
+1. **Redirect setelah membuat permintaan:** Sebelumnya redirect ke `/kaji-ulang-permintaan`, sekarang ke halaman detail permintaan (`/requests/{id}`)
+2. **Navigasi "maju-mundur" di halaman pengujian:** Edit proses menyebabkan user berpindah halaman, sekarang tetap di konteks yang sama
+
+**✨ New Features:**
+
+- **Quick Actions Dropdown:** Di halaman pengujian, setiap sampel memiliki dropdown dengan opsi:
+    - Mulai Proses (jika belum dimulai)
+    - Selesaikan Proses (jika sudah dimulai)
+    - Edit Detail (redirect ke form lengkap)
+    - Quick View (modal preview)
+
+- **Quick View Modal:** Lihat detail proses tanpa meninggalkan halaman dengan modal popup
+
+- **AJAX-powered Updates:** Mulai/selesaikan proses via API tanpa full page reload
+
+- **Toast Notifications:** Feedback visual setelah aksi berhasil/gagal
+
+**📁 Files Created:**
+
+- `app/Http/Controllers/Api/SampleProcessController.php` - API controller untuk quick actions
+
+**📁 Files Modified:**
+
+- `app/Http/Controllers/RequestController.php` - Redirect setelah create ke `requests.show`
+- `app/Http/Controllers/SampleTestProcessController.php` - Redirect setelah update ke `testing.show`
+- `routes/api.php` - Added 4 process quick action endpoints
+- `resources/views/process/show.blade.php` - Added dropdown, modal, and Alpine.js interactivity
+
+**🔌 API Endpoints Added:**
+
+| Method | Endpoint                       | Fungsi              |
+| ------ | ------------------------------ | ------------------- |
+| GET    | `/api/processes/{id}`          | Get process details |
+| POST   | `/api/processes/{id}/start`    | Start process       |
+| POST   | `/api/processes/{id}/complete` | Complete process    |
+| PUT    | `/api/processes/{id}/notes`    | Update notes only   |
 
 ### v1.6.5 (15 Januari 2026) - Numbering Repair & Sync System
 

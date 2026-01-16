@@ -5,11 +5,14 @@ namespace App\Providers;
 use App\Events\NumberIssued;
 use App\Listeners\SendIssueNotification;
 use App\Models\Document;
+use App\Models\Permission;
 use App\Models\Sample;
 use App\Models\TestRequest;
+use App\Models\User;
 use App\Observers\DocumentObserver;
 use App\Observers\SampleObserver;
 use App\Observers\TestRequestObserver;
+use App\Services\PermissionService;
 use App\Support\ActivityLogger;
 use App\Support\AppTimezone;
 use Illuminate\Auth\Events\Login;
@@ -17,6 +20,7 @@ use Illuminate\Auth\Events\Logout;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -111,6 +115,9 @@ class AppServiceProvider extends ServiceProvider
             return in_array($user->role ?? null, ['admin', 'supervisor'], true);
         });
 
+        // Register dynamic permission gates from database
+        $this->registerPermissionGates();
+
         TestRequest::observe(TestRequestObserver::class);
         Sample::observe(SampleObserver::class);
         Document::observe(DocumentObserver::class);
@@ -142,5 +149,30 @@ class AppServiceProvider extends ServiceProvider
                 ]);
             }
         });
+    }
+
+    /**
+     * Register dynamic permission gates from database.
+     */
+    protected function registerPermissionGates(): void
+    {
+        // Skip if permissions table doesn't exist yet (during migrations)
+        try {
+            if (!Schema::hasTable('permissions')) {
+                return;
+            }
+
+            // Get all permissions from database
+            $permissions = Permission::all();
+
+            foreach ($permissions as $permission) {
+                Gate::define($permission->name, function ($user) use ($permission) {
+                    /** @var User $user */
+                    return $user->hasPermission($permission->name);
+                });
+            }
+        } catch (\Throwable $e) {
+            // Ignore errors during early install or if database is not ready
+        }
     }
 }

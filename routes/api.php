@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\DocumentDeleteController;
 use App\Http\Controllers\Api\DocumentDownloadController;
 use App\Http\Controllers\Api\PeopleController;
 use App\Http\Controllers\Api\RequestDocumentsController;
+use App\Http\Controllers\Api\SampleProcessController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\Settings\BladeTemplateEditorController;
 use App\Http\Controllers\Api\Settings\BrandingController;
@@ -177,6 +178,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/requests/{testRequest}/documents', [RequestDocumentsController::class, 'index']);
     Route::delete('/requests/{testRequest}/documents/{type}', [RequestDocumentsController::class, 'destroy']);
     Route::delete('/documents/{document}', DocumentDeleteController::class);
+});
+
+// Sample Process Quick Actions API
+Route::middleware(['auth', 'verified'])->prefix('processes')->group(function () {
+    Route::get('{process}', [SampleProcessController::class, 'show']);
+    Route::post('{process}/start', [SampleProcessController::class, 'start']);
+    Route::post('{process}/complete', [SampleProcessController::class, 'complete']);
+    Route::put('{process}/notes', [SampleProcessController::class, 'updateNotes']);
 });
 
 // Label Management API
