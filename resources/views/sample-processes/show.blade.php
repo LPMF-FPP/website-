@@ -53,8 +53,7 @@
 
         <div class="flex flex-wrap items-center justify-between gap-3">
 
-            <a href="javascript:history.back()"
-
+            <a href="{{ route('testing.show', $sampleProcess->sample->testRequest) }}"
                 class="inline-flex items-center text-sm font-semibold text-primary-700 hover:text-primary-800">&larr; Kembali</a>
 
             <div class="flex flex-wrap items-center gap-2">
