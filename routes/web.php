@@ -262,12 +262,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::middleware('can:manage-settings')->prefix('settings')->name('settings.')->group(function () {
         Route::get('/', [SettingsPageController::class, 'index'])->name('index');
-        Route::get('/data', [SettingsController::class, 'show'])->name('show');
         Route::post('/save', [SettingsController::class, 'update'])
             ->name('update')
             ->middleware('audit.activity:SETTINGS_UPDATED');
         Route::post('/preview', [SettingsController::class, 'preview'])->name('preview');
-        Route::post('/test', [SettingsController::class, 'test'])->name('test');
         Route::post('/brand-asset', [SettingsController::class, 'uploadBrandAsset'])->name('brand.upload');
         Route::post('/instrument-requirements', [SettingsController::class, 'saveInstrumentRequirements'])->name('instrument-requirements.save');
 

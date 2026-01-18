@@ -3,6 +3,8 @@
 namespace App\Services\Settings;
 
 use App\Models\DocumentTemplate;
+use App\Models\Instrument;
+use App\Models\MethodInstrumentRequirement;
 use App\Services\IkuService;
 use App\Services\WhatsApp\NotificationService;
 use Illuminate\Support\Arr;
@@ -41,6 +43,44 @@ class SettingsResponseBuilder
             ],
 
             'iku' => $this->ikuService->getConfig(),
+            'instrument_requirements' => $this->getInstrumentRequirementsData(),
+        ];
+    }
+
+    private function getInstrumentRequirementsData(): array
+    {
+        $instruments = Instrument::where('is_active', true)
+            ->orderBy('category')
+            ->orderBy('name')
+            ->get(['id', 'code', 'name', 'category', 'is_active']);
+
+        $requirements = MethodInstrumentRequirement::with('instrument:id,code,name')
+            ->orderBy('method_code')
+            ->orderBy('sequence')
+            ->get();
+
+        $requirementsByMethod = [];
+        foreach ($requirements as $req) {
+            $methodCode = $req->method_code;
+            if (! isset($requirementsByMethod[$methodCode])) {
+                $requirementsByMethod[$methodCode] = [];
+            }
+            $requirementsByMethod[$methodCode][] = [
+                'id' => $req->id,
+                'instrument_id' => $req->instrument_id,
+                'instrument_code' => $req->instrument?->code,
+                'instrument_name' => $req->instrument?->name,
+                'mandatory' => $req->mandatory,
+                'usage_type' => $req->usage_type->value ?? $req->usage_type,
+                'sequence' => $req->sequence,
+            ];
+        }
+
+        return [
+            'instruments_master' => $instruments,
+            'requirements_by_method' => $requirementsByMethod,
+            'available_methods' => ['uv_vis', 'gc_ms', 'lc_ms'],
+            'usage_types' => ['PREP', 'RUN'],
         ];
     }
 

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\Settings\LocalizationSettingsRequest;
-use App\Models\DocumentTemplate;
 use App\Models\Instrument;
 use App\Models\MethodInstrumentRequirement;
 use App\Models\SystemSetting;
@@ -28,55 +27,6 @@ class SettingsController extends Controller
     private const ALLOWED_NUMBER_FORMATS = ['1.234,56', '1,234.56'];
 
     private const ALLOWED_LANGUAGES = ['id', 'en'];
-
-    public function index()
-    {
-        Gate::authorize('manage-settings');
-        // Provide nested settings to the view for initial prefill
-        $flat = settings();
-        $settings = settings_nest($flat);
-
-        return view('settings.index', [
-            'settings' => $settings,
-        ]);
-    }
-
-    public function show()
-    {
-        Gate::authorize('manage-settings');
-
-        $flat = settings();
-        $settings = settings_nest($flat);
-
-        $templates = DocumentTemplate::orderBy('name')->get();
-
-        $instrumentRequirementsData = $this->getInstrumentRequirementsData();
-
-        return response()->json([
-            'settings' => $settings,
-            'numbering' => Arr::get($settings, 'numbering', []),
-            'branding' => Arr::get($settings, 'branding', []),
-            'pdf' => Arr::get($settings, 'pdf', []),
-            'locale' => Arr::get($settings, 'locale', []),
-            'retention' => Arr::get($settings, 'retention', []),
-            'automation' => Arr::get($settings, 'notifications', Arr::get($settings, 'automation', [])),
-            'notifications' => Arr::get($settings, 'notifications', Arr::get($settings, 'automation', [])),
-            'templates' => [
-                'active' => Arr::get($settings, 'templates.active', []),
-                'list' => $templates,
-            ],
-            'security' => Arr::get($settings, 'security.roles', []),
-            'instrument_requirements' => $instrumentRequirementsData,
-            'options' => [
-                'timezones' => LocalizationSettingsRequest::timezones(),
-                'date_formats' => self::ALLOWED_DATE_FORMATS,
-                'number_formats' => self::ALLOWED_NUMBER_FORMATS,
-                'languages' => self::ALLOWED_LANGUAGES,
-                'storage_drivers' => ['public'],
-                'storage_path_info' => 'storage/app/public/investigators/{investigator}/{request}/',
-            ],
-        ]);
-    }
 
     public function update(Request $request)
     {
@@ -254,13 +204,6 @@ class SettingsController extends Controller
         $example = $service->example($scope, $pattern);
 
         return response()->json(['example' => $example]);
-    }
-
-    public function test()
-    {
-        Gate::authorize('manage-settings');
-
-        return response()->json(['ok' => true]);
     }
 
     public function uploadBrandAsset(Request $request)

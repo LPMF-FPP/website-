@@ -2917,22 +2917,10 @@ export function registerSettingsComponent() {
                 });
             },
 
-            async loadInstrumentRequirements() {
-                try {
-                    const response = await fetch("/settings/data", {
-                        headers: { Accept: "application/json" },
-                    });
-                    const data = await response.json();
-                    if (data.instrument_requirements) {
-                        this.initInstrumentRequirements(
-                            data.instrument_requirements,
-                        );
-                    }
-                } catch (error) {
-                    console.error(
-                        "Failed to load instrument requirements:",
-                        error,
-                    );
+            loadInstrumentRequirements() {
+                const data = this.client.state.form.instrument_requirements;
+                if (data) {
+                    this.initInstrumentRequirements(data);
                 }
             },
 
