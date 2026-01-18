@@ -16,9 +16,15 @@ class SettingsPageControllerTest extends TestCase
     {
         $user = User::factory()->create();
         
-        // Seed some settings
-        SystemSetting::create(['key' => 'locale.timezone', 'value' => 'Asia/Jakarta']);
-        SystemSetting::create(['key' => 'security.roles.can_manage_settings', 'value' => json_encode(['admin'])]);
+        // Seed some settings (safe updateOrCreate to prevent duplicate key errors if seeder ran)
+        SystemSetting::updateOrCreate(
+            ['key' => 'locale.timezone'],
+            ['value' => 'Asia/Jakarta']
+        );
+        SystemSetting::updateOrCreate(
+            ['key' => 'security.roles.can_manage_settings'],
+            ['value' => json_encode(['admin'])]
+        );
 
         DocumentTemplate::create([
             'code' => 'TEST01',

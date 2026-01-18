@@ -20,12 +20,29 @@ class AppTimezone
                 // Bypass global settings() helper to avoid cache race conditions/stale data.
                 // Direct query is safe because this method is already cached.
                 try {
-                    $row = \App\Models\SystemSetting::query()
+                    // 1. Try flat keys first (Priority: localization.timezone > locale.timezone)
+                    $flat = \App\Models\SystemSetting::query()
                         ->whereIn('key', ['localization.timezone', 'locale.timezone'])
                         ->orderByRaw("CASE WHEN key = 'localization.timezone' THEN 1 ELSE 2 END")
                         ->first();
                     
-                    $tz = $row?->value;
+                    if ($flat) {
+                        $tz = $flat->value;
+                    } else {
+                        // 2. Fallback to nested JSON keys (Legacy/Seeder compatibility)
+                        // This handles cases where data was seeded as 'locale' => ['timezone' => '...']
+                        $jsonRows = \App\Models\SystemSetting::query()
+                            ->whereIn('key', ['localization', 'locale'])
+                            ->get();
+                        
+                        foreach ($jsonRows as $row) {
+                            $val = $row->value; // Cast to array by model
+                            if (is_array($val) && isset($val['timezone'])) {
+                                $tz = $val['timezone'];
+                                break;
+                            }
+                        }
+                    }
                 } catch (\Throwable $e) {
                     // Fallback if table doesn't exist yet (e.g. fresh install)
                     $tz = null;

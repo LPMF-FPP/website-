@@ -97,14 +97,22 @@ class SystemSettingSeeder extends Seeder
                     'ba_penyerahan' => null,
                 ],
             ],
+            // Updated to flat keys for locale to match SettingsWriter behavior and prevent duplicate key issues
             [
-                'key' => 'locale',
-                'value' => [
-                    'timezone' => 'Asia/Jakarta',
-                    'date_format' => 'DD/MM/YYYY',
-                    'number_format' => '1.234,56',
-                    'language' => 'id',
-                ],
+                'key' => 'locale.timezone',
+                'value' => 'Asia/Jakarta',
+            ],
+            [
+                'key' => 'locale.date_format',
+                'value' => 'DD/MM/YYYY',
+            ],
+            [
+                'key' => 'locale.number_format',
+                'value' => '1.234,56',
+            ],
+            [
+                'key' => 'locale.language',
+                'value' => 'id',
             ],
             [
                 'key' => 'retention',
@@ -116,25 +124,50 @@ class SystemSettingSeeder extends Seeder
                     'export_filename_pattern' => '{DOC}/{YYYY}/{MM}/{SEQ:4}.pdf',
                 ],
             ],
+            // Flattened notifications settings to prevent JSON vs Flat Key conflicts
             [
-                'key' => 'notifications',
-                'value' => [
-                    'email' => [
-                        'enabled' => true,
-                        'default_recipient' => 'lab@example.test',
-                        'subject' => '[LIMS] Pesan notifikasi',
-                        'body' => 'Pesan pengujian siap dikirim.',
-                    ],
-                    'whatsapp' => [
-                        'enabled' => true,
-                        'base_url' => env('WHATSAPP_API_URL', 'http://localhost:3000'),
-                        'basic_user' => env('WHATSAPP_BASIC_USER', 'lpmf'),
-                        'basic_pass' => env('WHATSAPP_BASIC_PASS') ? encrypt(env('WHATSAPP_BASIC_PASS')) : (env('APP_ENV') === 'local' ? encrypt('lpmfjaya1') : null),
-                        'device_id' => env('WHATSAPP_DEVICE_ID', '03663e24-efdb-48fe-961d-456436bfb219'),
-                        'default_target' => '',
-                        'message' => '*[LIMS]* Pesan percobaan notifikasi.',
-                    ],
-                ],
+                'key' => 'notifications.email.enabled',
+                'value' => true,
+            ],
+            [
+                'key' => 'notifications.email.default_recipient',
+                'value' => 'lab@example.test',
+            ],
+            [
+                'key' => 'notifications.email.subject',
+                'value' => '[LIMS] Pesan notifikasi',
+            ],
+            [
+                'key' => 'notifications.email.body',
+                'value' => 'Pesan pengujian siap dikirim.',
+            ],
+            [
+                'key' => 'notifications.whatsapp.enabled',
+                'value' => true,
+            ],
+            [
+                'key' => 'notifications.whatsapp.base_url',
+                'value' => env('WHATSAPP_API_URL', 'http://localhost:3000'),
+            ],
+            [
+                'key' => 'notifications.whatsapp.basic_user',
+                'value' => env('WHATSAPP_BASIC_USER', 'lpmf'),
+            ],
+            [
+                'key' => 'notifications.whatsapp.basic_pass',
+                'value' => env('WHATSAPP_BASIC_PASS') ? encrypt(env('WHATSAPP_BASIC_PASS')) : (env('APP_ENV') === 'local' ? encrypt('lpmfjaya1') : null),
+            ],
+            [
+                'key' => 'notifications.whatsapp.device_id',
+                'value' => env('WHATSAPP_DEVICE_ID', '03663e24-efdb-48fe-961d-456436bfb219'),
+            ],
+            [
+                'key' => 'notifications.whatsapp.default_target',
+                'value' => '',
+            ],
+            [
+                'key' => 'notifications.whatsapp.message',
+                'value' => '*[LIMS]* Pesan percobaan notifikasi.',
             ],
             [
                 'key' => 'security.roles',
@@ -147,6 +180,11 @@ class SystemSettingSeeder extends Seeder
         ];
 
         foreach ($settings as $setting) {
+            // Skip null values to prevent NOT NULL constraint violation on 'value' column
+            if ($setting['value'] === null) {
+                continue;
+            }
+
             SystemSetting::updateOrCreate(
                 ['key' => $setting['key']],
                 ['value' => $setting['value']]
