@@ -22,7 +22,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
                     </svg>
                     <div class="flex-1">
-                        <h4 class="text-sm font-medium text-yellow-800">Monitoring Lingkungan - Input Diperlukan</h4>
+                        <h2 class="text-sm font-medium text-yellow-800">Monitoring Lingkungan - Input Diperlukan</h2>
                         <div class="mt-2 text-sm text-yellow-700">
                             <p class="mb-2">
                                 @if($environment_monitoring['active_window'])
@@ -114,7 +114,7 @@
             <div class="card">
                 <div class="space-y-3">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-semibold text-primary-900">Status Permintaan</h3>
+                        <h2 class="text-lg font-semibold text-primary-900">Status Permintaan</h2>
                         <div class="text-xs text-accent-600">Total: {{ $total }}</div>
                     </div>
                     <div class="h-3 w-full rounded bg-gray-100 overflow-hidden flex">
@@ -143,7 +143,7 @@
             <div class="card">
                 <div class="space-y-4">
                     <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-semibold text-primary-900">Aktivitas Terbaru</h3>
+                        <h2 class="text-lg font-semibold text-primary-900">Aktivitas Terbaru</h2>
                     </div>
                     @if($recent_activities->count() > 0)
                         <div class="flow-root">
@@ -188,7 +188,7 @@
                 <a href="{{ route('requests.create') }}" class="card block text-center hover:shadow-md transition-shadow duration-200">
                     <div class="space-y-2">
                         <div class="text-4xl mb-4">➕</div>
-                        <h3 class="text-lg font-semibold text-primary-900">Buat Permintaan</h3>
+                        <h2 class="text-lg font-semibold text-primary-900">Buat Permintaan</h2>
                         <p class="text-sm text-accent-600">Submit permintaan pengujian baru</p>
                     </div>
                 </a>
@@ -196,7 +196,7 @@
                 <a href="{{ route('requests.index') }}" class="card block text-center hover:shadow-md transition-shadow duration-200">
                     <div class="space-y-2">
                         <div class="text-4xl mb-4">📄</div>
-                        <h3 class="text-lg font-semibold text-primary-900">Lihat Permintaan</h3>
+                        <h2 class="text-lg font-semibold text-primary-900">Lihat Permintaan</h2>
                         <p class="text-sm text-accent-600">Monitor status pengujian</p>
                     </div>
                 </a>
@@ -204,7 +204,7 @@
                 <a href="{{ route('tracking.index') }}" class="card block text-center hover:shadow-md transition-shadow duration-200">
                     <div class="space-y-2">
                         <div class="text-4xl mb-4">🔍</div>
-                        <h3 class="text-lg font-semibold text-primary-900">Tracking Permintaan</h3>
+                        <h2 class="text-lg font-semibold text-primary-900">Tracking Permintaan</h2>
                         <p class="text-sm text-accent-600">Lacak status permintaan</p>
                     </div>
                 </a>

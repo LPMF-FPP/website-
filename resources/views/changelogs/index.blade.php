@@ -56,6 +56,18 @@
                         </svg>
                         <span><strong>Reduced Motion:</strong> Animasi berat dinonaktifkan jika preferensi pengguna diatur ke "Reduced Motion".</span>
                     </li>
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span><strong>Heading Hierarchy:</strong> Memperbaiki struktur heading di dashboard dan navigation untuk memenuhi standar WCAG 2.1.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span><strong>Test Stability:</strong> Peningkatan stabilitas Dusk tests dengan DatabaseTruncation dan form-based login.</span>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -120,9 +132,7 @@
                 <div class="flex-1">
                     <div class="flex items-center gap-3 mb-1">
                         <h2 class="text-xl font-bold text-gray-900">LPMF LIMS v1.6.5</h2>
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                            Latest
-                        </span>
+                        {{-- Older version - no badge --}}
                     </div>
                     <p class="text-sm text-gray-500">Dirilis: 15 Januari 2026</p>
                 </div>

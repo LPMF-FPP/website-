@@ -3,24 +3,31 @@
 namespace Tests\Browser\Auth;
 
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
 class AuthenticationFlowTest extends DuskTestCase
 {
-    use DatabaseTransactions;
+    use DatabaseTruncation;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        \Illuminate\Support\Facades\Cache::flush();
+    }
 
     public function test_user_can_register_and_verify_account(): void
     {
         $this->browse(function (Browser $browser) {
+            $browser->driver->manage()->deleteAllCookies();
             $browser->visit('/register')
-                ->assertSee('Register')
+                ->assertSee('REGISTER')
                 ->type('name', 'John Doe')
                 ->type('email', 'john@example.com')
                 ->type('password', 'password123')
                 ->type('password_confirmation', 'password123')
-                ->press('Register')
+                ->press('REGISTER')
                 ->assertPathIs('/dashboard')
                 ->assertAuthenticated();
         });
@@ -34,11 +41,12 @@ class AuthenticationFlowTest extends DuskTestCase
         ]);
 
         $this->browse(function (Browser $browser) use ($user) {
+            $browser->driver->manage()->deleteAllCookies();
             $browser->visit('/login')
                 ->assertSee('Email')
                 ->type('email', 'user@example.com')
                 ->type('password', 'password123')
-                ->press('Log in')
+                ->press('LOG IN')
                 ->assertPathIs('/dashboard')
                 ->assertAuthenticated()
                 ->assertAuthenticatedAs($user);
@@ -53,10 +61,11 @@ class AuthenticationFlowTest extends DuskTestCase
         ]);
 
         $this->browse(function (Browser $browser) {
+            $browser->driver->manage()->deleteAllCookies();
             $browser->visit('/login')
                 ->type('email', 'user@example.com')
                 ->type('password', 'wrong-password')
-                ->press('Log in')
+                ->press('LOG IN')
                 ->assertPathIs('/login')
                 ->assertGuest()
                 ->assertSee('credentials');
@@ -66,12 +75,13 @@ class AuthenticationFlowTest extends DuskTestCase
     public function test_complete_authentication_cycle(): void
     {
         $this->browse(function (Browser $browser) {
+            $browser->driver->manage()->deleteAllCookies();
             $browser->visit('/register')
                 ->type('name', 'Jane Smith')
                 ->type('email', 'jane@example.com')
                 ->type('password', 'secure-password')
                 ->type('password_confirmation', 'secure-password')
-                ->press('Register')
+                ->press('REGISTER')
                 ->assertPathIs('/dashboard')
                 ->assertAuthenticated();
 
@@ -82,7 +92,7 @@ class AuthenticationFlowTest extends DuskTestCase
             $browser->visit('/login')
                 ->type('email', 'jane@example.com')
                 ->type('password', 'secure-password')
-                ->press('Log in')
+                ->press('LOG IN')
                 ->assertPathIs('/dashboard')
                 ->assertAuthenticated();
         });
@@ -95,10 +105,11 @@ class AuthenticationFlowTest extends DuskTestCase
         ]);
 
         $this->browse(function (Browser $browser) {
+            $browser->driver->manage()->deleteAllCookies();
             $browser->visit('/forgot-password')
                 ->assertSee('Forgot your password')
                 ->type('email', 'reset@example.com')
-                ->press('Email Password Reset Link')
+                ->press('EMAIL PASSWORD RESET LINK')
                 ->assertSee('password reset link');
         });
     }
@@ -106,6 +117,7 @@ class AuthenticationFlowTest extends DuskTestCase
     public function test_protected_routes_redirect_to_login(): void
     {
         $this->browse(function (Browser $browser) {
+            $browser->driver->manage()->deleteAllCookies();
             $browser->visit('/dashboard')
                 ->assertPathIs('/login')
                 ->assertGuest();

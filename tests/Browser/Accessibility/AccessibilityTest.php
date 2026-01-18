@@ -3,17 +3,37 @@
 namespace Tests\Browser\Accessibility;
 
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
 class AccessibilityTest extends DuskTestCase
 {
-    use DatabaseTransactions;
+    use DatabaseTruncation;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        \Illuminate\Support\Facades\Cache::flush();
+    }
+
+    /**
+     * Helper to login user via form instead of loginAs() which doesn't work with DatabaseTransactions
+     */
+    protected function loginViaForm(Browser $browser, string $email, string $password): void
+    {
+        $browser->visit('/login')
+            ->waitFor('input[name="email"]')
+            ->type('email', $email)
+            ->type('password', $password)
+            ->click('button[type="submit"]')
+            ->waitForLocation('/dashboard');
+    }
 
     public function test_login_page_loads(): void
     {
         $this->browse(function (Browser $browser) {
+            $browser->driver->manage()->deleteAllCookies();
             $browser->visit('/login')
                 ->waitFor('form')
                 ->assertPresent('form')
@@ -25,13 +45,15 @@ class AccessibilityTest extends DuskTestCase
 
     public function test_dashboard_loads(): void
     {
-        $user = User::factory()->create();
+        $password = 'password123';
+        $user = User::factory()->create([
+            'password' => bcrypt($password),
+        ]);
 
-        $this->browse(function (Browser $browser) use ($user) {
-            $browser->loginAs($user)
-                ->visit('/dashboard')
-                ->waitFor('h1')
-                ->assertPresent('h1');
+        $this->browse(function (Browser $browser) use ($user, $password) {
+            $browser->driver->manage()->deleteAllCookies();
+            $this->loginViaForm($browser, $user->email, $password);
+            $browser->assertPresent('h1');
         });
     }
 
@@ -47,11 +69,15 @@ class AccessibilityTest extends DuskTestCase
 
     public function test_buttons_have_accessible_names(): void
     {
-        $user = User::factory()->create();
+        $password = 'password123';
+        $user = User::factory()->create([
+            'password' => bcrypt($password),
+        ]);
 
-        $this->browse(function (Browser $browser) use ($user) {
-            $browser->loginAs($user)
-                ->visit('/requests/create')
+        $this->browse(function (Browser $browser) use ($user, $password) {
+            $browser->driver->manage()->deleteAllCookies();
+            $this->loginViaForm($browser, $user->email, $password);
+            $browser->visit('/requests/create')
                 ->waitFor('form')
                 // Buttons with visible text content are accessible
                 ->assertPresent('button[type="submit"]');
@@ -75,13 +101,15 @@ class AccessibilityTest extends DuskTestCase
 
     public function test_page_has_proper_heading_structure(): void
     {
-        $user = User::factory()->create();
+        $password = 'password123';
+        $user = User::factory()->create([
+            'password' => bcrypt($password),
+        ]);
 
-        $this->browse(function (Browser $browser) use ($user) {
-            $browser->loginAs($user)
-                ->visit('/dashboard')
-                ->waitFor('h1')
-                ->assertPresent('h1');
+        $this->browse(function (Browser $browser) use ($user, $password) {
+            $browser->driver->manage()->deleteAllCookies();
+            $this->loginViaForm($browser, $user->email, $password);
+            $browser->assertPresent('h1');
 
             $hasValidStructure = $browser->driver->executeScript('
                 const headings = Array.from(document.querySelectorAll("h1, h2, h3, h4, h5, h6"));
@@ -129,13 +157,15 @@ class AccessibilityTest extends DuskTestCase
 
     public function test_aria_landmarks_present(): void
     {
-        $user = User::factory()->create();
+        $password = 'password123';
+        $user = User::factory()->create([
+            'password' => bcrypt($password),
+        ]);
 
-        $this->browse(function (Browser $browser) use ($user) {
-            $browser->loginAs($user)
-                ->visit('/dashboard')
-                ->waitFor('main, [role="main"]')
-                ->assertPresent('main, [role="main"]')
+        $this->browse(function (Browser $browser) use ($user, $password) {
+            $browser->driver->manage()->deleteAllCookies();
+            $this->loginViaForm($browser, $user->email, $password);
+            $browser->assertPresent('main, [role="main"]')
                 ->assertPresent('nav, [role="navigation"]')
                 ->assertPresent('header, [role="banner"]');
         });

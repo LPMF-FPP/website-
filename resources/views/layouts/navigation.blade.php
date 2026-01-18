@@ -83,7 +83,7 @@
                                 <div class="grid grid-cols-2 gap-8">
                                     <!-- Column 1: Umum -->
                                     <div>
-                                        <h3 class="text-xs font-semibold text-primary-500 uppercase tracking-wider mb-4">Referensi Data</h3>
+                                        <h2 class="text-xs font-semibold text-primary-500 uppercase tracking-wider mb-4">Referensi Data</h2>
                                         <div class="space-y-3">
                                             @can('tracking.view')
                                             <a href="{{ route('tracking.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
@@ -123,7 +123,7 @@
 
                                     <!-- Column 2: Admin / More -->
                                     <div>
-                                        <h3 class="text-xs font-semibold text-primary-500 uppercase tracking-wider mb-4">Sistem & Inventori</h3>
+                                        <h2 class="text-xs font-semibold text-primary-500 uppercase tracking-wider mb-4">Sistem & Inventori</h2>
                                         <div class="space-y-3">
                                             @can('monitoring.view')
                                             <a href="{{ route('monitoring.sensors.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition duration-150">

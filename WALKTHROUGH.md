@@ -52,6 +52,9 @@ Meningkatkan aksesibilitas aplikasi untuk memenuhi standar WCAG 2.1 (RAMS Compli
     - **Forms:** Memastikan semua input memiliki label yang terasosiasi (`for`/`id`).
     - **Feedback:** Mengganti `alert()` blocking dengan notifikasi toast ramah screen-reader.
     - **Icons:** Menyembunyikan ikon dekoratif dari screen reader (`aria-hidden="true"`).
+    - **Heading Hierarchy:** Memperbaiki struktur heading (h3/h4 -> h2) di dashboard dan navigation untuk memenuhi WCAG 2.1.
+- **Test Improvements:**
+    - **Dusk Tests:** Migrasi ke `DatabaseTruncation` dan form-based login untuk stabilitas session yang lebih baik.
 - **Welcome Page:**
     - Menambahkan `motion-safe` pada animasi pulse.
 
@@ -64,6 +67,10 @@ Meningkatkan aksesibilitas aplikasi untuk memenuhi standar WCAG 2.1 (RAMS Compli
 - `resources/views/sample-processes/edit.blade.php`
 - `resources/views/search/index.blade.php`
 - `resources/js/pages/settings/alpine-component.js`
+- `resources/views/dashboard.blade.php` (heading hierarchy fix)
+- `resources/views/layouts/navigation.blade.php` (heading hierarchy fix)
+- `tests/Browser/Accessibility/AccessibilityTest.php` (test stability)
+- `tests/Browser/Auth/AuthenticationFlowTest.php` (test stability)
 
 ### v1.7.2 (18 Januari 2026) - WhatsApp Templates & Admin Access
 
