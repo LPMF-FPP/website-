@@ -16,6 +16,11 @@ class SettingsLocalizationController extends Controller
         Gate::authorize('manage-settings');
 
         try {
+            // Force clear cache to ensure fresh settings are applied for preview
+            // This fixes the issue where preview shows stale timezone (e.g. UTC) after update
+            settings_flush_cache();
+            \Illuminate\Support\Facades\Cache::forget(AppTimezone::CACHE_KEY);
+
             AppTimezone::apply();
 
             $appNow = Carbon::now(config('app.timezone'));
@@ -26,7 +31,7 @@ class SettingsLocalizationController extends Controller
                 'php_timezone' => date_default_timezone_get(),
                 'now_app' => $appNow->toIso8601String(),
                 'now_utc' => $utcNow->toIso8601String(),
-            ]);
+            ])->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
         } catch (\Throwable $e) {
             return response()->json([
                 'message' => 'Preview time failed.',
