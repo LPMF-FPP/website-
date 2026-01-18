@@ -52,6 +52,7 @@ Thumbs.db
 test.txt
 
 /docs/
+/.worktrees/
 
 .agent/workflows/post-coding.md
 .agent/workflows/pre-pr-checks.md
