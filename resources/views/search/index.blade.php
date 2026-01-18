@@ -147,12 +147,12 @@
                     <p data-people-caption>Menunggu pencarian...</p>
                 </div>
                 <div class="panel-body">
-                    <div class="skeleton-list" data-people-skeleton hidden>
+                    <div class="skeleton-list" data-people-skeleton hidden role="status" aria-label="Memuat data tersangka/penyidik">
                         <div class="skeleton-card"></div>
                         <div class="skeleton-card"></div>
                         <div class="skeleton-card"></div>
                     </div>
-                    <ul class="panel-list" data-people-results></ul>
+                    <ul class="panel-list" data-people-results aria-live="polite"></ul>
                     <div class="empty-state" data-people-empty hidden>
                         Tidak ada tersangka atau penyidik yang cocok dengan kata kunci ini.
                     </div>
@@ -170,12 +170,12 @@
                     <p data-doc-caption>Menunggu pencarian...</p>
                 </div>
                 <div class="panel-body">
-                    <div class="skeleton-list" data-doc-skeleton hidden>
+                    <div class="skeleton-list" data-doc-skeleton hidden role="status" aria-label="Memuat data berita acara">
                         <div class="skeleton-card"></div>
                         <div class="skeleton-card"></div>
                         <div class="skeleton-card"></div>
                     </div>
-                    <ul class="panel-list" data-doc-results></ul>
+                    <ul class="panel-list" data-doc-results aria-live="polite"></ul>
                     <div class="empty-state" data-doc-empty hidden>
                         Tidak ada berita acara yang cocok dengan pencarian ini.
                     </div>

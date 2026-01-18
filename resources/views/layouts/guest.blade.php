@@ -16,16 +16,19 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans text-primary-900 antialiased bg-medical">
-        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0">
+        <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 bg-white text-primary-800 border border-primary-300 rounded px-3 py-2 shadow">
+            Lewati ke konten utama
+        </a>
+        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0" role="main">
             <div>
                 <a href="/">
                     <img src="/images/logo-pusdokkes-polri.png" alt="Logo Pusdokkes Polri" class="w-20 h-20">
                 </a>
             </div>
 
-            <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-lg border border-primary-100 overflow-hidden sm:rounded-xl">
+            <main id="main-content" class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-lg border border-primary-100 overflow-hidden sm:rounded-xl">
                 {{ $slot }}
-            </div>
+            </main>
         </div>
     </body>
 </html>

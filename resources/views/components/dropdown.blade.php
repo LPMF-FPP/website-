@@ -56,12 +56,22 @@ $width = match ($width) {
                     const toggle = ()=> open ? hide() : show();
                     trigger.addEventListener('click', (e)=>{ e.stopPropagation(); toggle(); });
                     trigger.addEventListener('keydown', (e)=>{ 
-                        if(e.key === 'Escape' && open) hide();
+                        if(e.key === 'Escape' && open) { hide(); e.preventDefault(); }
+                        if(e.key === 'ArrowDown' && !open) { show(); e.preventDefault(); focusFirst(); }
                     });
+                    const menuItems = () => panel.querySelectorAll('[role="menuitem"]');
+                    const focusFirst = () => { const items = menuItems(); if(items.length) items[0].focus(); };
+                    const focusLast = () => { const items = menuItems(); if(items.length) items[items.length-1].focus(); };
                     panel.addEventListener('click', ()=> hide());
                     panel.addEventListener('keydown', (e)=>{ 
-                        if(e.key === 'Escape') hide();
+                        if(e.key === 'Escape') { hide(); trigger.focus(); e.preventDefault(); }
                         if(e.key === 'Tab') hide();
+                        const items = Array.from(menuItems());
+                        const idx = items.indexOf(document.activeElement);
+                        if(e.key === 'ArrowDown') { e.preventDefault(); items[(idx+1) % items.length]?.focus(); }
+                        if(e.key === 'ArrowUp') { e.preventDefault(); items[(idx-1+items.length) % items.length]?.focus(); }
+                        if(e.key === 'Home') { e.preventDefault(); focusFirst(); }
+                        if(e.key === 'End') { e.preventDefault(); focusLast(); }
                     });
                     document.addEventListener('click', (e)=>{
                         if(!el.contains(e.target)) hide();

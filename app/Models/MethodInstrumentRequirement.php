@@ -8,6 +8,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MethodInstrumentRequirement extends Model
 {
+    public const AVAILABLE_METHODS = [
+        'uv_vis',
+        'gc_ms',
+        'lc_ms',
+    ];
+
     protected $fillable = [
         'method_code',
         'instrument_id',

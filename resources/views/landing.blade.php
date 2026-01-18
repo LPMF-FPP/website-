@@ -1,837 +1,714 @@
-<!doctype html>
-<html lang="id" class="scroll-smooth">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>LPMF LIMS | The Pulse of Evidence</title>
-        <meta
-            name="description"
-            content="Sistem Informasi Manajemen Laboratorium Forensik Pusdokkes Polri. Aman. Presisi. Real-time."
-        />
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LPMF LIMS | The Pulse of Evidence</title>
+    <meta name="description" content="Sistem Informasi Manajemen Laboratorium Forensik Pusdokkes Polri. Chain of Custody. Immutable Audit. Real-time Telemetry.">
 
-        <!-- Fonts -->
-        <link
-            href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,700,500&f[]=satoshi@400,500,700&display=swap"
-            rel="stylesheet"
-        />
-        <link
-            href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap"
-            rel="stylesheet"
-        />
+    <!-- Typography: Cabinet Grotesk (Display), Satoshi (Body), JetBrains Mono (Tech) -->
+    <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,700,500&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-        <style>
-            :root {
-                /* Clinical Precision Palette (Light Theme) */
-                --bg-body: #f3f5f7;
-                --text-primary: #111827;
-                --text-secondary: #64748b;
-                --text-tertiary: #94a3b8;
+    <style>
+        :root {
+            /* Palette: "The Glass Evidence" - Dark, Sharp, Amber Accents */
+            --bg-deep: #050505;
+            --bg-panel: #0a0a0a;
+            --text-primary: #ffffff;
+            --text-secondary: #888888;
+            --text-muted: #9CA3AF;
+            
+            /* Accent: Forensic Amber */
+            --accent: #FFB800; 
+            --accent-glow: rgba(255, 184, 0, 0.15);
+            --border-light: rgba(255, 255, 255, 0.1);
+            --border-active: rgba(255, 255, 255, 0.3);
 
-                --brand-primary: #2e5cff;
-                --brand-secondary: #00cc88;
-                --surface-white: #ffffff;
-                --surface-glass: rgba(255, 255, 255, 0.8);
+            /* Spacing & Layout */
+            --container: 1400px;
+            --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+        }
 
-                /* Typography */
-                --font-display: "Cabinet Grotesk", sans-serif;
-                --font-body: "Satoshi", sans-serif;
-                --font-mono: "JetBrains Mono", monospace;
+        /* RESET & BASE */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-                /* Easing */
-                --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
-            }
+        :focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 4px;
+        }
 
-            /* Reset */
-            *,
-            *::before,
-            *::after {
-                box-sizing: border-box;
-                margin: 0;
-                padding: 0;
-            }
+        /* Skip to main content link */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+        .sr-only:focus {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            width: auto;
+            height: auto;
+            padding: 1rem 2rem;
+            margin: 0;
+            overflow: visible;
+            clip: auto;
+            white-space: normal;
+            background: var(--accent);
+            color: var(--bg-deep);
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            text-decoration: none;
+            z-index: 10000;
+        }
 
-            body {
-                background-color: var(--bg-body);
-                color: var(--text-primary);
-                font-family: var(--font-body);
-                line-height: 1.6;
-                overflow-x: hidden;
-                -webkit-font-smoothing: antialiased;
-            }
+        html {
+            scroll-behavior: smooth;
+            font-size: 16px;
+        }
 
-            ::selection {
-                background: var(--brand-primary);
-                color: white;
-            }
+        body {
+            background-color: var(--bg-deep);
+            color: var(--text-primary);
+            font-family: 'Satoshi', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+            line-height: 1.5;
+        }
 
-            /* Typography */
-            h1,
-            h2,
-            h3,
-            h4 {
-                font-family: var(--font-display);
-                line-height: 1.1;
-                letter-spacing: -0.02em;
-            }
+        /* TYPOGRAPHY */
+        h1, h2, h3, h4 {
+            font-family: 'Cabinet Grotesk', sans-serif;
+            font-weight: 800;
+            line-height: 1;
+            letter-spacing: -0.02em;
+            text-transform: uppercase;
+        }
 
-            h1 {
-                font-size: clamp(3.5rem, 8vw, 6rem);
-                font-weight: 800;
-                color: var(--text-primary);
-            }
+        h1 {
+            font-size: clamp(3rem, 8vw, 8rem);
+            color: var(--text-primary);
+        }
 
-            h2 {
-                font-size: clamp(2rem, 5vw, 3.5rem);
-                font-weight: 700;
-            }
+        h2 {
+            font-size: clamp(2rem, 5vw, 4rem);
+        }
 
-            .text-mono {
-                font-family: var(--font-mono);
-            }
-            .text-brand {
-                color: var(--brand-primary);
-            }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: -0.02em;
+        }
 
-            /* Utilities */
-            .container {
-                max-width: 1200px;
-                margin: 0 auto;
-                padding: 0 2rem;
-            }
-            .flex {
-                display: flex;
-            }
-            .flex-col {
-                flex-direction: column;
-            }
-            .items-center {
-                align-items: center;
-            }
-            .justify-between {
-                justify-content: space-between;
-            }
-            .justify-center {
-                justify-content: center;
-            }
-            .grid {
-                display: grid;
-            }
-            .gap-4 {
-                gap: 1rem;
-            }
-            .gap-8 {
-                gap: 2rem;
-            }
-            .gap-12 {
-                gap: 3rem;
-            }
-            .h-screen {
-                height: 100vh;
-            }
-            .w-full {
-                width: 100%;
-            }
-            .relative {
-                position: relative;
-            }
-            .absolute {
-                position: absolute;
-            }
-            .overflow-hidden {
-                overflow: hidden;
-            }
+        .text-accent { color: var(--accent); }
+        .text-secondary { color: var(--text-secondary); }
 
-            /* Components */
-            .btn {
-                display: inline-flex;
-                align-items: center;
-                justify-content: center;
-                padding: 1rem 2rem;
-                font-family: var(--font-body);
-                font-weight: 700;
-                font-size: 1rem;
-                text-decoration: none;
-                transition: all 0.3s ease;
-                border-radius: 8px;
-                border: 1px solid transparent;
-            }
+        /* CUSTOM CURSOR */
+        #cursor {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 20px;
+            height: 20px;
+            border: 1px solid var(--accent);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 9999;
+            mix-blend-mode: difference;
+            transition: width 0.3s, height 0.3s;
+        }
+        
+        /* The "Forensic Light" Effect */
+        #flashlight {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0) 60%);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            z-index: 9998;
+        }
 
-            .btn-primary {
-                background: var(--brand-primary);
-                color: white;
-                box-shadow: 0 10px 20px -5px rgba(46, 92, 255, 0.4);
-            }
-            .btn-primary:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 15px 30px -5px rgba(46, 92, 255, 0.5);
-            }
+        /* GRID BACKGROUND */
+        .grid-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 100px 100px;
+            z-index: -1;
+            mask-image: radial-gradient(circle at var(--x, 50%) var(--y, 50%), black 0%, transparent 40%);
+            -webkit-mask-image: radial-gradient(circle at var(--x, 50%) var(--y, 50%), black 0%, transparent 40%);
+        }
 
-            .btn-outline {
-                background: white;
-                color: var(--text-primary);
-                border-color: #e2e8f0;
-            }
-            .btn-outline:hover {
-                border-color: var(--brand-primary);
-                color: var(--brand-primary);
-            }
+        /* COMPONENTS */
+        .container {
+            max-width: var(--container);
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
 
-            .glass-panel {
-                background: var(--surface-glass);
-                backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px);
-                border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-            }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.25rem 2.5rem;
+            background: var(--text-primary);
+            color: var(--bg-deep);
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            text-decoration: none;
+            border: 1px solid var(--text-primary);
+            transition: all 0.3s var(--ease-out);
+            position: relative;
+            overflow: hidden;
+        }
 
-            .badge {
-                display: inline-flex;
-                align-items: center;
-                gap: 0.5rem;
-                padding: 0.5rem 1rem;
-                background: white;
-                border: 1px solid #e2e8f0;
-                border-radius: 9999px;
-                color: var(--text-secondary);
-                font-size: 0.875rem;
-                font-weight: 500;
-            }
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--accent);
+            transform: translateX(-100%);
+            transition: transform 0.3s var(--ease-out);
+            z-index: 0;
+        }
 
-            /* Animations */
-            .reveal-text {
-                opacity: 0;
-                transform: translateY(20px);
-                transition:
-                    opacity 0.8s var(--ease-out-expo),
-                    transform 0.8s var(--ease-out-expo);
-            }
-            .reveal-text.visible {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .btn span {
+            position: relative;
+            z-index: 1;
+        }
 
-            /* --- SECTION: CANVAS & HERO --- */
-            #network-canvas {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                z-index: -1;
-            }
+        .btn:hover {
+            border-color: var(--accent);
+        }
 
-            .hero-section {
-                min-height: 100vh;
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                text-align: center;
-            }
+        .btn:hover::before {
+            transform: translateX(0);
+        }
 
-            /* --- SECTION: WHATSAPP SIMULATOR --- */
-            .chat-container {
-                background: white;
-                border-radius: 24px;
-                box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
-                max-width: 480px;
-                margin: 0 auto;
-                overflow: hidden;
-                border: 1px solid #f1f5f9;
-            }
+        .btn-outline {
+            background: transparent;
+            color: var(--text-primary);
+            border: 1px solid var(--border-active);
+        }
+        .btn-outline:hover {
+            background: var(--border-light);
+            border-color: var(--text-primary);
+        }
 
-            .chat-header {
-                background: #f8fafc;
-                padding: 1rem 1.5rem;
-                border-bottom: 1px solid #f1f5f9;
-                display: flex;
-                align-items: center;
-                gap: 1rem;
-            }
-            .chat-avatar {
-                width: 40px;
-                height: 40px;
-                background: var(--brand-primary);
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-weight: bold;
-            }
+        /* HEADER */
+        header {
+            position: fixed;
+            top: 0; left: 0; width: 100%;
+            padding: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            mix-blend-mode: difference;
+        }
 
-            .chat-content {
-                height: 400px;
-                padding: 1.5rem;
-                overflow-y: auto;
-                display: flex;
-                flex-direction: column;
-                gap: 1rem;
-                background: #ffffff;
-            }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-family: 'Cabinet Grotesk', sans-serif;
+            font-weight: 800;
+            font-size: 1.25rem;
+            letter-spacing: -0.01em;
+        }
 
-            .msg-row {
-                display: flex;
-                flex-direction: column;
-                max-width: 85%;
-            }
-            .msg-row.out {
-                align-self: flex-end;
-                align-items: flex-end;
-            }
-            .msg-row.in {
-                align-self: flex-start;
-                align-items: flex-start;
-            }
+        /* HERO SECTION */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            position: relative;
+            padding-top: 100px;
+        }
 
-            .msg-bubble {
-                padding: 0.75rem 1.25rem;
-                border-radius: 16px;
-                font-size: 0.95rem;
-                line-height: 1.5;
-                position: relative;
-            }
+        .hero-content {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            max-width: 80%;
+        }
 
-            /* User (Right) - Green */
-            .msg-row.out .msg-bubble {
-                background: #dcf8c6;
-                color: #111827;
-                border-bottom-right-radius: 4px;
-            }
+        .reveal-wrap {
+            overflow: hidden;
+        }
 
-            /* System (Left) - White/Gray */
-            .msg-row.in .msg-bubble {
-                background: #f1f5f9;
-                color: #111827;
-                border-bottom-left-radius: 4px;
-            }
+        .reveal-text {
+            transform: translateY(100%);
+            opacity: 0;
+            animation: slideUp 1s var(--ease-out) forwards;
+        }
 
-            .msg-meta {
-                font-size: 0.7rem;
-                color: var(--text-tertiary);
-                margin-top: 0.25rem;
-            }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.4s; }
 
-            /* --- SECTION: SENSOR CARDS --- */
-            .sensor-grid {
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-                gap: 2rem;
-            }
+        @keyframes slideUp {
+            to { transform: translateY(0); opacity: 1; }
+        }
 
-            .sensor-card {
-                background: white;
-                padding: 2rem;
-                border-radius: 16px;
-                border: 1px solid #f1f5f9;
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-                transition: all 0.3s ease;
-            }
-            .sensor-card:hover {
-                transform: translateY(-5px);
-                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
-                border-color: var(--brand-primary);
-            }
-            .sensor-value {
-                font-family: var(--font-display);
-                font-size: 3rem;
-                font-weight: 700;
-                line-height: 1;
-                margin: 1rem 0;
-                color: var(--text-primary);
-            }
+        .meta-tag {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            padding: 0.5rem 1rem;
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
 
-            /* --- FOOTER --- */
-            footer {
-                background: white;
-                border-top: 1px solid #f1f5f9;
-                padding: 4rem 0;
-            }
-        </style>
-    </head>
-    <body>
-        <!-- Background Canvas -->
-        <canvas id="network-canvas"></canvas>
+        /* SECTIONS */
+        section {
+            padding: 10rem 0;
+            border-top: 1px solid var(--border-light);
+        }
 
-        <!-- Navigation -->
-        <nav class="fixed top-0 w-full z-50 glass-panel">
-            <div
-                class="container flex justify-between items-center"
-                style="height: 80px"
-            >
-                <div class="flex items-center gap-4">
-                    <img
-                        src="https://storage.pusdokkes.polri.go.id/pusdokkes/logo.png"
-                        alt="Pusdokkes Polri"
-                        style="height: 45px; width: auto"
-                    />
-                    <div style="font-family: var(--font-display); font-weight: 800; font-size: 1.25rem; color: var(--text-primary); letter-spacing: -0.01em;">
-                        FARMAPOL PUSDOKKES POLRI
-                    </div>
-                </div>
+        /* TELEMETRY HUD */
+        .hud-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            border-bottom: 1px solid var(--border-light);
+        }
 
-                @auth
-                    <a
-                        href="{{ route('dashboard') }}"
-                        class="btn btn-primary"
-                        style="padding: 0.75rem 1.5rem"
-                        >Dashboard</a
-                    >
-                @else
-                    <a
-                        href="{{ route('login') }}"
-                        class="btn btn-primary"
-                        style="padding: 0.75rem 1.5rem"
-                        >Masuk Sistem</a
-                    >
-                @endauth
-            </div>
+        .hud-item {
+            padding: 2rem;
+            border-right: 1px solid var(--border-light);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            transition: background 0.3s;
+        }
+
+        .hud-item:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .hud-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .hud-value {
+            font-family: 'Cabinet Grotesk', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .blink {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; box-shadow: 0 0 0 0 rgba(255, 184, 0, 0.7); }
+            70% { opacity: 0.5; box-shadow: 0 0 0 10px rgba(255, 184, 0, 0); }
+            100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255, 184, 0, 0); }
+        }
+
+        /* NARRATIVE */
+        .narrative-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .scramble-text {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-secondary);
+        }
+
+        /* CHAT SIMULATOR (FIELD DEVICE STYLE) */
+        .device-frame {
+            border: 1px solid var(--border-active);
+            background: #000;
+            padding: 1rem;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            max-width: 400px;
+            position: relative;
+        }
+        
+        .device-frame::before {
+            content: 'SECURE_CHANNEL_V2.0';
+            position: absolute;
+            top: -25px;
+            left: 0;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .chat-line {
+            margin-bottom: 1rem;
+            opacity: 0;
+            transform: translateX(-10px);
+            transition: all 0.5s ease;
+        }
+
+        .chat-line.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .chat-line.system { color: var(--accent); }
+        .chat-line.user { color: var(--text-primary); text-align: right; }
+
+        /* FEATURE CARDS */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            background: var(--border-light); /* Gap color */
+            border: 1px solid var(--border-light);
+        }
+
+        .feature-card {
+            background: var(--bg-deep);
+            padding: 4rem 2rem;
+            transition: background 0.5s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card:hover {
+            background: var(--bg-panel);
+        }
+
+        .feature-card:hover h3 {
+            color: var(--accent);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 2rem;
+            display: block;
+        }
+
+        /* FOOTER */
+        footer {
+            padding: 4rem 0;
+            border-top: 1px solid var(--border-light);
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* UTILS */
+        .scroll-reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.8s var(--ease-out), transform 0.8s var(--ease-out);
+        }
+        .scroll-reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 768px) {
+            h1 { font-size: 3.5rem; }
+            .narrative-grid, .hud-grid, .feature-grid { grid-template-columns: 1fr; }
+            .hud-item { border-right: none; border-bottom: 1px solid var(--border-light); }
+            .hero-content { max-width: 100%; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            #cursor, #flashlight { display: none; }
+            .scroll-reveal { transition: none; opacity: 1; transform: none; }
+            .animate-pulse { animation: none; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Skip to main content for keyboard users -->
+    <a href="#main-content" class="sr-only">
+        Lewati ke konten utama
+    </a>
+
+    <div id="cursor"></div>
+    <div id="flashlight"></div>
+    <div class="grid-bg"></div>
+
+    <header>
+        <div class="logo" style="width: 100%; justify-content: center;">
+            <img src="https://storage.pusdokkes.polri.go.id/pusdokkes/logo.png" alt="Logo Pusdokkes Polri" style="height: 40px;">
+            <span>Farmapol Pusdokkes Polri</span>
+        </div>
+        <nav style="position: absolute; right: 2rem;">
+            <a href="{{ route('login') }}" class="btn-outline" style="padding: 0.75rem 1.5rem; text-decoration: none; border: 1px solid rgba(255,255,255,0.2); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;">
+                SECURE LOGIN
+            </a>
         </nav>
+    </header>
 
-        <!-- Hero Section -->
-        <header class="hero-section container relative z-10">
-            <div style="max-width: 800px">
-                <div
-                    class="flex items-center justify-center gap-2 mb-6 reveal-text"
-                    style="
-                        transition-delay: 100ms;
-                        color: var(--text-secondary);
-                        font-weight: 500;
-                    "
-                >
-                    <img
-                        src="https://storage.pusdokkes.polri.go.id/pusdokkes/logo.png"
-                        alt="Logo"
-                        style="height: 24px; opacity: 0.8"
-                    />
-                    <span>Powered by Pusdokkes Polri</span>
+    <main id="main-content">
+        <!-- HERO -->
+        <section class="hero container" style="border-top: none; justify-content: center; text-align: center;">
+            <div class="hero-content" style="align-items: center; max-width: 100%;">
+                <div class="reveal-wrap">
+                    <div class="meta-tag reveal-text delay-1">
+                        <span class="blink"></span> SYSTEM OPERATIONAL
+                    </div>
                 </div>
+                <div class="reveal-wrap">
+                    <h1 class="reveal-text delay-2">
+                        The Pulse of <br>
+                        <span style="color: transparent; -webkit-text-stroke: 1px var(--text-primary);">Evidence.</span>
+                    </h1>
+                </div>
+                <div class="reveal-wrap">
+                    <p class="reveal-text delay-3 text-secondary" style="font-size: 1.5rem; max-width: 700px; margin-top: 1rem; margin-left: auto; margin-right: auto;">
+                        Sistem Manajemen Laboratorium Forensik dengan Chain of Custody yang tak terbantahkan. Presisi mutlak untuk Pusdokkes Polri.
+                    </p>
+                </div>
+                <div class="reveal-wrap" style="margin-top: 2rem;">
+                    <div class="reveal-text delay-3" style="display: flex; gap: 1rem;">
+                        <a href="{{ route('login') }}" class="btn">
+                            <span>AKSES SISTEM</span>
+                        </a>
+                        <a href="#capabilities" class="btn btn-outline">
+                            <span>PELAJARI</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-                <h1 class="mb-6 reveal-text" style="transition-delay: 200ms">
-                    The Pulse of <br />
-                    <span class="text-brand">Evidence.</span>
-                </h1>
-                <p
-                    class="text-xl reveal-text"
-                    style="
-                        color: var(--text-secondary);
-                        max-width: 600px;
-                        margin: 0 auto 3rem auto;
-                        transition-delay: 300ms;
-                    "
-                >
-                    Sistem Informasi Manajemen Laboratorium Forensik dengan
-                    Chain of Custody yang aman, audit trail yang tidak dapat
-                    diubah, dan telemetri real-time.
+        <!-- LIVE TELEMETRY -->
+        <div class="hud-grid" style="border-top: 1px solid var(--border-light);">
+            <div class="hud-item">
+                <span class="hud-label">System Status</span>
+                <span class="hud-value text-accent">SECURE</span>
+            </div>
+            <div class="hud-item">
+                <span class="hud-label">Active Samples</span>
+                <span class="hud-value">10<span style="font-size: 1rem; color: var(--text-muted);">/17</span></span>
+            </div>
+            <div class="hud-item">
+                <span class="hud-label">Avg. Turnaround</span>
+                <span class="hud-value">2.4 <span style="font-size: 1rem;">Days</span></span>
+            </div>
+            <div class="hud-item">
+                <span class="hud-label">Audit Logs</span>
+                <span class="hud-value">142</span>
+            </div>
+        </div>
+
+        <!-- NARRATIVE -->
+        <section class="container narrative-grid scroll-reveal-trigger">
+            <div class="scroll-reveal">
+                <h2 style="margin-bottom: 2rem;">From Crime Scene<br>To Courtroom.</h2>
+                <p class="text-secondary" style="font-size: 1.125rem; margin-bottom: 2rem; max-width: 400px;">
+                    Dalam forensik, integritas data adalah segalanya. Kami menghilangkan ambiguitas dengan pencatatan digital tingkat militer.
                 </p>
-                <div
-                    class="flex justify-center gap-4 reveal-text"
-                    style="transition-delay: 400ms"
-                >
-                    <a href="{{ route('public.tracking') }}" class="btn btn-primary"
-                        >Lacak Permintaan</a
-                    >
-                    <a href="#network" class="btn btn-outline">Lihat Demo</a>
-                </div>
+                <ul class="font-mono text-secondary" style="display: grid; gap: 1rem; font-size: 0.9rem;">
+                    <li style="display: flex; gap: 1rem;">
+                        <span class="text-accent">[01]</span> Chain of Custody Otomatis
+                    </li>
+                    <li style="display: flex; gap: 1rem;">
+                        <span class="text-accent">[02]</span> Enkripsi Metadata Tersangka
+                    </li>
+                    <li style="display: flex; gap: 1rem;">
+                        <span class="text-accent">[03]</span> Log Aktivitas Immutable
+                    </li>
+                </ul>
             </div>
-
-            <!-- Scroll Indicator -->
-            <div
-                class="absolute bottom-10 left-0 w-full flex justify-center text-sm text-secondary"
-                style="opacity: 0.7"
-            >
-                Scroll untuk menjelajahi
-            </div>
-        </header>
-
-        <!-- Section: Narrative/Mission -->
-        <section id="mission" class="py-32 relative z-10 bg-white">
-            <div class="container grid gap-12 md:grid-cols-2 items-center">
-                <div>
-                    <div class="badge mb-4">Misi Utama</div>
-                    <h2 class="mb-6">Akuntabilitas Absolut.</h2>
-                    <p class="text-lg text-secondary mb-8">
-                        Dalam forensik, kebenaran bersifat biner. Sistem kami
-                        menghilangkan ambiguitas dengan pelacakan tingkat militer
-                        dari TKP hingga ruang sidang. Setiap transfer, setiap
-                        analisis, setiap mikrogram tercatat.
-                    </p>
-                    <ul class="text-sm grid gap-4 font-medium text-secondary">
-                        <li class="flex items-center gap-4">
-                            <span class="text-brand">✔</span>
-                            Chain of Custody Otomatis
-                        </li>
-                        <li class="flex items-center gap-4">
-                            <span class="text-brand">✔</span>
-                            Metadata Tersangka Terenkripsi
-                        </li>
-                        <li class="flex items-center gap-4">
-                            <span class="text-brand">✔</span>
-                            Audit Log yang Tidak Dapat Diubah
-                        </li>
-                    </ul>
-                </div>
-                <div
-                    class="p-8 rounded-2xl border border-gray-100 shadow-lg bg-gray-50 font-mono text-xs"
-                >
-                    <div
-                        class="mb-4 text-tertiary border-b border-gray-200 pb-2 font-bold"
-                    >
-                        LOG_TRANSAKSI_TERBARU
+            <div class="scroll-reveal" style="display: flex; justify-content: center;">
+                <!-- Chat Simulator -->
+                <div class="device-frame">
+                    <div id="chat-stream">
+                        <!-- JS injected -->
                     </div>
-                    <div class="grid gap-3">
-                        <div class="flex justify-between">
-                            <span class="text-brand">14:02:22</span>
-                            <span class="text-primary"
-                                >SAMPLE_RCV :: 24-0091-B</span
-                            >
-                        </div>
-                        <div class="flex justify-between text-secondary">
-                            <span>14:01:45</span>
-                            <span>AUTH_VERIFIED :: IPDA_J_DOE</span>
-                        </div>
-                        <div class="flex justify-between text-secondary">
-                            <span>13:58:12</span>
-                            <span>TRANSFER_REQ :: LAB_CHEM_01</span>
-                        </div>
-                        <div class="flex justify-between text-tertiary">
-                            <span>13:45:00</span>
-                            <span>SYS_CHECK :: ALL_GREEN</span>
-                        </div>
+                    <div style="border-top: 1px solid #333; margin-top: 1rem; padding-top: 0.5rem; color: #555;">
+                        > _
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Section: Network/WhatsApp Simulator -->
-        <section
-            id="network"
-            class="py-32 relative z-10"
-            style="background: #f8fafc"
-        >
-            <div class="container">
-                <div class="text-center mb-16">
-                    <div class="badge mb-4" style="background: white">
-                        Komunikasi Aman
-                    </div>
-                    <h2 class="mb-4">The Neural Link.</h2>
-                    <p class="text-secondary max-w-xl mx-auto">
-                        Antarmuka langsung dengan GOWA Bot untuk pengecekan
-                        status instan. Dapat diakses di mana saja, aman di mana
-                        saja.
-                    </p>
+        <!-- CAPABILITIES -->
+        <section id="capabilities" class="scroll-reveal-trigger">
+            <div class="container" style="margin-bottom: 4rem;">
+                <span class="meta-tag">CORE CAPABILITIES</span>
+                <h2>Standar Emas Forensik Digital</h2>
+            </div>
+            
+            <div class="feature-grid">
+                <div class="feature-card scroll-reveal">
+                    <span class="feature-icon text-accent">◈</span>
+                    <h3 style="font-size: 1.5rem; margin-bottom: 1rem;">Digital Chain of Custody</h3>
+                    <p class="text-secondary">Pelacakan bukti end-to-end. Setiap pemindahan, analisis, dan pengambilan sampel dicatat dengan timestamp presisi milidetik.</p>
                 </div>
-
-                <div class="chat-container">
-                    <div class="chat-header">
-                        <div class="chat-avatar">L</div>
-                        <div>
-                            <div class="font-bold text-sm">LPMF Bot</div>
-                            <div class="text-xs text-brand">● Online</div>
-                        </div>
-                    </div>
-                    <div class="chat-content" id="chat-content">
-                        <!-- Messages injected via JS -->
-                    </div>
+                <div class="feature-card scroll-reveal" style="transition-delay: 0.1s;">
+                    <span class="feature-icon text-accent">❖</span>
+                    <h3 style="font-size: 1.5rem; margin-bottom: 1rem;">Immutable Audit Trail</h3>
+                    <p class="text-secondary">Log aktivitas yang transparan dan terkunci secara kriptografis. Memastikan akuntabilitas absolut setiap personel.</p>
+                </div>
+                <div class="feature-card scroll-reveal" style="transition-delay: 0.2s;">
+                    <span class="feature-icon text-accent">⚡</span>
+                    <h3 style="font-size: 1.5rem; margin-bottom: 1rem;">Workflow Automation</h3>
+                    <p class="text-secondary">Otomatisasi alur kerja dari penerimaan hingga pelaporan. Mengurangi human-error dan mempercepat time-to-justice.</p>
                 </div>
             </div>
         </section>
 
-        <!-- Section: Telemetry -->
-        <section id="telemetry" class="py-32 relative z-10">
-            <div class="container">
-                <h2 class="mb-12">Telemetri Langsung.</h2>
-                <div class="sensor-grid">
-                    <!-- Sensor 1 -->
-                    <div class="sensor-card">
-                        <div class="flex justify-between items-start mb-4">
-                            <span class="text-sm font-bold text-secondary"
-                                >Penyimpanan A - Cold Chain</span
-                            >
-                            <span
-                                style="
-                                    width: 8px;
-                                    height: 8px;
-                                    background: var(--brand-secondary);
-                                    border-radius: 50%;
-                                "
-                            ></span>
-                        </div>
-                        <div class="sensor-value">24.5°C</div>
-                        <div class="text-sm text-secondary">
-                            Stabilitas: <span class="text-brand">99.8%</span>
-                        </div>
-                    </div>
-                    <!-- Sensor 2 -->
-                    <div class="sensor-card">
-                        <div class="flex justify-between items-start mb-4">
-                            <span class="text-sm font-bold text-secondary"
-                                >Kelembaban Lab</span
-                            >
-                            <span
-                                style="
-                                    width: 8px;
-                                    height: 8px;
-                                    background: var(--brand-secondary);
-                                    border-radius: 50%;
-                                "
-                            ></span>
-                        </div>
-                        <div class="sensor-value">45%</div>
-                        <div class="text-sm text-secondary">
-                            Atmosfer: <span class="text-brand">Optimal</span>
-                        </div>
-                    </div>
-                    <!-- Sensor 3 -->
-                    <div class="sensor-card" style="border-color: #fee2e2">
-                        <div class="flex justify-between items-start mb-4">
-                            <span class="text-sm font-bold text-red-500"
-                                >Inventaris: Alkohol 96%</span
-                            >
-                            <span
-                                style="
-                                    width: 8px;
-                                    height: 8px;
-                                    background: #ef4444;
-                                    border-radius: 50%;
-                                "
-                            ></span>
-                        </div>
-                        <div class="sensor-value text-red-500">LOW</div>
-                        <div class="text-sm text-secondary">
-                            Alert Terkirim:
-                            <span class="font-medium">Restock Diperlukan</span>
-                        </div>
-                    </div>
+        <!-- CONVERSION -->
+        <section class="container" style="text-align: center; padding: 15rem 0;">
+            <div class="scroll-reveal-trigger">
+                <h2 class="scroll-reveal" style="margin-bottom: 2rem;">Ready for Deployment?</h2>
+                <div class="scroll-reveal" style="transition-delay: 0.1s;">
+                    <a href="{{ route('login') }}" class="btn">
+                        <span>MASUK KE SISTEM</span>
+                    </a>
                 </div>
             </div>
         </section>
+    </main>
 
-        <!-- Footer -->
-        <footer>
-            <div
-                class="container flex flex-col md:flex-row justify-between gap-8"
-            >
-                <div>
-                    <h4 class="text-xl font-bold mb-2">LPMF LIMS</h4>
-                    <p class="text-secondary text-sm max-w-xs">
-                        Sistem Informasi Laboratorium Forensik Pusdokkes Polri.
-                        Akses Terbatas.
-                    </p>
-                </div>
-                <div class="flex gap-12 text-sm text-secondary">
-                    <ul class="grid gap-2">
-                        <li class="font-bold text-primary mb-2">Sistem</li>
-                        <li>
-                            <a
-                                href="{{ route('login') }}"
-                                class="hover:text-brand"
-                                style="text-decoration: none; color: inherit"
-                                >Login</a
-                            >
-                        </li>
-                        <li>
-                            <a
-                                href="{{ route('public.tracking') }}"
-                                class="hover:text-brand"
-                                style="text-decoration: none; color: inherit"
-                                >Pelacakan</a
-                            >
-                        </li>
-                    </ul>
-                    <ul class="grid gap-2">
-                        <li class="font-bold text-primary mb-2">Legal</li>
-                        <li>
-                            <a
-                                href="#"
-                                class="hover:text-brand"
-                                style="text-decoration: none; color: inherit"
-                                >Privasi</a
-                            >
-                        </li>
-                        <li>
-                            <a
-                                href="#"
-                                class="hover:text-brand"
-                                style="text-decoration: none; color: inherit"
-                                >Syarat</a
-                            >
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </footer>
+    <footer>
+        <div class="container">
+            <div style="margin-bottom: 1rem;">LPMF LIMS // PUSDOKKES POLRI</div>
+            <div style="color: #333;">&copy; 2026 Laboratorium Forensik. Restricted Access.</div>
+        </div>
+    </footer>
 
-        <script>
-            // --- 1. Network Nodes Canvas (Clinical Theme) ---
-            const canvas = document.getElementById("network-canvas");
-            const ctx = canvas.getContext("2d");
-            let width, height;
+    <script>
+        // CURSOR LOGIC
+        const cursor = document.getElementById('cursor');
+        const flashlight = document.getElementById('flashlight');
+        const gridBg = document.querySelector('.grid-bg');
 
-            function resize() {
-                width = window.innerWidth;
-                height = window.innerHeight;
-                canvas.width = width;
-                canvas.height = height;
-            }
+        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            document.addEventListener('mousemove', (e) => {
+                const x = e.clientX;
+                const y = e.clientY;
+                
+                cursor.style.left = x + 'px';
+                cursor.style.top = y + 'px';
+                
+                flashlight.style.left = x + 'px';
+                flashlight.style.top = y + 'px';
 
-            // Particles - Denser network for high-impact look
-            const particles = [];
-            const particleCount = Math.min(Math.floor(window.innerWidth * 0.08), 120); // Responsive, max 120
-            const connectionDistance = 180; // Increased for more connections
+                // Update grid mask position
+                gridBg.style.setProperty('--x', x + 'px');
+                gridBg.style.setProperty('--y', y + 'px');
+            });
+        }
 
-            class Particle {
-                constructor() {
-                    this.x = Math.random() * width;
-                    this.y = Math.random() * height;
-                    this.vx = (Math.random() - 0.5) * 0.5;
-                    this.vy = (Math.random() - 0.5) * 0.5;
-                    this.size = Math.random() * 2 + 1;
-                }
-
-                update() {
-                    this.x += this.vx;
-                    this.y += this.vy;
-
-                    // Bounce
-                    if (this.x < 0 || this.x > width) this.vx *= -1;
-                    if (this.y < 0 || this.y > height) this.vy *= -1;
-                }
-
-                draw() {
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                    ctx.fillStyle = "rgba(46, 92, 255, 0.5)"; // Blue
-                    ctx.fill();
-                }
-            }
-
-            function initParticles() {
-                for (let i = 0; i < particleCount; i++) {
-                    particles.push(new Particle());
-                }
-            }
-
-            function animate() {
-                ctx.clearRect(0, 0, width, height);
-
-                // Draw connections
-                for (let i = 0; i < particles.length; i++) {
-                    for (let j = i + 1; j < particles.length; j++) {
-                        const dx = particles[i].x - particles[j].x;
-                        const dy = particles[i].y - particles[j].y;
-                        const dist = Math.sqrt(dx * dx + dy * dy);
-
-                        if (dist < connectionDistance) {
-                            ctx.beginPath();
-                            ctx.strokeStyle = `rgba(46, 92, 255, ${1 - dist / connectionDistance})`;
-                            ctx.lineWidth = 0.5;
-                            ctx.moveTo(particles[i].x, particles[i].y);
-                            ctx.lineTo(particles[j].x, particles[j].y);
-                            ctx.stroke();
-                        }
-                    }
-                }
-
-                // Update and draw particles
-                particles.forEach((p) => {
-                    p.update();
-                    p.draw();
+        // Hover states for cursor
+        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            document.querySelectorAll('a, button').forEach(el => {
+                el.addEventListener('mouseenter', () => {
+                    cursor.style.width = '50px';
+                    cursor.style.height = '50px';
+                    cursor.style.borderColor = 'transparent';
+                    cursor.style.backgroundColor = 'rgba(255, 184, 0, 0.2)';
                 });
-
-                requestAnimationFrame(animate);
-            }
-
-            window.addEventListener("resize", resize);
-            resize();
-            initParticles();
-            animate();
-
-            // --- 2. Scroll Reveal ---
-            const observer = new IntersectionObserver(
-                (entries) => {
-                    entries.forEach((entry) => {
-                        if (entry.isIntersecting) {
-                            entry.target.classList.add("visible");
-                        }
-                    });
-                },
-                { threshold: 0.1 },
-            );
-            document
-                .querySelectorAll(".reveal-text")
-                .forEach((el) => observer.observe(el));
-
-            // --- 3. WhatsApp Simulator (Natural Timing) ---
-            const chatContainer = document.getElementById("chat-content");
-            const messages = [
-                {
-                    text: "/resi LPMF-001",
-                    type: "out",
-                    delay: 1000,
-                },
-                {
-                    text: "Halo! Sistem sedang melacak permintaan Anda...",
-                    type: "in",
-                    delay: 1500,
-                },
-                {
-                    text: "✅ Permintaan Ditemukan\n\nNomor Resi: LPMF-001\nStatus: Tahap Analisis (2/5)\nEstimasi Selesai: 24 Jam",
-                    type: "in",
-                    delay: 2000,
-                },
-                {
-                    text: "Terima kasih informasinya.",
-                    type: "out",
-                    delay: 1500,
-                },
-            ];
-
-            let msgIndex = 0;
-
-            function addMessage(msg) {
-                const row = document.createElement("div");
-                row.className = `msg-row ${msg.type}`;
-
-                const bubble = document.createElement("div");
-                bubble.className = "msg-bubble";
-                bubble.innerText = msg.text;
-                row.appendChild(bubble);
-
-                // Time
-                const time = new Date().toLocaleTimeString("id-ID", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                });
-                const meta = document.createElement("div");
-                meta.className = "msg-meta";
-                meta.innerText = time;
-                meta.style.textAlign = msg.type === "out" ? "right" : "left";
-                row.appendChild(meta);
-
-                chatContainer.appendChild(row);
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-            }
-
-            function runChat() {
-                if (msgIndex < messages.length) {
-                    const msg = messages[msgIndex];
-                    setTimeout(() => {
-                        addMessage(msg);
-                        msgIndex++;
-                        runChat();
-                    }, msg.delay);
-                }
-            }
-
-            // Start chat when visible
-            const chatObserver = new IntersectionObserver((entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting && msgIndex === 0) {
-                        runChat();
-                    }
+                el.addEventListener('mouseleave', () => {
+                    cursor.style.width = '20px';
+                    cursor.style.height = '20px';
+                    cursor.style.borderColor = 'var(--accent)';
+                    cursor.style.backgroundColor = 'transparent';
                 });
             });
-            chatObserver.observe(document.querySelector(".chat-container"));
-        </script>
-    </body>
+        }
+
+        // SCROLL OBSERVER
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.querySelectorAll('.scroll-reveal').forEach((el, i) => {
+                        setTimeout(() => {
+                            el.classList.add('active');
+                        }, i * 150);
+                    });
+                }
+            });
+        }, { threshold: 0.15 });
+
+        document.querySelectorAll('.scroll-reveal-trigger').forEach(el => observer.observe(el));
+
+        // CHAT SIMULATOR
+        const messages = [
+            { t: 'system', m: 'CONNECTING TO LPMF_BOT...' },
+            { t: 'user', m: '/status 24-0091-B' },
+            { t: 'system', m: 'SEARCHING DATABASE...' },
+            { t: 'system', m: 'FOUND: REQUEST #141' },
+            { t: 'system', m: 'STATUS: ANALYSIS_PHASE' },
+            { t: 'system', m: 'EST. COMPLETION: 24 HRS' }
+        ];
+
+        const chatStream = document.getElementById('chat-stream');
+        let msgIndex = 0;
+
+        function typeWriter(text, element, callback) {
+            let i = 0;
+            function type() {
+                if (i < text.length) {
+                    element.innerHTML += text.charAt(i);
+                    i++;
+                    setTimeout(type, 30);
+                } else if (callback) {
+                    callback();
+                }
+            }
+            type();
+        }
+
+        const chatObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && msgIndex === 0) {
+                    runChat();
+                }
+            });
+        });
+        chatObserver.observe(document.querySelector('.device-frame'));
+
+        function runChat() {
+            if (msgIndex >= messages.length) return;
+            
+            const data = messages[msgIndex];
+            const div = document.createElement('div');
+            div.className = `chat-line ${data.t}`;
+            chatStream.appendChild(div);
+            
+            setTimeout(() => {
+                div.classList.add('visible');
+                typeWriter(data.m, div, () => {
+                    msgIndex++;
+                    setTimeout(runChat, 800);
+                });
+            }, 100);
+        }
+    </script>
+</body>
 </html>

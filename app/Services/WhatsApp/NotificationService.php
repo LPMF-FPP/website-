@@ -9,11 +9,7 @@ class NotificationService
 {
     private const MILESTONE_TEMPLATES = [
         'REQUEST_RECEIVED' => "{greetings}, {pangkat} {nama}.\n\nKami informasikan bahwa permintaan Anda dengan:\n📄 Nomor Surat: {nomor surat}\n👤 Tersangka: {tersangka}\n🔖 Kode Resi: {resi}\n\ntelah kami terima dan segera kami tindak lanjuti. ✅\n\nTerima kasih atas kepercayaan Anda.\n\nSalam Presisi 🙏\nStaff Laboratorium Farmapol Pusdokkes Polri",
-        'REVIEW_DONE_READY_FOR_TEST' => 'Permintaan {resi} telah selesai dikaji ulang dan siap dilakukan pengujian.',
-        'REQUEST_REJECTED' => "{greetings}, {pangkat} {nama}.\n\nMohon maaf, permintaan Anda dengan:\n🔖 Kode Resi: {resi}\n👤 Tersangka: {tersangka}\n\nbelum dapat kami proses dan dinyatakan ditolak. ❌\n\nSilakan hubungi kami untuk informasi lebih lanjut.\n\nSalam Presisi 🙏\nStaff Laboratorium Farmapol Pusdokkes Polri",
-        'PREPARATION_DONE' => 'Permintaan {resi} telah selesai dipreparasi sampel.',
-        'INSTRUMENTATION_DONE' => 'Permintaan {resi} telah selesai diuji instrumen.',
-        'INTERPRETATION_DONE' => 'Permintaan {resi} telah selesai dilakukan interpretasi hasil.',
+        'REQUEST_REJECTED' => "{greetings}, {pangkat} {nama}.\n\nMohon maaf, permintaan Anda dengan:\n📄 Nomor Surat: {nomor surat}\n👤 Tersangka: {tersangka}\n🔖 Kode Resi: {resi}\n📝 Alasan: {reason}\n\nbelum dapat kami proses dan dinyatakan ditolak. ❌\n\nSilakan hubungi kami untuk informasi lebih lanjut.\n\nSalam Presisi 🙏\nStaff Laboratorium Farmapol Pusdokkes Polri",
         'READY_FOR_PICKUP' => "{greetings}, {pangkat} {nama}.\n\nKami informasikan bahwa dokumen Anda dengan:\n🔖 Kode Resi: {resi}\n👤 Tersangka: {tersangka}\n\nsudah selesai diproses dan siap untuk diambil. 📦\n\nSilakan datang ke Laboratorium Farmapol Pusdokkes Polri pada jam kerja.\n\nSalam Presisi 🙏\nStaff Laboratorium Farmapol Pusdokkes Polri",
         'HANDOVER_COMPLETED' => "{greetings}, {pangkat} {nama}.\n\nKami informasikan bahwa dokumen Anda dengan:\n🔖 Kode Resi: {resi}\n👤 Tersangka: {tersangka}\n\ntelah selesai diserahterimakan. ✅\n\nTerima kasih atas kepercayaan Anda menggunakan layanan kami.\n\nSalam Presisi 🙏\nStaff Laboratorium Farmapol Pusdokkes Polri",
     ];
@@ -26,6 +22,7 @@ class NotificationService
             $templates = self::MILESTONE_TEMPLATES;
         }
 
+        $templates = array_intersect_key($templates, self::MILESTONE_TEMPLATES);
         $template = $templates[$milestone] ?? self::MILESTONE_TEMPLATES[$milestone] ?? null;
 
         if (!is_string($template) || trim($template) === '') {

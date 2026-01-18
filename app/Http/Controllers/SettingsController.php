@@ -2,23 +2,24 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\InstrumentUsageType;
 use App\Http\Requests\Settings\LocalizationSettingsRequest;
-use App\Models\Instrument;
 use App\Models\MethodInstrumentRequirement;
 use App\Models\SystemSetting;
 use App\Services\NumberingService;
+use App\Services\Settings\SettingsResponseBuilder;
 use App\Support\Audit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 use function settings;
 use function settings_flatten;
 use function settings_forget_cache;
-use function settings_nest;
 
 class SettingsController extends Controller
 {
@@ -27,6 +28,19 @@ class SettingsController extends Controller
     private const ALLOWED_NUMBER_FORMATS = ['1.234,56', '1,234.56'];
 
     private const ALLOWED_LANGUAGES = ['id', 'en'];
+
+    private const ALLOWED_ROOTS = [
+        'numbering',
+        'branding',
+        'pdf',
+        'locale',
+        'retention',
+        'notifications',
+        'automation',
+        'templates',
+        'security',
+        'monitoring_logging',
+    ];
 
     public function update(Request $request)
     {
@@ -83,10 +97,6 @@ class SettingsController extends Controller
                 $incoming['notifications'] = $incoming['automation'];
             }
 
-            $allowedRoots = [
-                'numbering', 'branding', 'pdf', 'locale', 'retention', 'notifications', 'automation', 'templates', 'security', 'monitoring_logging',
-            ];
-
             $flat = settings_flatten($incoming);
             // Log flattened keys
             try {
@@ -115,7 +125,7 @@ class SettingsController extends Controller
 
             foreach ($flat as $key => $value) {
                 $root = explode('.', $key, 2)[0];
-                if (! in_array($root, $allowedRoots, true)) {
+                if (! in_array($root, self::ALLOWED_ROOTS, true)) {
                     // Log ignored root
                     Log::info('Settings update: skipping key with disallowed root', ['key' => $key, 'root' => $root]);
 
@@ -241,61 +251,16 @@ class SettingsController extends Controller
 
     protected function extractPayload(Request $request): array
     {
-        // 1) Try JSON body
+        // 1) Try standard input (JSON or Form)
         $incoming = $request->json()->all();
-        if ($incoming === []) {
-            // Treat explicit empty array as empty to allow fallback
-            $incoming = null;
-        }
 
-        // 2) Try a JSON string in 'payload'
-        if (! $incoming) {
-            $payload = $request->input('payload');
-            if (is_string($payload) && $payload !== '') {
-                $decoded = json_decode($payload, true);
-                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                    $incoming = $decoded;
-                }
-            }
-        }
-
-        // 3) Try explicit 'settings' field (array or JSON string)
-        if (! $incoming) {
-            $settingsInput = $request->input('settings');
-            if (is_array($settingsInput)) {
-                $incoming = $settingsInput;
-            } elseif (is_string($settingsInput) && $settingsInput !== '') {
-                $decoded = json_decode($settingsInput, true);
-                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                    $incoming = $decoded;
-                }
-            }
-        }
-
-        // 4) Final fallback for form-urlencoded or multipart form-data
-        if (! $incoming) {
+        if (empty($incoming)) {
             $incoming = $request->all();
-            // If JSON content-type forces input() to JSON and returns empty,
-            // but form parameters exist in $request->request, use those.
-            if ($incoming === [] && $request->request->count() > 0) {
-                $incoming = $request->request->all();
-            }
         }
 
         // Unwrap if nested under 'settings'
         if (isset($incoming['settings']) && is_array($incoming['settings'])) {
             $incoming = $incoming['settings'];
-        }
-
-        // If still explicitly empty array after unwrapping, perform one more fallback
-        if ($incoming === []) {
-            $incoming = $request->all();
-            if ($incoming === [] && $request->request->count() > 0) {
-                $incoming = $request->request->all();
-            }
-            if (isset($incoming['settings']) && is_array($incoming['settings'])) {
-                $incoming = $incoming['settings'];
-            }
         }
 
         if (! is_array($incoming)) {
@@ -305,12 +270,8 @@ class SettingsController extends Controller
         }
 
         // Only allow specific root keys
-        $allowedRoots = [
-            'numbering', 'branding', 'pdf', 'locale', 'retention', 'notifications', 'automation', 'templates', 'security', 'monitoring_logging',
-        ];
-
         $filtered = [];
-        foreach ($allowedRoots as $root) {
+        foreach (self::ALLOWED_ROOTS as $root) {
             if (array_key_exists($root, $incoming)) {
                 $filtered[$root] = $incoming[$root];
             }
@@ -319,44 +280,7 @@ class SettingsController extends Controller
         return $filtered;
     }
 
-    protected function getInstrumentRequirementsData(): array
-    {
-        $instruments = Instrument::where('is_active', true)
-            ->orderBy('category')
-            ->orderBy('name')
-            ->get(['id', 'code', 'name', 'category', 'is_active']);
-
-        $requirements = MethodInstrumentRequirement::with('instrument:id,code,name')
-            ->orderBy('method_code')
-            ->orderBy('sequence')
-            ->get();
-
-        $requirementsByMethod = [];
-        foreach ($requirements as $req) {
-            $methodCode = $req->method_code;
-            if (! isset($requirementsByMethod[$methodCode])) {
-                $requirementsByMethod[$methodCode] = [];
-            }
-            $requirementsByMethod[$methodCode][] = [
-                'id' => $req->id,
-                'instrument_id' => $req->instrument_id,
-                'instrument_code' => $req->instrument?->code,
-                'instrument_name' => $req->instrument?->name,
-                'mandatory' => $req->mandatory,
-                'usage_type' => $req->usage_type->value ?? $req->usage_type,
-                'sequence' => $req->sequence,
-            ];
-        }
-
-        return [
-            'instruments_master' => $instruments,
-            'requirements_by_method' => $requirementsByMethod,
-            'available_methods' => ['uv_vis', 'gc_ms', 'lc_ms'],
-            'usage_types' => ['PREP', 'RUN'],
-        ];
-    }
-
-    public function saveInstrumentRequirements(Request $request)
+    public function saveInstrumentRequirements(Request $request, SettingsResponseBuilder $settingsBuilder)
     {
         Gate::authorize('manage-settings');
 
@@ -365,16 +289,15 @@ class SettingsController extends Controller
             'requirements_by_method.*' => ['array'],
             'requirements_by_method.*.*.instrument_id' => ['required', 'integer', 'exists:instruments,id'],
             'requirements_by_method.*.*.mandatory' => ['required', 'boolean'],
-            'requirements_by_method.*.*.usage_type' => ['required', 'string', 'in:PREP,RUN'],
+            'requirements_by_method.*.*.usage_type' => ['required', 'string', Rule::enum(InstrumentUsageType::class)],
             'requirements_by_method.*.*.sequence' => ['required', 'integer', 'min:1'],
         ]);
 
         $requirementsByMethod = $validated['requirements_by_method'];
-        $allowedMethods = ['uv_vis', 'gc_ms', 'lc_ms'];
 
         try {
-            DB::transaction(function () use ($requirementsByMethod, $allowedMethods) {
-                foreach ($allowedMethods as $methodCode) {
+            DB::transaction(function () use ($requirementsByMethod) {
+                foreach (MethodInstrumentRequirement::AVAILABLE_METHODS as $methodCode) {
                     MethodInstrumentRequirement::where('method_code', $methodCode)->delete();
 
                     $requirements = $requirementsByMethod[$methodCode] ?? [];
@@ -397,7 +320,7 @@ class SettingsController extends Controller
             return response()->json([
                 'ok' => true,
                 'message' => 'Instrument requirements saved successfully',
-                'instrument_requirements' => $this->getInstrumentRequirementsData(),
+                'instrument_requirements' => $settingsBuilder->getInstrumentRequirementsData(),
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to save instrument requirements:', [
@@ -405,7 +328,7 @@ class SettingsController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json(['error' => 'Failed to save instrument requirements: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Failed to save instrument requirements: '.$e->getMessage()], 500);
         }
     }
 }

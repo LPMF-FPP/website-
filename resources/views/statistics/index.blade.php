@@ -111,24 +111,9 @@
                         </p>
                     </div>
                     <div class="mt-4 text-center text-sm text-gray-600">
-                        @php
-                            $topActiveSubstances = collect($activeSubstanceBreakdown['labels'] ?? [])->map(function ($label, $index) use ($activeSubstanceBreakdown) {
-                                return [
-                                    'label' => $label,
-                                    'count' => $activeSubstanceBreakdown['data'][$index] ?? 0,
-                                    'percentage' => $activeSubstanceBreakdown['percentages'][$index] ?? 0,
-                                ];
-                            })->take(3);
-                        @endphp
-                        @if ($topActiveSubstances->isNotEmpty())
-                            <p>Zat aktif terbanyak: {{ $topActiveSubstances->pluck('label')->implode(', ') }}</p>
-                            <p class="text-xs text-gray-400 mt-1">Sumber: data permintaan pengujian terbaru.</p>
-                        @else
-                            <p>Belum ada data zat aktif dari permintaan pengujian.</p>
-                        @endif
-                        @if ($activeSubstanceBreakdown['fallback'] ?? false)
-                            <p class="text-xs text-yellow-600 mt-2">Menampilkan data simulasi karena belum ada input baru.</p>
-                        @endif
+                        <p id="topActiveSubstancesText">Memuat data zat aktif...</p>
+                        <p id="activeSubstancesSource" class="text-xs text-gray-400 mt-1 hidden">Sumber: data permintaan pengujian terbaru.</p>
+                        <p id="activeSubstancesFallback" class="text-xs text-yellow-600 mt-2 hidden">Menampilkan data simulasi karena belum ada input baru.</p>
                     </div>
                 </div>
             </div>
@@ -417,6 +402,9 @@
                         throw new Error('No data available');
                     }
 
+                    // Update the text below chart based on fetched data
+                    updateActiveSubstancesText(data);
+
                     const ctx = document.getElementById('activeSubstancesChart').getContext('2d');
 
                     if (charts.activeSubstances) {
@@ -473,8 +461,42 @@
                         delete charts.activeSubstances;
                     }
 
+                    // Update text to show no data
+                    updateActiveSubstancesText(null);
+
                     showChartError('activeSubstances', 'Data tidak dapat dimuat. Silakan coba lagi.');
                 });
+        }
+
+        // Helper function to update active substances text
+        function updateActiveSubstancesText(data) {
+            const textEl = document.getElementById('topActiveSubstancesText');
+            const sourceEl = document.getElementById('activeSubstancesSource');
+            const fallbackEl = document.getElementById('activeSubstancesFallback');
+
+            if (!textEl) return;
+
+            if (!data || !data.labels || data.labels.length === 0) {
+                textEl.textContent = 'Belum ada data zat aktif dari permintaan pengujian.';
+                if (sourceEl) sourceEl.classList.add('hidden');
+                if (fallbackEl) fallbackEl.classList.add('hidden');
+                return;
+            }
+
+            // Get top 3 substances
+            const top3 = data.labels.slice(0, 3).join(', ');
+            textEl.textContent = 'Zat aktif terbanyak: ' + top3;
+
+            if (sourceEl) sourceEl.classList.remove('hidden');
+
+            // Show fallback warning if using fallback data
+            if (fallbackEl) {
+                if (data.fallback) {
+                    fallbackEl.classList.remove('hidden');
+                } else {
+                    fallbackEl.classList.add('hidden');
+                }
+            }
         }
 
         // 3. Suspect Gender Pie Chart

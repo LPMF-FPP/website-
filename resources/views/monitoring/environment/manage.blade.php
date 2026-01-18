@@ -11,13 +11,13 @@
 
         <div class="flex justify-between items-center mb-6">
             <a href="{{ route('monitoring.environment.index') }}" class="inline-flex items-center text-sm text-gray-600 hover:text-gray-900">
-                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                 </svg>
                 Kembali ke Monitoring
             </a>
             <button @click="openAddModal()" class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
-                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>
                 Tambah Lokasi
@@ -37,17 +37,17 @@
 
             <template x-if="loading">
                 <div class="px-6 py-8 text-center text-gray-500">
-                    <svg class="animate-spin h-6 w-6 text-gray-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24">
+                    <svg class="animate-spin h-6 w-6 text-gray-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Memuat data...
+                    <span role="status">Memuat data...</span>
                 </div>
             </template>
 
             <template x-if="!loading && locations.length === 0">
                 <div class="px-6 py-8 text-center text-gray-500">
-                    <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
                     </svg>
@@ -121,8 +121,10 @@
         </div>
 
         <div x-show="modal.open" x-cloak 
+             x-trap.noscroll.inert="modal.open"
+             @keydown.escape.window="if (modal.open) closeModal()"
              class="fixed inset-0 z-50 overflow-y-auto" 
-             aria-labelledby="modal-title" role="dialog" aria-modal="true">
+             aria-labelledby="location-modal-title" role="dialog" aria-modal="true">
             <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div x-show="modal.open" 
                      x-transition:enter="ease-out duration-300"
@@ -146,21 +148,21 @@
                      class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
                     <form @submit.prevent="submitForm()">
                         <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                            <h3 class="text-lg font-medium text-gray-900 mb-4" x-text="modal.isEdit ? 'Edit Lokasi' : 'Tambah Lokasi'"></h3>
+                            <h3 id="location-modal-title" class="text-lg font-medium text-gray-900 mb-4" x-text="modal.isEdit ? 'Edit Lokasi' : 'Tambah Lokasi'"></h3>
                             
                             <div x-show="modal.error" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700" x-text="modal.error"></div>
 
                             <div class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lokasi <span class="text-red-500">*</span></label>
-                                    <input type="text" x-model="modal.form.name" 
+                                    <label for="location-name" class="block text-sm font-medium text-gray-700 mb-1">Nama Lokasi <span class="text-red-500">*</span></label>
+                                    <input type="text" id="location-name" x-model="modal.form.name" 
                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                            placeholder="Contoh: Ruang Lab Kimia">
                                 </div>
 
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Tipe <span class="text-red-500">*</span></label>
-                                    <select x-model="modal.form.type" 
+                                    <label for="location-type" class="block text-sm font-medium text-gray-700 mb-1">Tipe <span class="text-red-500">*</span></label>
+                                    <select id="location-type" x-model="modal.form.type" 
                                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                         <option value="">Pilih tipe...</option>
                                         <option value="room">Room (Ruangan)</option>
@@ -172,14 +174,14 @@
 
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Suhu Min (°C)</label>
-                                        <input type="number" step="0.1" x-model.number="modal.form.target_temp_min" 
+                                        <label for="temp-min" class="block text-sm font-medium text-gray-700 mb-1">Suhu Min (°C)</label>
+                                        <input type="number" id="temp-min" step="0.1" x-model.number="modal.form.target_temp_min" 
                                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                placeholder="Contoh: 18">
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Suhu Max (°C)</label>
-                                        <input type="number" step="0.1" x-model.number="modal.form.target_temp_max" 
+                                        <label for="temp-max" class="block text-sm font-medium text-gray-700 mb-1">Suhu Max (°C)</label>
+                                        <input type="number" id="temp-max" step="0.1" x-model.number="modal.form.target_temp_max" 
                                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                placeholder="Contoh: 25">
                                     </div>
@@ -187,14 +189,14 @@
 
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Kelembaban Min (%)</label>
-                                        <input type="number" step="0.1" x-model.number="modal.form.target_humidity_min" 
+                                        <label for="humidity-min" class="block text-sm font-medium text-gray-700 mb-1">Kelembaban Min (%)</label>
+                                        <input type="number" id="humidity-min" step="0.1" x-model.number="modal.form.target_humidity_min" 
                                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                placeholder="Contoh: 40">
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Kelembaban Max (%)</label>
-                                        <input type="number" step="0.1" x-model.number="modal.form.target_humidity_max" 
+                                        <label for="humidity-max" class="block text-sm font-medium text-gray-700 mb-1">Kelembaban Max (%)</label>
+                                        <input type="number" id="humidity-max" step="0.1" x-model.number="modal.form.target_humidity_max" 
                                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                                placeholder="Contoh: 60">
                                     </div>
@@ -211,7 +213,7 @@
                             <button type="submit" 
                                     :disabled="modal.loading"
                                     class="w-full inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:w-auto sm:text-sm disabled:opacity-50">
-                                <svg x-show="modal.loading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                                <svg x-show="modal.loading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
@@ -228,6 +230,8 @@
         </div>
 
         <div x-show="deleteModal.open" x-cloak 
+             x-trap.noscroll.inert="deleteModal.open"
+             @keydown.escape.window="if (deleteModal.open) closeDeleteModal()"
              class="fixed inset-0 z-50 overflow-y-auto" 
              aria-labelledby="delete-modal-title" role="dialog" aria-modal="true">
             <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
@@ -254,7 +258,7 @@
                     <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                         <div class="sm:flex sm:items-start">
                             <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
-                                <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                 </svg>
                             </div>

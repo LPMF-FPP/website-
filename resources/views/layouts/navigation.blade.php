@@ -58,12 +58,14 @@
                     <div class="relative ml-1" x-data="{ open: false }" @click.away="open = false">
                         <button @click="open = !open" 
                                 type="button"
+                                :aria-expanded="open"
+                                aria-haspopup="menu"
                                 class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-150
                                 {{ (request()->routeIs('tracking.*') || request()->routeIs('search.*') || request()->routeIs('statistics.*') || request()->routeIs('inventory.*') || request()->routeIs('analysts.*') || request()->routeIs('settings.*')) 
                                    ? 'bg-primary-50 text-primary-700 dark:bg-accent-800 dark:text-primary-400' 
                                    : 'text-primary-600 hover:bg-primary-50 hover:text-primary-900 dark:text-accent-400 dark:hover:bg-accent-800 dark:hover:text-accent-100' }}">
                             <span>Referensi</span>
-                            <svg class="w-4 h-4 ml-1.5 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-4 h-4 ml-1.5 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                             </svg>
                         </button>
@@ -86,7 +88,7 @@
                                             @can('tracking.view')
                                             <a href="{{ route('tracking.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
                                                 <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-primary-100 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400">
-                                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
                                                 </div>
                                                 <div class="ml-4">
                                                     <p class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary-700 dark:group-hover:text-primary-400">Tracking</p>
@@ -97,7 +99,7 @@
                                             @can('pencarian.view')
                                             <a href="{{ route('search.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
                                                 <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-primary-100 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400">
-                                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                                                 </div>
                                                 <div class="ml-4">
                                                     <p class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary-700 dark:group-hover:text-primary-400">Pencarian</p>
@@ -108,7 +110,7 @@
                                             @can('statistik.view')
                                             <a href="{{ route('statistics.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
                                                 <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-primary-100 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400">
-                                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                                                 </div>
                                                 <div class="ml-4">
                                                     <p class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary-700 dark:group-hover:text-primary-400">Statistik</p>
@@ -126,7 +128,7 @@
                                             @can('monitoring.view')
                                             <a href="{{ route('monitoring.sensors.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition duration-150">
                                                 <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400">
-                                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                                                 </div>
                                                 <div class="ml-4">
                                                     <p class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-700 dark:group-hover:text-blue-400">Monitoring Suhu</p>
@@ -138,7 +140,7 @@
                                             @can('inventori.view')
                                             <a href="{{ route('inventory.dashboard') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/30 transition duration-150">
                                                 <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-400">
-                                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
+                                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                                                 </div>
                                                 <div class="ml-4">
                                                     <p class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-amber-700 dark:group-hover:text-amber-400">Inventori</p>
@@ -150,7 +152,7 @@
                                             @can('changelogs.view')
                                             <a href="{{ route('changelogs.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
                                                 <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-primary-100 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400">
-                                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                                 </div>
                                                 <div class="ml-4">
                                                     <p class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary-700 dark:group-hover:text-primary-400">Changelogs</p>
@@ -164,14 +166,14 @@
 
                                                 @can('analysts.view')
                                                 <a href="{{ route('analysts.index') }}" class="group flex items-center p-2 rounded-md hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
-                                                    <svg class="w-5 h-5 text-primary-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                                                    <svg class="w-5 h-5 text-primary-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                                                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Manajemen Staff</span>
                                                 </a>
                                                 @endcan
 
                                                 @can('settings.view')
                                                 <a href="{{ route('settings.index') }}" class="group flex items-center p-2 rounded-md hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
-                                                    <svg class="w-5 h-5 text-primary-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                                    <svg class="w-5 h-5 text-primary-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                                                     <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Pengaturan Sistem</span>
                                                 </a>
                                                 @endcan
@@ -188,10 +190,10 @@
             <!-- Right Side Actions -->
             <div class="flex items-center gap-2">
                  <!-- Theme Toggle -->
-                 <button type="button" onclick="window.__toggleTheme()" class="p-2 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors">
+                 <button type="button" onclick="window.__toggleTheme()" aria-label="Toggle theme" class="p-2 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors">
                     <span class="sr-only">Toggle theme</span>
-                    <svg class="h-5 w-5 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
-                    <svg class="h-5 w-5 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                    <svg class="h-5 w-5 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                    <svg class="h-5 w-5 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
                 </button>
 
                 @auth
@@ -206,7 +208,7 @@
                                     <span class="text-sm font-bold text-gray-700 dark:text-gray-200 leading-tight">{{ Auth::user()->name }}</span>
                                     <span class="text-xs text-primary-600 dark:text-primary-400 font-medium leading-none mt-0.5">{{ ucfirst(Auth::user()->role) }}</span>
                                 </div>
-                                <svg class="w-4 h-4 text-gray-400 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                <svg class="w-4 h-4 text-gray-400 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                             </div>
                         </x-slot>
 
@@ -238,7 +240,7 @@
                 <!-- Mobile Menu Button -->
                 <button @click="mobileOpen = true" type="button" class="xl:hidden p-2 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-primary-500">
                     <span class="sr-only">Open menu</span>
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
                 </button>
@@ -261,6 +263,7 @@
 
         <!-- Drawer Panel -->
         <div x-show="mobileOpen"
+             x-trap.noscroll.inert="mobileOpen"
              x-transition:enter="transition ease-in-out duration-300 transform"
              x-transition:enter-start="translate-x-full"
              x-transition:enter-end="translate-x-0"
@@ -271,8 +274,8 @@
             
             <div class="px-6 py-4 flex items-center justify-between border-b border-gray-100 dark:border-white/10">
                 <span class="text-lg font-bold text-gray-900 dark:text-white">Menu</span>
-                <button @click="mobileOpen = false" class="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white focus:outline-none">
-                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <button @click="mobileOpen = false" class="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-md" aria-label="Close menu">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                 </button>
@@ -312,13 +315,13 @@
 
                     <!-- Mobile Reference Section -->
                     <div x-data="{ refExpanded: false }" class="space-y-1">
-                        <button @click="refExpanded = !refExpanded" class="w-full flex items-center justify-between px-3 py-2 text-base font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-accent-800 rounded-md">
+                        <button @click="refExpanded = !refExpanded" class="w-full flex items-center justify-between px-3 py-2 text-base font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-accent-800 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500" :aria-expanded="refExpanded" aria-controls="mobile-ref-section">
                             <span>Referensi</span>
-                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': refExpanded }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': refExpanded }" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                             </svg>
                         </button>
-                        <div x-show="refExpanded" class="pl-4 space-y-1" style="display: none;">
+                        <div x-show="refExpanded" id="mobile-ref-section" class="pl-4 space-y-1" style="display: none;">
                             @can('tracking.view')
                             <x-responsive-nav-link href="{{ route('tracking.index') }}" :active="request()->routeIs('tracking.*')">Tracking</x-responsive-nav-link>
                             @endcan
@@ -360,8 +363,8 @@
                     </div>
                     <form method="POST" action="{{ route('logout') }}" class="ml-auto">
                         @csrf
-                        <button type="submit" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white">
-                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                        <button type="submit" class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-md" aria-label="Logout">
+                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                         </button>
                     </form>
                 </div>

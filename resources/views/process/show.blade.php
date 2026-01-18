@@ -132,16 +132,16 @@
                 </button>
             </form>
 
-            <div class="overflow-hidden rounded-lg border border-gray-100">
+            <div class="rounded-lg border border-gray-100 bg-white">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
                         <tr>
-                            <th class="px-4 py-3 text-left">Sampel</th>
+                            <th class="px-4 py-3 text-left first:rounded-tl-lg">Sampel</th>
                             <th class="px-4 py-3 text-left">Deskripsi Singkat</th>
                             <th class="px-4 py-3 text-left">Tahapan</th>
                             <th class="px-4 py-3 text-left">Jadwal</th>
                             <th class="px-4 py-3 text-left">Status</th>
-                            <th class="px-4 py-3 text-right">Aksi</th>
+                            <th class="px-4 py-3 text-right last:rounded-tr-lg">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 text-sm text-gray-700">
@@ -185,6 +185,8 @@
                                                 <button
                                                     type="button"
                                                     @click="open = !open"
+                                                    :aria-expanded="open"
+                                                    aria-label="Tampilkan menu aksi lainnya"
                                                     class="inline-flex items-center border-l border-gray-200 px-2 text-gray-400 hover:bg-gray-50">
                                                     <x-icon name="chevron-down" size="sm" :decorative="true" />
                                                 </button>
@@ -200,7 +202,7 @@
                                                 x-transition:leave="transition ease-in duration-75"
                                                 x-transition:leave-start="transform opacity-100 scale-100"
                                                 x-transition:leave-end="transform opacity-0 scale-95"
-                                                class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                                                class="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
                                                 style="display: none;">
                                                 <div class="py-1">
                                                     @php
@@ -278,6 +280,11 @@
         {{-- Quick View Modal --}}
         <div
             x-show="showModal"
+            x-trap.noscroll.inert="showModal"
+            @keydown.escape.window="if (showModal) closeModal()"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="quick-view-modal-title"
             x-transition:enter="ease-out duration-300"
             x-transition:enter-start="opacity-0"
             x-transition:enter-end="opacity-100"
@@ -305,13 +312,14 @@
                     <button
                         type="button"
                         @click="closeModal()"
+                        aria-label="Tutup dialog"
                         class="absolute right-4 top-4 text-gray-400 hover:text-gray-500">
                         <x-icon name="x-mark" size="md" :decorative="true" />
                     </button>
 
                     {{-- Loading State --}}
-                    <div x-show="modalLoading" class="flex items-center justify-center py-8">
-                        <svg class="h-8 w-8 animate-spin text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <div x-show="modalLoading" class="flex items-center justify-center py-8" role="status" aria-label="Memuat data">
+                        <svg class="h-8 w-8 animate-spin text-primary-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
@@ -319,7 +327,7 @@
 
                     {{-- Modal Body --}}
                     <div x-show="!modalLoading && processData">
-                        <h3 class="text-lg font-semibold text-gray-900" x-text="'Detail Proses: ' + (processData?.stage_label || '')"></h3>
+                        <h3 id="quick-view-modal-title" class="text-lg font-semibold text-gray-900" x-text="'Detail Proses: ' + (processData?.stage_label || '')"></h3>
 
                         <dl class="mt-4 space-y-3">
                             <div class="flex justify-between">
@@ -481,7 +489,12 @@
                 this.processData = null;
 
                 try {
-                    const response = await fetch(`/api/processes/${processId}`);
+                    const response = await fetch(`/api/processes/${processId}`, {
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
                     const data = await response.json();
                     if (data.ok) {
                         this.processData = data.data;
@@ -508,6 +521,8 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                         }
                     });
@@ -538,6 +553,8 @@
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
                             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                         }
                     });

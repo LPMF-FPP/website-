@@ -111,4 +111,46 @@ class SettingsApiTest extends TestCase
         $preview->assertOk()
             ->assertHeader('Content-Type', 'application/pdf');
     }
+
+    public function test_can_update_settings_nested_under_settings_key(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $payload = [
+            'settings' => [
+                'branding' => [
+                    'org_name' => 'Nested Org Name',
+                ],
+            ],
+        ];
+
+        $this->actingAs($user)
+            ->putJson('/api/settings', $payload)
+            ->assertOk()
+            ->assertJson(['ok' => true]);
+
+        $this->assertDatabaseHas('settings', [
+            'key' => 'branding.org_name',
+            'value' => json_encode('Nested Org Name'),
+        ]);
+    }
+
+    public function test_rejects_legacy_payload_string(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+
+        // Old format: 'payload' as JSON string
+        $payload = [
+            'payload' => json_encode([
+                'branding' => [
+                    'org_name' => 'Should Not Update',
+                ],
+            ]),
+        ];
+
+        $this->actingAs($user)
+            ->putJson('/api/settings', $payload)
+            ->assertStatus(422)
+            ->assertJsonFragment(['error' => 'Empty settings payload']);
+    }
 }

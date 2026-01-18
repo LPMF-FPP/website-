@@ -47,7 +47,7 @@ class SettingsResponseBuilder
         ];
     }
 
-    private function getInstrumentRequirementsData(): array
+    public function getInstrumentRequirementsData(): array
     {
         $instruments = Instrument::where('is_active', true)
             ->orderBy('category')
@@ -79,7 +79,7 @@ class SettingsResponseBuilder
         return [
             'instruments_master' => $instruments,
             'requirements_by_method' => $requirementsByMethod,
-            'available_methods' => ['uv_vis', 'gc_ms', 'lc_ms'],
+            'available_methods' => MethodInstrumentRequirement::AVAILABLE_METHODS,
             'usage_types' => ['PREP', 'RUN'],
         ];
     }
@@ -92,7 +92,7 @@ class SettingsResponseBuilder
 
         $defaultTemplates = $this->notificationService->getAllTemplates();
         $templates = $notifications['whatsapp']['templates'] ?? [];
-        if (!is_array($templates)) {
+        if (! is_array($templates)) {
             $templates = [];
         }
         $notifications['whatsapp']['templates'] = array_replace($defaultTemplates, $templates);

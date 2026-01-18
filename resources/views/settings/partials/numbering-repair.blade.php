@@ -8,12 +8,13 @@
     <div class="p-6">
         {{-- Scope Selector --}}
         <div class="flex items-center gap-4 mb-6">
-            <div class="flex-1">
-                <label class="block text-sm font-medium text-gray-700 mb-1">Pilih Scope</label>
-                <select 
-                    x-model="selectedScope" 
-                    @change="onScopeChange()"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
+                <div class="flex-1">
+                    <label for="scope-select" class="block text-sm font-medium text-gray-700 mb-1">Pilih Scope</label>
+                    <select 
+                        id="scope-select"
+                        x-model="selectedScope" 
+                        @change="onScopeChange()"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm">
                     <option value="">-- Pilih Scope --</option>
                     <template x-for="(label, key) in scopeLabels" :key="key">
                         <option :value="key" x-text="label"></option>
@@ -38,9 +39,10 @@
                 <h3 class="text-sm font-semibold text-blue-900 mb-3">Cari & Edit Nomor Dokumen</h3>
                 <div class="flex items-end gap-3">
                     <div class="flex-1">
-                        <label class="block text-xs text-blue-700 mb-1">Cari berdasarkan nomor</label>
+                        <label for="search-query-input" class="block text-xs text-blue-700 mb-1">Cari berdasarkan nomor</label>
                         <input 
                             type="text"
+                            id="search-query-input"
                             x-model="searchQuery"
                             @keyup.enter="searchDocuments()"
                             placeholder="Ketik nomor dokumen..."
@@ -354,24 +356,26 @@
     </div>
 
     {{-- Reset Modal --}}
-    <div x-show="showResetModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-modal="true">
+    <div x-show="showResetModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-modal="true" aria-labelledby="reset-modal-title" @keydown.escape.window="showResetModal = false">
         <div class="flex items-center justify-center min-h-screen p-4">
             <div class="fixed inset-0 bg-black/50" @click="showResetModal = false"></div>
-            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Reset Counter Manual</h3>
+            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6" x-trap.noscroll.inert="showResetModal">
+                <h3 id="reset-modal-title" class="text-lg font-semibold text-gray-900 mb-4">Reset Counter Manual</h3>
                 
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nilai Counter Baru</label>
+                    <label for="reset-value-input" class="block text-sm font-medium text-gray-700 mb-1">Nilai Counter Baru</label>
                     <input 
                         type="number" 
+                        id="reset-value-input"
                         x-model.number="resetValue"
                         min="0"
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
                 </div>
 
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Alasan Perubahan *</label>
+                    <label for="reset-reason-input" class="block text-sm font-medium text-gray-700 mb-1">Alasan Perubahan *</label>
                     <textarea 
+                        id="reset-reason-input"
                         x-model="resetReason"
                         rows="3"
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -404,11 +408,11 @@
     </div>
 
     {{-- Edit Modal --}}
-    <div x-show="showEditModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-modal="true">
+    <div x-show="showEditModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-modal="true" aria-labelledby="edit-modal-title" @keydown.escape.window="showEditModal = false">
         <div class="flex items-center justify-center min-h-screen p-4">
             <div class="fixed inset-0 bg-black/50" @click="showEditModal = false"></div>
-            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Edit Nomor Dokumen</h3>
+            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6" x-trap.noscroll.inert="showEditModal">
+                <h3 id="edit-modal-title" class="text-lg font-semibold text-gray-900 mb-4">Edit Nomor Dokumen</h3>
                 
                 <div class="mb-4">
                     <p class="text-sm text-gray-500">Entitas: <span class="font-medium" x-text="editingProblem?.entity_name"></span></p>
@@ -416,18 +420,20 @@
                 </div>
 
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nomor Saat Ini</label>
+                    <label for="current-number-display" class="block text-sm font-medium text-gray-700 mb-1">Nomor Saat Ini</label>
                     <input 
                         type="text" 
+                        id="current-number-display"
                         :value="editingProblem?.current_number"
                         disabled
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 font-mono">
                 </div>
 
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Nomor Baru</label>
+                    <label for="edit-new-number-input" class="block text-sm font-medium text-gray-700 mb-1">Nomor Baru</label>
                     <input 
                         type="text" 
+                        id="edit-new-number-input"
                         x-model="editNewNumber"
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono">
                     <p x-show="editingProblem?.suggested_number" class="text-xs text-gray-500 mt-1">
@@ -436,8 +442,9 @@
                 </div>
 
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Alasan Perubahan *</label>
+                    <label for="edit-reason-input" class="block text-sm font-medium text-gray-700 mb-1">Alasan Perubahan *</label>
                     <textarea 
+                        id="edit-reason-input"
                         x-model="editReason"
                         rows="3"
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
@@ -465,11 +472,11 @@
     </div>
 
     {{-- Sync Reason Modal --}}
-    <div x-show="showSyncModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-modal="true">
+    <div x-show="showSyncModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-modal="true" aria-labelledby="sync-modal-title" @keydown.escape.window="showSyncModal = false">
         <div class="flex items-center justify-center min-h-screen p-4">
             <div class="fixed inset-0 bg-black/50" @click="showSyncModal = false"></div>
-            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Konfirmasi Sinkronisasi</h3>
+            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6" x-trap.noscroll.inert="showSyncModal">
+                <h3 id="sync-modal-title" class="text-lg font-semibold text-gray-900 mb-4">Konfirmasi Sinkronisasi</h3>
                 
                 <p class="text-sm text-gray-500 mb-4">
                     Counter akan diubah dari <strong x-text="counterStatus?.current_counter"></strong> 
@@ -477,8 +484,9 @@
                 </p>
 
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Alasan Sinkronisasi *</label>
+                    <label for="sync-reason-input" class="block text-sm font-medium text-gray-700 mb-1">Alasan Sinkronisasi *</label>
                     <textarea 
+                        id="sync-reason-input"
                         x-model="syncReason"
                         rows="3"
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"

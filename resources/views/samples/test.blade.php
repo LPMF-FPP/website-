@@ -214,7 +214,8 @@
                                                 <div id="physical-id-existing-{{ $sampleIndex }}" class="mt-2 {{ ($existingPhysicalIdentifications->isEmpty() || $sample->physical_identification) ? 'hidden' : '' }}">
                                                     <select id="physical-id-select-{{ $sampleIndex }}"
                                                         class="physical-id-select block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                                                        data-sample-index="{{ $sampleIndex }}">
+                                                        data-sample-index="{{ $sampleIndex }}"
+                                                        {{ ($existingPhysicalIdentifications->isNotEmpty() && !$sample->physical_identification) ? 'required' : '' }}>
                                                         <option value="">-- Pilih identifikasi yang sudah ada --</option>
                                                         @foreach($existingPhysicalIdentifications as $identification)
                                                             <option value="{{ $identification }}">{{ Str::limit($identification, 100) }}</option>
@@ -227,14 +228,14 @@
                                                     <textarea id="physical-id-textarea-{{ $sampleIndex }}" rows="3"
                                                         class="physical-id-textarea block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                                                         data-sample-index="{{ $sampleIndex }}"
-                                                        placeholder="Contoh: Tablet putih dalam kemasan blister dengan garis hijau ...">{{ old("samples.$sampleIndex.physical_identification", $sample->physical_identification) }}</textarea>
+                                                        placeholder="Contoh: Tablet putih dalam kemasan blister dengan garis hijau ..."
+                                                        {{ ($existingPhysicalIdentifications->isEmpty() || $sample->physical_identification) ? 'required' : '' }}>{{ old("samples.$sampleIndex.physical_identification", $sample->physical_identification) }}</textarea>
                                                 </div>
 
                                                 {{-- Hidden input that will be submitted --}}
                                                 <input type="hidden" name="samples[{{ $sampleIndex }}][physical_identification]" 
                                                     id="physical-id-hidden-{{ $sampleIndex }}"
-                                                    value="{{ old("samples.$sampleIndex.physical_identification", $sample->physical_identification) }}"
-                                                    required>
+                                                    value="{{ old("samples.$sampleIndex.physical_identification", $sample->physical_identification) }}">
                                             </div>
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700">Jumlah Sampel untuk Pengujian</label>
@@ -244,7 +245,7 @@
                                                 </div>
                                                 <div class="mt-2 grid grid-cols-2 gap-3">
                                                     <div>
-                                                        <input type="number" name="samples[{{ $sampleIndex }}][quantity]" step="0.01" min="0.01" required
+                                                        <input type="number" name="samples[{{ $sampleIndex }}][quantity]" step="0.01" min="0.01" max="{{ $sample->package_quantity }}" required
                                                             value="{{ old("samples.$sampleIndex.quantity", $sample->quantity) }}"
                                                             placeholder="Jumlah"
                                                             class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
@@ -366,11 +367,19 @@
                         newDiv.classList.add('hidden');
                         // Set hidden value from select
                         hiddenInput.value = selectEl.value;
+                        
+                        // Handle required attributes
+                        selectEl.setAttribute('required', 'required');
+                        textareaEl.removeAttribute('required');
                     } else {
                         existingDiv.classList.add('hidden');
                         newDiv.classList.remove('hidden');
                         // Set hidden value from textarea
                         hiddenInput.value = textareaEl.value;
+                        
+                        // Handle required attributes
+                        textareaEl.setAttribute('required', 'required');
+                        selectEl.removeAttribute('required');
                     }
                 });
             });

@@ -30,6 +30,15 @@
 
 ## 📰 Recent Changes (v1.5.x)
 
+## [Notifications/WhatsApp Templates]
+
+Updated on 2026-01-18
+
+- WhatsApp templates standar diperbarui ke format resmi untuk 4 milestone: permintaan diterima, ditolak, siap diambil, dan serah-terima selesai.
+- Sistem notifikasi hanya mengenali 4 milestone utama tersebut; milestone lain tidak lagi dikirim.
+- Seeder admin sekarang otomatis meng-assign seluruh permission agar admin langsung punya akses semua menu.
+- Migrasi disiapkan untuk meng-overwrite template WhatsApp yang tersimpan agar sesuai format baru.
+
 ### v1.7.1 (16 Januari 2026) - Process Workflow & UX Improvements
 
 ```

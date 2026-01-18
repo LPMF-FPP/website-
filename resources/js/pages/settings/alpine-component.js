@@ -1804,8 +1804,9 @@ export function registerSettingsComponent() {
                 if (!contentType.includes("application/json")) {
                     const htmlSnippet = await response.text();
                     const preview = htmlSnippet.substring(0, 200);
-                    alert(
-                        `API returned HTML (redirect/auth/route mismatch)\n\n${preview}`,
+                    console.error(
+                        "API returned HTML (redirect/auth/route mismatch):",
+                        preview,
                     );
                     throw new Error(
                         "API returned HTML (redirect/auth/route mismatch)",

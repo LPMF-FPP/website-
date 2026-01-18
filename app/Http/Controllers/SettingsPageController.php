@@ -4,23 +4,21 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\Settings\LocalizationSettingsRequest;
 use App\Models\Document;
-use App\Models\DocumentTemplate;
-use App\Models\SystemSetting;
+use App\Services\Settings\SettingsResponseBuilder;
 use App\Support\DocumentTypes;
 use Illuminate\Support\Facades\Gate;
 
 class SettingsPageController extends Controller
 {
+    public function __construct(
+        protected SettingsResponseBuilder $builder
+    ) {}
+
     public function index()
     {
         Gate::authorize('manage-settings');
 
-        $flat = SystemSetting::query()
-            ->get()
-            ->mapWithKeys(fn (SystemSetting $row) => [$row->key => $row->value])
-            ->toArray();
-
-        $settings = settings_nest($flat);
+        $settings = $this->builder->build();
 
         $options = [
             'timezones' => LocalizationSettingsRequest::timezones(),
@@ -39,7 +37,7 @@ class SettingsPageController extends Controller
 
         $options['document_types'] = DocumentTypes::mapOptions($documentTypes);
 
-        $templates = DocumentTemplate::orderBy('name')->get();
+        $templates = $settings['templates']['list'] ?? [];
 
         return view('settings.index', [
             'settings' => $settings,

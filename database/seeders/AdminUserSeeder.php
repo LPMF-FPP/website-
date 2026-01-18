@@ -2,7 +2,10 @@
 
 namespace Database\Seeders;
 
+use App\Models\Permission;
 use App\Models\User;
+use App\Models\UserPermission;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -13,7 +16,7 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
-        User::updateOrCreate(
+        $admin = User::updateOrCreate(
             ['email' => 'labmutufarmapol@gmail.com'],
             [
                 'name' => 'Admin LPMF',
@@ -24,6 +27,26 @@ class AdminUserSeeder extends Seeder
                 'email_verified_at' => now(),
             ]
         );
+
+        if (Permission::count() === 0) {
+            $this->call(PermissionSeeder::class);
+        }
+
+        $permissionIds = Permission::pluck('id');
+
+        foreach ($permissionIds as $permissionId) {
+            UserPermission::updateOrCreate(
+                [
+                    'user_id' => $admin->id,
+                    'permission_id' => $permissionId,
+                ],
+                [
+                    'granted' => true,
+                ]
+            );
+        }
+
+        $admin->clearPermissionCache();
 
         $this->command->info('Admin user created successfully!');
         $this->command->info('Email: labmutufarmapol@gmail.com');

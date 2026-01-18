@@ -1,316 +1,162 @@
-# Project Workflow Rules
+# Project Workflow Rules & Agent Guide
 
-You are strictly required to follow these workflow rules for every task.
-
-## 0. Agent Roles & Responsibilities
-
-### Core Agents
-
-- **Sisyphus** (`google/antigravity-claude-sonnet-4-5-thinking`) - Primary coding agent for implementation, refactoring, debugging with deep reasoning
-- **Planner-Sisyphus** (`google/antigravity-claude-opus-4-5-thinking`) - Strategic planning, task breakdown, architectural decisions
-- **oracle** (`google/antigravity-claude-opus-4-5-thinking`) - Problem-solving, Q&A, technical reasoning, code review
-- **librarian** (`openai/gpt-5.2-codex-xhigh`) - Documentation research, API references, library usage
-
-### Specialized Agents
-
-- **frontend-ui-ux-engineer** (`google/antigravity-gemini-3-pro-high`) - UI/UX design, frontend implementation, accessibility
-- **document-writer** (`openai/gpt-5.2-codex-xhigh`) - Writing documentation, summaries, walkthroughs, changelog updates
-- **multimodal-looker** (`google/antigravity-claude-sonnet-4-5`) - Image analysis, visual debugging, design reviews
-- **explore** (`openai/gpt-5.2-codex-xhigh`) - Fast codebase exploration, quick searches, file discovery
-
-### MCP Integrations
-
-- **shadcn** - UI component generation and management
-- **supabase** - Database operations, authentication, storage
+This file defines the strict workflow, standards, and commands for all agents operating in this repository.
 
 ## 1. Project Snapshot
 
-**Type**: Laravel 12 application with frontend audit system  
-**Stack**: PHP 8.3+, Laravel 12, Blade + Alpine.js + Tailwind CSS, Node.js 20+  
-**Structure**: Main app + frontend audit system  
-**Docs**: Sub-packages reference `patcher/` and `report/README.md` for detailed guides
+- **Stack**: Laravel 12 (PHP 8.2+), Blade, Alpine.js, Tailwind CSS, Node.js 20+.
+- **Core Structure**: `app/` (Backend), `resources/` (Frontend), `tests/` (Pest + Dusk).
+- **Audit System**: `scripts/audit/` provides strict CSS/JS/A11y guardrails.
 
-## 2. Root Setup Commands
+## 2. Agent Roles (BMAD + Superpowers)
+
+### BMAD Agents
+
+- **bmad-agent-core-bmad-master**: Orchestrates BMAD workflows and agent coordination.
+- **bmad-agent-bmm-pm**: Product/project planning and scope management.
+- **bmad-agent-bmm-analyst**: Requirements analysis and specifications.
+- **bmad-agent-bmm-architect**: System design and architecture decisions.
+- **bmad-agent-bmm-dev**: Implementation, refactoring, and debugging.
+- **bmad-agent-bmm-tea**: Technical excellence, code quality, best practices.
+- **bmad-agent-bmm-ux-designer**: UX/UI design and interaction.
+- **bmad-agent-bmm-tech-writer**: Documentation and changelogs.
+- **bmad-agent-bmm-sm**: Scrum facilitation and blocker removal.
+- **bmad-agent-bmm-quick-flow-solo-dev**: Solo rapid execution (use only when explicitly requested).
+
+### Superpowers Skills (Process Guides)
+
+- **superpowers:using-superpowers**: Skill discovery and invocation gate.
+- **superpowers:brainstorming**: Requirements clarification and design exploration.
+- **superpowers:writing-plans**: Plan before multi-step work.
+- **superpowers:executing-plans**: Execute plan with checkpoints.
+- **superpowers:dispatching-parallel-agents**: Parallelize independent work.
+- **superpowers:subagent-driven-development**: Subagent orchestration.
+- **superpowers:test-driven-development**: TDD workflow.
+- **superpowers:systematic-debugging**: Bug investigation rigor.
+- **superpowers:verification-before-completion**: Evidence before completion claims.
+- **superpowers:requesting-code-review**: Ask for review before merge.
+- **superpowers:receiving-code-review**: Evaluate and apply feedback.
+- **superpowers:using-git-worktrees**: Isolated workspaces.
+- **superpowers:finishing-a-development-branch**: Wrap up and integrate.
+- **superpowers:writing-skills**: Create or update skills.
+
+### Role Requirements (UI Compliance)
+
+- **bmad-agent-bmm-ux-designer**: MUST apply `/rams` for UI reviews and `/ui-skills` for UI implementation; include violations + fixes in review notes.
+- **bmad-agent-bmm-dev**: MUST follow `/ui-skills` constraints for any UI change; run `/rams` to check accessibility on UI edits.
+- **bmad-agent-bmm-tea**: MUST enforce compliance and resolve `/rams`/`/ui-skills` violations before sign-off.
+- **bmad-agent-core-bmad-master**: Ensure `/rams` and `/ui-skills` are used for any UI deliverable.
+
+## 3. Development Commands (Crucial)
+
+### Setup & Build
 
 ```bash
-# Install dependencies
-composer install && npm install
+composer install && npm install  # Initial setup
+npm run build                    # Build frontend assets
+php artisan serve                # Start dev server (Required for audits)
+```
 
-# Development server (required for audits)
-php artisan serve
+### Testing (Detailed)
 
-# Build frontend
-npm run build
+**Always run tests before pushing.**
 
-# Run all audits
-npm run audit:all
-
-# Run critical audits (CI, pre-commit)
-npm run audit:critical
-
-# Run tests
+```bash
+# Run ALL tests (PHP + E2E)
 npm run test
+
+# Run PHP tests (Pest)
+npm run test:php                    # All PHP tests
+php vendor/bin/pest                 # Direct Pest command
+php vendor/bin/pest --filter Name   # Run SINGLE test method/class (e.g., --filter UserTest)
+php vendor/bin/pest path/to/file.php # Run tests in a SPECIFIC FILE
+
+# Run E2E tests (Dusk)
+npm run test:e2e                    # All Browser tests
+php artisan dusk tests/Browser/ExampleTest.php # Run SPECIFIC E2E file
 ```
 
-## 3. Universal Conventions
+### Auditing & Linting
 
-- **Code Style**: PHP PSR-12, ESLint + Stylelint for JS/CSS
-- **CSS Rules**: Overlay CSS (pd-\*.css) MUST NOT use layout properties (enforced by `audit:guard`)
-- **Commits**: Descriptive messages (e.g., `feat: implement login page UI`, `fix: resolve jwt token error`)
-- **Documentation**: NEVER create new .md files - always update `WALKTHROUGH.md`
-- **Audit URLs**: Set via `AUDIT_URLS` env or `.env` file for a11y/coverage scans
-- **Pre-commit**: Run `npm run audit:guard` before every commit
-
-## 4. Security & Secrets
-
-- **Never commit**: API keys, tokens, passwords, `.env` files
-- **Secrets location**: `.env` (never committed), use `.env.example` as template
-- **PII handling**: Follow Laravel's encryption helpers for sensitive data
-- **Database**: Never expose credentials in error logs
-
-## 5. JIT Index - Directory Map
-
-### Main Application Structure
-
-- **Laravel App**: `app/` → Models, Controllers, Services, Repositories
-    - Controllers: `app/Http/Controllers/**`
-    - Models: `app/Models/**`
-    - Services: `app/Services/**`
-    - Helpers: `app/helpers.php`
-
-- **Frontend Resources**: `resources/`
-    - Views: `resources/views/**/*.blade.php`
-    - CSS: `resources/css/**`
-    - JS: `resources/js/**`
-    - Tokens: `resources/design-tokens.example.json`
-
-- **Routes**: `routes/`
-    - Web: `routes/web.php`
-    - API: `routes/api.php`
-    - Auth: `routes/auth.php`
-
-- **Frontend Styles**: `styles/`
-    - Base: `styles/base.css`
-    - Components: `styles/components.css`
-    - Safe overlays: `styles/pd-*.css` (strict layout rules)
-    - Tokens: `styles/tokens.css`
-
-- **Audit System**: `scripts/audit/` + `report/` → [see report/README.md]
-    - CSS/JS linting, accessibility, coverage, performance audits
-    - All reports output to `report/`
-
-- **Documentation**: `patcher/` → Deployment, audit, and design docs
-
-### Quick Find Commands
+**"Safe Mode v2" enforces strict CSS rules (no layout in overlays).**
 
 ```bash
-# Search for a function
-rg -n "function functionName" app/ resources/
+npm run audit:critical  # MUST PASS before commit (Guard + Cascade + Contrast)
+npm run audit:all       # Full suite (A11y, Lighthouse, etc.)
+npm run audit:guard     # Check for layout property violations in pd-*.css
 
-# Find a Blade component
-rg -n "<x-" resources/views/
-
-# Find a controller method
-rg -n "public function" app/Http/Controllers/
-
-# Find a route
-rg -n "Route::" routes/
-
-# Find CSS class usage
-rg -n "className" resources/views/ resources/js/
-
-# Find audit configuration
-rg -n "audit:" package.json scripts/audit/
-
-# List all migrations
-ls -la database/migrations/
-
-# Find test files
-find tests/ -name "*.php"
+# Fix Code Style
+npx eslint "resources/js/**/*.js" --fix
+npx stylelint "resources/**/*.css" --fix
+./vendor/bin/pint       # Fix PHP code style (PSR-12)
 ```
 
-## 6. Master Plan (todos.md)
+## 4. Code Style & Standards
 
-- **Initiation**: Delegate to `Planner-Sisyphus` to CREATE or OVERWRITE `todos.md` for each new feature/task implementation.
-- **Structure**: Comprehensive list of tasks from development start to finish.
-- **Status**: Use `[ ]` for pending and `[x]` for completed tasks.
-- **Update**: MUST mark tasks as `[x]` immediately after completion.
-- **Cleanup**: Once ALL tasks are marked `[x]`, CLEAR `todos.md` content (leave file empty or with header only).
-- **Agent Delegation**:
-    - Complex planning → `Planner-Sisyphus`
-    - Task prioritization → `oracle`
+### PHP (Laravel)
 
-## 7. Documentation & Change Tracking
+- **Formatting**: PSR-12 enforced via Laravel Pint.
+- **Imports**: Sorted alphabetically, unused imports removed.
+- **Types**: Use strict types (`declare(strict_types=1);` optional but encouraged). Return types are mandatory for new code.
+- **Naming**:
+    - Classes: `PascalCase` (e.g., `UserController`).
+    - Methods/Variables: `camelCase` (e.g., `updateProfile`).
+    - Database Columns: `snake_case` (e.g., `user_id`).
+    - Config/Lang keys: `snake_case` (dot notation).
+- **Error Handling**: Use `try-catch` blocks for external services. Log errors via `Log::error()` with context. Never expose raw exceptions to UI.
 
-**Root Directory - Only 3 .md files allowed:**
+### JavaScript (Alpine.js / Vue)
 
-1. **WALKTHROUGH.md** - Central changelog for ALL project changes
-    - Record semua perubahan (features, fixes, improvements)
-    - Update version number untuk perubahan signifikan
-    - NEVER create new .md files - append to this file only
+- **Formatting**: ESLint + Prettier.
+- **Naming**: `camelCase` for functions/vars. `PascalCase` for Components.
+- **State**: Use Alpine.js `x-data` for local state. Avoid polluting global window.
 
-2. **todos.md** - Task tracker for current/upcoming work
-    - Track task yang sedang/akan dikerjakan
-    - Mark [x] when done, archive when complete
+### CSS (Tailwind)
 
-3. **AGENTS.md** - Workflow rules (this file)
-    - DO NOT modify unless updating workflow rules
+- **Structure**: Mobile-first (`block md:flex`).
+- **Safe Mode**: Overlay files (`styles/pd-*.css`) **CANNOT** contain layout properties (margin, padding, width, height, position).
+- **Naming**: `kebab-case` for custom classes.
 
-**Technical Documentation** - Place in appropriate subdirectories:
+## 5. Documentation Protocol
 
-- `docs/` - Code patterns, architecture
-- `report/` - Audit system documentation
-- `tests/` - Testing documentation
-- **Versioning**: Use semantic versioning (MAJOR.MINOR.PATCH). Each segment MUST NOT exceed 9 — when reaching 10, increment the next higher segment instead (e.g., `1.0.9` → `1.1.0`, `1.9.9` → `2.0.0`).
-- **Versioning**: Use semantic versioning (MAJOR.MINOR.PATCH) with strict constraints:
-    - Each segment MUST NOT exceed 9
-    - When reaching 10, increment the next higher segment instead
-    - Examples:
-        - `1.0.9` → `1.1.0` (not `1.0.10`)
-        - `1.9.9` → `2.0.0` (not `1.9.10`)
-        - `0.0.9` → `0.1.0` (not `0.0.10`)
-    - This prevents version numbering inconsistencies and maintains cleaner semantic versioning
-- **Update Protocol**:
-    1. After completing meaningful tasks → Update WALKTHROUGH.md with details
-    2. Document new features, fixes, and architectural decisions
-    3. Include code examples and explanations where relevant
-    4. Use proper date stamps: `Updated on YYYY-MM-DD`
-- **Agent Delegation**:
-    - Documentation writing → `document-writer`
-    - Technical summaries → `oracle`
-    - Code examples → `Sisyphus`
+**⚠️ DO NOT CREATE NEW .md FILES** (Exceptions: `README.md` and sub-folder docs).
 
-## 8. Changelog Page Updates
+1.  **WALKTHROUGH.md**: The single source of truth for changelogs.
+    - Append new features/fixes with `## [Category]/[Feature]` and `Updated on YYYY-MM-DD`.
+2.  **todos.md**: Active task tracker. Overwrite for new tasks. Clear when done.
+3.  **Changelog Page**: Update the `/changelogs` route in the app after `WALKTHROUGH.md`.
 
-- **After completing work**: Update the `/changelogs` page in the Laravel application
-- **Location**: `resources/views/` or appropriate route
-- **Content**: Generate user-facing changelog entries from WALKTHROUGH.md updates
-- **Agent Delegation**: `document-writer`
+## 6. Workflow & Git
 
-## 9. Version Control (Git)
+1.  **Plan**: `Planner-Sisyphus` creates/updates `todos.md`.
+2.  **Implement**: `Sisyphus` writes code.
+3.  **Verify**:
+    - `npm run test` (Passes?)
+    - `npm run audit:critical` (Passes?)
+4.  **Document**: Update `WALKTHROUGH.md` and `/changelogs`.
+5.  **Commit**: `git commit -m "feat: description"` (Descriptive messages).
 
-- **Commit**: After every logical unit of work (e.g., after completing a single item in `todos.md`).
-- **Message**: Descriptive (e.g., `feat: implement login page UI`, `fix: resolve jwt token error`).
-- **History**: Ensure git history tells a clear story of the development process.
+## 7. Design Guidelines (Vercel/Geist + Rams/UI Skills)
 
-## 10. Execution Protocol
+- **Source**: Follow `VERCEL_GUIDELINES.md` and `RAMS_UI_GUIDELINES.md`.
+- **Core Rules**:
+    - **Keyboard**: All interactive elements must be keyboard accessible.
+    - **Loading**: Use skeletons and optimistic updates.
+    - **Forms**: Enter submits; proper autocomplete/labels.
+    - **Copy**: Active voice, Title Case for buttons, specific error messages.
+    - **Motion**: `transform`/`opacity` only; respect `prefers-reduced-motion`.
+    - **Constraints**: No `h-screen` (use `h-dvh`), no layout animation, `text-balance` for headings.
 
-### Pre-Coding Phase
+### Command Usage
 
-1. Check `todos.md` and overwrite if new task
-2. For unclear requirements → consult `oracle`
-3. For architecture decisions → consult `Planner-Sisyphus`
-4. For API/library questions → consult `librarian`
-5. For visual/design questions → consult `multimodal-looker`
+- **/rams**: Review UI files for accessibility + visual polish. Output violations, why it matters, and concrete fixes.
+- **/ui-skills**: Enforce UI implementation constraints. Output violations, why it matters, and concrete fixes.
+- **Suggested flow**: `/ui-skills` during implementation, then `/rams` for final review.
 
-### Coding Phase
+## 8. Definition of Done
 
-1. **Backend/Logic** → `Sisyphus`
-2. **Frontend/UI** → `frontend-ui-ux-engineer`
-3. **File discovery** → `explore`
-4. **Visual debugging** → `multimodal-looker`
-5. **UI Components** → Use `shadcn` MCP
-6. **Database operations** → Use `supabase` MCP
-
-### Post-Coding Phase
-
-1. Run tests/verification
-2. Code review → `oracle`
-3. Update `WALKTHROUGH.md` → `document-writer`
-4. Update `/changelogs` page → `document-writer`
-5. Mark item in `todos.md` as `[x]`
-6. Git add & commit → `Sisyphus`
-
-## 11. Agent Selection Matrix
-
-| Task Type               | Primary Agent                        | Support Agent           |
-| ----------------------- | ------------------------------------ | ----------------------- |
-| Code implementation     | Sisyphus                             | oracle                  |
-| Planning & architecture | Planner-Sisyphus                     | oracle                  |
-| Frontend/UI work        | frontend-ui-ux-engineer              | multimodal-looker       |
-| Documentation           | document-writer                      | librarian               |
-| Research/learning       | librarian                            | oracle                  |
-| Debugging               | Sisyphus                             | oracle                  |
-| Visual analysis         | multimodal-looker                    | frontend-ui-ux-engineer |
-| Quick exploration       | explore                              | Sisyphus                |
-| Database work           | Sisyphus + supabase MCP              | oracle                  |
-| UI components           | frontend-ui-ux-engineer + shadcn MCP | multimodal-looker       |
-| Changelog updates       | document-writer                      | Sisyphus                |
-
-## 12. Collaboration Protocol
-
-- **Always start with Planner-Sisyphus** for new features or major changes
-- **Use oracle** when stuck or need validation
-- **Delegate to specialists** (frontend-ui-ux-engineer, document-writer) for domain-specific work
-- **Use explore** for quick fact-finding before deep implementation
-- **Leverage MCP servers** (shadcn, supabase) for external integrations
-- **Sisyphus handles** the final implementation and git commits
-- **document-writer creates summaries** after significant changes
-- **Never create standalone .md files** - always update WALKTHROUGH.md
-
-### Party Mode: Multi-Agent Orchestration
-
-For complex tasks requiring multiple perspectives, activate **Party Mode** by launching 2-4 background agents in parallel:
-
-```bash
-# Example: Parallel exploration for new feature
-background_task(agent="explore", description="Explore Laravel structure", prompt="...")
-background_task(agent="librarian", description="Research framework docs", prompt="...")
-background_task(agent="explore", description="Analyze audit system", prompt="...")
-background_task(agent="librarian", description="Find implementation examples", prompt="...")
-```
-
-**When to use Party Mode**:
-
-- ✅ Complex features spanning multiple domains (backend + frontend + external APIs)
-- ✅ Need comprehensive codebase understanding before implementation
-- ✅ Researching unfamiliar frameworks/libraries
-- ✅ Debugging after 2+ failed attempts requiring fresh perspective
-- ❌ Simple bug fixes or trivial changes
-
-**Party Mode delivers 60-70% time savings** through parallel execution vs sequential agent work.
-
-See `WALKTHROUGH.md` v1.0.10 and `PARTY_MODE_SESSION_EXAMPLE.md` for detailed workflow and real session example.
-
-## 13. Definition of Done
-
-Before any PR is ready:
-
-- [ ] All tests pass: `npm run test`
-- [ ] Critical audits pass: `npm run audit:critical`
-- [ ] Code linted: `npx eslint ... --fix` and `npx stylelint ... --fix`
-- [ ] `WALKTHROUGH.md` updated with changes
-- [ ] `/changelogs` page updated
-- [ ] `todos.md` items marked `[x]`
-- [ ] Git commit with descriptive message
-
-## 14. Complete Task Workflow
-
-```
-1. START → Check todos.md
-2. PLAN → Planner-Sisyphus (if complex)
-3. RESEARCH → librarian/oracle (if needed)
-4. IMPLEMENT → Sisyphus/frontend-ui-ux-engineer
-5. TEST → Run verification
-6. REVIEW → oracle
-7. DOCUMENT → Update WALKTHROUGH.md (document-writer)
-8. CHANGELOG → Update /changelogs page (document-writer)
-9. TODO → Mark [x] in todos.md
-10. COMMIT → Git commit (Sisyphus)
-11. END
-```
-
-## 15. Common Gotchas
-
-- **CSS Safe Mode**: pd-\*.css files CANNOT use layout properties (enforced by `audit:guard`)
-- **Laravel Server**: Must be running (`php artisan serve`) for a11y/coverage audits
-- **Puppeteer**: Downloads Chromium automatically; see `report/README.md` for troubleshooting
-- **Audit URLs**: Configure in `.env` or `AUDIT_URLS` environment variable
-- **Node Version**: Requires Node.js 20+ for audit system
-
-## 16. Pre-PR Checks
-
-```bash
-# Single command to run before creating PR
-npm run audit:critical && npm run test && npm run build
-```
+- [ ] All tests passed (`npm run test`).
+- [ ] Critical audits passed (`npm run audit:critical`).
+- [ ] Code formatted (`pint`, `eslint --fix`).
+- [ ] `WALKTHROUGH.md` updated.
+- [ ] `todos.md` tasks marked `[x]`.

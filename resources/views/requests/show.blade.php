@@ -120,10 +120,27 @@
                                     @php
                                         $methodLabels = [
                                             'uv_vis' => 'Identifikasi Spektrofotometri UV-VIS',
+                                            'uv vis' => 'Identifikasi Spektrofotometri UV-VIS',
                                             'gc_ms' => 'Identifikasi GC-MS',
+                                            'gc ms' => 'Identifikasi GC-MS',
                                             'lc_ms' => 'Identifikasi LC-MS',
+                                            'lc ms' => 'Identifikasi LC-MS',
                                         ];
-                                        $methods = collect($sample->test_methods ?? [])->map(fn ($value) => $methodLabels[$value] ?? ucfirst(str_replace('_', ' ', $value)));
+                                        
+                                        $testMethods = $sample->test_methods;
+                                        if (is_string($testMethods)) {
+                                            $decoded = json_decode($testMethods, true);
+                                            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                                                $testMethods = $decoded;
+                                            } else {
+                                                $testMethods = [$testMethods];
+                                            }
+                                        }
+                                        
+                                        $methods = collect($testMethods ?? [])->map(function ($value) use ($methodLabels) {
+                                            $normalized = strtolower($value);
+                                            return $methodLabels[$normalized] ?? ucfirst(str_replace('_', ' ', $value));
+                                        });
                                     @endphp
                                     <tr class="hover:bg-gray-50">
                                         <td class="px-4 py-2 font-medium text-gray-900">{{ $sample->sample_code }}</td>

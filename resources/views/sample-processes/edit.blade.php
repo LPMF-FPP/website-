@@ -49,7 +49,7 @@
 
                         {{-- Instrumen Pengujian --}}
                         <div class="mt-4">
-                            <label class="block text-xs font-semibold uppercase tracking-wide text-gray-700">Instrumen Pengujian yang Digunakan <span class="text-red-500">*</span></label>
+                            <label for="instrument-select" class="block text-xs font-semibold uppercase tracking-wide text-gray-700">Instrumen Pengujian yang Digunakan <span class="text-red-500">*</span></label>
                             @php
                                 $currentInstrument = old('instrument', $currentInstrument ?? null);
                                 // Use suggested instrument if no current selection
@@ -57,7 +57,7 @@
                                     $currentInstrument = $suggestedInstrument;
                                 }
                             @endphp
-                            <select name="instrument"
+                            <select name="instrument" id="instrument-select"
                                 class="mt-2 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500">
                                 <option value="">-- Pilih Instrumen Pengujian --</option>
                                 @foreach($instrumentOptions as $value => $label)
@@ -72,20 +72,22 @@
 
                         <div class="mt-4 grid gap-4 sm:grid-cols-2">
                             <div>
-                                <span class="text-xs uppercase tracking-wide text-gray-500">Status Hasil</span>
-                                @php $testResultValue = old('test_result', $currentTestResult ?? null); @endphp
-                                <div class="mt-2 flex flex-wrap gap-3">
-                                    <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                                        <input type="radio" name="test_result" value="positive" @checked($testResultValue === 'positive')
-                                            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
-                                        Positif
-                                    </label>
-                                    <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                                        <input type="radio" name="test_result" value="negative" @checked($testResultValue === 'negative')
-                                            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
-                                        Negatif
-                                    </label>
-                                </div>
+                                <fieldset>
+                                    <legend class="text-xs uppercase tracking-wide text-gray-500">Status Hasil</legend>
+                                    @php $testResultValue = old('test_result', $currentTestResult ?? null); @endphp
+                                    <div class="mt-2 flex flex-wrap gap-3">
+                                        <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                                            <input type="radio" name="test_result" value="positive" @checked($testResultValue === 'positive')
+                                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                                            Positif
+                                        </label>
+                                        <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                                            <input type="radio" name="test_result" value="negative" @checked($testResultValue === 'negative')
+                                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                                            Negatif
+                                        </label>
+                                    </div>
+                                </fieldset>
                                 @error('test_result')
                                     <p class="mt-2 text-xs text-red-600">{{ $message }}</p>
                                 @enderror
@@ -102,7 +104,7 @@
                                 @if($activeSubstanceList->isEmpty())
                                     <p class="mt-2 text-xs text-gray-500">Belum ada data zat aktif tersimpan. Tambahkan melalui permintaan sampel terlebih dahulu.</p>
                                 @else
-                                    <select name="detected_substance"
+                                    <select name="detected_substance" id="detected-substance"
                                         class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500">
                                         <option value="">-- pilih zat aktif --</option>
                                         @foreach($activeSubstanceList as $substance)
@@ -164,24 +166,26 @@
 
                         <div class="mt-4 grid gap-4 sm:grid-cols-2">
                             <div>
-                                <span class="text-xs uppercase tracking-wide text-gray-500">Status Hasil</span>
-                                @php $testResultValue2 = old('test_result_2', $secondaryTestResult ?? null); @endphp
-                                <div class="mt-2 flex flex-wrap gap-3">
-                                    <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                                        <input type="radio" name="test_result_2" value="positive" @checked($testResultValue2 === 'positive')
-                                            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
-                                        Positif
-                                    </label>
-                                    <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                                        <input type="radio" name="test_result_2" value="negative" @checked($testResultValue2 === 'negative')
-                                            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
-                                        Negatif
-                                    </label>
-                                </div>
+                                <fieldset>
+                                    <legend class="text-xs uppercase tracking-wide text-gray-500">Status Hasil</legend>
+                                    @php $testResultValue2 = old('test_result_2', $secondaryTestResult ?? null); @endphp
+                                    <div class="mt-2 flex flex-wrap gap-3">
+                                        <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                                            <input type="radio" name="test_result_2" value="positive" @checked($testResultValue2 === 'positive')
+                                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                                            Positif
+                                        </label>
+                                        <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                                            <input type="radio" name="test_result_2" value="negative" @checked($testResultValue2 === 'negative')
+                                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                                            Negatif
+                                        </label>
+                                    </div>
+                                </fieldset>
                             </div>
 
                             <div>
-                                <label class="block text-xs uppercase tracking-wide text-gray-500">Zat Aktif Terdeteksi</label>
+                                <label for="detected-substance-2" class="block text-xs uppercase tracking-wide text-gray-500">Zat Aktif Terdeteksi</label>
                                 @php
                                     $detectedValue2 = old('detected_substance_2', $secondaryDetectedSubstance ?? '');
                                     $activeSubstanceList = $activeSubstances instanceof \Illuminate\Support\Collection
@@ -191,7 +195,7 @@
                                 @if($activeSubstanceList->isEmpty())
                                     <p class="mt-2 text-xs text-gray-500">Belum ada data zat aktif tersimpan.</p>
                                 @else
-                                    <select name="detected_substance_2"
+                                    <select name="detected_substance_2" id="detected-substance-2"
                                         class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500">
                                         <option value="">-- pilih zat aktif --</option>
                                         @foreach($activeSubstanceList as $substance)
@@ -233,8 +237,8 @@
                         <p class="mt-1 text-xs text-gray-500">Pilih aset instrumen yang digunakan untuk setiap metode pengujian sampel ini.</p>
 
                         <template x-if="loading">
-                            <div class="mt-4 flex items-center gap-2 text-sm text-gray-500">
-                                <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <div class="mt-4 flex items-center gap-2 text-sm text-gray-500" role="status">
+                                <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
@@ -292,7 +296,7 @@
                                     <ul class="mt-2 space-y-1 text-xs text-gray-600">
                                         <template x-for="log in existingLogs" :key="log.id">
                                             <li class="flex items-center gap-2">
-                                                <svg class="h-3 w-3 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                                <svg class="h-3 w-3 text-green-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                                                 </svg>
                                                 <span x-text="log.instrument_name + ' (' + log.asset_code + ') - ' + log.performed_by + ' @ ' + log.logged_at"></span>
@@ -301,7 +305,8 @@
                                     </ul>
                                 </div>
 
-                                <div x-show="error" class="mt-3 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700" x-text="error"></div>
+                                <div x-show="error" class="mt-3 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700" x-text="error" role="alert"></div>
+                                <div x-show="success" class="mt-3 rounded-md bg-green-50 border border-green-200 px-3 py-2 text-xs text-green-700" x-text="success" role="status" aria-live="polite"></div>
 
                                 <div class="mt-4 flex justify-end">
                                     <button type="button" @click="saveInstrumentUsage()"
@@ -309,7 +314,7 @@
                                         class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed">
                                         <span x-show="!saving">Simpan Pencatatan Instrumen</span>
                                         <span x-show="saving" class="flex items-center gap-2">
-                                            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                             </svg>
@@ -331,8 +336,8 @@
                         <p class="mt-1 text-xs text-gray-500">Catat data penimbangan sampel menggunakan Analytical Balance.</p>
 
                         <template x-if="loading">
-                            <div class="mt-4 flex items-center gap-2 text-sm text-gray-500">
-                                <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <div class="mt-4 flex items-center gap-2 text-sm text-gray-500" role="status">
+                                <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
@@ -351,7 +356,7 @@
                                 <template x-if="hasWeighing">
                                     <div class="rounded-md bg-green-50 border border-green-200 px-3 py-3">
                                         <div class="flex items-center gap-2 text-sm text-green-800">
-                                            <svg class="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                            <svg class="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                                             </svg>
                                             <span class="font-medium">Data penimbangan sudah tercatat</span>
@@ -424,7 +429,8 @@
                                             </div>
                                         </div>
 
-                                        <div x-show="error" class="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700" x-text="error"></div>
+                                        <div x-show="error" class="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700" x-text="error" role="alert"></div>
+                                        <div x-show="success" class="rounded-md bg-green-50 border border-green-200 px-3 py-2 text-xs text-green-700" x-text="success" role="status" aria-live="polite"></div>
 
                                         <div class="flex justify-end">
                                             <button type="button" @click="saveWeighing()"
@@ -432,7 +438,7 @@
                                                 class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed">
                                                 <span x-show="!saving">Simpan Data Penimbangan</span>
                                                 <span x-show="saving" class="flex items-center gap-2">
-                                                    <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                                                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                                     </svg>
@@ -459,8 +465,8 @@
 
     @push('scripts')
     <script>
-    function instrumentLogging(sampleId) {
-        return {
+    document.addEventListener('alpine:init', () => {
+        Alpine.data('instrumentLogging', (sampleId) => ({
             sampleId: sampleId,
             loading: true,
             enabled: false,
@@ -469,6 +475,7 @@
             selections: {},
             saving: false,
             error: null,
+            success: null,
 
             async loadRequirements() {
                 try {
@@ -505,6 +512,7 @@
             async saveInstrumentUsage() {
                 this.saving = true;
                 this.error = null;
+                this.success = null;
 
                 try {
                     // Transform selections into the expected format
@@ -535,18 +543,18 @@
 
                     // Reload requirements to show updated status
                     await this.loadRequirements();
-                    alert('Pencatatan instrumen berhasil disimpan.');
+                    this.success = 'Pencatatan instrumen berhasil disimpan.';
+                    // Auto-clear success message after 5 seconds
+                    setTimeout(() => { this.success = null; }, 5000);
                 } catch (err) {
                     this.error = 'Terjadi kesalahan: ' + err.message;
                 } finally {
                     this.saving = false;
                 }
             }
-        };
-    }
+        }));
 
-    function analyticalBalanceWeighing(sampleId) {
-        return {
+        Alpine.data('analyticalBalanceWeighing', (sampleId) => ({
             sampleId: sampleId,
             loading: true,
             requiresWeighing: false,
@@ -557,6 +565,7 @@
             massUnit: '',
             saving: false,
             error: null,
+            success: null,
 
             async checkWeighingStatus() {
                 try {
@@ -611,15 +620,17 @@
 
                     this.hasWeighing = true;
                     this.weighingData = data.weighing_data;
-                    alert('Data penimbangan berhasil disimpan.');
+                    this.success = 'Data penimbangan berhasil disimpan.';
+                    // Auto-clear success message after 5 seconds
+                    setTimeout(() => { this.success = null; }, 5000);
                 } catch (err) {
                     this.error = 'Terjadi kesalahan: ' + err.message;
                 } finally {
                     this.saving = false;
                 }
             }
-        };
-    }
+        }));
+    });
     </script>
     @endpush
 </x-app-layout>
