@@ -23,14 +23,49 @@
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 
-**Current Version:** v1.7.1 (16 Januari 2026)  
-**Latest Feature:** Process Workflow & UX Improvements
+**Current Version:** v1.7.3 (18 Januari 2026)  
+**Latest Feature:** RAMS Accessibility & UI Polish
 
 ---
 
 ## 📰 Recent Changes (v1.5.x)
 
-## [Notifications/WhatsApp Templates]
+### v1.7.3 (18 Januari 2026) - RAMS Accessibility & UI Polish
+
+```
+Updated on 2026-01-18
+```
+
+**🎯 Problem Solved:**
+
+Meningkatkan aksesibilitas aplikasi untuk memenuhi standar WCAG 2.1 (RAMS Compliance) dan memperbaiki UX pada halaman landing serta modal interaktif.
+
+**✨ Improvements:**
+
+- **Landing Page Overhaul:**
+    - Memulihkan kursor sistem (menghapus `cursor: none` global).
+    - Menambahkan indikator fokus keyboard (`:focus-visible`).
+    - Memperbaiki kontras teks untuk keterbacaan yang lebih baik.
+    - Non-aktifkan animasi berat jika "Reduced Motion" diaktifkan user.
+- **Accessibility Fixes (RAMS Audit):**
+    - **Modals:** Menambahkan focus trap (`x-trap`), escape handler, dan aria labels yang tepat.
+    - **Forms:** Memastikan semua input memiliki label yang terasosiasi (`for`/`id`).
+    - **Feedback:** Mengganti `alert()` blocking dengan notifikasi toast ramah screen-reader.
+    - **Icons:** Menyembunyikan ikon dekoratif dari screen reader (`aria-hidden="true"`).
+- **Welcome Page:**
+    - Menambahkan `motion-safe` pada animasi pulse.
+
+**📁 Files Modified:**
+
+- `resources/views/landing.blade.php`
+- `resources/views/welcome.blade.php`
+- `resources/views/process/show.blade.php`
+- `resources/views/monitoring/environment/manage.blade.php`
+- `resources/views/sample-processes/edit.blade.php`
+- `resources/views/search/index.blade.php`
+- `resources/js/pages/settings/alpine-component.js`
+
+### v1.7.2 (18 Januari 2026) - WhatsApp Templates & Admin Access
 
 Updated on 2026-01-18
 
