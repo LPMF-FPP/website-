@@ -628,16 +628,12 @@ class SampleTestProcessController extends Controller
 
                 // Attempt to extract sequence from sample_code to synchronize LHU number
                 if (!empty($context['sample_code'])) {
-                    // Try W{SEQ} format (e.g. W001I2026)
-                    if (preg_match('/^[A-Z]+(\d{3,4})/', $context['sample_code'], $m)) {
-                        $context['forced_sequence'] = (int) $m[1];
-                    }
-                    // Try Standard {SEQ}/... format (e.g. 001/...)
-                    elseif (preg_match('/^(\d{3,5})[\/\-]/', $context['sample_code'], $m)) {
-                        $context['forced_sequence'] = (int) $m[1];
-                    }
-                    // Try .../{SEQ}/... format
-                    elseif (preg_match('/[\/\-](\d{3,5})[\/\-]/', $context['sample_code'], $m)) {
+                    // Normalize: remove generic delimiters to easier parsing
+                    $cleanCode = $context['sample_code'];
+                    
+                    // Strategy 1: Look for first 3-5 digit block that might be the sequence
+                    // Matches: LS019..., W001..., 005/..., /023/
+                    if (preg_match('/(?:^|[\/\-A-Z])(\d{3,5})(?:[\/\-A-Z]|$)/i', $cleanCode, $m)) {
                         $context['forced_sequence'] = (int) $m[1];
                     }
                 }
