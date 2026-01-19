@@ -19,22 +19,6 @@
                 </select>
             </label>
             <label class="block">
-                <span class="text-sm font-medium text-gray-700 mb-1 block">Format Tanggal</span>
-                <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.locale.date_format" @change="updateNowPreview()">
-                    <template x-for="fmt in dateFormats" :key="fmt">
-                        <option :value="fmt" x-text="fmt"></option>
-                    </template>
-                </select>
-            </label>
-            <label class="block">
-                <span class="text-sm font-medium text-gray-700 mb-1 block">Format Angka</span>
-                <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.locale.number_format">
-                    <template x-for="fmt in numberFormats" :key="fmt.value">
-                        <option :value="fmt.value" x-text="fmt.label"></option>
-                    </template>
-                </select>
-            </label>
-            <label class="block">
                 <span class="text-sm font-medium text-gray-700 mb-1 block">Bahasa</span>
                 <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.locale.language">
                     <template x-for="lang in languages" :key="lang.value">

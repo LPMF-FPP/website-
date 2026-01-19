@@ -116,4 +116,90 @@ class GowaClient
             ];
         }
     }
+
+    /**
+     * List all devices from GOWA service
+     */
+    public function listDevices(): array
+    {
+        try {
+            $http = Http::timeout(10);
+
+            if ($this->basicUser && $this->basicPass) {
+                $http = $http->withBasicAuth($this->basicUser, $this->basicPass);
+            }
+
+            $response = $http->get("{$this->baseUrl}/devices");
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                return [
+                    'success' => true,
+                    'devices' => $data['results'] ?? [],
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $response->body(),
+                'status' => $response->status(),
+                'devices' => [],
+            ];
+
+        } catch (\Throwable $e) {
+            Log::warning('Failed to list GOWA devices', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'devices' => [],
+            ];
+        }
+    }
+
+    /**
+     * List all devices from GOWA service using provided credentials
+     */
+    public function listDevicesWithCredentials(string $baseUrl, ?string $basicUser, ?string $basicPass): array
+    {
+        try {
+            $http = Http::timeout(10);
+
+            if ($basicUser && $basicPass) {
+                $http = $http->withBasicAuth($basicUser, $basicPass);
+            }
+
+            $response = $http->get("{$baseUrl}/devices");
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                return [
+                    'success' => true,
+                    'devices' => $data['results'] ?? [],
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $response->body(),
+                'status' => $response->status(),
+                'devices' => [],
+            ];
+
+        } catch (\Throwable $e) {
+            Log::warning('Failed to list GOWA devices (custom credentials)', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'devices' => [],
+            ];
+        }
+    }
 }

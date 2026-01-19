@@ -1,5 +1,6 @@
 import { describe, it, beforeEach, mock } from "node:test";
 import assert from "node:assert/strict";
+import { SettingsClient } from "../../resources/js/pages/settings/index.js";
 
 const mockFetch = mock.fn();
 
@@ -17,6 +18,7 @@ class SettingsClientStub {
                     whatsapp: {
                         enabled: true,
                         base_url: "http://gowa.lpmf.local:3000",
+                        device_id: "device-123",
                         basic_user: "lpmf",
                         basic_pass: "lpmfjaya1",
                         enabled_milestones: ["REQUEST_RECEIVED"],
@@ -84,11 +86,16 @@ class SettingsClientStub {
         const payload = {
             enabled: !!wa.enabled,
             base_url: wa.base_url || "http://localhost:3000",
+            device_id: wa.device_id || null,
             basic_user: wa.basic_user || null,
             basic_pass: wa.basic_pass || null,
             enabled_milestones: Array.isArray(wa.enabled_milestones)
                 ? wa.enabled_milestones
                 : [],
+            templates:
+                wa.templates && typeof wa.templates === "object"
+                    ? wa.templates
+                    : {},
         };
 
         await this.apiFetch(this.api.whatsappSettings, {
@@ -177,6 +184,7 @@ describe("SettingsClient WhatsApp Save", () => {
 
         assert.strictEqual(payload.enabled, true);
         assert.strictEqual(payload.base_url, "http://gowa.lpmf.local:3000");
+        assert.strictEqual(payload.device_id, "device-123");
         assert.strictEqual(payload.basic_user, "lpmf");
         assert.strictEqual(payload.basic_pass, "lpmfjaya1");
         assert.deepStrictEqual(payload.enabled_milestones, [
@@ -197,6 +205,7 @@ describe("SettingsClient WhatsApp Save", () => {
 
         assert.strictEqual(payload.enabled, false);
         assert.strictEqual(payload.base_url, "http://localhost:3000");
+        assert.strictEqual(payload.device_id, null);
         assert.strictEqual(payload.basic_user, null);
         assert.strictEqual(payload.basic_pass, null);
         assert.deepStrictEqual(payload.enabled_milestones, []);
@@ -219,6 +228,19 @@ describe("SettingsClient WhatsApp Save", () => {
 
         assert.strictEqual(client.fetchCalls.length, 1);
         assert.strictEqual(client.fetchCalls[0].url, "/api/settings/branding");
+    });
+
+    it("should retain whatsapp device_id when merging settings", () => {
+        const realClient = new SettingsClient({ csrf: "test-token" });
+        const merged = realClient.mergeNotifications({
+            whatsapp: {
+                enabled: true,
+                device_id: "device-123",
+                base_url: "http://gowa.example",
+            },
+        });
+
+        assert.strictEqual(merged.whatsapp.device_id, "device-123");
     });
 });
 

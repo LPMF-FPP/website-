@@ -191,6 +191,12 @@ export class SettingsClient {
             backupJobId: null,
             backups: [],
             backupsLoading: false,
+            // GOWA devices state
+            gowaDevices: {
+                list: [],
+                loading: false,
+                error: null,
+            },
         };
     }
 
@@ -322,6 +328,11 @@ export class SettingsClient {
         try {
             const data = await this.apiFetch(this.api.settings);
             this.applyServerData(data);
+
+            // Auto-fetch GOWA devices if WhatsApp is enabled
+            if (data.notifications?.whatsapp?.enabled) {
+                this.fetchGowaDevices();
+            }
         } catch (error) {
             this.state.loadError = error.message || "Gagal memuat pengaturan.";
             throw error;
@@ -733,6 +744,72 @@ export class SettingsClient {
     }
 
     /**
+     * Fetch GOWA devices for dropdown
+     */
+    async fetchGowaDevices() {
+        this.state.gowaDevices.loading = true;
+        this.state.gowaDevices.error = null;
+
+        try {
+            const data = await this.apiFetch(
+                "/api/settings/notifications/whatsapp/devices",
+            );
+
+            if (data.success) {
+                this.state.gowaDevices.list = data.devices || [];
+            } else {
+                this.state.gowaDevices.error =
+                    data.error || "Gagal mengambil daftar device";
+                this.state.gowaDevices.list = [];
+            }
+        } catch (error) {
+            this.state.gowaDevices.error =
+                error.message || "Gagal mengambil daftar device";
+            this.state.gowaDevices.list = [];
+        } finally {
+            this.state.gowaDevices.loading = false;
+        }
+    }
+
+    /**
+     * Check connection with form credentials and list devices
+     */
+    async checkGowaConnection() {
+        this.state.gowaDevices.loading = true;
+        this.state.gowaDevices.error = null;
+
+        const wa = this.state.form.notifications?.whatsapp;
+        if (!wa || !wa.base_url) {
+            this.state.gowaDevices.error = "URL Service wajib diisi";
+            this.state.gowaDevices.loading = false;
+            return;
+        }
+
+        try {
+            const data = await this.apiFetch(
+                "/api/settings/notifications/whatsapp/check-connection",
+                {
+                    method: "POST",
+                    body: {
+                        base_url: wa.base_url,
+                        basic_user: wa.basic_user,
+                        basic_pass: wa.basic_pass,
+                    },
+                },
+            );
+
+            this.state.gowaDevices.list = data.devices || [];
+            // Optional: Success indication handled by UI binding to gowaDevices.list length or error state
+        } catch (error) {
+            this.state.gowaDevices.error =
+                error.message || "Gagal melakukan cek koneksi";
+            this.state.gowaDevices.list = [];
+        } finally {
+            this.state.gowaDevices.loading = false;
+        }
+    }
+
+    /**
      * Test milestone notification
      */
     async testMilestone(milestoneKey) {
@@ -912,6 +989,7 @@ export class SettingsClient {
         const payload = {
             enabled: !!wa.enabled,
             base_url: wa.base_url || "http://localhost:3000",
+            device_id: wa.device_id || null,
             basic_user: wa.basic_user || null,
             basic_pass: wa.basic_pass || null,
             enabled_milestones: Array.isArray(wa.enabled_milestones)
@@ -1232,6 +1310,7 @@ export class SettingsClient {
             whatsapp: {
                 enabled: !!source?.whatsapp?.enabled,
                 base_url: source?.whatsapp?.base_url || "http://localhost:3000",
+                device_id: source?.whatsapp?.device_id || "",
                 basic_user: source?.whatsapp?.basic_user || "",
                 basic_pass: source?.whatsapp?.basic_pass || "",
                 enabled_milestones: Array.isArray(

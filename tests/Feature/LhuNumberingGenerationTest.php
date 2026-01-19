@@ -24,6 +24,10 @@ class LhuNumberingGenerationTest extends TestCase
     {
         parent::setUp();
         $this->seed(SystemSettingSeeder::class);
+        
+        // Disable WhatsApp notifications to prevent job failures during testing
+        settings_fake(['notifications.whatsapp.enabled' => false]);
+        
         settings_forget_cache();
 
         // Create admin user with proper permissions

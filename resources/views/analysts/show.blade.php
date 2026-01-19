@@ -67,10 +67,10 @@
         <x-page-section title="Profil Pengguna">
             <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 <div class="rounded-lg bg-white p-6 shadow-sm">
-                    <div class="text-lg font-semibold text-gray-900">{{ $analyst->display_name_with_title }}</div>
-                    <div class="mt-1 text-sm text-gray-600">{{ $analyst->email }}</div>
-                    <div class="mt-2 text-sm text-gray-600">Pangkat: {{ $analyst->rank ?? '-' }}</div>
-                    <div class="text-sm text-gray-600">NRP: {{ $analyst->nrp ?? '-' }} | NIP: {{ $analyst->nip ?? '-' }}</div>
+                    <div class="text-lg font-semibold text-pd-text">{{ $analyst->display_name_with_title }}</div>
+                    <div class="mt-1 text-sm text-pd-body">{{ $analyst->email }}</div>
+                    <div class="mt-2 text-sm text-pd-body">Pangkat: {{ $analyst->rank ?? '-' }}</div>
+                    <div class="text-sm text-pd-body">NRP: {{ $analyst->nrp ?? '-' }} | NIP: {{ $analyst->nip ?? '-' }}</div>
                     <div class="mt-4 flex flex-wrap items-center gap-2">
                         <x-status-badge
                             variant="secondary"
@@ -85,19 +85,19 @@
                     </div>
                 </div>
                 <div class="rounded-lg bg-white p-6 shadow-sm lg:col-span-2">
-                    <h3 class="text-sm font-semibold text-gray-900">Ringkasan</h3>
+                    <h3 class="text-sm font-semibold text-pd-text">Ringkasan</h3>
                     <div class="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div class="rounded-lg border border-gray-100 p-4">
-                            <div class="text-xs uppercase text-gray-500">ID Pengguna</div>
-                            <div class="text-sm font-semibold text-gray-900">#{{ $analyst->id }}</div>
+                            <div class="text-xs uppercase text-pd-muted">ID Pengguna</div>
+                            <div class="text-sm font-semibold text-pd-text">#{{ $analyst->id }}</div>
                         </div>
                         <div class="rounded-lg border border-gray-100 p-4">
-                            <div class="text-xs uppercase text-gray-500">Aktivitas Terakhir</div>
-                            <div class="text-sm font-semibold text-gray-900">
+                            <div class="text-xs uppercase text-pd-muted">Aktivitas Terakhir</div>
+                            <div class="text-sm font-semibold text-pd-text">
                                 {{ $lastActivity?->diffForHumans() ?? 'Belum ada' }}
                             </div>
                             @if($lastActivity)
-                                <div class="text-xs text-gray-500">{{ $lastActivity->format('d M Y H:i') }}</div>
+                                <div class="text-xs text-pd-muted">{{ $lastActivity->format('d M Y H:i') }}</div>
                             @endif
                         </div>
                     </div>
@@ -234,12 +234,12 @@
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Halaman</th>
-                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 w-20">Lihat</th>
-                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 w-20">Tambah</th>
-                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 w-20">Edit</th>
-                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 w-20">Hapus</th>
-                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500 w-20">Export</th>
+                                    <th class="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-500">Halaman</th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase text-gray-500 w-20">Lihat</th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase text-gray-500 w-20">Tambah</th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase text-gray-500 w-20">Edit</th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase text-gray-500 w-20">Hapus</th>
+                                    <th class="px-4 py-3 text-center text-xs font-semibold uppercase text-gray-500 w-20">Export</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200 bg-white">
@@ -379,7 +379,7 @@
         <x-page-section title="Aktivitas Terakhir">
             <div class="overflow-hidden rounded-lg bg-white shadow-sm">
                 <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            <thead class="bg-gray-50 text-xs font-semibold uppercase text-pd-muted">
                         <tr>
                             <th class="px-4 py-3 text-left">Waktu</th>
                             <th class="px-4 py-3 text-left">Aksi</th>
@@ -387,7 +387,8 @@
                             <th class="px-4 py-3 text-left">Ringkas Perubahan</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-200 text-sm text-gray-700">
+                    <tbody class="divide-y divide-gray-200 text-sm text-pd-body">
+
                         @forelse($recentLogs as $log)
                             @php
                                 $changes = $buildChanges($log->before, $log->after);
@@ -405,13 +406,13 @@
                             @endphp
                             <tr>
                                 <td class="px-4 py-3">
-                                    <div class="text-gray-900">{{ $log->created_at->format('d M Y H:i') }}</div>
-                                    <div class="text-xs text-gray-500">{{ $log->created_at->diffForHumans() }}</div>
+                                    <div class="text-pd-text">{{ $log->created_at->format('d M Y H:i') }}</div>
+                                    <div class="text-xs text-pd-muted">{{ $log->created_at->diffForHumans() }}</div>
                                 </td>
                                 <td class="px-4 py-3">
-                                    <div class="font-semibold text-gray-900">{{ Str::of($log->action)->replace('_', ' ')->title() }}</div>
+                                    <div class="font-semibold text-pd-text">{{ Str::of($log->action)->replace('_', ' ')->title() }}</div>
                                     @if($log->actor)
-                                        <div class="text-xs text-gray-500">Aktor: {{ $log->actor->name }}</div>
+                                        <div class="text-xs text-pd-muted">Aktor: {{ $log->actor->name }}</div>
                                     @endif
                                 </td>
                                 <td class="px-4 py-3">

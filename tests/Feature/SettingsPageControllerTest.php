@@ -34,12 +34,17 @@ class SettingsPageControllerTest extends TestCase
 
         $this->actingAs($user);
 
-        // Mock Gate
-        // Actually, just giving the user the permission might be easier if using spatie/permission or similar.
-        // Assuming Gate::authorize('manage-settings') checks a ability. 
-        // I'll try to define the gate in the test setup or use a mock.
-        // For now, let's assume the user needs to be authorized.
-        // I'll skip gate authorization details and mock it if needed or assume user has it.
-        // Since I don't know the exact Gate implementation, I'll mock Gate facade.
+        // Define the Gate permission
+        \Illuminate\Support\Facades\Gate::define('manage-settings', fn() => true);
+
+        $response = $this->get(route('settings.index'));
+
+        $response->assertOk();
+        $response->assertViewIs('settings.index');
+        $response->assertViewHas(['settings', 'options', 'templates']);
+        
+        // Assert that options contains document_types
+        $options = $response->viewData('options');
+        $this->assertArrayHasKey('document_types', $options);
     }
 }

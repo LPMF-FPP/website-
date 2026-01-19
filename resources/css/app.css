@@ -48,6 +48,7 @@
 
     .glass {
         @apply bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60;
+        @apply dark:bg-slate-900/70 dark:supports-[backdrop-filter]:bg-slate-900/60;
     }
 
     /* Section spacing helpers */
@@ -88,7 +89,7 @@
     }
 
     .btn {
-        @apply inline-flex items-center justify-center px-4 py-2 border font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2;
+        @apply inline-flex items-center justify-center px-4 py-2 border font-medium rounded-lg transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
     }
 
     .btn-primary {
@@ -138,11 +139,12 @@
     }
 
     .card {
-        @apply bg-white rounded-xl shadow-sm border border-primary-100 p-6;
+        @apply card-sem p-6;
     }
 
     .form-input {
-        @apply w-full px-4 py-3 border border-primary-200 rounded-lg bg-white text-primary-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus:outline-none;
+        @apply w-full px-4 py-3 border border-primary-200 rounded-lg bg-white text-primary-900 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 focus-visible:outline-none;
+        @apply dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:focus:border-primary-500 dark:focus:ring-primary-500/20;
     }
 
     /* Added: Form wrappers and states used by components */
@@ -168,11 +170,26 @@
 
     .medical-gradient {
         @apply bg-gradient-to-br from-primary-50 via-white to-secondary-50;
+        @apply dark:from-slate-950 dark:via-slate-900 dark:to-slate-950;
     }
 
     /* Medical background utility */
     .bg-medical {
         @apply bg-gradient-to-br from-primary-50/30 via-white to-secondary-50/20;
+        @apply dark:from-slate-950 dark:via-slate-900 dark:to-slate-950;
+    }
+
+    /* Semantic Text Utilities */
+    .text-pd-text {
+        color: var(--pd-sem-color-text);
+    }
+
+    .text-pd-body {
+        color: var(--pd-sem-color-text-body);
+    }
+
+    .text-pd-muted {
+        color: var(--pd-sem-color-text-muted);
     }
 
     /* Navigation specific styles */
@@ -211,21 +228,26 @@
 
     .badge-success {
         @apply bg-success-50 text-success-700 border border-success-200;
+        @apply dark:bg-success-900/30 dark:text-success-300 dark:border-success-800;
     }
 
     .badge-warning {
         @apply bg-warning-50 text-warning-700 border border-warning-200;
+        @apply dark:bg-warning-900/30 dark:text-warning-300 dark:border-warning-800;
     }
 
     .badge-danger {
         @apply bg-danger-50 text-danger-700 border border-danger-200;
+        @apply dark:bg-danger-900/30 dark:text-danger-300 dark:border-danger-800;
     }
 
     .badge-info {
         @apply bg-info-50 text-info-700 border border-info-200;
+        @apply dark:bg-info-900/30 dark:text-info-300 dark:border-info-800;
     }
 
     .badge-secondary {
         @apply bg-accent-100 text-accent-800 border border-accent-200;
+        @apply dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700;
     }
 }

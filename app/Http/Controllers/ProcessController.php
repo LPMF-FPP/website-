@@ -189,7 +189,7 @@ class ProcessController extends Controller
         return redirect()->route('testing.show', $testRequest);
     }
 
-    public function markReadyForDelivery(TestRequest $testRequest): RedirectResponse
+    public function markReadyForDelivery(TestRequest $testRequest, \App\Services\WhatsApp\NotificationService $notificationService): RedirectResponse
     {
         // Update test request status to ready_for_delivery
         $testRequest->update([
@@ -201,6 +201,44 @@ class ProcessController extends Controller
             'status' => 'ready_for_delivery',
             'sample_status' => 'ready_for_delivery',
         ]);
+
+        // Send WhatsApp Notification
+        if ($notificationService->isWhatsAppEnabled() && $notificationService->shouldNotify('READY_FOR_PICKUP')) {
+            $testRequest->load('investigator');
+
+            if ($testRequest->investigator && $testRequest->investigator->phone) {
+                $phone = $testRequest->investigator->phone;
+                $jid = $notificationService->formatJID($phone);
+
+                $message = $notificationService->getMilestoneMessage('READY_FOR_PICKUP', [
+                    'resi' => $testRequest->receipt_number,
+                    'nomor surat' => $testRequest->request_number,
+                    'tersangka' => $testRequest->suspect_name ?? '-',
+                    'pangkat' => $notificationService->getSalutation($testRequest->investigator),
+                    'nama' => $testRequest->investigator->name ?? '-',
+                    'greetings' => $notificationService->getTimeBasedGreeting(),
+                    'greeting' => $notificationService->getGreeting($testRequest->investigator),
+                ]);
+
+                if ($message) {
+                    $outbox = \App\Models\WhatsappOutbox::updateOrCreate(
+                        [
+                            'test_request_id' => $testRequest->id,
+                            'milestone_key' => 'READY_FOR_PICKUP',
+                        ],
+                        [
+                            'to_phone_e164' => \App\Support\PhoneNormalizer::toE164($phone),
+                            'to_jid' => $jid,
+                            'message_text' => $message,
+                            'status' => 'queued',
+                            'attempts' => 0,
+                        ]
+                    );
+
+                    \App\Jobs\SendWhatsAppNotificationJob::dispatch($outbox->id);
+                }
+            }
+        }
 
         return redirect()
             ->route('delivery.show', $testRequest)

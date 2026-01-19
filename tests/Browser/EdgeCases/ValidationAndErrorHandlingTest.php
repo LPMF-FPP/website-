@@ -4,13 +4,13 @@ namespace Tests\Browser\EdgeCases;
 
 use App\Models\TestRequest;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
 class ValidationAndErrorHandlingTest extends DuskTestCase
 {
-    use DatabaseTransactions;
+    use DatabaseTruncation;
 
     public function test_form_shows_validation_errors_on_empty_submission(): void
     {
@@ -85,9 +85,11 @@ class ValidationAndErrorHandlingTest extends DuskTestCase
                 ->visit('/requests/create')
                 ->script('window.addEventListener("offline", () => alert("Network offline"));');
 
-            $browser->script('window.dispatchEvent(new Event("offline"));')
-                ->waitForDialog()
-                ->assertDialogOpened();
+            $browser->script('window.dispatchEvent(new Event("offline"));');
+            
+            $browser->waitForDialog()
+                ->assertDialogOpened('Network offline')
+                ->acceptDialog();
         });
     }
 
@@ -97,9 +99,11 @@ class ValidationAndErrorHandlingTest extends DuskTestCase
 
         $this->browse(function (Browser $browser) use ($user) {
             $browser->loginAs($user)
-                ->visit('/dashboard')
-                ->script('document.cookie = "laravel_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";')
-                ->visit('/requests/create')
+                ->visit('/dashboard');
+                
+            $browser->script('document.cookie = "laravel_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";');
+            
+            $browser->visit('/requests/create')
                 ->waitForText('Login')
                 ->assertPathIs('/login');
         });

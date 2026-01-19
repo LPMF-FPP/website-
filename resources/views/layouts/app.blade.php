@@ -27,12 +27,12 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('styles')
 </head>
-<body class="font-sans antialiased bg-medical dark:bg-accent-900 dark:text-accent-100">
+<body class="font-sans antialiased bg-medical text-pd-text dark:text-pd-text">
     <!-- Skip to main content for keyboard users -->
-    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 bg-white text-primary-800 border border-primary-300 rounded px-3 py-2 shadow">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-pd-overlay bg-white text-primary-800 border border-primary-300 rounded px-3 py-2 shadow">
         Lewati ke konten utama
     </a>
-    <div class="min-h-screen flex flex-col">
+    <div class="min-h-dvh flex flex-col">
         @include('layouts.navigation')
         <div class="absolute top-2 right-2 z-40">
             <form method="POST" action="{{ route('locale.switch', ['locale' => app()->getLocale()==='id' ? 'en':'id']) }}" class="inline">
@@ -45,7 +45,7 @@
 
         <!-- Page Heading -->
         @isset($header)
-            <header class="bg-white dark:bg-accent-900 border-b border-gray-200 dark:border-accent-800 shadow-none">
+            <header class="surface-sem border-b border-sem shadow-none">
                 <div class="container mx-auto max-w-7xl py-4 px-4 sm:px-6 lg:px-8">
                     {{ $header }}
                 </div>

@@ -28,4 +28,21 @@ class SettingsResponseBuilderTest extends TestCase
             $data['available_methods']
         );
     }
+
+    public function test_get_options_returns_expected_structure()
+    {
+        $builder = app(SettingsResponseBuilder::class);
+        $options = $builder->getOptions();
+        
+        $this->assertArrayHasKey('timezones', $options);
+        $this->assertArrayHasKey('date_formats', $options);
+        $this->assertArrayHasKey('number_formats', $options);
+        $this->assertArrayHasKey('languages', $options);
+        $this->assertArrayHasKey('storage_drivers', $options);
+        $this->assertArrayHasKey('document_types', $options);
+
+        // Verify values are populated (sanity check)
+        $this->assertContains('public', $options['storage_drivers']);
+        $this->assertContains('Asia/Jakarta', $options['timezones']);
+    }
 }

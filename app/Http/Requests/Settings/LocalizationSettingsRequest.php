@@ -95,8 +95,6 @@ class LocalizationSettingsRequest extends FormRequest
                     $fail('Invalid timezone');
                 }
             }],
-            'localization.date_format' => ['sometimes', 'required', 'string', Rule::in(self::DATE_FORMATS)],
-            'localization.number_format' => ['sometimes', 'required', 'string', Rule::in(self::NUMBER_FORMATS)],
             'localization.language' => ['sometimes', 'required', 'string', Rule::in(self::LANGUAGES)],
 
             // Retention rules - support partial updates and nullable values
@@ -114,8 +112,6 @@ class LocalizationSettingsRequest extends FormRequest
         return [
             'localization.timezone.required' => 'Timezone wajib diisi.',
             'localization.timezone.string' => 'Timezone harus berupa string.',
-            'localization.date_format.in' => 'Format tanggal tidak valid.',
-            'localization.number_format.in' => 'Format angka tidak valid.',
             'localization.language.in' => 'Bahasa tidak valid.',
             'retention.storage_driver.in' => 'Storage driver tidak valid.',
         ];

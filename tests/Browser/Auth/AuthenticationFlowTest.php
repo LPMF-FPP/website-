@@ -3,13 +3,13 @@
 namespace Tests\Browser\Auth;
 
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTruncation;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
 class AuthenticationFlowTest extends DuskTestCase
 {
-    use DatabaseTruncation;
+    use DatabaseMigrations;
 
     protected function setUp(): void
     {
@@ -27,8 +27,8 @@ class AuthenticationFlowTest extends DuskTestCase
                 ->type('email', 'john@example.com')
                 ->type('password', 'password123')
                 ->type('password_confirmation', 'password123')
-                ->press('REGISTER')
-                ->assertPathIs('/dashboard')
+                ->click('button[type="submit"]')
+                ->waitForLocation('/dashboard')
                 ->assertAuthenticated();
         });
     }
@@ -36,18 +36,17 @@ class AuthenticationFlowTest extends DuskTestCase
     public function test_user_can_login_with_valid_credentials(): void
     {
         $user = User::factory()->create([
-            'email' => 'user@example.com',
-            'password' => bcrypt('password123'),
+            'password' => 'password123',
         ]);
 
         $this->browse(function (Browser $browser) use ($user) {
             $browser->driver->manage()->deleteAllCookies();
             $browser->visit('/login')
-                ->assertSee('Email')
-                ->type('email', 'user@example.com')
+                ->waitFor('input[name="email"]')
+                ->type('email', $user->email)
                 ->type('password', 'password123')
-                ->press('LOG IN')
-                ->assertPathIs('/dashboard')
+                ->click('button[type="submit"]')
+                ->waitForLocation('/dashboard', 10)
                 ->assertAuthenticated()
                 ->assertAuthenticatedAs($user);
         });
@@ -55,20 +54,20 @@ class AuthenticationFlowTest extends DuskTestCase
 
     public function test_user_cannot_login_with_invalid_password(): void
     {
-        User::factory()->create([
-            'email' => 'user@example.com',
-            'password' => bcrypt('password123'),
+        $user = User::factory()->create([
+            'password' => 'password123',
         ]);
 
-        $this->browse(function (Browser $browser) {
+        $this->browse(function (Browser $browser) use ($user) {
             $browser->driver->manage()->deleteAllCookies();
             $browser->visit('/login')
-                ->type('email', 'user@example.com')
+                ->waitFor('input[name="email"]')
+                ->type('email', $user->email)
                 ->type('password', 'wrong-password')
-                ->press('LOG IN')
+                ->click('button[type="submit"]')
+                ->waitForText('credentials', 10)
                 ->assertPathIs('/login')
-                ->assertGuest()
-                ->assertSee('credentials');
+                ->assertGuest();
         });
     }
 
@@ -76,24 +75,27 @@ class AuthenticationFlowTest extends DuskTestCase
     {
         $this->browse(function (Browser $browser) {
             $browser->driver->manage()->deleteAllCookies();
+            $email = 'jane' . time() . '@example.com';
+            
             $browser->visit('/register')
                 ->type('name', 'Jane Smith')
-                ->type('email', 'jane@example.com')
+                ->type('email', $email)
                 ->type('password', 'secure-password')
                 ->type('password_confirmation', 'secure-password')
-                ->press('REGISTER')
-                ->assertPathIs('/dashboard')
+                ->click('button[type="submit"]')
+                ->waitForLocation('/dashboard', 10)
                 ->assertAuthenticated();
 
-            $browser->clickLink('Logout')
+            $browser->click('[data-dropdown-trigger]')
+                ->clickLink('Log Out')
                 ->assertPathIs('/')
                 ->assertGuest();
 
             $browser->visit('/login')
-                ->type('email', 'jane@example.com')
+                ->type('email', $email)
                 ->type('password', 'secure-password')
-                ->press('LOG IN')
-                ->assertPathIs('/dashboard')
+                ->click('button[type="submit"]')
+                ->waitForLocation('/dashboard', 10)
                 ->assertAuthenticated();
         });
     }

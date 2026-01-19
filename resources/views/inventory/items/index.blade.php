@@ -128,6 +128,7 @@
                                     @if(auth()->user()->role === 'admin')
                                         {{-- 3D Delete Button --}}
                                         <button type="button" 
+                                                id="delete-item-{{ $item->id }}"
                                                 onclick="confirmDelete('{{ $item->id }}', '{{ addslashes($item->name) }}')"
                                                 class="inline-flex items-center px-3 py-1.5 text-xs font-semibold text-white bg-red-500 rounded-md shadow-[0_4px_0_0] shadow-red-700 hover:shadow-[0_2px_0_0] hover:shadow-red-700 hover:translate-y-[2px] active:shadow-none active:translate-y-[4px] transition-all duration-100">
                                             <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

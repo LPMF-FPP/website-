@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Settings\LocalizationSettingsRequest;
 use App\Services\Settings\SettingsResponseBuilder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
@@ -20,12 +19,7 @@ class SettingsController extends Controller
 
         return response()->json([
             'settings' => $payload,
-            'options' => [
-                'timezones' => LocalizationSettingsRequest::timezones(),
-                'date_formats' => LocalizationSettingsRequest::DATE_FORMATS,
-                'number_formats' => LocalizationSettingsRequest::NUMBER_FORMATS,
-                'languages' => LocalizationSettingsRequest::LANGUAGES,
-            ],
+            'options' => $this->builder->getOptions(),
         ]);
     }
 }

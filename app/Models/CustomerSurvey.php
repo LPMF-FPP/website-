@@ -13,7 +13,6 @@ class CustomerSurvey extends Model
     protected $fillable = [
         'test_request_id',
         'respondent_name',
-        'respondent_job_title',
         'respondent_institution',
         'respondent_job_category',
         'request_type',
@@ -43,7 +42,6 @@ class CustomerSurvey extends Model
     {
         $requiredFields = [
             $this->respondent_name,
-            $this->respondent_job_title,
             $this->respondent_institution,
             $this->respondent_job_category,
             $this->request_type,

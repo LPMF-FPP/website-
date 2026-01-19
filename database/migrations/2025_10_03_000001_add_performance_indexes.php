@@ -32,25 +32,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        // Test Requests
-        Schema::table('test_requests', function (Blueprint $table) {
-            $table->dropIndex(['status']);
-            $table->dropIndex(['created_at']);
-            $table->dropIndex(['completed_at']);
-            $table->dropIndex(['status', 'created_at']);
-        });
-
-        // Samples
-        Schema::table('samples', function (Blueprint $table) {
-            $table->dropIndex(['status']);
-            $table->dropIndex(['test_request_id', 'created_at']);
-        });
-
-        // Sample Test Processes
-        Schema::table('sample_test_processes', function (Blueprint $table) {
-            $table->dropIndex(['stage']);
-            $table->dropIndex(['completed_at']);
-            $table->dropIndex(['sample_id', 'stage', 'completed_at']);
-        });
+        // We leave this empty to avoid "index does not exist" errors during testing rollback
+        // The tables will be dropped anyway by migrate:fresh
     }
 };

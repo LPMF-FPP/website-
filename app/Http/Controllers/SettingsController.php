@@ -15,7 +15,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 
 use function settings;
 use function settings_flatten;
@@ -46,7 +45,7 @@ class SettingsController extends Controller
     {
         try {
             Gate::authorize('manage-settings');
-            $incoming = $this->extractPayload($request);
+            $incoming = $request->only(self::ALLOWED_ROOTS);
 
             if (isset($incoming['templates']['list'])) {
                 unset($incoming['templates']['list']);
@@ -249,36 +248,6 @@ class SettingsController extends Controller
         return response()->json(['path' => $path]);
     }
 
-    protected function extractPayload(Request $request): array
-    {
-        // 1) Try standard input (JSON or Form)
-        $incoming = $request->json()->all();
-
-        if (empty($incoming)) {
-            $incoming = $request->all();
-        }
-
-        // Unwrap if nested under 'settings'
-        if (isset($incoming['settings']) && is_array($incoming['settings'])) {
-            $incoming = $incoming['settings'];
-        }
-
-        if (! is_array($incoming)) {
-            throw ValidationException::withMessages([
-                'settings' => 'Invalid settings payload.',
-            ]);
-        }
-
-        // Only allow specific root keys
-        $filtered = [];
-        foreach (self::ALLOWED_ROOTS as $root) {
-            if (array_key_exists($root, $incoming)) {
-                $filtered[$root] = $incoming[$root];
-            }
-        }
-
-        return $filtered;
-    }
 
     public function saveInstrumentRequirements(Request $request, SettingsResponseBuilder $settingsBuilder)
     {

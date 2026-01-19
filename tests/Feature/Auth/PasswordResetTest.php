@@ -22,8 +22,7 @@ class PasswordResetTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->withoutMiddleware()
-            ->from('/forgot-password')
+        $response = $this->from('/forgot-password')
             ->post('/forgot-password', ['email' => $user->email]);
 
         $response->assertRedirect('/forgot-password');
@@ -47,7 +46,7 @@ class PasswordResetTest extends TestCase
 
         $token = Password::createToken($user);
 
-        $response = $this->withoutMiddleware()->post('/reset-password', [
+        $response = $this->post('/reset-password', [
             'token' => $token,
             'email' => $user->email,
             'password' => 'new-password',

@@ -50,6 +50,27 @@
         ];
         $surveyAnswers = old('answers', $survey->answers ?? []);
         $surveyAnswers = is_array($surveyAnswers) ? $surveyAnswers : [];
+
+        // Pre-fill identity data from investigator if survey doesn't exist
+        $investigator = $request->investigator;
+        
+        $defaultName = $survey->respondent_name ?? $investigator->name ?? '';
+        $defaultJobTitle = $survey->respondent_job_title ?? $investigator->rank ?? $investigator->occupation ?? '';
+        $defaultInstitution = $survey->respondent_institution ?? $investigator->jurisdiction ?? $investigator->institution ?? '';
+        
+        $defaultJobCategory = $survey->respondent_job_category ?? '';
+        if (empty($defaultJobCategory) && ($investigator->is_polri ?? false)) {
+            $defaultJobCategory = 'Polri';
+        }
+
+        // Attempt to infer request type from first sample if not set
+        $defaultRequestType = $survey->request_type ?? '';
+        if (empty($defaultRequestType) && $request->samples->isNotEmpty()) {
+            $firstSampleType = $request->samples->first()->test_type;
+            if ($firstSampleType && in_array($firstSampleType, $requestTypes)) {
+                $defaultRequestType = $firstSampleType;
+            }
+        }
     @endphp
 
     <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
@@ -86,10 +107,6 @@
                             <div>
                                 <div class="text-xs uppercase tracking-wide text-gray-500">Nama</div>
                                 <div class="mt-1 font-semibold text-gray-900">{{ $survey->respondent_name }}</div>
-                            </div>
-                            <div>
-                                <div class="text-xs uppercase tracking-wide text-gray-500">Pekerjaan</div>
-                                <div class="mt-1 font-semibold text-gray-900">{{ $survey->respondent_job_title }}</div>
                             </div>
                             <div>
                                 <div class="text-xs uppercase tracking-wide text-gray-500">Instansi</div>
@@ -157,22 +174,10 @@
                                         Nama <span class="text-red-500">*</span>
                                     </label>
                                     <input type="text" name="respondent_name" id="respondent_name"
-                                           value="{{ old('respondent_name', $survey->respondent_name ?? '') }}"
+                                           value="{{ old('respondent_name', $defaultName) }}"
                                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('respondent_name') border-red-500 @enderror"
                                            required>
                                     @error('respondent_name')
-                                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                                    @enderror
-                                </div>
-                                <div>
-                                    <label for="respondent_job_title" class="block text-sm font-medium text-gray-700 mb-2">
-                                        Pekerjaan <span class="text-red-500">*</span>
-                                    </label>
-                                    <input type="text" name="respondent_job_title" id="respondent_job_title"
-                                           value="{{ old('respondent_job_title', $survey->respondent_job_title ?? '') }}"
-                                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('respondent_job_title') border-red-500 @enderror"
-                                           required>
-                                    @error('respondent_job_title')
                                         <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                                     @enderror
                                 </div>
@@ -181,7 +186,7 @@
                                         Instansi <span class="text-red-500">*</span>
                                     </label>
                                     <input type="text" name="respondent_institution" id="respondent_institution"
-                                           value="{{ old('respondent_institution', $survey->respondent_institution ?? '') }}"
+                                           value="{{ old('respondent_institution', $defaultInstitution) }}"
                                            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('respondent_institution') border-red-500 @enderror"
                                            required>
                                     @error('respondent_institution')
@@ -198,7 +203,7 @@
                                         <label class="flex items-center text-sm text-gray-700">
                                             <input type="radio" name="respondent_job_category" value="{{ $category }}"
                                                    class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                                                   @checked(old('respondent_job_category', $survey->respondent_job_category ?? '') === $category)
+                                                   @checked(old('respondent_job_category', $defaultJobCategory) === $category)
                                                    required>
                                             <span>{{ $category }}</span>
                                         </label>
@@ -221,7 +226,7 @@
                                         <label class="flex items-center text-sm text-gray-700">
                                             <input type="radio" name="request_type" value="{{ $type }}"
                                                    class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                                                   @checked(old('request_type', $survey->request_type ?? '') === $type)
+                                                   @checked(old('request_type', $defaultRequestType) === $type)
                                                    required>
                                             <span>{{ $type }}</span>
                                         </label>

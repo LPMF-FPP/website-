@@ -67,7 +67,7 @@
         <!-- Low Stock Items -->
         @if($lowStockItems->isNotEmpty())
         <x-page-section title="⚠️ Stok Rendah (di bawah minimum)">
-            <div class="overflow-hidden rounded-lg bg-white shadow-sm">
+            <div class="overflow-hidden rounded-lg bg-white shadow-sm low-stock-warning">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-amber-50">
                         <tr>

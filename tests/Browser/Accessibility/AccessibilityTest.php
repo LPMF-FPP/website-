@@ -3,13 +3,13 @@
 namespace Tests\Browser\Accessibility;
 
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTruncation;
+use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
 class AccessibilityTest extends DuskTestCase
 {
-    use DatabaseTruncation;
+    use DatabaseMigrations;
 
     protected function setUp(): void
     {
@@ -78,7 +78,8 @@ class AccessibilityTest extends DuskTestCase
             $browser->driver->manage()->deleteAllCookies();
             $this->loginViaForm($browser, $user->email, $password);
             $browser->visit('/requests/create')
-                ->waitFor('form')
+                ->waitForText('Formulir Permintaan')
+                ->waitFor('#request-create-form')
                 // Buttons with visible text content are accessible
                 ->assertPresent('button[type="submit"]');
         });

@@ -1,16 +1,16 @@
-<nav x-data="{ mobileOpen: false }" class="bg-white dark:bg-accent-900 border-b border-primary-100 dark:border-accent-800 relative z-50">
+<nav x-data="{ mobileOpen: false }" class="surface-sem border-b border-sem relative z-pd-nav">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
             <!-- Logo Section -->
             <div class="flex items-center gap-4">
                 <a href="{{ route('dashboard') }}" class="flex items-center gap-3 group">
                     <img src="/images/logo-pusdokkes-polri.png" alt="Logo Pusdokkes Polri" class="h-10 w-auto group-hover:scale-105 transition-transform duration-200">
-                    <div class="hidden lg:block h-8 w-px bg-gray-200 dark:bg-white/10"></div>
+                    <div class="hidden lg:block h-8 w-px bg-primary-200 dark:bg-accent-700"></div>
                     <div class="hidden lg:block">
-                        <h1 class="text-lg font-bold text-primary-900 dark:text-white leading-tight">
+                        <h1 class="text-lg font-bold text-pd-text leading-tight">
                             Farmapol
                         </h1>
-                        <p class="text-xs text-primary-500 font-medium tracking-wide uppercase">
+                        <p class="text-xs text-pd-text-muted font-medium uppercase">
                             Pusdokkes Polri
                         </p>
                     </div>
@@ -77,13 +77,13 @@
                              x-transition:leave="transition ease-in duration-150"
                              x-transition:leave-start="opacity-100 translate-y-0"
                              x-transition:leave-end="opacity-0 translate-y-1"
-                             class="absolute left-1/2 transform -translate-x-1/2 mt-3 w-screen max-w-3xl px-4 sm:px-0 z-50"
+                             class="absolute left-1/2 transform -translate-x-1/2 mt-3 w-screen max-w-3xl px-4 sm:px-0 z-pd-overlay"
                              style="display: none;">
-                            <div class="overflow-hidden rounded-2xl shadow-xl ring-1 ring-black/5 bg-white dark:bg-accent-900 dark:ring-white/10 p-6">
+                            <div class="overflow-hidden rounded-2xl shadow-xl ring-1 ring-black/5 dark:ring-white/10 surface-sem p-6">
                                 <div class="grid grid-cols-2 gap-8">
                                     <!-- Column 1: Umum -->
                                     <div>
-                                        <h2 class="text-xs font-semibold text-primary-500 uppercase tracking-wider mb-4">Referensi Data</h2>
+                                        <h2 class="text-xs font-semibold text-pd-text-muted uppercase mb-4">Referensi Data</h2>
                                         <div class="space-y-3">
                                             @can('tracking.view')
                                             <a href="{{ route('tracking.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
@@ -123,7 +123,7 @@
 
                                     <!-- Column 2: Admin / More -->
                                     <div>
-                                        <h2 class="text-xs font-semibold text-primary-500 uppercase tracking-wider mb-4">Sistem & Inventori</h2>
+                                        <h2 class="text-xs font-semibold text-pd-text-muted uppercase mb-4">Sistem & Inventori</h2>
                                         <div class="space-y-3">
                                             @can('monitoring.view')
                                             <a href="{{ route('monitoring.sensors.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition duration-150">
@@ -249,7 +249,7 @@
     </div>
 
     <!-- Mobile Drawer -->
-    <div x-show="mobileOpen" class="relative z-50 xl:hidden" style="display: none;">
+    <div x-show="mobileOpen" class="relative z-pd-overlay xl:hidden" style="display: none;">
         <!-- Backdrop -->
         <div x-show="mobileOpen" 
              x-transition:enter="transition-opacity ease-linear duration-300"
@@ -270,7 +270,7 @@
              x-transition:leave="transition ease-in-out duration-300 transform"
              x-transition:leave-start="translate-x-0"
              x-transition:leave-end="translate-x-full"
-             class="fixed inset-y-0 right-0 z-50 w-full max-w-xs bg-white dark:bg-accent-900 shadow-2xl overflow-y-auto">
+             class="fixed inset-y-0 right-0 z-pd-overlay w-full max-w-xs surface-sem shadow-2xl overflow-y-auto">
             
             <div class="px-6 py-4 flex items-center justify-between border-b border-gray-100 dark:border-white/10">
                 <span class="text-lg font-bold text-gray-900 dark:text-white">Menu</span>

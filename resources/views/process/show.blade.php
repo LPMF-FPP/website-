@@ -202,7 +202,7 @@
                                                 x-transition:leave="transition ease-in duration-75"
                                                 x-transition:leave-start="transform opacity-100 scale-100"
                                                 x-transition:leave-end="transform opacity-0 scale-95"
-                                                class="absolute right-0 z-50 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                                                class="absolute right-0 z-pd-overlay mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
                                                 style="display: none;">
                                                 <div class="py-1">
                                                     @php
@@ -291,9 +291,9 @@
             x-transition:leave="ease-in duration-200"
             x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0"
-            class="fixed inset-0 z-50 overflow-y-auto"
+            class="fixed inset-0 z-pd-modal overflow-y-auto"
             style="display: none;">
-            <div class="flex min-h-screen items-center justify-center p-4">
+            <div class="flex min-h-dvh items-center justify-center p-4">
                 {{-- Backdrop --}}
                 <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="closeModal()"></div>
 
@@ -399,7 +399,7 @@
             x-transition:leave="transition ease-in duration-100"
             x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0"
-            class="fixed bottom-4 right-4 z-50 max-w-sm rounded-lg bg-white p-4 shadow-lg ring-1 ring-black ring-opacity-5"
+            class="fixed bottom-4 right-4 z-pd-toast max-w-sm rounded-lg bg-white p-4 shadow-lg ring-1 ring-black ring-opacity-5"
             style="display: none;">
             <div class="flex items-start gap-3">
                 <template x-if="toast.type === 'success'">

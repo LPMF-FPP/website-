@@ -16,10 +16,10 @@
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans text-primary-900 antialiased bg-medical">
-        <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 bg-white text-primary-800 border border-primary-300 rounded px-3 py-2 shadow">
+        <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-pd-overlay bg-white text-primary-800 border border-primary-300 rounded px-3 py-2 shadow">
             Lewati ke konten utama
         </a>
-        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0" role="main">
+        <div class="min-h-dvh flex flex-col sm:justify-center items-center pt-6 sm:pt-0" role="main">
             <div>
                 <a href="/">
                     <img src="/images/logo-pusdokkes-polri.png" alt="Logo Pusdokkes Polri" class="w-20 h-20">

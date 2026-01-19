@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -22,6 +23,8 @@ return new class extends Migration
 
     public function down()
     {
-        Schema::dropIfExists('users');
+        // Use raw SQL to force cascade drop on Postgres
+        // This prevents "cannot drop table users because other objects depend on it"
+        DB::statement('DROP TABLE IF EXISTS users CASCADE');
     }
 };

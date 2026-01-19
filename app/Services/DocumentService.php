@@ -184,21 +184,29 @@ class DocumentService
             $filePath = $path.$filename;
             Storage::disk($this->disk)->put($filePath, file_get_contents($file->getRealPath()));
 
-            // Create document record
-            return Document::create([
-                'investigator_id' => $inv->id,
-                'test_request_id' => $req?->id,
-                'document_type' => $type,
-                'source' => 'upload',
-                'storage_disk' => $this->disk,
-                'filename' => $originalFilename,
-                'original_filename' => $originalFilename,
-                'file_path' => $filePath,
-                'path' => $filePath,
-                'mime_type' => $file->getMimeType(),
-                'file_size' => $file->getSize(),
-                'extra' => null,
-            ]);
+            try {
+                return DB::transaction(function () use ($inv, $req, $type, $originalFilename, $filePath, $file) {
+                    // Create document record
+                    return Document::create([
+                        'investigator_id' => $inv->id,
+                        'test_request_id' => $req?->id,
+                        'document_type' => $type,
+                        'source' => 'upload',
+                        'storage_disk' => $this->disk,
+                        'filename' => $originalFilename,
+                        'original_filename' => $originalFilename,
+                        'file_path' => $filePath,
+                        'path' => $filePath,
+                        'mime_type' => $file->getMimeType(),
+                        'file_size' => $file->getSize(),
+                        'extra' => null,
+                    ]);
+                });
+            } catch (\Exception $e) {
+                // Cleanup file if database transaction fails
+                Storage::disk($this->disk)->delete($filePath);
+                throw $e;
+            }
         });
     }
 

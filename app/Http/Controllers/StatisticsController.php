@@ -306,8 +306,26 @@ class StatisticsController extends Controller
             ->orderBy('total', 'desc')
             ->get();
 
-        $labels = $jurisdictionData->pluck('jurisdiction')->toArray();
-        $data = $jurisdictionData->pluck('total')->toArray();
+        // Normalize and merge case-insensitive duplicates
+        $merged = [];
+        foreach ($jurisdictionData as $item) {
+            $name = trim((string) $item->jurisdiction);
+            if ($name === '') continue;
+
+            // Normalize to Title Case (e.g., "Asd" and "asd" -> "Asd")
+            $normalized = ucwords(strtolower($name));
+
+            if (!isset($merged[$normalized])) {
+                $merged[$normalized] = 0;
+            }
+            $merged[$normalized] += $item->total;
+        }
+
+        // Sort by total descending
+        arsort($merged);
+
+        $labels = array_keys($merged);
+        $data = array_values($merged);
 
         $total = array_sum($data);
         $percentages = array_map(function ($value) use ($total) {

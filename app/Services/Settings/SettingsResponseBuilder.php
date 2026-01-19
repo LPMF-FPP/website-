@@ -3,10 +3,13 @@
 namespace App\Services\Settings;
 
 use App\Models\DocumentTemplate;
+use App\Models\Document;
 use App\Models\Instrument;
 use App\Models\MethodInstrumentRequirement;
 use App\Services\IkuService;
 use App\Services\WhatsApp\NotificationService;
+use App\Http\Requests\Settings\LocalizationSettingsRequest;
+use App\Support\DocumentTypes;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 
@@ -44,6 +47,25 @@ class SettingsResponseBuilder
 
             'iku' => $this->ikuService->getConfig(),
             'instrument_requirements' => $this->getInstrumentRequirementsData(),
+        ];
+    }
+
+    public function getOptions(): array
+    {
+        $documentTypes = Document::query()
+            ->select('document_type')
+            ->distinct()
+            ->orderBy('document_type')
+            ->pluck('document_type')
+            ->toArray();
+
+        return [
+            'timezones' => LocalizationSettingsRequest::timezones(),
+            'date_formats' => LocalizationSettingsRequest::DATE_FORMATS,
+            'number_formats' => LocalizationSettingsRequest::NUMBER_FORMATS,
+            'languages' => LocalizationSettingsRequest::LANGUAGES,
+            'storage_drivers' => ['public'],
+            'document_types' => DocumentTypes::mapOptions($documentTypes),
         ];
     }
 

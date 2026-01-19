@@ -38,6 +38,7 @@ return [
     'whatsapp' => [
         'base_url' => env('WHATSAPP_API_URL'),
         'api_key' => env('WHATSAPP_API_KEY'),
+        'webhook_secret' => env('WHATSAPP_WEBHOOK_SECRET'),
         'gowa' => [
             'base_url' => env('WHATSAPP_GOWA_BASE_URL'),
             'username' => env('WHATSAPP_GOWA_USERNAME'),

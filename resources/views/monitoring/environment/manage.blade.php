@@ -62,11 +62,11 @@
                             <div class="flex items-center justify-between">
                                 <div class="flex-1">
                                     <div class="flex items-center gap-3">
-                                        <h3 class="text-sm font-medium text-gray-900" x-text="location.name"></h3>
+                                        <h3 class="text-sm font-medium text-pd-text" x-text="location.name"></h3>
                                         <span x-show="location.is_active" class="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 rounded-full">Aktif</span>
                                         <span x-show="!location.is_active" class="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 rounded-full">Nonaktif</span>
                                     </div>
-                                    <div class="mt-1 text-sm text-gray-500 flex flex-wrap gap-x-4 gap-y-1">
+                                    <div class="mt-1 text-sm text-pd-muted flex flex-wrap gap-x-4 gap-y-1">
                                         <span class="capitalize" x-text="'Tipe: ' + location.type"></span>
                                         <template x-if="location.target_temp_min !== null || location.target_temp_max !== null">
                                             <span>
@@ -125,7 +125,7 @@
              @keydown.escape.window="if (modal.open) closeModal()"
              class="fixed inset-0 z-50 overflow-y-auto" 
              aria-labelledby="location-modal-title" role="dialog" aria-modal="true">
-            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="flex items-end justify-center min-h-dvh pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div x-show="modal.open" 
                      x-transition:enter="ease-out duration-300"
                      x-transition:enter-start="opacity-0"
@@ -136,7 +136,7 @@
                      class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
                      @click="closeModal()"></div>
 
-                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                <span class="hidden sm:inline-block sm:align-middle sm:h-dvh" aria-hidden="true">&#8203;</span>
 
                 <div x-show="modal.open"
                      x-transition:enter="ease-out duration-300"
@@ -148,22 +148,22 @@
                      class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
                     <form @submit.prevent="submitForm()">
                         <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                            <h3 id="location-modal-title" class="text-lg font-medium text-gray-900 mb-4" x-text="modal.isEdit ? 'Edit Lokasi' : 'Tambah Lokasi'"></h3>
+                            <h3 id="location-modal-title" class="text-lg font-medium text-pd-text mb-4" x-text="modal.isEdit ? 'Edit Lokasi' : 'Tambah Lokasi'"></h3>
                             
                             <div x-show="modal.error" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700" x-text="modal.error"></div>
 
                             <div class="space-y-4">
                                 <div>
-                                    <label for="location-name" class="block text-sm font-medium text-gray-700 mb-1">Nama Lokasi <span class="text-red-500">*</span></label>
+                                    <label for="location-name" class="block text-sm font-medium text-pd-body mb-1">Nama Lokasi <span class="text-red-500">*</span></label>
                                     <input type="text" id="location-name" x-model="modal.form.name" 
-                                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                           class="form-input"
                                            placeholder="Contoh: Ruang Lab Kimia">
                                 </div>
 
                                 <div>
-                                    <label for="location-type" class="block text-sm font-medium text-gray-700 mb-1">Tipe <span class="text-red-500">*</span></label>
+                                    <label for="location-type" class="block text-sm font-medium text-pd-body mb-1">Tipe <span class="text-red-500">*</span></label>
                                     <select id="location-type" x-model="modal.form.type" 
-                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                            class="form-input">
                                         <option value="">Pilih tipe...</option>
                                         <option value="room">Room (Ruangan)</option>
                                         <option value="fridge">Fridge (Kulkas)</option>
@@ -174,30 +174,30 @@
 
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label for="temp-min" class="block text-sm font-medium text-gray-700 mb-1">Suhu Min (°C)</label>
+                                        <label for="temp-min" class="block text-sm font-medium text-pd-body mb-1">Suhu Min (°C)</label>
                                         <input type="number" id="temp-min" step="0.1" x-model.number="modal.form.target_temp_min" 
-                                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                               class="form-input"
                                                placeholder="Contoh: 18">
                                     </div>
                                     <div>
-                                        <label for="temp-max" class="block text-sm font-medium text-gray-700 mb-1">Suhu Max (°C)</label>
+                                        <label for="temp-max" class="block text-sm font-medium text-pd-body mb-1">Suhu Max (°C)</label>
                                         <input type="number" id="temp-max" step="0.1" x-model.number="modal.form.target_temp_max" 
-                                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                               class="form-input"
                                                placeholder="Contoh: 25">
                                     </div>
                                 </div>
 
                                 <div class="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label for="humidity-min" class="block text-sm font-medium text-gray-700 mb-1">Kelembaban Min (%)</label>
+                                        <label for="humidity-min" class="block text-sm font-medium text-pd-body mb-1">Kelembaban Min (%)</label>
                                         <input type="number" id="humidity-min" step="0.1" x-model.number="modal.form.target_humidity_min" 
-                                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                               class="form-input"
                                                placeholder="Contoh: 40">
                                     </div>
                                     <div>
-                                        <label for="humidity-max" class="block text-sm font-medium text-gray-700 mb-1">Kelembaban Max (%)</label>
+                                        <label for="humidity-max" class="block text-sm font-medium text-pd-body mb-1">Kelembaban Max (%)</label>
                                         <input type="number" id="humidity-max" step="0.1" x-model.number="modal.form.target_humidity_max" 
-                                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                               class="form-input"
                                                placeholder="Contoh: 60">
                                     </div>
                                 </div>
@@ -205,7 +205,7 @@
                                 <div class="flex items-center gap-2">
                                     <input type="checkbox" id="is_active" x-model="modal.form.is_active" 
                                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                                    <label for="is_active" class="text-sm text-gray-700">Lokasi aktif</label>
+                                    <label for="is_active" class="text-sm text-pd-body">Lokasi aktif</label>
                                 </div>
                             </div>
                         </div>
@@ -234,7 +234,7 @@
              @keydown.escape.window="if (deleteModal.open) closeDeleteModal()"
              class="fixed inset-0 z-50 overflow-y-auto" 
              aria-labelledby="delete-modal-title" role="dialog" aria-modal="true">
-            <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="flex items-end justify-center min-h-dvh pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div x-show="deleteModal.open" 
                      x-transition:enter="ease-out duration-300"
                      x-transition:enter-start="opacity-0"
@@ -245,7 +245,7 @@
                      class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
                      @click="closeDeleteModal()"></div>
 
-                <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+                <span class="hidden sm:inline-block sm:align-middle sm:h-dvh" aria-hidden="true">&#8203;</span>
 
                 <div x-show="deleteModal.open"
                      x-transition:enter="ease-out duration-300"
@@ -263,9 +263,9 @@
                                 </svg>
                             </div>
                             <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                                <h3 class="text-lg leading-6 font-medium text-gray-900" id="delete-modal-title">Hapus Lokasi</h3>
+                                <h3 class="text-lg leading-6 font-medium text-pd-text" id="delete-modal-title">Hapus Lokasi</h3>
                                 <div class="mt-2">
-                                    <p class="text-sm text-gray-500">
+                                    <p class="text-sm text-pd-muted">
                                         Apakah Anda yakin ingin menghapus lokasi <strong x-text="deleteModal.location?.name"></strong>? Tindakan ini tidak dapat dibatalkan.
                                     </p>
                                 </div>

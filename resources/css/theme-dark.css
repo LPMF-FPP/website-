@@ -1,20 +1,11 @@
 /* Dark theme overrides using data-theme="dark" or .dark root */
+/* Variables now handled in theme-semantic.css for consistency */
 :root.dark,
 [data-theme="dark"] {
-    /* Base surfaces */
-    --pd-color-bg: #0f172a; /* accent-900 */
-    --pd-color-surface: #1e293b; /* accent-800 */
-    --pd-color-border: #334155; /* accent-700 */
-    --pd-color-hover: #243554;
-    --pd-color-text: #f1f5f9; /* accent-100 */
-    --pd-color-text-muted: #94a3b8; /* accent-400 */
-    --pd-color-primary: #10b981; /* primary-500 reused */
+    /* Focus ring adjustment */
     --pd-focus-ring: 0 0 0 3px rgb(16 185 129 / 35%);
 
-    /* Shadows slightly stronger for dark */
-    --pd-shadow-sm: 0 1px 2px rgb(0 0 0 / 50%);
-    --pd-shadow-md:
-        0 4px 8px -1px rgb(0 0 0 / 55%), 0 2px 4px -2px rgb(0 0 0 / 45%);
+    /* Shadows slightly stronger for dark (if not covered by semantic) */
     --pd-shadow-lg:
         0 10px 15px -3px rgb(0 0 0 / 60%), 0 4px 6px -4px rgb(0 0 0 / 50%);
 }

@@ -5,18 +5,18 @@ namespace Tests\Browser\EdgeCases;
 use App\Models\Investigator;
 use App\Models\TestRequest;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Illuminate\Support\Facades\DB;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
 class DataIntegrityTest extends DuskTestCase
 {
-    use DatabaseTransactions;
+    use DatabaseTruncation;
 
     public function test_database_constraint_violation_handled_gracefully(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin']);
 
         $this->browse(function (Browser $browser) use ($user) {
             $browser->loginAs($user)
@@ -30,7 +30,7 @@ class DataIntegrityTest extends DuskTestCase
 
     public function test_transaction_rollback_on_error(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin']);
         $investigator = Investigator::factory()->create();
 
         $initialCount = TestRequest::count();
@@ -49,7 +49,7 @@ class DataIntegrityTest extends DuskTestCase
 
     public function test_audit_trail_records_all_changes(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin']);
         $request = TestRequest::factory()->create(['status' => 'pending']);
 
         $this->browse(function (Browser $browser) use ($user, $request) {

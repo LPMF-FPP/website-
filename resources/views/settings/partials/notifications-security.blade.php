@@ -6,134 +6,6 @@
     </div>
     <div class="p-6 space-y-6">
         <div class="space-y-4">
-            {{-- SMTP Configuration --}}
-            <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                <h3 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                    </svg>
-                    Konfigurasi SMTP
-                </h3>
-                
-                {{-- Preset Selector --}}
-                <div class="mb-4">
-                    <label class="block text-xs font-medium text-gray-600 mb-1">Preset</label>
-                    <select class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                            x-model="smtpPreset"
-                            @change="applySmtpPreset()">
-                        <option value="mailpit">Mailpit (Development)</option>
-                        <option value="gmail">Gmail SMTP</option>
-                        <option value="custom">Custom SMTP</option>
-                    </select>
-                </div>
-
-                <div class="grid md:grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">SMTP Host</label>
-                        <input type="text" 
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
-                               x-model="client.state.form.smtp.host"
-                               :class="smtpPreset !== 'custom' ? 'bg-gray-100' : ''"
-                               :readonly="smtpPreset !== 'custom'"
-                               placeholder="smtp.example.com">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Port</label>
-                        <input type="number" 
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
-                               x-model.number="client.state.form.smtp.port"
-                               :class="smtpPreset !== 'custom' ? 'bg-gray-100' : ''"
-                               :readonly="smtpPreset !== 'custom'"
-                               placeholder="587">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Username</label>
-                        <input type="text" 
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                               x-model="client.state.form.smtp.username"
-                               placeholder="user@gmail.com">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Password / App Password</label>
-                        <input type="password" 
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                               x-model="client.state.form.smtp.password"
-                               placeholder="••••••••">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">From Address</label>
-                        <input type="email" 
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                               x-model="client.state.form.smtp.from_address"
-                               placeholder="noreply@lpmf.go.id">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">From Name</label>
-                        <input type="text" 
-                               class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                               x-model="client.state.form.smtp.from_name"
-                               placeholder="LPMF LIMS">
-                    </div>
-                </div>
-
-                {{-- Gmail Instructions --}}
-                <div x-show="smtpPreset === 'gmail'" class="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-800">
-                    <strong>Untuk Gmail:</strong>
-                    <ol class="list-decimal ml-4 mt-1 space-y-1">
-                        <li>Aktifkan 2-Step Verification di Google Account</li>
-                        <li>Buat App Password: <a href="https://myaccount.google.com/apppasswords" target="_blank" class="underline text-blue-600">myaccount.google.com/apppasswords</a></li>
-                        <li>Gunakan App Password (16 karakter) sebagai password</li>
-                    </ol>
-                </div>
-
-                {{-- Mailpit Instructions --}}
-                <div x-show="smtpPreset === 'mailpit'" class="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-800">
-                    <strong>Mailpit (Development):</strong>
-                    <p class="mt-1">Email akan ditangkap di <a href="http://127.0.0.1:8025" target="_blank" class="underline">http://127.0.0.1:8025</a></p>
-                    <p class="mt-1">Jalankan: <code class="bg-blue-100 px-1 rounded">mailpit</code></p>
-                </div>
-            </div>
-
-            {{-- Email Notification --}}
-            <div>
-                <label class="inline-flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
-                    <input type="checkbox" class="rounded border-gray-300" x-model="client.state.form.notifications.email.enabled">
-                    <span>Enable Email</span>
-                </label>
-                
-                <div class="space-y-3">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Email Recipient</label>
-                        <input 
-                            type="email" 
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" 
-                            x-model="client.state.form.notifications.email.default_recipient" 
-                            placeholder="ops@lab.go.id"
-                            :disabled="!client.state.form.notifications.email.enabled">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Email Subject</label>
-                        <input 
-                            type="text" 
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" 
-                            x-model="client.state.form.notifications.email.subject" 
-                            placeholder="[LIMS] Notification"
-                            :disabled="!client.state.form.notifications.email.enabled">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-xs font-medium text-gray-600 mb-1">Email Body</label>
-                        <textarea 
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" 
-                            rows="3"
-                            x-model="client.state.form.notifications.email.body" 
-                            placeholder="Email message body..."
-                            :disabled="!client.state.form.notifications.email.enabled"></textarea>
-                    </div>
-                </div>
-            </div>
-
             {{-- WhatsApp Notification --}}
             <div class="border border-gray-200 rounded-lg p-4 bg-gray-50">
                 <h3 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
@@ -152,7 +24,7 @@
                         </label>
                     </div>
 
-                    <div x-show="client.state.form.notifications.whatsapp.enabled" class="space-y-3">
+                    <div x-show="client.state.form.notifications.whatsapp.enabled" class="space-y-4">
                         <div>
                             <label class="block text-xs font-medium text-gray-600 mb-1">GOWA Service URL</label>
                             <input type="url" 
@@ -177,6 +49,35 @@
                                        x-model="client.state.form.notifications.whatsapp.basic_pass"
                                        placeholder="••••••••">
                             </div>
+                        </div>
+
+                        <div>
+                            <button type="button"
+                                    class="text-sm px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center gap-2 transition-colors border border-gray-300"
+                                    :disabled="client.state.gowaDevices?.loading"
+                                    @click="client.checkGowaConnection()">
+                                <svg class="w-4 h-4" :class="client.state.gowaDevices?.loading ? 'animate-spin' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                </svg>
+                                <span x-text="client.state.gowaDevices?.loading ? 'Memeriksa Koneksi...' : 'Cek Koneksi & Load Devices'"></span>
+                            </button>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">Device ID</label>
+                            <select class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono"
+                                    x-model="client.state.form.notifications.whatsapp.device_id"
+                                    :disabled="client.state.gowaDevices?.loading">
+                                <option value="">-- Pilih Device --</option>
+                                <template x-for="device in (client.state.gowaDevices?.list || [])" :key="device.id">
+                                    <option :value="device.id" x-text="`${device.display_name} (${device.state}) - ${device.jid}`"></option>
+                                </template>
+                            </select>
+                            <p class="text-xs mt-1" :class="client.state.gowaDevices?.error ? 'text-red-500' : 'text-gray-500'">
+                                <span x-show="client.state.gowaDevices?.error" x-text="'Error: ' + client.state.gowaDevices?.error"></span>
+                                <span x-show="!client.state.gowaDevices?.error && (client.state.gowaDevices?.list || []).length === 0">Klik tombol "Cek Koneksi" untuk memuat daftar device.</span>
+                                <span x-show="!client.state.gowaDevices?.error && (client.state.gowaDevices?.list || []).length > 0" x-text="`${(client.state.gowaDevices?.list || []).length} device ditemukan.`"></span>
+                            </p>
                         </div>
 
                         <div>
@@ -258,52 +159,9 @@
                     </div>
                 </div>
             </div>
-
-            {{-- Test Email --}}
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Target Test Email</label>
-                <input 
-                    type="text" 
-                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm mb-2" 
-                    x-model="client.state.notificationsTest.email.target" 
-                    placeholder="test@example.com">
-                <button 
-                    type="button"
-                    class="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-                    :disabled="client.state.notificationsTest.email.loading"
-                    @click="client.testNotification('email')">
-                    <span x-show="!client.state.notificationsTest.email.loading">Test Email</span>
-                    <span x-show="client.state.notificationsTest.email.loading">Sending...</span>
-                </button>
-            </div>
-
-            {{-- Role Management --}}
-            <div class="border-t border-gray-200 pt-4">
-                <h3 class="text-sm font-semibold text-gray-700 mb-3">Role yang Boleh Mengelola Settings</h3>
-                <div class="space-y-2">
-                    <template x-for="role in availableRoles" :key="'manage-'+role">
-                        <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                            <input type="checkbox" class="rounded border-gray-300" :value="role" x-model="client.state.roles.manage">
-                            <span x-text="roleLabels[role] || role"></span>
-                        </label>
-                    </template>
-                </div>
-            </div>
-
-            <div class="border-t border-gray-200 pt-4">
-                <h3 class="text-sm font-semibold text-gray-700 mb-3">Role yang Boleh Issue Number</h3>
-                <div class="space-y-2">
-                    <template x-for="role in availableRoles" :key="'issue-'+role">
-                        <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                            <input type="checkbox" class="rounded border-gray-300" :value="role" x-model="client.state.roles.issue">
-                            <span x-text="roleLabels[role] || role"></span>
-                        </label>
-                    </template>
-                </div>
-            </div>
         </div>
     </div>
-    
+
     {{-- Footer with Save Button --}}
     <div class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 bg-gray-50 px-6 py-4">
         <div>

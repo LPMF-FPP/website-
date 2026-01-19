@@ -23,12 +23,60 @@
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 
-**Current Version:** v1.7.3 (18 Januari 2026)  
-**Latest Feature:** RAMS Accessibility & UI Polish
+**Current Version:** v1.7.4 (18 Januari 2026)  
+**Latest Feature:** Settings Page Cleanup
 
 ---
 
 ## 📰 Recent Changes (v1.5.x)
+
+### v1.7.5 (18 Januari 2026) - Test Environment Fix
+
+```
+Updated on 2026-01-18
+```
+
+**🎯 Problem Solved:**
+
+Memperbaiki kegagalan test pada `BeritaAcaraPenerimaanTest` dan `BladeTemplatePreviewTest` yang disebabkan oleh inkonsistensi skema database pada lingkungan testing (`users` table corruption).
+
+**✨ Fixes:**
+
+- **Database Refresh:** Menjalankan `migrate:fresh` pada environment testing untuk memastikan skema database bersih dan sinkron dengan factory.
+- **Verification:** Memastikan seluruh test suite (`BeritaAcaraPenerimaanTest`, `BladeTemplatePreviewTest`) passing 100%.
+
+**📁 Files Verified:**
+
+- `tests/Feature/BeritaAcaraPenerimaanTest.php`
+- `tests/Feature/BladeTemplatePreviewTest.php`
+
+### v1.7.4 (18 Januari 2026) - Settings Page Cleanup
+
+```
+Updated on 2026-01-18
+```
+
+**🎯 Problem Solved:**
+
+Menyederhanakan halaman pengaturan dengan menghapus konfigurasi yang tidak digunakan atau redundan, memfokuskan antarmuka pada kontrol yang esensial.
+
+**✨ Improvements:**
+
+- **Notifications & Security Cleanup:**
+    - Menghapus "Target Test Email", "Test Email".
+    - Menghapus kontrol Role ("Role yang Boleh Mengelola Settings", "Role yang Boleh Issue Number").
+    - Menghapus konfigurasi SMTP dan Email (recipient, subject, body).
+    - **Hasil:** Hanya "WhatsApp Configuration" yang tersisa di bagian ini.
+- **Localization & Retention Cleanup:**
+    - Menghapus "Format Tanggal" dan "Format Angka".
+    - **Hasil:** Hanya "Timezone", "Language", "Storage Driver", dan "Folder Path" yang tersisa.
+
+**📁 Files Modified:**
+
+- `resources/views/settings/partials/notifications-security.blade.php`
+- `resources/views/settings/partials/localization-retention.blade.php`
+- `WALKTHROUGH.md`
+- `resources/views/changelogs/index.blade.php`
 
 ### v1.7.3 (18 Januari 2026) - RAMS Accessibility & UI Polish
 

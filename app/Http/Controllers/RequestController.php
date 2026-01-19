@@ -258,8 +258,7 @@ class RequestController extends Controller
         \Log::info('FILES KEYS', ['keys' => array_keys(Arr::dot($request->allFiles()))]);
 
         // Initialize variables untuk cleanup di catch block
-        $letterDoc = null;
-        $evidenceDoc = null;
+        $uploadedDocuments = collect([]);
 
         DB::beginTransaction();
 
@@ -347,6 +346,7 @@ class RequestController extends Controller
                     $testRequest,
                     'request_letter'
                 );
+                $uploadedDocuments->push($letterDoc);
                 $testRequest->official_letter_path = $letterDoc->path;
             }
 
@@ -358,6 +358,7 @@ class RequestController extends Controller
                     $testRequest,
                     'evidence_photo'
                 );
+                $uploadedDocuments->push($evidenceDoc);
                 $testRequest->evidence_photo_path = $evidenceDoc->path;
             }
 
@@ -406,6 +407,7 @@ class RequestController extends Controller
 
                 foreach ($collected as $photo) {
                     $doc = $docs->storeUpload($photo, $investigator, $testRequest, 'sample_photo');
+                    $uploadedDocuments->push($doc);
                     $doc->extra = array_merge($doc->extra ?? [], [
                         'sample_id' => $sample->id,
                         'short_description' => $sample->short_description,
@@ -423,24 +425,10 @@ class RequestController extends Controller
             DB::rollback();
 
             // Cleanup uploaded files on error
-            if ($letterDoc && $letterDoc->path) {
-                $disk = $letterDoc->storage_disk ?? 'public';
-                Storage::disk($disk)->delete($letterDoc->path);
-            }
-
-            if ($evidenceDoc && $evidenceDoc->path) {
-                $disk = $evidenceDoc->storage_disk ?? 'public';
-                Storage::disk($disk)->delete($evidenceDoc->path);
-            }
-
-            if (isset($testRequest) && $testRequest->id) {
-                $samplePhotoDocs = Document::where('test_request_id', $testRequest->id)
-                    ->where('document_type', 'sample_photo')
-                    ->get();
-
-                foreach ($samplePhotoDocs as $doc) {
-                    if ($doc->path) {
-                        $disk = $doc->storage_disk ?? 'public';
+            foreach ($uploadedDocuments as $doc) {
+                if ($doc && $doc->path) {
+                    $disk = $doc->storage_disk ?? 'public';
+                    if (Storage::disk($disk)->exists($doc->path)) {
                         Storage::disk($disk)->delete($doc->path);
                     }
                 }
@@ -523,6 +511,9 @@ class RequestController extends Controller
             'suspects.*.name' => 'required|string|max:255',
             'suspects.*.gender' => 'nullable|in:male,female',
             'suspects.*.age' => 'nullable|integer|min:0|max:120',
+            // File uploads
+            'request_letter' => 'nullable|file|mimes:pdf|max:10240',
+            'evidence_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
         ];
 
         // Investigator-specific rules
@@ -574,14 +565,51 @@ class RequestController extends Controller
             $firstSuspect = $validated['suspects'][0] ?? null;
 
             // Update test request
-            $testRequest->update([
+            $updateData = [
                 'case_number' => $validated['case_number'],
                 'to_office' => $validated['to_office'],
                 'suspect_name' => $firstSuspect['name'] ?? '',
                 'suspect_gender' => $firstSuspect['gender'] ?? null,
                 'suspect_age' => $firstSuspect['age'] ?? null,
                 'suspect_address' => $validated['suspect_address'] ?? null,
-            ]);
+            ];
+
+            // Handle File Uploads
+            $documentService = app(DocumentService::class);
+
+            // 1. Surat Permintaan
+            if ($request->hasFile('request_letter')) {
+                // Delete old file if exists
+                if ($testRequest->official_letter_path) {
+                    Storage::disk('documents')->delete($testRequest->official_letter_path);
+                }
+                
+                $letterDoc = $documentService->storeUpload(
+                    $request->file('request_letter'),
+                    $inv,
+                    $testRequest,
+                    'request_letter'
+                );
+                $updateData['official_letter_path'] = $letterDoc->path;
+            }
+
+            // 2. Foto Barang Bukti
+            if ($request->hasFile('evidence_photo')) {
+                // Delete old file if exists
+                if ($testRequest->evidence_photo_path) {
+                    Storage::disk('samples')->delete($testRequest->evidence_photo_path);
+                }
+
+                $evidenceDoc = $documentService->storeUpload(
+                    $request->file('evidence_photo'),
+                    $inv,
+                    $testRequest,
+                    'evidence_photo'
+                );
+                $updateData['evidence_photo_path'] = $evidenceDoc->path;
+            }
+
+            $testRequest->update($updateData);
 
             // Replace all suspects (delete old, insert new)
             Suspect::where('test_request_id', $testRequest->id)->delete();

@@ -61,5 +61,6 @@ return new class extends Migration
         Schema::dropIfExists('document_templates');
         Schema::dropIfExists('sequences');
         Schema::dropIfExists('settings');
+        Schema::dropIfExists('system_settings'); // Add this to handle renamed table
     }
 };

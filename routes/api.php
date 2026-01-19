@@ -145,9 +145,11 @@ Route::middleware(['auth', 'verified'])->prefix('settings')->group(function () {
     Route::prefix('notifications/whatsapp')->group(function () {
         Route::put('/', [WhatsAppSettingsController::class, 'update']);
         Route::post('/test', [WhatsAppSettingsController::class, 'test']);
+        Route::post('/check-connection', [WhatsAppSettingsController::class, 'checkConnection']);
         Route::get('/health', [WhatsAppSettingsController::class, 'checkHealth']);
         Route::get('/logs', [WhatsAppSettingsController::class, 'getOutboxLogs']);
         Route::get('/templates', [WhatsAppSettingsController::class, 'getTemplates']);
+        Route::get('/devices', [WhatsAppSettingsController::class, 'getDevices']);
     });
 });
 

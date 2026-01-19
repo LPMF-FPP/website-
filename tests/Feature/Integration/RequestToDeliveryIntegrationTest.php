@@ -7,6 +7,7 @@ use App\Models\TestRequest;
 use App\Models\User;
 use Database\Seeders\SystemSettingSeeder;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class RequestToDeliveryIntegrationTest extends TestCase
@@ -16,6 +17,7 @@ class RequestToDeliveryIntegrationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        Queue::fake();
         $this->seed(SystemSettingSeeder::class);
         settings_forget_cache();
     }

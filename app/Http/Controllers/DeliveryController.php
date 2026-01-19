@@ -195,7 +195,7 @@ class DeliveryController extends Controller
     public function surveyForm(TestRequest $request)
     {
 
-        $request->loadMissing('customerSurvey');
+        $request->loadMissing(['customerSurvey', 'investigator', 'samples']);
 
         $survey = $request->customerSurvey;
         $isReadOnly = $request->status === 'completed';
@@ -225,7 +225,6 @@ class DeliveryController extends Controller
 
         $validatedData = $httpRequest->validate([
             'respondent_name' => ['required', 'string', 'max:255'],
-            'respondent_job_title' => ['required', 'string', 'max:255'],
             'respondent_institution' => ['required', 'string', 'max:255'],
             'respondent_job_category' => ['required', Rule::in($jobCategories)],
             'request_type' => ['required', Rule::in($requestTypes)],
@@ -244,7 +243,6 @@ class DeliveryController extends Controller
             'follow_up' => ['nullable', 'string'],
         ], [
             'respondent_name.required' => 'Nama responden wajib diisi.',
-            'respondent_job_title.required' => 'Pekerjaan responden wajib diisi.',
             'respondent_institution.required' => 'Instansi responden wajib diisi.',
             'respondent_job_category.required' => 'Kategori pekerjaan wajib dipilih.',
             'respondent_job_category.in' => 'Kategori pekerjaan tidak valid.',
@@ -265,7 +263,6 @@ class DeliveryController extends Controller
             ['test_request_id' => $request->id],
             [
                 'respondent_name' => $validatedData['respondent_name'],
-                'respondent_job_title' => $validatedData['respondent_job_title'],
                 'respondent_institution' => $validatedData['respondent_institution'],
                 'respondent_job_category' => $validatedData['respondent_job_category'],
                 'request_type' => $validatedData['request_type'],

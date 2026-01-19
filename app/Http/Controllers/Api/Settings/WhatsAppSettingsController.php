@@ -24,6 +24,7 @@ class WhatsAppSettingsController extends Controller
         $validator = Validator::make($request->all(), [
             'enabled' => 'required|boolean',
             'base_url' => 'required|string|url',
+            'device_id' => 'nullable|string|max:255',
             'basic_user' => 'nullable|string|max:255',
             'basic_pass' => 'nullable|string|max:255',
             'enabled_milestones' => 'nullable|array',
@@ -60,14 +61,21 @@ class WhatsAppSettingsController extends Controller
             );
         }
 
-        if (!empty($data['basic_pass'])) {
-            $data['basic_pass'] = encrypt($data['basic_pass']);
+        $deviceId = $data['device_id'] ?? '';
+        $basicUser = $data['basic_user'] ?? '';
+        $basicPass = $data['basic_pass'] ?? '';
+
+        if ($basicPass === '••••••••') {
+            $basicPass = settings('notifications.whatsapp.basic_pass', '');
+        } elseif ($basicPass !== '') {
+            $basicPass = encrypt($basicPass);
         }
 
         \App\Models\SystemSetting::updateOrCreate(['key' => 'notifications.whatsapp.enabled'], ['value' => $data['enabled']]);
         \App\Models\SystemSetting::updateOrCreate(['key' => 'notifications.whatsapp.base_url'], ['value' => rtrim($data['base_url'], '/')]);
-        \App\Models\SystemSetting::updateOrCreate(['key' => 'notifications.whatsapp.basic_user'], ['value' => $data['basic_user'] ?? null]);
-        \App\Models\SystemSetting::updateOrCreate(['key' => 'notifications.whatsapp.basic_pass'], ['value' => $data['basic_pass'] ?? null]);
+        \App\Models\SystemSetting::updateOrCreate(['key' => 'notifications.whatsapp.device_id'], ['value' => $deviceId]);
+        \App\Models\SystemSetting::updateOrCreate(['key' => 'notifications.whatsapp.basic_user'], ['value' => $basicUser]);
+        \App\Models\SystemSetting::updateOrCreate(['key' => 'notifications.whatsapp.basic_pass'], ['value' => $basicPass]);
         \App\Models\SystemSetting::updateOrCreate(['key' => 'notifications.whatsapp.enabled_milestones'], ['value' => $data['enabled_milestones'] ?? []]);
         \App\Models\SystemSetting::updateOrCreate(['key' => 'notifications.whatsapp.templates'], ['value' => $data['templates'] ?? []]);
 
@@ -78,6 +86,7 @@ class WhatsAppSettingsController extends Controller
             'data' => [
                 'enabled' => $data['enabled'],
                 'base_url' => rtrim($data['base_url'], '/'),
+                'device_id' => $data['device_id'] ?? null,
                 'basic_user' => $data['basic_user'] ?? null,
                 'enabled_milestones' => $data['enabled_milestones'] ?? [],
                 'templates' => $data['templates'] ?? [],
@@ -210,5 +219,74 @@ class WhatsAppSettingsController extends Controller
         return response()->json([
             'data' => $this->notificationService->getAllTemplates(),
         ]);
+    }
+
+    public function checkConnection(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'base_url' => 'required|string|url',
+            'basic_user' => 'nullable|string|max:255',
+            'basic_pass' => 'nullable|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $baseUrl = rtrim($request->input('base_url'), '/');
+        $basicUser = $request->input('basic_user');
+        $basicPass = $request->input('basic_pass');
+
+        // Handle masked password if user didn't change it but wants to check connection
+        if ($basicPass === '••••••••') {
+            $basicPass = settings('notifications.whatsapp.basic_pass');
+            if ($basicPass) {
+                try {
+                    $basicPass = decrypt($basicPass);
+                } catch (\Throwable $e) {
+                    $basicPass = env('WHATSAPP_BASIC_PASS');
+                }
+            } else {
+                 $basicPass = env('WHATSAPP_BASIC_PASS');
+            }
+        }
+
+        $result = $this->client->listDevicesWithCredentials($baseUrl, $basicUser, $basicPass);
+
+        if ($result['success']) {
+            return response()->json([
+                'message' => 'Connection successful',
+                'devices' => $result['devices'],
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Connection failed',
+            'error' => $result['error'] ?? 'Unknown error',
+            'status' => $result['status'] ?? 500,
+        ], 400);
+    }
+
+    public function getDevices(): JsonResponse
+    {
+        try {
+            $result = $this->client->listDevices();
+
+            return response()->json([
+                'success' => $result['success'],
+                'devices' => $result['devices'],
+                'error' => $result['error'] ?? null,
+            ]);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'devices' => [],
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }

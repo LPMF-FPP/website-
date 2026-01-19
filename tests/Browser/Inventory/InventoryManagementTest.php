@@ -5,36 +5,47 @@ namespace Tests\Browser\Inventory;
 use App\Models\InventoryItem;
 use App\Models\InventoryLocation;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
 class InventoryManagementTest extends DuskTestCase
 {
-    use DatabaseTransactions;
+    use DatabaseTruncation;
+
+    private function loginUser(Browser $browser, User $user): Browser
+    {
+        $browser->visit('/login')
+            ->type('email', $user->email)
+            ->type('password', 'password');
+            
+        $browser->element('button[type="submit"]')->click();
+        
+        return $browser;
+    }
 
     public function test_user_can_view_inventory_dashboard(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin', 'password' => bcrypt('password')]);
         InventoryItem::factory()->count(5)->create();
 
         $this->browse(function (Browser $browser) use ($user) {
-            $browser->loginAs($user)
+            $this->loginUser($browser, $user)
                 ->visit('/referensi/inventori')
-                ->assertSee('Inventory')
+                ->assertSee('Inventori')
                 ->assertPresent('.inventory-stats');
         });
     }
 
     public function test_user_can_view_inventory_items_list(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin', 'password' => bcrypt('password')]);
         $item = InventoryItem::factory()->create(['name' => 'Test Reagent XYZ']);
 
         $this->browse(function (Browser $browser) use ($user, $item) {
-            $browser->loginAs($user)
+            $this->loginUser($browser, $user)
                 ->visit('/referensi/inventori/items')
-                ->assertSee('Items')
+                ->assertSee('Master Item')
                 ->assertSee($item->name)
                 ->assertPresent('table');
         });
@@ -42,12 +53,12 @@ class InventoryManagementTest extends DuskTestCase
 
     public function test_user_can_create_inventory_item(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin', 'password' => bcrypt('password')]);
 
         $this->browse(function (Browser $browser) use ($user) {
-            $browser->loginAs($user)
+            $this->loginUser($browser, $user)
                 ->visit('/referensi/inventori/items/create')
-                ->assertSee('Create Item')
+                ->assertSee('Tambah Item Baru')
                 ->select('item_type', 'REAGENT')
                 ->type('name', 'New Test Reagent')
                 ->type('brand', 'Test Brand')
@@ -57,9 +68,9 @@ class InventoryManagementTest extends DuskTestCase
                 ->type('pack_size', '100')
                 ->type('min_stock', '10')
                 ->select('storage_condition', 'RT')
-                ->press('Create')
-                ->waitForText('Item created successfully')
-                ->assertSee('Item created successfully');
+                ->press('Simpan')
+                ->waitForText('Item berhasil ditambahkan')
+                ->assertSee('Item berhasil ditambahkan');
 
             $this->assertDatabaseHas('inventory_items', [
                 'name' => 'New Test Reagent',
@@ -70,19 +81,19 @@ class InventoryManagementTest extends DuskTestCase
 
     public function test_user_can_update_inventory_item(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin', 'password' => bcrypt('password')]);
         $item = InventoryItem::factory()->create(['name' => 'Original Name']);
 
         $this->browse(function (Browser $browser) use ($user, $item) {
-            $browser->loginAs($user)
+            $this->loginUser($browser, $user)
                 ->visit("/referensi/inventori/items/{$item->id}/edit")
                 ->assertSee('Edit Item')
                 ->assertInputValue('name', 'Original Name')
                 ->type('name', 'Updated Name')
                 ->type('min_stock', '20')
-                ->press('Update')
-                ->waitForText('Item updated successfully')
-                ->assertSee('Item updated successfully');
+                ->press('Simpan Perubahan')
+                ->waitForText('Item berhasil diperbarui')
+                ->assertSee('Item berhasil diperbarui');
 
             $item->refresh();
             $this->assertEquals('Updated Name', $item->name);
@@ -92,24 +103,24 @@ class InventoryManagementTest extends DuskTestCase
 
     public function test_user_can_delete_inventory_item(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin', 'password' => bcrypt('password')]);
         $item = InventoryItem::factory()->create();
 
         $this->browse(function (Browser $browser) use ($user, $item) {
-            $browser->loginAs($user)
+            $this->loginUser($browser, $user)
                 ->visit('/referensi/inventori/items')
                 ->assertSee($item->name)
                 ->press("delete-item-{$item->id}")
                 ->acceptDialog()
-                ->waitForText('Item deleted successfully')
-                ->assertSee('Item deleted successfully')
+                ->waitForText('berhasil dihapus')
+                ->assertSee('berhasil dihapus')
                 ->assertDontSee($item->name);
         });
     }
 
     public function test_user_can_search_and_filter_inventory_items(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin', 'password' => bcrypt('password')]);
         $reagent = InventoryItem::factory()->create([
             'item_type' => 'REAGENT',
             'name' => 'Special Reagent ABC',
@@ -120,7 +131,7 @@ class InventoryManagementTest extends DuskTestCase
         ]);
 
         $this->browse(function (Browser $browser) use ($user, $reagent, $consumable) {
-            $browser->loginAs($user)
+            $this->loginUser($browser, $user)
                 ->visit('/referensi/inventori/items')
                 ->assertSee($reagent->name)
                 ->assertSee($consumable->name)
@@ -140,19 +151,19 @@ class InventoryManagementTest extends DuskTestCase
 
     public function test_user_receives_low_stock_alert(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin', 'password' => bcrypt('password')]);
         $location = InventoryLocation::factory()->create();
         $item = InventoryItem::factory()->create(['min_stock' => 50]);
 
         $item->balances()->create([
-            'inventory_location_id' => $location->id,
-            'quantity' => 5,
+            'location_id' => $location->id,
+            'on_hand_qty' => 5,
         ]);
 
         $this->browse(function (Browser $browser) use ($user, $item) {
-            $browser->loginAs($user)
+            $this->loginUser($browser, $user)
                 ->visit('/referensi/inventori')
-                ->assertSee('Low Stock Alerts')
+                ->assertSee('Stok Rendah')
                 ->assertSee($item->name)
                 ->assertPresent('.low-stock-warning');
         });
