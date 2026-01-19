@@ -204,19 +204,26 @@ class NumberingRepairService
             return null;
         }
 
-        // Extract digits from the number
-        // Common patterns: BA/2026/01/0005 -> 5, W003I2026 -> 3, LHU-2026-0099 -> 99
+        // 1. Try specific known prefixes (High Priority)
+        // Matches: BA-ST/001, BA-RIM-001, LHU-BB/001
+        if (preg_match('/(?:BA-ST|BA-RIM|LHU-BB)[-\/](\d+)[-\/]/i', $number, $matches)) {
+            return (int) ltrim($matches[1], '0') ?: 0;
+        }
+
+        // 2. Try to find SEQ pattern in middle with Slash or Dash (Standard format)
+        // Matches: /001/, -001-
+        if (preg_match('/[-\/](\d{1,5})[-\/]/', $number, $matches)) {
+            return (int) ltrim($matches[1], '0') ?: 0;
+        }
+
+        // 3. For sample_code like W003I2026 or TR-LPMF001 (Prefix + Digits)
+        if (preg_match('/^(?:TR-LPMF|[A-Z])(\d{3,4})/', $number, $matches)) {
+            return (int) ltrim($matches[1], '0') ?: 0;
+        }
+
+        // 4. Fallback: Extract sequence at the end of string (Lowest Priority)
+        // Only use this if no other pattern matches, as it might incorrectly match the year (e.g. ...-2026.pdf)
         if (preg_match('/(\d+)(?=[^\d]*$)/', $number, $matches)) {
-            return (int) ltrim($matches[1], '0') ?: 0;
-        }
-
-        // Try to find SEQ pattern in middle
-        if (preg_match('/\/(\d{3,4})\//', $number, $matches)) {
-            return (int) ltrim($matches[1], '0') ?: 0;
-        }
-
-        // For sample_code like W003I2026
-        if (preg_match('/^[A-Z](\d{3,4})/', $number, $matches)) {
             return (int) ltrim($matches[1], '0') ?: 0;
         }
 
@@ -607,8 +614,13 @@ class NumberingRepairService
         if ($scope === 'lhu') {
             $dbQuery->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.lhu_number')) LIKE ?", ["%{$query}%"]);
         } elseif ($scope === 'ba_penyerahan') {
+            // Handle slash vs dash difference in filenames
+            $normalizedQuery = str_replace('/', '-', $query);
             $dbQuery->where('document_type', 'ba_penyerahan')
-                    ->where($column, 'like', "%{$query}%");
+                    ->where(function($q) use ($column, $query, $normalizedQuery) {
+                        $q->where($column, 'like', "%{$query}%")
+                          ->orWhere($column, 'like', "%{$normalizedQuery}%");
+                    });
         } else {
             $dbQuery->where($column, 'like', "%{$query}%");
         }

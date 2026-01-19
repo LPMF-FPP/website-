@@ -5,6 +5,28 @@
         <p class="text-sm text-gray-500 mt-1">Deteksi dan perbaiki masalah penomoran dokumen</p>
     </div>
 
+    {{-- Panduan Singkat --}}
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 m-6 mb-0">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-blue-800">Panduan Penggunaan</h3>
+                <div class="mt-2 text-sm text-blue-700">
+                    <ul class="list-disc pl-5 space-y-1">
+                        <li><strong>Pilih Scope:</strong> Pilih jenis dokumen yang ingin diperiksa (misal: BA Penyerahan).</li>
+                        <li><strong>Scan Masalah:</strong> Sistem akan mencari nomor ganda atau nomor yang terlewat (gap).</li>
+                        <li><strong>Sync Counter:</strong> Jika counter database tidak sesuai dengan dokumen fisik terakhir, gunakan "Sync Tertinggi".</li>
+                        <li><strong>Cari Dokumen:</strong> Gunakan kolom pencarian untuk menemukan dokumen spesifik dan mengedit nomornya jika perlu.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="p-6">
         {{-- Scope Selector --}}
         <div class="flex items-center gap-4 mb-6">
@@ -47,6 +69,7 @@
                             @keyup.enter="searchDocuments()"
                             placeholder="Ketik nomor dokumen..."
                             class="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm bg-white">
+                        <p class="mt-1 text-xs text-blue-600">Tips: Pencarian mendukung format garis miring (/) atau strip (-).</p>
                     </div>
                     <button 
                         type="button"
@@ -100,11 +123,11 @@
                         <p class="text-sm font-medium" x-text="scopeLabels[counterStatus.scope]"></p>
                     </div>
                     <div>
-                        <p class="text-xs text-gray-500">Bucket</p>
+                        <p class="text-xs text-gray-500">Periode (Bucket)</p>
                         <p class="text-sm font-mono" x-text="counterStatus.bucket"></p>
                     </div>
                     <div>
-                        <p class="text-xs text-gray-500">Counter Saat Ini</p>
+                        <p class="text-xs text-gray-500">Posisi Counter (DB)</p>
                         <p class="text-sm font-bold text-blue-600" x-text="counterStatus.current_counter"></p>
                     </div>
                     <div>
@@ -115,7 +138,7 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div class="bg-white rounded-lg p-3 border">
-                        <p class="text-xs text-gray-500 mb-1">Dari Nomor Tertinggi</p>
+                        <p class="text-xs text-gray-500 mb-1">Dari Dokumen Tertinggi (Real)</p>
                         <p class="text-lg font-bold" x-text="counterStatus.from_max"></p>
                         <p class="text-xs text-gray-400" x-text="counterStatus.max_document ? 'MAX: ' + counterStatus.max_document : 'Tidak ada dokumen'"></p>
                     </div>
