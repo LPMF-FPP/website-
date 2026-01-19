@@ -47,10 +47,10 @@ class StatisticsController extends Controller
                 ->toArray();
 
             // 4. Statistik per Jenis Sampel
-            $sampleTypeStats = Sample::select('sample_type', DB::raw('count(*) as total'))
-                ->groupBy('sample_type')
+            $sampleTypeStats = Sample::select('sample_category', DB::raw('count(*) as total'))
+                ->groupBy('sample_category')
                 ->get()
-                ->pluck('total', 'sample_type')
+                ->pluck('total', 'sample_category')
                 ->toArray();
 
             // 5. Top 5 Jurisdictions (Based on Requests)
@@ -102,12 +102,13 @@ class StatisticsController extends Controller
                 'total_users' => User::count(),
                 'requests_this_month' => TestRequest::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count(),
                 'samples_this_year' => Sample::whereYear('created_at', now()->year)->count(),
-                'active_substances_detected' => Sample::whereNotNull('active_substance')->count(),
+                'active_substances_detected' => 0,
                 'mainStats' => [
                     'total_users' => User::count(),
                     'requests_this_month' => TestRequest::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count(),
                     'samples_this_year' => Sample::whereYear('created_at', now()->year)->count(),
-                    'active_substances_detected' => Sample::whereNotNull('active_substance')->count(),
+                    'active_substances_detected' => 0,
+                    'total_detections' => 0,
                 ],
                 'monthlyStats' => [],
                 'statusStats' => [],
