@@ -83,7 +83,7 @@
                                         <td class="px-6 py-4 text-right text-sm font-medium">
                                             <div class="flex flex-wrap justify-end gap-2">
                                                 <a href="{{ route('delivery.show', $request) }}"
-                                                   class="inline-flex items-center whitespace-nowrap rounded border border-green-600 px-3 py-1 text-sm font-semibold text-green-700 transition hover:bg-green-50">
+                                                   class="inline-flex items-center whitespace-nowrap rounded-lg bg-gradient-to-b from-green-500 to-green-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_4px_0_0_#166534] transition-all duration-150 hover:shadow-[0_2px_0_0_#166534] hover:translate-y-[2px] active:shadow-none active:translate-y-[4px]">
                                                     Lihat Detail
                                                 </a>
                                             </div>
