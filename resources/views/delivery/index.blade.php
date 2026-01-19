@@ -83,7 +83,7 @@
                                         <td class="px-6 py-4 text-right text-sm font-medium">
                                             <div class="flex flex-wrap justify-end gap-2">
                                                 <a href="{{ route('delivery.show', $request) }}"
-                                                   class="inline-flex items-center rounded border border-primary-600 px-3 py-1 text-sm font-semibold text-primary-700 transition hover:bg-primary-50">
+                                                   class="inline-flex items-center whitespace-nowrap rounded border border-green-600 px-3 py-1 text-sm font-semibold text-green-700 transition hover:bg-green-50">
                                                     Lihat Detail
                                                 </a>
                                             </div>
