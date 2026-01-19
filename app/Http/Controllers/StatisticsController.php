@@ -52,9 +52,10 @@ class StatisticsController extends Controller
                 ->pluck('total', 'sample_type')
                 ->toArray();
 
-            // 5. Top 5 Jurisdictions
-            $topJurisdictions = Investigator::select('jurisdiction', DB::raw('count(*) as total'))
-                ->groupBy('jurisdiction')
+            // 5. Top 5 Jurisdictions (Based on Requests)
+            $topJurisdictions = TestRequest::join('investigators', 'test_requests.investigator_id', '=', 'investigators.id')
+                ->select('investigators.jurisdiction', DB::raw('count(*) as total'))
+                ->groupBy('investigators.jurisdiction')
                 ->orderBy('total', 'desc')
                 ->take(5)
                 ->get();
@@ -301,8 +302,11 @@ class StatisticsController extends Controller
 
     private function getUserOriginData()
     {
-        $jurisdictionData = Investigator::select('jurisdiction', DB::raw('count(*) as total'))
-            ->groupBy('jurisdiction')
+        // Change: Count TestRequests by jurisdiction instead of Investigators
+        // This ensures deleted requests are not counted and reflects actual usage volume
+        $jurisdictionData = TestRequest::join('investigators', 'test_requests.investigator_id', '=', 'investigators.id')
+            ->select('investigators.jurisdiction', DB::raw('count(*) as total'))
+            ->groupBy('investigators.jurisdiction')
             ->orderBy('total', 'desc')
             ->get();
 
