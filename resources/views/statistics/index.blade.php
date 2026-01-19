@@ -247,17 +247,6 @@
                                     </span>
                                 </td>
                             </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Zat Aktif Terdeteksi</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $active_substances_detected }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $active_substances_detected }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">240/bulan</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                        Di Atas Target
-                                    </span>
-                                </td>
-                            </tr>
                         </tbody>
                     </table>
                 </div>
