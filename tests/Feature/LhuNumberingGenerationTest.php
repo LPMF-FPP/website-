@@ -44,6 +44,7 @@ class LhuNumberingGenerationTest extends TestCase
 
         $sample = Sample::factory()->create([
             'test_request_id' => $testRequest->id,
+            'sample_code' => 'SAMP-TEST-' . fake()->unique()->lexify('??????'), // Letters only to avoid 3-5 digit sequence trigger
         ]);
 
         $process = SampleTestProcess::factory()->create([
