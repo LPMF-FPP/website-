@@ -55,9 +55,9 @@
                             <p class="text-sm font-medium text-gray-600">Zat Aktif Terdeteksi</p>
                             <p class="text-2xl font-semibold text-gray-900">{{ $active_substances_detected }}</p>
                             @php
-                                $uniqueActiveSubstances = $activeSubstanceBreakdown['unique_total'] ?? count($activeSubstanceBreakdown['labels'] ?? []);
+                                $totalDetections = $mainStats['total_detections'] ?? ($activeSubstanceBreakdown['total'] ?? 0);
                             @endphp
-                            <p class="text-xs text-gray-500 mt-1">{{ $uniqueActiveSubstances }} jenis unik</p>
+                            <p class="text-xs text-gray-500 mt-1">{{ $totalDetections }} total deteksi</p>
                             @if ($activeSubstanceBreakdown['fallback'] ?? false)
                                 <p class="text-xs text-yellow-600 mt-1">Menampilkan data simulasi karena belum ada input permintaan.</p>
                             @endif

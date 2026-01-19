@@ -32,7 +32,8 @@ class StatisticsController extends Controller
                 'requests_this_month' => TestRequest::whereMonth('created_at', now()->month)
                     ->whereYear('created_at', now()->year)->count(),
                 'samples_this_year' => Sample::whereYear('created_at', now()->year)->count(),
-                'active_substances_detected' => $activeSubstanceBreakdown['total'],
+                'active_substances_detected' => $activeSubstanceBreakdown['unique_total'], // Tampilkan jumlah unik zat aktif
+                'total_detections' => $activeSubstanceBreakdown['total'], // Tambahan untuk info deteksi total
             ];
 
             // 2. Statistik Bulanan (12 bulan terakhir)
