@@ -117,6 +117,7 @@
             <x-page-section title="Sampel">
                 <p class="mt-1 text-lg font-semibold text-gray-900">{{ $sampleProcess->sample->short_description ?? '—' }}</p>
                 <p class="text-sm text-gray-500">Permintaan: {{ $sampleProcess->sample->testRequest?->request_number ?? '-' }}</p>
+                <p class="text-sm text-gray-500">Kode Sampel: <span class="font-medium text-primary-700">{{ $sampleProcess->sample->sample_code ?? '-' }}</span></p>
             </x-page-section>
 
             <x-page-section title="Informasi Proses">
