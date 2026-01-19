@@ -27,6 +27,19 @@ class NumberingService
 
         $bucket = $this->makeBucket($scope, $reset, $contextWithNow, $config);
 
+        // Allow forcing a specific sequence number (e.g. to match parent document)
+        if (isset($context['forced_sequence'])) {
+            $number = $this->render($pattern, (int) $context['forced_sequence'], $contextWithNow);
+            
+            Audit::log('ISSUE_NUMBER_FORCED', $scope, null, ['number' => $number, 'sequence' => $context['forced_sequence']], [
+                'context' => $contextWithNow,
+            ]);
+
+            event(new NumberIssued($scope, $number, $context));
+
+            return $number;
+        }
+
         $number = DB::transaction(function () use ($scope, $bucket, $pattern, $contextWithNow, $startFrom) {
             $sequence = Sequence::query()
                 ->where('scope', $scope)

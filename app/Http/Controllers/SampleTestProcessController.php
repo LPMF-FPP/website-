@@ -620,11 +620,29 @@ class SampleTestProcessController extends Controller
         if (empty($lhuNumber)) {
             // No LHU number exists yet - issue a new one using the latest 'lhu' scope configuration
             try {
-                $lhuNumber = $numberingService->issue('lhu', [
+                $context = [
                     'sample_id' => $sampleProcess->sample_id,
                     'process_id' => $sampleProcess->id,
                     'sample_code' => $sampleProcess->sample->sample_code ?? null,
-                ]);
+                ];
+
+                // Attempt to extract sequence from sample_code to synchronize LHU number
+                if (!empty($context['sample_code'])) {
+                    // Try W{SEQ} format (e.g. W001I2026)
+                    if (preg_match('/^[A-Z]+(\d{3,4})/', $context['sample_code'], $m)) {
+                        $context['forced_sequence'] = (int) $m[1];
+                    }
+                    // Try Standard {SEQ}/... format (e.g. 001/...)
+                    elseif (preg_match('/^(\d{3,5})[\/\-]/', $context['sample_code'], $m)) {
+                        $context['forced_sequence'] = (int) $m[1];
+                    }
+                    // Try .../{SEQ}/... format
+                    elseif (preg_match('/[\/\-](\d{3,5})[\/\-]/', $context['sample_code'], $m)) {
+                        $context['forced_sequence'] = (int) $m[1];
+                    }
+                }
+
+                $lhuNumber = $numberingService->issue('lhu', $context);
 
                 // Persist the issued number
                 $metadata['lhu_number'] = $lhuNumber;

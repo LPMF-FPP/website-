@@ -3,7 +3,10 @@
     @vite(['resources/css/ui-scope.css'])
 @endpush
 @push('scripts')
-    <script type="module" src="/scripts/ui.theme-toggle.js"></script>
+    <script>
+        document.documentElement.classList.remove('dark');
+        document.documentElement.setAttribute('data-theme', 'light');
+    </script>
 @endpush
 
 <x-app-layout>

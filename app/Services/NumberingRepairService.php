@@ -161,7 +161,7 @@ class NumberingRepairService
 
         if ($scope === 'lhu') {
             $query->whereNotNull('metadata')
-                  ->whereRaw("JSON_EXTRACT(metadata, '$.lhu_number') IS NOT NULL");
+                  ->whereNotNull('metadata->lhu_number');
         }
 
         // Exclude null/empty numbers
@@ -553,7 +553,7 @@ class NumberingRepairService
         $query = $model::query();
 
         if ($scope === 'lhu') {
-            $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.lhu_number')) = ?", [$number]);
+            $query->where('metadata->lhu_number', $number);
         } elseif ($scope === 'ba_penyerahan') {
             $query->where('document_type', 'ba_penyerahan')
                   ->where($column, $number);
@@ -612,7 +612,7 @@ class NumberingRepairService
 
         // Search based on column type
         if ($scope === 'lhu') {
-            $dbQuery->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(metadata, '$.lhu_number')) LIKE ?", ["%{$query}%"]);
+            $dbQuery->where('metadata->lhu_number', 'like', "%{$query}%");
         } elseif ($scope === 'ba_penyerahan') {
             // Handle slash vs dash difference in filenames
             $normalizedQuery = str_replace('/', '-', $query);

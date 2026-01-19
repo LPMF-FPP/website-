@@ -593,6 +593,22 @@ function numberingRepair() {
             this.fetchChangeLogs();
         },
 
+        handleError(data) {
+            if (data.errors) {
+                let message = '';
+                for (const key in data.errors) {
+                    message += data.errors[key].join('\n') + '\n';
+                }
+                alert(message);
+            } else if (data.message) {
+                alert(data.message);
+            } else if (data.error) {
+                alert(data.error);
+            } else {
+                alert('Terjadi kesalahan yang tidak diketahui');
+            }
+        },
+
         async searchDocuments() {
             if (!this.selectedScope || !this.searchQuery.trim()) return;
             
@@ -614,7 +630,7 @@ function numberingRepair() {
                     this.searchResults = data.results || [];
                     this.searchPerformed = true;
                 } else {
-                    alert(data.error || 'Terjadi kesalahan saat mencari');
+                    this.handleError(data);
                     this.searchResults = [];
                 }
             } catch (error) {
@@ -681,7 +697,7 @@ function numberingRepair() {
                     this.problems = data.problems;
                     this.scanned = true;
                 } else {
-                    alert(data.error || 'Terjadi kesalahan');
+                    this.handleError(data);
                 }
             } catch (error) {
                 // Ignore abort errors
@@ -746,7 +762,7 @@ function numberingRepair() {
                     this.documentList = data.documents || [];
                     this.documentListMeta = data.meta || { current_page: 1, last_page: 1, total: 0, has_more: false };
                 } else {
-                    alert(data.error || 'Gagal memuat daftar dokumen');
+                    this.handleError(data);
                 }
             } catch (error) {
                 console.error('Fetch document list error:', error);
@@ -811,7 +827,7 @@ function numberingRepair() {
                     this.fetchChangeLogs();
                     alert('Counter berhasil disinkronkan');
                 } else {
-                    alert(data.error || 'Terjadi kesalahan');
+                    this.handleError(data);
                 }
             } catch (error) {
                 console.error('Sync error:', error);
@@ -849,7 +865,7 @@ function numberingRepair() {
                     this.fetchChangeLogs();
                     alert('Counter berhasil direset');
                 } else {
-                    alert(data.error || 'Terjadi kesalahan');
+                    this.handleError(data);
                 }
             } catch (error) {
                 console.error('Reset error:', error);
@@ -907,7 +923,7 @@ function numberingRepair() {
                     this.fetchChangeLogs();
                     alert('Nomor berhasil diperbarui');
                 } else {
-                    alert(data.error || 'Terjadi kesalahan');
+                    this.handleError(data);
                 }
             } catch (error) {
                 console.error('Save error:', error);

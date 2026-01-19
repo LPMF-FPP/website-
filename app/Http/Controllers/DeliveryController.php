@@ -521,12 +521,48 @@ class DeliveryController extends Controller
         $req = $delivery->request;
         $inv = $req->investigator;
 
-        // Generate document number using the 'ba_penyerahan' numbering scope
-        $numberingService = app(\App\Services\NumberingService::class);
-        $baPenyerahanNumber = $numberingService->issue('ba_penyerahan', [
-            'investigator_id' => $inv->id,
-        ]);
+        // Check if document already exists to reuse number (prevent counter increment)
+        $existingDoc = $docs->getExistingGenerated($req, 'ba_penyerahan');
         
+        if ($existingDoc) {
+            // Reuse number from existing filename to avoid incrementing counter
+            // Format: {NUMBER}-ba-penyerahan.pdf
+            $filename = $existingDoc->original_filename;
+            $suffix = '-ba-penyerahan.pdf';
+            
+            if (str_ends_with($filename, $suffix)) {
+                $baPenyerahanNumber = substr($filename, 0, -strlen($suffix));
+            } else {
+                // Fallback: strip extension and label
+                $baseName = pathinfo($filename, PATHINFO_FILENAME);
+                $baPenyerahanNumber = str_replace('-ba-penyerahan', '', $baseName);
+            }
+        } else {
+            // Generate NEW document number
+            $numberingService = app(\App\Services\NumberingService::class);
+            $context = [
+                'investigator_id' => $inv->id,
+                'request_number' => $req->request_number,
+            ];
+
+            // Attempt to extract sequence from request_number to synchronize BA-ST number
+            if (!empty($req->request_number)) {
+                // Try Standard {SEQ}/... or .../{SEQ}/... format
+                if (preg_match('/(?:^|[\/\-])(\d{1,5})(?:[\/\-]|$)/', $req->request_number, $m)) {
+                    $context['forced_sequence'] = (int) $m[1];
+                }
+            }
+
+            $baPenyerahanNumber = $numberingService->issue('ba_penyerahan', $context);
+        }
+        
+        // Inject number into request metadata for the view to use
+        // This ensures the view displays the reused number
+        $meta = $req->metadata ?? [];
+        if (!is_array($meta)) $meta = [];
+        $meta['ba_penyerahan_number'] = $baPenyerahanNumber;
+        $req->setAttribute('metadata', $meta);
+
         // Generate filesystem-safe baseName from document number
         $base = $docs->generateDocumentBaseName('ba_penyerahan', $baPenyerahanNumber);
 

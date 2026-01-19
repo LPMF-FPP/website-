@@ -54,12 +54,11 @@ class NumberingRepairController extends Controller
     {
         $validated = $request->validate([
             'new_value' => 'required|integer|min:0',
-            'reason' => 'required|string|min:5|max:500',
+            'reason' => 'required|string|max:500',
         ], [
             'new_value.required' => 'Nilai counter wajib diisi',
             'new_value.min' => 'Nilai counter tidak boleh negatif',
             'reason.required' => 'Alasan perubahan wajib diisi',
-            'reason.min' => 'Alasan minimal 5 karakter',
         ]);
 
         try {
@@ -86,12 +85,11 @@ class NumberingRepairController extends Controller
     {
         $validated = $request->validate([
             'method' => 'required|in:max,count',
-            'reason' => 'required|string|min:5|max:500',
+            'reason' => 'required|string|max:500',
         ], [
             'method.required' => 'Metode sinkronisasi wajib dipilih',
             'method.in' => 'Metode harus max atau count',
             'reason.required' => 'Alasan perubahan wajib diisi',
-            'reason.min' => 'Alasan minimal 5 karakter',
         ]);
 
         try {
@@ -118,11 +116,10 @@ class NumberingRepairController extends Controller
     {
         $validated = $request->validate([
             'new_number' => 'required|string|max:100',
-            'reason' => 'required|string|min:5|max:500',
+            'reason' => 'required|string|max:500',
         ], [
             'new_number.required' => 'Nomor baru wajib diisi',
             'reason.required' => 'Alasan perubahan wajib diisi',
-            'reason.min' => 'Alasan minimal 5 karakter',
         ]);
 
         try {

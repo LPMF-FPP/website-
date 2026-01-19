@@ -30,6 +30,31 @@
 
 ## 📰 Recent Changes (v1.5.x)
 
+### v1.7.6 (19 Januari 2026) - PostgreSQL Compatibility Fix (Numbering Repair)
+
+```
+Updated on 2026-01-19
+```
+
+**🎯 Problem Solved:**
+
+Mengatasi error `500 Internal Server Error` saat menggunakan fitur "Numbering Repair" pada database PostgreSQL.
+
+**🐛 Root Cause:**
+
+Penggunaan fungsi raw SQL MySQL `JSON_EXTRACT` dan `JSON_UNQUOTE` yang tidak didukung oleh PostgreSQL, menyebabkan query gagal saat dijalankan di lingkungan produksi (PostgreSQL).
+
+**✨ Fixes:**
+
+- **Database Agnostic JSON Queries:** Mengganti raw SQL `JSON_EXTRACT` dengan sintaks Eloquent `where('metadata->lhu_number', ...)` yang secara otomatis diterjemahkan ke driver database yang sesuai (PostgreSQL `->>` atau MySQL `JSON_EXTRACT`).
+- **Scopes Affected:**
+    - `lhu` (Laporan Hasil Uji)
+    - `ba_penyerahan` (Berita Acara Penyerahan)
+
+**📁 Files Modified:**
+
+- `app/Services/NumberingRepairService.php`
+
 ### v1.7.5 (18 Januari 2026) - Test Environment Fix
 
 ```
