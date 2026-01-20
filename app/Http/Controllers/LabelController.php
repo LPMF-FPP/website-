@@ -105,6 +105,7 @@ class LabelController extends Controller
             'nomor_surat' => $request->case_number ?? '-',
             'satuan_kerja' => $request->investigator->jurisdiction ?? '-',
             'daftar_kode_sampel' => $allSampleCodes ?: '-',
+            'resi' => $request->receipt_number ?? '-',
         ];
     }
 
