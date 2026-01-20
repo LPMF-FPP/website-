@@ -145,7 +145,7 @@
                                                 <img src="{{ public_path('images/logo-tribrata-polri.png') }}" style="height: 10mm; width: auto;">
                                             </td>
                                             <td style="width: 70%; text-align: center; vertical-align: middle;">
-                                                <h1>LPMF</h1>
+                                                <h1>Barang Bukti</h1>
                                                 <div class="subtitle">Laboratorium Pengujian mutu Farmapol Pusdokkes Polri</div>
                                             </td>
                                             <td style="width: 15%; text-align: center; vertical-align: middle;">
@@ -274,9 +274,9 @@
 
         <table style="width: 100%; margin-bottom: 8mm; font-size: 10pt;">
             <tr>
-                <td style="width: 25%; font-weight: bold; vertical-align: top;">Nomor Surat</td>
+                <td style="width: 25%; font-weight: bold; vertical-align: top;">Nomor Resi</td>
                 <td style="width: 2%; vertical-align: top;">:</td>
-                <td style="vertical-align: top;">{{ $info['nomor_surat'] ?? ($info['request_number'] ?? '-') }}</td>
+                <td style="vertical-align: top;">{{ $info['resi'] ?? ($info['receipt_code'] ?? '-') }}</td>
             </tr>
             <tr>
                 <td style="font-weight: bold; vertical-align: top;">Asal Instansi</td>
