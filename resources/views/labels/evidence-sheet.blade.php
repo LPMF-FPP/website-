@@ -176,23 +176,6 @@
                                             <div class="field-label">Deskripsi Singkat</div>
                                             <div class="field-value clamp2">{{ $row['left']['deskripsi_singkat'] }}</div>
                                         </div>
-
-                                        <div class="field">
-                                            <div class="field-label">Satuan Kerja</div>
-                                            <div class="field-value clamp2">{{ $row['left']['satuan_kerja'] }}</div>
-                                        </div>
-
-                                        <div class="field">
-                                            <div class="field-label">Satuan</div>
-                                            <div class="field-value">{{ $row['left']['satuan'] }}</div>
-                                        </div>
-
-                                        @if($row['left']['jenis'] && $row['left']['jenis'] !== '-')
-                                        <div class="field">
-                                            <div class="field-label">Jenis</div>
-                                            <div class="field-value small">{{ $row['left']['jenis'] }}</div>
-                                        </div>
-                                        @endif
                                     </div>
 
                                     <div class="label-qr">
