@@ -145,8 +145,8 @@
                                                 <img src="{{ public_path('images/logo-tribrata-polri.png') }}" style="height: 10mm; width: auto;">
                                             </td>
                                             <td style="width: 70%; text-align: center; vertical-align: middle;">
-                                                <h1>Barang Bukti</h1>
-                                                <div class="subtitle">LPMF - Laboratorium Farmapol Pusdokkes Polri</div>
+                                                <h1>LPMF</h1>
+                                                <div class="subtitle">Laboratorium Pengujian mutu Farmapol Pusdokkes Polri</div>
                                             </td>
                                             <td style="width: 15%; text-align: center; vertical-align: middle;">
                                                 <img src="{{ public_path('images/logo-pusdokkes-polri.png') }}" style="height: 10mm; width: auto;">
@@ -202,8 +202,8 @@
                                                 <img src="{{ public_path('images/logo-tribrata-polri.png') }}" style="height: 10mm; width: auto;">
                                             </td>
                                             <td style="width: 70%; text-align: center; vertical-align: middle;">
-                                                <h1>Barang Bukti</h1>
-                                                <div class="subtitle">LPMF - Laboratorium Farmapol Pusdokkes Polri</div>
+                                                <h1>LPMF</h1>
+                                                <div class="subtitle">Laboratorium Pengujian mutu Farmapol Pusdokkes Polri</div>
                                             </td>
                                             <td style="width: 15%; text-align: center; vertical-align: middle;">
                                                 <img src="{{ public_path('images/logo-pusdokkes-polri.png') }}" style="height: 10mm; width: auto;">
@@ -256,5 +256,76 @@
             <div class="page-break"></div>
         @endif
     @endforeach
+
+    {{-- Halaman Checklist --}}
+    <div class="page-break"></div>
+
+    <div style="padding: 10mm; font-family: 'DejaVu Sans', Arial, sans-serif;">
+        <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 5mm; margin-bottom: 8mm;">
+            <h1 style="margin: 0; font-size: 14pt; text-transform: uppercase; font-weight: bold;">Checklist Kelengkapan Dokumen</h1>
+            <div style="margin-top: 2mm; font-size: 10pt;">Laboratorium Pengujian Mutu Farmapol Pusdokkes Polri</div>
+        </div>
+
+        @php
+            // Ambil info dari baris pertama (kolom kanan/kiri) untuk header checklist
+            $firstRow = $rows->first();
+            $info = $firstRow['right'] ?? ($firstRow['left'] ?? []);
+        @endphp
+
+        <table style="width: 100%; margin-bottom: 8mm; font-size: 10pt;">
+            <tr>
+                <td style="width: 25%; font-weight: bold; vertical-align: top;">Nomor Surat</td>
+                <td style="width: 2%; vertical-align: top;">:</td>
+                <td style="vertical-align: top;">{{ $info['nomor_surat'] ?? ($info['request_number'] ?? '-') }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: bold; vertical-align: top;">Asal Instansi</td>
+                <td style="vertical-align: top;">:</td>
+                <td style="vertical-align: top;">{{ $info['satuan_kerja'] ?? '-' }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: bold; vertical-align: top;">Nama Tersangka</td>
+                <td style="vertical-align: top;">:</td>
+                <td style="vertical-align: top;">{{ $info['nama_tsk'] ?? ($info['suspect_name'] ?? '-') }}</td>
+            </tr>
+        </table>
+
+        <table style="width: 100%; border-collapse: collapse; font-size: 10pt;">
+            <thead>
+                <tr style="background-color: #f0f0f0;">
+                    <th style="border: 1px solid #000; padding: 2mm; width: 8%; text-align: center;">No</th>
+                    <th style="border: 1px solid #000; padding: 2mm; text-align: left;">Nama Dokumen</th>
+                    <th style="border: 1px solid #000; padding: 2mm; width: 15%; text-align: center;">Ceklis</th>
+                </tr>
+            </thead>
+            <tbody>
+                @php
+                    $checklistItems = [
+                        'BA Penerimaan',
+                        'Laporan Hasil Uji',
+                        'Lampiran Hasil Uji',
+                        'BA Penyerahan',
+                        'Sisa Sampel',
+                        'Sprin Saksi Ahli',
+                        'Surat Pengantar'
+                    ];
+                @endphp
+                @foreach($checklistItems as $idx => $item)
+                <tr>
+                    <td style="border: 1px solid #000; padding: 2mm; text-align: center;">{{ $idx + 1 }}</td>
+                    <td style="border: 1px solid #000; padding: 2mm;">{{ $item }}</td>
+                    <td style="border: 1px solid #000; padding: 2mm; text-align: center;">
+                        <div style="width: 4mm; height: 4mm; border: 1px solid #000; display: inline-block;"></div>
+                    </td>
+                </tr>
+                @endforeach
+            </tbody>
+        </table>
+        
+        <div style="margin-top: 15mm; text-align: right; font-size: 10pt;">
+            <div style="margin-bottom: 20mm;">Petugas,</div>
+            <div>(.......................................)</div>
+        </div>
+    </div>
 </body>
 </html>
