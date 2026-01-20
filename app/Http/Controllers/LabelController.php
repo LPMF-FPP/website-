@@ -162,7 +162,7 @@ class LabelController extends Controller
         logger()->info('Label hybrid row sample', ['row_0' => $rows[0]]);
 
         $pdf = Pdf::loadView('labels.evidence-sheet', [
-            'rows' => $rows, // Pass 'rows' instead of 'labels'
+            'rows' => collect($rows), // Pass as collection to allow ->chunk() in blade
             'printDate' => now()->translatedFormat('d M Y H:i'),
         ]);
 
