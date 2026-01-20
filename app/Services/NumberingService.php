@@ -71,6 +71,57 @@ class NumberingService
     }
 
     /**
+     * Attempt to rollback the sequence if the given number was the last one issued.
+     * This prevents gaps when the most recent item is deleted.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    public function rollback(string $scope, string $number, array $context = []): bool
+    {
+        try {
+            $config = $this->getConfig($scope);
+            $pattern = $config['pattern'];
+            $reset = $config['reset'] ?? 'never';
+            
+            // Context needs to use the original creation time (passed in $context['now'])
+            // to correctly reconstruct the bucket and date placeholders
+            $contextWithNow = $this->contextWithNow($context);
+            
+            $bucket = $this->makeBucket($scope, $reset, $contextWithNow, $config);
+
+            $sequence = Sequence::query()
+                ->where('scope', $scope)
+                ->where('bucket', $bucket)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $sequence) {
+                return false;
+            }
+
+            // Generate what the current sequence number looks like
+            $currentNumber = $this->render($pattern, $sequence->current_value, $contextWithNow);
+
+            // If the number we are deleting matches the current sequence number,
+            // it means it was the LAST one generated. We can safely rollback.
+            if ($number === $currentNumber) {
+                $sequence->current_value = max(0, $sequence->current_value - 1);
+                $sequence->save();
+
+                Audit::log('ROLLBACK_NUMBER', $scope, null, ['number' => $number, 'bucket' => $bucket], [
+                    'context' => $contextWithNow,
+                ]);
+
+                return true;
+            }
+
+            return false;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
      * Preview the next number without mutating the sequence table.
      *
      * @param  array<string, mixed>  $context

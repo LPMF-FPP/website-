@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Jobs\SendWhatsAppNotificationJob;
 use App\Models\TestRequest;
 use App\Models\WhatsappOutbox;
+use App\Services\NumberingService;
 use App\Services\WhatsApp\NotificationService;
 use App\Support\ActivityLogger;
 use Illuminate\Support\Arr;
@@ -12,7 +13,8 @@ use Illuminate\Support\Arr;
 class TestRequestObserver
 {
     public function __construct(
-        private NotificationService $notificationService
+        private NotificationService $notificationService,
+        private NumberingService $numberingService
     ) {
     }
 
@@ -78,6 +80,21 @@ class TestRequestObserver
 
     public function deleted(TestRequest $testRequest): void
     {
+        // Attempt to rollback numbers if they are the latest in sequence
+        if ($testRequest->request_number) {
+            $this->numberingService->rollback('ba', $testRequest->request_number, [
+                'investigator_id' => $testRequest->investigator_id,
+                'now' => $testRequest->created_at, // Use creation time to match bucket
+            ]);
+        }
+
+        if ($testRequest->receipt_number) {
+            $this->numberingService->rollback('tracking', $testRequest->receipt_number, [
+                'investigator_id' => $testRequest->investigator_id,
+                'now' => $testRequest->created_at,
+            ]);
+        }
+
         ActivityLogger::log(
             'REQUEST_DELETED',
             null,
