@@ -215,33 +215,6 @@
                         </table>
                     </div>
 
-                    {{-- Link ke Laporan Hasil Uji yang di-generate --}}
-                    @if($interpretationDetails['report_exists'] && $interpretationDetails['report_document'])
-                        @php
-                            $doc = $interpretationDetails['report_document'];
-                        @endphp
-                        <div class="mt-4 rounded-md border border-primary-200 bg-primary-50 px-4 py-3">
-                            <div class="flex items-center gap-3">
-                                <x-icon name="document" class="h-5 w-5 text-primary-600" />
-                                <div class="flex-1">
-                                    <span class="font-semibold text-primary-900">Laporan Hasil Uji</span>
-                                    <p class="text-xs text-primary-700 mt-1">
-                                        Nomor: <span class="font-mono">{{ $interpretationDetails['report_number'] }}</span>
-                                        @if($doc->created_at)
-                                            &middot; Generated: {{ $doc->created_at->format('d/m/Y H:i') }}
-                                        @endif
-                                    </p>
-                                </div>
-                                <a href="{{ asset('storage/' . ltrim($doc->path, '/')) }}"
-                                   target="_blank"
-                                   class="inline-flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition">
-                                    <x-icon name="eye" class="h-4 w-4" />
-                                    Lihat Laporan
-                                </a>
-                            </div>
-                        </div>
-                    @endif
-
                 </x-page-section>
             @endif
 
