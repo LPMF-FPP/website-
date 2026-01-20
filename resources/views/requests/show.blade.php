@@ -5,7 +5,7 @@
 <x-app-layout>
     <x-slot name="header">
         <x-page-header
-            :title="'Permintaan Pengujian #' . $request->request_number"
+            :title="'Permintaan Pengujian #' . ($request->receipt_number ?? $request->request_number)"
             :breadcrumbs="[[ 'label' => 'Permintaan', 'href' => route('requests.index') ], [ 'label' => 'Detail' ]]"
         />
     </x-slot>
