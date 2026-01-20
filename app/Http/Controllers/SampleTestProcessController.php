@@ -602,6 +602,21 @@ class SampleTestProcessController extends Controller
             ->with('success', 'Proses pengujian berhasil diperbarui.');
     }
 
+    /**
+     * Extract sequence number from a code string (first 3-5 digit block).
+     */
+    private function extractSequence(?string $code): ?int
+    {
+        if (empty($code)) {
+            return null;
+        }
+        // Matches: LS019..., 005/..., /023/
+        if (preg_match('/(?:^|[\/\-A-Z])(\d{3,5})(?:[\/\-A-Z]|$)/i', $code, $m)) {
+            return (int) $m[1];
+        }
+        return null;
+    }
+
     public function generateReport(SampleTestProcess $sampleProcess, \App\Services\DocumentService $docs, NumberingService $numberingService)
     {
         $sampleProcess->load(['sample.testRequest.investigator']);
@@ -617,25 +632,25 @@ class SampleTestProcessController extends Controller
         $metadata = $sampleProcess->metadata ?? [];
         $lhuNumber = $metadata['lhu_number'] ?? $metadata['report_number'] ?? $metadata['lab_report_no'] ?? null;
 
-        if (empty($lhuNumber)) {
-            // No LHU number exists yet - issue a new one using the latest 'lhu' scope configuration
+        // Auto-correction Logic: Ensure LHU sequence matches Sample sequence
+        $sampleCode = $sampleProcess->sample->sample_code ?? '';
+        $sampleSeq = $this->extractSequence($sampleCode);
+        $lhuSeq = $this->extractSequence($lhuNumber);
+
+        // If sample sequence exists, and (LHU is missing OR LHU sequence doesn't match), regenerate
+        $shouldRegenerate = empty($lhuNumber) || ($sampleSeq && $lhuSeq && $sampleSeq !== $lhuSeq);
+
+        if ($shouldRegenerate) {
+            // No LHU number exists yet OR sequence mismatch - issue a new/corrected one
             try {
                 $context = [
                     'sample_id' => $sampleProcess->sample_id,
                     'process_id' => $sampleProcess->id,
-                    'sample_code' => $sampleProcess->sample->sample_code ?? null,
+                    'sample_code' => $sampleCode,
                 ];
 
-                // Attempt to extract sequence from sample_code to synchronize LHU number
-                if (!empty($context['sample_code'])) {
-                    // Normalize: remove generic delimiters to easier parsing
-                    $cleanCode = $context['sample_code'];
-                    
-                    // Strategy 1: Look for first 3-5 digit block that might be the sequence
-                    // Matches: LS019..., W001..., 005/..., /023/
-                    if (preg_match('/(?:^|[\/\-A-Z])(\d{3,5})(?:[\/\-A-Z]|$)/i', $cleanCode, $m)) {
-                        $context['forced_sequence'] = (int) $m[1];
-                    }
+                if ($sampleSeq) {
+                    $context['forced_sequence'] = $sampleSeq;
                 }
 
                 $lhuNumber = $numberingService->issue('lhu', $context);
@@ -645,11 +660,12 @@ class SampleTestProcessController extends Controller
                 $sampleProcess->metadata = $metadata;
                 $sampleProcess->save();
 
-                Log::info('LHU number issued', [
+                Log::info('LHU number issued/corrected', [
                     'scope' => 'lhu',
                     'number' => $lhuNumber,
                     'process_id' => $sampleProcess->id,
-                    'sample_id' => $sampleProcess->sample_id,
+                    'sample_seq' => $sampleSeq,
+                    'old_lhu_seq' => $lhuSeq,
                 ]);
             } catch (\Exception $e) {
                 Log::error('Failed to issue LHU number', [
