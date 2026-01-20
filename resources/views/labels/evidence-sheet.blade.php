@@ -31,10 +31,9 @@
             page-break-inside: avoid;
         }
         .label-header {
-            text-align: center;
-            border-bottom: 1px solid #333;
-            padding-bottom: 1.5mm;
-            margin-bottom: 1.5mm;
+            /* Border moved to table */
+            padding-bottom: 0;
+            margin-bottom: 0;
         }
         .label-header h1 {
             font-size: 9pt;
@@ -44,7 +43,7 @@
             margin: 0;
         }
         .label-header .subtitle {
-            font-size: 6pt;
+            font-size: 5pt;
             color: #555;
             margin-top: 0.5mm;
         }
@@ -140,8 +139,20 @@
                         @if($row['left'])
                             <div class="label">
                                 <div class="label-header">
-                                    <h1>Barang Bukti</h1>
-                                    <div class="subtitle">LPMF - Laboratorium Farmapol Pusdokkes Polri</div>
+                                    <table width="100%" style="border-bottom: 1px solid #333; margin-bottom: 1.5mm; padding-bottom: 1mm;">
+                                        <tr>
+                                            <td style="width: 15%; text-align: center; vertical-align: middle;">
+                                                <img src="{{ public_path('images/logo-tribrata-polri.png') }}" style="height: 10mm; width: auto;">
+                                            </td>
+                                            <td style="width: 70%; text-align: center; vertical-align: middle;">
+                                                <h1>Barang Bukti</h1>
+                                                <div class="subtitle">LPMF - Laboratorium Farmapol Pusdokkes Polri</div>
+                                            </td>
+                                            <td style="width: 15%; text-align: center; vertical-align: middle;">
+                                                <img src="{{ public_path('images/logo-pusdokkes-polri.png') }}" style="height: 10mm; width: auto;">
+                                            </td>
+                                        </tr>
+                                    </table>
                                 </div>
 
                                 <div class="label-body">
@@ -202,8 +213,20 @@
                         @if($row['right'])
                             <div class="label">
                                 <div class="label-header">
-                                    <h1>Barang Bukti</h1>
-                                    <div class="subtitle">LPMF - Laboratorium Farmapol Pusdokkes Polri</div>
+                                    <table width="100%" style="border-bottom: 1px solid #333; margin-bottom: 1.5mm; padding-bottom: 1mm;">
+                                        <tr>
+                                            <td style="width: 15%; text-align: center; vertical-align: middle;">
+                                                <img src="{{ public_path('images/logo-tribrata-polri.png') }}" style="height: 10mm; width: auto;">
+                                            </td>
+                                            <td style="width: 70%; text-align: center; vertical-align: middle;">
+                                                <h1>Barang Bukti</h1>
+                                                <div class="subtitle">LPMF - Laboratorium Farmapol Pusdokkes Polri</div>
+                                            </td>
+                                            <td style="width: 15%; text-align: center; vertical-align: middle;">
+                                                <img src="{{ public_path('images/logo-pusdokkes-polri.png') }}" style="height: 10mm; width: auto;">
+                                            </td>
+                                        </tr>
+                                    </table>
                                 </div>
 
                                 <div class="label-body">
