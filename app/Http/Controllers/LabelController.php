@@ -102,7 +102,7 @@ class LabelController extends Controller
 
         return [
             'nama_tsk' => $request->suspect_name ?? '-',
-            'nomor_surat' => $request->request_number ?? '-',
+            'nomor_surat' => $request->case_number ?? '-',
             'satuan_kerja' => $request->investigator->jurisdiction ?? '-',
             'daftar_kode_sampel' => $allSampleCodes ?: '-',
         ];
