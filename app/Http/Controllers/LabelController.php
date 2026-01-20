@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\EvidenceUnit;
 use App\Models\RemainingUnit;
+use App\Models\TestRequest;
 use App\Services\LabelService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -90,11 +91,32 @@ class LabelController extends Controller
     }
 
     /**
+     * Build explicit case label payload (for right column).
+     */
+    private function buildCaseLabelPayload(TestRequest $request): array
+    {
+        // Combine all sample codes
+        $allSampleCodes = $request->samples->sortBy('id')
+            ->pluck('sample_code')
+            ->implode(', ');
+
+        return [
+            'nama_tsk' => $request->suspect_name ?? '-',
+            'nomor_surat' => $request->request_number ?? '-',
+            'satuan_kerja' => $request->investigator->jurisdiction ?? '-',
+            'daftar_kode_sampel' => $allSampleCodes ?: '-',
+        ];
+    }
+
+    /**
      * Generate PDF sheet of evidence labels for a request.
      * GET /labels/evidence/request/{requestId}/sheet
      */
     public function evidenceSheet(Request $request, int $requestId)
     {
+        $testRequest = TestRequest::with(['samples', 'investigator'])->find($requestId);
+        
+        // Ensure evidence units exist or are created (fallback logic if needed, but existing code relied on them existing)
         $evidenceUnits = $this->labelService->getEvidenceUnitsForRequest($requestId);
 
         if ($evidenceUnits->isEmpty()) {
@@ -109,14 +131,38 @@ class LabelController extends Controller
             $this->labelService->logPrint('evidence', $eu, $format, $reason);
         }
 
-        // Build explicit label payloads with QR as base64 PNG
-        $labels = $evidenceUnits->map(fn ($unit) => $this->buildLabelPayload($unit))->values();
+        // Build left column payloads (Evidence Labels)
+        $evidencePayloads = $evidenceUnits->map(fn ($unit) => $this->buildLabelPayload($unit))->values();
 
-        // Debug log first label payload (remove after verification)
-        logger()->info('Label payload sample', $labels->take(1)->toArray());
+        // Build right column payload (Case Label) - Fixed single payload
+        $casePayload = $this->buildCaseLabelPayload($testRequest);
+
+        // Construct rows: Left = Evidence, Right = Case (only for first 4 rows)
+        // Total rows is determined by number of evidence labels
+        $totalRows = $evidencePayloads->count();
+        
+        // Ensure at least 4 rows if we want to show 4 case labels even if < 4 samples?
+        // User said: "banyaknya label baru... tetap yaitu 4"
+        // So if we have 1 sample, we should have 4 rows?
+        // Row 1: Left=Sample1, Right=Case1
+        // Row 2: Left=Empty, Right=Case1
+        // Row 3: Left=Empty, Right=Case1
+        // Row 4: Left=Empty, Right=Case1
+        $totalRows = max($totalRows, 4);
+
+        $rows = [];
+        for ($i = 0; $i < $totalRows; $i++) {
+            $rows[] = [
+                'left' => $evidencePayloads->get($i), // Returns null if index out of bounds
+                'right' => ($i < 4) ? $casePayload : null // Only first 4 rows get case label
+            ];
+        }
+
+        // Debug log first row (remove after verification)
+        logger()->info('Label hybrid row sample', ['row_0' => $rows[0]]);
 
         $pdf = Pdf::loadView('labels.evidence-sheet', [
-            'labels' => $labels,
+            'rows' => $rows, // Pass 'rows' instead of 'labels'
             'printDate' => now()->translatedFormat('d M Y H:i'),
         ]);
 

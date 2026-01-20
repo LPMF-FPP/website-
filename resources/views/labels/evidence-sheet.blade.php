@@ -131,12 +131,13 @@
     </style>
 </head>
 <body>
-    @foreach($labels->chunk(10) as $chunkIndex => $chunk)
+    @foreach($rows->chunk(5) as $chunkIndex => $chunk)
         <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
-            @foreach($chunk->chunk(2) as $row)
+            @foreach($chunk as $row)
                 <tr>
-                    @foreach($row as $label)
-                        <td style="width:50%; vertical-align:top; padding-right:4mm; padding-bottom:2mm;">
+                    {{-- Left Column: Evidence Label --}}
+                    <td style="width:50%; vertical-align:top; padding-right:4mm; padding-bottom:2mm;">
+                        @if($row['left'])
                             <div class="label">
                                 <div class="label-header">
                                     <h1>Barang Bukti</h1>
@@ -147,45 +148,45 @@
                                     <div class="label-content">
                                         <div class="field">
                                             <div class="field-label">Resi</div>
-                                            <div class="field-value">{{ $label['resi'] }}</div>
+                                            <div class="field-value">{{ $row['left']['resi'] }}</div>
                                         </div>
 
                                         <div class="field">
                                             <div class="field-label">Kode Sampel</div>
-                                            <div class="field-value large">{{ $label['kode_sampel'] }}</div>
+                                            <div class="field-value large">{{ $row['left']['kode_sampel'] }}</div>
                                         </div>
 
                                         <div class="field">
                                             <div class="field-label">Tanggal Terima</div>
-                                            <div class="field-value">{{ $label['tanggal_terima'] }}</div>
+                                            <div class="field-value">{{ $row['left']['tanggal_terima'] }}</div>
                                         </div>
 
                                         <div class="field">
                                             <div class="field-label">Deskripsi Singkat</div>
-                                            <div class="field-value clamp2">{{ $label['deskripsi_singkat'] }}</div>
+                                            <div class="field-value clamp2">{{ $row['left']['deskripsi_singkat'] }}</div>
                                         </div>
 
                                         <div class="field">
                                             <div class="field-label">Satuan Kerja</div>
-                                            <div class="field-value clamp2">{{ $label['satuan_kerja'] }}</div>
+                                            <div class="field-value clamp2">{{ $row['left']['satuan_kerja'] }}</div>
                                         </div>
 
                                         <div class="field">
                                             <div class="field-label">Satuan</div>
-                                            <div class="field-value">{{ $label['satuan'] }}</div>
+                                            <div class="field-value">{{ $row['left']['satuan'] }}</div>
                                         </div>
 
-                                        @if($label['jenis'] && $label['jenis'] !== '-')
+                                        @if($row['left']['jenis'] && $row['left']['jenis'] !== '-')
                                         <div class="field">
                                             <div class="field-label">Jenis</div>
-                                            <div class="field-value small">{{ $label['jenis'] }}</div>
+                                            <div class="field-value small">{{ $row['left']['jenis'] }}</div>
                                         </div>
                                         @endif
                                     </div>
 
                                     <div class="label-qr">
-                                        <img src="{{ $label['qr'] }}" alt="QR Code">
-                                        <div class="qr-text">{{ $label['qr_text'] }}</div>
+                                        <img src="{{ $row['left']['qr'] }}" alt="QR Code">
+                                        <div class="qr-text">{{ $row['left']['qr_text'] }}</div>
                                     </div>
                                 </div>
 
@@ -193,11 +194,54 @@
                                     Dicetak: {{ $printDate }}
                                 </div>
                             </div>
-                        </td>
-                    @endforeach
-                    @if($row->count() === 1)
-                        <td style="width:50%; vertical-align:top;"></td>
-                    @endif
+                        @endif
+                    </td>
+
+                    {{-- Right Column: Case Label --}}
+                    <td style="width:50%; vertical-align:top; padding-right:4mm; padding-bottom:2mm;">
+                        @if($row['right'])
+                            <div class="label">
+                                <div class="label-header">
+                                    <h1>Barang Bukti</h1>
+                                    <div class="subtitle">LPMF - Laboratorium Farmapol Pusdokkes Polri</div>
+                                </div>
+
+                                <div class="label-body">
+                                    <div class="label-content" style="width: 100%;">
+                                        <div class="field">
+                                            <div class="field-label">Asal Instansi</div>
+                                            <div class="field-value clamp2">{{ $row['right']['satuan_kerja'] }}</div>
+                                        </div>
+
+                                        <div class="field">
+                                            <div class="field-label">Nama Tersangka</div>
+                                            <div class="field-value">{{ $row['right']['nama_tsk'] }}</div>
+                                        </div>
+
+                                        <div class="field">
+                                            <div class="field-label">Nomor Sampel</div>
+                                            <div class="field-value clamp2 small">{{ $row['right']['daftar_kode_sampel'] }}</div>
+                                        </div>
+
+                                        <div class="field">
+                                            <div class="field-label">Nomor Surat</div>
+                                            <div class="field-value">{{ $row['right']['nomor_surat'] }}</div>
+                                        </div>
+                                    </div>
+                                    {{-- Optional: QR Code for Case Label (User didn't specify, but space allows) --}}
+                                    {{-- 
+                                    <div class="label-qr">
+                                         <img src="..." alt="QR Code">
+                                    </div> 
+                                    --}}
+                                </div>
+
+                                <div class="label-footer">
+                                    Dicetak: {{ $printDate }}
+                                </div>
+                            </div>
+                        @endif
+                    </td>
                 </tr>
             @endforeach
         </table>
