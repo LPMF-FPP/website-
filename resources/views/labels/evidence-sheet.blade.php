@@ -54,19 +54,19 @@
         }
         .label-content {
             display: table-cell;
-            width: 65%;
+            width: 70%; /* Increased from 65% */
             vertical-align: top;
             padding-right: 2mm;
         }
         .label-qr {
             display: table-cell;
-            width: 35%;
+            width: 30%; /* Decreased from 35% */
             vertical-align: top;
             text-align: center;
         }
         .label-qr img {
-            width: 22mm;
-            height: 22mm;
+            width: 20mm; /* Reduced from 22mm */
+            height: 20mm;
             display: block;
             margin: 0 auto;
         }
@@ -79,34 +79,34 @@
             max-height: 8mm;
         }
         .field {
-            margin-bottom: 1mm;
+            margin-bottom: 0.8mm; /* Reduced from 1mm */
             overflow: hidden;
         }
         .field-label {
-            font-size: 6pt;
+            font-size: 5.5pt; /* Reduced from 6pt */
             color: #666;
             text-transform: uppercase;
             letter-spacing: 0.2pt;
         }
         .field-value {
-            font-size: 7.5pt;
+            font-size: 7pt; /* Reduced from 7.5pt */
             font-weight: bold;
             word-wrap: break-word;
             overflow-wrap: anywhere;
             word-break: break-word;
             overflow: hidden;
-            max-height: 8mm;
+            line-height: 1.1; /* Tighter line height */
         }
         .field-value.large {
-            font-size: 10pt;
+            font-size: 9pt; /* Reduced from 10pt */
         }
         .field-value.small {
-            font-size: 7pt;
+            font-size: 6.5pt; /* Reduced from 7pt */
             font-weight: normal;
         }
         /* Clamp text to max 2 lines */
         .clamp2 {
-            max-height: 6mm;
+            max-height: 5.5mm; /* Explicit height limit based on font size */
             overflow: hidden;
             display: -webkit-box;
             -webkit-line-clamp: 2;

@@ -36,17 +36,64 @@
         .label-header {
             text-align: center;
             border-bottom: 1px solid #333;
-            padding-bottom: 1mm; /* Reduced from 2mm */
-            margin-bottom: 1mm; /* Reduced from 2mm */
+            padding-bottom: 1mm;
+            margin-bottom: 1mm;
             background: #fffde7;
-            margin: -3mm -3mm 2mm -3mm; /* Match new padding */
-            padding: 2mm;
+            margin: -3mm -3mm 1mm -3mm; /* Adjusted margin */
+            padding: 1.5mm;
         }
-        /* ... */
+        .label-header h1 {
+            font-size: 8pt;
+            font-weight: bold;
+            margin: 0;
+        }
+        .label-header .subtitle {
+            font-size: 5pt;
+            color: #555;
+            margin-top: 0.5mm;
+        }
+        .sisa-badge {
+            background-color: #333;
+            color: #fff;
+            padding: 0.5mm 2mm;
+            border-radius: 2mm;
+            font-size: 7pt;
+            letter-spacing: 1px;
+        }
         .field {
-            margin-bottom: 1mm; /* Reduced from 1.5mm */
+            margin-bottom: 0.8mm; /* Reduced */
+            overflow: hidden;
         }
-        /* ... */
+        .field-label {
+            display: inline-block;
+            width: 16mm;
+            font-size: 6pt;
+            color: #666;
+            vertical-align: top;
+        }
+        .field-value {
+            display: inline-block;
+            width: calc(100% - 17mm);
+            font-size: 7.5pt;
+            font-weight: bold;
+            vertical-align: top;
+            line-height: 1.1;
+        }
+        .field-value.large {
+            font-size: 9pt;
+        }
+        .field-value.qty {
+            font-size: 8pt;
+            color: #d32f2f;
+        }
+        /* Clamp text to max 2 lines */
+        .clamp2 {
+            max-height: 5.5mm;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
         .label-footer {
             position: absolute;
             bottom: 1.5mm;
@@ -79,15 +126,15 @@
                                 
                                 <table style="width: 100%; border-collapse: collapse;">
                                     <tr>
-                                        <td style="width: 65%; vertical-align: top;">
+                                        <td style="width: 70%; vertical-align: top;">
                                             <div class="field">
                                                 <span class="field-label">Resi:</span>
-                                                <span class="field-value">{{ $unit->evidenceUnit->receipt_code ?? '-' }}</span>
+                                                <span class="field-value clamp2">{{ $unit->evidenceUnit->receipt_code ?? '-' }}</span>
                                             </div>
                                             
                                             <div class="field">
                                                 <span class="field-label">Kode:</span>
-                                                <span class="field-value large">{{ $unit->remaining_code }}</span>
+                                                <span class="field-value large clamp2">{{ $unit->remaining_code }}</span>
                                             </div>
                                             
                                             <div class="field">
@@ -103,20 +150,20 @@
                                             @if($unit->seal_status_delivered)
                                             <div class="field">
                                                 <span class="field-label">Segel:</span>
-                                                <span class="field-value">{{ $unit->seal_status_delivered }}</span>
+                                                <span class="field-value clamp2">{{ $unit->seal_status_delivered }}</span>
                                             </div>
                                             @endif
                                             
                                             @if($unit->handover_doc_no)
                                             <div class="field">
                                                 <span class="field-label">No. BA:</span>
-                                                <span class="field-value">{{ $unit->handover_doc_no }}</span>
+                                                <span class="field-value clamp2">{{ $unit->handover_doc_no }}</span>
                                             </div>
                                             @endif
                                         </td>
-                                        <td style="width: 35%; vertical-align: top; text-align: center; padding-top: 2mm;">
-                                            <img src="{{ $unit->qr_png ?? '' }}" style="width:25mm;height:25mm;display:block;margin:0 auto;" alt="QR">
-                                            <div style="font-size: 6pt; margin-top: 1mm;">{{ $unit->qr_content }}</div>
+                                        <td style="width: 30%; vertical-align: top; text-align: center; padding-top: 1mm;">
+                                            <img src="{{ $unit->qr_png ?? '' }}" style="width:20mm;height:20mm;display:block;margin:0 auto;" alt="QR">
+                                            <div style="font-size: 5pt; margin-top: 1mm;">{{ $unit->qr_content }}</div>
                                         </td>
                                     </tr>
                                 </table>
