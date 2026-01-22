@@ -206,6 +206,11 @@
             </div>
         </x-collapsible-section>
 
+        {{-- 4.5 Label Barang Bukti Section --}}
+        <x-collapsible-section id="labels" title="Label Barang Bukti" :count="$request->evidenceUnits->count()" :open="true">
+            @include('partials.label-section')
+        </x-collapsible-section>
+
         {{-- 5. Data Penyidik & Tersangka Section --}}
         <x-collapsible-section id="investigator" title="Data Penyidik & Tersangka" :open="false">
             @include('requests.partials.investigator-info')

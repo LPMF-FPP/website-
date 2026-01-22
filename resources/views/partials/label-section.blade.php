@@ -1,8 +1,5 @@
-
                 {{-- Label Sampel Section --}}
-                <h3 class="text-lg font-semibold text-gray-900 mb-4 mt-6">Label Barang Bukti</h3>
-
-                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <div class="flex items-start justify-between">
                         <div class="flex-1">
                             <div class="flex items-center space-x-2 mb-2">

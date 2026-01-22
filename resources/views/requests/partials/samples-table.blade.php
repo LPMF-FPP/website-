@@ -7,7 +7,6 @@
                     <th class="px-4 py-2 text-left font-medium text-gray-500 uppercase">Deskripsi Singkat</th>
                     <th class="px-4 py-2 text-left font-medium text-gray-500 uppercase">Jenis Pengujian</th>
                     <th class="px-4 py-2 text-left font-medium text-gray-500 uppercase">Zat Aktif</th>
-                    <th class="px-4 py-2 text-left font-medium text-gray-500 uppercase">Hasil Pengujian</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
@@ -52,17 +51,6 @@
                             @endif
                         </td>
                         <td class="px-4 py-3 text-gray-700 font-medium">{{ $sample->active_substance ?? '-' }}</td>
-                        <td class="px-4 py-3 text-gray-700">
-                            @if ($sample->testResult)
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                    {{ $sample->testResult->summary ?? 'Selesai' }}
-                                </span>
-                            @else
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                    Belum ada hasil
-                                </span>
-                            @endif
-                        </td>
                     </tr>
                 @endforeach
             </tbody>
