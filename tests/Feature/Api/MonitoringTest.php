@@ -2,13 +2,9 @@
 
 namespace Tests\Feature\Api;
 
-use App\Models\MonitoringAlert;
-use App\Models\MonitoringLog;
 use App\Models\MonitoringSensor;
-use App\Services\Monitoring\AlertService;
 use App\Services\WhatsApp\GowaClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Mockery;
 use Tests\TestCase;
 
 class MonitoringTest extends TestCase
@@ -36,7 +32,7 @@ class MonitoringTest extends TestCase
         ]);
 
         $response->assertStatus(201);
-        
+
         $this->assertDatabaseHas('monitoring_logs', [
             'sensor_id' => $sensor->id,
             'value' => -20.5,

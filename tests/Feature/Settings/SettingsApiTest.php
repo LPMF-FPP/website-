@@ -112,7 +112,6 @@ class SettingsApiTest extends TestCase
             ->assertHeader('Content-Type', 'application/pdf');
     }
 
-
     public function test_rejects_legacy_payload_string(): void
     {
         $user = User::factory()->create(['role' => 'admin']);

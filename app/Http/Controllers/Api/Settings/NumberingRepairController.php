@@ -20,6 +20,7 @@ class NumberingRepairController extends Controller
     {
         try {
             $status = $this->repairService->getCounterStatus($scope);
+
             return response()->json($status);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['error' => $e->getMessage()], 400);
@@ -153,7 +154,7 @@ class NumberingRepairController extends Controller
         $logs = $this->repairService->getChangeLogs($scope, $limit);
 
         return response()->json([
-            'logs' => $logs->map(fn($log) => [
+            'logs' => $logs->map(fn ($log) => [
                 'id' => $log->id,
                 'scope' => $log->scope,
                 'scope_label' => $log->scope_label,
@@ -174,7 +175,7 @@ class NumberingRepairController extends Controller
     public function entityHistory(string $scope, int $id): JsonResponse
     {
         $config = $this->repairService->getScopeConfig($scope);
-        if (!$config) {
+        if (! $config) {
             return response()->json(['error' => 'Scope tidak valid'], 400);
         }
 
@@ -182,7 +183,7 @@ class NumberingRepairController extends Controller
         $logs = $this->repairService->getEntityHistory($entityType, $id);
 
         return response()->json([
-            'logs' => $logs->map(fn($log) => [
+            'logs' => $logs->map(fn ($log) => [
                 'id' => $log->id,
                 'action_label' => $log->action_label,
                 'old_value' => $log->old_value,
@@ -231,7 +232,7 @@ class NumberingRepairController extends Controller
         try {
             $document = $this->repairService->getDocument($scope, $id);
 
-            if (!$document) {
+            if (! $document) {
                 return response()->json(['error' => 'Dokumen tidak ditemukan'], 404);
             }
 

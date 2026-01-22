@@ -2,7 +2,6 @@
 
 namespace Tests\Browser\Monitoring;
 
-use App\Enums\EnvironmentLocationType;
 use App\Models\EnvironmentLocation;
 use App\Models\EnvironmentReading;
 use App\Models\User;
@@ -64,7 +63,7 @@ class EnvironmentMonitoringTest extends DuskTestCase
             'humidity' => 58.0,
         ]);
 
-        $this->browse(function (Browser $browser) use ($user, $location, $reading) {
+        $this->browse(function (Browser $browser) use ($user, $location) {
             $browser->loginAs($user)
                 ->visit("/monitoring/environment/locations/{$location->id}/history")
                 ->assertSee('Reading History')

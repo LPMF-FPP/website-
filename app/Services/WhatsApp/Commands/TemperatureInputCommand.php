@@ -14,7 +14,7 @@ class TemperatureInputCommand
         // If no params, list sensors and latest reading
         if (empty($params)) {
             $locations = EnvironmentLocation::where('is_active', true)
-                ->with(['readings' => function($q) {
+                ->with(['readings' => function ($q) {
                     $q->latest('measured_at')->limit(1);
                 }])
                 ->orderBy('name')
@@ -27,12 +27,13 @@ class TemperatureInputCommand
             $response = "🌡️ *DAFTAR SUHU TERKINI*\n\n";
             foreach ($locations as $loc) {
                 $last = $loc->readings->first();
-                $val = $last ? "{$last->temperature_c}°C" : "-";
-                $time = $last ? $last->measured_at->format('H:i') : "";
-                
+                $val = $last ? "{$last->temperature_c}°C" : '-';
+                $time = $last ? $last->measured_at->format('H:i') : '';
+
                 $response .= "• {$loc->name}: {$val} {$time}\n";
             }
             $response .= "\nKetik `/suhu {lokasi} {nilai} {pagi/siang}` untuk input.";
+
             return $response;
         }
 
@@ -48,15 +49,15 @@ class TemperatureInputCommand
             ->where('is_active', true)
             ->first();
 
-        if (!$location) {
+        if (! $location) {
             return "⚠️ Lokasi '{$locationName}' tidak ditemukan.";
         }
 
-        $time = match($period) {
+        $time = match ($period) {
             'siang', 'sore' => '14:00:00',
             default => '08:00:00',
         };
-        
+
         $measuredAt = Carbon::now()->setTimeFromTimeString($time);
 
         $phone = explode('@', $fromJid)[0];
@@ -76,7 +77,7 @@ class TemperatureInputCommand
 
             return "✅ Suhu tercatat.\nLokasi: {$location->name}\nNilai: {$value}°C\nWaktu: {$period}";
         } catch (\Exception $e) {
-            return "❌ Gagal menyimpan data: " . $e->getMessage();
+            return '❌ Gagal menyimpan data: '.$e->getMessage();
         }
     }
 }

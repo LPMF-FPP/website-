@@ -15,8 +15,7 @@ class TestRequestObserver
     public function __construct(
         private NotificationService $notificationService,
         private NumberingService $numberingService
-    ) {
-    }
+    ) {}
 
     public function created(TestRequest $testRequest): void
     {
@@ -126,23 +125,23 @@ class TestRequestObserver
 
     private function sendWhatsAppNotification(TestRequest $testRequest, string $milestone, array $extraReplacements = []): void
     {
-        if (!$this->notificationService->isWhatsAppEnabled()) {
+        if (! $this->notificationService->isWhatsAppEnabled()) {
             return;
         }
 
-        if (!$this->notificationService->shouldNotify($milestone)) {
+        if (! $this->notificationService->shouldNotify($milestone)) {
             return;
         }
 
         $testRequest->load('investigator');
 
-        if (!$testRequest->investigator) {
+        if (! $testRequest->investigator) {
             return;
         }
 
         $phone = $testRequest->investigator->phone ?? null;
 
-        if (!$phone) {
+        if (! $phone) {
             return;
         }
 
@@ -161,7 +160,7 @@ class TestRequestObserver
             'greeting' => $greeting,
         ], $extraReplacements));
 
-        if (!$message) {
+        if (! $message) {
             return;
         }
 

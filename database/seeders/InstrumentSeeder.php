@@ -33,6 +33,7 @@ class InstrumentSeeder extends Seeder
     {
         if (MethodInstrumentRequirement::count() > 0) {
             $this->command->info('Method instrument requirements already exist, skipping defaults.');
+
             return;
         }
 

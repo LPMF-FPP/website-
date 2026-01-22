@@ -20,11 +20,11 @@ class SettingsResponseBuilderTest extends TestCase
         $notificationService = Mockery::mock(NotificationService::class);
 
         $builder = new SettingsResponseBuilder($ikuService, $notificationService);
-        
+
         $data = $builder->getInstrumentRequirementsData();
-        
+
         $this->assertEquals(
-            MethodInstrumentRequirement::AVAILABLE_METHODS, 
+            MethodInstrumentRequirement::AVAILABLE_METHODS,
             $data['available_methods']
         );
     }
@@ -33,7 +33,7 @@ class SettingsResponseBuilderTest extends TestCase
     {
         $builder = app(SettingsResponseBuilder::class);
         $options = $builder->getOptions();
-        
+
         $this->assertArrayHasKey('timezones', $options);
         $this->assertArrayHasKey('date_formats', $options);
         $this->assertArrayHasKey('number_formats', $options);

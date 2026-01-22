@@ -2,10 +2,10 @@
 
 namespace Tests\Feature\Api;
 
-use Tests\TestCase;
+use App\Models\WhatsappCommandLog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
-use App\Models\WhatsappCommandLog;
+use Tests\TestCase;
 
 class WhatsappWebhookTest extends TestCase
 {
@@ -21,7 +21,7 @@ class WhatsappWebhookTest extends TestCase
     {
         $response = $this->postJson('/api/whatsapp/webhook', [
             'event' => 'message',
-            'payload' => []
+            'payload' => [],
         ]);
 
         $response->assertStatus(403);
@@ -30,10 +30,10 @@ class WhatsappWebhookTest extends TestCase
     public function test_webhook_returns_403_when_signature_is_invalid()
     {
         $payload = json_encode(['event' => 'message']);
-        $signature = 'sha256=' . hash_hmac('sha256', $payload, 'wrong_secret');
+        $signature = 'sha256='.hash_hmac('sha256', $payload, 'wrong_secret');
 
-        $response = $this->call('POST', '/api/whatsapp/webhook', [], [], [], 
-            ['HTTP_X-Hub-Signature-256' => $signature], 
+        $response = $this->call('POST', '/api/whatsapp/webhook', [], [], [],
+            ['HTTP_X-Hub-Signature-256' => $signature],
             $payload
         );
 
@@ -43,10 +43,10 @@ class WhatsappWebhookTest extends TestCase
     public function test_webhook_returns_200_when_signature_is_valid()
     {
         $payload = json_encode(['from' => '123456789', 'body' => 'test message']);
-        $signature = 'sha256=' . hash_hmac('sha256', $payload, 'test_secret_key');
+        $signature = 'sha256='.hash_hmac('sha256', $payload, 'test_secret_key');
 
-        $response = $this->call('POST', '/api/whatsapp/webhook', [], [], [], 
-            ['HTTP_X-Hub-Signature-256' => $signature], 
+        $response = $this->call('POST', '/api/whatsapp/webhook', [], [], [],
+            ['HTTP_X-Hub-Signature-256' => $signature],
             $payload
         );
 
@@ -58,15 +58,15 @@ class WhatsappWebhookTest extends TestCase
     {
         $data = ['from' => '123456789', 'body' => 'test logging'];
         $payload = json_encode($data);
-        $signature = 'sha256=' . hash_hmac('sha256', $payload, 'test_secret_key');
+        $signature = 'sha256='.hash_hmac('sha256', $payload, 'test_secret_key');
 
-        $response = $this->call('POST', '/api/whatsapp/webhook', [], [], [], 
-            ['HTTP_X-Hub-Signature-256' => $signature], 
+        $response = $this->call('POST', '/api/whatsapp/webhook', [], [], [],
+            ['HTTP_X-Hub-Signature-256' => $signature],
             $payload
         );
 
         $response->assertStatus(200);
-        
+
         $log = WhatsappCommandLog::where('from_jid', '123456789')
             ->where('message_text', 'test logging')
             ->first();

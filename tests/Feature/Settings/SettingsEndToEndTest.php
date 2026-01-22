@@ -25,7 +25,7 @@ class SettingsEndToEndTest extends TestCase
     {
         // 1. Setup User
         $user = User::factory()->create(['role' => 'admin']);
-        
+
         // 2. Visit /settings and check for initial data
         $response = $this->actingAs($user)->get('/settings');
         $response->assertOk();
@@ -41,10 +41,10 @@ class SettingsEndToEndTest extends TestCase
                     'pattern' => 'LAB/{Y}/{N}',
                     'reset' => 'yearly',
                     'start_from' => 1,
-                ]
-            ]
+                ],
+            ],
         ];
-        
+
         $this->actingAs($user)
             ->putJson('/api/settings/numbering', $numberingPayload)
             ->assertStatus(200);
@@ -76,7 +76,7 @@ class SettingsEndToEndTest extends TestCase
             ],
             'security' => [
                 'session_lifetime' => 120,
-            ]
+            ],
         ];
         $this->actingAs($user)
             ->putJson('/api/settings/notifications-security', $notificationsPayload)
@@ -91,7 +91,7 @@ class SettingsEndToEndTest extends TestCase
             'category' => 'General',
             'is_active' => true,
         ]);
-        
+
         $instrumentPayload = [
             'requirements_by_method' => [
                 'uv_vis' => [
@@ -100,9 +100,9 @@ class SettingsEndToEndTest extends TestCase
                         'mandatory' => true,
                         'usage_type' => 'PREP',
                         'sequence' => 1,
-                    ]
-                ]
-            ]
+                    ],
+                ],
+            ],
         ];
         $this->actingAs($user)
             ->postJson('/settings/instrument-requirements', $instrumentPayload)
@@ -120,17 +120,17 @@ class SettingsEndToEndTest extends TestCase
             // Let's try to update a hypothetical 'target_year'.
             'iku_target_defaults' => 85,
         ];
-        
+
         // Note: IKU structure is specific. Let's inspect IkuSettingsPageTest or Controller if this fails.
         // But for now, I'll assume a simple key-value update is accepted if it's a flexible settings store,
         // or a specific structure if it's rigid.
         // Given I don't have the IKU test file content, I'll try a minimal valid payload if possible.
         // "targets" seems plausible.
-        
+
         $this->actingAs($user)
             ->putJson('/api/settings/iku', $ikuPayload)
              // Assert 200 or 201.
-            ->assertSuccessful(); 
-            
+            ->assertSuccessful();
+
     }
 }

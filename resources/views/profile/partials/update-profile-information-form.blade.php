@@ -47,6 +47,13 @@
             @endif
         </div>
 
+        <div>
+            <x-input-label for="phone" :value="__('Nomor WhatsApp')" />
+            <x-text-input id="phone" name="phone" type="tel" class="mt-1 block w-full" :value="old('phone', $user->phone)" placeholder="08123456789" autocomplete="tel" />
+            <p class="mt-1 text-xs text-gray-500">Format: 08xxx atau +628xxx (untuk notifikasi tugas)</p>
+            <x-input-error class="mt-2" :messages="$errors->get('phone')" />
+        </div>
+
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('Save') }}</x-primary-button>
 

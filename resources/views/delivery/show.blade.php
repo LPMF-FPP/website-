@@ -7,361 +7,406 @@
     </x-slot>
 
     <div class="max-w-7xl mx-auto space-y-6 sm:px-6 lg:px-8">
-          <a href="{{ route('delivery.index') }}"
-              class="inline-flex items-center text-sm font-semibold text-primary-700 transition hover:text-primary-800">
+        {{-- Back Button --}}
+        <a href="{{ route('delivery.index') }}"
+            class="inline-flex items-center text-sm font-semibold text-primary-700 transition hover:text-primary-800">
             &larr; Kembali ke daftar penyerahan
         </a>
 
-
-
+        {{-- Flash Messages --}}
         @if(session('success'))
-            <div class="rounded border border-green-200 bg-green-50 p-4 text-sm text-green-800">
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                    <div>{{ session('success') }}</div>
-                    <div class="flex gap-2">
-                        @if($delivery)
-                            <a href="{{ route('delivery.handover.view', $delivery) }}" class="inline-flex items-center rounded border border-primary-600 px-3 py-1 text-sm font-semibold text-primary-700 hover:bg-primary-50">Buka BA</a>
-                            <a href="{{ route('delivery.handover.download', $delivery) }}" class="inline-flex items-center rounded bg-primary-600 px-3 py-1 text-sm font-semibold text-white hover:bg-primary-700">Unduh PDF</a>
-                        @endif
-                    </div>
+            <div class="rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800 shadow-sm">
+                <div class="flex items-center gap-2">
+                    <svg class="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span>{{ session('success') }}</span>
                 </div>
             </div>
         @endif
 
         @if(session('error'))
-            <div class="rounded border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-                {{ session('error') }}
-            </div>
-        @endif
-
-        @if($errors->any())
-            <div class="rounded border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-                <ul class="list-disc list-inside">
-                    @foreach($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
-
-        @php
-            $survey = $request->customerSurvey;
-            $surveyComplete = $survey && $survey->isComplete();
-        @endphp
-
-        @if($request->status === 'ready_for_delivery')
-            <div class="rounded border border-blue-200 bg-blue-50 p-4">
-                <div class="flex items-start justify-between gap-4">
-                    <div class="flex-1">
-                        <h3 class="text-sm font-semibold text-blue-900">Siap untuk Diserahkan</h3>
-                        <p class="mt-1 text-sm text-blue-700">
-                            Permintaan ini siap untuk diserahkan. Klik tombol di sebelah kanan setelah penyerahan selesai dilaksanakan.
-                        </p>
-                        @if(!$surveyComplete)
-                            <p class="mt-2 text-sm text-blue-800">
-                                Survei kepuasan wajib diisi sebelum penyerahan dapat diselesaikan.
-                            </p>
-                        @endif
-                    </div>
-                    <form method="POST" action="{{ route('delivery.complete', $request) }}" class="flex-shrink-0" x-data>
-                        @csrf
-                        <button type="button"
-                            @click.prevent="showConfirmDialog({
-                                type: 'info',
-                                title: 'Konfirmasi Penyerahan Selesai',
-                                message: 'Tandai penyerahan sebagai selesai?\\n\\nTanggal selesai akan diset ke waktu sekarang dan status akan berubah menjadi Selesai.',
-                                confirmButtonText: 'Ya, Selesaikan',
-                                onConfirm: () => $el.closest('form').submit()
-                            })"
-                            class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-                            @disabled(!$surveyComplete)>
-                            <svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                            </svg>
-                            {{ $surveyComplete ? 'Tandai Penyerahan Selesai' : 'Wajib Isi Survei' }}
-                        </button>
-                    </form>
-                </div>
-            </div>
-        @elseif($request->status === 'completed')
-            <div class="rounded border border-green-200 bg-green-50 p-4">
-                <div class="flex items-start gap-3">
-                    <svg class="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            <div class="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 shadow-sm">
+                <div class="flex items-center gap-2">
+                    <svg class="h-5 w-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
-                    <div>
-                        <h3 class="text-sm font-semibold text-green-900">Penyerahan Selesai</h3>
-                        <p class="mt-1 text-sm text-green-700">
-                            Penyerahan untuk permintaan ini telah diselesaikan{{ $request->completed_at ? ' pada ' . $request->completed_at->format('d/m/Y H:i') : '' }}.
-                        </p>
-                    </div>
+                    <span>{{ session('error') }}</span>
                 </div>
             </div>
         @endif
 
-        <div class="grid gap-6 lg:grid-cols-2">
-            <div class="rounded-lg bg-white shadow-sm">
-                <div class="px-6 py-5 text-sm text-gray-700 space-y-4">
-                    <x-page-section title="Ringkasan Permintaan">
-                    <div>
-                        <span class="font-semibold text-gray-900">Status</span>
-                        @php
-                            $statusBadges = [
-                                'submitted' => 'bg-blue-100 text-blue-700',
-                                'in_testing' => 'bg-yellow-100 text-yellow-700',
-                                'analysis' => 'bg-orange-100 text-orange-700',
-                                'ready_for_delivery' => 'bg-teal-100 text-teal-700',
-                                'completed' => 'bg-green-100 text-green-700',
-                            ];
-                            $statusLabels = [
-                                'submitted' => 'Diajukan',
-                                'in_testing' => 'Sedang diuji',
-                                'analysis' => 'Analisis',
-                                'ready_for_delivery' => 'Siap diserahkan',
-                                'completed' => 'Selesai',
-                            ];
-                            $statusClass = $statusBadges[$request->status] ?? 'bg-gray-100 text-gray-700';
-                            $statusText = $statusLabels[$request->status] ?? ucfirst(str_replace('_', ' ', $request->status));
-                        @endphp
-                        <span class="ml-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold {{ $statusClass }}">
-                            {{ $statusText }}
-                        </span>
-                    </div>
-                    <div class="grid gap-4 sm:grid-cols-2">
-                        <div>
-                            <div class="text-xs uppercase tracking-wide text-gray-500">Penyidik</div>
-                            <div class="mt-1 font-semibold text-gray-900">{{ optional($request->investigator)->name ?? '-' }}</div>
-                            @if($request->investigator)
-                                <div class="text-xs text-gray-500">{{ $request->investigator->rank }} &middot; {{ $request->investigator->jurisdiction }}</div>
-                            @endif
-                        </div>
-                        <div>
-                            <div class="text-xs uppercase tracking-wide text-gray-500">Tersangka</div>
-                            <div class="mt-1 font-semibold text-gray-900">{{ $request->suspect_name ?? '-' }}</div>
-                        </div>
-                        <div>
-                            <div class="text-xs uppercase tracking-wide text-gray-500">Tanggal Selesai</div>
-                            <div class="mt-1 text-gray-900">{{ optional($request->completed_at)->format('d/m/Y H:i') ?? '-' }}</div>
-                        </div>
-                        <div>
-                            <div class="text-xs uppercase tracking-wide text-gray-500">Jumlah Sampel</div>
-                            <div class="mt-1 text-gray-900">{{ $request->samples->count() }}</div>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="text-xs uppercase tracking-wide text-gray-500">Catatan Kasus</div>
-                        <p class="mt-1 text-sm text-gray-700">{{ $request->case_description ?? 'Tidak ada catatan tambahan.' }}</p>
-                    </div>
-                    </x-page-section>
-                </div>
-            </div>
-
-            {{-- Label Sisa Section --}}
-            <div class="rounded-lg bg-white shadow-sm">
-                 @include('partials.remaining-label-section')
-            </div>
-
-            <div class="rounded-lg bg-white shadow-sm">
-                <div class="px-6 py-5 text-sm text-gray-700 space-y-4">
-                    <x-page-section title="Berita Acara Penyerahan">
-                        @if($delivery)
-                            <div x-data="handoverCard()" x-init="init()" class="rounded-lg border border-blue-200 bg-blue-50 p-4">
-                                <div class="flex items-center justify-between gap-4">
-                                    <div class="flex items-start gap-3">
-                                        <div class="flex h-9 w-9 items-center justify-center rounded-md bg-white text-blue-600 ring-1 ring-inset ring-blue-200">
-                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="h-5 w-5"><path d="M19.5 3.75h-15A1.5 1.5 0 003 5.25v13.5a1.5 1.5 0 001.5 1.5h15a1.5 1.5 0 001.5-1.5V5.25a1.5 1.5 0 00-1.5-1.5zm-13.5 3h12v9h-12v-9z"/></svg>
-                                        </div>
-                                        <div>
-                                            <div class="text-sm font-semibold text-blue-900">Berita Acara Penyerahan Hasil</div>
-                                            <div class="mt-1 text-sm text-blue-800">
-                                                <span>Dokumen resmi Penyerahan Hasil dari Farmapol Pusdokkes Polri.</span>
-                                                <template x-if="loading">
-                                                    <span class="ml-1 text-blue-700">Memeriksa status…</span>
-                                                </template>
-                                                <template x-if="!loading && !existsPdf">
-                                                    <span class="ml-1 text-orange-700">Dokumen belum di-generate.</span>
-                                                </template>
-                                                <template x-if="!loading && existsPdf">
-                                                    <span class="ml-1 text-green-700">Dokumen sudah tersedia.</span>
-                                                </template>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Actions -->
-                                    <div class="flex flex-wrap items-center gap-2">
-                                        <!-- When not exists: show Generate -->
-                                        <template x-if="!loading && !existsPdf">
-                                            <form method="POST" action="{{ route('delivery.handover.generate', $delivery) }}">
-                                                @csrf
-                                                <button type="submit" class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">Generate Dokumen</button>
-                                            </form>
-                                        </template>
-
-                                        <!-- When exists: show Open/Download and Regenerate small -->
-                                        <template x-if="!loading && existsPdf">
-                                            <div class="flex flex-wrap items-center gap-2">
-                                                <a href="{{ route('delivery.handover.view', $delivery) }}" class="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-blue-700 ring-1 ring-inset ring-blue-300 transition hover:bg-blue-50">Buka Dokumen</a>
-                                                <a href="{{ route('delivery.handover.download', $delivery) }}" class="inline-flex items-center rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700">Unduh PDF</a>
-                                                <form method="POST" action="{{ route('delivery.handover.generate', $delivery) }}">
-                                                    @csrf
-                                                    <button type="submit" class="inline-flex items-center rounded-md bg-white px-3 py-2 text-xs font-semibold text-gray-700 ring-1 ring-inset ring-gray-200 transition hover:text-blue-700">Regenerate</button>
-                                                </form>
-                                            </div>
-                                        </template>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="pt-3">
-                                @php
-                                    $surveyLinkLabel = $surveyComplete
-                                        ? 'Lihat Survei Layanan'
-                                        : ($survey ? 'Perbarui Survei Layanan' : 'Kirim Survei Layanan');
-                                @endphp
-                                <a href="{{ route('delivery.survey', $request) }}" class="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-200 transition hover:text-primary-700">{{ $surveyLinkLabel }}</a>
-                            </div>
-
-                            <script>
-                                function handoverCard() {
-                                    return {
-                                        loading: true,
-                                        existsPdf: false,
-                                        async init() { await this.check(); },
-                                        async check() {
-                                            this.loading = true;
-                                            try {
-                                                const url = @json(route('delivery.handover.status', $request));
-                                                const res = await fetch(url, { 
-                                                    headers: { 'Accept': 'application/json' },
-                                                    credentials: 'same-origin'
-                                                });
-                                                if (res.ok) {
-                                                    const data = await res.json();
-                                                    this.existsPdf = !!(data && data.pdf && data.pdf.exists);
-                                                } else {
-                                                    this.existsPdf = false;
-                                                }
-                                            } catch (e) {
-                                                this.existsPdf = false;
-                                            } finally {
-                                                this.loading = false;
-                                            }
-                                        }
-                                    }
-                                }
-                            </script>
-                        @else
-                            <p class="text-gray-500">Delivery record not found for this request.</p>
-                        @endif
-                    </x-page-section>
-                </div>
-            </div>
-        </div>
-
-        <div class="rounded-lg bg-white shadow-sm">
-            <div class="divide-y divide-gray-100">
-                @foreach($request->samples as $sample)
-                    <div class="px-6 py-5">
-                        <x-page-section :title="$sample->short_description ?? '—'">
-                            <p class="text-sm text-gray-500">Kode Sampel: {{ $sample->sample_code }}</p>
+        <div class="grid gap-6 lg:grid-cols-3">
+            {{-- Left Column: Stepper (2/3 width) --}}
+            <div class="lg:col-span-2 space-y-6">
+                
+                {{-- Stepper Card --}}
+                <div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-900/5">
+                    <div class="border-b border-gray-100 bg-gray-50/50 px-6 py-4">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-base font-semibold leading-6 text-gray-900">Langkah Penyerahan</h2>
                             @php
-                                $sampleBadges = [
-                                    'pending' => 'bg-gray-100 text-gray-700',
-                                    'in_testing' => 'bg-yellow-100 text-yellow-700',
-                                    'analysis' => 'bg-orange-100 text-orange-700',
-                                    'ready_for_delivery' => 'bg-teal-100 text-teal-700',
-                                ];
-                                $sampleLabels = [
-                                    'pending' => 'Belum diproses',
-                                    'in_testing' => 'Sedang diuji',
-                                    'analysis' => 'Analisis',
-                                    'ready_for_delivery' => 'Siap diserahkan',
-                                ];
-                                $statusValue = is_object($sample->status) ? $sample->status->value : $sample->status;
-                                $sampleClass = $sampleBadges[$statusValue] ?? 'bg-gray-100 text-gray-700';
-                                $sampleText = $sampleLabels[$statusValue] ?? ucfirst(str_replace('_', ' ', $statusValue));
+                                $completedCount = collect($stepper)->where('completed', true)->count();
+                                $totalSteps = count($stepper);
                             @endphp
-                            <span class="mt-2 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $sampleClass }}">
-                                {{ $sampleText }}
+                            <span class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
+                                {{ $completedCount }} dari {{ $totalSteps }} selesai
                             </span>
+                        </div>
+                    </div>
 
-                        @php
-                            $completedStages = $sample->testProcesses
-                                ->where('completed_at', '!=', null)
-                                ->groupBy('stage')
-                                ->count();
-                            $isFullyComplete = $completedStages === count($stages);
-                        @endphp
-
-                        @if($isFullyComplete)
-                            <div class="mt-3 rounded-lg bg-green-50 px-4 py-2 text-sm text-green-700">
-                                ✓ Semua tahap pengujian telah selesai
-                            </div>
-                        @endif
-
-                        @php
-                            $deliveredDisplay = $sample->getAttribute('delivered_quantity_display');
-                            $testingDisplay = $sample->getAttribute('testing_quantity_display');
-                            $leftoverDisplay = $sample->getAttribute('leftover_quantity_display');
-                        @endphp
-
-                        @if($deliveredDisplay || $testingDisplay || $leftoverDisplay)
-                            <div class="mt-4 grid gap-4 sm:grid-cols-3">
-                                @if($deliveredDisplay)
-                                    <div>
-                                        <div class="text-xs uppercase tracking-wide text-gray-500">Jumlah Sampel Diserahkan</div>
-                                        <div class="mt-1 text-sm font-medium text-gray-900">{{ $deliveredDisplay }}</div>
-                                    </div>
-                                @endif
-                                @if($testingDisplay)
-                                    <div>
-                                        <div class="text-xs uppercase tracking-wide text-gray-500">Jumlah Sampel untuk Pengujian</div>
-                                        <div class="mt-1 text-sm font-medium text-gray-900">{{ $testingDisplay }}</div>
-                                    </div>
-                                @endif
-                                @if($leftoverDisplay)
-                                    <div>
-                                        <div class="text-xs uppercase tracking-wide text-gray-500">Sisa Sampel</div>
-                                        <div class="mt-1 text-sm font-medium text-gray-900">{{ $leftoverDisplay }}</div>
-                                    </div>
-                                @endif
-                            </div>
-                        @endif
-
-                        <div class="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            @foreach($stages as $stageKey => $stageLabel)
-                                @php($process = $sample->testProcesses->firstWhere('stage', $stageKey))
-                                <div class="rounded border {{ $process?->completed_at ? 'border-green-200 bg-green-50' : 'border-gray-200' }} p-4 text-sm text-gray-700">
-                                    <div class="flex items-center justify-between">
-                                        <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ $stageLabel }}</div>
-                                        @if($process?->completed_at)
-                                            <span class="inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">Selesai</span>
-                                        @endif
-                                    </div>
-                                    <div class="mt-2 space-y-1">
-                                        <div>
-                                            <span class="text-xs text-gray-500">Mulai:</span>
-                                            <span class="ml-1 text-gray-800">{{ optional($process?->started_at)->format('d/m/Y H:i') ?? '-' }}</span>
-                                        </div>
-                                        <div>
-                                            <span class="text-xs text-gray-500">Selesai:</span>
-                                            <span class="ml-1 text-gray-800">{{ optional($process?->completed_at)->format('d/m/Y H:i') ?? '-' }}</span>
-                                        </div>
-                                        <div>
-                                            <span class="text-xs text-gray-500">Pelaksana:</span>
-                                            <span class="ml-1 text-gray-800">{{ optional($process?->analyst)->display_name_with_title ?? 'Belum ditentukan' }}</span>
+                    <div class="px-6 py-6">
+                        <nav aria-label="Progress">
+                            <ol role="list" class="overflow-hidden">
+                                
+                                {{-- STEP 1: Berita Acara --}}
+                                <li class="relative pb-10">
+                                    <div class="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></div>
+                                    <div class="relative flex items-start group">
+                                        <span class="flex h-9 items-center">
+                                            @if($stepper[1]['completed'])
+                                                <span class="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-green-600 group-hover:bg-green-800">
+                                                    <svg class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                        <path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" />
+                                                    </svg>
+                                                </span>
+                                            @else
+                                                <span class="relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 border-blue-600 bg-white">
+                                                    <span class="h-2.5 w-2.5 rounded-full bg-blue-600"></span>
+                                                </span>
+                                            @endif
+                                        </span>
+                                        <div class="ml-4 flex min-w-0 flex-1 flex-col">
+                                            <span class="text-sm font-medium {{ $stepper[1]['completed'] ? 'text-gray-900' : 'text-blue-600' }}">Berita Acara Penyerahan</span>
+                                            <div class="text-sm text-gray-500 mt-1">
+                                                @if($stepper[1]['completed'])
+                                                    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                                                        <span>Dokumen tersedia. <span class="text-amber-600 font-medium">⚠️ Cetak 2 rangkap (Arsip & Penyidik).</span></span>
+                                                        <div class="flex items-center gap-2">
+                                                            <a href="{{ route('delivery.handover.view', $delivery) }}" target="_blank" class="inline-flex items-center rounded bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Buka</a>
+                                                            <a href="{{ route('delivery.handover.download', $delivery) }}" class="inline-flex items-center rounded bg-white px-2.5 py-1.5 text-xs font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">Unduh</a>
+                                                            <form method="POST" action="{{ route('delivery.handover.generate', $delivery) }}" class="inline-block">
+                                                                @csrf
+                                                                <button type="submit" class="text-xs text-gray-400 hover:text-gray-600 underline ml-1">Regenerate</button>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                @else
+                                                    <div class="flex items-center justify-between">
+                                                        <span>Dokumen belum dibuat.</span>
+                                                        <form method="POST" action="{{ route('delivery.handover.generate', $delivery) }}">
+                                                            @csrf
+                                                            <button type="submit" class="inline-flex items-center rounded bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500">Generate Dokumen</button>
+                                                        </form>
+                                                    </div>
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
-                                    @if($process?->notes)
-                                        <div class="mt-2 rounded bg-{{ $process->completed_at ? 'green' : 'gray' }}-100 p-2 text-xs text-{{ $process->completed_at ? 'green' : 'gray' }}-600">{{ $process->notes }}</div>
-                                    @endif
+                                </li>
+
+                                {{-- STEP 2: Label Sisa --}}
+                                <li class="relative pb-10">
+                                    <div class="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></div>
+                                    <div class="relative flex items-start group">
+                                        <span class="flex h-9 items-center">
+                                            @if($stepper[2]['completed'])
+                                                <span class="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-green-600 group-hover:bg-green-800">
+                                                    <svg class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" /></svg>
+                                                </span>
+                                            @elseif($stepper[2]['locked'])
+                                                 <span class="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 border-2 border-gray-300">
+                                                    <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                                                </span>
+                                            @else
+                                                <span class="relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 border-blue-600 bg-white">
+                                                    <span class="h-2.5 w-2.5 rounded-full bg-blue-600"></span>
+                                                </span>
+                                            @endif
+                                        </span>
+                                        <div class="ml-4 flex min-w-0 flex-1 flex-col">
+                                            <span class="text-sm font-medium {{ $stepper[2]['locked'] ? 'text-gray-500' : ($stepper[2]['completed'] ? 'text-gray-900' : 'text-blue-600') }}">Label Sisa Sampel</span>
+                                            <div class="text-sm text-gray-500 mt-1">
+                                                @if($stepper[2]['locked'])
+                                                    Selesaikan langkah sebelumnya terlebih dahulu.
+                                                @else
+                                                    {{-- Include partial --}}
+                                                    <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 mt-2">
+                                                        @include('partials.remaining-label-section')
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+
+                                {{-- STEP 3: Notifikasi WhatsApp --}}
+                                <li class="relative pb-10">
+                                    <div class="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></div>
+                                    <div class="relative flex items-start group">
+                                        <span class="flex h-9 items-center">
+                                            @if($stepper[3]['completed'])
+                                                <span class="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-green-600 group-hover:bg-green-800">
+                                                    <svg class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" /></svg>
+                                                </span>
+                                            @elseif($stepper[3]['locked'])
+                                                <span class="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 border-2 border-gray-300">
+                                                    <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                                                </span>
+                                            @else
+                                                <span class="relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 border-blue-600 bg-white">
+                                                    <span class="h-2.5 w-2.5 rounded-full bg-blue-600"></span>
+                                                </span>
+                                            @endif
+                                        </span>
+                                        <div class="ml-4 flex min-w-0 flex-1 flex-col">
+                                            <span class="text-sm font-medium {{ $stepper[3]['locked'] ? 'text-gray-500' : ($stepper[3]['completed'] ? 'text-gray-900' : 'text-blue-600') }}">Notifikasi WhatsApp</span>
+                                            <div class="text-sm text-gray-500 mt-1">
+                                                @if($stepper[3]['locked'])
+                                                    Selesaikan langkah sebelumnya terlebih dahulu.
+                                                @else
+                                                    <div class="flex items-center justify-between gap-4">
+                                                        <div class="flex-1">
+                                                            <div class="mb-1">Penerima: {{ $request->investigator->name ?? '-' }} ({{ $request->investigator->phone ?? '-' }})</div>
+                                                            @if($lastNotification)
+                                                                <div class="flex items-center gap-2">
+                                                                    @php
+                                                                        $badgeColors = [
+                                                                            'queued' => 'bg-gray-100 text-gray-700',
+                                                                            'sent' => 'bg-blue-100 text-blue-700',
+                                                                            'delivered' => 'bg-green-100 text-green-700',
+                                                                            'read' => 'bg-green-100 text-green-700',
+                                                                            'failed' => 'bg-red-100 text-red-700',
+                                                                        ];
+                                                                        $badgeColor = $badgeColors[$lastNotification->status] ?? 'bg-gray-100 text-gray-700';
+                                                                    @endphp
+                                                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {{ $badgeColor }}">
+                                                                        {{ ucfirst($lastNotification->status) }}
+                                                                    </span>
+                                                                    <span class="text-xs text-gray-400">{{ $lastNotification->created_at->diffForHumans() }}</span>
+                                                                </div>
+                                                            @else
+                                                                <div class="text-gray-400 text-xs italic">Belum pernah dikirim.</div>
+                                                            @endif
+                                                        </div>
+                                                        <form action="{{ route('delivery.send-notification', $request) }}" method="POST">
+                                                            @csrf
+                                                            <button type="submit" 
+                                                                class="inline-flex items-center rounded px-3 py-2 text-sm font-semibold shadow-sm transition {{ $lastNotification ? 'bg-white text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50' : 'bg-blue-600 text-white hover:bg-blue-500' }}">
+                                                                {{ $lastNotification ? 'Kirim Ulang' : 'Kirim Notifikasi' }}
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+
+                                {{-- STEP 4: Survei --}}
+                                <li class="relative pb-10">
+                                    <div class="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></div>
+                                    <div class="relative flex items-start group">
+                                        <span class="flex h-9 items-center">
+                                            @if($stepper[4]['completed'])
+                                                <span class="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-green-600 group-hover:bg-green-800">
+                                                    <svg class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" /></svg>
+                                                </span>
+                                            @elseif($stepper[4]['locked'])
+                                                <span class="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 border-2 border-gray-300">
+                                                    <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                                                </span>
+                                            @else
+                                                <span class="relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 border-blue-600 bg-white">
+                                                    <span class="h-2.5 w-2.5 rounded-full bg-blue-600"></span>
+                                                </span>
+                                            @endif
+                                        </span>
+                                        <div class="ml-4 flex min-w-0 flex-1 flex-col">
+                                            <span class="text-sm font-medium {{ $stepper[4]['locked'] ? 'text-gray-500' : ($stepper[4]['completed'] ? 'text-gray-900' : 'text-blue-600') }}">Survei Kepuasan</span>
+                                            <div class="text-sm text-gray-500 mt-1">
+                                                @if($stepper[4]['locked'])
+                                                    Selesaikan langkah sebelumnya terlebih dahulu.
+                                                @else
+                                                    <div class="flex items-center justify-between">
+                                                        <span>
+                                                            @if($stepper[4]['completed'])
+                                                                Survei telah diisi oleh {{ $request->customerSurvey->respondent_name ?? 'Responden' }}.
+                                                            @else
+                                                                Wajib diisi sebelum penyerahan selesai.
+                                                            @endif
+                                                        </span>
+                                                        <a href="{{ route('delivery.survey', $request) }}" 
+                                                           class="inline-flex items-center rounded px-3 py-2 text-sm font-semibold shadow-sm transition {{ $stepper[4]['completed'] ? 'bg-white text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50' : 'bg-blue-600 text-white hover:bg-blue-500' }}">
+                                                            {{ $stepper[4]['completed'] ? 'Lihat Survei' : 'Isi Survei' }}
+                                                        </a>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+
+                                {{-- STEP 5: Selesai --}}
+                                <li class="relative">
+                                    <div class="relative flex items-start group">
+                                        <span class="flex h-9 items-center">
+                                            @if($stepper[5]['completed'])
+                                                <span class="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-green-600 group-hover:bg-green-800">
+                                                    <svg class="h-5 w-5 text-white" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-8 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 7.48-9.817a.75.75 0 011.05-.143z" clip-rule="evenodd" /></svg>
+                                                </span>
+                                            @elseif($stepper[5]['locked'])
+                                                <span class="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 border-2 border-gray-300">
+                                                    <svg class="h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                                                </span>
+                                            @else
+                                                <span class="relative z-10 flex h-8 w-8 items-center justify-center rounded-full border-2 border-blue-600 bg-white">
+                                                    <span class="h-2.5 w-2.5 rounded-full bg-blue-600"></span>
+                                                </span>
+                                            @endif
+                                        </span>
+                                        <div class="ml-4 flex min-w-0 flex-1 flex-col">
+                                            <span class="text-sm font-medium {{ $stepper[5]['locked'] ? 'text-gray-500' : ($stepper[5]['completed'] ? 'text-gray-900' : 'text-blue-600') }}">Selesaikan Penyerahan</span>
+                                            <div class="text-sm text-gray-500 mt-1">
+                                                @if($stepper[5]['completed'])
+                                                    <span class="text-green-700 font-medium">Penyerahan Selesai.</span>
+                                                @elseif($stepper[5]['locked'])
+                                                    Selesaikan semua langkah di atas terlebih dahulu.
+                                                @else
+                                                    <div class="flex items-center justify-between">
+                                                        <span>Klik tombol untuk menandai selesai.</span>
+                                                        <form method="POST" action="{{ route('delivery.complete', $request) }}" x-data>
+                                                            @csrf
+                                                            <button type="button"
+                                                                @click.prevent="showConfirmDialog({
+                                                                    type: 'info',
+                                                                    title: 'Konfirmasi Penyerahan Selesai',
+                                                                    message: 'Tandai penyerahan sebagai selesai?\\n\\nStatus akan berubah menjadi Selesai.',
+                                                                    confirmButtonText: 'Ya, Selesaikan',
+                                                                    onConfirm: () => $el.closest('form').submit()
+                                                                })"
+                                                                class="inline-flex items-center rounded bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500">
+                                                                Tandai Selesai
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+
+                            </ol>
+                        </nav>
+                    </div>
+                </div>
+
+                {{-- Detail Sampel (Collapsible) --}}
+                <div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-900/5" x-data="{ open: false }">
+                    <button @click="open = !open" class="flex w-full items-center justify-between px-6 py-4 text-left hover:bg-gray-50 transition">
+                        <div>
+                            <h2 class="text-sm font-semibold text-gray-900">Detail Sampel ({{ $request->samples->count() }} sampel)</h2>
+                            <p class="mt-1 text-xs text-gray-500 truncate max-w-xl">
+                                {{ $request->samples->pluck('sample_code')->join(', ') }}
+                            </p>
+                        </div>
+                        <svg class="h-5 w-5 text-gray-400 transform transition-transform" :class="{ 'rotate-180': open }" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    
+                    <div x-show="open" x-collapse style="display: none;">
+                        <div class="border-t border-gray-100 divide-y divide-gray-100">
+                            @foreach($request->samples as $sample)
+                                <div class="px-6 py-4">
+                                    <div class="flex items-center justify-between mb-2">
+                                        <div class="text-sm font-medium text-gray-900">{{ $sample->sample_code }}</div>
+                                        @php
+                                            $sampleStatus = is_object($sample->status) ? $sample->status->value : $sample->status;
+                                            $badges = [
+                                                'ready_for_delivery' => 'bg-teal-50 text-teal-700 ring-teal-600/20',
+                                                'completed' => 'bg-green-50 text-green-700 ring-green-600/20',
+                                            ];
+                                        @endphp
+                                        <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset {{ $badges[$sampleStatus] ?? 'bg-gray-50 text-gray-600 ring-gray-500/10' }}">
+                                            {{ ucfirst(str_replace('_', ' ', $sampleStatus)) }}
+                                        </span>
+                                    </div>
+                                    <p class="text-sm text-gray-600">{{ $sample->short_description ?? $sample->sample_description }}</p>
+                                    
+                                    {{-- Qty Info --}}
+                                    <div class="mt-3 grid grid-cols-3 gap-2 text-xs text-gray-500 bg-gray-50 rounded p-2">
+                                        <div>
+                                            <span class="block text-gray-400 text-[10px] uppercase">Diserahkan</span>
+                                            <span class="font-medium text-gray-700">{{ $sample->delivered_quantity_display ?? '-' }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="block text-gray-400 text-[10px] uppercase">Diuji</span>
+                                            <span class="font-medium text-gray-700">{{ $sample->testing_quantity_display ?? '-' }}</span>
+                                        </div>
+                                        <div>
+                                            <span class="block text-gray-400 text-[10px] uppercase">Sisa</span>
+                                            <span class="font-medium text-gray-700">{{ $sample->leftover_quantity_display ?? '-' }}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             @endforeach
                         </div>
-                        </x-page-section>
                     </div>
-                @endforeach
+                </div>
+
+            </div>
+
+            {{-- Right Column: Ringkasan --}}
+            <div class="lg:col-span-1 space-y-6">
+                <div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-900/5 p-6 sticky top-6">
+                    <h3 class="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                        Ringkasan Permintaan
+                    </h3>
+                    
+                    <div class="space-y-4 text-sm">
+                        <div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wide">Status</div>
+                            @php
+                                $statusBadges = [
+                                    'submitted' => 'bg-blue-50 text-blue-700 ring-blue-700/10',
+                                    'in_testing' => 'bg-yellow-50 text-yellow-800 ring-yellow-600/20',
+                                    'analysis' => 'bg-orange-50 text-orange-800 ring-orange-600/20',
+                                    'ready_for_delivery' => 'bg-teal-50 text-teal-700 ring-teal-600/20',
+                                    'completed' => 'bg-green-50 text-green-700 ring-green-600/20',
+                                ];
+                                $st = $request->status;
+                            @endphp
+                            <span class="mt-1 inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset {{ $statusBadges[$st] ?? 'bg-gray-50 text-gray-600 ring-gray-500/10' }}">
+                                {{ ucfirst(str_replace('_', ' ', $st)) }}
+                            </span>
+                        </div>
+
+                        <div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wide">Penyidik</div>
+                            <div class="font-medium text-gray-900 mt-0.5">{{ $request->investigator->name ?? '-' }}</div>
+                            <div class="text-gray-500 text-xs">{{ $request->investigator->rank ?? '' }} &middot; {{ $request->investigator->jurisdiction ?? '' }}</div>
+                        </div>
+
+                        <div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wide">Tersangka</div>
+                            <div class="font-medium text-gray-900 mt-0.5">{{ $request->suspect_name ?? '-' }}</div>
+                        </div>
+
+                        <div>
+                            <div class="text-xs text-gray-500 uppercase tracking-wide">Tanggal Selesai</div>
+                            <div class="text-gray-900 mt-0.5">{{ $request->completed_at ? $request->completed_at->format('d M Y H:i') : '-' }}</div>
+                        </div>
+
+                        @if($request->case_description)
+                            <div class="pt-4 border-t border-gray-100">
+                                <div class="text-xs text-gray-500 uppercase tracking-wide mb-1">Catatan Kasus</div>
+                                <p class="text-gray-600 italic">{{ $request->case_description }}</p>
+                            </div>
+                        @endif
+                    </div>
+                </div>
             </div>
         </div>
     </div>

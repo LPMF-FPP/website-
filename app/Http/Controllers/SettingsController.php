@@ -248,7 +248,6 @@ class SettingsController extends Controller
         return response()->json(['path' => $path]);
     }
 
-
     public function saveInstrumentRequirements(Request $request, SettingsResponseBuilder $settingsBuilder)
     {
         Gate::authorize('manage-settings');

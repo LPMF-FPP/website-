@@ -3,7 +3,6 @@
 namespace Tests\Feature\Settings;
 
 use App\Models\Instrument;
-use App\Models\MethodInstrumentRequirement;
 use App\Models\User;
 use Database\Seeders\SystemSettingSeeder;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -38,7 +37,7 @@ class InstrumentRequirementsApiTest extends TestCase
                         'mandatory' => true,
                         'usage_type' => 'PREP',
                         'sequence' => 1,
-                    ]
+                    ],
                 ],
                 'invalid_method' => [
                     [
@@ -46,9 +45,9 @@ class InstrumentRequirementsApiTest extends TestCase
                         'mandatory' => true,
                         'usage_type' => 'PREP',
                         'sequence' => 1,
-                    ]
-                ]
-            ]
+                    ],
+                ],
+            ],
         ];
 
         $this->actingAs($user)

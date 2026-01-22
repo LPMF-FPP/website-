@@ -98,7 +98,7 @@ class FixNumberingSequence extends Command
 
         // Show requests
         $requests = TestRequest::orderBy('id')->get();
-        $this->info('Test Requests (' . $requests->count() . ' total):');
+        $this->info('Test Requests ('.$requests->count().' total):');
 
         $tableData = [];
         foreach ($requests as $r) {
@@ -118,10 +118,10 @@ class FixNumberingSequence extends Command
 
         // Show samples
         $samples = Sample::orderBy('id')->get();
-        $this->info('Samples (' . $samples->count() . ' total):');
+        $this->info('Samples ('.$samples->count().' total):');
         $codes = $samples->pluck('sample_code')->filter()->values();
         if ($codes->isNotEmpty()) {
-            $this->line('  ' . $codes->implode(', '));
+            $this->line('  '.$codes->implode(', '));
         } else {
             $this->line('  No samples found.');
         }
@@ -159,7 +159,7 @@ class FixNumberingSequence extends Command
             return false;
         }
 
-        $this->warn("Found request to delete:");
+        $this->warn('Found request to delete:');
         $this->table(
             ['ID', 'Resi', 'BA Number', 'Tersangka'],
             [[$request->id, $request->receipt_number, $request->request_number, $request->suspect_name]]
@@ -204,7 +204,7 @@ class FixNumberingSequence extends Command
             return true;
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->error('Failed to delete: ' . $e->getMessage());
+            $this->error('Failed to delete: '.$e->getMessage());
 
             return false;
         }
@@ -223,7 +223,7 @@ class FixNumberingSequence extends Command
             return;
         }
 
-        $this->info('Renumbering ' . $requests->count() . ' requests...');
+        $this->info('Renumbering '.$requests->count().' requests...');
 
         // Get pattern from settings
         $numbering = app(\App\Services\NumberingService::class);
@@ -266,7 +266,7 @@ class FixNumberingSequence extends Command
         );
 
         if ($dryRun) {
-            $this->info('[DRY RUN] Would apply ' . count($changes) . ' renumbering changes.');
+            $this->info('[DRY RUN] Would apply '.count($changes).' renumbering changes.');
 
             return;
         }
@@ -287,10 +287,10 @@ class FixNumberingSequence extends Command
                 $seq++;
             }
             DB::commit();
-            $this->info('✓ Renumbered ' . count($changes) . ' requests.');
+            $this->info('✓ Renumbered '.count($changes).' requests.');
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->error('Failed to renumber: ' . $e->getMessage());
+            $this->error('Failed to renumber: '.$e->getMessage());
         }
     }
 
@@ -333,7 +333,7 @@ class FixNumberingSequence extends Command
         $this->table(['Scope', 'Current', 'Expected'], $changes);
 
         if ($dryRun) {
-            $this->info('[DRY RUN] Would reset ' . count($changes) . ' counters.');
+            $this->info('[DRY RUN] Would reset '.count($changes).' counters.');
 
             return;
         }
@@ -350,7 +350,7 @@ class FixNumberingSequence extends Command
                 ->update(['current_value' => $value]);
         }
 
-        $this->info('✓ Reset ' . count($changes) . ' sequence counters.');
+        $this->info('✓ Reset '.count($changes).' sequence counters.');
     }
 
     /**

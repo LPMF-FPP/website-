@@ -19,7 +19,7 @@ return new class extends Migration
             $table->date('calibration_due_at')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
-            
+
             $table->index('status');
             $table->index('calibration_due_at');
             $table->index(['instrument_id', 'status']);

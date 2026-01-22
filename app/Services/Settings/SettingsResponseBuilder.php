@@ -2,13 +2,13 @@
 
 namespace App\Services\Settings;
 
-use App\Models\DocumentTemplate;
+use App\Http\Requests\Settings\LocalizationSettingsRequest;
 use App\Models\Document;
+use App\Models\DocumentTemplate;
 use App\Models\Instrument;
 use App\Models\MethodInstrumentRequirement;
 use App\Services\IkuService;
 use App\Services\WhatsApp\NotificationService;
-use App\Http\Requests\Settings\LocalizationSettingsRequest;
 use App\Support\DocumentTypes;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;

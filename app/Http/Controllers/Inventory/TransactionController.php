@@ -61,7 +61,7 @@ class TransactionController extends Controller
         if ($locationMode === 'new' && ! empty($validated['new_location_name'])) {
             // Check if location with same name already exists
             $existingLocation = InventoryLocation::where('name', $validated['new_location_name'])->first();
-            
+
             if ($existingLocation) {
                 $locationId = $existingLocation->id;
             } else {

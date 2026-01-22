@@ -17,17 +17,17 @@ class AppTimezone
             } elseif (isset($GLOBALS['__settings_overrides']['locale.timezone'])) {
                 $tz = $GLOBALS['__settings_overrides']['locale.timezone'];
             } else {
-            // Bypass global settings() helper to avoid cache race conditions/stale data.
-            // Direct query is safe because this method is already cached.
-            $tz = null;
+                // Bypass global settings() helper to avoid cache race conditions/stale data.
+                // Direct query is safe because this method is already cached.
+                $tz = null;
 
-            try {
-                // 1. Try flat keys first (Priority: localization.timezone > locale.timezone)
+                try {
+                    // 1. Try flat keys first (Priority: localization.timezone > locale.timezone)
                     $flat = \App\Models\SystemSetting::query()
                         ->whereIn('key', ['localization.timezone', 'locale.timezone'])
                         ->orderByRaw("CASE WHEN key = 'localization.timezone' THEN 1 ELSE 2 END")
                         ->first();
-                    
+
                     if ($flat) {
                         $tz = $flat->value;
                     } else {
@@ -36,7 +36,7 @@ class AppTimezone
                         $jsonRows = \App\Models\SystemSetting::query()
                             ->whereIn('key', ['localization', 'locale'])
                             ->get();
-                        
+
                         foreach ($jsonRows as $row) {
                             $val = $row->value; // Cast to array by model
                             if (is_array($val) && isset($val['timezone'])) {

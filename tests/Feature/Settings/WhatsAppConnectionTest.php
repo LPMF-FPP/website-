@@ -32,7 +32,7 @@ class WhatsAppConnectionTest extends TestCase
                 ->andReturn([
                     'success' => true,
                     'devices' => [
-                        ['id' => 'dev1', 'name' => 'Device 1']
+                        ['id' => 'dev1', 'name' => 'Device 1'],
                     ],
                 ]);
         });
@@ -49,8 +49,8 @@ class WhatsAppConnectionTest extends TestCase
             ->assertJson([
                 'message' => 'Connection successful',
                 'devices' => [
-                    ['id' => 'dev1', 'name' => 'Device 1']
-                ]
+                    ['id' => 'dev1', 'name' => 'Device 1'],
+                ],
             ]);
     }
 
@@ -65,7 +65,7 @@ class WhatsAppConnectionTest extends TestCase
                 ->andReturn([
                     'success' => false,
                     'error' => 'Connection refused',
-                    'status' => 500
+                    'status' => 500,
                 ]);
         });
 

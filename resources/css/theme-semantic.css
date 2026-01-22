@@ -25,6 +25,12 @@
     --pd-sem-space-dense-multiplier: 0.65;
     --pd-sem-space-compact-multiplier: 0.8;
 
+    /* Z-Index Scale (Fixed) */
+    --pd-z-nav: 40;
+    --pd-z-overlay: 50;
+    --pd-z-modal: 100;
+    --pd-z-toast: 110;
+
     /* Map Tailwind Plugin Variables (Light Mode) */
     --pd-color-bg: var(--pd-sem-color-bg);
     --pd-color-surface: var(--pd-sem-color-surface);

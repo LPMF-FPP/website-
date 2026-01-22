@@ -132,6 +132,17 @@ export function registerSettingsComponent() {
                 if (value === "backup") {
                     this.fetchEmergencyBackups();
                 }
+                // Load WhatsApp templates when switching to notifications section
+                if (value === "notifications") {
+                    if (
+                        !this.client.state.templateEditor?.loading &&
+                        Object.keys(
+                            this.client.state.templateEditor?.templates || {},
+                        ).length === 0
+                    ) {
+                        this.loadAllTemplates();
+                    }
+                }
             },
             _activeSection: "numbering", // Default active section
             labels: {
@@ -3032,6 +3043,359 @@ export function registerSettingsComponent() {
                         error.message || "Gagal menyimpan mapping instrumen.";
                 } finally {
                     this.savingInstrumentRequirements = false;
+                }
+            },
+
+            // ============================================
+            // WhatsApp Template Editor Methods
+            // ============================================
+
+            async loadAllTemplates() {
+                console.log("🔄 loadAllTemplates() called");
+
+                if (!this.client.state.templateEditor) {
+                    this.client.state.templateEditor = {
+                        loading: false,
+                        templates: {},
+                        labels: {},
+                        categories: {},
+                        placeholders: {},
+                        activeCategory: null,
+                        previews: {},
+                        status: {},
+                        sending: {},
+                    };
+                }
+
+                this.client.state.templateEditor.loading = true;
+
+                try {
+                    const response = await fetch(
+                        "/api/settings/notifications/whatsapp/templates/all",
+                        {
+                            headers: {
+                                Accept: "application/json",
+                                "X-CSRF-TOKEN":
+                                    document.querySelector(
+                                        'meta[name="csrf-token"]',
+                                    )?.content || "",
+                            },
+                            credentials: "same-origin",
+                        },
+                    );
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    const payload = data.data || data;
+
+                    this.client.state.templateEditor.templates =
+                        payload.templates || {};
+                    this.client.state.templateEditor.labels =
+                        payload.labels || {};
+                    this.client.state.templateEditor.categories =
+                        payload.categories || {};
+                    this.client.state.templateEditor.placeholders =
+                        payload.placeholders || {};
+
+                    // Set first category as active if not set
+                    const cats = Object.keys(
+                        this.client.state.templateEditor.categories,
+                    );
+                    if (
+                        cats.length &&
+                        !this.client.state.templateEditor.activeCategory
+                    ) {
+                        this.client.state.templateEditor.activeCategory =
+                            cats[0];
+                    }
+
+                    console.log("✅ WhatsApp templates loaded:", payload);
+                } catch (error) {
+                    console.error("Failed to load WhatsApp templates:", error);
+                } finally {
+                    this.client.state.templateEditor.loading = false;
+                }
+            },
+
+            async previewTemplate(category, key) {
+                if (!this.client.state.templateEditor) return;
+
+                const statusKey = `${category}_${key}`;
+                const template =
+                    this.client.state.templateEditor.templates?.[category]?.[
+                        key
+                    ];
+
+                try {
+                    const response = await fetch(
+                        "/api/settings/notifications/whatsapp/templates/preview",
+                        {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                Accept: "application/json",
+                                "X-CSRF-TOKEN":
+                                    document.querySelector(
+                                        'meta[name="csrf-token"]',
+                                    )?.content || "",
+                            },
+                            credentials: "same-origin",
+                            body: JSON.stringify({
+                                category,
+                                key,
+                                template,
+                            }),
+                        },
+                    );
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    this.client.state.templateEditor.previews = {
+                        ...this.client.state.templateEditor.previews,
+                        [statusKey]: data.data?.preview || "",
+                    };
+                } catch (error) {
+                    console.error("Preview failed:", error);
+                    this.client.state.templateEditor.status = {
+                        ...this.client.state.templateEditor.status,
+                        [statusKey]: {
+                            success: false,
+                            message: "Preview gagal: " + error.message,
+                        },
+                    };
+                }
+            },
+
+            async saveTemplate(category, key) {
+                if (!this.client.state.templateEditor) return;
+
+                const statusKey = `${category}_${key}`;
+                const template =
+                    this.client.state.templateEditor.templates?.[category]?.[
+                        key
+                    ];
+
+                try {
+                    const response = await fetch(
+                        "/api/settings/notifications/whatsapp/templates",
+                        {
+                            method: "PUT",
+                            headers: {
+                                "Content-Type": "application/json",
+                                Accept: "application/json",
+                                "X-CSRF-TOKEN":
+                                    document.querySelector(
+                                        'meta[name="csrf-token"]',
+                                    )?.content || "",
+                            },
+                            credentials: "same-origin",
+                            body: JSON.stringify({
+                                category,
+                                key,
+                                template,
+                            }),
+                        },
+                    );
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(
+                            error.message || `HTTP ${response.status}`,
+                        );
+                    }
+
+                    this.client.state.templateEditor.status = {
+                        ...this.client.state.templateEditor.status,
+                        [statusKey]: {
+                            success: true,
+                            message: "Template berhasil disimpan!",
+                        },
+                    };
+
+                    // Clear status after 3 seconds
+                    setTimeout(() => {
+                        if (
+                            this.client.state.templateEditor?.status?.[
+                                statusKey
+                            ]
+                        ) {
+                            delete this.client.state.templateEditor.status[
+                                statusKey
+                            ];
+                        }
+                    }, 3000);
+                } catch (error) {
+                    console.error("Save template failed:", error);
+                    this.client.state.templateEditor.status = {
+                        ...this.client.state.templateEditor.status,
+                        [statusKey]: {
+                            success: false,
+                            message: "Gagal menyimpan: " + error.message,
+                        },
+                    };
+                }
+            },
+
+            async sendTemplateTest(category, key) {
+                if (!this.client.state.templateEditor) return;
+
+                const phone =
+                    this.client.state.notificationsTest?.whatsapp?.target;
+                const statusKey = `${category}_${key}`;
+
+                if (!phone) {
+                    this.client.state.templateEditor.status = {
+                        ...this.client.state.templateEditor.status,
+                        [statusKey]: {
+                            success: false,
+                            message:
+                                "Isi nomor test WhatsApp terlebih dahulu (di bawah).",
+                        },
+                    };
+                    return;
+                }
+
+                // Initialize sending state if needed
+                if (!this.client.state.templateEditor.sending) {
+                    this.client.state.templateEditor.sending = {};
+                }
+                this.client.state.templateEditor.sending[statusKey] = true;
+
+                try {
+                    const template =
+                        this.client.state.templateEditor.templates[category]?.[
+                            key
+                        ];
+
+                    const response = await fetch(
+                        "/api/settings/notifications/whatsapp/test",
+                        {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                Accept: "application/json",
+                                "X-CSRF-TOKEN":
+                                    document.querySelector(
+                                        'meta[name="csrf-token"]',
+                                    )?.content || "",
+                            },
+                            body: JSON.stringify({
+                                phone: phone,
+                                category: category,
+                                key: key,
+                                template: template,
+                            }),
+                            credentials: "same-origin",
+                        },
+                    );
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        this.client.state.templateEditor.status = {
+                            ...this.client.state.templateEditor.status,
+                            [statusKey]: {
+                                success: true,
+                                message: "✓ Pesan berhasil dikirim!",
+                            },
+                        };
+                    } else {
+                        throw new Error(data.message || "Gagal mengirim");
+                    }
+                } catch (error) {
+                    this.client.state.templateEditor.status = {
+                        ...this.client.state.templateEditor.status,
+                        [statusKey]: {
+                            success: false,
+                            message: error.message || "Gagal mengirim pesan.",
+                        },
+                    };
+                } finally {
+                    this.client.state.templateEditor.sending[statusKey] = false;
+                }
+            },
+
+            async resetTemplate(category, key) {
+                if (!this.client.state.templateEditor) return;
+                if (!confirm("Reset template ke default?")) return;
+
+                const statusKey = `${category}_${key}`;
+
+                try {
+                    const response = await fetch(
+                        "/api/settings/notifications/whatsapp/templates/reset",
+                        {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                Accept: "application/json",
+                                "X-CSRF-TOKEN":
+                                    document.querySelector(
+                                        'meta[name="csrf-token"]',
+                                    )?.content || "",
+                            },
+                            credentials: "same-origin",
+                            body: JSON.stringify({
+                                category,
+                                key,
+                            }),
+                        },
+                    );
+
+                    if (!response.ok) {
+                        const error = await response.json();
+                        throw new Error(
+                            error.message || `HTTP ${response.status}`,
+                        );
+                    }
+
+                    const data = await response.json();
+                    const defaultTemplate = data.data?.template || "";
+
+                    // Update the template in state
+                    if (
+                        this.client.state.templateEditor.templates?.[category]
+                    ) {
+                        this.client.state.templateEditor.templates[category][
+                            key
+                        ] = defaultTemplate;
+                    }
+
+                    this.client.state.templateEditor.status = {
+                        ...this.client.state.templateEditor.status,
+                        [statusKey]: {
+                            success: true,
+                            message: "Template di-reset ke default!",
+                        },
+                    };
+
+                    // Clear status after 3 seconds
+                    setTimeout(() => {
+                        if (
+                            this.client.state.templateEditor?.status?.[
+                                statusKey
+                            ]
+                        ) {
+                            delete this.client.state.templateEditor.status[
+                                statusKey
+                            ];
+                        }
+                    }, 3000);
+                } catch (error) {
+                    console.error("Reset template failed:", error);
+                    this.client.state.templateEditor.status = {
+                        ...this.client.state.templateEditor.status,
+                        [statusKey]: {
+                            success: false,
+                            message: "Gagal reset: " + error.message,
+                        },
+                    };
                 }
             },
 

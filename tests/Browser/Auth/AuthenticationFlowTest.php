@@ -75,8 +75,8 @@ class AuthenticationFlowTest extends DuskTestCase
     {
         $this->browse(function (Browser $browser) {
             $browser->driver->manage()->deleteAllCookies();
-            $email = 'jane' . time() . '@example.com';
-            
+            $email = 'jane'.time().'@example.com';
+
             $browser->visit('/register')
                 ->type('name', 'Jane Smith')
                 ->type('email', $email)

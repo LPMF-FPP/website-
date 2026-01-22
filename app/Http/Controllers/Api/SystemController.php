@@ -24,14 +24,14 @@ class SystemController extends Controller
     public function restartQueue(Request $request)
     {
         $adminPhone = $request->header('X-Admin-Phone');
-        
+
         // Verify admin phone
-        if (!in_array($adminPhone, $this->adminPhones)) {
+        if (! in_array($adminPhone, $this->adminPhones)) {
             Log::warning('Unauthorized queue restart attempt', [
                 'phone' => $adminPhone,
                 'ip' => $request->ip(),
             ]);
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized',
@@ -40,30 +40,30 @@ class SystemController extends Controller
 
         try {
             Log::info('Queue restart requested by admin', ['phone' => $adminPhone]);
-            
+
             // Restart queue workers
             Artisan::call('queue:restart');
-            
+
             // Optionally clear cache
             // Artisan::call('cache:clear');
-            
+
             Log::info('Queue restart successful', ['phone' => $adminPhone]);
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Queue restart signal sent successfully',
                 'timestamp' => now()->toIso8601String(),
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error('Queue restart failed', [
                 'phone' => $adminPhone,
                 'error' => $e->getMessage(),
             ]);
-            
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to restart queue: ' . $e->getMessage(),
+                'message' => 'Failed to restart queue: '.$e->getMessage(),
             ], 500);
         }
     }

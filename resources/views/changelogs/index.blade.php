@@ -11,6 +11,92 @@
 
     <div class="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
+        {{-- Version 1.7.7 --}}
+        <div class="card">
+            <div class="flex items-start gap-4 mb-6">
+                <div class="flex-shrink-0 h-12 w-12 bg-teal-100 rounded-full flex items-center justify-center">
+                    <svg class="h-6 w-6 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-1">
+                        <h2 class="text-xl font-bold text-gray-900">LPMF LIMS v1.7.7</h2>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Latest</span>
+                    </div>
+                    <p class="text-sm text-gray-500">Dirilis: 22 Januari 2026</p>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-teal-100 text-teal-600">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                        </svg>
+                    </span>
+                    Request Detail Page UX Redesign
+                </h3>
+                <ul class="space-y-2 text-sm text-gray-700">
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span><strong>Header Summary Card:</strong> Info ringkas (No. Resi, Status, Penyidik, Jumlah Sampel) di bagian atas halaman.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span><strong>Reminder Cetak BA:</strong> Petunjuk dismissable untuk cetak BA 2 rangkap dan serahkan ke Administrasi.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span><strong>Collapsible Sections:</strong> Section expand/collapse untuk Sampel, Dokumen, dan Data Penyidik.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span><strong>Document Grid:</strong> Tampilan kartu dokumen dengan thumbnail dan aksi hover.</span>
+                    </li>
+                </ul>
+            </div>
+
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-amber-100 text-amber-600">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </span>
+                    Bug Fixes
+                </h3>
+                <ul class="space-y-2 text-sm text-gray-700">
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span><strong>Task Templates:</strong> Template notifikasi WhatsApp untuk task sekarang muncul di Settings.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span><strong>BA Update:</strong> Dokumen BA sekarang dihapus sepenuhnya saat edit permintaan.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span><strong>Inactive Staff:</strong> Staff nonaktif tidak lagi muncul di dropdown analis.</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
         {{-- Version 1.7.6 --}}
         <div class="card">
             <div class="flex items-start gap-4 mb-6">
@@ -22,7 +108,6 @@
                 <div class="flex-1">
                     <div class="flex items-center gap-3 mb-1">
                         <h2 class="text-xl font-bold text-gray-900">LPMF LIMS v1.7.6</h2>
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Latest</span>
                     </div>
                     <p class="text-sm text-gray-500">Dirilis: 19 Januari 2026</p>
                 </div>

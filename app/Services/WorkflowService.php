@@ -15,7 +15,7 @@ class WorkflowService
     public function __construct(
         protected ?InstrumentLoggingService $instrumentLoggingService = null
     ) {
-        $this->instrumentLoggingService = $instrumentLoggingService ?? new InstrumentLoggingService();
+        $this->instrumentLoggingService = $instrumentLoggingService ?? new InstrumentLoggingService;
     }
 
     public function startTestProcess(Sample $sample, TestProcessStage $stage): SampleTestProcess

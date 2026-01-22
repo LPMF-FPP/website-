@@ -24,10 +24,10 @@ class LhuNumberingGenerationTest extends TestCase
     {
         parent::setUp();
         $this->seed(SystemSettingSeeder::class);
-        
+
         // Disable WhatsApp notifications to prevent job failures during testing
         settings_fake(['notifications.whatsapp.enabled' => false]);
-        
+
         settings_forget_cache();
 
         // Create admin user with proper permissions
@@ -44,7 +44,7 @@ class LhuNumberingGenerationTest extends TestCase
 
         $sample = Sample::factory()->create([
             'test_request_id' => $testRequest->id,
-            'sample_code' => 'SAMP-TEST-' . fake()->unique()->lexify('??????'), // Letters only to avoid 3-5 digit sequence trigger
+            'sample_code' => 'SAMP-TEST-'.fake()->unique()->lexify('??????'), // Letters only to avoid 3-5 digit sequence trigger
         ]);
 
         $process = SampleTestProcess::factory()->create([

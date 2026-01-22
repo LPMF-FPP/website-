@@ -48,6 +48,40 @@ class DeliveryController extends Controller
             ->orderByDesc('completed_at')
             ->get();
 
+        // Handle completed requests with search/filter/pagination
+        $search = request('search');
+        $sort = request('sort', 'completed_at');
+        $direction = request('direction', 'desc');
+
+        // Validate sort column to prevent SQL injection
+        if (! in_array($sort, ['request_number', 'receipt_number', 'completed_at', 'suspect_name'])) {
+            $sort = 'completed_at';
+        }
+        if (! in_array($direction, ['asc', 'desc'])) {
+            $direction = 'desc';
+        }
+
+        $completedRequests = TestRequest::with([
+            'investigator:id,name,jurisdiction,rank',
+            'samples' => function ($query) {
+                $query->select('id', 'test_request_id', 'short_description');
+            },
+        ])
+            ->whereIn('status', ['completed', 'delivered'])
+            ->when($search, function ($q) use ($search) {
+                $q->where(function ($sub) use ($search) {
+                    $sub->where('request_number', 'ilike', "%{$search}%")
+                        ->orWhere('receipt_number', 'ilike', "%{$search}%")
+                        ->orWhere('suspect_name', 'ilike', "%{$search}%")
+                        ->orWhereHas('investigator', function ($inv) use ($search) {
+                            $inv->where('name', 'ilike', "%{$search}%");
+                        });
+                });
+            })
+            ->orderBy($sort, $direction)
+            ->paginate(10, ['*'], 'completed_page')
+            ->appends(request()->except('completed_page'));
+
         $deliveries = Delivery::with([
 
             'request.samples.testProcesses',
@@ -76,7 +110,7 @@ class DeliveryController extends Controller
             ->latest()
             ->paginate(10);
 
-        return view('delivery.index', compact('requests', 'deliveries'));
+        return view('delivery.index', compact('requests', 'deliveries', 'completedRequests'));
 
     }
 
@@ -177,10 +211,65 @@ class DeliveryController extends Controller
         // Reload evidenceUnits with remainingUnits after auto-generation
         $request->load('evidenceUnits.remainingUnits');
 
+        // Check completion status for stepper
+        $baExists = \App\Models\Document::where('test_request_id', $request->id)
+            ->where('document_type', 'ba_penyerahan')
+            ->exists();
+
+        $labelsCount = $request->evidenceUnits->flatMap->remainingUnits->count();
+        $labelsGenerated = $labelsCount > 0;
+
+        // Get last WhatsApp notification status
+        $lastNotification = \App\Models\WhatsappOutbox::where('test_request_id', $request->id)
+            ->where('milestone_key', 'READY_FOR_PICKUP')
+            ->latest()
+            ->first();
+
+        $waNotificationSent = $lastNotification !== null;
+
+        $survey = $request->customerSurvey;
+        $surveyComplete = $survey && $survey->isComplete();
+
+        $stepper = [
+            1 => [
+                'key' => 'ba_penyerahan',
+                'title' => 'Berita Acara Penyerahan',
+                'completed' => $baExists,
+                'locked' => false,
+            ],
+            2 => [
+                'key' => 'label_sisa',
+                'title' => 'Label Sisa Sampel',
+                'completed' => $labelsGenerated,
+                'locked' => ! $baExists,
+                'count' => $labelsCount,
+            ],
+            3 => [
+                'key' => 'notifikasi_wa',
+                'title' => 'Notifikasi WhatsApp',
+                'completed' => $waNotificationSent,
+                'locked' => ! $labelsGenerated,
+            ],
+            4 => [
+                'key' => 'survei',
+                'title' => 'Survei Kepuasan',
+                'completed' => $surveyComplete,
+                'locked' => ! $waNotificationSent,
+            ],
+            5 => [
+                'key' => 'selesai',
+                'title' => 'Selesaikan Penyerahan',
+                'completed' => $request->status === 'completed',
+                'locked' => ! $surveyComplete,
+            ],
+        ];
+
         return view('delivery.show', [
 
             'request' => $request,
             'delivery' => $delivery,
+            'lastNotification' => $lastNotification,
+            'stepper' => $stepper,
 
             'stages' => [
                 'preparation' => 'Preparasi Sampel',
@@ -281,6 +370,57 @@ class DeliveryController extends Controller
 
             ->with('success', 'Terima kasih atas feedback Anda! Survei untuk permintaan '.$request->request_number.' telah tersimpan.');
 
+    }
+
+    /**
+     * Kirim notifikasi WhatsApp "Siap Diambil" ke penyidik
+     */
+    public function sendPickupNotification(TestRequest $request, \App\Services\WhatsApp\NotificationService $notificationService)
+    {
+        if (! in_array($request->status, ['ready_for_delivery', 'completed'])) {
+            return back()->with('error', 'Notifikasi hanya dapat dikirim untuk permintaan yang siap diserahkan.');
+        }
+
+        if (! $notificationService->isWhatsAppEnabled()) {
+            return back()->with('error', 'Layanan WhatsApp tidak aktif.');
+        }
+
+        $request->load('investigator');
+
+        if (! $request->investigator || ! $request->investigator->phone) {
+            return back()->with('error', 'Nomor telepon penyidik tidak tersedia.');
+        }
+
+        $phone = $request->investigator->phone;
+        $jid = $notificationService->formatJID($phone);
+
+        $message = $notificationService->getMilestoneMessage('READY_FOR_PICKUP', [
+            'resi' => $request->receipt_number,
+            'nomor surat' => $request->request_number,
+            'tersangka' => $request->suspect_name ?? '-',
+            'pangkat' => $notificationService->getSalutation($request->investigator),
+            'nama' => $request->investigator->name ?? '-',
+            'greetings' => $notificationService->getTimeBasedGreeting(),
+            'greeting' => $notificationService->getGreeting($request->investigator),
+        ]);
+
+        if (! $message) {
+            return back()->with('error', 'Template pesan notifikasi tidak ditemukan.');
+        }
+
+        $outbox = \App\Models\WhatsappOutbox::create([
+            'test_request_id' => $request->id,
+            'milestone_key' => 'READY_FOR_PICKUP',
+            'to_phone_e164' => \App\Support\PhoneNormalizer::toE164($phone),
+            'to_jid' => $jid,
+            'message_text' => $message,
+            'status' => 'queued',
+            'attempts' => 0,
+        ]);
+
+        \App\Jobs\SendWhatsAppNotificationJob::dispatch($outbox->id);
+
+        return back()->with('success', 'Notifikasi "Siap Diambil" berhasil dikirim ke '.$request->investigator->name.'.');
     }
 
     public function markAsCompleted(Request $httpRequest, TestRequest $request)
@@ -523,13 +663,13 @@ class DeliveryController extends Controller
 
         // Check if document already exists to reuse number (prevent counter increment)
         $existingDoc = $docs->getExistingGenerated($req, 'ba_penyerahan');
-        
+
         if ($existingDoc) {
             // Reuse number from existing filename to avoid incrementing counter
             // Format: {NUMBER}-ba-penyerahan.pdf
             $filename = $existingDoc->original_filename;
             $suffix = '-ba-penyerahan.pdf';
-            
+
             if (str_ends_with($filename, $suffix)) {
                 $baPenyerahanNumber = substr($filename, 0, -strlen($suffix));
             } else {
@@ -546,7 +686,7 @@ class DeliveryController extends Controller
             ];
 
             // Attempt to extract sequence from request_number to synchronize BA-ST number
-            if (!empty($req->request_number)) {
+            if (! empty($req->request_number)) {
                 // Try Standard {SEQ}/... or .../{SEQ}/... format
                 if (preg_match('/(?:^|[\/\-])(\d{1,5})(?:[\/\-]|$)/', $req->request_number, $m)) {
                     $context['forced_sequence'] = (int) $m[1];
@@ -555,11 +695,13 @@ class DeliveryController extends Controller
 
             $baPenyerahanNumber = $numberingService->issue('ba_penyerahan', $context);
         }
-        
+
         // Inject number into request metadata for the view to use
         // This ensures the view displays the reused number
         $meta = $req->metadata ?? [];
-        if (!is_array($meta)) $meta = [];
+        if (! is_array($meta)) {
+            $meta = [];
+        }
         $meta['ba_penyerahan_number'] = $baPenyerahanNumber;
         $req->setAttribute('metadata', $meta);
 

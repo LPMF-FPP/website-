@@ -15,7 +15,7 @@ class AlertService
 
     public function checkThresholds(MonitoringSensor $sensor, float $value): void
     {
-        if (!$sensor->is_active) {
+        if (! $sensor->is_active) {
             return;
         }
 
@@ -47,6 +47,7 @@ class AlertService
                 'value' => $value,
                 'updated_at' => now(),
             ]);
+
             return;
         }
 
@@ -70,14 +71,14 @@ class AlertService
         $message .= "Type: {$alert->type}\n";
         $message .= "Value: {$alert->value}°C\n";
         $message .= "Threshold: {$alert->threshold}°C\n";
-        $message .= "Time: " . now()->format('Y-m-d H:i:s');
+        $message .= 'Time: '.now()->format('Y-m-d H:i:s');
 
         $adminNumber = settings('notifications.whatsapp.admin_number', '6285956592404');
-        
+
         try {
-            $this->whatsapp->sendMessage($adminNumber . '@s.whatsapp.net', $message);
+            $this->whatsapp->sendMessage($adminNumber.'@s.whatsapp.net', $message);
         } catch (\Exception $e) {
-            Log::error("Failed to send monitoring alert: " . $e->getMessage());
+            Log::error('Failed to send monitoring alert: '.$e->getMessage());
         }
     }
 }

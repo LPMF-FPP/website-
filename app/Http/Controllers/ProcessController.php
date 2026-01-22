@@ -148,15 +148,15 @@ class ProcessController extends Controller
             $interpretationProcesses = $allProcesses->filter(
                 fn ($p) => $this->stageValue($p->stage) === TestProcessStage::INTERPRETATION->value
             );
-            
+
             // Ready for delivery if:
             // 1. There are interpretation processes
             // 2. All interpretation processes are completed
             // 3. TestRequest status is not already ready_for_delivery or completed
             if ($interpretationProcesses->isNotEmpty()) {
                 $allInterpretationCompleted = $interpretationProcesses->every(fn ($p) => $p->completed_at);
-                $readyForDelivery = $allInterpretationCompleted && 
-                    !in_array($testRequest->status, ['ready_for_delivery', 'completed'], true);
+                $readyForDelivery = $allInterpretationCompleted &&
+                    ! in_array($testRequest->status, ['ready_for_delivery', 'completed'], true);
             }
         }
 
@@ -194,6 +194,7 @@ class ProcessController extends Controller
         // Update test request status to ready_for_delivery
         $testRequest->update([
             'status' => 'ready_for_delivery',
+            'completed_at' => now(),
         ]);
 
         // Also update all samples status
@@ -201,44 +202,6 @@ class ProcessController extends Controller
             'status' => 'ready_for_delivery',
             'sample_status' => 'ready_for_delivery',
         ]);
-
-        // Send WhatsApp Notification
-        if ($notificationService->isWhatsAppEnabled() && $notificationService->shouldNotify('READY_FOR_PICKUP')) {
-            $testRequest->load('investigator');
-
-            if ($testRequest->investigator && $testRequest->investigator->phone) {
-                $phone = $testRequest->investigator->phone;
-                $jid = $notificationService->formatJID($phone);
-
-                $message = $notificationService->getMilestoneMessage('READY_FOR_PICKUP', [
-                    'resi' => $testRequest->receipt_number,
-                    'nomor surat' => $testRequest->request_number,
-                    'tersangka' => $testRequest->suspect_name ?? '-',
-                    'pangkat' => $notificationService->getSalutation($testRequest->investigator),
-                    'nama' => $testRequest->investigator->name ?? '-',
-                    'greetings' => $notificationService->getTimeBasedGreeting(),
-                    'greeting' => $notificationService->getGreeting($testRequest->investigator),
-                ]);
-
-                if ($message) {
-                    $outbox = \App\Models\WhatsappOutbox::updateOrCreate(
-                        [
-                            'test_request_id' => $testRequest->id,
-                            'milestone_key' => 'READY_FOR_PICKUP',
-                        ],
-                        [
-                            'to_phone_e164' => \App\Support\PhoneNormalizer::toE164($phone),
-                            'to_jid' => $jid,
-                            'message_text' => $message,
-                            'status' => 'queued',
-                            'attempts' => 0,
-                        ]
-                    );
-
-                    \App\Jobs\SendWhatsAppNotificationJob::dispatch($outbox->id);
-                }
-            }
-        }
 
         return redirect()
             ->route('delivery.show', $testRequest)
@@ -364,7 +327,7 @@ class ProcessController extends Controller
         // Check instrumentation - if any exists and all are completed, advance to interpretation
         if ($instrumentationProcesses->isNotEmpty()) {
             $allInstrumentationCompleted = $instrumentationProcesses->every(fn ($p) => $p->completed_at);
-            
+
             if ($allInstrumentationCompleted) {
                 // All existing instrumentation processes are done, advance to interpretation
                 return 'interpretation';
@@ -376,7 +339,7 @@ class ProcessController extends Controller
         // Check preparation - if any exists and all are completed, advance to instrumentation
         if ($preparationProcesses->isNotEmpty()) {
             $allPreparationCompleted = $preparationProcesses->every(fn ($p) => $p->completed_at);
-            
+
             if ($allPreparationCompleted) {
                 // All existing preparation processes are done, advance to instrumentation
                 return 'instrumentation';

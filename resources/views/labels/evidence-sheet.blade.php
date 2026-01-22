@@ -3,9 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <title>Label Barang Bukti</title>
+    @php
+        $totalLabels = $rows->count();
+        // Determine grid layout based on label count
+        if ($totalLabels <= 3) {
+            $cols = 2;
+            $maxRows = 3;
+            $labelHeight = 85; // mm
+            $labelWidth = 95;  // mm
+            $fontSize = 8;
+        } elseif ($totalLabels <= 6) {
+            $cols = 2;
+            $maxRows = 6;
+            $labelHeight = 43; // mm
+            $labelWidth = 95;  // mm
+            $fontSize = 7;
+        } elseif ($totalLabels <= 8) {
+            $cols = 2;
+            $maxRows = 8;
+            $labelHeight = 32; // mm
+            $labelWidth = 95;  // mm
+            $fontSize = 6;
+        } elseif ($totalLabels <= 12) {
+            $cols = 2;
+            $maxRows = 12;
+            $labelHeight = 21; // mm
+            $labelWidth = 95;  // mm
+            $fontSize = 5.5;
+        } else {
+            $cols = 2;
+            $maxRows = 15;
+            $labelHeight = 17; // mm
+            $labelWidth = 95;  // mm
+            $fontSize = 5;
+        }
+    @endphp
     <style>
         @page {
-            margin: 8mm;
+            size: A4 portrait;
+            margin: 8mm; /* Increased from 5mm for cutting margin */
         }
         * {
             margin: 0;
@@ -14,38 +50,41 @@
         }
         body {
             font-family: 'DejaVu Sans', Arial, sans-serif;
-            font-size: 8pt;
-            line-height: 1.25;
+            font-size: {{ $fontSize }}pt;
+            line-height: 1.2;
         }
         .page-break {
             page-break-after: always;
         }
+        .labels-page {
+            width: 100%;
+            height: auto;
+        }
         .label {
             border: 1px solid #333;
-            padding: 3mm;
-            height: 46mm;
-            width: 92mm;
+            padding: 1.5mm;
+            height: {{ $labelHeight }}mm;
+            width: {{ $labelWidth }}mm;
             position: relative;
             background: #fff;
             overflow: hidden;
             page-break-inside: avoid;
         }
         .label-header {
-            /* Border moved to table */
             padding-bottom: 0;
             margin-bottom: 0;
         }
         .label-header h1 {
-            font-size: 9pt;
+            font-size: {{ $fontSize + 1 }}pt;
             font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 0.3pt;
+            letter-spacing: 0.2pt;
             margin: 0;
         }
         .label-header .subtitle {
-            font-size: 5pt;
+            font-size: {{ max($fontSize - 2.5, 3.5) }}pt;
             color: #555;
-            margin-top: 0.5mm;
+            margin-top: 0.3mm;
         }
         .label-body {
             display: table;
@@ -54,59 +93,58 @@
         }
         .label-content {
             display: table-cell;
-            width: 70%; /* Increased from 65% */
+            width: 68%;
             vertical-align: top;
-            padding-right: 2mm;
+            padding-right: 1.5mm;
         }
         .label-qr {
             display: table-cell;
-            width: 30%; /* Decreased from 35% */
+            width: 32%;
             vertical-align: top;
             text-align: center;
         }
         .label-qr img {
-            width: 20mm; /* Reduced from 22mm */
-            height: 20mm;
+            width: {{ min($labelHeight * 0.35, 18) }}mm;
+            height: {{ min($labelHeight * 0.35, 18) }}mm;
             display: block;
             margin: 0 auto;
         }
         .qr-text {
-            font-size: 5pt;
+            font-size: {{ max($fontSize - 2.5, 3.5) }}pt;
             color: #666;
-            margin-top: 1mm;
+            margin-top: 0.5mm;
             word-break: break-all;
             overflow: hidden;
-            max-height: 8mm;
+            max-height: 6mm;
         }
         .field {
-            margin-bottom: 0.8mm; /* Reduced from 1mm */
+            margin-bottom: 0.5mm;
             overflow: hidden;
         }
         .field-label {
-            font-size: 5.5pt; /* Reduced from 6pt */
+            font-size: {{ max($fontSize - 2, 4) }}pt;
             color: #666;
             text-transform: uppercase;
-            letter-spacing: 0.2pt;
+            letter-spacing: 0.1pt;
         }
         .field-value {
-            font-size: 7pt; /* Reduced from 7.5pt */
+            font-size: {{ $fontSize }}pt;
             font-weight: bold;
             word-wrap: break-word;
             overflow-wrap: anywhere;
             word-break: break-word;
             overflow: hidden;
-            line-height: 1.1; /* Tighter line height */
+            line-height: 1.1;
         }
         .field-value.large {
-            font-size: 9pt; /* Reduced from 10pt */
+            font-size: {{ $fontSize + 1 }}pt;
         }
         .field-value.small {
-            font-size: 6.5pt; /* Reduced from 7pt */
+            font-size: {{ max($fontSize - 1, 4.5) }}pt;
             font-weight: normal;
         }
-        /* Clamp text to max 2 lines */
         .clamp2 {
-            max-height: 5.5mm; /* Explicit height limit based on font size */
+            max-height: {{ $fontSize * 0.6 }}mm;
             overflow: hidden;
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -114,42 +152,94 @@
         }
         .label-footer {
             position: absolute;
-            bottom: 1.5mm;
-            left: 3mm;
-            right: 3mm;
-            font-size: 5pt;
+            bottom: 1mm;
+            left: 2mm;
+            right: 2mm;
+            font-size: {{ max($fontSize - 2.5, 3.5) }}pt;
             color: #888;
             border-top: 1px dotted #ccc;
-            padding-top: 0.5mm;
+            padding-top: 0.3mm;
         }
-        .clearfix::after {
-            content: "";
-            display: block;
-            clear: both;
+        
+        /* Logo sizing based on label height */
+        .header-logo {
+            height: {{ min($labelHeight * 0.12, 8) }}mm;
+            width: auto;
+        }
+        .header-table {
+            border-bottom: 1px solid #333;
+            margin-bottom: 1mm;
+            padding-bottom: 0.5mm;
+        }
+        
+        /* Checklist Styles - A4 format */
+        .checklist-container {
+            padding: 10mm;
+        }
+        .checklist-header {
+            text-align: center;
+            border-bottom: 1.5px solid #000;
+            padding-bottom: 3mm;
+            margin-bottom: 5mm;
+        }
+        .checklist-title {
+            margin: 0;
+            font-size: 12pt;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+        .checklist-info {
+            width: 100%;
+            margin-bottom: 5mm;
+            font-size: 10pt;
+        }
+        .checklist-info td {
+            vertical-align: top;
+            padding-bottom: 2mm;
+        }
+        .checklist-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10pt;
+        }
+        .checklist-table th, .checklist-table td {
+            border: 1px solid #000;
+            padding: 2mm;
+        }
+        .checklist-table th {
+            background-color: #f0f0f0;
+            text-align: center;
+        }
+        .checkbox {
+            width: 4mm;
+            height: 4mm;
+            border: 1px solid #000;
+            display: inline-block;
         }
     </style>
 </head>
 <body>
-    @foreach($rows->chunk(5) as $chunkIndex => $chunk)
+    {{-- HALAMAN 1: SEMUA LABEL (tanpa page break) --}}
+    <div class="labels-page">
         <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
-            @foreach($chunk as $row)
+            @foreach($rows as $row)
                 <tr>
                     {{-- Left Column: Evidence Label --}}
-                    <td style="width:50%; vertical-align:top; padding-right:4mm; padding-bottom:2mm;">
+                    <td style="width:50%; vertical-align:top; padding: 3mm;">
                         @if($row['left'])
                             <div class="label">
                                 <div class="label-header">
-                                    <table width="100%" style="border-bottom: 1px solid #333; margin-bottom: 1.5mm; padding-bottom: 1mm;">
+                                    <table width="100%" class="header-table">
                                         <tr>
-                                            <td style="width: 15%; text-align: center; vertical-align: middle;">
-                                                <img src="{{ public_path('images/logo-tribrata-polri.png') }}" style="height: 10mm; width: auto;">
+                                            <td style="width: 12%; text-align: center; vertical-align: middle;">
+                                                <img src="{{ public_path('images/logo-tribrata-polri.png') }}" class="header-logo">
                                             </td>
-                                            <td style="width: 70%; text-align: center; vertical-align: middle;">
+                                            <td style="width: 76%; text-align: center; vertical-align: middle;">
                                                 <h1>Barang Bukti</h1>
-                                                <div class="subtitle">Laboratorium Pengujian mutu Farmapol Pusdokkes Polri</div>
+                                                <div class="subtitle">Laboratorium Pengujian Mutu Farmapol Pusdokkes Polri</div>
                                             </td>
-                                            <td style="width: 15%; text-align: center; vertical-align: middle;">
-                                                <img src="{{ public_path('images/logo-pusdokkes-polri.png') }}" style="height: 10mm; width: auto;">
+                                            <td style="width: 12%; text-align: center; vertical-align: middle;">
+                                                <img src="{{ public_path('images/logo-pusdokkes-polri.png') }}" class="header-logo">
                                             </td>
                                         </tr>
                                     </table>
@@ -192,21 +282,21 @@
                     </td>
 
                     {{-- Right Column: Case Label --}}
-                    <td style="width:50%; vertical-align:top; padding-right:4mm; padding-bottom:2mm;">
+                    <td style="width:50%; vertical-align:top; padding: 3mm;">
                         @if($row['right'])
                             <div class="label">
                                 <div class="label-header">
-                                    <table width="100%" style="border-bottom: 1px solid #333; margin-bottom: 1.5mm; padding-bottom: 1mm;">
+                                    <table width="100%" class="header-table">
                                         <tr>
-                                            <td style="width: 15%; text-align: center; vertical-align: middle;">
-                                                <img src="{{ public_path('images/logo-tribrata-polri.png') }}" style="height: 10mm; width: auto;">
+                                            <td style="width: 12%; text-align: center; vertical-align: middle;">
+                                                <img src="{{ public_path('images/logo-tribrata-polri.png') }}" class="header-logo">
                                             </td>
-                                            <td style="width: 70%; text-align: center; vertical-align: middle;">
+                                            <td style="width: 76%; text-align: center; vertical-align: middle;">
                                                 <h1>LPMF</h1>
-                                                <div class="subtitle">Laboratorium Pengujian mutu Farmapol Pusdokkes Polri</div>
+                                                <div class="subtitle">Laboratorium Pengujian Mutu Farmapol Pusdokkes Polri</div>
                                             </td>
-                                            <td style="width: 15%; text-align: center; vertical-align: middle;">
-                                                <img src="{{ public_path('images/logo-pusdokkes-polri.png') }}" style="height: 10mm; width: auto;">
+                                            <td style="width: 12%; text-align: center; vertical-align: middle;">
+                                                <img src="{{ public_path('images/logo-pusdokkes-polri.png') }}" class="header-logo">
                                             </td>
                                         </tr>
                                     </table>
@@ -234,12 +324,6 @@
                                             <div class="field-value">{{ $row['right']['nomor_surat'] }}</div>
                                         </div>
                                     </div>
-                                    {{-- Optional: QR Code for Case Label (User didn't specify, but space allows) --}}
-                                    {{-- 
-                                    <div class="label-qr">
-                                         <img src="..." alt="QR Code">
-                                    </div> 
-                                    --}}
                                 </div>
 
                                 <div class="label-footer">
@@ -251,51 +335,42 @@
                 </tr>
             @endforeach
         </table>
-        
-        @if(!$loop->last)
-            <div class="page-break"></div>
-        @endif
-    @endforeach
+    </div>
 
-    {{-- Halaman Checklist --}}
+    {{-- PAGE BREAK sebelum checklist --}}
     <div class="page-break"></div>
 
-    <div style="padding: 10mm; font-family: 'DejaVu Sans', Arial, sans-serif;">
-        <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 5mm; margin-bottom: 8mm;">
-            <h1 style="margin: 0; font-size: 14pt; text-transform: uppercase; font-weight: bold;">Checklist Kelengkapan Dokumen</h1>
-            <div style="margin-top: 2mm; font-size: 10pt;">Laboratorium Pengujian Mutu Farmapol Pusdokkes Polri</div>
+    {{-- HALAMAN 2: CHECKLIST --}}
+    <div class="checklist-container">
+        <div class="checklist-header">
+            <h1 class="checklist-title">Checklist Kelengkapan Dokumen</h1>
+            <div style="margin-top: 2mm; font-size: 9pt;">Laboratorium Pengujian Mutu Farmapol Pusdokkes Polri</div>
         </div>
 
-        @php
-            // Ambil info dari baris pertama (kolom kanan/kiri) untuk header checklist
-            $firstRow = $rows->first();
-            $info = $firstRow['right'] ?? ($firstRow['left'] ?? []);
-        @endphp
-
-        <table style="width: 100%; margin-bottom: 8mm; font-size: 10pt;">
+        <table class="checklist-info">
             <tr>
-                <td style="width: 25%; font-weight: bold; vertical-align: top;">Nomor Resi</td>
-                <td style="width: 2%; vertical-align: top;">:</td>
-                <td style="vertical-align: top;">{{ $info['resi'] ?? ($info['receipt_code'] ?? '-') }}</td>
+                <td style="width: 20%; font-weight: bold;">Nomor Resi</td>
+                <td style="width: 2%;">:</td>
+                <td>{{ $request->receipt_number ?? '-' }}</td>
             </tr>
             <tr>
-                <td style="font-weight: bold; vertical-align: top;">Asal Instansi</td>
-                <td style="vertical-align: top;">:</td>
-                <td style="vertical-align: top;">{{ $info['satuan_kerja'] ?? '-' }}</td>
+                <td style="font-weight: bold;">Asal Instansi</td>
+                <td style="width: 2%;">:</td>
+                <td>{{ $request->investigator->jurisdiction ?? '-' }}</td>
             </tr>
             <tr>
-                <td style="font-weight: bold; vertical-align: top;">Nama Tersangka</td>
-                <td style="vertical-align: top;">:</td>
-                <td style="vertical-align: top;">{{ $info['nama_tsk'] ?? ($info['suspect_name'] ?? '-') }}</td>
+                <td style="font-weight: bold;">Nama Tersangka</td>
+                <td style="width: 2%;">:</td>
+                <td>{{ $request->suspect_name ?? '-' }}</td>
             </tr>
         </table>
 
-        <table style="width: 100%; border-collapse: collapse; font-size: 10pt;">
+        <table class="checklist-table">
             <thead>
-                <tr style="background-color: #f0f0f0;">
-                    <th style="border: 1px solid #000; padding: 2mm; width: 8%; text-align: center;">No</th>
-                    <th style="border: 1px solid #000; padding: 2mm; text-align: left;">Nama Dokumen</th>
-                    <th style="border: 1px solid #000; padding: 2mm; width: 15%; text-align: center;">Ceklis</th>
+                <tr>
+                    <th style="width: 8%;">No</th>
+                    <th style="text-align: left;">Nama Dokumen</th>
+                    <th style="width: 15%;">Ceklis</th>
                 </tr>
             </thead>
             <tbody>
@@ -312,10 +387,10 @@
                 @endphp
                 @foreach($checklistItems as $idx => $item)
                 <tr>
-                    <td style="border: 1px solid #000; padding: 2mm; text-align: center;">{{ $idx + 1 }}</td>
-                    <td style="border: 1px solid #000; padding: 2mm;">{{ $item }}</td>
-                    <td style="border: 1px solid #000; padding: 2mm; text-align: center;">
-                        <div style="width: 4mm; height: 4mm; border: 1px solid #000; display: inline-block;"></div>
+                    <td style="text-align: center;">{{ $idx + 1 }}</td>
+                    <td>{{ $item }}</td>
+                    <td style="text-align: center;">
+                        <div class="checkbox"></div>
                     </td>
                 </tr>
                 @endforeach

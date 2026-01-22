@@ -93,17 +93,18 @@ class DocumentService
      *
      * @param  string  $type  Document type (e.g., 'ba_penerimaan', 'lhu')
      * @param  array  $context  Additional context for numbering
-     * @return string|null  The generated document number, or null if no scope mapping
+     * @return string|null The generated document number, or null if no scope mapping
      */
     public function issueDocumentNumber(string $type, array $context = []): ?string
     {
         $scope = $this->typeToScope[$type] ?? null;
-        if (!$scope) {
+        if (! $scope) {
             return null;
         }
 
         /** @var NumberingService $numbering */
         $numbering = app(NumberingService::class);
+
         return $numbering->issue($scope, $context);
     }
 
@@ -112,17 +113,18 @@ class DocumentService
      *
      * @param  string  $type  Document type (e.g., 'ba_penerimaan', 'lhu')
      * @param  array  $context  Additional context for numbering
-     * @return string|null  The preview document number, or null if no scope mapping
+     * @return string|null The preview document number, or null if no scope mapping
      */
     public function previewDocumentNumber(string $type, array $context = []): ?string
     {
         $scope = $this->typeToScope[$type] ?? null;
-        if (!$scope) {
+        if (! $scope) {
             return null;
         }
 
         /** @var NumberingService $numbering */
         $numbering = app(NumberingService::class);
+
         return $numbering->preview($scope, $context);
     }
 
@@ -132,17 +134,17 @@ class DocumentService
      *
      * @param  string  $type  Document type
      * @param  string  $documentNumber  The issued document number
-     * @return string  The base filename (without extension)
+     * @return string The base filename (without extension)
      */
     public function generateDocumentBaseName(string $type, string $documentNumber): string
     {
         $label = $this->typeLabels[$type] ?? str_replace('_', '-', $type);
-        
+
         // Convert document number to filesystem-safe format
         // e.g., "BA/2026/01/0001" -> "BA-2026-01-0001"
         $safeNumber = preg_replace('/[\/\\\\]/', '-', $documentNumber);
         $safeNumber = preg_replace('/[^A-Za-z0-9\-_]/', '', $safeNumber);
-        
+
         return "{$safeNumber}-{$label}";
     }
 
@@ -324,7 +326,6 @@ class DocumentService
      *
      * @param  TestRequest  $req  The test request
      * @param  string  $type  Document type
-     * @return Document|null
      */
     public function getExistingGenerated(?TestRequest $req, string $type): ?Document
     {
@@ -388,7 +389,6 @@ class DocumentService
      * @param  string  $type  Document type (e.g., 'environment_monthly_log')
      * @param  string  $baseName  Base name for the file
      * @param  array  $metadata  Additional metadata (month, location_id, asset_id, generated_by)
-     * @return Document
      */
     public function storeStandaloneReport(
         string $binary,
@@ -429,7 +429,7 @@ class DocumentService
                 'path' => $relPath,
                 'mime_type' => $mimeType,
                 'file_size' => strlen($binary),
-                'extra' => !empty($metadata) ? json_encode($metadata) : null,
+                'extra' => ! empty($metadata) ? json_encode($metadata) : null,
             ]);
         });
     }

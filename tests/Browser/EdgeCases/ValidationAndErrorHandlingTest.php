@@ -86,7 +86,7 @@ class ValidationAndErrorHandlingTest extends DuskTestCase
                 ->script('window.addEventListener("offline", () => alert("Network offline"));');
 
             $browser->script('window.dispatchEvent(new Event("offline"));');
-            
+
             $browser->waitForDialog()
                 ->assertDialogOpened('Network offline')
                 ->acceptDialog();
@@ -100,9 +100,9 @@ class ValidationAndErrorHandlingTest extends DuskTestCase
         $this->browse(function (Browser $browser) use ($user) {
             $browser->loginAs($user)
                 ->visit('/dashboard');
-                
+
             $browser->script('document.cookie = "laravel_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";');
-            
+
             $browser->visit('/requests/create')
                 ->waitForText('Login')
                 ->assertPathIs('/login');

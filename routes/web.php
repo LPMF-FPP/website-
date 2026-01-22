@@ -3,13 +3,13 @@
 use App\Http\Controllers\AnalystController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliveryController;
+use App\Http\Controllers\EnvironmentMonitoringController;
+use App\Http\Controllers\InstrumentLoggingController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ProcessController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Reports\MonthlyLogReportController;
 use App\Http\Controllers\Reports\SurveyExportController;
-use App\Http\Controllers\EnvironmentMonitoringController;
-use App\Http\Controllers\InstrumentLoggingController;
 use App\Http\Controllers\RequestController;
 use App\Http\Controllers\SampleTestController;
 use App\Http\Controllers\SampleTestProcessController;
@@ -18,8 +18,10 @@ use App\Http\Controllers\Settings\NumberingController;
 use App\Http\Controllers\Settings\TemplateController as SettingsTemplateController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\SettingsPageController;
+use App\Http\Controllers\StaffTaskController;
 use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\TrackingController;
+use App\Http\Controllers\WhatsappBroadcastController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -48,7 +50,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
 
     // Search
     Route::view('/search', 'search.index')->name('search.index');
@@ -189,6 +190,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('delivery')->group(function () {
         Route::get('/', [DeliveryController::class, 'index'])->name('delivery.index');
         Route::get('/{request}', [DeliveryController::class, 'show'])->name('delivery.show');
+        Route::post('/{request}/send-notification', [DeliveryController::class, 'sendPickupNotification'])
+            ->name('delivery.send-notification');
         Route::post('/{request}/complete', [DeliveryController::class, 'markAsCompleted'])
             ->name('delivery.complete');
 
@@ -306,6 +309,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware(['signed', 'audit.activity:DOCUMENT_DOWNLOADED,document']);
     Route::delete('/documents/{document}', [App\Http\Controllers\InvestigatorDocumentController::class, 'destroy'])
         ->name('investigator.documents.destroy');
+
+    // Staff Tasks
+    Route::prefix('tasks')->name('tasks.')->group(function () {
+        Route::get('/', [StaffTaskController::class, 'index'])->name('index');
+        Route::post('/', [StaffTaskController::class, 'store'])->name('store');
+        Route::get('/{task}', [StaffTaskController::class, 'show'])->name('show');
+        Route::put('/{task}', [StaffTaskController::class, 'update'])->name('update');
+        Route::patch('/{task}/status', [StaffTaskController::class, 'updateStatus'])->name('status');
+        Route::delete('/{task}', [StaffTaskController::class, 'destroy'])->name('destroy');
+        Route::post('/quick', [StaffTaskController::class, 'quickCreate'])->name('quick');
+        Route::get('/request/{testRequest}', [StaffTaskController::class, 'getForRequest'])->name('for-request');
+    });
+
+    // WhatsApp Broadcasts (Admin only)
+    Route::prefix('broadcasts')->name('broadcasts.')->middleware('can:manage-settings')->group(function () {
+        Route::get('/', [WhatsappBroadcastController::class, 'index'])->name('index');
+        Route::get('/create', [WhatsappBroadcastController::class, 'create'])->name('create');
+        Route::post('/', [WhatsappBroadcastController::class, 'store'])->name('store');
+        Route::get('/{broadcast}', [WhatsappBroadcastController::class, 'show'])->name('show');
+        Route::put('/{broadcast}', [WhatsappBroadcastController::class, 'update'])->name('update');
+        Route::post('/{broadcast}/send', [WhatsappBroadcastController::class, 'send'])->name('send');
+        Route::post('/{broadcast}/cancel', [WhatsappBroadcastController::class, 'cancel'])->name('cancel');
+        Route::delete('/{broadcast}', [WhatsappBroadcastController::class, 'destroy'])->name('destroy');
+        Route::post('/preview-recipients', [WhatsappBroadcastController::class, 'previewRecipients'])->name('preview-recipients');
+    });
 
 });
 

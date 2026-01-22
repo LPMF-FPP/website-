@@ -15,6 +15,7 @@ class PermissionService
      * Cache key prefix untuk permission.
      */
     private const CACHE_PREFIX = 'user_permissions_';
+
     private const CACHE_TTL = 3600; // 1 hour
 
     /**
@@ -27,7 +28,7 @@ class PermissionService
         // Cek apakah permission ada dalam list
         $permission = $permissions->firstWhere('name', $permissionName);
 
-        if (!$permission) {
+        if (! $permission) {
             return false;
         }
 
@@ -39,7 +40,7 @@ class PermissionService
      */
     public function getUserPermissions(User $user): Collection
     {
-        $cacheKey = self::CACHE_PREFIX . $user->id;
+        $cacheKey = self::CACHE_PREFIX.$user->id;
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($user) {
             return $this->buildUserPermissions($user);
@@ -168,8 +169,7 @@ class PermissionService
     /**
      * Simpan custom permission untuk user.
      *
-     * @param User $user
-     * @param array $permissions Array of ['permission_id' => bool granted]
+     * @param  array  $permissions  Array of ['permission_id' => bool granted]
      */
     public function syncUserPermissions(User $user, array $permissions): void
     {
@@ -221,7 +221,7 @@ class PermissionService
      */
     public function clearUserCache(User $user): void
     {
-        Cache::forget(self::CACHE_PREFIX . $user->id);
+        Cache::forget(self::CACHE_PREFIX.$user->id);
     }
 
     /**

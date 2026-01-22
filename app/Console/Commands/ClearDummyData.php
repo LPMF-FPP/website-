@@ -14,8 +14,9 @@ class ClearDummyData extends Command
 
     public function handle(): int
     {
-        if (!$this->option('force') && !$this->confirm('This will delete ALL test requests, samples, documents, surveys, and inventory data (but preserve settings and admin user). Continue?')) {
+        if (! $this->option('force') && ! $this->confirm('This will delete ALL test requests, samples, documents, surveys, and inventory data (but preserve settings and admin user). Continue?')) {
             $this->info('Cancelled.');
+
             return 0;
         }
 
@@ -25,7 +26,7 @@ class ClearDummyData extends Command
         $tablesToTruncate = [
             'customer_surveys',
             'remaining_units',
-            'evidence_units', 
+            'evidence_units',
             'sample_test_processes',
             'documents',
             'samples',
@@ -55,19 +56,20 @@ class ClearDummyData extends Command
             }
 
             // 2. Clear non-admin users (preserve admin)
-            if (!$this->option('keep-users')) {
-                $this->line("Clearing non-admin users...");
+            if (! $this->option('keep-users')) {
+                $this->line('Clearing non-admin users...');
                 $deletedUsers = User::where('role', '!=', 'admin')->delete();
                 $this->info("  ✓ Deleted {$deletedUsers} non-admin users");
             }
 
             // 3. Settings table is NOT touched - preserved automatically
-            $this->info("  ✓ Settings preserved (not touched)");
+            $this->info('  ✓ Settings preserved (not touched)');
 
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            $this->error("Failed to clear data: " . $e->getMessage());
+            $this->error('Failed to clear data: '.$e->getMessage());
+
             return 1;
         }
 

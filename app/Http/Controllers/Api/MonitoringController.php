@@ -43,11 +43,12 @@ class MonitoringController extends Controller
 
             return response()->json([
                 'status' => 'success',
-                'data' => $log
+                'data' => $log,
             ], 201);
 
         } catch (\Exception $e) {
             Log::error('Monitoring data error', ['error' => $e->getMessage()]);
+
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }

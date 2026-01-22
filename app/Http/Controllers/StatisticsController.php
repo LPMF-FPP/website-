@@ -195,7 +195,7 @@ class StatisticsController extends Controller
             ];
         } catch (\Exception $e) {
             // Log error for debugging
-            \Log::warning('Performance metrics calculation error: ' . $e->getMessage());
+            \Log::warning('Performance metrics calculation error: '.$e->getMessage());
 
             return [
                 'avg_processing_time' => 0,
@@ -316,12 +316,14 @@ class StatisticsController extends Controller
         $merged = [];
         foreach ($jurisdictionData as $item) {
             $name = trim((string) $item->jurisdiction);
-            if ($name === '') continue;
+            if ($name === '') {
+                continue;
+            }
 
             // Normalize to Title Case (e.g., "Asd" and "asd" -> "Asd")
             $normalized = ucwords(strtolower($name));
 
-            if (!isset($merged[$normalized])) {
+            if (! isset($merged[$normalized])) {
                 $merged[$normalized] = 0;
             }
             $merged[$normalized] += $item->total;
@@ -476,7 +478,7 @@ class StatisticsController extends Controller
             }
 
             // Filter out zero values
-            $normalizedData = array_filter($normalizedData, fn($v) => $v > 0);
+            $normalizedData = array_filter($normalizedData, fn ($v) => $v > 0);
 
             if (empty($normalizedData)) {
                 throw new \Exception('No valid gender data after normalization');

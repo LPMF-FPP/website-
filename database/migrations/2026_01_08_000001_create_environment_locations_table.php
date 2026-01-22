@@ -12,19 +12,19 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->enum('type', ['room', 'fridge', 'freezer', 'other'])->default('room');
-            
+
             $table->decimal('target_temp_min', 5, 2)->nullable();
             $table->decimal('target_temp_max', 5, 2)->nullable();
             $table->decimal('target_hum_min', 5, 2)->nullable();
             $table->decimal('target_hum_max', 5, 2)->nullable();
-            
+
             $table->json('schedule_windows')->nullable();
-            
+
             $table->boolean('is_active')->default(true);
             $table->foreignId('pic_user_id')->nullable()->constrained('users')->nullOnDelete();
-            
+
             $table->timestamps();
-            
+
             $table->index('is_active');
             $table->index('type');
         });

@@ -15,9 +15,9 @@ return new class extends Migration
 
         if ($setting) {
             $value = json_decode($setting->value, true);
-            
+
             // Ensure value is an array
-            if (!is_array($value)) {
+            if (! is_array($value)) {
                 $value = [];
             }
 

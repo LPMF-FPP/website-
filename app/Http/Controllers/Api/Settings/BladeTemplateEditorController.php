@@ -524,7 +524,7 @@ class BladeTemplateEditorController extends Controller
      */
     private function getLabelEvidenceSheetData(\Illuminate\Support\Carbon $now): array
     {
-        $labels = collect([
+        $evidencePayloads = collect([
             [
                 'resi' => 'RESI-2025-0001',
                 'kode_sampel' => 'BB-2025-001',
@@ -549,8 +549,37 @@ class BladeTemplateEditorController extends Controller
             ],
         ]);
 
+        $casePayload = [
+            'nama_tsk' => 'Tersangka ABC',
+            'nomor_surat' => 'B/001/I/2025/Reskrim',
+            'satuan_kerja' => 'Polres Metro Jakarta Selatan',
+            'daftar_kode_sampel' => 'BB-2025-001, BB-2025-002',
+            'resi' => 'RESI-2025-0001',
+        ];
+
+        // Mimic LabelController logic: construct rows
+        // Left = Evidence, Right = Case (only for first 4 rows - or in A5 context, maybe 3?)
+        // Let's assume logic: Right column appears on first page (first 3 rows for A5)
+
+        $totalRows = max($evidencePayloads->count(), 3);
+        $rows = [];
+
+        for ($i = 0; $i < $totalRows; $i++) {
+            $rows[] = [
+                'left' => $evidencePayloads->get($i),
+                'right' => ($i < 3) ? $casePayload : null, // Show case label on first 3 rows (1 page A5)
+            ];
+        }
+
         return [
-            'labels' => $labels,
+            'rows' => collect($rows),
+            'request' => (object) [
+                'receipt_number' => 'RESI-2025-0001',
+                'suspect_name' => 'Tersangka ABC',
+                'investigator' => (object) [
+                    'jurisdiction' => 'Polres Metro Jakarta Selatan',
+                ],
+            ],
             'printDate' => $now->format('d/m/Y H:i'),
         ];
     }

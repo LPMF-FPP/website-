@@ -48,10 +48,10 @@ class InventoryAlertService
     {
         $message = "⚠️ *LOW STOCK ALERT*\n\n";
         $message .= "Item: {$item->name}\n";
-        $message .= "Code: " . ($item->code ?? $item->name) . "\n";
+        $message .= 'Code: '.($item->code ?? $item->name)."\n";
         $message .= "Current Balance: {$currentBalance} {$item->uom}\n";
         $message .= "Min Stock: {$item->min_stock} {$item->uom}\n";
-        $message .= "Time: " . now()->format('Y-m-d H:i:s');
+        $message .= 'Time: '.now()->format('Y-m-d H:i:s');
 
         $this->sendNotification($message);
     }
@@ -66,8 +66,8 @@ class InventoryAlertService
         $message .= "Item: {$item->name}\n";
         $message .= "Lot No: {$lot->lot_no}\n";
         $message .= "Expiry Date: {$expiryDate}\n";
-        $message .= "Days Remaining: " . (int)$daysUntil . " days\n";
-        $message .= "Time: " . now()->format('Y-m-d H:i:s');
+        $message .= 'Days Remaining: '.(int) $daysUntil." days\n";
+        $message .= 'Time: '.now()->format('Y-m-d H:i:s');
 
         $this->sendNotification($message);
     }
@@ -75,11 +75,11 @@ class InventoryAlertService
     protected function sendNotification(string $message): void
     {
         $adminNumber = settings('notifications.whatsapp.admin_number', '6285956592404');
-        
+
         try {
-            $this->whatsapp->sendMessage($adminNumber . '@s.whatsapp.net', $message);
+            $this->whatsapp->sendMessage($adminNumber.'@s.whatsapp.net', $message);
         } catch (\Exception $e) {
-            Log::error("Failed to send inventory alert: " . $e->getMessage());
+            Log::error('Failed to send inventory alert: '.$e->getMessage());
         }
     }
 }

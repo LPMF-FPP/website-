@@ -2,9 +2,7 @@
 
 namespace App\Services;
 
-use App\Enums\InstrumentAssetStatus;
 use App\Enums\InstrumentUsageType;
-use App\Models\Instrument;
 use App\Models\InstrumentAsset;
 use App\Models\InstrumentUsageLog;
 use App\Models\MethodInstrumentRequirement;
@@ -349,7 +347,7 @@ class InstrumentLoggingService
                 'items_count' => $sample->weighed_items_count,
                 'mass_value' => $sample->weighed_mass_value,
                 'mass_unit' => $sample->weighed_mass_unit?->value ?? $sample->weighed_mass_unit,
-                'mass_display' => $sample->weighed_mass_value . ' ' . ($sample->weighed_mass_unit?->symbol() ?? $sample->weighed_mass_unit ?? ''),
+                'mass_display' => $sample->weighed_mass_value.' '.($sample->weighed_mass_unit?->symbol() ?? $sample->weighed_mass_unit ?? ''),
                 'weighed_by' => $sample->weighedByUser?->name ?? '-',
                 'weighed_at' => $sample->weighed_at?->format('d/m/Y H:i'),
             ] : null,

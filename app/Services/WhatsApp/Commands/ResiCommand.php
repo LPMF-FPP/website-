@@ -3,14 +3,19 @@
 namespace App\Services\WhatsApp\Commands;
 
 use App\Models\TestRequest;
+use App\Services\WhatsApp\TemplateService;
 use Carbon\Carbon;
 
 class ResiCommand
 {
+    public function __construct(
+        private TemplateService $templateService
+    ) {}
+
     public function execute(string $fromJid, array $params): string
     {
         if (empty($params[0])) {
-            return "❌ Format salah!\n\nGunakan: /resi {nomor_resi}\n\nContoh: /resi LPMF/001/2026";
+            return $this->templateService->get('command', 'RESI_FORMAT_ERROR');
         }
 
         $receiptNumber = $params[0];
@@ -21,7 +26,9 @@ class ResiCommand
             ->first();
 
         if (! $testRequest) {
-            return "❌ Nomor resi tidak ditemukan: {$receiptNumber}\n\nPastikan nomor resi benar.";
+            return $this->templateService->render('command', 'RESI_NOT_FOUND', [
+                'resi' => $receiptNumber,
+            ]);
         }
 
         // Build tracking response
@@ -30,67 +37,59 @@ class ResiCommand
 
     private function buildTrackingResponse(TestRequest $testRequest): string
     {
-        $response = "📋 *TRACKING PERMINTAAN PENGUJIAN*\n\n";
-        $response .= "📝 Resi: *{$testRequest->receipt_number}*\n";
-        $response .= "📄 No. Permintaan: {$testRequest->request_number}\n\n";
-
-        // Investigator info
-        if ($testRequest->investigator) {
-            $response .= "👤 Penyidik: {$testRequest->investigator->name}\n";
-        }
-
-        // Status timeline
-        $response .= "\n📍 *STATUS PERJALANAN:*\n\n";
-
         $milestones = $this->getMilestones($testRequest);
+        $milestonesText = $this->formatMilestones($milestones);
+        $currentStatus = $this->getCurrentStatusText($testRequest->status);
+        $sampleCount = $testRequest->samples->count();
+
+        return $this->templateService->render('command', 'RESI_TRACKING', [
+            'resi' => $testRequest->receipt_number,
+            'request_number' => $testRequest->request_number,
+            'investigator' => $testRequest->investigator?->name ?? '-',
+            'milestones' => $milestonesText,
+            'current_status' => $currentStatus,
+            'sample_count' => (string) $sampleCount,
+        ]);
+    }
+
+    private function formatMilestones(array $milestones): string
+    {
+        $lines = [];
 
         foreach ($milestones as $milestone) {
             if ($milestone['completed']) {
                 $icon = '✅';
                 $statusText = '';
             } elseif ($milestone['current'] ?? false) {
-                $icon = '▶️'; // Sedang berjalan
+                $icon = '▶️';
                 $statusText = ' (PROSES)';
             } else {
-                $icon = '⚪'; // Belum
+                $icon = '⚪';
                 $statusText = '';
             }
-            
-            $response .= "{$icon} *{$milestone['label']}*{$statusText}\n";
 
-            if (!empty($milestone['timestamp'])) {
-                $response .= "   🕒 {$milestone['timestamp']}\n";
+            $line = "{$icon} *{$milestone['label']}*{$statusText}";
+
+            if (! empty($milestone['timestamp'])) {
+                $line .= "\n   🕒 {$milestone['timestamp']}";
             }
 
-            $response .= "\n";
+            $lines[] = $line;
         }
 
-        // Current status summary
-        $currentStatus = $this->getCurrentStatusText($testRequest->status);
-        $response .= "\n🔔 Status Saat Ini:\n*{$currentStatus}*\n";
-
-        // Sample count
-        $sampleCount = $testRequest->samples->count();
-        if ($sampleCount > 0) {
-            $response .= "\n📦 Jumlah Sampel: {$sampleCount}\n";
-        }
-
-        // Footer
-        $response .= "\n─────────────────\n";
-        $response .= "💬 Butuh bantuan? Ketik /help";
-
-        return $response;
+        return implode("\n\n", $lines);
     }
 
     private function getMilestones(TestRequest $testRequest): array
     {
         $tz = settings('locale.timezone', 'Asia/Jakarta');
+        $statusLevel = $this->getStatusLevel($testRequest->status);
 
         // 1. Permintaan
         $milestones = [
             [
                 'label' => '1. Permintaan',
-                'completed' => $testRequest->submitted_at !== null,
+                'completed' => $statusLevel >= 1 || $testRequest->submitted_at !== null,
                 'timestamp' => $testRequest->submitted_at ?
                     Carbon::parse($testRequest->submitted_at)->timezone($tz)->format('d M Y, H:i') : null,
             ],
@@ -99,23 +98,23 @@ class ResiCommand
         // 2. Kaji Ulang Permintaan
         $milestones[] = [
             'label' => '2. Kaji Ulang Permintaan',
-            'completed' => $testRequest->verified_at !== null,
+            'completed' => $statusLevel >= 2 || $testRequest->verified_at !== null,
             'timestamp' => $testRequest->verified_at ?
                 Carbon::parse($testRequest->verified_at)->timezone($tz)->format('d M Y, H:i') : null,
         ];
 
-        // 3. Pengujian (With substeps visualization)
-        $isTestingStarted = $testRequest->received_at !== null;
-        $isTestingDone = $testRequest->completed_at !== null || $testRequest->status === 'completed';
-        
-        $substeps = $isTestingStarted 
-            ? "\n      a. Preparasi sampel\n      b. Pengujian pada instrumen\n      c. Interpretasi hasil" 
-            : "";
+        // 3. Pengujian
+        $isTestingStarted = $statusLevel >= 3 || $testRequest->received_at !== null;
+        $isTestingDone = $statusLevel >= 4 || $testRequest->completed_at !== null || $testRequest->status === 'completed';
+
+        $substeps = $isTestingStarted
+            ? "\n      a. Preparasi sampel\n      b. Pengujian pada instrumen\n      c. Interpretasi hasil"
+            : '';
 
         $milestones[] = [
-            'label' => '3. Pengujian' . $substeps,
+            'label' => '3. Pengujian'.$substeps,
             'completed' => $isTestingDone,
-            'current' => $isTestingStarted && !$isTestingDone, // Flag custom untuk icon 'sedang jalan'
+            'current' => $isTestingStarted && ! $isTestingDone,
             'timestamp' => $testRequest->received_at ?
                 Carbon::parse($testRequest->received_at)->timezone($tz)->format('d M Y, H:i') : null,
         ];
@@ -123,23 +122,32 @@ class ResiCommand
         // 4. Siap Diserahkan
         $milestones[] = [
             'label' => '4. Siap Diserahkan',
-            'completed' => $testRequest->completed_at !== null,
+            'completed' => $statusLevel >= 4,
             'timestamp' => $testRequest->completed_at ?
                 Carbon::parse($testRequest->completed_at)->timezone($tz)->format('d M Y, H:i') : null,
         ];
 
-        // 5. Selesai (Asumsi delivered jika ada flag/status tertentu, atau manual check)
-        // Untuk saat ini kita anggap 'Selesai' jika status final, atau sama dengan completed jika belum ada fitur delivery tracking
-        // Kita cek status == 'delivered' jika ada, atau gunakan completed_at sebagai proxy sementara
-        $isDelivered = $testRequest->status === 'delivered'; 
-        
+        // 5. Selesai
         $milestones[] = [
             'label' => '5. Selesai',
-            'completed' => $isDelivered,
-            'timestamp' => null, // Tambahkan delivered_at jika kolom ada
+            'completed' => $statusLevel >= 5,
+            'timestamp' => null,
         ];
 
         return $milestones;
+    }
+
+    private function getStatusLevel(string $status): int
+    {
+        return match ($status) {
+            'draft' => 0,
+            'submitted', 'pending_verification' => 1,
+            'verified', 'pending_review' => 2,
+            'received', 'ready_for_test', 'in_testing', 'processing', 'analysis', 'quality_check' => 3,
+            'ready_for_delivery', 'completed' => 4,
+            'delivered' => 5,
+            default => 0,
+        };
     }
 
     private function getCurrentStatusText(string $status): string
@@ -153,9 +161,10 @@ class ResiCommand
             'ready_for_test' => '3. Pengujian (Siap)',
             'in_testing' => '3. Pengujian (Sedang Berjalan)',
             'processing' => '3. Pengujian (Proses)',
+            'ready_for_delivery' => '4. Siap Diserahkan',
             'completed' => '4. Siap Diserahkan',
             'delivered' => '5. Selesai',
-            default => 'Status: ' . ucfirst(str_replace('_', ' ', $status)),
+            default => 'Status: '.ucfirst(str_replace('_', ' ', $status)),
         };
     }
 }

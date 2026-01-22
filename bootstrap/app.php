@@ -63,7 +63,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $exceptions->throttle(function (Throwable $e) {
             return \Illuminate\Support\Facades\RateLimiter::attempt(
-                'error-reporting:' . get_class($e),
+                'error-reporting:'.get_class($e),
                 perMinute: 5,
                 callback: fn () => true
             );

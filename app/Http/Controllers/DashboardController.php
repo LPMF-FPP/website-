@@ -42,6 +42,9 @@ class DashboardController extends Controller
             // 5. Environment monitoring due tasks
             $environmentMonitoring = $this->getEnvironmentMonitoringData();
 
+            // 6. Rata-rata kecepatan pengerjaan bulan ini
+            $avgProcessing = $this->calculateMonthlyAverageProcessingDays();
+
             $dashboardData = [
                 'stats' => [
                     'total_requests' => $totalRequests,
@@ -54,6 +57,7 @@ class DashboardController extends Controller
                 'recent_activities' => $recentActivities,
                 'status_breakdown' => $statusBreakdown,
                 'environment_monitoring' => $environmentMonitoring,
+                'avg_processing' => $avgProcessing,
             ];
 
         } catch (\Exception $e) {
@@ -219,6 +223,43 @@ class DashboardController extends Controller
                 'is_work_day' => false,
                 'active_window' => null,
             ];
+        }
+    }
+
+    private function calculateMonthlyAverageProcessingDays(): array
+    {
+        try {
+            $now = \Carbon\Carbon::now();
+            $startOfMonth = $now->copy()->startOfMonth();
+            $endOfMonth = $now->copy()->endOfMonth();
+
+            $requests = TestRequest::whereIn('status', ['ready_for_delivery', 'completed'])
+                ->whereNotNull('submitted_at')
+                ->where(function ($q) use ($startOfMonth, $endOfMonth) {
+                    $q->whereBetween('completed_at', [$startOfMonth, $endOfMonth])
+                        ->orWhere(function ($q2) use ($startOfMonth, $endOfMonth) {
+                            $q2->whereNull('completed_at')
+                                ->whereBetween('updated_at', [$startOfMonth, $endOfMonth]);
+                        });
+                })
+                ->get(['submitted_at', 'completed_at', 'updated_at']);
+
+            if ($requests->isEmpty()) {
+                return ['average' => null, 'count' => 0];
+            }
+
+            $totalDays = $requests->sum(function ($r) {
+                $end = $r->completed_at ?? $r->updated_at;
+
+                return \Carbon\Carbon::parse($r->submitted_at)->floatDiffInDays(\Carbon\Carbon::parse($end));
+            });
+
+            return [
+                'average' => round($totalDays / $requests->count(), 1),
+                'count' => $requests->count(),
+            ];
+        } catch (\Exception $e) {
+            return ['average' => null, 'count' => 0];
         }
     }
 }

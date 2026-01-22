@@ -56,6 +56,7 @@ return new class extends Migration
         if ($driver === 'mysql') {
             $values = implode("','", $statuses);
             DB::statement("ALTER TABLE test_requests MODIFY status ENUM('{$values}') DEFAULT 'submitted'");
+
             return;
         }
 
@@ -71,7 +72,7 @@ return new class extends Migration
                     ->where('pg_enum.enumlabel', 'rejected')
                     ->exists();
 
-                if (!$hasRejected && in_array('rejected', $statuses, true)) {
+                if (! $hasRejected && in_array('rejected', $statuses, true)) {
                     DB::statement("ALTER TYPE test_requests_status ADD VALUE 'rejected'");
                 }
 

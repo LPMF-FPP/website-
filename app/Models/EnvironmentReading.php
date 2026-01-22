@@ -53,7 +53,7 @@ class EnvironmentReading extends Model
     public function isOutOfRange(): bool
     {
         $location = $this->location;
-        if (!$location) {
+        if (! $location) {
             return false;
         }
 

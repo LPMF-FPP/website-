@@ -12,7 +12,6 @@ use App\Services\InstrumentLoggingService;
 use App\Services\PdfRenderService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 
 class MonthlyLogReportController extends Controller
 {
@@ -84,7 +83,7 @@ class MonthlyLogReportController extends Controller
             $baseName = $location
                 ? "Log-Suhu-{$location->name}-{$month->format('Y-m')}"
                 : "Log-Suhu-Semua-{$month->format('Y-m')}";
-            
+
             $this->documentService->storeStandaloneReport(
                 binary: $pdf,
                 ext: 'pdf',
@@ -138,7 +137,7 @@ class MonthlyLogReportController extends Controller
             $baseName = $asset
                 ? "Log-Instrumen-{$asset->asset_code}-{$month->format('Y-m')}"
                 : "Log-Instrumen-Semua-{$month->format('Y-m')}";
-            
+
             $this->documentService->storeStandaloneReport(
                 binary: $pdf,
                 ext: 'pdf',
@@ -194,7 +193,7 @@ class MonthlyLogReportController extends Controller
 
         if ($request->boolean('save')) {
             $baseName = "Log-Penimbangan-{$month->format('Y-m')}";
-            
+
             $this->documentService->storeStandaloneReport(
                 binary: $pdf,
                 ext: 'pdf',
@@ -212,4 +211,3 @@ class MonthlyLogReportController extends Controller
             ->header('Content-Disposition', "inline; filename=\"{$filename}\"");
     }
 }
-

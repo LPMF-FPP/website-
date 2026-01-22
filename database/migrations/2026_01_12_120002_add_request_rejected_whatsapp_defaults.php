@@ -10,7 +10,7 @@ return new class extends Migration
         $enabled = SystemSetting::where('key', 'notifications.whatsapp.enabled_milestones')->value('value');
         $enabled = is_array($enabled) ? $enabled : [];
 
-        if (!in_array('REQUEST_REJECTED', $enabled, true)) {
+        if (! in_array('REQUEST_REJECTED', $enabled, true)) {
             $enabled[] = 'REQUEST_REJECTED';
             SystemSetting::updateOrCreate(
                 ['key' => 'notifications.whatsapp.enabled_milestones'],
@@ -21,7 +21,7 @@ return new class extends Migration
         $templates = SystemSetting::where('key', 'notifications.whatsapp.templates')->value('value');
         $templates = is_array($templates) ? $templates : [];
 
-        if (!array_key_exists('REQUEST_REJECTED', $templates)) {
+        if (! array_key_exists('REQUEST_REJECTED', $templates)) {
             $templates['REQUEST_REJECTED'] = '{greetings}, {pangkat} {nama} 👋. Mohon maaf, permintaan Anda nomor {nomor surat} atas nama tersangka {tersangka} belum dapat kami proses dan dinyatakan ditolak ❌. Silakan menghubungi kami kembali untuk informasi selanjutnya. Salam Staff Laboratorium Farmapol Pusdokkes Polri. Salam Presisi 🙏';
             SystemSetting::updateOrCreate(
                 ['key' => 'notifications.whatsapp.templates'],

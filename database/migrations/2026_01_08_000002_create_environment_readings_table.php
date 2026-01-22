@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('environment_readings', function (Blueprint $table) {
             $table->id();
-            
+
             $table->foreignId('location_id')->constrained('environment_locations')->cascadeOnDelete();
             $table->timestamp('measured_at');
             $table->decimal('temperature_c', 5, 2)->nullable();
@@ -21,7 +21,7 @@ return new class extends Migration
             $table->foreignId('correction_of_id')->nullable()->constrained('environment_readings')->nullOnDelete();
             $table->text('correction_reason')->nullable();
             $table->timestamp('created_at')->useCurrent();
-            
+
             $table->index('measured_at');
             $table->index(['location_id', 'measured_at']);
             $table->index('correction_of_id');

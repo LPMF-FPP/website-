@@ -15,8 +15,7 @@ class SampleObserver
 {
     public function __construct(
         private NotificationService $notificationService
-    ) {
-    }
+    ) {}
 
     public function created(Sample $sample): void
     {
@@ -90,26 +89,26 @@ class SampleObserver
 
     private function handleStatusChange(Sample $sample, string $newStatus): void
     {
-        if (!$this->notificationService->isWhatsAppEnabled()) {
+        if (! $this->notificationService->isWhatsAppEnabled()) {
             return;
         }
 
         $milestone = $this->mapStatusToMilestone($newStatus);
 
-        if (!$milestone || !$this->notificationService->shouldNotify($milestone)) {
+        if (! $milestone || ! $this->notificationService->shouldNotify($milestone)) {
             return;
         }
 
         $sample->load('testRequest.investigator');
         $testRequest = $sample->testRequest;
 
-        if (!$testRequest || !$testRequest->investigator) {
+        if (! $testRequest || ! $testRequest->investigator) {
             return;
         }
 
         $phone = $testRequest->investigator->phone ?? null;
 
-        if (!$phone) {
+        if (! $phone) {
             return;
         }
 
@@ -127,7 +126,7 @@ class SampleObserver
             'greeting' => $greeting,
         ]);
 
-        if (!$message) {
+        if (! $message) {
             return;
         }
 

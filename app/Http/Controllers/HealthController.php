@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Throwable;
@@ -24,7 +24,7 @@ class HealthController extends Controller
             'storage' => $this->checkStorage(),
         ];
 
-        $healthy = collect($checks)->every(fn($check) => $check['status'] === 'healthy');
+        $healthy = collect($checks)->every(fn ($check) => $check['status'] === 'healthy');
 
         return response()->json([
             'status' => $healthy ? 'healthy' : 'degraded',
@@ -85,7 +85,7 @@ class HealthController extends Controller
     {
         try {
             $start = microtime(true);
-            $key = 'health_check_' . now()->timestamp;
+            $key = 'health_check_'.now()->timestamp;
             Cache::put($key, 'test', 10);
             $value = Cache::get($key);
             Cache::forget($key);
@@ -135,15 +135,15 @@ class HealthController extends Controller
         try {
             $start = microtime(true);
             $disk = config('filesystems.default');
-            $testFile = 'health_check_' . now()->timestamp . '.txt';
-            
+            $testFile = 'health_check_'.now()->timestamp.'.txt';
+
             Storage::disk($disk)->put($testFile, 'health check');
             $exists = Storage::disk($disk)->exists($testFile);
             Storage::disk($disk)->delete($testFile);
-            
+
             $duration = round((microtime(true) - $start) * 1000, 2);
 
-            if (!$exists) {
+            if (! $exists) {
                 return [
                     'status' => 'unhealthy',
                     'error' => 'Storage write/read failed',

@@ -16,25 +16,28 @@ class SendWhatsAppNotificationJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 5;
+
     public int $backoff = 60;
+
     public int $timeout = 120;
 
     public function __construct(
         public int $outboxId
-    ) {
-    }
+    ) {}
 
     public function handle(GowaClient $client): void
     {
         $outbox = WhatsappOutbox::find($this->outboxId);
 
-        if (!$outbox) {
+        if (! $outbox) {
             Log::warning('WhatsApp outbox record not found', ['id' => $this->outboxId]);
+
             return;
         }
 
         if ($outbox->status === 'sent') {
             Log::info('WhatsApp message already sent', ['outbox_id' => $this->outboxId]);
+
             return;
         }
 

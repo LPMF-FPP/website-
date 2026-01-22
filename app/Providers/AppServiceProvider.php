@@ -12,7 +12,6 @@ use App\Models\User;
 use App\Observers\DocumentObserver;
 use App\Observers\SampleObserver;
 use App\Observers\TestRequestObserver;
-use App\Services\PermissionService;
 use App\Support\ActivityLogger;
 use App\Support\AppTimezone;
 use Illuminate\Auth\Events\Login;
@@ -125,13 +124,13 @@ class AppServiceProvider extends ServiceProvider
 
     protected function registerQueryMonitoring(): void
     {
-        if (!app()->environment('production')) {
+        if (! app()->environment('production')) {
             return;
         }
 
         \Illuminate\Support\Facades\DB::listen(function ($query) {
             $threshold = config('database.slow_query_threshold_ms', 1000);
-            
+
             if ($query->time > $threshold) {
                 \Illuminate\Support\Facades\Log::warning('Slow query detected', [
                     'sql' => $query->sql,
@@ -158,7 +157,7 @@ class AppServiceProvider extends ServiceProvider
     {
         // Skip if permissions table doesn't exist yet (during migrations)
         try {
-            if (!Schema::hasTable('permissions')) {
+            if (! Schema::hasTable('permissions')) {
                 return;
             }
 

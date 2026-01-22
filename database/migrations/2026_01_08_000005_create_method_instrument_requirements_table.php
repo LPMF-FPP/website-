@@ -16,7 +16,7 @@ return new class extends Migration
             $table->enum('usage_type', ['PREP', 'RUN'])->default('RUN');
             $table->unsignedSmallInteger('sequence')->default(1);
             $table->timestamps();
-            
+
             $table->unique(['method_code', 'instrument_id', 'usage_type'], 'method_instrument_usage_unique');
             $table->index('method_code');
         });

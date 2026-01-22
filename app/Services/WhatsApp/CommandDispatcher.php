@@ -16,6 +16,7 @@ class CommandDispatcher
 
     public function __construct(
         private GowaClient $client,
+        private TemplateService $templateService,
         private ResiCommand $resiCommand,
         private HelpCommand $helpCommand,
         private TemperatureInputCommand $temperatureCommand,
@@ -56,7 +57,9 @@ class CommandDispatcher
         $handler = $this->commands[$command] ?? null;
 
         if (! $handler) {
-            $response = "Command tidak dikenal: {$command}\n\nKetik /help untuk melihat daftar command.";
+            $response = $this->templateService->render('command', 'UNKNOWN_COMMAND', [
+                'command' => $command,
+            ]);
             $this->sendReply($fromJid, $response);
 
             return [
@@ -85,7 +88,7 @@ class CommandDispatcher
                 'error' => $e->getMessage(),
             ]);
 
-            $response = "❌ Terjadi kesalahan saat memproses command.\n\nSilakan coba lagi nanti.";
+            $response = $this->templateService->get('command', 'COMMAND_ERROR');
             $this->sendReply($fromJid, $response);
 
             return [

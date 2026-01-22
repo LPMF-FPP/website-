@@ -22,7 +22,7 @@ class ReadyForPickupNotificationTest extends TestCase
         parent::setUp();
         $this->seed(SystemSettingSeeder::class);
         settings_forget_cache();
-        
+
         // Enable WhatsApp notifications
         SystemSetting::updateOrCreate(
             ['key' => 'notifications.whatsapp.enabled'],
@@ -41,29 +41,30 @@ class ReadyForPickupNotificationTest extends TestCase
 
         $user = User::factory()->create(['role' => 'admin']);
         $investigator = Investigator::factory()->create([
-            'phone' => '08123456789'
+            'phone' => '08123456789',
         ]);
         $testRequest = TestRequest::factory()->create([
             'investigator_id' => $investigator->id,
             'status' => 'in_testing',
         ]);
-        
+
         // Add a sample so it's a valid request
         Sample::factory()->create([
-            'test_request_id' => $testRequest->id
+            'test_request_id' => $testRequest->id,
         ]);
 
         $response = $this->actingAs($user)
             ->post(route('testing.ready-for-delivery', $testRequest));
 
         $response->assertRedirect(route('delivery.show', $testRequest));
-        
+
         $this->assertEquals('ready_for_delivery', $testRequest->fresh()->status);
 
         // Verify Job Dispatched
         Queue::assertPushed(SendWhatsAppNotificationJob::class, function ($job) use ($testRequest) {
             $outbox = \App\Models\WhatsappOutbox::find($job->outboxId);
-            return $outbox && 
+
+            return $outbox &&
                    $outbox->milestone_key === 'READY_FOR_PICKUP' &&
                    $outbox->test_request_id === $testRequest->id;
         });

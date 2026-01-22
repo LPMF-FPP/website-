@@ -18,9 +18,9 @@ class InventoryManagementTest extends DuskTestCase
         $browser->visit('/login')
             ->type('email', $user->email)
             ->type('password', 'password');
-            
+
         $browser->element('button[type="submit"]')->click();
-        
+
         return $browser;
     }
 

@@ -2,11 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Models\CustomerSurvey;
-use App\Models\Document;
-use App\Models\Sample;
 use App\Models\SystemSetting;
-use App\Models\TestRequest;
 use App\Models\User;
 use App\Services\IkuService;
 use Illuminate\Foundation\Testing\RefreshDatabase;

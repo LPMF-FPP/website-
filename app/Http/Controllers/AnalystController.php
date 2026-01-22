@@ -248,7 +248,7 @@ class AnalystController extends Controller
 
         // Get current permissions before update for logging
         $beforePermissions = $analyst->getAllPermissions()
-            ->filter(fn($p) => $p['is_custom'])
+            ->filter(fn ($p) => $p['is_custom'])
             ->pluck('has_access', 'name')
             ->toArray();
 
@@ -257,7 +257,7 @@ class AnalystController extends Controller
 
         // Get updated permissions for logging
         $afterPermissions = $analyst->getAllPermissions()
-            ->filter(fn($p) => $p['is_custom'])
+            ->filter(fn ($p) => $p['is_custom'])
             ->pluck('has_access', 'name')
             ->toArray();
 
@@ -276,7 +276,7 @@ class AnalystController extends Controller
             }
         }
 
-        if (!empty($granted) || !empty($revoked)) {
+        if (! empty($granted) || ! empty($revoked)) {
             ActivityLogger::log(
                 'USER_PERMISSIONS_UPDATED',
                 $analyst->id,
@@ -301,14 +301,14 @@ class AnalystController extends Controller
 
         // Get current custom permissions before reset for logging
         $beforePermissions = $analyst->getAllPermissions()
-            ->filter(fn($p) => $p['is_custom'])
+            ->filter(fn ($p) => $p['is_custom'])
             ->pluck('has_access', 'name')
             ->toArray();
 
         // Reset to role defaults
         $analyst->resetPermissionsToRole();
 
-        if (!empty($beforePermissions)) {
+        if (! empty($beforePermissions)) {
             ActivityLogger::log(
                 'USER_PERMISSIONS_RESET',
                 $analyst->id,

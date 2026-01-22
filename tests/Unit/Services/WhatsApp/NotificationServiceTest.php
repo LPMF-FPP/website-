@@ -12,7 +12,7 @@ class NotificationServiceTest extends TestCase
 
     public function test_available_milestones_only_include_primary_notifications(): void
     {
-        $service = new NotificationService();
+        $service = new NotificationService;
 
         $this->assertSame([
             'REQUEST_RECEIVED',
@@ -24,7 +24,7 @@ class NotificationServiceTest extends TestCase
 
     public function test_request_received_template_uses_formal_format(): void
     {
-        $service = new NotificationService();
+        $service = new NotificationService;
 
         $message = $service->getMilestoneMessage('REQUEST_RECEIVED', [
             'greetings' => 'Selamat Pagi',
@@ -42,7 +42,7 @@ class NotificationServiceTest extends TestCase
 
     public function test_removed_milestones_return_null_template(): void
     {
-        $service = new NotificationService();
+        $service = new NotificationService;
 
         $message = $service->getMilestoneMessage('PREPARATION_DONE', [
             'resi' => 'A-001',

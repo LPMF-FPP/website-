@@ -59,6 +59,7 @@ class EnvironmentLocation extends Model
         if ($value) {
             return is_string($value) ? json_decode($value, true) : $value;
         }
+
         return $this->getDefaultScheduleWindows();
     }
 }

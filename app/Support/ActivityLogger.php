@@ -23,10 +23,10 @@ class ActivityLogger
     ): ActivityLog {
         try {
             if (! Schema::hasTable('activity_logs')) {
-                return new ActivityLog();
+                return new ActivityLog;
             }
         } catch (\Throwable $e) {
-            return new ActivityLog();
+            return new ActivityLog;
         }
 
         $actorId = $actorUserId ?? Auth::id();

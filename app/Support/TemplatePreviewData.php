@@ -187,7 +187,7 @@ class TemplatePreviewData
 
     private static function labelEvidenceSheet(Carbon $now, bool $forceDummy): array
     {
-        $units = $forceDummy ? collect() : EvidenceUnit::with('sample')->latest('id')->take(10)->get();
+        $units = $forceDummy ? collect() : EvidenceUnit::with('sample.testRequest.investigator')->latest('id')->take(10)->get();
 
         if ($units->isEmpty()) {
             $labels = self::dummyEvidenceLabels($now);
@@ -195,8 +195,35 @@ class TemplatePreviewData
             $labels = $units->map(fn (EvidenceUnit $unit) => self::buildEvidenceLabelPayload($unit))->values();
         }
 
+        $labelsCollection = $labels instanceof Collection ? $labels : collect($labels);
+
+        // Build rows structure: each row has 'left' (evidence label) and 'right' (case label)
+        $rows = collect();
+        $request = self::resolveRequest($now, $forceDummy);
+
+        foreach ($labelsCollection as $label) {
+            $rows->push([
+                'left' => [
+                    'resi' => $label['resi'] ?? '-',
+                    'kode_sampel' => $label['kode_sampel'] ?? '-',
+                    'tanggal_terima' => $label['tanggal_terima'] ?? '-',
+                    'deskripsi_singkat' => $label['deskripsi_singkat'] ?? '-',
+                    'qr' => $label['qr'] ?? '',
+                    'qr_text' => $label['qr_text'] ?? '',
+                ],
+                'right' => [
+                    'nama_tsk' => $request->suspect_name ?? '-',
+                    'nomor_surat' => $request->case_number ?? '-',
+                    'satuan_kerja' => $request->investigator->jurisdiction ?? '-',
+                    'daftar_kode_sampel' => $label['kode_sampel'] ?? '-',
+                    'resi' => $label['resi'] ?? '-',
+                ],
+            ]);
+        }
+
         return [
-            'labels' => $labels instanceof Collection ? $labels : collect($labels),
+            'rows' => $rows,
+            'request' => $request,
             'printDate' => $now->format('d/m/Y H:i'),
         ];
     }

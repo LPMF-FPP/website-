@@ -5,7 +5,6 @@ namespace Tests\Browser\Settings;
 use App\Models\User;
 use Database\Seeders\SystemSettingSeeder;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
-use Illuminate\Http\UploadedFile;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 

@@ -6,7 +6,7 @@
     <style>
         @page {
             margin: 0;
-            size: 100mm 50mm;
+            size: 74mm 52mm;
         }
         * {
             margin: 0;
@@ -15,13 +15,13 @@
         }
         body {
             font-family: 'DejaVu Sans', Arial, sans-serif;
-            font-size: 7pt;
+            font-size: 5.5pt;
             line-height: 1.2;
         }
         .label {
-            width: 100mm;
-            height: 50mm;
-            padding: 2.5mm;
+            width: 74mm;
+            height: 52mm;
+            padding: 2mm;
             position: relative;
             background: #fff;
             overflow: hidden;
@@ -29,17 +29,17 @@
         .label-header {
             text-align: center;
             border-bottom: 1px solid #333;
-            padding-bottom: 1.5mm;
-            margin-bottom: 1.5mm;
+            padding-bottom: 1mm;
+            margin-bottom: 1mm;
         }
         .label-header h1 {
-            font-size: 9pt;
+            font-size: 7pt;
             font-weight: bold;
             text-transform: uppercase;
             margin: 0;
         }
         .label-header .subtitle {
-            font-size: 5pt;
+            font-size: 4pt;
             color: #555;
             margin-top: 0.5mm;
         }
@@ -61,13 +61,13 @@
             text-align: center;
         }
         .label-qr img {
-            width: 20mm;
-            height: 20mm;
+            width: 15mm;
+            height: 15mm;
             display: block;
             margin: 0 auto;
         }
         .qr-text {
-            font-size: 4pt;
+            font-size: 3.5pt;
             color: #666;
             margin-top: 1mm;
             word-break: break-all;
@@ -79,12 +79,12 @@
             overflow: hidden;
         }
         .field-label {
-            font-size: 5pt;
+            font-size: 4.5pt;
             color: #666;
             text-transform: uppercase;
         }
         .field-value {
-            font-size: 6.5pt;
+            font-size: 5.5pt;
             font-weight: bold;
             word-wrap: break-word;
             overflow-wrap: anywhere;
@@ -93,7 +93,7 @@
             max-height: 6mm;
         }
         .field-value.large {
-            font-size: 9pt;
+            font-size: 7pt;
         }
         .clamp2 {
             max-height: 5mm;
@@ -104,7 +104,7 @@
             bottom: 1mm;
             left: 2.5mm;
             right: 2.5mm;
-            font-size: 4pt;
+            font-size: 3.5pt;
             color: #999;
         }
     </style>

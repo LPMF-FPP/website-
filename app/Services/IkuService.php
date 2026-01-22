@@ -10,7 +10,6 @@ use App\Models\Sample;
 use App\Models\TestRequest;
 use App\Repositories\SettingsRepository;
 use Carbon\Carbon;
-use Illuminate\Support\Arr;
 
 /**
  * Service untuk menghitung Indeks Kinerja Utama (IKU).

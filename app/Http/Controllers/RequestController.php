@@ -117,8 +117,8 @@ class RequestController extends Controller
         // Double-submit prevention using submission token
         $submissionToken = $request->input('_submission_token');
         if ($submissionToken) {
-            $cacheKey = 'submission_token_' . $submissionToken;
-            
+            $cacheKey = 'submission_token_'.$submissionToken;
+
             // Check if this token was already used
             if (Cache::has($cacheKey)) {
                 Log::warning('Duplicate submission detected', [
@@ -126,26 +126,26 @@ class RequestController extends Controller
                     'user_id' => auth()->id(),
                     'ip' => $request->ip(),
                 ]);
-                
+
                 // Return the same redirect as success to avoid confusion
                 return redirect()->route('requests.index')
                     ->with('warning', 'Permintaan ini sudah diproses sebelumnya.');
             }
-            
+
             // Mark token as used immediately (expires after 5 minutes)
             Cache::put($cacheKey, true, 300);
         }
 
         // Additional lock based on user + timestamp to prevent race conditions
-        $lockKey = 'request_store_user_' . auth()->id();
+        $lockKey = 'request_store_user_'.auth()->id();
         $lock = Cache::lock($lockKey, 10); // 10 second lock
-        
-        if (!$lock->get()) {
+
+        if (! $lock->get()) {
             Log::warning('Request store locked - concurrent submission attempt', [
                 'user_id' => auth()->id(),
                 'ip' => $request->ip(),
             ]);
-            
+
             return back()->withInput()
                 ->withErrors(['error' => 'Permintaan sedang diproses. Mohon tunggu beberapa saat.']);
         }
@@ -471,8 +471,8 @@ class RequestController extends Controller
         // Double-submit prevention using submission token
         $submissionToken = $request->input('_submission_token');
         if ($submissionToken) {
-            $cacheKey = 'submission_token_' . $submissionToken;
-            
+            $cacheKey = 'submission_token_'.$submissionToken;
+
             // Check if this token was already used
             if (Cache::has($cacheKey)) {
                 Log::warning('Duplicate update submission detected', [
@@ -480,11 +480,11 @@ class RequestController extends Controller
                     'request_id' => $id,
                     'user_id' => auth()->id(),
                 ]);
-                
+
                 return redirect()->route('requests.show', $id)
                     ->with('warning', 'Perubahan ini sudah diproses sebelumnya.');
             }
-            
+
             // Mark token as used immediately (expires after 5 minutes)
             Cache::put($cacheKey, true, 300);
         }
@@ -583,7 +583,7 @@ class RequestController extends Controller
                 if ($testRequest->official_letter_path) {
                     Storage::disk('documents')->delete($testRequest->official_letter_path);
                 }
-                
+
                 $letterDoc = $documentService->storeUpload(
                     $request->file('request_letter'),
                     $inv,
@@ -659,16 +659,36 @@ class RequestController extends Controller
                 ->whereNotIn('id', $submittedSampleIds)
                 ->delete();
 
-            // DELETE old Berita Acara file (force re-generation)
+            // DELETE old Berita Acara documents (force re-generation)
+            $baDocuments = Document::where('test_request_id', $testRequest->id)
+                ->whereIn('document_type', ['ba_penerimaan', 'ba_penerimaan_html'])
+                ->get();
+
+            foreach ($baDocuments as $baDoc) {
+                // Delete file from storage
+                $disk = $baDoc->storage_disk ?? 'documents';
+                $path = $baDoc->file_path ?? $baDoc->path;
+
+                if ($path && Storage::disk($disk)->exists($path)) {
+                    Storage::disk($disk)->delete($path);
+                }
+
+                // Delete document record
+                $baDoc->delete();
+
+                Log::info('Deleted old BA document after edit', [
+                    'request_id' => $testRequest->id,
+                    'document_id' => $baDoc->id,
+                    'document_type' => $baDoc->document_type,
+                ]);
+            }
+
+            // Also delete legacy HTML file if exists
             $baFilename = "Berita_Acara_Penerimaan_{$testRequest->request_number}_ID-{$testRequest->id}.html";
             $baFilepath = base_path("output/{$baFilename}");
 
             if (file_exists($baFilepath)) {
                 @unlink($baFilepath);
-                \Log::info('Deleted old BA file after edit', [
-                    'request_id' => $testRequest->id,
-                    'file' => $baFilename,
-                ]);
             }
 
             DB::commit();
@@ -1119,7 +1139,7 @@ class RequestController extends Controller
             // DO NOT call numberingService->issue() here - it would create a new sequence number
             // The request_number was already generated when TestRequest was created
             $baNumber = $testRequest->request_number;
-            
+
             // Generate filesystem-safe baseName from document number
             $baseName = $documentService->generateDocumentBaseName('ba_penerimaan', $baNumber);
 

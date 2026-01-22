@@ -87,7 +87,7 @@ class NumberingRepairService
     public function getCounterStatus(string $scope): array
     {
         $config = $this->getScopeConfig($scope);
-        if (!$config) {
+        if (! $config) {
             throw new \InvalidArgumentException("Unknown scope: {$scope}");
         }
 
@@ -106,15 +106,14 @@ class NumberingRepairService
         $totalDocuments = $documents->count();
 
         // Extract sequence numbers and find max
-        $sequenceNumbers = $documents->map(fn($doc) => $this->extractSequenceNumber($scope, $doc))
-            ->filter(fn($num) => $num !== null);
+        $sequenceNumbers = $documents->map(fn ($doc) => $this->extractSequenceNumber($scope, $doc))
+            ->filter(fn ($num) => $num !== null);
 
         $maxNumber = $sequenceNumbers->max() ?? 0;
         $maxDocument = null;
 
         if ($maxNumber > 0) {
-            $maxDocument = $documents->first(fn($doc) => 
-                $this->extractSequenceNumber($scope, $doc) === $maxNumber
+            $maxDocument = $documents->first(fn ($doc) => $this->extractSequenceNumber($scope, $doc) === $maxNumber
             );
         }
 
@@ -144,12 +143,12 @@ class NumberingRepairService
 
         // Filter by date based on reset period
         $now = CarbonImmutable::now();
-        
+
         if ($reset === 'yearly') {
             $query->whereYear('created_at', $now->year);
         } elseif ($reset === 'monthly') {
             $query->whereYear('created_at', $now->year)
-                  ->whereMonth('created_at', $now->month);
+                ->whereMonth('created_at', $now->month);
         } elseif ($reset === 'daily') {
             $query->whereDate('created_at', $now->toDateString());
         }
@@ -161,11 +160,11 @@ class NumberingRepairService
 
         if ($scope === 'lhu') {
             $query->whereNotNull('metadata')
-                  ->whereNotNull('metadata->lhu_number');
+                ->whereNotNull('metadata->lhu_number');
         }
 
         // Exclude null/empty numbers
-        if (!str_contains($column, '->')) {
+        if (! str_contains($column, '->')) {
             $query->whereNotNull($column)->where($column, '!=', '');
         }
 
@@ -182,12 +181,14 @@ class NumberingRepairService
 
         if ($scope === 'lhu') {
             $metadata = $document->metadata ?? [];
+
             return $metadata['lhu_number'] ?? $metadata['report_number'] ?? null;
         }
 
         if (str_contains($column, '->')) {
             $parts = explode('->', $column);
             $data = $document->{$parts[0]} ?? [];
+
             return $data[$parts[1]] ?? null;
         }
 
@@ -200,7 +201,7 @@ class NumberingRepairService
     protected function extractSequenceNumber(string $scope, $document): ?int
     {
         $number = $this->getDocumentNumber($scope, $document);
-        if (!$number) {
+        if (! $number) {
             return null;
         }
 
@@ -236,7 +237,7 @@ class NumberingRepairService
     public function scanProblems(string $scope): array
     {
         $config = $this->getScopeConfig($scope);
-        if (!$config) {
+        if (! $config) {
             throw new \InvalidArgumentException("Unknown scope: {$scope}");
         }
 
@@ -257,8 +258,7 @@ class NumberingRepairService
         }
 
         // Sort by sequence number
-        usort($problems, fn($a, $b) => 
-            ($a['sequence_number'] ?? 0) <=> ($b['sequence_number'] ?? 0)
+        usort($problems, fn ($a, $b) => ($a['sequence_number'] ?? 0) <=> ($b['sequence_number'] ?? 0)
         );
 
         return [
@@ -283,7 +283,9 @@ class NumberingRepairService
 
         foreach ($documents as $doc) {
             $number = $this->getDocumentNumber($scope, $doc);
-            if (!$number) continue;
+            if (! $number) {
+                continue;
+            }
 
             $numberCounts[$number] = ($numberCounts[$number] ?? 0) + 1;
             $documentsByNumber[$number][] = $doc;
@@ -293,7 +295,9 @@ class NumberingRepairService
         $suggestedSeq = $documents->count() + 1;
 
         foreach ($numberCounts as $number => $count) {
-            if ($count <= 1) continue;
+            if ($count <= 1) {
+                continue;
+            }
 
             $docs = $documentsByNumber[$number];
             $isFirst = true;
@@ -322,8 +326,8 @@ class NumberingRepairService
     protected function detectGaps(string $scope, Collection $documents): array
     {
         $sequenceNumbers = $documents
-            ->map(fn($doc) => $this->extractSequenceNumber($scope, $doc))
-            ->filter(fn($num) => $num !== null && $num > 0)
+            ->map(fn ($doc) => $this->extractSequenceNumber($scope, $doc))
+            ->filter(fn ($num) => $num !== null && $num > 0)
             ->unique()
             ->sort()
             ->values();
@@ -337,7 +341,7 @@ class NumberingRepairService
         $existingNumbers = $sequenceNumbers->flip();
 
         for ($i = 1; $i <= $max; $i++) {
-            if (!isset($existingNumbers[$i])) {
+            if (! isset($existingNumbers[$i])) {
                 $gaps[] = [
                     'sequence_number' => $i,
                     'missing_number' => $this->numberingService->preview($scope, [], $i),
@@ -356,6 +360,7 @@ class NumberingRepairService
     {
         if ($scope === 'ba' || $scope === 'tracking') {
             $investigator = $document->investigator;
+
             return $investigator ? ($investigator->name ?? 'Unknown') : 'Unknown';
         }
 
@@ -365,11 +370,13 @@ class NumberingRepairService
 
         if ($scope === 'lhu') {
             $sample = $document->sample;
+
             return $sample?->short_description ?? 'Unknown';
         }
 
         if ($scope === 'ba_penyerahan') {
             $request = $document->testRequest;
+
             return $request?->investigator?->name ?? 'Unknown';
         }
 
@@ -382,12 +389,12 @@ class NumberingRepairService
     public function resetCounter(string $scope, int $newValue, string $reason): array
     {
         $config = $this->getScopeConfig($scope);
-        if (!$config) {
+        if (! $config) {
             throw new \InvalidArgumentException("Unknown scope: {$scope}");
         }
 
         if ($newValue < 0) {
-            throw new \InvalidArgumentException("Counter value cannot be negative");
+            throw new \InvalidArgumentException('Counter value cannot be negative');
         }
 
         $bucket = $this->getCurrentBucket($scope);
@@ -433,23 +440,23 @@ class NumberingRepairService
     public function syncCounter(string $scope, string $method, string $reason): array
     {
         $config = $this->getScopeConfig($scope);
-        if (!$config) {
+        if (! $config) {
             throw new \InvalidArgumentException("Unknown scope: {$scope}");
         }
 
-        if (!in_array($method, ['max', 'count'])) {
+        if (! in_array($method, ['max', 'count'])) {
             throw new \InvalidArgumentException("Invalid sync method: {$method}");
         }
 
         $status = $this->getCounterStatus($scope);
         $newValue = $method === 'max' ? $status['from_max'] : $status['from_count'];
-        $actionType = $method === 'max' 
-            ? NumberingChangeLog::ACTION_SYNC_MAX 
+        $actionType = $method === 'max'
+            ? NumberingChangeLog::ACTION_SYNC_MAX
             : NumberingChangeLog::ACTION_SYNC_COUNT;
 
         $bucket = $this->getCurrentBucket($scope);
 
-        return DB::transaction(function () use ($scope, $bucket, $newValue, $reason, $actionType, $status) {
+        return DB::transaction(function () use ($scope, $bucket, $newValue, $reason, $actionType) {
             $sequence = Sequence::where('scope', $scope)
                 ->where('bucket', $bucket)
                 ->lockForUpdate()
@@ -491,7 +498,7 @@ class NumberingRepairService
     public function editNumber(string $scope, int $entityId, string $newNumber, string $reason): array
     {
         $config = $this->getScopeConfig($scope);
-        if (!$config) {
+        if (! $config) {
             throw new \InvalidArgumentException("Unknown scope: {$scope}");
         }
 
@@ -503,15 +510,15 @@ class NumberingRepairService
 
         // Validate not same
         if ($oldNumber === $newNumber) {
-            throw new \InvalidArgumentException("New number must be different from current number");
+            throw new \InvalidArgumentException('New number must be different from current number');
         }
 
         // Validate not duplicate
         if ($this->isNumberDuplicate($scope, $newNumber, $entityId)) {
-            throw new \InvalidArgumentException("Number is already used by another document");
+            throw new \InvalidArgumentException('Number is already used by another document');
         }
 
-        return DB::transaction(function () use ($scope, $entity, $column, $oldNumber, $newNumber, $reason, $config) {
+        return DB::transaction(function () use ($scope, $entity, $column, $oldNumber, $newNumber, $reason) {
             if ($scope === 'lhu') {
                 $metadata = $entity->metadata ?? [];
                 $metadata['lhu_number'] = $newNumber;
@@ -556,7 +563,7 @@ class NumberingRepairService
             $query->where('metadata->lhu_number', $number);
         } elseif ($scope === 'ba_penyerahan') {
             $query->where('document_type', 'ba_penyerahan')
-                  ->where($column, $number);
+                ->where($column, $number);
         } else {
             $query->where($column, $number);
         }
@@ -601,7 +608,7 @@ class NumberingRepairService
     public function searchDocuments(string $scope, string $query, int $limit = 20): Collection
     {
         $config = $this->getScopeConfig($scope);
-        if (!$config) {
+        if (! $config) {
             throw new \InvalidArgumentException("Unknown scope: {$scope}");
         }
 
@@ -617,10 +624,10 @@ class NumberingRepairService
             // Handle slash vs dash difference in filenames
             $normalizedQuery = str_replace('/', '-', $query);
             $dbQuery->where('document_type', 'ba_penyerahan')
-                    ->where(function($q) use ($column, $query, $normalizedQuery) {
-                        $q->where($column, 'like', "%{$query}%")
-                          ->orWhere($column, 'like', "%{$normalizedQuery}%");
-                    });
+                ->where(function ($q) use ($column, $query, $normalizedQuery) {
+                    $q->where($column, 'like', "%{$query}%")
+                        ->orWhere($column, 'like', "%{$normalizedQuery}%");
+                });
         } else {
             $dbQuery->where($column, 'like', "%{$query}%");
         }
@@ -628,7 +635,7 @@ class NumberingRepairService
         return $dbQuery->orderBy('created_at', 'desc')
             ->limit($limit)
             ->get()
-            ->map(fn($doc) => [
+            ->map(fn ($doc) => [
                 'entity_id' => $doc->id,
                 'entity_type' => get_class($doc),
                 'current_number' => $this->getDocumentNumber($scope, $doc),
@@ -644,14 +651,14 @@ class NumberingRepairService
     public function getDocument(string $scope, int $id): ?array
     {
         $config = $this->getScopeConfig($scope);
-        if (!$config) {
+        if (! $config) {
             throw new \InvalidArgumentException("Unknown scope: {$scope}");
         }
 
         $model = $config['model'];
         $doc = $model::find($id);
 
-        if (!$doc) {
+        if (! $doc) {
             return null;
         }
 
@@ -676,18 +683,18 @@ class NumberingRepairService
     public function getDocumentList(string $scope, int $page = 1, int $perPage = 50): array
     {
         $config = $this->getScopeConfig($scope);
-        if (!$config) {
+        if (! $config) {
             throw new \InvalidArgumentException("Unknown scope: {$scope}");
         }
 
         $bucket = $this->getCurrentBucket($scope);
         $reset = settings("numbering.$scope.reset") ?? 'never';
-        
+
         // Get all documents in bucket
         $allDocuments = $this->getDocumentsInBucket($scope, $bucket, $reset);
-        
+
         // Map and sort by sequence number
-        $mapped = $allDocuments->map(fn($doc) => [
+        $mapped = $allDocuments->map(fn ($doc) => [
             'entity_id' => $doc->id,
             'entity_type' => get_class($doc),
             'current_number' => $this->getDocumentNumber($scope, $doc),
@@ -695,23 +702,23 @@ class NumberingRepairService
             'created_at' => $doc->created_at?->format('Y-m-d H:i'),
             'sequence_number' => $this->extractSequenceNumber($scope, $doc),
         ])->sortBy('sequence_number')->values();
-        
+
         // Detect issues for each document
         $sequenceNumbers = $mapped->pluck('sequence_number')->filter()->toArray();
         $numberCounts = array_count_values(
             $mapped->pluck('current_number')->filter()->toArray()
         );
-        
+
         // Add issue flags
-        $mapped = $mapped->map(function ($doc, $index) use ($sequenceNumbers, $numberCounts, $mapped) {
+        $mapped = $mapped->map(function ($doc, $index) use ($numberCounts, $mapped) {
             $issues = [];
-            
+
             // Check for duplicate
             $currentNumber = $doc['current_number'];
             if ($currentNumber && ($numberCounts[$currentNumber] ?? 0) > 1) {
                 $issues[] = 'duplicate';
             }
-            
+
             // Check for gap (compare with previous)
             if ($index > 0) {
                 $prevSeq = $mapped[$index - 1]['sequence_number'] ?? 0;
@@ -720,20 +727,20 @@ class NumberingRepairService
                     $issues[] = 'gap';
                 }
             }
-            
+
             $doc['issues'] = $issues;
-            $doc['has_issue'] = !empty($issues);
-            
+            $doc['has_issue'] = ! empty($issues);
+
             return $doc;
         });
-        
+
         // Paginate
         $total = $mapped->count();
         $lastPage = (int) ceil($total / $perPage);
         $offset = ($page - 1) * $perPage;
-        
+
         $items = $mapped->slice($offset, $perPage)->values();
-        
+
         return [
             'data' => $items,
             'meta' => [

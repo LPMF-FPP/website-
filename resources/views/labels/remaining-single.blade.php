@@ -6,7 +6,98 @@
     <style>
         @page {
             margin: 0;
-            size: 100mm 50mm;
+            size: 74mm 52mm;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'DejaVu Sans', Arial, sans-serif;
+            font-size: 6pt;
+            line-height: 1.3;
+        }
+        .label {
+            width: 74mm;
+            height: 52mm;
+            padding: 2mm;
+            position: relative;
+            background: #fff;
+        }
+        .label-header {
+            text-align: center;
+            border-bottom: 1px solid #333;
+            padding-bottom: 1mm;
+            margin-bottom: 1mm;
+            background: #fffde7;
+            margin: -2mm -2mm 1mm -2mm;
+            padding: 1mm;
+        }
+        .label-header h1 {
+            font-size: 7.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .label-header .subtitle {
+            font-size: 4pt;
+            color: #555;
+        }
+        .sisa-badge {
+            display: inline-block;
+            background: #ffc107;
+            color: #333;
+            padding: 0.5mm 1.5mm;
+            font-size: 5pt;
+            font-weight: bold;
+            border-radius: 2mm;
+            margin-left: 1mm;
+        }
+        .label-body {
+            overflow: hidden;
+        }
+        .label-content {
+            float: left;
+            width: 60%;
+        }
+        .label-qr {
+            float: right;
+            width: 35%;
+            text-align: center;
+        }
+        .label-qr img {
+            width: 15mm;
+            height: 15mm;
+        }
+        .field {
+            margin-bottom: 0.8mm;
+        }
+        .field-label {
+            font-size: 5pt;
+            color: #666;
+            text-transform: uppercase;
+        }
+        .field-value {
+            font-size: 6pt;
+            font-weight: bold;
+        }
+        .field-value.large {
+            font-size: 7.5pt;
+            color: #c00;
+        }
+        .field-value.qty {
+            font-size: 7pt;
+            color: #060;
+        }
+        .label-footer {
+            position: absolute;
+            bottom: 1mm;
+            left: 2mm;
+            right: 2mm;
+            font-size: 4pt;
+            color: #999;
+            border-top: 1px dotted #ccc;
+            padding-top: 0.5mm;
         }
         * {
             margin: 0;

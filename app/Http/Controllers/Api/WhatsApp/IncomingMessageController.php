@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Api\WhatsApp;
 use App\Http\Controllers\Controller;
 use App\Models\WhatsappCommandLog;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Log;
 
 class IncomingMessageController extends Controller
 {
@@ -18,20 +18,20 @@ class IncomingMessageController extends Controller
 
         // If secret is configured, enforce signature verification
         if ($secret) {
-            if (!$signature) {
+            if (! $signature) {
                 return response()->json(['status' => 'error', 'message' => 'Missing signature'], 403);
             }
 
-            $expected = 'sha256=' . hash_hmac('sha256', $request->getContent(), $secret);
+            $expected = 'sha256='.hash_hmac('sha256', $request->getContent(), $secret);
 
-            if (!hash_equals($expected, $signature)) {
+            if (! hash_equals($expected, $signature)) {
                 return response()->json(['status' => 'error', 'message' => 'Invalid signature'], 403);
             }
         }
 
         // 2. Parse Payload
         $data = $request->all();
-        
+
         Log::info('WhatsApp incoming webhook', ['payload' => $data]);
 
         // Standardize payload extraction (support both old and new structures if needed)
@@ -63,7 +63,7 @@ class IncomingMessageController extends Controller
                 'from_phone_e164' => $from, // Normalize if needed
                 'message_text' => $message,
                 'params' => json_encode($data), // Store full payload
-                'response_status' => 'received', 
+                'response_status' => 'received',
             ]);
 
             // Dispatch job if needed (keeping existing logic)
@@ -75,6 +75,7 @@ class IncomingMessageController extends Controller
             Log::error('Webhook dispatch error', [
                 'error' => $e->getMessage(),
             ]);
+
             return response()->json(['status' => 'error'], 500);
         }
     }

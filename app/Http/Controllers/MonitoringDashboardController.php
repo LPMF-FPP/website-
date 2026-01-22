@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\MonitoringAlert;
 use App\Models\MonitoringSensor;
-use Illuminate\Http\Request;
 
 class MonitoringDashboardController extends Controller
 {

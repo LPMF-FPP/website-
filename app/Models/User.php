@@ -17,6 +17,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'phone',
         'password',
         'role',
         'is_active',
@@ -83,7 +84,7 @@ class User extends Authenticatable
     /**
      * Cek apakah user memiliki permission tertentu.
      *
-     * @param string $permissionName e.g. "permintaan.view"
+     * @param  string  $permissionName  e.g. "permintaan.view"
      */
     public function hasPermission(string $permissionName): bool
     {
@@ -95,8 +96,6 @@ class User extends Authenticatable
 
     /**
      * Cek apakah user memiliki salah satu dari permissions.
-     *
-     * @param array $permissionNames
      */
     public function hasAnyPermission(array $permissionNames): bool
     {
@@ -111,13 +110,11 @@ class User extends Authenticatable
 
     /**
      * Cek apakah user memiliki semua permissions.
-     *
-     * @param array $permissionNames
      */
     public function hasAllPermissions(array $permissionNames): bool
     {
         foreach ($permissionNames as $permission) {
-            if (!$this->hasPermission($permission)) {
+            if (! $this->hasPermission($permission)) {
                 return false;
             }
         }
@@ -132,7 +129,7 @@ class User extends Authenticatable
     {
         $permission = Permission::where('name', $permissionName)->first();
 
-        if (!$permission) {
+        if (! $permission) {
             return;
         }
 
@@ -156,7 +153,7 @@ class User extends Authenticatable
     {
         $permission = Permission::where('name', $permissionName)->first();
 
-        if (!$permission) {
+        if (! $permission) {
             return;
         }
 

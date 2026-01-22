@@ -7,6 +7,7 @@ use App\Jobs\SendWhatsAppNotificationJob;
 use App\Models\WhatsappOutbox;
 use App\Services\WhatsApp\GowaClient;
 use App\Services\WhatsApp\NotificationService;
+use App\Services\WhatsApp\TemplateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -15,9 +16,9 @@ class WhatsAppSettingsController extends Controller
 {
     public function __construct(
         private NotificationService $notificationService,
-        private GowaClient $client
-    ) {
-    }
+        private GowaClient $client,
+        private TemplateService $templateService
+    ) {}
 
     public function update(Request $request): JsonResponse
     {
@@ -28,7 +29,7 @@ class WhatsAppSettingsController extends Controller
             'basic_user' => 'nullable|string|max:255',
             'basic_pass' => 'nullable|string|max:255',
             'enabled_milestones' => 'nullable|array',
-            'enabled_milestones.*' => 'string|in:' . implode(',', $this->notificationService->getAvailableMilestones()),
+            'enabled_milestones.*' => 'string|in:'.implode(',', $this->notificationService->getAvailableMilestones()),
             'templates' => 'nullable|array',
             'templates.*' => 'nullable|string|max:1000',
         ]);
@@ -46,11 +47,11 @@ class WhatsAppSettingsController extends Controller
             $allowed = $this->notificationService->getAvailableMilestones();
             $invalidKeys = array_diff(array_keys($data['templates']), $allowed);
 
-            if (!empty($invalidKeys)) {
+            if (! empty($invalidKeys)) {
                 return response()->json([
                     'message' => 'Validation failed',
                     'errors' => [
-                        'templates' => ['Invalid milestone keys: ' . implode(', ', $invalidKeys)],
+                        'templates' => ['Invalid milestone keys: '.implode(', ', $invalidKeys)],
                     ],
                 ], 422);
             }
@@ -98,8 +99,11 @@ class WhatsAppSettingsController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'phone' => 'required|string|max:20',
-            'message' => 'nullable|string|max:1000',
-            'milestone' => 'nullable|string|in:' . implode(',', $this->notificationService->getAvailableMilestones()),
+            'message' => 'nullable|string|max:2000',
+            'milestone' => 'nullable|string|in:'.implode(',', $this->notificationService->getAvailableMilestones()),
+            'category' => 'nullable|string|in:'.implode(',', $this->templateService->getCategories()),
+            'key' => 'nullable|string|max:50',
+            'template' => 'nullable|string|max:2000',
         ]);
 
         if ($validator->fails()) {
@@ -111,14 +115,19 @@ class WhatsAppSettingsController extends Controller
 
         $phone = $request->input('phone');
         $milestone = $request->input('milestone');
-        
-        // If milestone specified, use template
-        if ($milestone) {
+        $category = $request->input('category');
+        $key = $request->input('key');
+        $customTemplate = $request->input('template');
+
+        // If category + key specified, use template preview
+        if ($category && $key) {
+            $message = $this->templateService->preview($category, $key, $customTemplate);
+        } elseif ($milestone) {
             $greetings = $this->notificationService->getTimeBasedGreeting();
-            $testResi = 'TEST-' . date('Ymd-His');
+            $testResi = 'TEST-'.date('Ymd-His');
             $message = $this->notificationService->getMilestoneMessage($milestone, [
                 'greetings' => $greetings,
-                'greeting' => $greetings . ' Bapak/Ibu (Test)',
+                'greeting' => $greetings.' Bapak/Ibu (Test)',
                 'pangkat' => 'IPDA',
                 'nama' => 'User Test',
                 'nomor surat' => 'TEST/001',
@@ -250,7 +259,7 @@ class WhatsAppSettingsController extends Controller
                     $basicPass = env('WHATSAPP_BASIC_PASS');
                 }
             } else {
-                 $basicPass = env('WHATSAPP_BASIC_PASS');
+                $basicPass = env('WHATSAPP_BASIC_PASS');
             }
         }
 
@@ -285,6 +294,214 @@ class WhatsAppSettingsController extends Controller
             return response()->json([
                 'success' => false,
                 'devices' => [],
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Get all templates grouped by category.
+     */
+    public function getAllTemplates(): JsonResponse
+    {
+        return response()->json([
+            'data' => [
+                'templates' => $this->templateService->getAll(),
+                'labels' => $this->templateService->getTemplateLabels(),
+                'categories' => $this->templateService->getCategoryLabels(),
+                'placeholders' => $this->templateService->getAllPlaceholders(),
+            ],
+        ]);
+    }
+
+    /**
+     * Get templates for a specific category.
+     */
+    public function getTemplateCategory(string $category): JsonResponse
+    {
+        $validCategories = $this->templateService->getCategories();
+
+        if (! in_array($category, $validCategories)) {
+            return response()->json([
+                'message' => 'Invalid category',
+                'valid_categories' => $validCategories,
+            ], 422);
+        }
+
+        return response()->json([
+            'data' => [
+                'category' => $category,
+                'templates' => $this->templateService->getCategory($category),
+                'defaults' => $this->templateService->getDefaults($category),
+                'labels' => $this->templateService->getTemplateLabels()[$category] ?? [],
+                'placeholders' => $this->templateService->getAllPlaceholders()[$category] ?? [],
+            ],
+        ]);
+    }
+
+    /**
+     * Update a single template.
+     */
+    public function updateTemplate(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'category' => 'required|string|in:'.implode(',', $this->templateService->getCategories()),
+            'key' => 'required|string|max:50',
+            'template' => 'required|string|max:2000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $category = $request->input('category');
+        $key = $request->input('key');
+        $template = $request->input('template');
+
+        try {
+            $this->templateService->update($category, $key, $template);
+
+            return response()->json([
+                'message' => 'Template updated successfully',
+                'data' => [
+                    'category' => $category,
+                    'key' => $key,
+                    'template' => $template,
+                ],
+            ]);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Failed to update template',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Update multiple templates in a category.
+     */
+    public function updateTemplateCategory(Request $request, string $category): JsonResponse
+    {
+        $validCategories = $this->templateService->getCategories();
+
+        if (! in_array($category, $validCategories)) {
+            return response()->json([
+                'message' => 'Invalid category',
+                'valid_categories' => $validCategories,
+            ], 422);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'templates' => 'required|array',
+            'templates.*' => 'required|string|max:2000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        try {
+            $this->templateService->updateCategory($category, $request->input('templates'));
+
+            return response()->json([
+                'message' => 'Templates updated successfully',
+                'data' => [
+                    'category' => $category,
+                    'templates' => $this->templateService->getCategory($category),
+                ],
+            ]);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Failed to update templates',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Reset a template to default.
+     */
+    public function resetTemplate(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'category' => 'required|string|in:'.implode(',', $this->templateService->getCategories()),
+            'key' => 'required|string|max:50',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $category = $request->input('category');
+        $key = $request->input('key');
+
+        try {
+            $defaultTemplate = $this->templateService->resetToDefault($category, $key);
+
+            return response()->json([
+                'message' => 'Template reset to default successfully',
+                'data' => [
+                    'category' => $category,
+                    'key' => $key,
+                    'template' => $defaultTemplate,
+                ],
+            ]);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Failed to reset template',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Preview a template with sample data.
+     */
+    public function previewTemplate(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'category' => 'required|string|in:'.implode(',', $this->templateService->getCategories()),
+            'key' => 'required|string|max:50',
+            'template' => 'nullable|string|max:2000',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $category = $request->input('category');
+        $key = $request->input('key');
+        $customTemplate = $request->input('template');
+
+        try {
+            $preview = $this->templateService->preview($category, $key, $customTemplate);
+
+            return response()->json([
+                'data' => [
+                    'category' => $category,
+                    'key' => $key,
+                    'preview' => $preview,
+                ],
+            ]);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => 'Failed to preview template',
                 'error' => $e->getMessage(),
             ], 500);
         }

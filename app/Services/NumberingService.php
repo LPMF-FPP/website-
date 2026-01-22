@@ -30,7 +30,7 @@ class NumberingService
         // Allow forcing a specific sequence number (e.g. to match parent document)
         if (isset($context['forced_sequence'])) {
             $number = $this->render($pattern, (int) $context['forced_sequence'], $contextWithNow);
-            
+
             Audit::log('ISSUE_NUMBER_FORCED', $scope, null, ['number' => $number, 'sequence' => $context['forced_sequence']], [
                 'context' => $contextWithNow,
             ]);
@@ -82,11 +82,11 @@ class NumberingService
             $config = $this->getConfig($scope);
             $pattern = $config['pattern'];
             $reset = $config['reset'] ?? 'never';
-            
+
             // Context needs to use the original creation time (passed in $context['now'])
             // to correctly reconstruct the bucket and date placeholders
             $contextWithNow = $this->contextWithNow($context);
-            
+
             $bucket = $this->makeBucket($scope, $reset, $contextWithNow, $config);
 
             $sequence = Sequence::query()

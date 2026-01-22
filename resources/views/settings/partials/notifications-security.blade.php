@@ -95,38 +95,133 @@
                             </div>
                         </div>
 
-                        <div>
-                            <label class="block text-xs font-medium text-gray-600 mb-2">Template Pesan</label>
-                            <p class="text-xs text-gray-500 mb-3">
-                                Gunakan <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{greetings}</code> (sapaan otomatis), <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{pangkat}</code>, <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{nama}</code>, <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{nomor surat}</code>, <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{tersangka}</code>, <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{resi}</code>, dan <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{reason}</code> (khusus penolakan) untuk template pesan.
-                            </p>
-                            
-                            <div class="space-y-4">
-                                <template x-for="milestone in whatsappMilestones" :key="'tpl-' + milestone.key">
-                                    <div class="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                        {{-- Template Editor Tabs --}}
+                        <div class="border-t border-gray-200 pt-4 mt-4">
+                            <div class="flex items-center justify-between mb-3">
+                                <label class="block text-sm font-medium text-gray-700">Template Pesan WhatsApp</label>
+                                <button type="button"
+                                        class="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center gap-1 transition-colors border border-gray-300"
+                                        :disabled="client.state.templateEditor?.loading"
+                                        @click="loadAllTemplates()">
+                                    <svg class="w-3 h-3" :class="client.state.templateEditor?.loading ? 'animate-spin' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                                    </svg>
+                                    <span>Refresh</span>
+                                </button>
+                            </div>
+
+                            {{-- Category Tabs --}}
+                            <div class="flex flex-wrap gap-1 mb-4 border-b border-gray-200">
+                                <template x-for="(label, cat) in (client.state.templateEditor?.categories || {})" :key="cat">
+                                    <button type="button"
+                                            class="px-3 py-2 text-xs font-medium rounded-t-lg transition-colors border-b-2 -mb-px"
+                                            :class="client.state.templateEditor?.activeCategory === cat 
+                                                ? 'bg-blue-50 text-blue-700 border-blue-500' 
+                                                : 'text-gray-600 hover:bg-gray-100 border-transparent'"
+                                            @click="client.state.templateEditor.activeCategory = cat"
+                                            x-text="label">
+                                    </button>
+                                </template>
+                            </div>
+
+                            {{-- Template List for Active Category --}}
+                            <div class="space-y-3" x-show="client.state.templateEditor?.activeCategory">
+                                <p class="text-xs text-gray-500">
+                                    Gunakan placeholder dalam kurung kurawal seperti <code class="bg-gray-100 px-1 py-0.5 rounded text-gray-700">{placeholder}</code> untuk data dinamis.
+                                </p>
+
+                                <template x-for="(template, key) in (client.state.templateEditor?.templates?.[client.state.templateEditor?.activeCategory] || {})" :key="key">
+                                    <div class="border border-gray-200 rounded-lg p-3 bg-white">
                                         <div class="flex items-center justify-between mb-2">
-                                            <label class="block text-xs font-medium text-gray-700" x-text="milestone.label"></label>
-                                            <button type="button"
-                                                    class="px-2 py-1 text-xs font-medium text-white bg-blue-500 rounded hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    :disabled="!client.state.form.notifications.whatsapp.enabled || !client.state.notificationsTest.whatsapp.target"
-                                                    @click="client.testMilestone(milestone.key)"
-                                                    title="Test template ini">
-                                                <span x-show="!client.state.notificationsTest.milestones?.[milestone.key]?.loading">🧪 Test</span>
-                                                <span x-show="client.state.notificationsTest.milestones?.[milestone.key]?.loading">⏳</span>
-                                            </button>
+                                            <label class="block text-xs font-medium text-gray-700" 
+                                                   x-text="client.state.templateEditor?.labels?.[client.state.templateEditor?.activeCategory]?.[key] || key"></label>
+                                            <div class="flex gap-1">
+                                                <button type="button"
+                                                        class="px-2 py-1 text-xs font-medium text-gray-600 bg-gray-100 rounded hover:bg-gray-200 transition-colors"
+                                                        @click="previewTemplate(client.state.templateEditor?.activeCategory, key)"
+                                                        title="Preview template">
+                                                    👁️ Preview
+                                                </button>
+                                                <button type="button"
+                                                        class="px-2 py-1 text-xs font-medium text-orange-600 bg-orange-50 rounded hover:bg-orange-100 transition-colors"
+                                                        @click="resetTemplate(client.state.templateEditor?.activeCategory, key)"
+                                                        title="Reset ke default">
+                                                    🔄 Reset
+                                                </button>
+                                                <button type="button"
+                                                        class="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded hover:bg-blue-100 transition-colors"
+                                                        @click="saveTemplate(client.state.templateEditor?.activeCategory, key)"
+                                                        title="Simpan template ini">
+                                                    💾 Simpan
+                                                </button>
+                                                <button type="button"
+                                                        class="px-2 py-1 text-xs font-medium text-green-600 bg-green-50 rounded hover:bg-green-100 transition-colors disabled:opacity-50"
+                                                        :disabled="client.state.templateEditor?.sending?.[client.state.templateEditor?.activeCategory + '_' + key] === true"
+                                                        @click="sendTemplateTest(client.state.templateEditor?.activeCategory, key)"
+                                                        title="Kirim test ke nomor WhatsApp">
+                                                    <span x-show="client.state.templateEditor?.sending?.[client.state.templateEditor?.activeCategory + '_' + key] !== true">📤 Kirim</span>
+                                                    <span x-show="client.state.templateEditor?.sending?.[client.state.templateEditor?.activeCategory + '_' + key] === true">⏳</span>
+                                                </button>
+                                            </div>
                                         </div>
+                                        
+                                        {{-- Placeholder Reference --}}
+                                        <div class="mb-2" x-show="(client.state.templateEditor?.placeholders?.[client.state.templateEditor?.activeCategory]?.[key] || []).length > 0">
+                                            <div class="flex flex-wrap gap-1">
+                                                <span class="text-xs text-gray-500">Placeholder:</span>
+                                                <template x-for="ph in (client.state.templateEditor?.placeholders?.[client.state.templateEditor?.activeCategory]?.[key] || [])" :key="ph">
+                                                    <code class="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded cursor-pointer hover:bg-blue-100"
+                                                          @click="$refs['textarea_' + client.state.templateEditor?.activeCategory + '_' + key]?.focus(); document.execCommand('insertText', false, '{' + ph + '}')"
+                                                          x-text="'{' + ph + '}'"></code>
+                                                </template>
+                                            </div>
+                                        </div>
+
                                         <textarea 
-                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
-                                            rows="3"
-                                            x-model="client.state.form.notifications.whatsapp.templates[milestone.key]"
-                                            :disabled="!client.state.form.notifications.whatsapp.enabled"
+                                            :x-ref="'textarea_' + client.state.templateEditor?.activeCategory + '_' + key"
+                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            rows="4"
+                                            x-model="client.state.templateEditor.templates[client.state.templateEditor?.activeCategory][key]"
                                             placeholder="Masukkan template pesan..."></textarea>
-                                        <div x-show="client.state.notificationsTest.milestones?.[milestone.key]?.message" 
+                                        
+                                        {{-- Preview Output --}}
+                                        <div x-show="client.state.templateEditor?.previews?.[client.state.templateEditor?.activeCategory + '_' + key]" 
+                                             class="mt-2 p-3 bg-gray-100 rounded-lg">
+                                            <div class="flex items-center justify-between mb-1">
+                                                <span class="text-xs font-medium text-gray-600">Preview:</span>
+                                                <button type="button" 
+                                                        class="text-xs text-gray-500 hover:text-gray-700"
+                                                        @click="delete client.state.templateEditor.previews[client.state.templateEditor?.activeCategory + '_' + key]">
+                                                    ✕ Tutup
+                                                </button>
+                                            </div>
+                                            <pre class="text-xs text-gray-800 whitespace-pre-wrap font-mono" 
+                                                 x-text="client.state.templateEditor?.previews?.[client.state.templateEditor?.activeCategory + '_' + key]"></pre>
+                                        </div>
+
+                                        {{-- Status Message --}}
+                                        <div x-show="client.state.templateEditor?.status?.[client.state.templateEditor?.activeCategory + '_' + key]" 
                                              class="mt-2 text-xs"
-                                             :class="client.state.notificationsTest.milestones?.[milestone.key]?.success ? 'text-green-600' : 'text-red-600'"
-                                             x-text="client.state.notificationsTest.milestones?.[milestone.key]?.message"></div>
+                                             :class="client.state.templateEditor?.status?.[client.state.templateEditor?.activeCategory + '_' + key]?.success ? 'text-green-600' : 'text-red-600'"
+                                             x-text="client.state.templateEditor?.status?.[client.state.templateEditor?.activeCategory + '_' + key]?.message"></div>
                                     </div>
                                 </template>
+
+                                {{-- Empty State --}}
+                                <div x-show="Object.keys(client.state.templateEditor?.templates?.[client.state.templateEditor?.activeCategory] || {}).length === 0"
+                                     class="text-center py-8 text-gray-500 text-sm">
+                                    <p>Tidak ada template untuk kategori ini.</p>
+                                    <button type="button" 
+                                            class="mt-2 text-blue-600 hover:underline"
+                                        @click="loadAllTemplates()">
+                                        Muat template
+                                    </button>
+                                </div>
+                            </div>
+
+                            {{-- Initial State --}}
+                            <div x-show="!client.state.templateEditor?.activeCategory" class="text-center py-8 text-gray-500 text-sm">
+                                <p>Klik tombol "Refresh" untuk memuat template.</p>
                             </div>
                         </div>
 
@@ -177,7 +272,7 @@
                 class="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
                 :disabled="client.state.loadingSections['notifications']"
                 @click="client.saveSection('notifications')">
-            <span x-show="!client.state.loadingSections['notifications']">Simpan</span>
+            <span x-show="!client.state.loadingSections['notifications']">Simpan Pengaturan</span>
             <span x-show="client.state.loadingSections['notifications']">Menyimpan...</span>
         </button>
     </div>

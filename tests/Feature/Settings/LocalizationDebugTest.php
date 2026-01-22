@@ -2,8 +2,8 @@
 
 namespace Tests\Feature\Settings;
 
-use App\Models\User;
 use App\Models\SystemSetting;
+use App\Models\User;
 use Database\Seeders\SystemSettingSeeder;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
@@ -27,7 +27,7 @@ class LocalizationDebugTest extends TestCase
         SystemSetting::updateOrCreate(['key' => 'locale.timezone'], ['value' => 'UTC']);
         SystemSetting::updateOrCreate(['key' => 'localization.timezone'], ['value' => 'UTC']);
         settings_forget_cache();
-        
+
         $payload = [
             'localization' => [
                 'timezone' => 'Asia/Jakarta',
@@ -44,7 +44,7 @@ class LocalizationDebugTest extends TestCase
             ->putJson('/api/settings/localization-retention', $payload);
 
         $response->assertOk();
-        
+
         // Check response has correct timezone
         $response->assertJsonPath('localization.timezone', 'Asia/Jakarta');
 

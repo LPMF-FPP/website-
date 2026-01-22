@@ -94,7 +94,7 @@
 <title>Berita Acara Penerimaan — {{ $request->request_number }}</title>
 <style>
   @page { size: A4; margin: 12mm; }
-  body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #000; line-height: 1.28; margin:0; padding-bottom: 24mm; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #000; line-height: 1.28; margin:0; padding-bottom: 10mm; }
 
   .header { position: relative; margin:0 0 6px; min-height:52px; padding:0 72px; border-bottom:1px solid #000; padding-bottom:4px; }
   .logo { height:52px; position:absolute; top:0; }
@@ -115,10 +115,10 @@
   .meta-table td.value{ width:65%; white-space:normal; word-break:break-word; }
   .meta-table .nowrap{ white-space:nowrap; }
 
-  .section-title { font-size:11.5pt; font-weight:700; margin: 10px 0 6px; }
+  .section-title { font-size:10pt; font-weight:700; margin: 6px 0 4px; }
 
-  .list-table { font-size:9.8pt; table-layout: fixed; margin-top: 6px; }
-  .list-table th, .list-table td { border:1px solid #000; padding:6px 8px; vertical-align:top; }
+  .list-table { font-size:8pt; table-layout: fixed; margin-top: 4px; }
+  .list-table th, .list-table td { border:1px solid #000; padding:3px 5px; vertical-align:top; }
   .list-table th { text-align:center; background:#f0f0f0; white-space: normal !important; overflow-wrap:anywhere; word-break:break-word; hyphens:auto; line-height:1.2; }
   .list-table td { overflow-wrap:anywhere; word-break:break-word; hyphens:auto; }
   .col-name  { width: 30%; }
@@ -126,10 +126,10 @@
   .col-tests { width: 32%; }
   .col-act   { width: 18%; }
 
-  .sign-table { width:100%; margin-top:18px; border:0; border-collapse:separate; }
+  .sign-table { width:100%; margin-top:10px; border:0; border-collapse:separate; }
   .sign-table td { width:50%; vertical-align:top; border:0; }
   .sigcell { padding:6px 8px; }
-  .sigtitle { text-align:center; font-weight:700; margin-bottom:56px; }
+  .sigtitle { text-align:center; font-weight:700; margin-bottom:75px; }
   .signame { text-align:center; text-decoration: underline; font-weight:700; }
 
   .footer { margin-top: 16px; font-size:9pt; color:#555; }

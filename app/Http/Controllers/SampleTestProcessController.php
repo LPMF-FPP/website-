@@ -120,7 +120,8 @@ class SampleTestProcessController extends Controller
 
         $samples = $samplesQuery->get();
 
-        $analysts = \App\Models\User::whereIn('role', ['analis', 'penyelia', 'manajer_teknis', 'admin'])
+        $analysts = \App\Models\User::where('is_active', true)
+            ->whereIn('role', ['analis', 'penyelia', 'manajer_teknis', 'admin'])
             ->orderBy('name')
             ->get();
 
@@ -281,7 +282,8 @@ class SampleTestProcessController extends Controller
             ->latest()
             ->get();
 
-        $analysts = \App\Models\User::whereIn('role', ['analis', 'penyelia', 'manajer_teknis', 'admin'])
+        $analysts = \App\Models\User::where('is_active', true)
+            ->whereIn('role', ['analis', 'penyelia', 'manajer_teknis', 'admin'])
             ->orderBy('name')
             ->get();
 
@@ -614,6 +616,7 @@ class SampleTestProcessController extends Controller
         if (preg_match('/(?:^|[\/\-A-Z])(\d{3,5})(?:[\/\-A-Z]|$)/i', $code, $m)) {
             return (int) $m[1];
         }
+
         return null;
     }
 

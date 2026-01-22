@@ -18,14 +18,14 @@ class NotificationService
     {
         $templates = settings('notifications.whatsapp.templates', []);
 
-        if (!is_array($templates) || empty($templates)) {
+        if (! is_array($templates) || empty($templates)) {
             $templates = self::MILESTONE_TEMPLATES;
         }
 
         $templates = array_intersect_key($templates, self::MILESTONE_TEMPLATES);
         $template = $templates[$milestone] ?? self::MILESTONE_TEMPLATES[$milestone] ?? null;
 
-        if (!is_string($template) || trim($template) === '') {
+        if (! is_string($template) || trim($template) === '') {
             return null;
         }
 
@@ -40,7 +40,7 @@ class NotificationService
     {
         $enabledMilestones = settings('notifications.whatsapp.enabled_milestones', []);
 
-        if (!is_array($enabledMilestones)) {
+        if (! is_array($enabledMilestones)) {
             return false;
         }
 
@@ -92,7 +92,7 @@ class NotificationService
      */
     public function getSalutation($investigator): string
     {
-        if (!$investigator) {
+        if (! $investigator) {
             return 'Bapak/Ibu';
         }
 
@@ -113,11 +113,11 @@ class NotificationService
     {
         $timeGreeting = $this->getTimeBasedGreeting();
         $salutation = $this->getSalutation($investigator);
-        
-        if (!$investigator || !isset($investigator->name)) {
-            return $timeGreeting . ' ' . $salutation;
+
+        if (! $investigator || ! isset($investigator->name)) {
+            return $timeGreeting.' '.$salutation;
         }
 
-        return $timeGreeting . ' ' . $salutation . ' ' . $investigator->name;
+        return $timeGreeting.' '.$salutation.' '.$investigator->name;
     }
 }

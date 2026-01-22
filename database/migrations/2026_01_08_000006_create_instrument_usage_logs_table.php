@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignId('performed_by')->constrained('users')->cascadeOnDelete();
             $table->text('notes')->nullable();
             $table->timestamp('created_at')->useCurrent();
-            
+
             $table->index('logged_at');
             $table->index(['sample_id', 'method_code']);
             $table->index(['instrument_asset_id', 'logged_at']);

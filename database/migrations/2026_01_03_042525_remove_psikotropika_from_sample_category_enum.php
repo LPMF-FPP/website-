@@ -18,7 +18,7 @@ return new class extends Migration
 
         // Alter the enum to remove 'psikotropika'
         // PostgreSQL syntax for altering enum
-        DB::statement("ALTER TABLE samples DROP CONSTRAINT IF EXISTS samples_sample_category_check");
+        DB::statement('ALTER TABLE samples DROP CONSTRAINT IF EXISTS samples_sample_category_check');
         DB::statement("ALTER TABLE samples ADD CONSTRAINT samples_sample_category_check CHECK (sample_category::text = ANY (ARRAY['narkotika'::text, 'prekursor'::text, 'zat_adiktif'::text, 'obat_keras'::text, 'other'::text]))");
     }
 
@@ -28,7 +28,7 @@ return new class extends Migration
     public function down(): void
     {
         // Re-add 'psikotropika' to enum
-        DB::statement("ALTER TABLE samples DROP CONSTRAINT IF EXISTS samples_sample_category_check");
+        DB::statement('ALTER TABLE samples DROP CONSTRAINT IF EXISTS samples_sample_category_check');
         DB::statement("ALTER TABLE samples ADD CONSTRAINT samples_sample_category_check CHECK (sample_category::text = ANY (ARRAY['narkotika'::text, 'psikotropika'::text, 'prekursor'::text, 'zat_adiktif'::text, 'obat_keras'::text, 'other'::text]))");
     }
 };

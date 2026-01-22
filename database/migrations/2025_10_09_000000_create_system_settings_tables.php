@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (!Schema::hasTable('settings')) {
+        if (! Schema::hasTable('settings')) {
             Schema::create('settings', function (Blueprint $table) {
                 $table->id();
                 $table->string('key')->unique();
@@ -18,7 +18,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('sequences')) {
+        if (! Schema::hasTable('sequences')) {
             Schema::create('sequences', function (Blueprint $table) {
                 $table->id();
                 $table->string('scope');
@@ -29,7 +29,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('document_templates')) {
+        if (! Schema::hasTable('document_templates')) {
             Schema::create('document_templates', function (Blueprint $table) {
                 $table->id();
                 $table->string('code')->unique();
@@ -41,7 +41,7 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasTable('audit_logs')) {
+        if (! Schema::hasTable('audit_logs')) {
             Schema::create('audit_logs', function (Blueprint $table) {
                 $table->id();
                 $table->foreignId('actor_id')->nullable()->constrained('users')->nullOnDelete();

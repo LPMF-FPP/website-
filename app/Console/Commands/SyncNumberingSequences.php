@@ -45,8 +45,8 @@ class SyncNumberingSequences extends Command
 
         // Count existing requests with BA-RIM pattern for current month
         // Pattern: BA-RIM/{SEQ:3}/{RM}/{YYYY}/FPP
-        $pattern = 'BA-RIM/%/' . $this->intToRoman((int) now()->format('m')) . '/' . now()->format('Y') . '/FPP';
-        
+        $pattern = 'BA-RIM/%/'.$this->intToRoman((int) now()->format('m')).'/'.now()->format('Y').'/FPP';
+
         $maxSeq = TestRequest::where('request_number', 'like', $pattern)
             ->selectRaw("MAX(CAST(SPLIT_PART(request_number, '/', 2) AS INTEGER)) as max_seq")
             ->value('max_seq') ?? 0;
@@ -64,7 +64,7 @@ class SyncNumberingSequences extends Command
         }
 
         // Also check yearly bucket
-        $yearlyMaxSeq = TestRequest::where('request_number', 'like', 'BA-RIM/%/%/' . now()->format('Y') . '/FPP')
+        $yearlyMaxSeq = TestRequest::where('request_number', 'like', 'BA-RIM/%/%/'.now()->format('Y').'/FPP')
             ->selectRaw("MAX(CAST(SPLIT_PART(request_number, '/', 2) AS INTEGER)) as max_seq")
             ->value('max_seq') ?? 0;
 
@@ -87,8 +87,8 @@ class SyncNumberingSequences extends Command
 
         // Pattern: TR-LPMF{SEQ:3}{RM}{YYYY}
         // Extract sequence number from patterns like TR-LPMF001I2026
-        $pattern = 'TR-LPMF%' . now()->format('Y');
-        
+        $pattern = 'TR-LPMF%'.now()->format('Y');
+
         $maxSeq = TestRequest::where('receipt_number', 'like', $pattern)
             ->get()
             ->map(function ($request) {
@@ -96,6 +96,7 @@ class SyncNumberingSequences extends Command
                 if (preg_match('/TR-LPMF(\d{3})/', $request->receipt_number, $matches)) {
                     return (int) $matches[1];
                 }
+
                 return 0;
             })
             ->max() ?? 0;

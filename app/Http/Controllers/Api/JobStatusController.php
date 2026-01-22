@@ -28,7 +28,7 @@ class JobStatusController extends Controller
             'progress' => [
                 'current' => $job->progress_current,
                 'total' => $job->progress_total,
-                'percentage' => $job->progress_total > 0 
+                'percentage' => $job->progress_total > 0
                     ? round(($job->progress_current / $job->progress_total) * 100, 2)
                     : 0,
             ],

@@ -183,6 +183,30 @@
                 </div>
             </div>
 
+            <!-- Rata-rata Kecepatan Pengerjaan Bulan Ini -->
+            <div class="card">
+                <div class="space-y-1">
+                    @if(isset($avg_processing) && $avg_processing['average'] !== null)
+                        <div class="text-3xl font-semibold text-primary-900">
+                            {{ $avg_processing['average'] }} hari/permintaan
+                        </div>
+                        <div class="text-sm font-medium text-accent-600">
+                            Rata-rata Kecepatan Pengerjaan Bulan Ini
+                        </div>
+                        <div class="text-xs text-accent-500">
+                            Dihitung dari {{ $avg_processing['count'] }} permintaan yang selesai
+                        </div>
+                    @else
+                        <div class="text-xl font-semibold text-accent-500">
+                            Belum ada data
+                        </div>
+                        <div class="text-sm font-medium text-accent-600">
+                            Rata-rata Kecepatan Pengerjaan Bulan Ini
+                        </div>
+                    @endif
+                </div>
+            </div>
+
             <!-- Quick Actions (unchanged other than labels earlier) -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <a href="{{ route('requests.create') }}" class="card block text-center hover:shadow-md transition-shadow duration-200">

@@ -197,6 +197,18 @@ export class SettingsClient {
                 loading: false,
                 error: null,
             },
+            // WhatsApp Template Editor state
+            templateEditor: {
+                loading: false,
+                templates: {},
+                labels: {},
+                categories: {},
+                placeholders: {},
+                activeCategory: null,
+                previews: {},
+                status: {},
+                sending: {},
+            },
         };
     }
 

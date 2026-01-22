@@ -109,6 +109,120 @@
                 @endif
             </div>
         </div>
+
+        <!-- Permintaan Sudah Diserahkan -->
+        <div class="mt-8 bg-white shadow-sm sm:rounded-lg">
+            <div class="p-6 bg-white border-b border-gray-200">
+                <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Riwayat Penyerahan</h3>
+                        <p class="text-gray-600">Daftar permintaan yang telah diserahkan kepada penyidik.</p>
+                    </div>
+                    
+                    <form action="{{ route('delivery.index') }}" method="GET" class="flex gap-2">
+                        <div class="relative rounded-md shadow-sm">
+                            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <input type="text" name="search" value="{{ request('search') }}" 
+                                class="block w-full rounded-md border-gray-300 pl-10 focus:border-teal-500 focus:ring-teal-500 sm:text-sm" 
+                                placeholder="Cari Resi / Penyidik...">
+                        </div>
+                        <button type="submit" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2">
+                            Cari
+                        </button>
+                    </form>
+                </div>
+
+                @if($completedRequests->isNotEmpty())
+                    <div class="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+                        <table class="min-w-full divide-y divide-gray-300">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                        <a href="{{ route('delivery.index', ['sort' => 'receipt_number', 'direction' => request('direction') == 'asc' ? 'desc' : 'asc', 'completed_page' => request('completed_page'), 'search' => request('search')]) }}" class="group inline-flex">
+                                            No. Resi
+                                            @if(request('sort') == 'receipt_number')
+                                                <span class="ml-2 flex-none rounded bg-gray-200 text-gray-900 group-hover:bg-gray-300">
+                                                    {{ request('direction') == 'asc' ? '↑' : '↓' }}
+                                                </span>
+                                            @endif
+                                        </a>
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Penyidik</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Tersangka</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Jumlah Sampel</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                        <a href="{{ route('delivery.index', ['sort' => 'completed_at', 'direction' => request('direction') == 'asc' ? 'desc' : 'asc', 'completed_page' => request('completed_page'), 'search' => request('search')]) }}" class="group inline-flex">
+                                            Tanggal Penyerahan
+                                            @if(request('sort', 'completed_at') == 'completed_at')
+                                                <span class="ml-2 flex-none rounded bg-gray-200 text-gray-900 group-hover:bg-gray-300">
+                                                    {{ request('direction', 'desc') == 'asc' ? '↑' : '↓' }}
+                                                </span>
+                                            @endif
+                                        </a>
+                                    </th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"></th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200 bg-white">
+                                @foreach($completedRequests as $request)
+                                    <tr class="transition hover:bg-gray-50">
+                                        <td class="px-6 py-4 text-sm font-semibold text-gray-900">
+                                            {{ $request->receipt_number ?? $request->request_number }}
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-900">
+                                            {{ optional($request->investigator)->name ?? '-' }}
+                                            @if($request->investigator)
+                                                <div class="text-xs text-gray-500">{{ $request->investigator->rank }} &middot; {{ $request->investigator->jurisdiction }}</div>
+                                            @endif
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-900">
+                                            {{ $request->suspect_name ?? '-' }}
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-900">
+                                            <div class="flex items-center">
+                                                <span>{{ $request->samples->count() }} sampel</span>
+                                                <span class="ml-2 inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">Selesai</span>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-900">
+                                            {{ optional($request->completed_at)->format('d/m/Y') ?? '-' }}
+                                            <div class="text-xs text-gray-500">{{ optional($request->completed_at)->format('H:i') }} WIB</div>
+                                        </td>
+                                        <td class="px-6 py-4 text-right text-sm font-medium">
+                                            <div class="flex flex-wrap justify-end gap-2">
+                                                <a href="{{ route('delivery.show', $request) }}"
+                                                   class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:text-gray-900">
+                                                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                                    </svg>
+                                                    Detail
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-4">
+                        {{ $completedRequests->links() }}
+                    </div>
+                @else
+                    <div class="py-12 text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900">Tidak ditemukan data</h3>
+                        <p class="mt-1 text-sm text-gray-500">Coba ubah kata kunci pencarian atau filter Anda.</p>
+                    </div>
+                @endif
+            </div>
+        </div>
     </div>
 </x-app-layout>
 

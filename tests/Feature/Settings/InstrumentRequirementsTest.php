@@ -4,7 +4,6 @@ namespace Tests\Feature\Settings;
 
 use App\Enums\InstrumentUsageType;
 use App\Models\Instrument;
-use App\Models\MethodInstrumentRequirement;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;

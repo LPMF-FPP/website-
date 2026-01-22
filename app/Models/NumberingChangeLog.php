@@ -25,8 +25,11 @@ class NumberingChangeLog extends Model
     ];
 
     public const ACTION_RESET = 'reset';
+
     public const ACTION_SYNC_MAX = 'sync_max';
+
     public const ACTION_SYNC_COUNT = 'sync_count';
+
     public const ACTION_EDIT = 'edit';
 
     public const SCOPES = [

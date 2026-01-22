@@ -21,12 +21,12 @@ class CheckPermission
         $user = $request->user();
 
         // Jika tidak login, redirect ke login
-        if (!$user) {
+        if (! $user) {
             return redirect()->route('login');
         }
 
         // Cek permission
-        if (!$user->hasPermission($permission)) {
+        if (! $user->hasPermission($permission)) {
             // Jika request AJAX, return JSON
             if ($request->expectsJson()) {
                 return response()->json([

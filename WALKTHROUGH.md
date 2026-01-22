@@ -23,12 +23,58 @@
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 
-**Current Version:** v1.7.4 (18 Januari 2026)  
-**Latest Feature:** Settings Page Cleanup
+**Current Version:** v1.7.7 (22 Januari 2026)  
+**Latest Feature:** Request Detail Page UX Redesign + Bug Fixes
 
 ---
 
 ## 📰 Recent Changes (v1.5.x)
+
+### v1.7.7 (22 Januari 2026) - Request Detail Page UX Redesign + Bug Fixes
+
+```
+Updated on 2026-01-22
+```
+
+**🎯 Problem Solved:**
+
+1. **UX Issue:** Halaman Detail Permintaan terlalu banyak informasi dan minim petunjuk, menyebabkan user kesulitan menavigasi dan memahami langkah selanjutnya.
+2. **Bug Fixes:** Beberapa bug yang menyebabkan inkonsistensi data dan user experience yang buruk.
+
+**✨ UX Improvements (Request Detail Page):**
+
+- **Header Summary Card:** Info ringkas (No. Resi, Status, Penyidik, Jumlah Sampel) langsung terlihat di bagian atas.
+- **Reminder Card (Baru):** Petunjuk dismissable yang mengingatkan user untuk:
+    1. Cetak Berita Acara sebanyak **2 rangkap**
+    2. Serahkan permohonan ke bagian **Administrasi**
+- **Collapsible Sections:** Section yang bisa expand/collapse untuk mengurangi information overload:
+    - Daftar Sampel (default: expanded)
+    - Dokumen (default: expanded)
+    - Data Penyidik & Tersangka (default: collapsed)
+- **Document Grid:** Tampilan dokumen dalam format kartu dengan preview thumbnail dan aksi hover (Lihat, Download, Hapus).
+- **Konsolidasi Quick Actions:** Tombol aksi (Edit, Cetak BA, Kembali) dipusatkan di header.
+
+**🐛 Bug Fixes:**
+
+1. **Task Templates Not in Settings:** Template notifikasi WhatsApp untuk task (`TASK_ASSIGNED`, `TASK_STATUS_CHANGED`) sekarang muncul di Settings → Notifikasi & Security dan dapat diedit.
+2. **Berita Acara Not Updated After Edit:** Saat mengedit permintaan, dokumen BA sekarang dihapus sepenuhnya (DB records + PDF + HTML) agar regenerasi menggunakan data terbaru.
+3. **Inactive Staff in Dropdowns:** Staff yang sudah dinonaktifkan (`is_active = false`) tidak lagi muncul di dropdown analis pada halaman Kaji Ulang Permintaan.
+
+**📁 Files Created:**
+
+- `resources/views/components/collapsible-section.blade.php`
+- `resources/views/requests/partials/samples-table.blade.php`
+- `resources/views/requests/partials/documents-grid.blade.php`
+- `resources/views/requests/partials/investigator-info.blade.php`
+
+**📁 Files Modified:**
+
+- `resources/views/requests/show.blade.php` (complete redesign)
+- `app/Services/WhatsApp/TemplateService.php` (added task category)
+- `app/Jobs/SendTaskNotificationJob.php` (use TemplateService)
+- `app/Http/Controllers/RequestController.php` (full BA cleanup on edit)
+- `app/Http/Controllers/SampleTestController.php` (filter inactive staff)
+- `app/Http/Controllers/SampleTestProcessController.php` (filter inactive staff)
 
 ### v1.7.6 (19 Januari 2026) - PostgreSQL Compatibility Fix (Numbering Repair)
 

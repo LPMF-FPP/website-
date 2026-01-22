@@ -19,7 +19,7 @@ class LabelManagementTest extends DuskTestCase
         $user = User::factory()->create();
         $request = TestRequest::factory()->create(['user_id' => $user->id]);
         $sample = Sample::factory()->create(['test_request_id' => $request->id]);
-        
+
         $this->browse(function (Browser $browser) use ($user, $request) {
             $browser->loginAs($user)
                 ->visit("/requests/{$request->id}")
@@ -51,7 +51,7 @@ class LabelManagementTest extends DuskTestCase
         $user = User::factory()->create();
         $request = TestRequest::factory()->create(['user_id' => $user->id]);
         $sample = Sample::factory()->create(['test_request_id' => $request->id]);
-        
+
         EvidenceUnit::create([
             'request_id' => $request->id,
             'sample_id' => $sample->id,
@@ -74,7 +74,7 @@ class LabelManagementTest extends DuskTestCase
     {
         $user = User::factory()->create();
         $request = TestRequest::factory()->create(['user_id' => $user->id]);
-        
+
         $this->browse(function (Browser $browser) use ($user, $request) {
             $browser->loginAs($user)
                 ->visit('/labels/scan')

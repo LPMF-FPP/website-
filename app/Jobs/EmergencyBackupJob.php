@@ -14,6 +14,7 @@ class EmergencyBackupJob implements ShouldQueue
     use Queueable;
 
     public int $timeout = 1800;
+
     public int $tries = 1;
 
     public function __construct(
@@ -33,7 +34,7 @@ class EmergencyBackupJob implements ShouldQueue
 
             $outputDir = $service->createBackupDirectory('emergency');
             $backupRun->update(['artifact_dir' => $outputDir]);
-            
+
             $jobStatus->updateProgress(2, 5);
             $dbDump = $service->createDatabaseDump($outputDir);
             $backupRun->update([
@@ -53,7 +54,7 @@ class EmergencyBackupJob implements ShouldQueue
                 'database' => $dbDump['path'],
                 'storage' => $storageArchive['path'],
             ]);
-            
+
             $backupRun->update([
                 'manifest_path' => $manifest['path'],
                 'git_commit' => $manifest['data']['git_commit'],

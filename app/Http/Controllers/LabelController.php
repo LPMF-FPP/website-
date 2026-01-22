@@ -116,7 +116,7 @@ class LabelController extends Controller
     public function evidenceSheet(Request $request, int $requestId)
     {
         $testRequest = TestRequest::with(['samples', 'investigator'])->find($requestId);
-        
+
         // Ensure evidence units exist or are created (fallback logic if needed, but existing code relied on them existing)
         $evidenceUnits = $this->labelService->getEvidenceUnitsForRequest($requestId);
 
@@ -141,7 +141,7 @@ class LabelController extends Controller
         // Construct rows: Left = Evidence, Right = Case (only for first 4 rows)
         // Total rows is determined by number of evidence labels
         $totalRows = $evidencePayloads->count();
-        
+
         // Ensure at least 4 rows if we want to show 4 case labels even if < 4 samples?
         // User said: "banyaknya label baru... tetap yaitu 4"
         // So if we have 1 sample, we should have 4 rows?
@@ -155,7 +155,7 @@ class LabelController extends Controller
         for ($i = 0; $i < $totalRows; $i++) {
             $rows[] = [
                 'left' => $evidencePayloads->get($i), // Returns null if index out of bounds
-                'right' => ($i < 4) ? $casePayload : null // Only first 4 rows get case label
+                'right' => ($i < 4) ? $casePayload : null, // Only first 4 rows get case label
             ];
         }
 
@@ -164,6 +164,7 @@ class LabelController extends Controller
 
         $pdf = Pdf::loadView('labels.evidence-sheet', [
             'rows' => collect($rows), // Pass as collection to allow ->chunk() in blade
+            'request' => $testRequest, // Pass request for checklist
             'printDate' => now()->translatedFormat('d M Y H:i'),
         ]);
 
@@ -192,7 +193,10 @@ class LabelController extends Controller
             'printDate' => now()->translatedFormat('d M Y H:i'),
         ]);
 
-        $pdf->setPaper([0, 0, 283.46, 141.73], 'landscape'); // ~100x50mm
+        // 74mm x 52mm in points (1mm = 2.83465pt)
+        // 74mm = 209.76 pt
+        // 52mm = 147.40 pt
+        $pdf->setPaper([0, 0, 209.76, 147.40], 'landscape');
 
         return $pdf->stream("label-{$evidenceUnit->sample_code}.pdf");
     }
@@ -283,7 +287,8 @@ class LabelController extends Controller
             'printDate' => now()->format('d M Y H:i'),
         ]);
 
-        $pdf->setPaper([0, 0, 283.46, 141.73], 'landscape'); // ~100x50mm
+        // 74mm x 52mm
+        $pdf->setPaper([0, 0, 209.76, 147.40], 'landscape');
 
         return $pdf->stream("label-sisa-{$remainingUnit->remaining_code}.pdf");
     }

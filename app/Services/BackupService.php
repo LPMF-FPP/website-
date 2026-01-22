@@ -2,10 +2,7 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Process;
-use Illuminate\Support\Facades\Storage;
-use ZipArchive;
 
 class BackupService
 {
@@ -13,7 +10,7 @@ class BackupService
     {
         $connection = config('database.default');
         $config = config("database.connections.{$connection}");
-        
+
         $driver = $config['driver'];
         $database = $config['database'];
         $username = $config['username'];
@@ -21,8 +18,8 @@ class BackupService
         $host = $config['host'];
         $port = $config['port'] ?? ($driver === 'mysql' ? 3306 : 5432);
 
-        $dumpFile = $outputPath . '/db.sql';
-        $gzipFile = $dumpFile . '.gz';
+        $dumpFile = $outputPath.'/db.sql';
+        $gzipFile = $dumpFile.'.gz';
 
         if ($driver === 'mysql') {
             $command = sprintf(
@@ -49,9 +46,9 @@ class BackupService
         }
 
         $result = Process::run($command);
-        
+
         if ($result->failed()) {
-            throw new \RuntimeException("Database dump failed: " . $result->errorOutput());
+            throw new \RuntimeException('Database dump failed: '.$result->errorOutput());
         }
 
         exec("gzip {$dumpFile}");
@@ -69,7 +66,7 @@ class BackupService
     public function createStorageArchive(string $outputPath): array
     {
         $storagePath = storage_path('app');
-        $archivePath = $outputPath . '/storage.tar.gz';
+        $archivePath = $outputPath.'/storage.tar.gz';
 
         $excludes = [
             'backups',
@@ -78,7 +75,7 @@ class BackupService
         ];
 
         $excludeArgs = implode(' ', array_map(
-            fn($ex) => "--exclude='{$ex}'",
+            fn ($ex) => "--exclude='{$ex}'",
             $excludes
         ));
 
@@ -92,7 +89,7 @@ class BackupService
         $result = Process::run($command);
 
         if ($result->failed()) {
-            throw new \RuntimeException("Storage archive failed: " . $result->errorOutput());
+            throw new \RuntimeException('Storage archive failed: '.$result->errorOutput());
         }
 
         return [
@@ -121,7 +118,7 @@ class BackupService
             }
         }
 
-        $manifestPath = $outputPath . '/manifest.json';
+        $manifestPath = $outputPath.'/manifest.json';
         file_put_contents($manifestPath, json_encode($manifest, JSON_PRETTY_PRINT));
 
         return [
@@ -134,6 +131,7 @@ class BackupService
     {
         try {
             $result = Process::run('git rev-parse HEAD');
+
             return $result->successful() ? trim($result->output()) : null;
         } catch (\Throwable $e) {
             return null;
@@ -144,7 +142,7 @@ class BackupService
     {
         $timestamp = now()->format('Ymd_His');
         $dir = storage_path("app/backups/{$mode}/{$timestamp}");
-        
+
         if (! is_dir($dir)) {
             mkdir($dir, 0755, true);
         }
@@ -156,13 +154,13 @@ class BackupService
     {
         $cutoffDate = now()->subDays($retentionDays);
         $basePath = storage_path("app/backups/{$mode}");
-        
+
         if (! is_dir($basePath)) {
             return 0;
         }
 
         $deleted = 0;
-        $directories = glob($basePath . '/*', GLOB_ONLYDIR);
+        $directories = glob($basePath.'/*', GLOB_ONLYDIR);
 
         foreach ($directories as $dir) {
             $dirTime = filemtime($dir);
@@ -182,9 +180,9 @@ class BackupService
         }
 
         $files = array_diff(scandir($dir), ['.', '..']);
-        
+
         foreach ($files as $file) {
-            $path = $dir . '/' . $file;
+            $path = $dir.'/'.$file;
             is_dir($path) ? $this->deleteDirectory($path) : unlink($path);
         }
 

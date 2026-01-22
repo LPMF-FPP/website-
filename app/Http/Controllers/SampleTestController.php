@@ -47,6 +47,7 @@ class SampleTestController extends Controller
         }
 
         $analysts = User::query()
+            ->where('is_active', true)
             ->whereIn('role', ['analis', 'penyelia', 'manajer_teknis'])
             ->orderBy('name')
             ->get();

@@ -2,10 +2,9 @@
 
 namespace App\Services\WhatsApp\Commands;
 
-use App\Models\InventoryItem;
-use App\Models\InventoryTransaction; // Assuming this model exists
 use App\Models\InventoryBalance;
-use App\Models\User;
+// Assuming this model exists
+use App\Models\InventoryItem;
 use Illuminate\Support\Facades\DB;
 
 class StockTransactionCommand
@@ -30,6 +29,7 @@ class StockTransactionCommand
                 $response .= "• {$item->name}: {$stok} {$item->uom}\n";
             }
             $response .= "\nKetik `/stok {masuk/keluar} {nama} {jml}` untuk transaksi.";
+
             return $response;
         }
 
@@ -41,7 +41,7 @@ class StockTransactionCommand
         $itemName = $params[1];
         $qty = floatval($params[2]);
 
-        if (!in_array($type, ['masuk', 'keluar', 'in', 'out'])) {
+        if (! in_array($type, ['masuk', 'keluar', 'in', 'out'])) {
             return "⚠️ Tipe transaksi harus 'masuk' atau 'keluar'.";
         }
 
@@ -51,7 +51,7 @@ class StockTransactionCommand
             ->where('is_active', true)
             ->first();
 
-        if (!$item) {
+        if (! $item) {
             return "⚠️ Barang '{$itemName}' tidak ditemukan.";
         }
 
@@ -61,8 +61,8 @@ class StockTransactionCommand
         try {
             DB::beginTransaction();
 
-            $locationId = 1; 
-            
+            $locationId = 1;
+
             $balance = InventoryBalance::firstOrCreate(
                 ['item_id' => $item->id, 'location_id' => $locationId],
                 ['on_hand_qty' => 0]
@@ -70,13 +70,13 @@ class StockTransactionCommand
 
             if ($isIn) {
                 $balance->increment('on_hand_qty', $qty);
-                $action = "Penerimaan";
+                $action = 'Penerimaan';
             } else {
                 if ($balance->on_hand_qty < $qty) {
                     return "⚠️ Stok tidak cukup. Sisa: {$balance->on_hand_qty}";
                 }
                 $balance->decrement('on_hand_qty', $qty);
-                $action = "Pengeluaran";
+                $action = 'Pengeluaran';
             }
 
             DB::commit();
@@ -85,7 +85,8 @@ class StockTransactionCommand
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return "❌ Gagal memproses transaksi: " . $e->getMessage();
+
+            return '❌ Gagal memproses transaksi: '.$e->getMessage();
         }
     }
 }

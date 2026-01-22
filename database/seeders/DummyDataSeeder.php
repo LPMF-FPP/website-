@@ -154,7 +154,7 @@ class DummyDataSeeder extends Seeder
         $count = 0;
         foreach ($completedRequests as $request) {
             $lhuNumber = 'LHU/'.now()->format('Y').'/'.str_pad($request->id, 4, '0', STR_PAD_LEFT);
-            
+
             Document::create([
                 'investigator_id' => $request->investigator_id,
                 'test_request_id' => $request->id,
@@ -176,7 +176,7 @@ class DummyDataSeeder extends Seeder
             $count++;
             $this->command->line('✓ LHU: '.$lhuNumber);
         }
-        
+
         $this->command->info('Created '.$count.' LHU documents');
     }
 
@@ -205,7 +205,7 @@ class DummyDataSeeder extends Seeder
                 'pengaduan' => rand(3, 4),
                 'fasilitas' => rand(2, 4),
             ];
-            
+
             $scoreAvg = array_sum($answers) / count($answers);
 
             CustomerSurvey::create([
@@ -227,7 +227,7 @@ class DummyDataSeeder extends Seeder
             $count++;
             $this->command->line('✓ Survey for Request #'.$request->id.' (Score: '.number_format($scoreAvg, 2).')');
         }
-        
+
         $this->command->info('Created '.$count.' customer surveys');
     }
 
@@ -312,7 +312,7 @@ class DummyDataSeeder extends Seeder
         $this->command->line('Inventory Balances: '.InventoryBalance::count());
         $this->command->newLine();
         $this->command->info('✅ Dummy data created successfully!');
-        
+
         // Show IKU-related counts
         $this->command->newLine();
         $this->command->info('=== IKU Data Verification ===');

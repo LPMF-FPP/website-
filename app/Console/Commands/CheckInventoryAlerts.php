@@ -8,6 +8,7 @@ use Illuminate\Console\Command;
 class CheckInventoryAlerts extends Command
 {
     protected $signature = 'inventory:check-alerts';
+
     protected $description = 'Check for low stock and expiring items and send alerts via WhatsApp';
 
     public function handle(InventoryAlertService $service)

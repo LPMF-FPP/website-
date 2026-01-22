@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\WhatsappCommandLog;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Log;
 
 class WhatsappWebhookController extends Controller
 {
@@ -17,13 +17,13 @@ class WhatsappWebhookController extends Controller
         $secret = Config::get('services.whatsapp.webhook_secret', env('WHATSAPP_WEBHOOK_SECRET'));
 
         if ($secret) {
-            if (!$signature) {
+            if (! $signature) {
                 return response()->json(['status' => 'error', 'message' => 'Missing signature'], 403);
             }
 
-            $expected = 'sha256=' . hash_hmac('sha256', $request->getContent(), $secret);
+            $expected = 'sha256='.hash_hmac('sha256', $request->getContent(), $secret);
 
-            if (!hash_equals($expected, $signature)) {
+            if (! hash_equals($expected, $signature)) {
                 return response()->json(['status' => 'error', 'message' => 'Invalid signature'], 403);
             }
         }
@@ -35,14 +35,14 @@ class WhatsappWebhookController extends Controller
             $rawContent = $request->getContent();
             $data = json_decode($rawContent, true) ?? [];
         }
-        
+
         Log::info('WhatsApp incoming webhook', ['payload' => $data]);
 
         // Support both flat structure (tests) and nested structure (production webhooks)
         $from = $data['from'] ?? $data['sender'] ?? null;
         $message = $data['body'] ?? $data['text'] ?? $data['message'] ?? null;
 
-        if (!$from || !$message) {
+        if (! $from || ! $message) {
             if (isset($data['payload']) && is_array($data['payload'])) {
                 $msg = $data['payload'];
                 $from = $from ?? ($msg['from'] ?? $msg['sender'] ?? null);
@@ -58,7 +58,7 @@ class WhatsappWebhookController extends Controller
             }
         }
 
-        if (!$from || !$message) {
+        if (! $from || ! $message) {
             return response()->json(['status' => 'ignored', 'reason' => 'missing_data'], 200);
         }
 
@@ -69,7 +69,7 @@ class WhatsappWebhookController extends Controller
                 'from_phone_e164' => $from,
                 'message_text' => $message,
                 'params' => $data, // FIX: Model casts to array, no json_encode needed
-                'response_status' => 'received', 
+                'response_status' => 'received',
             ]);
 
             \App\Jobs\ProcessWhatsAppWebhook::dispatch($log->id, $from, $message);
@@ -80,6 +80,7 @@ class WhatsappWebhookController extends Controller
             Log::error('Webhook dispatch error', [
                 'error' => $e->getMessage(),
             ]);
+
             return response()->json(['status' => 'error'], 500);
         }
     }

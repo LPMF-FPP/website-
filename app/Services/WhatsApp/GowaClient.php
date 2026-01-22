@@ -8,8 +8,11 @@ use Illuminate\Support\Facades\Log;
 class GowaClient
 {
     private string $baseUrl;
+
     private ?string $basicUser;
+
     private ?string $basicPass;
+
     private ?string $deviceId;
 
     public function __construct()
@@ -17,9 +20,9 @@ class GowaClient
         $this->baseUrl = settings('notifications.whatsapp.base_url') ?: env('WHATSAPP_API_URL', 'http://localhost:3000');
         $this->basicUser = settings('notifications.whatsapp.basic_user') ?: env('WHATSAPP_BASIC_USER', 'lpmf');
         $this->deviceId = settings('notifications.whatsapp.device_id') ?: env('WHATSAPP_DEVICE_ID', '03663e24-efdb-48fe-961d-456436bfb219');
-        
+
         $encPass = settings('notifications.whatsapp.basic_pass');
-        
+
         if ($encPass) {
             try {
                 $this->basicPass = decrypt($encPass);
@@ -59,7 +62,7 @@ class GowaClient
                     'to' => $phone,
                     'message_id' => $data['results']['message_id'] ?? $data['message_id'] ?? $data['id'] ?? null,
                 ]);
-                
+
                 return [
                     'success' => true,
                     'message_id' => $data['results']['message_id'] ?? $data['message_id'] ?? $data['id'] ?? null,
