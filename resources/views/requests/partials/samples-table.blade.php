@@ -41,11 +41,7 @@
                         <td class="px-4 py-3 text-gray-700">{{ $sample->short_description ?? '—' }}</td>
                         <td class="px-4 py-3 text-gray-700">
                             @if ($methods->isNotEmpty())
-                                <ul class="list-disc list-inside space-y-1 text-xs text-gray-600">
-                                    @foreach ($methods as $method)
-                                        <li>{{ $method }}</li>
-                                    @endforeach
-                                </ul>
+                                <span class="text-xs text-gray-600">{{ $methods->implode(', ') }}</span>
                             @else
                                 <span class="text-gray-400">-</span>
                             @endif
