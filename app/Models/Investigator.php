@@ -17,6 +17,14 @@ class Investigator extends Model
         'is_polri', 'institution', 'occupation', 'alt_phone',
     ];
 
+    /**
+     * Normalize jurisdiction to uppercase on save to prevent duplicates
+     */
+    public function setJurisdictionAttribute($value)
+    {
+        $this->attributes['jurisdiction'] = $value ? strtoupper(trim($value)) : null;
+    }
+
     protected static function boot()
     {
         parent::boot();
