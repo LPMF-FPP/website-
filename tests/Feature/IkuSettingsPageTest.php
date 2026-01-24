@@ -335,3 +335,26 @@ test('settings page loads correctly with custom iku config', function () {
 
     $response->assertOk();
 });
+
+test('iku settings accepts quarterly period mode', function () {
+    $user = User::factory()->create(['role' => 'admin']);
+
+    $payload = [
+        'weights' => [
+            'registration' => 15,
+            'lab_exam' => 35,
+            'report' => 35,
+            'survey' => 15,
+        ],
+        'period_mode' => 'quarterly',
+        'target_samples_by_year' => [
+            2025 => 150,
+        ],
+    ];
+
+    $response = $this->actingAs($user)
+        ->putJson('/api/settings/iku', $payload);
+
+    $response->assertOk()
+        ->assertJsonPath('iku.period_mode', 'quarterly');
+});

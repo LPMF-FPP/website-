@@ -17,7 +17,7 @@ class IkuSettingsRequest extends FormRequest
     {
         return [
             'enabled' => ['sometimes', 'boolean'],
-            'period_mode' => ['sometimes', 'string', 'in:monthly,yearly'],
+            'period_mode' => ['sometimes', 'string', 'in:monthly,yearly,quarterly'],
             'weights' => ['sometimes', 'array'],
             'weights.registration' => ['sometimes', 'integer', 'min:0', 'max:100'],
             'weights.lab_exam' => ['sometimes', 'integer', 'min:0', 'max:100'],
@@ -61,7 +61,7 @@ class IkuSettingsRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'period_mode.in' => 'Mode periode harus monthly atau yearly.',
+            'period_mode.in' => 'Mode periode harus monthly, quarterly atau yearly.',
             'weights.*.min' => 'Bobot tidak boleh negatif.',
             'weights.*.max' => 'Bobot tidak boleh lebih dari 100.',
             'target_samples_by_year.*.min' => 'Target sampel harus positif.',
