@@ -379,6 +379,5 @@ test('iku quarterly target divides annual target by 4', function () {
     $result = $service->computeForCurrentQuarter();
 
     // D = target samples. Should be 200 / 4 = 50 for quarterly
-    // Currently logic is missing, so it will likely return 200 (annual target)
     expect($result['raw_counts']['D'])->toBe(50);
 });
