@@ -529,12 +529,29 @@ class NumberingRepairService
 
             $entity->save();
 
+            // CASCADE: Update related tables
+            $cascadeCount = 0;
+
+            if ($scope === 'sample_code' && $oldNumber) {
+                // Update evidence_units that reference this sample
+                $cascadeCount = \App\Models\EvidenceUnit::where('sample_id', $entity->id)
+                    ->where('sample_code', $oldNumber)
+                    ->update(['sample_code' => $newNumber]);
+            }
+
+            if ($scope === 'tracking' && $oldNumber) {
+                // Update evidence_units receipt_code if needed
+                $cascadeCount = \App\Models\EvidenceUnit::where('request_id', $entity->id)
+                    ->where('receipt_code', $oldNumber)
+                    ->update(['receipt_code' => $newNumber]);
+            }
+
             NumberingChangeLog::log(
                 $scope,
                 NumberingChangeLog::ACTION_EDIT,
                 $oldNumber ?? '',
                 $newNumber,
-                $reason,
+                $reason.($cascadeCount > 0 ? " (cascade: {$cascadeCount} related records)" : ''),
                 get_class($entity),
                 $entity->id
             );
@@ -544,6 +561,7 @@ class NumberingRepairService
                 'old_number' => $oldNumber,
                 'new_number' => $newNumber,
                 'entity_id' => $entity->id,
+                'cascade_count' => $cascadeCount,
             ];
         });
     }
