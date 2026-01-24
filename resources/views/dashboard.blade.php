@@ -93,7 +93,7 @@
                         </div>
                         <div class="text-sm font-medium text-blue-600">IKU Performance</div>
                         <div class="text-xs text-blue-400">
-                            Periode: {{ $iku_data['period']['start'] ?? 'Bulan ini' }} s/d {{ $iku_data['period']['end'] ?? '' }}
+                            {{ $iku_data['quarter_label'] ?? ($iku_data['period']['start'] ?? 'Periode ini') }}
                         </div>
                     </div>
                 </div>
@@ -183,27 +183,97 @@
                 </div>
             </div>
 
-            <!-- Rata-rata Kecepatan Pengerjaan Bulan Ini -->
-            <div class="card">
-                <div class="space-y-1">
-                    @if(isset($avg_processing) && $avg_processing['average'] !== null)
-                        <div class="text-3xl font-semibold text-primary-900">
-                            {{ $avg_processing['average'] }} hari/permintaan
-                        </div>
-                        <div class="text-sm font-medium text-accent-600">
-                            Rata-rata Kecepatan Pengerjaan Bulan Ini
-                        </div>
-                        <div class="text-xs text-accent-500">
-                            Dihitung dari {{ $avg_processing['count'] }} permintaan yang selesai
-                        </div>
-                    @else
-                        <div class="text-xl font-semibold text-accent-500">
-                            Belum ada data
-                        </div>
-                        <div class="text-sm font-medium text-accent-600">
-                            Rata-rata Kecepatan Pengerjaan Bulan Ini
-                        </div>
-                    @endif
+            <!-- Kecepatan Pengerjaan + Kepuasan Pelanggan -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Card 1: Rata-rata Kecepatan Pengerjaan -->
+                <div class="card">
+                    <div class="space-y-1">
+                        @if(isset($avg_processing) && $avg_processing['average'] !== null)
+                            <div class="flex items-center gap-3">
+                                <div class="p-2 bg-blue-50 rounded-lg">
+                                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="text-3xl font-semibold text-primary-900 tabular-nums">
+                                        {{ $avg_processing['average'] }}
+                                        <span class="text-lg text-gray-500 font-medium">hari/permintaan</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-sm font-medium text-accent-600 mt-2">
+                                Rata-rata Kecepatan Pengerjaan Bulan Ini
+                            </div>
+                            <div class="text-xs text-accent-500">
+                                Dihitung dari {{ $avg_processing['count'] }} permintaan yang selesai
+                            </div>
+                        @else
+                            <div class="flex items-center gap-3">
+                                <div class="p-2 bg-gray-50 rounded-lg">
+                                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-xl font-semibold text-accent-500">
+                                    Belum ada data
+                                </div>
+                            </div>
+                            <div class="text-sm font-medium text-accent-600 mt-2">
+                                Rata-rata Kecepatan Pengerjaan Bulan Ini
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <!-- Card 2: Kepuasan Pelanggan -->
+                <div class="card border-green-100">
+                    <div class="space-y-1">
+                        @if(isset($customer_satisfaction) && $customer_satisfaction['total_responses'] > 0)
+                            <div class="flex items-center gap-3">
+                                <div class="p-2 bg-green-50 rounded-lg">
+                                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                                <div class="flex items-baseline gap-2">
+                                    <div class="text-3xl font-semibold text-green-700 tabular-nums">
+                                        {{ $customer_satisfaction['score'] }}/4
+                                    </div>
+                                    <div class="text-lg font-medium text-green-500 tabular-nums">
+                                        ({{ $customer_satisfaction['percentage'] }}%)
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-sm font-medium text-green-600 mt-2">
+                                Nilai Kepuasan Pelanggan Bulan Ini
+                            </div>
+                            <div class="flex items-center gap-2 text-xs text-green-500">
+                                <span>{{ $customer_satisfaction['total_responses'] }} responden</span>
+                                @if($customer_satisfaction['trend_direction'] === 'up')
+                                    <span class="text-green-600">↑ {{ $customer_satisfaction['trend'] }}</span>
+                                @elseif($customer_satisfaction['trend_direction'] === 'down')
+                                    <span class="text-red-500">↓ {{ $customer_satisfaction['trend'] }}</span>
+                                @else
+                                    <span class="text-gray-500">→ stabil</span>
+                                @endif
+                            </div>
+                        @else
+                            <div class="flex items-center gap-3">
+                                <div class="p-2 bg-gray-50 rounded-lg">
+                                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                </div>
+                                <div class="text-xl font-semibold text-green-500">
+                                    Belum ada data
+                                </div>
+                            </div>
+                            <div class="text-sm font-medium text-green-600 mt-2">
+                                Nilai Kepuasan Pelanggan Bulan Ini
+                            </div>
+                        @endif
+                    </div>
                 </div>
             </div>
 
