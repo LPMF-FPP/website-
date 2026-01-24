@@ -312,25 +312,31 @@ class DeliveryController extends Controller
 
         $requestTypes = ['Kimia - Fisika', 'Mikrobiologi'];
 
-        $validatedData = $httpRequest->validate([
+        $surveyService = app(\App\Services\SurveyQuestionService::class);
+        $activeQuestions = $surveyService->getQuestions();
+        $questionKeys = collect($activeQuestions)->pluck('key')->toArray();
+
+        // Build dynamic validation rules
+        $answerRules = [];
+        $answerMessages = [];
+        foreach ($activeQuestions as $q) {
+            $maxScale = count($q['scale'] ?? []) > 0 ? count($q['scale']) : 4;
+            $answerRules["answers.{$q['key']}"] = ['required', 'integer', 'between:1,'.$maxScale];
+            $answerMessages["answers.{$q['key']}.required"] = "Pertanyaan '{$q['label']}' wajib diisi.";
+            $answerMessages["answers.{$q['key']}.between"] = "Skor '{$q['label']}' harus valid.";
+        }
+
+        $validatedData = $httpRequest->validate(array_merge([
             'respondent_name' => ['required', 'string', 'max:255'],
             'respondent_institution' => ['required', 'string', 'max:255'],
             'respondent_job_category' => ['required', Rule::in($jobCategories)],
             'request_type' => ['required', Rule::in($requestTypes)],
             'voluntary_statement' => ['accepted'],
             'answers' => ['required', 'array'],
-            'answers.persyaratan' => ['required', 'integer', 'between:1,4'],
-            'answers.prosedur' => ['required', 'integer', 'between:1,4'],
-            'answers.ketepatan_waktu' => ['required', 'integer', 'between:1,4'],
-            'answers.kesesuaian_hasil' => ['required', 'integer', 'between:1,4'],
-            'answers.kompetensi' => ['required', 'integer', 'between:1,4'],
-            'answers.sikap' => ['required', 'integer', 'between:1,4'],
-            'answers.pengaduan' => ['required', 'integer', 'between:1,4'],
-            'answers.fasilitas' => ['required', 'integer', 'between:1,4'],
             'suggestion' => ['required', 'string'],
             'complaint' => ['nullable', 'string'],
             'follow_up' => ['nullable', 'string'],
-        ], [
+        ], $answerRules), array_merge([
             'respondent_name.required' => 'Nama responden wajib diisi.',
             'respondent_institution.required' => 'Instansi responden wajib diisi.',
             'respondent_job_category.required' => 'Kategori pekerjaan wajib dipilih.',
@@ -339,12 +345,15 @@ class DeliveryController extends Controller
             'request_type.in' => 'Jenis permintaan pengujian tidak valid.',
             'voluntary_statement.accepted' => 'Pernyataan wajib disetujui.',
             'answers.required' => 'Semua pertanyaan survei wajib diisi.',
-            'answers.*.required' => 'Semua pertanyaan survei wajib diisi.',
-            'answers.*.between' => 'Skor harus di antara 1 dan 4.',
             'suggestion.required' => 'Saran/pesan/masukan wajib diisi.',
-        ]);
+        ], $answerMessages));
+
+        // Calculate score_avg based on active questions only (mapped to max 4 scale normalization if needed,
+        // but currently we assume avg of raw scores is fine if consistent, or just raw avg)
+        // User requested customization, let's keep it simple: average of values.
 
         $scoreAvg = collect($validatedData['answers'])
+            ->filter(fn ($v, $k) => in_array($k, $questionKeys))
             ->map(fn ($value) => (int) $value)
             ->avg();
 

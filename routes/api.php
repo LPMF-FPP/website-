@@ -158,6 +158,10 @@ Route::middleware(['throttle:60,1'])->group(function () {
             Route::post('/templates/reset', [WhatsAppSettingsController::class, 'resetTemplate']);
             Route::post('/templates/preview', [WhatsAppSettingsController::class, 'previewTemplate']);
         });
+
+        // Survey Questions Management
+        Route::get('/survey-questions', [\App\Http\Controllers\Api\Settings\SurveyQuestionsController::class, 'index']);
+        Route::put('/survey-questions', [\App\Http\Controllers\Api\Settings\SurveyQuestionsController::class, 'update']);
     });
 
     // Job Status Polling (Global)

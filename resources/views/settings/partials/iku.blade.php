@@ -46,6 +46,7 @@
                 <select x-model="client.state.form.iku.period_mode" 
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     <option value="monthly">Bulanan</option>
+                    <option value="quarterly">Triwulan</option>
                     <option value="yearly">Tahunan</option>
                 </select>
                 <p class="text-xs text-gray-500 mt-1">Periode default untuk perhitungan dashboard</p>

@@ -14,40 +14,14 @@
     @php
         $jobCategories = ['TNI', 'Polri', 'ASN', 'Swasta', 'Wirausaha', 'Mahasiswa', 'Siswa'];
         $requestTypes = ['Kimia - Fisika', 'Mikrobiologi'];
-        $questions = [
-            'persyaratan' => [
-                'label' => 'Persyaratan pelayanan',
-                'scale' => ['Tidak Mudah', 'Kurang Mudah', 'Mudah', 'Sangat Mudah'],
-            ],
-            'prosedur' => [
-                'label' => 'Prosedur/tata cara',
-                'scale' => ['Tidak Mudah', 'Kurang Mudah', 'Mudah', 'Sangat Mudah'],
-            ],
-            'ketepatan_waktu' => [
-                'label' => 'Ketepatan waktu',
-                'scale' => ['Tidak Cepat', 'Kurang Cepat', 'Cepat', 'Sangat Cepat'],
-            ],
-            'kesesuaian_hasil' => [
-                'label' => 'Kesesuaian hasil',
-                'scale' => ['Tidak Bermanfaat', 'Kurang Bermanfaat', 'Bermanfaat', 'Sangat Bermanfaat'],
-            ],
-            'kompetensi' => [
-                'label' => 'Kompetensi personel',
-                'scale' => ['Tidak Kompeten', 'Kurang Kompeten', 'Kompeten', 'Sangat Kompeten'],
-            ],
-            'sikap' => [
-                'label' => 'Sikap/keramahan',
-                'scale' => ['Tidak Baik', 'Kurang Baik', 'Baik', 'Sangat Baik'],
-            ],
-            'pengaduan' => [
-                'label' => 'Penanganan pengaduan',
-                'scale' => ['Tidak Baik', 'Kurang Baik', 'Baik', 'Sangat Baik'],
-            ],
-            'fasilitas' => [
-                'label' => 'Fasilitas/sarana',
-                'scale' => ['Tidak Baik', 'Kurang Baik', 'Baik', 'Sangat Baik'],
-            ],
-        ];
+        
+        $surveyService = app(\App\Services\SurveyQuestionService::class);
+        $questionsList = $surveyService->getQuestions();
+        $questions = [];
+        foreach ($questionsList as $q) {
+            $questions[$q['key']] = $q;
+        }
+
         $surveyAnswers = old('answers', $survey->answers ?? []);
         $surveyAnswers = is_array($surveyAnswers) ? $surveyAnswers : [];
 

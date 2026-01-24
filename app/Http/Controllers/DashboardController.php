@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CustomerSurvey;
 use App\Models\Sample;
 use App\Models\TestRequest;
 use App\Models\TestResult;
@@ -45,6 +46,9 @@ class DashboardController extends Controller
             // 6. Rata-rata kecepatan pengerjaan bulan ini
             $avgProcessing = $this->calculateMonthlyAverageProcessingDays();
 
+            // 7. Kepuasan Pelanggan
+            $customerSatisfaction = $this->calculateCustomerSatisfaction();
+
             $dashboardData = [
                 'stats' => [
                     'total_requests' => $totalRequests,
@@ -58,6 +62,7 @@ class DashboardController extends Controller
                 'status_breakdown' => $statusBreakdown,
                 'environment_monitoring' => $environmentMonitoring,
                 'avg_processing' => $avgProcessing,
+                'customer_satisfaction' => $customerSatisfaction,
             ];
 
         } catch (\Exception $e) {
@@ -79,10 +84,61 @@ class DashboardController extends Controller
                     'is_work_day' => false,
                     'active_window' => null,
                 ],
+                'avg_processing' => ['average' => null, 'count' => 0],
+                'customer_satisfaction' => [
+                    'score' => 0,
+                    'percentage' => 0,
+                    'total_responses' => 0,
+                    'trend' => 0,
+                    'trend_direction' => 'stable',
+                ],
             ];
         }
 
         return view('dashboard', $dashboardData);
+    }
+
+    private function calculateCustomerSatisfaction(): array
+    {
+        try {
+            $now = \Carbon\Carbon::now();
+            $startOfMonth = $now->copy()->startOfMonth();
+            $endOfMonth = $now->copy()->endOfMonth();
+
+            // Bulan ini
+            $currentMonth = CustomerSurvey::whereBetween('submitted_at', [$startOfMonth, $endOfMonth]);
+            $avgScore = $currentMonth->avg('score_avg') ?? 0;
+            $totalResponses = $currentMonth->count();
+
+            // Bulan lalu (untuk trend)
+            $lastMonthStart = $now->copy()->subMonth()->startOfMonth();
+            $lastMonthEnd = $now->copy()->subMonth()->endOfMonth();
+            $lastMonthAvg = CustomerSurvey::whereBetween('submitted_at', [$lastMonthStart, $lastMonthEnd])
+                ->avg('score_avg') ?? 0;
+
+            // Hitung persentase (skala 1-4 → 0-100%)
+            $percentage = $avgScore > 0 ? (($avgScore - 1) / 3) * 100 : 0;
+
+            // Trend
+            $trend = $avgScore - $lastMonthAvg;
+            $trendDirection = $trend > 0.01 ? 'up' : ($trend < -0.01 ? 'down' : 'stable');
+
+            return [
+                'score' => round($avgScore, 2),
+                'percentage' => round($percentage, 1),
+                'total_responses' => $totalResponses,
+                'trend' => round(abs($trend), 2),
+                'trend_direction' => $trendDirection,
+            ];
+        } catch (\Exception $e) {
+            return [
+                'score' => 0,
+                'percentage' => 0,
+                'total_responses' => 0,
+                'trend' => 0,
+                'trend_direction' => 'stable',
+            ];
+        }
     }
 
     private function calculateIkuPerformance(): array

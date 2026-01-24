@@ -82,6 +82,10 @@ export class SettingsClient {
                 notifications: { message: "", intentClass: "text-primary-600" },
                 documents: { message: "", intentClass: "text-primary-600" },
                 iku: { message: "", intentClass: "text-primary-600" },
+                survey_questions: {
+                    message: "",
+                    intentClass: "text-primary-600",
+                },
                 monitoring_logging: {
                     message: "",
                     intentClass: "text-primary-600",
@@ -95,6 +99,7 @@ export class SettingsClient {
                 notifications: "",
                 documents: "",
                 iku: "",
+                survey_questions: "",
                 monitoring_logging: "",
             },
             scopeErrors: {
@@ -126,6 +131,7 @@ export class SettingsClient {
                 notifications: false,
                 documents: false,
                 iku: false,
+                survey_questions: false,
                 monitoring_logging: false,
             },
             templates: config.templates || [],
@@ -324,6 +330,7 @@ export class SettingsClient {
                 this.fetchTemplates(),
                 this.fetchCurrentNumbering(),
                 this.fetchDocuments(),
+                this.loadSurveyQuestions(),
             ]);
         } catch (error) {
             this.state.loadError = error.message || "Gagal memuat data awal.";
@@ -1870,6 +1877,88 @@ export class SettingsClient {
             };
         } finally {
             this.state.cleanupDuplicatesLoading = false;
+        }
+    }
+
+    // Survey Questions Management
+    async loadSurveyQuestions() {
+        try {
+            const data = await this.apiFetch("/api/settings/survey-questions");
+            this.state.form.survey_questions = data.questions || [];
+        } catch (error) {
+            this.setSectionError(
+                "survey_questions",
+                error.message || "Gagal memuat pertanyaan survey.",
+            );
+        }
+    }
+
+    addSurveyQuestion() {
+        if (!this.state.form.survey_questions) {
+            this.state.form.survey_questions = [];
+        }
+
+        const newKey = "q_" + Date.now();
+        this.state.form.survey_questions.push({
+            key: newKey,
+            label: "",
+            scale: ["Tidak Mudah", "Kurang Mudah", "Mudah", "Sangat Mudah"],
+            enabled: true,
+        });
+    }
+
+    removeSurveyQuestion(index) {
+        if (confirm("Yakin hapus pertanyaan ini?")) {
+            this.state.form.survey_questions.splice(index, 1);
+        }
+    }
+
+    moveSurveyQuestion(index, direction) {
+        const newIndex = index + direction;
+        if (newIndex < 0 || newIndex >= this.state.form.survey_questions.length)
+            return;
+
+        const questions = this.state.form.survey_questions;
+        const temp = questions[index];
+        questions.splice(index, 1);
+        questions.splice(newIndex, 0, temp);
+    }
+
+    async saveSurveyQuestions() {
+        this.setSectionLoading("survey_questions", true);
+        this.setSectionStatus("survey_questions", "", "text-primary-600");
+        this.setSectionError("survey_questions", "");
+
+        try {
+            const response = await this.apiFetch(
+                "/api/settings/survey-questions",
+                {
+                    method: "PUT",
+                    body: { questions: this.state.form.survey_questions },
+                },
+            );
+
+            this.setSectionStatus(
+                "survey_questions",
+                response.message || "Pertanyaan berhasil disimpan",
+                "text-green-700",
+            );
+
+            if (response.questions) {
+                this.state.form.survey_questions = response.questions;
+            }
+        } catch (e) {
+            this.setSectionError(
+                "survey_questions",
+                e.message || "Gagal menyimpan",
+            );
+            this.setSectionStatus(
+                "survey_questions",
+                "Gagal menyimpan",
+                "text-red-700",
+            );
+        } finally {
+            this.setSectionLoading("survey_questions", false);
         }
     }
 }

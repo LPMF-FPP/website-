@@ -59,27 +59,22 @@ class CustomerSurvey extends Model
         }
 
         $answers = $this->answers ?? [];
-        $requiredKeys = [
-            'persyaratan',
-            'prosedur',
-            'ketepatan_waktu',
-            'kesesuaian_hasil',
-            'kompetensi',
-            'sikap',
-            'pengaduan',
-            'fasilitas',
-        ];
+
+        $surveyService = app(\App\Services\SurveyQuestionService::class);
+        $activeQuestions = $surveyService->getQuestions();
+        $requiredKeys = collect($activeQuestions)->pluck('key')->toArray();
 
         foreach ($requiredKeys as $key) {
             if (! array_key_exists($key, $answers)) {
                 return false;
             }
             $value = $answers[$key];
-            if (! is_int($value) && ! ctype_digit((string) $value)) {
+            if (! is_numeric($value)) {
                 return false;
             }
             $intValue = (int) $value;
-            if ($intValue < 1 || $intValue > 4) {
+            // Basic validation > 0, upper limit handled by form
+            if ($intValue < 1) {
                 return false;
             }
         }

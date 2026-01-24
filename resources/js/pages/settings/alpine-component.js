@@ -326,16 +326,6 @@ export function registerSettingsComponent() {
                 }
                 this._initialized = true;
 
-                console.log("🚀 [Alpine] settingsPageAlpine init started");
-                console.log(
-                    "📊 Initial state.numberingPreview:",
-                    this.client.state.numberingPreview,
-                );
-                console.log(
-                    "📊 Initial state.previewLoading:",
-                    this.client.state.previewLoading,
-                );
-
                 // Client is already initialized above
                 this.client.onTemplateSelected = async () => {
                     await this.onTemplateSelected();
@@ -357,8 +347,6 @@ export function registerSettingsComponent() {
                     this.client.clone(initialForm),
                 );
                 this.ensureLocaleDefaults();
-
-                console.log("✅ [Alpine] State initialized, loading data...");
 
                 // Load all data
                 this.client.loadAll().then(() => {
@@ -741,16 +729,20 @@ export function registerSettingsComponent() {
                 };
 
                 try {
+                    // Ensure we work with plain object to avoid Proxy issues and ensure defaults
+                    const ikuForm = this.client.toPlainObject(
+                        this.client.state.form.iku || {},
+                    );
+
                     const payload = {
-                        enabled: this.client.state.form.iku.enabled,
-                        period_mode: this.client.state.form.iku.period_mode,
-                        weights: this.client.state.form.iku.weights,
+                        enabled: !!ikuForm.enabled,
+                        period_mode: ikuForm.period_mode || "monthly",
+                        weights: ikuForm.weights || {},
                         target_samples_by_year:
-                            this.client.state.form.iku.target_samples_by_year,
-                        sources: this.client.state.form.iku.sources,
+                            ikuForm.target_samples_by_year || {},
+                        sources: ikuForm.sources || {},
                         survey_required_for_delivery:
-                            this.client.state.form.iku
-                                .survey_required_for_delivery,
+                            !!ikuForm.survey_required_for_delivery,
                     };
 
                     const response = await this.client.apiFetch(
@@ -837,6 +829,22 @@ export function registerSettingsComponent() {
                 }, 2000);
             },
 
+            addSurveyQuestion() {
+                this.client.addSurveyQuestion();
+            },
+
+            removeSurveyQuestion(index) {
+                this.client.removeSurveyQuestion(index);
+            },
+
+            moveSurveyQuestion(index, direction) {
+                this.client.moveSurveyQuestion(index, direction);
+            },
+
+            saveSurveyQuestions() {
+                this.client.saveSurveyQuestions();
+            },
+
             // Template helpers
             promptActivate(type) {
                 if (!this.client.state.templates.length) {
@@ -910,41 +918,18 @@ export function registerSettingsComponent() {
 
             // Wrapper methods to expose client methods with debugging
             testPreview(scope) {
-                console.log("🔍 [Alpine Wrapper] testPreview called", {
-                    scope,
-                });
-                console.log(
-                    "📊 Current preview state:",
-                    this.client.state.numberingPreview,
-                );
-                console.log(
-                    "⚙️ Current form config:",
-                    this.client.state.form.numbering?.[scope],
-                );
-
                 const result = this.client.testPreview(scope);
 
                 // Log after call initiated
-                console.log(
-                    "▶️ testPreview promise initiated for scope:",
-                    scope,
-                );
+
                 return result;
             },
 
             previewPdf() {
-                console.log("📄 previewPdf called", {
-                    branding: this.client.state.form.branding,
-                    pdf: this.client.state.form.pdf,
-                });
                 return this.client.previewPdf();
             },
 
             previewTemplate(type) {
-                console.log("📝 previewTemplate called", {
-                    type,
-                    activeTemplate: this.client.state.activeTemplates?.[type],
-                });
                 return this.previewActiveTemplate(type);
             },
 
@@ -1152,7 +1137,6 @@ export function registerSettingsComponent() {
                     }
 
                     const data = await response.json();
-                    console.log("✅ Templates loaded:", data);
 
                     // Handle both old and new response formats
                     const normalized = this.normalizeTemplateResponse(data);
@@ -1168,15 +1152,6 @@ export function registerSettingsComponent() {
                         normalized.documentTypes;
                     this.documentTemplateState.activeTemplateByType =
                         normalized.activeTemplateByType;
-
-                    console.log(
-                        "📋 Loaded templates:",
-                        this.documentTemplateState.templates.length,
-                    );
-                    console.log(
-                        "📋 Document types:",
-                        this.documentTemplateState.documentTypes.length,
-                    );
 
                     await this.syncTemplateSelection(options);
                     await this.refreshTemplatePreview();
@@ -1248,10 +1223,6 @@ export function registerSettingsComponent() {
                     this.documentTemplateState.selectedTemplateId = targetId
                         ? String(targetId)
                         : "";
-                    console.log("✅ Template selection synced:", {
-                        type: fallbackType,
-                        templateId: targetId,
-                    });
                 }
             },
 
@@ -1534,12 +1505,8 @@ export function registerSettingsComponent() {
                 if (this.documentTemplateState.selectedTemplateId) {
                     await this.onTemplateChange();
                 } else if (autoCreateIfEmpty) {
-                    console.log("⚠️ No templates found, auto-creating one...");
                     await this.createNewTemplate({ addToList: true });
                 } else {
-                    console.log(
-                        "ℹ️ No template selected, waiting for user action",
-                    );
                 }
                 await this.refreshTemplatePreview();
             },
@@ -1547,13 +1514,11 @@ export function registerSettingsComponent() {
             async onTemplateChange() {
                 const rawId = this.documentTemplateState.selectedTemplateId;
                 if (!rawId) {
-                    console.log("ℹ️ No template selected");
                     return;
                 }
 
                 const template = this.findTemplateById(rawId);
                 if (!template) {
-                    console.log("⚠️ Template not found:", rawId);
                     return;
                 }
 
@@ -1784,11 +1749,6 @@ export function registerSettingsComponent() {
             },
 
             async fetchTemplateDetail(templateId) {
-                console.log(
-                    "🌐 Fetching template detail:",
-                    `/api/settings/document-templates/${templateId}`,
-                );
-
                 const response = await fetch(
                     `/api/settings/document-templates/${templateId}`,
                     {
@@ -1803,14 +1763,7 @@ export function registerSettingsComponent() {
                     },
                 );
 
-                console.log(
-                    "📡 Response status:",
-                    response.status,
-                    response.statusText,
-                );
-
                 const contentType = response.headers.get("content-type") || "";
-                console.log("📄 Content-Type:", contentType);
 
                 if (!contentType.includes("application/json")) {
                     const htmlSnippet = await response.text();
@@ -1841,7 +1794,7 @@ export function registerSettingsComponent() {
                 }
 
                 const data = await response.json();
-                console.log("✅ Template detail fetched successfully");
+
                 return data;
             },
 
@@ -1906,9 +1859,6 @@ export function registerSettingsComponent() {
                     return;
                 }
 
-                console.log("📄 Loading template to editor:", {
-                    id: templateId,
-                });
                 this.templateEditorModal.error = "";
 
                 let editor = this.templateEditorInstance;
@@ -1962,11 +1912,6 @@ export function registerSettingsComponent() {
                 const htmlRaw = detail.html ?? detail.content_html ?? "";
                 const cssRaw = detail.css ?? detail.content_css ?? "";
 
-                console.log("🎨 Loading content into template editor:", {
-                    htmlLength: htmlRaw?.length || 0,
-                    cssLength: cssRaw?.length || 0,
-                });
-
                 this.clearEditor(editor);
                 this.setComponentsFromHtmlDocument(htmlRaw, cssRaw, editor);
 
@@ -1975,7 +1920,6 @@ export function registerSettingsComponent() {
                     editor.refresh();
                 }
                 this.templateEditorDirty = false;
-                console.log("✅ Template loaded successfully");
             },
 
             normalizeTemplateHtml(html, css) {
@@ -1988,10 +1932,6 @@ export function registerSettingsComponent() {
                 const hasBodyTag = /<body[^>]*>/i.test(html);
 
                 if (hasHtmlTag || hasBodyTag) {
-                    console.log(
-                        "🔧 Normalizing HTML with <html>/<body> tags...",
-                    );
-
                     try {
                         const parser = new DOMParser();
                         const doc = parser.parseFromString(html, "text/html");
@@ -2010,11 +1950,6 @@ export function registerSettingsComponent() {
                                 .join("\n");
                             if (styles) {
                                 finalCss = styles;
-                                console.log(
-                                    "📝 Extracted CSS from <style> tags:",
-                                    styles.length,
-                                    "chars",
-                                );
                             }
                         }
 
@@ -2304,15 +2239,12 @@ export function registerSettingsComponent() {
                     this.documentTemplateEditor.ready = true;
                     // Refresh editor to ensure proper layout
                     this.refreshTemplateEditor();
-                    console.log("♻️ Reusing existing template editor");
+
                     return this.templateEditorInstance;
                 }
 
                 // Wait for pending initialization
                 if (this.templateEditorInitPromise) {
-                    console.log(
-                        "⏳ Waiting for pending editor initialization...",
-                    );
                     await this.templateEditorInitPromise;
                     return this.templateEditorInstance;
                 }
@@ -2364,20 +2296,11 @@ export function registerSettingsComponent() {
                     }
                 }
 
-                console.log("✅ Container found and visible:", {
-                    element: container.tagName,
-                    id: container.id,
-                    clientHeight: container.clientHeight,
-                    offsetParent: !!container.offsetParent,
-                });
-
                 this.documentTemplateEditor.loading = true;
                 this.documentTemplateEditor.error = "";
-                console.log("🚀 Starting template editor initialization...");
 
                 this.templateEditorInitPromise = import("./template-editor.js")
                     .then(({ createTemplateEditor }) => {
-                        console.log("📦 Template editor module loaded");
                         return createTemplateEditor({
                             key: "inline",
                             container,
@@ -2400,7 +2323,7 @@ export function registerSettingsComponent() {
                         this.templateEditorInstance = editor;
                         this.documentTemplateEditor.ready = true;
                         this.templateEditorDirty = false;
-                        console.log("✅ Template editor ready");
+
                         return editor;
                     })
                     .catch((error) => {
@@ -2430,7 +2353,6 @@ export function registerSettingsComponent() {
                             return;
                         }
                         refreshTemplateEditor("modal");
-                        console.log("Template editor refreshed");
                     })
                     .catch((error) => {
                         console.warn(
@@ -2505,11 +2427,9 @@ export function registerSettingsComponent() {
             },
 
             async startNewEditorTemplate(draft = null) {
-                console.log("📝 Starting new template creation...");
                 try {
                     // ✅ CRITICAL: Ensure section is active first so container exists
                     if (this.activeSection !== "templates") {
-                        console.log("🔄 Activating templates section...");
                         this.activeSection = "templates";
                         // Wait for Alpine to update DOM
                         await this.$nextTick();
@@ -2545,8 +2465,6 @@ export function registerSettingsComponent() {
                     this.documentTemplateEditor.error = "";
                     this.documentTemplateEditor.success = "";
                     this.setEditorContent("", "");
-
-                    console.log("✅ New template draft ready");
                 } catch (error) {
                     console.error("❌ Error starting new template:", error);
                     this.documentTemplateEditor.error =
@@ -2561,9 +2479,6 @@ export function registerSettingsComponent() {
 
                 // ✅ CRITICAL: Ensure section is active first so container exists
                 if (this.activeSection !== "templates") {
-                    console.log(
-                        "🔄 Activating templates section for template load...",
-                    );
                     this.activeSection = "templates";
                     // Wait for Alpine to update DOM
                     await this.$nextTick();
@@ -3051,8 +2966,6 @@ export function registerSettingsComponent() {
             // ============================================
 
             async loadAllTemplates() {
-                console.log("🔄 loadAllTemplates() called");
-
                 if (!this.client.state.templateEditor) {
                     this.client.state.templateEditor = {
                         loading: false,
@@ -3111,8 +3024,6 @@ export function registerSettingsComponent() {
                         this.client.state.templateEditor.activeCategory =
                             cats[0];
                     }
-
-                    console.log("✅ WhatsApp templates loaded:", payload);
                 } catch (error) {
                     console.error("Failed to load WhatsApp templates:", error);
                 } finally {
