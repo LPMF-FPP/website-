@@ -23,12 +23,42 @@
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 
-**Current Version:** v1.7.7 (22 Januari 2026)  
-**Latest Feature:** Request Detail Page UX Redesign + Bug Fixes
+**Current Version:** v1.7.8 (24 Januari 2026)  
+**Latest Feature:** IKU Quarterly Support & Dashboard Icons
 
 ---
 
 ## 📰 Recent Changes (v1.5.x)
+
+### v1.7.8 (24 Januari 2026) - IKU Quarterly Support & Dashboard Icons
+
+```
+Updated on 2026-01-24
+```
+
+**🎯 Problem Solved:**
+
+1. **Policy Change:** Perhitungan IKU (Indeks Kinerja Utama) berubah dari tahunan menjadi **Triwulan**.
+2. **UX Improvement:** Card metrik di dashboard (Kecepatan & Kepuasan) kurang visual dan informatif.
+
+**✨ New Features:**
+
+- **IKU Triwulan Mode:**
+    - Opsi baru "Triwulan" di Settings > Perhitungan IKU.
+    - Logika perhitungan otomatis membagi target tahunan dengan 4 saat mode ini aktif.
+    - Dashboard menampilkan label "Triwulan X 2026" yang dinamis.
+- **Dashboard UI Update:**
+    - Menambahkan ikon visual pada card "Rata-rata Kecepatan Pengerjaan" (Jam) dan "Kepuasan Pelanggan" (Smile).
+    - Layout card diperbarui agar lebih seimbang dan mudah dibaca.
+- **Settings Validation:** Validasi backend diperbarui untuk menerima `period_mode=quarterly`.
+
+**📁 Files Modified:**
+
+- `app/Services/IkuService.php` (Core logic division)
+- `app/Http/Requests/Settings/IkuSettingsRequest.php` (Validation)
+- `resources/views/dashboard.blade.php` (UI updates)
+- `resources/views/settings/partials/iku.blade.php` (Dropdown option)
+- `tests/Feature/IkuSettingsPageTest.php` (New tests)
 
 ### v1.7.7 (22 Januari 2026) - Request Detail Page UX Redesign + Bug Fixes
 
