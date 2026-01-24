@@ -358,3 +358,27 @@ test('iku settings accepts quarterly period mode', function () {
     $response->assertOk()
         ->assertJsonPath('iku.period_mode', 'quarterly');
 });
+
+test('iku quarterly target divides annual target by 4', function () {
+    $user = User::factory()->create(['role' => 'admin']);
+
+    // Set target for current year using exact keys IkuService expects
+    SystemSetting::updateOrCreate(
+        ['key' => 'iku.period_mode'],
+        ['value' => 'quarterly']
+    );
+
+    SystemSetting::updateOrCreate(
+        ['key' => 'iku.target_samples_by_year'],
+        ['value' => [(string) date('Y') => 200]]
+    );
+
+    settings_forget_cache();
+
+    $service = app(IkuService::class);
+    $result = $service->computeForCurrentQuarter();
+
+    // D = target samples. Should be 200 / 4 = 50 for quarterly
+    // Currently logic is missing, so it will likely return 200 (annual target)
+    expect($result['raw_counts']['D'])->toBe(50);
+});

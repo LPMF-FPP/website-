@@ -105,6 +105,11 @@ class IkuService
         $B = $this->getCount($sources['B'], $start, $end);
         $C = $this->getCount($sources['C'], $start, $end);
         $D = $this->getTargetSamples($start->year, $config['target_samples_by_year']);
+
+        if ($config['period_mode'] === 'quarterly') {
+            $D = (int) max(1, floor($D / 4));
+        }
+
         $E = $this->getCount($sources['E'], $start, $end);
         $F = $this->getSurveyCount($start, $end);
 
@@ -169,10 +174,31 @@ class IkuService
             );
         }
 
+        if ($config['period_mode'] === 'quarterly') {
+            return $this->computeForCurrentQuarter();
+        }
+
         return $this->computeForPeriod(
             now()->startOfMonth(),
             now()->endOfMonth()
         );
+    }
+
+    /**
+     * Compute IKU for current quarter.
+     */
+    public function computeForCurrentQuarter(): array
+    {
+        $now = Carbon::now();
+        $quarter = $now->quarter;
+        $start = $now->copy()->startOfQuarter();
+        $end = $now->copy()->endOfQuarter();
+
+        $result = $this->computeForPeriod($start, $end);
+        $result['quarter'] = $quarter;
+        $result['quarter_label'] = "Triwulan {$quarter} ".$now->year;
+
+        return $result;
     }
 
     /**
