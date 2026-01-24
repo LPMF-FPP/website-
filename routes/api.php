@@ -46,7 +46,7 @@ Route::prefix('monitoring')->middleware('throttle:60,1')->group(function () {
     Route::post('/data', [\App\Http\Controllers\Api\MonitoringController::class, 'store']);
 });
 
-Route::middleware(['throttle:60,1'])->group(function () {
+Route::middleware(['throttle:120,1'])->group(function () {
 
     Route::middleware(['auth', 'verified'])->prefix('settings')->group(function () {
         Route::get('/', [ApiSettingsController::class, 'index']);
