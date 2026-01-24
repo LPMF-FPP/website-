@@ -217,8 +217,8 @@ class NumberingRepairService
             return (int) ltrim($matches[1], '0') ?: 0;
         }
 
-        // 3. For sample_code like W003I2026 or TR-LPMF001 (Prefix + Digits)
-        if (preg_match('/^(?:TR-LPMF|[A-Z])(\d{3,4})/', $number, $matches)) {
+        // 3. For sample_code like LS072I2026, W003I2026, or TR-LPMF001 (1-3 letter prefix + Digits)
+        if (preg_match('/^(?:TR-LPMF|[A-Z]{1,3})(\d{3,4})/', $number, $matches)) {
             return (int) ltrim($matches[1], '0') ?: 0;
         }
 

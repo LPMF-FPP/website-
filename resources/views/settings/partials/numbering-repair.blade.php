@@ -58,7 +58,7 @@
         {{-- Search Document Section --}}
         <template x-if="selectedScope">
             <div class="bg-blue-50 rounded-lg p-4 border border-blue-200 mb-6">
-                <h3 class="text-sm font-semibold text-blue-900 mb-3">Cari & Edit Nomor Dokumen</h3>
+                <h3 class="text-sm font-semibold text-blue-900 mb-3">Cari & Edit <span x-text="getEntityLabel('number')"></span></h3>
                 <div class="flex items-end gap-3">
                     <div class="flex-1">
                         <label for="search-query-input" class="block text-xs text-blue-700 mb-1">Cari berdasarkan nomor</label>
@@ -67,7 +67,7 @@
                             id="search-query-input"
                             x-model="searchQuery"
                             @keyup.enter="searchDocuments()"
-                            placeholder="Ketik nomor dokumen..."
+                            :placeholder="'Ketik ' + getEntityLabel('number').toLowerCase() + '...'"
                             class="w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm bg-white">
                         <p class="mt-1 text-xs text-blue-600">Tips: Pencarian mendukung format garis miring (/) atau strip (-).</p>
                     </div>
@@ -131,21 +131,21 @@
                         <p class="text-sm font-bold text-blue-600" x-text="counterStatus.current_counter"></p>
                     </div>
                     <div>
-                        <p class="text-xs text-gray-500">Total Dokumen</p>
+                        <p class="text-xs text-gray-500">Total <span x-text="getEntityLabel('singular')"></span></p>
                         <p class="text-sm font-medium" x-text="counterStatus.total_documents"></p>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     <div class="bg-white rounded-lg p-3 border">
-                        <p class="text-xs text-gray-500 mb-1">Dari Dokumen Tertinggi (Real)</p>
+                        <p class="text-xs text-gray-500 mb-1">Dari <span x-text="getEntityLabel('singular')"></span> Tertinggi (Real)</p>
                         <p class="text-lg font-bold" x-text="counterStatus.from_max"></p>
-                        <p class="text-xs text-gray-400" x-text="counterStatus.max_document ? 'MAX: ' + counterStatus.max_document : 'Tidak ada dokumen'"></p>
+                        <p class="text-xs text-gray-400" x-text="counterStatus.max_document ? 'MAX: ' + counterStatus.max_document : 'Tidak ada ' + getEntityLabel('singular').toLowerCase()"></p>
                     </div>
                     <div class="bg-white rounded-lg p-3 border">
-                        <p class="text-xs text-gray-500 mb-1">Dari Jumlah Dokumen</p>
+                        <p class="text-xs text-gray-500 mb-1">Dari Jumlah <span x-text="getEntityLabel('singular')"></span></p>
                         <p class="text-lg font-bold" x-text="counterStatus.from_count"></p>
-                        <p class="text-xs text-gray-400" x-text="'COUNT: ' + counterStatus.total_documents + ' dokumen'"></p>
+                        <p class="text-xs text-gray-400" x-text="'COUNT: ' + counterStatus.total_documents + ' ' + getEntityLabel('singular').toLowerCase()"></p>
                     </div>
                 </div>
 
@@ -180,7 +180,7 @@
             <div class="border border-gray-200 rounded-lg overflow-hidden mb-6">
                 <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
                     <h3 class="text-sm font-semibold text-gray-900">
-                        Dokumen Bermasalah (<span x-text="problems.length"></span> ditemukan)
+                        <span x-text="getEntityLabel('singular')"></span> Bermasalah (<span x-text="problems.length"></span> ditemukan)
                     </h3>
                 </div>
                 <div class="overflow-x-auto">
@@ -238,9 +238,9 @@
             <div class="border border-gray-200 rounded-lg overflow-hidden mb-6">
                 <div class="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
                     <h3 class="text-sm font-semibold text-gray-900">
-                        Daftar Dokumen Berurutan
+                        Daftar <span x-text="getEntityLabel('singular')"></span> Berurutan
                         <span x-show="documentList.length > 0" class="text-gray-500 font-normal">
-                            (<span x-text="documentListMeta.total"></span> dokumen)
+                            (<span x-text="documentListMeta.total"></span> <span x-text="getEntityLabel('singular').toLowerCase()"></span>)
                         </span>
                     </h3>
                     <button 
@@ -260,7 +260,7 @@
                                 <thead class="bg-gray-50 sticky top-0">
                                     <tr>
                                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 w-16">#</th>
-                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Nomor Dokumen</th>
+                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500" x-text="getEntityLabel('number')"></th>
                                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Entitas</th>
                                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Tanggal</th>
                                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 w-24">Status</th>
@@ -435,7 +435,7 @@
         <div class="flex items-center justify-center min-h-screen p-4">
             <div class="fixed inset-0 bg-black/50" @click="showEditModal = false"></div>
             <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6" x-trap.noscroll.inert="showEditModal">
-                <h3 id="edit-modal-title" class="text-lg font-semibold text-gray-900 mb-4">Edit Nomor Dokumen</h3>
+                <h3 id="edit-modal-title" class="text-lg font-semibold text-gray-900 mb-4">Edit <span x-text="getEntityLabel('number')"></span></h3>
                 
                 <div class="mb-4">
                     <p class="text-sm text-gray-500">Entitas: <span class="font-medium" x-text="editingProblem?.entity_name"></span></p>
@@ -587,6 +587,19 @@ function numberingRepair() {
             'lhu': 'Laporan Hasil Uji',
             'ba_penyerahan': 'BA Penyerahan',
             'tracking': 'Nomor Resi',
+        },
+
+        // Scope-aware entity labels for UI text
+        scopeEntityLabels: {
+            'sample_code': { singular: 'Sampel', plural: 'Sampel', number: 'Kode Sampel' },
+            'ba': { singular: 'BA', plural: 'BA', number: 'Nomor BA' },
+            'lhu': { singular: 'LHU', plural: 'LHU', number: 'Nomor LHU' },
+            'tracking': { singular: 'Resi', plural: 'Resi', number: 'Nomor Resi' },
+            'ba_penyerahan': { singular: 'Dokumen', plural: 'Dokumen', number: 'Nomor Dokumen' },
+        },
+
+        getEntityLabel(type = 'singular') {
+            return this.scopeEntityLabels[this.selectedScope]?.[type] || 'Dokumen';
         },
 
         init() {
