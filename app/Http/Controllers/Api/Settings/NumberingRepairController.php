@@ -265,4 +265,48 @@ class NumberingRepairController extends Controller
             return response()->json(['error' => $e->getMessage()], 400);
         }
     }
+
+    /**
+     * Check if gap can be reclaimed for a scope
+     */
+    public function canReclaim(string $scope): JsonResponse
+    {
+        try {
+            $result = $this->repairService->canReclaimGap($scope);
+
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * Execute gap reclaim for a scope
+     */
+    public function reclaim(Request $request, string $scope): JsonResponse
+    {
+        $validated = $request->validate([
+            'reason' => 'required|string|max:500',
+        ], [
+            'reason.required' => 'Alasan reclaim wajib diisi',
+        ]);
+
+        try {
+            $result = $this->repairService->reclaimGap(
+                $scope,
+                $validated['reason']
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Gap berhasil di-reclaim',
+                'data' => $result,
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+    }
 }

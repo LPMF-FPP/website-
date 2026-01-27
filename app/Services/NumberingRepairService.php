@@ -770,4 +770,216 @@ class NumberingRepairService
             ],
         ];
     }
+
+    /**
+     * Check if a gap can be reclaimed for a scope.
+     *
+     * A gap can be reclaimed when:
+     * 1. There is at least one gap
+     * 2. There is a document at the current counter position
+     * 3. The gap is at position (counter - 1) - i.e., we can rename the last doc to fill the gap
+     *
+     * Returns null if no reclaimable gap, or array with reclaim info.
+     */
+    public function canReclaimGap(string $scope): ?array
+    {
+        $config = $this->getScopeConfig($scope);
+        if (! $config) {
+            return null;
+        }
+
+        $bucket = $this->getCurrentBucket($scope);
+        $reset = settings("numbering.$scope.reset") ?? 'never';
+        $documents = $this->getDocumentsInBucket($scope, $bucket, $reset);
+
+        // Get all sequence numbers
+        $sequenceNumbers = $documents
+            ->map(fn ($doc) => $this->extractSequenceNumber($scope, $doc))
+            ->filter(fn ($num) => $num !== null && $num > 0)
+            ->unique()
+            ->sort()
+            ->values();
+
+        if ($sequenceNumbers->isEmpty()) {
+            return null;
+        }
+
+        $maxNumber = $sequenceNumbers->max();
+        $totalDocs = $sequenceNumbers->count();
+
+        // Find all gaps
+        $gaps = [];
+        for ($i = 1; $i <= $maxNumber; $i++) {
+            if (! $sequenceNumbers->contains($i)) {
+                $gaps[] = $i;
+            }
+        }
+
+        if (empty($gaps)) {
+            return null; // No gaps
+        }
+
+        // Get current counter value
+        $sequence = Sequence::where('scope', $scope)
+            ->where('bucket', $bucket)
+            ->first();
+
+        $currentCounter = $sequence?->current_value ?? 0;
+
+        // For reclaim to work, we need:
+        // 1. A document at position = currentCounter (the "last" document)
+        // 2. A gap that we can fill by renaming that document
+
+        // Find the document at the highest sequence number
+        $lastDoc = $documents->first(fn ($doc) => $this->extractSequenceNumber($scope, $doc) === $maxNumber
+        );
+
+        if (! $lastDoc) {
+            return null;
+        }
+
+        // The simplest reclaim: if counter matches max and there's a gap just before
+        // Example: counter=73, docs=1..71,73 (gap at 72) → rename 73→72, counter→72
+        $lastGap = end($gaps);
+
+        // Can only reclaim if the gap is exactly (maxNumber - 1)
+        // This ensures we're just "shifting" the last document back by 1
+        if ($lastGap !== $maxNumber - 1) {
+            return [
+                'can_reclaim' => false,
+                'reason' => 'Gap tidak berada di posisi yang bisa di-reclaim. Gap terakhir di posisi '.$lastGap.', dokumen terakhir di posisi '.$maxNumber.'.',
+                'gaps' => $gaps,
+                'current_counter' => $currentCounter,
+                'max_number' => $maxNumber,
+                'suggestion' => 'Gunakan fitur "Edit Nomor" untuk memperbaiki secara manual, atau biarkan gap tersebut.',
+            ];
+        }
+
+        // We can reclaim!
+        $lastDocNumber = $this->getDocumentNumber($scope, $lastDoc);
+        $newNumber = $this->numberingService->preview($scope, [], $lastGap); // Pass exact sequence value we want
+
+        return [
+            'can_reclaim' => true,
+            'gap_position' => $lastGap,
+            'current_counter' => $currentCounter,
+            'max_number' => $maxNumber,
+            'document_to_rename' => [
+                'entity_id' => $lastDoc->id,
+                'entity_type' => get_class($lastDoc),
+                'current_number' => $lastDocNumber,
+                'new_number' => $newNumber,
+                'entity_name' => $this->getEntityName($scope, $lastDoc),
+            ],
+            'counter_change' => [
+                'from' => $currentCounter,
+                'to' => $lastGap,
+            ],
+            'total_gaps' => count($gaps),
+            'all_gaps' => $gaps,
+            'preview_message' => sprintf(
+                'Rename %s → %s, Counter %d → %d',
+                $lastDocNumber,
+                $newNumber,
+                $currentCounter,
+                $lastGap
+            ),
+        ];
+    }
+
+    /**
+     * Execute gap reclaim for a scope.
+     *
+     * This will:
+     * 1. Rename the last document to fill the gap
+     * 2. Update related records (cascade)
+     * 3. Rollback the counter
+     * 4. Log the change
+     */
+    public function reclaimGap(string $scope, string $reason): array
+    {
+        $reclaimInfo = $this->canReclaimGap($scope);
+
+        if (! $reclaimInfo || ! $reclaimInfo['can_reclaim']) {
+            throw new \InvalidArgumentException(
+                $reclaimInfo['reason'] ?? 'Tidak ada gap yang bisa di-reclaim untuk scope ini'
+            );
+        }
+
+        $config = $this->getScopeConfig($scope);
+        $model = $config['model'];
+        $column = $config['column'];
+        $bucket = $this->getCurrentBucket($scope);
+
+        $docInfo = $reclaimInfo['document_to_rename'];
+        $counterChange = $reclaimInfo['counter_change'];
+
+        return DB::transaction(function () use (
+            $scope, $model, $column, $bucket, $docInfo, $counterChange, $reason
+        ) {
+            // 1. Find and update the document
+            $entity = $model::findOrFail($docInfo['entity_id']);
+            $oldNumber = $docInfo['current_number'];
+            $newNumber = $docInfo['new_number'];
+
+            if ($scope === 'lhu') {
+                $metadata = $entity->metadata ?? [];
+                $metadata['lhu_number'] = $newNumber;
+                $entity->metadata = $metadata;
+            } else {
+                $entity->{$column} = $newNumber;
+            }
+            $entity->save();
+
+            // 2. Cascade update related records
+            $cascadeCount = 0;
+
+            if ($scope === 'sample_code' && $oldNumber) {
+                $cascadeCount = \App\Models\EvidenceUnit::where('sample_id', $entity->id)
+                    ->where('sample_code', $oldNumber)
+                    ->update(['sample_code' => $newNumber]);
+            }
+
+            if ($scope === 'tracking' && $oldNumber) {
+                $cascadeCount = \App\Models\EvidenceUnit::where('request_id', $entity->id)
+                    ->where('receipt_code', $oldNumber)
+                    ->update(['receipt_code' => $newNumber]);
+            }
+
+            // 3. Rollback the counter
+            $sequence = Sequence::where('scope', $scope)
+                ->where('bucket', $bucket)
+                ->lockForUpdate()
+                ->first();
+
+            $oldCounter = $sequence->current_value;
+            $sequence->current_value = $counterChange['to'];
+            $sequence->save();
+
+            // 4. Log the change
+            NumberingChangeLog::log(
+                $scope,
+                NumberingChangeLog::ACTION_RECLAIM,
+                sprintf('%s (counter: %d)', $oldNumber, $oldCounter),
+                sprintf('%s (counter: %d)', $newNumber, $counterChange['to']),
+                $reason.($cascadeCount > 0 ? " (cascade: {$cascadeCount} related records)" : ''),
+                get_class($entity),
+                $entity->id
+            );
+
+            return [
+                'success' => true,
+                'renamed' => [
+                    'from' => $oldNumber,
+                    'to' => $newNumber,
+                ],
+                'counter' => [
+                    'from' => $oldCounter,
+                    'to' => $counterChange['to'],
+                ],
+                'cascade_count' => $cascadeCount,
+                'entity_id' => $entity->id,
+            ];
+        });
+    }
 }

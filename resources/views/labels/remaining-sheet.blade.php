@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <title>Label Sisa Sampel</title>
@@ -7,7 +7,7 @@
         $totalLabels = $remainingUnits->count();
         // Determine grid layout based on label count
         if ($totalLabels <= 4) {
-            $labelHeight = 65; // mm
+            $labelHeight = 55; // mm
             $labelWidth = 95;  // mm
             $fontSize = 8;
         } elseif ($totalLabels <= 6) {
@@ -42,46 +42,94 @@
             font-family: 'DejaVu Sans', Arial, sans-serif;
             font-size: {{ $fontSize }}pt;
             line-height: 1.2;
+            color: black;
         }
         .label-container {
             width: 100%;
         }
+        .sheet-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .label-cell {
+            width: 50%;
+            vertical-align: top;
+            padding: 2mm;
+        }
         .label {
-            border: 1px solid #333;
+            border: 1px solid black;
             padding: 1.5mm;
             height: {{ $labelHeight }}mm;
             width: {{ $labelWidth }}mm;
             position: relative;
-            background: #fff;
+            background: white;
             overflow: hidden;
             page-break-inside: avoid;
         }
         .label-header {
             text-align: center;
-            border-bottom: 1px solid #333;
-            padding-bottom: 0.8mm;
-            margin-bottom: 0.8mm;
-            background: #fffde7;
-            margin: -1.5mm -1.5mm 0.8mm -1.5mm;
-            padding: 1mm;
+            border-bottom: 1px solid black;
+            padding-bottom: 0.4mm;
+            margin-bottom: 0.6mm;
+            background: white;
+            margin: -1.5mm -1.5mm 0.6mm -1.5mm;
+            padding: 0.8mm 1mm;
         }
         .label-header h1 {
             font-size: {{ $fontSize }}pt;
             font-weight: bold;
             margin: 0;
         }
+        .text-balance {
+            text-wrap: balance;
+        }
+        .text-pretty {
+            text-wrap: pretty;
+        }
+        .header-logo {
+            height: {{ min($labelHeight * 0.12, 8) }}mm;
+            width: auto;
+        }
+        .header-table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .header-logo-cell {
+            width: 12%;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .header-center-cell {
+            width: 76%;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .label-body-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .label-content-cell {
+            width: 68%;
+            vertical-align: top;
+        }
+        .label-qr-cell {
+            width: 32%;
+            vertical-align: top;
+            text-align: center;
+            padding-top: 0.5mm;
+        }
         .label-header .subtitle {
             font-size: {{ max($fontSize - 2.5, 3.5) }}pt;
-            color: #555;
+            color: dimgray;
             margin-top: 0.3mm;
         }
         .sisa-badge {
-            background-color: #333;
-            color: #fff;
+            background-color: black;
+            color: white;
             padding: 0.3mm 1.5mm;
             border-radius: 1.5mm;
             font-size: {{ max($fontSize - 1, 5) }}pt;
-            letter-spacing: 0.5px;
+            text-transform: uppercase;
         }
         .field {
             margin-bottom: 0.5mm;
@@ -91,7 +139,7 @@
             display: inline-block;
             width: 14mm;
             font-size: {{ max($fontSize - 2, 4) }}pt;
-            color: #666;
+            color: dimgray;
             vertical-align: top;
         }
         .field-value {
@@ -101,13 +149,13 @@
             font-weight: bold;
             vertical-align: top;
             line-height: 1.1;
+            font-variant-numeric: tabular-nums;
         }
         .field-value.large {
             font-size: {{ $fontSize + 1 }}pt;
         }
         .field-value.qty {
             font-size: {{ $fontSize }}pt;
-            color: #d32f2f;
         }
         .clamp2 {
             max-height: {{ $fontSize * 0.6 }}mm;
@@ -118,19 +166,22 @@
         }
         .label-footer {
             position: absolute;
-            bottom: 1mm;
+            bottom: 0.6mm;
             left: 2mm;
             right: 2mm;
             font-size: {{ max($fontSize - 2.5, 3.5) }}pt;
-            color: #888;
-            border-top: 1px dotted #ccc;
+            color: dimgray;
+            border-top: 1px dotted lightgray;
             padding-top: 0.3mm;
+            font-variant-numeric: tabular-nums;
         }
         .qr-img {
-            width: {{ min($labelHeight * 0.35, 16) }}mm;
-            height: {{ min($labelHeight * 0.35, 16) }}mm;
             display: block;
             margin: 0 auto;
+        }
+        .size-qr {
+            width: {{ min($labelHeight * 0.35, 16) }}mm;
+            height: {{ min($labelHeight * 0.35, 16) }}mm;
         }
         .qr-text {
             font-size: {{ max($fontSize - 2.5, 3.5) }}pt;
@@ -139,67 +190,80 @@
             width: {{ min($labelHeight * 0.35, 16) }}mm;
             margin-left: auto;
             margin-right: auto;
+            font-variant-numeric: tabular-nums;
         }
     </style>
 </head>
 <body>
     {{-- ALL LABELS IN ONE PAGE (no page break) --}}
-    <table width="100%" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
+    <table class="sheet-table" cellspacing="0" cellpadding="0" role="presentation">
         @foreach($remainingUnits->chunk(2) as $row)
             <tr>
                 @foreach($row as $unit)
-                    <td style="width:50%; vertical-align:top; padding: 3mm;">
-                        <div class="label">
+                    <td class="label-cell">
+                        <div class="label text-pretty">
                             <div class="label-header">
-                                <h1><span class="sisa-badge">SISA</span></h1>
-                                <div class="subtitle">LPMF - Laboratorium Farmapol Pusdokkes Polri</div>
+                                <table class="header-table" role="presentation">
+                                    <tr>
+                                        <td class="header-logo-cell">
+                                            <img src="{{ public_path('images/logo-tribrata-polri.png') }}" class="header-logo" alt="Logo Polri">
+                                        </td>
+                                        <td class="header-center-cell">
+                                            <h1 class="text-balance"><span class="sisa-badge">SISA</span></h1>
+                                            <div class="subtitle text-pretty">LPMF - Laboratorium Farmapol Pusdokkes Polri</div>
+                                        </td>
+                                        <td class="header-logo-cell">
+                                            <img src="{{ public_path('images/logo-pusdokkes-polri.png') }}" class="header-logo" alt="Logo Pusdokkes">
+                                        </td>
+                                    </tr>
+                                </table>
                             </div>
                             
-                            <table style="width: 100%; border-collapse: collapse;">
+                            <table class="label-body-table" role="presentation">
                                 <tr>
-                                    <td style="width: 68%; vertical-align: top;">
+                                    <td class="label-content-cell">
                                         <div class="field">
-                                            <span class="field-label">Resi:</span>
-                                            <span class="field-value clamp2">{{ $unit->evidenceUnit->receipt_code ?? '-' }}</span>
+                                            <span class="field-label text-pretty">Resi:</span>
+                                            <span class="field-value clamp2 text-pretty">{{ $unit->evidenceUnit->receipt_code ?? '-' }}</span>
                                         </div>
                                         
                                         <div class="field">
-                                            <span class="field-label">Kode:</span>
-                                            <span class="field-value large clamp2">{{ $unit->remaining_code }}</span>
+                                            <span class="field-label text-pretty">Kode:</span>
+                                            <span class="field-value large clamp2 text-pretty">{{ $unit->remaining_code }}</span>
                                         </div>
                                         
                                         <div class="field">
-                                            <span class="field-label">Tgl Serah:</span>
-                                            <span class="field-value">{{ $unit->delivered_at_formatted ?? '-' }}</span>
+                                            <span class="field-label text-pretty">Tgl Serah:</span>
+                                            <span class="field-value text-pretty">{{ $unit->delivered_at_formatted ?? '-' }}</span>
                                         </div>
                                         
                                         <div class="field">
-                                            <span class="field-label">Qty Sisa:</span>
-                                            <span class="field-value qty">{{ $unit->qty_with_uom }}</span>
+                                            <span class="field-label text-pretty">Qty Sisa:</span>
+                                            <span class="field-value qty text-pretty">{{ $unit->qty_with_uom }}</span>
                                         </div>
                                         
                                         @if($unit->seal_status_delivered)
                                         <div class="field">
-                                            <span class="field-label">Segel:</span>
-                                            <span class="field-value clamp2">{{ $unit->seal_status_delivered }}</span>
+                                            <span class="field-label text-pretty">Segel:</span>
+                                            <span class="field-value clamp2 text-pretty">{{ $unit->seal_status_delivered }}</span>
                                         </div>
                                         @endif
                                         
                                         @if($unit->handover_doc_no)
                                         <div class="field">
-                                            <span class="field-label">No. BA:</span>
-                                            <span class="field-value clamp2">{{ $unit->handover_doc_no }}</span>
+                                            <span class="field-label text-pretty">No. BA:</span>
+                                            <span class="field-value clamp2 text-pretty">{{ $unit->handover_doc_no }}</span>
                                         </div>
                                         @endif
                                     </td>
-                                    <td style="width: 32%; vertical-align: top; text-align: center; padding-top: 0.5mm;">
-                                        <img src="{{ $unit->qr_png ?? '' }}" class="qr-img" alt="QR">
-                                        <div class="qr-text">{{ $unit->qr_content }}</div>
+                                    <td class="label-qr-cell">
+                                        <img src="{{ $unit->qr_png ?? '' }}" class="qr-img size-qr" alt="QR code for {{ $unit->remaining_code }}">
+                                        <div class="qr-text text-pretty">{{ $unit->qr_content }}</div>
                                     </td>
                                 </tr>
                             </table>
                             
-                            <div class="label-footer">
+                            <div class="label-footer text-pretty">
                                 Dicetak: {{ $printDate }}
                             </div>
                         </div>

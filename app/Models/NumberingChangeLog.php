@@ -32,6 +32,8 @@ class NumberingChangeLog extends Model
 
     public const ACTION_EDIT = 'edit';
 
+    public const ACTION_RECLAIM = 'reclaim';
+
     public const SCOPES = [
         'ba' => 'BA Penerimaan',
         'sample_code' => 'Kode Sampel',
@@ -62,6 +64,7 @@ class NumberingChangeLog extends Model
             self::ACTION_SYNC_MAX => 'Sinkronisasi (Tertinggi)',
             self::ACTION_SYNC_COUNT => 'Sinkronisasi (Jumlah)',
             self::ACTION_EDIT => 'Edit Nomor',
+            self::ACTION_RECLAIM => 'Reclaim Gap',
             default => $this->action_type,
         };
     }

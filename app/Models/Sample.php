@@ -111,55 +111,17 @@ class Sample extends Model
             }
         });
 
-    }
-
-    /**
-     * @deprecated Use NumberingService instead
-     * Legacy method - kept for reference only
-     */
-    protected static function generateSampleCode(): string
-    {
-        // This method is no longer used.
-        // Sample codes are now generated via NumberingService
-        // which uses settings from /settings page
-
-        throw new \RuntimeException(
-            'generateSampleCode() is deprecated. Use NumberingService::issue() instead.'
-        );
-    }
-
-    protected static function toRoman(int $month): string
-    {
-
-        $map = [
-
-            1 => 'I',
-
-            2 => 'II',
-
-            3 => 'III',
-
-            4 => 'IV',
-
-            5 => 'V',
-
-            6 => 'VI',
-
-            7 => 'VII',
-
-            8 => 'VIII',
-
-            9 => 'IX',
-
-            10 => 'X',
-
-            11 => 'XI',
-
-            12 => 'XII',
-
-        ];
-
-        return $map[$month] ?? 'I';
+        static::deleted(function (self $model) {
+            // Attempt to rollback sample_code sequence
+            // Only succeeds if this is the LAST number issued
+            if ($model->sample_code) {
+                $numbering = app(\App\Services\NumberingService::class);
+                $numbering->rollback('sample_code', $model->sample_code, [
+                    'now' => $model->created_at ? \Carbon\CarbonImmutable::parse($model->created_at) : null,
+                    'investigator_id' => $model->testRequest?->investigator_id,
+                ]);
+            }
+        });
 
     }
 

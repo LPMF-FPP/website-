@@ -67,8 +67,11 @@ Route::middleware(['throttle:120,1'])->group(function () {
             Route::get('/{scope}/document/{id}', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'getDocument']);
             Route::post('/{scope}/reset', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'reset']);
             Route::post('/{scope}/sync', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'sync']);
-            Route::put('/{scope}/{id}', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'repair']);
-            Route::get('/{scope}/{id}/history', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'entityHistory']);
+            Route::post('/{scope}/docs/{id}/repair', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'repair']);
+
+            // Reclaim Gap Routes
+            Route::get('/{scope}/can-reclaim', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'canReclaim']);
+            Route::post('/{scope}/reclaim', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'reclaim']);
         });
 
         Route::get('/templates', [ApiTemplateController::class, 'index']);

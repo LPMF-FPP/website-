@@ -178,6 +178,72 @@
             </div>
         </template>
 
+        {{-- Reclaim Gap Section --}}
+        <template x-if="reclaimInfo">
+            <div class="rounded-lg p-4 border mb-6" 
+                 :class="reclaimInfo.can_reclaim ? 'bg-amber-50 border-amber-200' : 'bg-gray-50 border-gray-200'">
+                <div class="flex items-start gap-3">
+                    <div class="flex-shrink-0">
+                        <svg x-show="reclaimInfo.can_reclaim" class="h-6 w-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                        <svg x-show="!reclaimInfo.can_reclaim" class="h-6 w-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="text-sm font-semibold" :class="reclaimInfo.can_reclaim ? 'text-amber-900' : 'text-gray-700'">
+                            <span x-show="reclaimInfo.can_reclaim">Gap Terdeteksi - Bisa Di-Reclaim</span>
+                            <span x-show="!reclaimInfo.can_reclaim">Gap Terdeteksi</span>
+                        </h3>
+                        
+                        <template x-if="reclaimInfo.can_reclaim">
+                            <div class="mt-2">
+                                <p class="text-sm text-amber-800">
+                                    Ditemukan <strong x-text="reclaimInfo.total_gaps"></strong> gap. 
+                                    Gap terakhir di posisi <strong x-text="reclaimInfo.gap_position"></strong> bisa diperbaiki.
+                                </p>
+                                
+                                <div class="mt-3 bg-white rounded-lg p-3 border border-amber-200">
+                                    <p class="text-xs text-gray-500 mb-2">Preview Perubahan:</p>
+                                    <div class="flex items-center gap-2 text-sm">
+                                        <span class="font-mono bg-red-100 text-red-700 px-2 py-1 rounded" x-text="reclaimInfo.document_to_rename.current_number"></span>
+                                        <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/>
+                                        </svg>
+                                        <span class="font-mono bg-green-100 text-green-700 px-2 py-1 rounded" x-text="reclaimInfo.document_to_rename.new_number"></span>
+                                    </div>
+                                    <p class="text-xs text-gray-500 mt-2">
+                                        <span x-text="reclaimInfo.document_to_rename.entity_name"></span>
+                                    </p>
+                                    <p class="text-xs text-gray-500 mt-1">
+                                        Counter: <span x-text="reclaimInfo.counter_change.from"></span> → <span x-text="reclaimInfo.counter_change.to"></span>
+                                    </p>
+                                </div>
+                                
+                                <button 
+                                    type="button"
+                                    @click="openReclaimModal()"
+                                    class="mt-3 px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700">
+                                    Reclaim Gap
+                                </button>
+                            </div>
+                        </template>
+                        
+                        <template x-if="!reclaimInfo.can_reclaim">
+                            <div class="mt-2">
+                                <p class="text-sm text-gray-600" x-text="reclaimInfo.reason"></p>
+                                <p class="text-xs text-gray-500 mt-2" x-text="reclaimInfo.suggestion"></p>
+                                <p class="text-xs text-gray-400 mt-1">
+                                    Gap di posisi: <span x-text="reclaimInfo.gaps?.join(', ') || '-'"></span>
+                                </p>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </template>
+
         {{-- Problems Table --}}
         <template x-if="problems.length > 0">
             <div class="border border-gray-200 rounded-lg overflow-hidden mb-6">
@@ -538,6 +604,51 @@
             </div>
         </div>
     </div>
+    {{-- Reclaim Modal --}}
+    <div x-show="showReclaimModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-modal="true" aria-labelledby="reclaim-modal-title" @keydown.escape.window="showReclaimModal = false">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="fixed inset-0 bg-black/50" @click="showReclaimModal = false"></div>
+            <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6" x-trap.noscroll.inert="showReclaimModal">
+                <h3 id="reclaim-modal-title" class="text-lg font-semibold text-gray-900 mb-4">Konfirmasi Reclaim Gap</h3>
+                
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                    <p class="text-sm text-amber-800 font-medium mb-2">Perubahan yang akan dilakukan:</p>
+                    <ul class="text-sm text-amber-700 space-y-1">
+                        <li>• Rename: <strong x-text="reclaimInfo?.document_to_rename?.current_number"></strong> → <strong x-text="reclaimInfo?.document_to_rename?.new_number"></strong></li>
+                        <li>• Counter: <strong x-text="reclaimInfo?.counter_change?.from"></strong> → <strong x-text="reclaimInfo?.counter_change?.to"></strong></li>
+                        <li>• Dokumen terkait akan di-update otomatis (cascade)</li>
+                    </ul>
+                </div>
+
+                <div class="mb-4">
+                    <label for="reclaim-reason-input" class="block text-sm font-medium text-gray-700 mb-1">Alasan Reclaim *</label>
+                    <textarea 
+                        id="reclaim-reason-input"
+                        x-model="reclaimReason"
+                        rows="3"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
+                        placeholder="Jelaskan alasan reclaim gap..."></textarea>
+                </div>
+
+                <div class="flex justify-end gap-2">
+                    <button 
+                        type="button"
+                        @click="showReclaimModal = false"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Batal
+                    </button>
+                    <button 
+                        type="button"
+                        @click="confirmReclaim()"
+                        :disabled="!reclaimReason || reclaiming"
+                        class="px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 disabled:opacity-50">
+                        <span x-show="!reclaiming">Reclaim Gap</span>
+                        <span x-show="reclaiming">Processing...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -583,6 +694,13 @@ function numberingRepair() {
         // Sync form
         syncMethod: '',
         syncReason: '',
+        
+        // Reclaim state
+        reclaimInfo: null,
+        showReclaimModal: false,
+        reclaimReason: '',
+        reclaiming: false,
+        checkingReclaim: false,
         
         scopeLabels: {
             'ba': 'BA Penerimaan',
@@ -672,6 +790,76 @@ function numberingRepair() {
             this.showEditModal = true;
         },
 
+        async checkReclaim() {
+            if (!this.selectedScope) return;
+            
+            this.checkingReclaim = true;
+            this.reclaimInfo = null;
+            
+            try {
+                const response = await fetch(`/api/settings/numbering/repair/${this.selectedScope}/can-reclaim`, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                    },
+                    credentials: 'same-origin',
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data) {
+                    this.reclaimInfo = data.data;
+                }
+            } catch (error) {
+                console.error('Check reclaim error:', error);
+            } finally {
+                this.checkingReclaim = false;
+            }
+        },
+
+        openReclaimModal() {
+            this.reclaimReason = '';
+            this.showReclaimModal = true;
+        },
+
+        async confirmReclaim() {
+            if (!this.reclaimReason) return;
+            
+            this.reclaiming = true;
+            
+            try {
+                const response = await fetch(`/api/settings/numbering/repair/${this.selectedScope}/reclaim`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        reason: this.reclaimReason,
+                    }),
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    this.showReclaimModal = false;
+                    this.reclaimInfo = null;
+                    this.scanScope();
+                    this.fetchChangeLogs();
+                    alert('Gap berhasil di-reclaim: ' + data.data.renamed.from + ' → ' + data.data.renamed.to);
+                } else {
+                    this.handleError(data);
+                }
+            } catch (error) {
+                console.error('Reclaim error:', error);
+                alert('Gagal melakukan reclaim');
+            } finally {
+                this.reclaiming = false;
+            }
+        },
+
         async scanScope() {
             if (!this.selectedScope) return;
             
@@ -712,6 +900,9 @@ function numberingRepair() {
                     this.counterStatus = data.counter_status;
                     this.problems = data.problems;
                     this.scanned = true;
+                    
+                    // Also check if gap can be reclaimed
+                    this.checkReclaim();
                 } else {
                     this.handleError(data);
                 }
@@ -744,6 +935,7 @@ function numberingRepair() {
             this.scanned = false;
             this.counterStatus = null;
             this.problems = [];
+            this.reclaimInfo = null;
             
             // Reset search state
             this.searchQuery = '';

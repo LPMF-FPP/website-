@@ -70,6 +70,32 @@ class TestRequest extends Model
             }
         });
 
+        static::deleted(function (self $model) {
+            // Attempt to rollback numbering sequences
+            // Only succeeds if this is the LAST number issued (prevents gaps on delete)
+            $numbering = app(\App\Services\NumberingService::class);
+
+            // Rollback BA number
+            if ($model->request_number) {
+                $numbering->rollback('ba', $model->request_number, [
+                    'now' => $model->created_at ? \Carbon\CarbonImmutable::parse($model->created_at) : null,
+                    'investigator_id' => $model->investigator_id,
+                ]);
+                // Clear cache
+                Cache::forget('track:condensed:'.$model->request_number);
+            }
+
+            // Rollback tracking/receipt number
+            if ($model->receipt_number) {
+                $numbering->rollback('tracking', $model->receipt_number, [
+                    'now' => $model->created_at ? \Carbon\CarbonImmutable::parse($model->created_at) : null,
+                    'investigator_id' => $model->investigator_id,
+                ]);
+                // Clear cache
+                Cache::forget('track:condensed:'.$model->receipt_number);
+            }
+        });
+
         $clear = function (self $model) {
             // Clear cache for both request_number and receipt_number
             if ($model->request_number) {
@@ -82,23 +108,6 @@ class TestRequest extends Model
 
         static::saved($clear);
 
-        static::deleted($clear);
-
-    }
-
-    /**
-     * @deprecated Use NumberingService instead
-     * Legacy method - kept for reference only
-     */
-    protected static function generateRequestNumber(): string
-    {
-        // This method is no longer used.
-        // Request numbers (BA Penerimaan) are now generated via NumberingService
-        // which uses settings from /settings page
-
-        throw new \RuntimeException(
-            'generateRequestNumber() is deprecated. Use NumberingService::issue() instead.'
-        );
     }
 
     public function investigator(): BelongsTo
