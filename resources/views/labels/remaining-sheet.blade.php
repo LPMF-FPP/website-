@@ -18,14 +18,6 @@
             $labelHeight = 28; // mm
             $labelWidth = 95;  // mm
             $fontSize = 6;
-        } elseif ($totalLabels <= 12) {
-            $labelHeight = 21; // mm
-            $labelWidth = 95;  // mm
-            $fontSize = 5.5;
-        } else {
-            $labelHeight = 17; // mm
-            $labelWidth = 95;  // mm
-            $fontSize = 5;
         }
     @endphp
     <style>
@@ -191,6 +183,176 @@
             margin-left: auto;
             margin-right: auto;
             font-variant-numeric: tabular-nums;
+        }
+
+        /* =========================
+           PRINT OVERRIDES (DomPDF Compatible - Global Scope)
+           ========================= */
+        @page {
+            /* Custom size matches Controller: 16.2cm x 20.5cm */
+            size: 16.2cm 20.5cm;
+            margin-top: 2mm;
+            margin-bottom: 0mm;
+            margin-left: 5mm;
+            margin-right: 5mm;
+        }
+
+        body {
+            line-height: 1.1;
+        }
+
+        .sheet-table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+        }
+
+        /* Adjust cell padding to create horizontal gap if needed, 
+           but Label 121 usually has labels touching or small gap. 
+           We use padding inside label or cell. */
+        .label-cell {
+            padding: 1mm !important; 
+            vertical-align: top;
+            /* 2 columns in 15.2cm printable width (16.2 - 1). 
+               Each cell ~7.6cm. Label is 7.7cm. Might be tight. 
+               Let's trust the table layout. */
+        }
+
+        .label {
+            /* Fixed dimension for Label 121 */
+            width: 77mm !important;
+            height: 38mm !important;
+            
+            padding: 1mm !important;
+            border: 0.25mm solid #333 !important;
+            page-break-inside: avoid;
+            break-inside: avoid;
+            background: white;
+            overflow: hidden;
+        }
+
+            .header-table {
+                margin-bottom: 0.8mm !important;
+                padding-bottom: 0.4mm !important;
+                border-bottom: none !important; /* Removed black line */
+            }
+
+            .header-logo {
+                height: 7mm !important; /* Increased from 6mm */
+                width: auto !important;
+            }
+
+            .label-header h1 {
+                margin: 0 !important;
+                line-height: 1.05 !important;
+                letter-spacing: 0.1pt !important;
+                font-size: 9pt !important; /* Increased from 8pt */
+                margin-bottom: 1mm !important;
+            }
+
+            .label-header .subtitle {
+                display: none !important;
+            }
+
+            .sisa-badge {
+                font-size: 7pt !important; /* Increased */
+                padding: 0.5mm 2mm !important;
+            }
+
+            .field {
+                margin-bottom: 0.8mm !important;
+            }
+
+            .field-label {
+                line-height: 1.1 !important;
+                font-size: 6pt !important; /* Increased from 5pt */
+            }
+
+            .field-value {
+                line-height: 1.1 !important;
+                font-size: 8pt !important; /* Increased from 7pt */
+            }
+
+            .qr-img {
+                width: 15mm !important; /* Increased from 14mm */
+                height: 15mm !important;
+            }
+
+            .qr-text {
+                font-size: 5pt !important;
+            }
+
+            .label-footer {
+                bottom: 1mm !important;
+                padding-top: 0.3mm !important;
+                line-height: 1.05 !important;
+                font-size: 5pt !important; /* Increased */
+                /* Border top remains (dotted) from original style unless overridden. 
+                   We are NOT overriding border-top here, so it inherits the original '1px dotted lightgray'. */
+            }
+
+        .header-logo {
+            height: 5mm !important;
+            width: auto !important;
+        }
+
+        .label-header h1 {
+            margin: 0 !important;
+            font-size: 7pt !important;
+            line-height: 1 !important;
+        }
+
+        .label-header .subtitle {
+            margin-top: 0.1mm !important;
+            font-size: 4pt !important;
+            line-height: 1 !important;
+        }
+
+        .sisa-badge {
+            font-size: 6pt !important;
+            padding: 0.2mm 1mm !important;
+        }
+
+        .field {
+            margin-bottom: 0.4mm !important;
+        }
+
+        .field-label {
+            width: 12mm !important;
+            font-size: 5pt !important;
+            line-height: 1 !important;
+        }
+
+        .field-value {
+            font-size: 6pt !important;
+            line-height: 1 !important;
+            width: calc(100% - 13mm) !important;
+        }
+        
+        .field-value.large {
+            font-size: 7pt !important;
+        }
+
+        .qr-img {
+            width: 12mm !important;
+            height: 12mm !important;
+        }
+
+        .qr-text {
+            font-size: 4pt !important;
+            margin-top: 0.2mm !important;
+            max-height: 3mm !important;
+        }
+
+        .label-footer {
+            bottom: 0.5mm !important;
+            padding-top: 0.2mm !important;
+            font-size: 4pt !important;
+        }
+
+        .page-break {
+            page-break-after: always;
+            break-after: page;
         }
     </style>
 </head>
