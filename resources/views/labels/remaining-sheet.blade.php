@@ -7,15 +7,15 @@
         $totalLabels = $remainingUnits->count();
         // Determine grid layout based on label count
         if ($totalLabels <= 4) {
-            $labelHeight = 55; // mm
+            $labelHeight = 42; // mm
             $labelWidth = 95;  // mm
             $fontSize = 8;
         } elseif ($totalLabels <= 6) {
-            $labelHeight = 43; // mm
+            $labelHeight = 35; // mm
             $labelWidth = 95;  // mm
             $fontSize = 7;
         } elseif ($totalLabels <= 8) {
-            $labelHeight = 32; // mm
+            $labelHeight = 28; // mm
             $labelWidth = 95;  // mm
             $fontSize = 6;
         } elseif ($totalLabels <= 12) {
