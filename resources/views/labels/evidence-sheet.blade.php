@@ -135,6 +135,7 @@
             word-break: break-word;
             overflow: hidden;
             line-height: 1.1;
+            font-variant-numeric: tabular-nums;
         }
         .field-value.large {
             font-size: {{ $fontSize + 1 }}pt;
@@ -142,6 +143,12 @@
         .field-value.small {
             font-size: {{ max($fontSize - 1, 4.5) }}pt;
             font-weight: normal;
+        }
+        .text-balance {
+            text-wrap: balance;
+        }
+        .text-pretty {
+            text-wrap: pretty;
         }
         .clamp2 {
             max-height: {{ $fontSize * 0.6 }}mm;
@@ -216,6 +223,96 @@
             border: 1px solid #000;
             display: inline-block;
         }
+
+        /* =========================
+           PRINT OVERRIDES (DomPDF Compatible - Global Scope)
+           Label 121 Format (16.2cm x 20.5cm)
+           ========================= */
+        @page {
+            size: 16.2cm 20.5cm;
+            margin-top: 2mm;
+            margin-bottom: 0mm;
+            margin-left: 5mm;
+            margin-right: 5mm;
+        }
+
+        body {
+            line-height: 1.1;
+        }
+        
+        .label {
+            /* Fixed dimension for Label 121 */
+            width: 72mm !important; /* Reduced from 75mm */
+            height: 38mm !important;
+            padding: 1mm !important;
+            border: 0.25mm solid #333 !important;
+        }
+
+        .header-table {
+            margin-bottom: 0.5mm !important;
+            padding-bottom: 0.2mm !important;
+            border-bottom: none !important; /* Removed line */
+        }
+
+        .header-logo {
+            height: 5mm !important; /* Reduced */
+            width: auto !important;
+        }
+
+        .label-header h1 {
+            font-size: 8pt !important; /* Reduced */
+            margin: 0 !important;
+            line-height: 1 !important;
+            margin-bottom: 0.2mm !important; /* Reduced */
+        }
+
+        .label-header .subtitle {
+            display: block !important;
+            font-size: 5pt !important;
+            margin-top: 0.1mm !important;
+            line-height: 1 !important;
+        }
+
+        .field {
+            margin-bottom: 0.4mm !important; /* Tightened */
+        }
+
+        .field-label {
+            font-size: 6pt !important;
+            line-height: 1.1 !important;
+        }
+
+        .field-value {
+            font-size: 7pt !important; /* Reduced */
+            line-height: 1.1 !important;
+        }
+        
+        .field-value.large {
+            font-size: 8pt !important;
+        }
+
+        .label-qr img {
+            width: 14mm !important;
+            height: 14mm !important;
+        }
+
+        .qr-text {
+            font-size: 5pt !important;
+            margin-top: 0.2mm !important;
+            max-height: 3mm !important;
+        }
+
+        .label-footer {
+            bottom: 1mm !important;
+            padding-top: 0.3mm !important;
+            font-size: 5pt !important;
+        }
+        
+        /* Adjust checklist page top margin compensation */
+        .checklist-container {
+            padding: 5mm 10mm !important;
+            margin-top: 15mm !important; /* Compensate for small page margin */
+        }
     </style>
 </head>
 <body>
@@ -225,21 +322,21 @@
             @foreach($rows as $row)
                 <tr>
                     {{-- Left Column: Evidence Label --}}
-                    <td style="width:50%; vertical-align:top; padding: 3mm;">
+                    <td style="width:50%; vertical-align:top; padding: 1mm;">
                         @if($row['left'])
-                            <div class="label">
+                            <div class="label text-pretty">
                                 <div class="label-header">
                                     <table width="100%" class="header-table">
                                         <tr>
                                             <td style="width: 12%; text-align: center; vertical-align: middle;">
-                                                <img src="{{ public_path('images/logo-tribrata-polri.png') }}" class="header-logo">
+                                                <img src="{{ public_path('images/logo-tribrata-polri.png') }}" class="header-logo" alt="Logo Polri">
                                             </td>
                                             <td style="width: 76%; text-align: center; vertical-align: middle;">
                                                 <h1>Barang Bukti</h1>
-                                                <div class="subtitle">Laboratorium Pengujian Mutu Farmapol Pusdokkes Polri</div>
+                                                <div class="subtitle text-pretty">Laboratorium Pengujian Mutu Farmapol Pusdokkes Polri</div>
                                             </td>
                                             <td style="width: 12%; text-align: center; vertical-align: middle;">
-                                                <img src="{{ public_path('images/logo-pusdokkes-polri.png') }}" class="header-logo">
+                                                <img src="{{ public_path('images/logo-pusdokkes-polri.png') }}" class="header-logo" alt="Logo Pusdokkes">
                                             </td>
                                         </tr>
                                     </table>
@@ -282,21 +379,21 @@
                     </td>
 
                     {{-- Right Column: Case Label --}}
-                    <td style="width:50%; vertical-align:top; padding: 3mm;">
+                    <td style="width:50%; vertical-align:top; padding: 1mm;">
                         @if($row['right'])
-                            <div class="label">
+                            <div class="label text-pretty">
                                 <div class="label-header">
                                     <table width="100%" class="header-table">
                                         <tr>
                                             <td style="width: 12%; text-align: center; vertical-align: middle;">
-                                                <img src="{{ public_path('images/logo-tribrata-polri.png') }}" class="header-logo">
+                                                <img src="{{ public_path('images/logo-tribrata-polri.png') }}" class="header-logo" alt="Logo Polri">
                                             </td>
                                             <td style="width: 76%; text-align: center; vertical-align: middle;">
-                                                <h1>LPMF</h1>
-                                                <div class="subtitle">Laboratorium Pengujian Mutu Farmapol Pusdokkes Polri</div>
+                                                <h1 class="text-balance">LPMF</h1>
+                                                <div class="subtitle text-pretty">Laboratorium Pengujian Mutu Farmapol Pusdokkes Polri</div>
                                             </td>
                                             <td style="width: 12%; text-align: center; vertical-align: middle;">
-                                                <img src="{{ public_path('images/logo-pusdokkes-polri.png') }}" class="header-logo">
+                                                <img src="{{ public_path('images/logo-pusdokkes-polri.png') }}" class="header-logo" alt="Logo Pusdokkes">
                                             </td>
                                         </tr>
                                     </table>

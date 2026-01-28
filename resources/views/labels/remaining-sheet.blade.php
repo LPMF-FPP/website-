@@ -220,7 +220,7 @@
 
         .label {
             /* Fixed dimension for Label 121 */
-            width: 77mm !important;
+            width: 72mm !important; /* Reduced */
             height: 38mm !important;
             
             padding: 1mm !important;
@@ -232,50 +232,53 @@
         }
 
             .header-table {
-                margin-bottom: 0.8mm !important;
-                padding-bottom: 0.4mm !important;
+                margin-bottom: 0.5mm !important;
+                padding-bottom: 0.2mm !important;
                 border-bottom: none !important; /* Removed black line */
             }
 
             .header-logo {
-                height: 7mm !important; /* Increased from 6mm */
+                height: 5mm !important; /* Reduced to fit subtitle */
                 width: auto !important;
             }
 
             .label-header h1 {
                 margin: 0 !important;
-                line-height: 1.05 !important;
+                line-height: 1 !important;
                 letter-spacing: 0.1pt !important;
-                font-size: 9pt !important; /* Increased from 8pt */
-                margin-bottom: 1mm !important;
+                font-size: 8pt !important; /* Reduced */
+                margin-bottom: 0.2mm !important; /* Reduced */
             }
 
             .label-header .subtitle {
-                display: none !important;
+                display: block !important;
+                font-size: 5pt !important;
+                margin-top: 0.1mm !important;
+                line-height: 1 !important;
             }
 
             .sisa-badge {
-                font-size: 7pt !important; /* Increased */
-                padding: 0.5mm 2mm !important;
+                font-size: 6pt !important; /* Reduced */
+                padding: 0.3mm 1.5mm !important;
             }
 
             .field {
-                margin-bottom: 0.8mm !important;
+                margin-bottom: 0.4mm !important; /* Tightened */
             }
 
             .field-label {
                 line-height: 1.1 !important;
-                font-size: 6pt !important; /* Increased from 5pt */
+                font-size: 6pt !important;
             }
 
             .field-value {
                 line-height: 1.1 !important;
-                font-size: 8pt !important; /* Increased from 7pt */
+                font-size: 7pt !important; /* Reduced to prevent overlap */
             }
 
             .qr-img {
-                width: 15mm !important; /* Increased from 14mm */
-                height: 15mm !important;
+                width: 14mm !important;
+                height: 14mm !important;
             }
 
             .qr-text {
@@ -286,27 +289,10 @@
                 bottom: 1mm !important;
                 padding-top: 0.3mm !important;
                 line-height: 1.05 !important;
-                font-size: 5pt !important; /* Increased */
-                /* Border top remains (dotted) from original style unless overridden. 
-                   We are NOT overriding border-top here, so it inherits the original '1px dotted lightgray'. */
+                font-size: 5pt !important;
             }
 
-        .header-logo {
-            height: 5mm !important;
-            width: auto !important;
-        }
 
-        .label-header h1 {
-            margin: 0 !important;
-            font-size: 7pt !important;
-            line-height: 1 !important;
-        }
-
-        .label-header .subtitle {
-            margin-top: 0.1mm !important;
-            font-size: 4pt !important;
-            line-height: 1 !important;
-        }
 
         .sisa-badge {
             font-size: 6pt !important;
@@ -362,7 +348,7 @@
         @foreach($remainingUnits->chunk(2) as $row)
             <tr>
                 @foreach($row as $unit)
-                    <td class="label-cell">
+                    <td class="label-cell" style="width:50%; vertical-align:top; padding: 1mm;">
                         <div class="label text-pretty">
                             <div class="label-header">
                                 <table class="header-table" role="presentation">

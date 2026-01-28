@@ -306,8 +306,12 @@ class DashboardController extends Controller
 
             $totalDays = $requests->sum(function ($r) {
                 $end = $r->completed_at ?? $r->updated_at;
+                $startDate = \Carbon\Carbon::parse($r->submitted_at);
+                $endDate = \Carbon\Carbon::parse($end);
 
-                return \Carbon\Carbon::parse($r->submitted_at)->floatDiffInDays(\Carbon\Carbon::parse($end));
+                // Hitung hari kerja (Senin-Jumat)
+                // Menggunakan diffInWeekdays yang exclude weekend
+                return $startDate->diffInWeekdays($endDate);
             });
 
             return [
