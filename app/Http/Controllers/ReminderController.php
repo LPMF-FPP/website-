@@ -31,7 +31,7 @@ class ReminderController extends Controller
         // $this->authorize('reminders.edit');
 
         $validated = $request->validate([
-            'schedule_time' => 'required|date_format:H:i:s', // HTML time input sends H:i:s usually or H:i
+            'schedule_time' => 'required|date_format:H:i', // HTML time input sends H:i usually
             'is_enabled' => 'boolean',
             'message_template' => 'required|string',
             'target_date' => 'nullable|date', // for ISO
@@ -47,7 +47,7 @@ class ReminderController extends Controller
         }
 
         $reminder->update([
-            'schedule_time' => $validated['schedule_time'],
+            'schedule_time' => $validated['schedule_time'].':00',
             'is_enabled' => $request->has('is_enabled'),
             'message_template' => $validated['message_template'],
             'metadata' => $metadata,
