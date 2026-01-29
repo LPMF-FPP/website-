@@ -86,13 +86,6 @@
                         </button>
                         
                         <button 
-                            @click="activeSection = 'notifications'" 
-                            :class="activeSection === 'notifications' ? 'bg-gray-200 text-gray-900 font-medium' : 'bg-white text-gray-700 hover:bg-gray-50'"
-                            class="w-full text-left px-4 py-3 rounded-lg transition-colors text-sm">
-                            Notifikasi & Security
-                        </button>
-
-                        <button 
                             @click="activeSection = 'documents'" 
                             :class="activeSection === 'documents' ? 'bg-gray-200 text-gray-900 font-medium' : 'bg-white text-gray-700 hover:bg-gray-50'"
                             class="w-full text-left px-4 py-3 rounded-lg transition-colors text-sm">
@@ -157,10 +150,6 @@
                     @include('settings.partials.localization-retention')
                 </div>
                 
-                <div x-show="activeSection === 'notifications'">
-                    @include('settings.partials.notifications-security')
-                </div>
-
                 <div x-show="activeSection === 'documents'">
                     @include('settings.partials.documents')
                 </div>
