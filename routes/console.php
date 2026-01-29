@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('inventory:check-alerts')->dailyAt('08:00');
+Schedule::command('reminders:send')->everyMinute();

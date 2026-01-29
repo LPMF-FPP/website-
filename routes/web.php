@@ -355,6 +355,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/preview-recipients', [WhatsappBroadcastController::class, 'previewRecipients'])->name('preview-recipients');
     });
 
+    // Reminders (WhatsApp Bot)
+    Route::prefix('reminders')->name('reminders.')->middleware('can:manage-settings')->group(function () {
+        Route::get('/', [App\Http\Controllers\ReminderController::class, 'index'])->name('index');
+        Route::get('/{reminder}/edit', [App\Http\Controllers\ReminderController::class, 'edit'])->name('edit');
+        Route::put('/{reminder}', [App\Http\Controllers\ReminderController::class, 'update'])->name('update');
+        Route::post('/{reminder}/toggle', [App\Http\Controllers\ReminderController::class, 'toggle'])->name('toggle');
+        Route::post('/{reminder}/trigger', [App\Http\Controllers\ReminderController::class, 'trigger'])->name('trigger');
+    });
+
 });
 
 // Inventory Module Routes

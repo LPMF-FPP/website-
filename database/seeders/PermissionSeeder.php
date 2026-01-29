@@ -75,6 +75,10 @@ class PermissionSeeder extends Seeder
         // Pengaturan Sistem
         ['name' => 'settings.view', 'display_name' => 'Lihat Pengaturan', 'module' => 'settings', 'action' => 'view'],
         ['name' => 'settings.edit', 'display_name' => 'Edit Pengaturan', 'module' => 'settings', 'action' => 'edit'],
+
+        // Reminders
+        ['name' => 'reminders.view', 'display_name' => 'Lihat Reminders', 'module' => 'reminders', 'action' => 'view'],
+        ['name' => 'reminders.edit', 'display_name' => 'Edit Reminders', 'module' => 'reminders', 'action' => 'edit'],
     ];
 
     /**
@@ -134,6 +138,7 @@ class PermissionSeeder extends Seeder
             'changelogs.view',
             'analysts.view', 'analysts.create', 'analysts.edit',
             'settings.view', 'settings.edit',
+            'reminders.view', 'reminders.edit',
         ],
         'admin' => [
             // Admin mendapat semua permission
@@ -151,6 +156,7 @@ class PermissionSeeder extends Seeder
             'analysts.view', 'analysts.create', 'analysts.edit', 'analysts.delete',
             'investigators.view', 'investigators.edit', 'investigators.delete',
             'settings.view', 'settings.edit',
+            'reminders.view', 'reminders.edit',
         ],
         'supervisor' => [
             // Supervisor sama dengan admin
@@ -167,6 +173,7 @@ class PermissionSeeder extends Seeder
             'changelogs.view',
             'analysts.view', 'analysts.create', 'analysts.edit', 'analysts.delete',
             'settings.view', 'settings.edit',
+            'reminders.view', 'reminders.edit',
         ],
         'analyst' => [
             // analyst sama dengan analis
