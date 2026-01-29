@@ -163,11 +163,11 @@
                                 this.tasksData = await response.json();
                                 break;
                             case 'broadcasts':
-                                response = await fetch('{{ route("whatsapp.broadcasts") }}');
+                                response = await fetch('{{ route("whatsapp.broadcasts.index") }}');
                                 this.broadcastsData = await response.json();
                                 break;
                             case 'reminders':
-                                response = await fetch('{{ route("whatsapp.reminders") }}');
+                                response = await fetch('{{ route("whatsapp.reminders.index") }}');
                                 this.remindersData = await response.json();
                                 break;
                             case 'logs':
@@ -175,7 +175,7 @@
                                 this.logsData = await response.json();
                                 break;
                             case 'settings':
-                                response = await fetch('{{ route("whatsapp.settings") }}');
+                                response = await fetch('{{ route("whatsapp.settings.index") }}');
                                 this.settingsData = await response.json();
                                 break;
                         }
