@@ -265,10 +265,17 @@
                             <template x-for="device in devices" :key="device.id">
                                 <li class="py-2 flex justify-between items-center">
                                     <div>
-                                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100" x-text="device.name || device.phone || device.device_id || 'Unknown Device'"></p>
-                                        <p class="text-xs text-gray-500 font-mono" x-text="device.device_id"></p>
+                                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100" 
+                                           x-text="device.display_name || device.name || device.jid || device.id || 'Unknown Device'"></p>
+                                        <p class="text-xs text-gray-500 font-mono" 
+                                           x-text="device.jid || device.id"></p>
                                     </div>
-                                    <span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-800">Connected</span>
+                                    <span class="px-2 py-0.5 text-xs rounded-full"
+                                          :class="device.state === 'logged_in' 
+                                              ? 'bg-green-100 text-green-800' 
+                                              : 'bg-yellow-100 text-yellow-800'"
+                                          x-text="device.state === 'logged_in' ? 'Connected' : (device.state || 'Unknown')">
+                                    </span>
                                 </li>
                             </template>
                         </ul>

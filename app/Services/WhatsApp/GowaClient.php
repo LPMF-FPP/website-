@@ -102,6 +102,11 @@ class GowaClient
         }
     }
 
+    private function extractPhoneFromJid(string $jid): string
+    {
+        return str_replace('@s.whatsapp.net', '', $jid);
+    }
+
     public function checkHealth(): array
     {
         try {
@@ -111,17 +116,38 @@ class GowaClient
                 $http = $http->withBasicAuth($this->basicUser, $this->basicPass);
             }
 
-            $response = $http->get("{$this->baseUrl}/health");
+            // Use /devices as /health endpoint is not available in current GOWA version
+            $response = $http->get("{$this->baseUrl}/devices");
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $devices = $data['results'] ?? [];
+
+                // Check if any device is logged in
+                $hasLoggedInDevice = collect($devices)->contains(function ($device) {
+                    return ($device['state'] ?? '') === 'logged_in';
+                });
+
+                return [
+                    'reachable' => true,
+                    'connected' => $hasLoggedInDevice,
+                    'status' => $response->status(),
+                    'devices_count' => count($devices),
+                    'data' => $data,
+                ];
+            }
 
             return [
-                'reachable' => $response->successful(),
+                'reachable' => false,
+                'connected' => false,
                 'status' => $response->status(),
-                'data' => $response->json(),
+                'error' => $response->body(),
             ];
 
         } catch (\Throwable $e) {
             return [
                 'reachable' => false,
+                'connected' => false,
                 'error' => $e->getMessage(),
             ];
         }
@@ -143,10 +169,29 @@ class GowaClient
 
             if ($response->successful()) {
                 $data = $response->json();
+                $rawDevices = $data['results'] ?? [];
+
+                // Normalize device structure for frontend compatibility
+                $devices = collect($rawDevices)->map(function ($device) {
+                    return [
+                        // Original fields
+                        'id' => $device['id'] ?? null,
+                        'display_name' => $device['display_name'] ?? null,
+                        'state' => $device['state'] ?? 'unknown',
+                        'jid' => $device['jid'] ?? null,
+                        'created_at' => $device['created_at'] ?? null,
+
+                        // Alias fields for frontend compatibility
+                        'device_id' => $device['id'] ?? null,
+                        'name' => $device['display_name'] ?? null,
+                        'phone' => $this->extractPhoneFromJid($device['jid'] ?? ''),
+                        'connected' => ($device['state'] ?? '') === 'logged_in',
+                    ];
+                })->all();
 
                 return [
                     'success' => true,
-                    'devices' => $data['results'] ?? [],
+                    'devices' => $devices,
                 ];
             }
 

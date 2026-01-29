@@ -106,7 +106,7 @@
                     try {
                         const res = await fetch('{{ route("whatsapp.connection") }}');
                         const data = await res.json();
-                        this.connected = data.reachable;
+                        this.connected = data.connected || data.reachable;
                     } catch (e) {
                         this.connected = false;
                     }
