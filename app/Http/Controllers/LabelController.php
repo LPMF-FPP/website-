@@ -193,10 +193,10 @@ class LabelController extends Controller
             'printDate' => now()->translatedFormat('d M Y H:i'),
         ]);
 
-        // 74mm x 52mm in points (1mm = 2.83465pt)
-        // 74mm = 209.76 pt
-        // 52mm = 147.40 pt
-        $pdf->setPaper([0, 0, 209.76, 147.40], 'landscape');
+        // 75mm x 38mm in points (1mm = 2.83465pt)
+        // 75mm = 212.60 pt
+        // 38mm = 107.72 pt
+        $pdf->setPaper([0, 0, 212.60, 107.72], 'landscape');
 
         return $pdf->stream("label-{$evidenceUnit->sample_code}.pdf");
     }
@@ -287,8 +287,8 @@ class LabelController extends Controller
             'printDate' => now()->format('d M Y H:i'),
         ]);
 
-        // 74mm x 52mm
-        $pdf->setPaper([0, 0, 209.76, 147.40], 'landscape');
+        // 75mm x 38mm
+        $pdf->setPaper([0, 0, 212.60, 107.72], 'landscape');
 
         return $pdf->stream("label-sisa-{$remainingUnit->remaining_code}.pdf");
     }

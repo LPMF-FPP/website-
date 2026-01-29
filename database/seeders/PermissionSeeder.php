@@ -67,6 +67,11 @@ class PermissionSeeder extends Seeder
         ['name' => 'analysts.edit', 'display_name' => 'Edit Staff', 'module' => 'analysts', 'action' => 'edit'],
         ['name' => 'analysts.delete', 'display_name' => 'Hapus Staff', 'module' => 'analysts', 'action' => 'delete'],
 
+        // Manajemen Penyidik
+        ['name' => 'investigators.view', 'display_name' => 'Lihat Manajemen Penyidik', 'module' => 'investigators', 'action' => 'view'],
+        ['name' => 'investigators.edit', 'display_name' => 'Edit Penyidik', 'module' => 'investigators', 'action' => 'edit'],
+        ['name' => 'investigators.delete', 'display_name' => 'Hapus Penyidik', 'module' => 'investigators', 'action' => 'delete'],
+
         // Pengaturan Sistem
         ['name' => 'settings.view', 'display_name' => 'Lihat Pengaturan', 'module' => 'settings', 'action' => 'view'],
         ['name' => 'settings.edit', 'display_name' => 'Edit Pengaturan', 'module' => 'settings', 'action' => 'edit'],
@@ -144,6 +149,7 @@ class PermissionSeeder extends Seeder
             'inventori.view', 'inventori.create', 'inventori.edit', 'inventori.delete',
             'changelogs.view',
             'analysts.view', 'analysts.create', 'analysts.edit', 'analysts.delete',
+            'investigators.view', 'investigators.edit', 'investigators.delete',
             'settings.view', 'settings.edit',
         ],
         'supervisor' => [

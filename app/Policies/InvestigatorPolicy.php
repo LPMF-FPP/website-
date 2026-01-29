@@ -8,6 +8,38 @@ use App\Models\User;
 class InvestigatorPolicy
 {
     /**
+     * Determine if the user can view any investigators.
+     */
+    public function viewAny(User $user): bool
+    {
+        return $user->role === 'admin';
+    }
+
+    /**
+     * Determine if the user can view the investigator.
+     */
+    public function view(User $user, Investigator $investigator): bool
+    {
+        return $user->role === 'admin';
+    }
+
+    /**
+     * Determine if the user can update the investigator.
+     */
+    public function update(User $user, Investigator $investigator): bool
+    {
+        return $user->role === 'admin';
+    }
+
+    /**
+     * Determine if the user can delete the investigator.
+     */
+    public function delete(User $user, Investigator $investigator): bool
+    {
+        return $user->role === 'admin';
+    }
+
+    /**
      * Determine if the user can view documents for the investigator.
      */
     public function viewDocuments(User $user, Investigator $investigator): bool

@@ -102,6 +102,115 @@ class MonthlyLogReportController extends Controller
             ->header('Content-Disposition', "inline; filename=\"{$filename}\"");
     }
 
+    public function exportEnvironmentCsv(Request $request)
+    {
+        $validated = $request->validate([
+            'location_id' => ['nullable', 'exists:environment_locations,id'],
+            'month' => ['required', 'date_format:Y-m'],
+        ]);
+
+        $month = Carbon::createFromFormat('Y-m', $validated['month']);
+        $year = $month->year;
+        $monthNum = $month->month;
+        $locationId = $validated['location_id'] ?? null;
+
+        $location = $locationId ? EnvironmentLocation::find($locationId) : null;
+        $filename = $location
+            ? "log_suhu_{$location->name}_{$month->format('Y_m')}.csv"
+            : "log_suhu_semua_{$month->format('Y_m')}.csv";
+
+        return response()->streamDownload(function () use ($locationId, $year, $monthNum) {
+            $handle = fopen('php://output', 'w');
+            fwrite($handle, "\xEF\xBB\xBF"); // BOM for Excel UTF-8
+
+            // Header
+            fputcsv($handle, [
+                'Tanggal', 'Waktu', 'Lokasi', 'Suhu (°C)', 'Kelembaban (%RH)', 'Pencatat', 'Sumber', 'Catatan',
+            ], ';');
+
+            if ($locationId) {
+                $readings = $this->environmentService->getReadingsForMonth($locationId, $year, $monthNum);
+                $this->writeEnvironmentRows($handle, $readings);
+            } else {
+                $allLocations = EnvironmentLocation::orderBy('name')->get();
+                foreach ($allLocations as $loc) {
+                    $readings = $this->environmentService->getReadingsForMonth($loc->id, $year, $monthNum);
+                    // Add location name to objects for writing
+                    foreach ($readings as $reading) {
+                        $reading->location_name = $loc->name;
+                    }
+                    $this->writeEnvironmentRows($handle, $readings, true);
+                }
+            }
+
+            fclose($handle);
+        }, $filename);
+    }
+
+    private function writeEnvironmentRows($handle, $readings, $includeLocation = false)
+    {
+        foreach ($readings as $reading) {
+            $locationName = $includeLocation ? ($reading->location_name ?? '-') : ($reading->location->name ?? '-');
+
+            fputcsv($handle, [
+                $reading->measured_at->format('Y-m-d'),
+                $reading->measured_at->format('H:i'),
+                $locationName,
+                $reading->temperature_c,
+                $reading->humidity_rh ?? '-',
+                $reading->enteredBy->name ?? 'System',
+                $reading->source->label(),
+                $reading->notes,
+            ], ';');
+        }
+    }
+
+    public function exportInstrumentCsv(Request $request)
+    {
+        $validated = $request->validate([
+            'asset_id' => ['nullable', 'exists:instrument_assets,id'],
+            'month' => ['required', 'date_format:Y-m'],
+        ]);
+
+        $month = Carbon::createFromFormat('Y-m', $validated['month']);
+        $year = $month->year;
+        $monthNum = $month->month;
+        $assetId = $validated['asset_id'] ?? null;
+
+        $asset = $assetId ? InstrumentAsset::find($assetId) : null;
+        $filename = $asset
+            ? "log_instrumen_{$asset->asset_code}_{$month->format('Y_m')}.csv"
+            : "log_instrumen_semua_{$month->format('Y_m')}.csv";
+
+        return response()->streamDownload(function () use ($year, $monthNum, $assetId) {
+            $handle = fopen('php://output', 'w');
+            fwrite($handle, "\xEF\xBB\xBF"); // BOM for Excel
+
+            // Header
+            fputcsv($handle, [
+                'Tanggal', 'Jam Mulai', 'Jam Selesai', 'Nama Instrumen', 'Kode Aset', 'Pengguna', 'Sampel/Proyek', 'Kondisi Akhir', 'Catatan',
+            ], ';');
+
+            $logs = $this->instrumentService->getUsageLogsForMonth($year, $monthNum, $assetId);
+
+            foreach ($logs as $log) {
+                fputcsv($handle, [
+                    $log->used_at->format('Y-m-d'),
+                    $log->start_time ? Carbon::parse($log->start_time)->format('H:i') : '-',
+                    $log->end_time ? Carbon::parse($log->end_time)->format('H:i') : '-',
+                    $log->asset->instrument->name ?? '-',
+                    $log->asset->asset_code ?? '-',
+                    $log->performedBy->name ?? '-',
+                    $log->sample_name ?? '-',
+                    $log->condition_after ?? '-',
+                    $log->notes,
+                ], ';');
+            }
+
+            fclose($handle);
+        }, $filename);
+    }
+
     public function instrumentReport(Request $request)
     {
         $validated = $request->validate([

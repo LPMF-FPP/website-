@@ -140,39 +140,107 @@ class EnvironmentMonitoringService
         $endOfDay = $date->copy()->endOfDay();
         $settings = $this->getSettings();
 
-        $morningStart = Carbon::parse($date->format('Y-m-d').' '.$settings['window_morning_start']);
-        $morningEnd = Carbon::parse($date->format('Y-m-d').' '.$settings['window_morning_end']);
-        $afternoonStart = Carbon::parse($date->format('Y-m-d').' '.$settings['window_afternoon_start']);
-        $afternoonEnd = Carbon::parse($date->format('Y-m-d').' '.$settings['window_afternoon_end']);
+        // Parse scheduled windows (for status calculation)
+        $scheduleMorningStart = $settings['window_morning_start'];
+        $scheduleMorningEnd = $settings['window_morning_end'];
+        $scheduleAfternoonStart = $settings['window_afternoon_start'];
+        $scheduleAfternoonEnd = $settings['window_afternoon_end'];
 
+        // Define search windows (wider to catch late inputs)
+        // Morning: 00:00:00 -> Afternoon Start
+        $morningSearchStart = $startOfDay;
+        $morningSearchEnd = Carbon::parse($date->format('Y-m-d').' '.$scheduleAfternoonStart)->subSecond();
+
+        // Afternoon: Afternoon Start -> 23:59:59
+        $afternoonSearchStart = Carbon::parse($date->format('Y-m-d').' '.$scheduleAfternoonStart);
+        $afternoonSearchEnd = $endOfDay;
+
+        // Find readings in search windows
         $morningReading = EnvironmentReading::where('location_id', $location->id)
-            ->whereBetween('measured_at', [$morningStart, $morningEnd])
+            ->whereBetween('measured_at', [$morningSearchStart, $morningSearchEnd])
             ->whereNull('correction_of_id')
+            ->latest('measured_at') // Get latest if duplicates
             ->first();
 
         $afternoonReading = EnvironmentReading::where('location_id', $location->id)
-            ->whereBetween('measured_at', [$afternoonStart, $afternoonEnd])
+            ->whereBetween('measured_at', [$afternoonSearchStart, $afternoonSearchEnd])
             ->whereNull('correction_of_id')
+            ->latest('measured_at')
             ->first();
 
         $morningFilled = $morningReading !== null;
         $afternoonFilled = $afternoonReading !== null;
 
-        $now = Carbon::now();
-        $currentTime = $now->format('H:i');
+        $currentTime = Carbon::now()->format('H:i');
+        $isToday = $date->isToday();
 
         $status = 'complete';
 
-        if (! $morningFilled && $currentTime > $settings['window_morning_end']) {
-            $status = 'overdue';
-        } elseif (! $morningFilled && $currentTime >= $settings['window_morning_start'] && $currentTime <= $settings['window_morning_end']) {
-            $status = 'due';
-        } elseif (! $afternoonFilled && $currentTime > $settings['window_afternoon_end']) {
-            $status = 'overdue';
-        } elseif (! $afternoonFilled && $currentTime >= $settings['window_afternoon_start'] && $currentTime <= $settings['window_afternoon_end']) {
-            $status = 'due';
-        } elseif (! $morningFilled || ! $afternoonFilled) {
-            $status = 'pending';
+        // Logic for Morning Status
+        if (! $morningFilled) {
+            if ($isToday && $currentTime > $scheduleMorningEnd) {
+                $status = 'overdue';
+            } elseif ($isToday && $currentTime >= $scheduleMorningStart && $currentTime <= $scheduleMorningEnd) {
+                $status = 'due';
+            } elseif (! $isToday && $date->isPast()) {
+                $status = 'overdue'; // Past date, no data
+            } else {
+                $status = 'pending'; // Future or pre-window
+            }
+        }
+
+        // Logic for Afternoon Status (Override if needed or if morning is ok)
+        // Check afternoon only if morning is done OR it's afternoon time
+        if ($status !== 'overdue') { // Don't override morning overdue unless... wait, distinct statuses needed?
+            // The UI usually shows one aggregate status.
+            // If Morning is missing -> Overdue.
+            // If Morning done, Afternoon missing -> Check time.
+
+            if ($morningFilled && ! $afternoonFilled) {
+                if ($isToday && $currentTime > $scheduleAfternoonEnd) {
+                    $status = 'overdue';
+                } elseif ($isToday && $currentTime >= $scheduleAfternoonStart && $currentTime <= $scheduleAfternoonEnd) {
+                    $status = 'due';
+                } elseif (! $isToday && $date->isPast()) {
+                    $status = 'overdue';
+                } else {
+                    $status = ($status === 'complete') ? 'pending' : $status;
+                }
+            }
+        }
+
+        // Simple aggregate logic:
+        // If ANY required slot is Overdue -> Overdue
+        // If ANY required slot is Due -> Due
+        // If ALL required slots done -> Complete
+
+        // Let's refine based on "morning_filled" and "afternoon_filled"
+        if (! $morningFilled) {
+            if ($isToday && $currentTime > $scheduleMorningEnd) {
+                $status = 'overdue';
+            } elseif ($isToday && $currentTime >= $scheduleMorningStart) {
+                $status = 'due';
+            } elseif ($date->isPast() && ! $isToday) {
+                $status = 'overdue';
+            } else {
+                $status = 'pending';
+            }
+        }
+
+        // If morning is handled (filled or pending/due), check afternoon
+        if ($morningFilled || $status === 'complete') { // Proceed if morning is OK
+            if (! $afternoonFilled) {
+                if ($isToday && $currentTime > $scheduleAfternoonEnd) {
+                    $status = 'overdue';
+                } elseif ($isToday && $currentTime >= $scheduleAfternoonStart) {
+                    // If morning was overdue, stay overdue. If complete, become due.
+                    $status = ($status === 'overdue') ? 'overdue' : 'due';
+                } elseif ($date->isPast() && ! $isToday) {
+                    $status = 'overdue';
+                } elseif ($status === 'complete') {
+                    $status = 'pending';
+                } // Reset complete to pending if afternoon waits
+            }
         }
 
         return [
@@ -198,7 +266,8 @@ class EnvironmentMonitoringService
             }
         }
 
-        if ($settings['humidity_enabled'] || $location->target_humidity_min !== null) {
+        // Only require humidity if the location has a target set
+        if ($location->target_humidity_min !== null) {
             if (! isset($data['humidity_rh']) || $data['humidity_rh'] === null || $data['humidity_rh'] === '') {
                 $errors['humidity_rh'] = 'Kelembaban wajib diisi untuk lokasi ini.';
             } else {
@@ -284,7 +353,7 @@ class EnvironmentMonitoringService
 
         return EnvironmentReading::where('location_id', $locationId)
             ->whereBetween('measured_at', [$startOfMonth, $endOfMonth])
-            ->with('enteredByUser')
+            ->with('enteredBy')
             ->orderBy('measured_at')
             ->get();
     }

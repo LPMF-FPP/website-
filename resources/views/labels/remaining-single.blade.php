@@ -6,7 +6,7 @@
     <style>
         @page {
             margin: 0;
-            size: 74mm 52mm;
+            size: 75mm 38mm;
         }
         * {
             margin: 0;
@@ -15,178 +15,92 @@
         }
         body {
             font-family: 'DejaVu Sans', Arial, sans-serif;
-            font-size: 6pt;
-            line-height: 1.3;
+            font-size: 5pt;
+            line-height: 1.1;
         }
         .label {
-            width: 74mm;
-            height: 52mm;
-            padding: 2mm;
+            width: 75mm;
+            height: 38mm;
+            padding: 1mm;
             position: relative;
             background: #fff;
+            overflow: hidden;
         }
         .label-header {
             text-align: center;
             border-bottom: 1px solid #333;
-            padding-bottom: 1mm;
-            margin-bottom: 1mm;
+            padding-bottom: 0.4mm;
+            margin-bottom: 0.4mm;
             background: #fffde7;
-            margin: -2mm -2mm 1mm -2mm;
-            padding: 1mm;
+            margin: -1mm -1mm 0.4mm -1mm;
+            padding: 0.6mm;
         }
         .label-header h1 {
-            font-size: 7.5pt;
+            font-size: 6.5pt;
             font-weight: bold;
             text-transform: uppercase;
+            line-height: 1;
         }
         .label-header .subtitle {
-            font-size: 4pt;
+            font-size: 3.5pt;
             color: #555;
+            line-height: 1;
         }
         .sisa-badge {
             display: inline-block;
             background: #ffc107;
             color: #333;
-            padding: 0.5mm 1.5mm;
-            font-size: 5pt;
+            padding: 0.3mm 1mm;
+            font-size: 4.5pt;
             font-weight: bold;
-            border-radius: 2mm;
-            margin-left: 1mm;
+            border-radius: 1.5mm;
+            margin-left: 0.5mm;
         }
         .label-body {
             overflow: hidden;
         }
         .label-content {
             float: left;
-            width: 60%;
+            width: 62%;
         }
         .label-qr {
             float: right;
-            width: 35%;
+            width: 34%;
             text-align: center;
         }
         .label-qr img {
-            width: 15mm;
-            height: 15mm;
+            width: 12mm;
+            height: 12mm;
         }
         .field {
-            margin-bottom: 0.8mm;
+            margin-bottom: 0.5mm;
         }
         .field-label {
-            font-size: 5pt;
+            font-size: 4pt;
             color: #666;
             text-transform: uppercase;
         }
         .field-value {
-            font-size: 6pt;
+            font-size: 5pt;
             font-weight: bold;
         }
         .field-value.large {
-            font-size: 7.5pt;
+            font-size: 6.5pt;
             color: #c00;
         }
         .field-value.qty {
-            font-size: 7pt;
+            font-size: 6pt;
             color: #060;
         }
         .label-footer {
             position: absolute;
-            bottom: 1mm;
-            left: 2mm;
-            right: 2mm;
-            font-size: 4pt;
+            bottom: 0.4mm;
+            left: 1.2mm;
+            right: 1.2mm;
+            font-size: 3pt;
             color: #999;
             border-top: 1px dotted #ccc;
-            padding-top: 0.5mm;
-        }
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: 'DejaVu Sans', Arial, sans-serif;
-            font-size: 8pt;
-            line-height: 1.3;
-        }
-        .label {
-            width: 100mm;
-            height: 50mm;
-            padding: 3mm;
-            position: relative;
-            background: #fff;
-        }
-        .label-header {
-            text-align: center;
-            border-bottom: 1px solid #333;
-            padding-bottom: 2mm;
-            margin-bottom: 1mm;
-            background: #fffde7;
-            margin: -3mm -3mm 2mm -3mm;
-            padding: 1.5mm;
-        }
-        .label-header h1 {
-            font-size: 10pt;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-        .label-header .subtitle {
-            font-size: 6pt;
-            color: #555;
-        }
-        .sisa-badge {
-            display: inline-block;
-            background: #ffc107;
-            color: #333;
-            padding: 0.5mm 2mm;
-            font-size: 6pt;
-            font-weight: bold;
-            border-radius: 2mm;
-            margin-left: 1mm;
-        }
-        .label-body {
-            overflow: hidden;
-        }
-        .label-content {
-            float: left;
-            width: 60%;
-        }
-        .label-qr {
-            float: right;
-            width: 35%;
-            text-align: center;
-        }
-        .label-qr img {
-            width: 22mm;
-            height: 22mm;
-        }
-        .field {
-            margin-bottom: 1mm;
-        }
-        .field-label {
-            font-size: 6pt;
-            color: #666;
-            text-transform: uppercase;
-        }
-        .field-value {
-            font-size: 7pt;
-            font-weight: bold;
-        }
-        .field-value.large {
-            font-size: 10pt;
-            color: #c00;
-        }
-        .field-value.qty {
-            font-size: 9pt;
-            color: #060;
-        }
-        .label-footer {
-            position: absolute;
-            bottom: 1mm;
-            left: 3mm;
-            right: 3mm;
-            font-size: 5pt;
-            color: #999;
+            padding-top: 0.3mm;
         }
         .clearfix::after {
             content: "";
@@ -239,9 +153,9 @@
                     </div>
                     @endif
                 </td>
-                <td style="width: 35%; vertical-align: top; text-align: center; padding-top: 1mm;">
-                    <img src="{{ $remainingUnit->qr_png ?? '' }}" style="width:20mm;height:20mm;display:block;margin:0 auto;" alt="QR">
-                    <div style="font-size: 5pt; margin-top: 1mm; text-align: center; width: 20mm; margin-left: auto; margin-right: auto;">{{ $remainingUnit->qr_content }}</div>
+                <td style="width: 35%; vertical-align: top; text-align: center; padding-top: 0.3mm;">
+                    <img src="{{ $remainingUnit->qr_png ?? '' }}" style="width:12mm;height:12mm;display:block;margin:0 auto;" alt="QR">
+                    <div style="font-size: 3pt; margin-top: 0.3mm; text-align: center; width: 12mm; margin-left: auto; margin-right: auto;">{{ $remainingUnit->qr_content }}</div>
                 </td>
             </tr>
         </table>

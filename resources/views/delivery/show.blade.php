@@ -183,7 +183,7 @@
                                                                     <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {{ $badgeColor }}">
                                                                         {{ ucfirst($lastNotification->status) }}
                                                                     </span>
-                                                                    <span class="text-xs text-gray-400">{{ $lastNotification->created_at->diffForHumans() }}</span>
+                                                                    <span class="text-xs text-gray-400">{{ $lastNotification->updated_at->diffForHumans() }}</span>
                                                                 </div>
                                                             @else
                                                                 <div class="text-gray-400 text-xs italic">Belum pernah dikirim.</div>

@@ -222,6 +222,11 @@ class EnvironmentMonitoringController extends Controller
             'is_active' => ['boolean'],
         ]);
 
+        // Map humidity fields to DB columns (hum vs humidity)
+        $validated['target_hum_min'] = $validated['target_humidity_min'] ?? null;
+        $validated['target_hum_max'] = $validated['target_humidity_max'] ?? null;
+        unset($validated['target_humidity_min'], $validated['target_humidity_max']);
+
         $location = EnvironmentLocation::create($validated);
 
         return response()->json([
@@ -244,6 +249,11 @@ class EnvironmentMonitoringController extends Controller
             'target_humidity_max' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'is_active' => ['boolean'],
         ]);
+
+        // Map humidity fields to DB columns
+        $validated['target_hum_min'] = $validated['target_humidity_min'] ?? null;
+        $validated['target_hum_max'] = $validated['target_humidity_max'] ?? null;
+        unset($validated['target_humidity_min'], $validated['target_humidity_max']);
 
         $location->update($validated);
 

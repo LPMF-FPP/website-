@@ -1,53 +1,20 @@
-# Project Workflow Rules & Agent Guide
+# Agent Guide & Project Workflow
 
 This file defines the strict workflow, standards, and commands for all agents operating in this repository.
 
 ## 1. Project Snapshot
 
 - **Stack**: Laravel 12 (PHP 8.2+), Blade, Alpine.js, Tailwind CSS, Node.js 20+.
-- **Core Structure**: `app/` (Backend), `resources/` (Frontend), `tests/` (Pest + Dusk).
-- **Audit System**: `scripts/audit/` provides strict CSS/JS/A11y guardrails.
+- **Core Structure**: `app/` (Backend), `resources/` (Frontend), `tests/` (Pest + Dusk), `scripts/audit/` (Guardrails).
+- **Audit System**: Automated CSS/JS/A11y audits via `npm run audit:*`. Reports in `report/`.
 
 ## 2. Agent Roles (BMAD + Superpowers)
 
-### BMAD Agents
+- **Roles**: `bmad-master` (Orchestrator), `bmm-dev` (Impl), `bmm-tea` (Quality), `bmm-ux-designer` (UI).
+- **Superpowers**: `using-superpowers` (Gate), `writing-plans` (Plan), `systematic-debugging` (Fix), `writing-skills` (Meta).
+- **Mandate**: **Invoke relevant skills BEFORE any response.** Check `~/.config/opencode/skills/superpowers/`.
 
-- **bmad-agent-core-bmad-master**: Orchestrates BMAD workflows and agent coordination.
-- **bmad-agent-bmm-pm**: Product/project planning and scope management.
-- **bmad-agent-bmm-analyst**: Requirements analysis and specifications.
-- **bmad-agent-bmm-architect**: System design and architecture decisions.
-- **bmad-agent-bmm-dev**: Implementation, refactoring, and debugging.
-- **bmad-agent-bmm-tea**: Technical excellence, code quality, best practices.
-- **bmad-agent-bmm-ux-designer**: UX/UI design and interaction.
-- **bmad-agent-bmm-tech-writer**: Documentation and changelogs.
-- **bmad-agent-bmm-sm**: Scrum facilitation and blocker removal.
-- **bmad-agent-bmm-quick-flow-solo-dev**: Solo rapid execution (use only when explicitly requested).
-
-### Superpowers Skills (Process Guides)
-
-- **superpowers:using-superpowers**: Skill discovery and invocation gate.
-- **superpowers:brainstorming**: Requirements clarification and design exploration.
-- **superpowers:writing-plans**: Plan before multi-step work.
-- **superpowers:executing-plans**: Execute plan with checkpoints.
-- **superpowers:dispatching-parallel-agents**: Parallelize independent work.
-- **superpowers:subagent-driven-development**: Subagent orchestration.
-- **superpowers:test-driven-development**: TDD workflow.
-- **superpowers:systematic-debugging**: Bug investigation rigor.
-- **superpowers:verification-before-completion**: Evidence before completion claims.
-- **superpowers:requesting-code-review**: Ask for review before merge.
-- **superpowers:receiving-code-review**: Evaluate and apply feedback.
-- **superpowers:using-git-worktrees**: Isolated workspaces.
-- **superpowers:finishing-a-development-branch**: Wrap up and integrate.
-- **superpowers:writing-skills**: Create or update skills.
-
-### Role Requirements (UI Compliance)
-
-- **bmad-agent-bmm-ux-designer**: MUST apply `/rams` for UI reviews and `/ui-skills` for UI implementation; include violations + fixes in review notes.
-- **bmad-agent-bmm-dev**: MUST follow `/ui-skills` constraints for any UI change; run `/rams` to check accessibility on UI edits.
-- **bmad-agent-bmm-tea**: MUST enforce compliance and resolve `/rams`/`/ui-skills` violations before sign-off.
-- **bmad-agent-core-bmad-master**: Ensure `/rams` and `/ui-skills` are used for any UI deliverable.
-
-## 3. Development Commands (Crucial)
+## 3. Development Commands
 
 ### Setup & Build
 
@@ -57,101 +24,87 @@ npm run build                    # Build frontend assets
 php artisan serve                # Start dev server (Required for audits)
 ```
 
-### Testing (Detailed)
+### Testing (Crucial)
 
 **Always run tests before pushing.**
 
 ```bash
-# Run ALL tests (PHP + E2E)
-npm run test
+# Run ALL tests
+npm run test                     # Parallel PHP + E2E
 
-# Run PHP tests (Pest)
-npm run test:php                    # All PHP tests
-php vendor/bin/pest                 # Direct Pest command
-php vendor/bin/pest --filter Name   # Run SINGLE test method/class (e.g., --filter UserTest)
-php vendor/bin/pest path/to/file.php # Run tests in a SPECIFIC FILE
+# PHP Tests (Pest)
+npm run test:php                 # Run all PHP tests
+php vendor/bin/pest              # Direct execution
+php vendor/bin/pest --filter UserTest  # Run SINGLE test method/class
+php vendor/bin/pest tests/Unit/ExampleTest.php # Run SPECIFIC FILE
 
-# Run E2E tests (Dusk)
-npm run test:e2e                    # All Browser tests
+# E2E Tests (Dusk)
+npm run test:e2e                 # Run all Browser tests
 php artisan dusk tests/Browser/ExampleTest.php # Run SPECIFIC E2E file
 ```
 
 ### Auditing & Linting
 
-**"Safe Mode v2" enforces strict CSS rules (no layout in overlays).**
+**"Safe Mode" enforces strict CSS rules.**
 
 ```bash
-npm run audit:critical  # MUST PASS before commit (Guard + Cascade + Contrast)
+npm run audit:critical  # MUST PASS (Guard + Cascade + Contrast)
 npm run audit:all       # Full suite (A11y, Lighthouse, etc.)
 npm run audit:guard     # Check for layout property violations in pd-*.css
 
 # Fix Code Style
+./vendor/bin/pint       # Fix PHP code style (PSR-12)
 npx eslint "resources/js/**/*.js" --fix
 npx stylelint "resources/**/*.css" --fix
-./vendor/bin/pint       # Fix PHP code style (PSR-12)
 ```
 
 ## 4. Code Style & Standards
 
 ### PHP (Laravel)
 
-- **Formatting**: PSR-12 enforced via Laravel Pint.
-- **Imports**: Sorted alphabetically, unused imports removed.
-- **Types**: Use strict types (`declare(strict_types=1);` optional but encouraged). Return types are mandatory for new code.
-- **Naming**:
-    - Classes: `PascalCase` (e.g., `UserController`).
-    - Methods/Variables: `camelCase` (e.g., `updateProfile`).
-    - Database Columns: `snake_case` (e.g., `user_id`).
-    - Config/Lang keys: `snake_case` (dot notation).
-- **Error Handling**: Use `try-catch` blocks for external services. Log errors via `Log::error()` with context. Never expose raw exceptions to UI.
+- **Formatting**: PSR-12 via Pint.
+- **Naming**: `PascalCase` classes, `camelCase` methods, `snake_case` DB columns.
+- **Strictness**: `declare(strict_types=1);` preferred. Return types mandatory.
+- **Safety**: Use `try-catch` + `Log::error()` for external services. No raw exceptions in UI.
 
-### JavaScript (Alpine.js / Vue)
+### JavaScript (Alpine/Vue)
 
-- **Formatting**: ESLint + Prettier.
-- **Naming**: `camelCase` for functions/vars. `PascalCase` for Components.
-- **State**: Use Alpine.js `x-data` for local state. Avoid polluting global window.
+- **Linting**: ESLint standard. No `eval()`, `var`, or layout thrashing.
+- **Imports**: Sorted alphabetically (builtin > external > internal).
+- **Cleanup**: Remove event listeners to prevent memory leaks.
 
 ### CSS (Tailwind)
 
-- **Structure**: Mobile-first (`block md:flex`).
-- **Safe Mode**: Overlay files (`styles/pd-*.css`) **CANNOT** contain layout properties (margin, padding, width, height, position).
-- **Naming**: `kebab-case` for custom classes.
+- **Linting**: Stylelint standard. Avoid ID selectors, `!important` (except utilities), and high specificity.
+- **Performance**: Animate `transform`/`opacity` only.
+- **Safe Mode**: Overlay files (`styles/pd-*.css`) **CANNOT** contain layout properties (margin, padding, width).
 
 ## 5. Documentation Protocol
 
-**⚠️ DO NOT CREATE NEW .md FILES** (Exceptions: `README.md` and sub-folder docs).
+**⚠️ DO NOT CREATE NEW .md FILES** (Exceptions: `README.md`, `report/README.md`, `todos.md`).
 
-1.  **WALKTHROUGH.md**: The single source of truth for changelogs.
-    - Append new features/fixes with `## [Category]/[Feature]` and `Updated on YYYY-MM-DD`.
-2.  **todos.md**: Active task tracker. Overwrite for new tasks. Clear when done.
-3.  **Changelog Page**: Update the `/changelogs` route in the app after `WALKTHROUGH.md`.
+1. **WALKTHROUGH.md**: The single source of truth. Append new features with `## [Category]/[Feature]`.
+2. **todos.md**: Active task tracker. Overwrite for current task.
+3. **Docs**: Update `/changelogs` route content to match `WALKTHROUGH.md`.
 
 ## 6. Workflow & Git
 
-1.  **Plan**: `Planner-Sisyphus` creates/updates `todos.md`.
-2.  **Implement**: `Sisyphus` writes code.
-3.  **Verify**:
-    - `npm run test` (Passes?)
-    - `npm run audit:critical` (Passes?)
-4.  **Document**: Update `WALKTHROUGH.md` and `/changelogs`.
-5.  **Commit**: `git commit -m "feat: description"` (Descriptive messages).
+1. **Plan**: Create/update `todos.md` using `writing-plans` skill.
+2. **Implement**: Write code using `writing-code` patterns.
+3. **Verify**: Run `npm run test` and `npm run audit:critical`.
+4. **Document**: Update `WALKTHROUGH.md`.
+5. **Commit**: `git commit -m "feat: description"`.
 
-## 7. Design Guidelines (Vercel/Geist + Rams/UI Skills)
+## 7. Design Guidelines (Vercel + Rams/UI Skills)
 
-- **Source**: Follow `VERCEL_GUIDELINES.md` and `RAMS_UI_GUIDELINES.md`.
-- **Core Rules**:
-    - **Keyboard**: All interactive elements must be keyboard accessible.
-    - **Loading**: Use skeletons and optimistic updates.
-    - **Forms**: Enter submits; proper autocomplete/labels.
-    - **Copy**: Active voice, Title Case for buttons, specific error messages.
-    - **Motion**: `transform`/`opacity` only; respect `prefers-reduced-motion`.
-    - **Constraints**: No `h-screen` (use `h-dvh`), no layout animation, `text-balance` for headings.
-
-### Command Usage
-
-- **/rams**: Review UI files for accessibility + visual polish. Output violations, why it matters, and concrete fixes.
-- **/ui-skills**: Enforce UI implementation constraints. Output violations, why it matters, and concrete fixes.
-- **Suggested flow**: `/ui-skills` during implementation, then `/rams` for final review.
+- **Core**: Mobile-first, Keyboard accessible, Optimistic UI.
+- **Commands**:
+    - `/rams`: Review UI for accessibility (Alt text, Labels, Contrast).
+    - `/ui-skills`: Enforce constraints (No `h-screen`, `text-balance`, `tabular-nums`).
+- **Checklist**:
+    - [ ] Inputs have labels?
+    - [ ] Loading states (skeletons)?
+    - [ ] Touch targets >= 44px?
 
 ## 8. Definition of Done
 

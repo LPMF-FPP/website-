@@ -144,7 +144,7 @@
                 @endif
 
                 <button 
-                    @click="openInputModal({{ $location->id }}, '{{ $location->name }}')"
+                    @click="openInputModal({{ $location->id }}, '{{ $location->name }}', {{ $location->target_humidity_min !== null ? 'true' : 'false' }})"
                     class="w-full px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition"
                     :disabled="loading"
                 >
@@ -195,14 +195,12 @@
                                            placeholder="Contoh: 25.5">
                                 </div>
 
-                                @if($settings['humidity_enabled'])
-                                <div>
+                                <div x-show="inputModal.hasHumidity">
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Kelembaban (%RH)</label>
                                     <input type="number" step="0.1" x-model.number="inputModal.form.humidity_rh" 
                                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                            placeholder="Contoh: 65">
                                 </div>
-                                @endif
 
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Catatan</label>
@@ -241,6 +239,7 @@
                     open: false,
                     locationId: null,
                     locationName: '',
+                    hasHumidity: false,
                     loading: false,
                     error: '',
                     success: '',
@@ -255,10 +254,11 @@
                     console.log('Environment monitoring initialized');
                 },
 
-                openInputModal(locationId, locationName) {
+                openInputModal(locationId, locationName, hasHumidity) {
                     this.inputModal.open = true;
                     this.inputModal.locationId = locationId;
                     this.inputModal.locationName = locationName;
+                    this.inputModal.hasHumidity = hasHumidity;
                     this.inputModal.error = '';
                     this.inputModal.success = '';
                     this.inputModal.form = {

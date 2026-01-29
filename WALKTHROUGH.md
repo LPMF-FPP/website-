@@ -23,12 +23,51 @@
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 
-**Current Version:** v1.7.8 (24 Januari 2026)  
-**Latest Feature:** IKU Quarterly Support & Dashboard Icons
+**Current Version:** v1.7.9 (29 Januari 2026)  
+**Latest Feature:** Manajemen Penyidik & Presisi Label 121
 
 ---
 
 ## 📰 Recent Changes (v1.5.x)
+
+### v1.7.9 (29 Januari 2026) - Manajemen Penyidik & Presisi Label 121
+
+```
+Updated on 2026-01-29
+```
+
+**✨ New Features:**
+
+1. **Manajemen Penyidik (Admin Only):**
+    - Halaman list, detail, edit, dan hapus biodata penyidik.
+    - Editable: pangkat, no HP, email, satker.
+    - Permission baru: `investigators.view`, `investigators.edit`, `investigators.delete`.
+    - Navigasi baru di menu Referensi.
+
+2. **Label Tom & Jerry No.121 (Presisi):**
+    - Ukuran label standar 75×38mm untuk sheet dan single.
+    - Grid tetap 2×5 per halaman A4 dengan offset dan gap tetap.
+    - Checklist tetap A4 tanpa ikut konfigurasi label.
+
+**📁 Files Created:**
+
+- `app/Http/Controllers/InvestigatorManagementController.php`
+- `resources/views/investigators/index.blade.php`
+- `resources/views/investigators/show.blade.php`
+- `resources/views/investigators/edit.blade.php`
+- `resources/views/investigators/_form.blade.php`
+
+**📁 Files Modified:**
+
+- `database/seeders/PermissionSeeder.php`
+- `app/Policies/InvestigatorPolicy.php`
+- `routes/web.php`
+- `resources/views/layouts/navigation.blade.php`
+- `app/Http/Controllers/LabelController.php`
+- `resources/views/labels/evidence-sheet.blade.php`
+- `resources/views/labels/remaining-sheet.blade.php`
+- `resources/views/labels/evidence-single.blade.php`
+- `resources/views/labels/remaining-single.blade.php`
 
 ### v1.7.8 (24 Januari 2026) - IKU Quarterly Support & Dashboard Icons
 

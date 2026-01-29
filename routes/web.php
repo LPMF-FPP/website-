@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\EnvironmentMonitoringController;
 use App\Http\Controllers\InstrumentLoggingController;
+use App\Http\Controllers\InvestigatorManagementController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ProcessController;
 use App\Http\Controllers\ProfileController;
@@ -186,6 +187,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('analysts/{analyst}/enable', [AnalystController::class, 'enable'])->name('analysts.enable');
     Route::resource('analysts', AnalystController::class);
 
+    // Investigator Management
+    Route::get('investigators', [InvestigatorManagementController::class, 'index'])
+        ->name('investigators.index')
+        ->can('investigators.view');
+    Route::get('investigators/{investigator}', [InvestigatorManagementController::class, 'show'])
+        ->name('investigators.show')
+        ->can('investigators.view');
+    Route::get('investigators/{investigator}/edit', [InvestigatorManagementController::class, 'edit'])
+        ->name('investigators.edit')
+        ->can('investigators.edit');
+    Route::put('investigators/{investigator}', [InvestigatorManagementController::class, 'update'])
+        ->name('investigators.update')
+        ->can('investigators.edit');
+    Route::delete('investigators/{investigator}', [InvestigatorManagementController::class, 'destroy'])
+        ->name('investigators.destroy')
+        ->can('investigators.delete');
+
     // Delivery
     Route::prefix('delivery')->group(function () {
         Route::get('/', [DeliveryController::class, 'index'])->name('delivery.index');
@@ -228,7 +246,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/surveys/export', SurveyExportController::class)->name('surveys.export');
         Route::get('/monthly-logs', [MonthlyLogReportController::class, 'index'])->name('monthly-logs');
         Route::get('/monthly-logs/environment', [MonthlyLogReportController::class, 'environmentReport'])->name('monthly-logs.environment');
+        Route::get('/monthly-logs/environment/csv', [MonthlyLogReportController::class, 'exportEnvironmentCsv'])->name('monthly-logs.environment.csv');
         Route::get('/monthly-logs/instrument', [MonthlyLogReportController::class, 'instrumentReport'])->name('monthly-logs.instrument');
+        Route::get('/monthly-logs/instrument/csv', [MonthlyLogReportController::class, 'exportInstrumentCsv'])->name('monthly-logs.instrument.csv');
         Route::get('/monthly-logs/weighing', [MonthlyLogReportController::class, 'weighingReport'])->name('monthly-logs.weighing');
     });
 

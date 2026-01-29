@@ -32,7 +32,7 @@
 
         <div class="bg-white shadow-sm rounded-lg border border-gray-200">
             <div class="px-6 py-4 border-b border-gray-200">
-                <h2 class="text-lg font-semibold text-gray-900">Daftar Lokasi</h2>
+                <h2 class="text-lg font-semibold text-gray-900 text-balance">Daftar Lokasi</h2>
             </div>
 
             <template x-if="loading">
@@ -99,17 +99,39 @@
                                     </div>
                                 </div>
                                 <div class="flex items-center gap-2">
-                                    <button @click="openEditModal(location)" class="px-3 py-1.5 text-sm text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded">
+                                    <button @click="openEditModal(location)" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                        <svg class="w-4 h-4 mr-1.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                        </svg>
                                         Edit
                                     </button>
                                     <button @click="toggleActive(location)" 
-                                            :class="location.is_active ? 'text-gray-600 hover:text-gray-800 hover:bg-gray-50' : 'text-green-600 hover:text-green-800 hover:bg-green-50'"
-                                            class="px-3 py-1.5 text-sm rounded">
-                                        <span x-text="location.is_active ? 'Nonaktifkan' : 'Aktifkan'"></span>
+                                            class="inline-flex items-center px-3 py-1.5 text-sm font-medium bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                            :class="location.is_active ? 'text-gray-700' : 'text-green-700'">
+                                        <template x-if="location.is_active">
+                                            <div class="flex items-center">
+                                                <svg class="w-4 h-4 mr-1.5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                                Nonaktifkan
+                                            </div>
+                                        </template>
+                                        <template x-if="!location.is_active">
+                                            <div class="flex items-center">
+                                                <svg class="w-4 h-4 mr-1.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                                </svg>
+                                                Aktifkan
+                                            </div>
+                                        </template>
                                     </button>
                                     <button @click="confirmDelete(location)" 
-                                            class="px-3 py-1.5 text-sm text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
-                                            :disabled="location.has_readings">
+                                            class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-700 bg-white border border-red-300 rounded-lg shadow-sm hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                                            :disabled="location.has_readings"
+                                            :class="{'opacity-50 cursor-not-allowed': location.has_readings}">
+                                        <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                        </svg>
                                         Hapus
                                     </button>
                                 </div>
@@ -127,7 +149,7 @@
              aria-labelledby="location-modal-title" role="dialog" aria-modal="true">
             <div class="flex items-end justify-center min-h-dvh pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div x-show="modal.open" 
-                     x-transition:enter="ease-out duration-300"
+                     x-transition:enter="ease-out duration-200"
                      x-transition:enter-start="opacity-0"
                      x-transition:enter-end="opacity-100"
                      x-transition:leave="ease-in duration-200"
@@ -139,7 +161,7 @@
                 <span class="hidden sm:inline-block sm:align-middle sm:h-dvh" aria-hidden="true">&#8203;</span>
 
                 <div x-show="modal.open"
-                     x-transition:enter="ease-out duration-300"
+                     x-transition:enter="ease-out duration-200"
                      x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                      x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
                      x-transition:leave="ease-in duration-200"
@@ -148,7 +170,7 @@
                      class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
                     <form @submit.prevent="submitForm()">
                         <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                            <h3 id="location-modal-title" class="text-lg font-medium text-pd-text mb-4" x-text="modal.isEdit ? 'Edit Lokasi' : 'Tambah Lokasi'"></h3>
+                            <h3 id="location-modal-title" class="text-lg font-medium text-pd-text mb-4 text-balance" x-text="modal.isEdit ? 'Edit Lokasi' : 'Tambah Lokasi'"></h3>
                             
                             <div x-show="modal.error" class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700" x-text="modal.error"></div>
 
@@ -187,22 +209,30 @@
                                     </div>
                                 </div>
 
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label for="humidity-min" class="block text-sm font-medium text-pd-body mb-1">Kelembaban Min (%)</label>
-                                        <input type="number" id="humidity-min" step="0.1" x-model.number="modal.form.target_humidity_min" 
-                                               class="form-input"
-                                               placeholder="Contoh: 40">
+                                <div class="border-t border-gray-200 pt-4">
+                                    <div class="flex items-center gap-2 mb-3">
+                                        <input type="checkbox" id="humidity_enabled" x-model="modal.form.humidity_enabled" 
+                                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                        <label for="humidity_enabled" class="text-sm font-medium text-pd-body">Monitor Kelembaban?</label>
                                     </div>
-                                    <div>
-                                        <label for="humidity-max" class="block text-sm font-medium text-pd-body mb-1">Kelembaban Max (%)</label>
-                                        <input type="number" id="humidity-max" step="0.1" x-model.number="modal.form.target_humidity_max" 
-                                               class="form-input"
-                                               placeholder="Contoh: 60">
+
+                                    <div x-show="modal.form.humidity_enabled" x-transition class="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label for="humidity-min" class="block text-sm font-medium text-pd-body mb-1">Kelembaban Min (%)</label>
+                                            <input type="number" id="humidity-min" step="0.1" x-model.number="modal.form.target_humidity_min" 
+                                                   class="form-input"
+                                                   placeholder="Contoh: 40">
+                                        </div>
+                                        <div>
+                                            <label for="humidity-max" class="block text-sm font-medium text-pd-body mb-1">Kelembaban Max (%)</label>
+                                            <input type="number" id="humidity-max" step="0.1" x-model.number="modal.form.target_humidity_max" 
+                                                   class="form-input"
+                                                   placeholder="Contoh: 60">
+                                        </div>
                                     </div>
                                 </div>
 
-                                <div class="flex items-center gap-2">
+                                <div class="flex items-center gap-2 border-t border-gray-200 pt-4">
                                     <input type="checkbox" id="is_active" x-model="modal.form.is_active" 
                                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
                                     <label for="is_active" class="text-sm text-pd-body">Lokasi aktif</label>
@@ -236,7 +266,7 @@
              aria-labelledby="delete-modal-title" role="dialog" aria-modal="true">
             <div class="flex items-end justify-center min-h-dvh pt-4 px-4 pb-20 text-center sm:block sm:p-0">
                 <div x-show="deleteModal.open" 
-                     x-transition:enter="ease-out duration-300"
+                     x-transition:enter="ease-out duration-200"
                      x-transition:enter-start="opacity-0"
                      x-transition:enter-end="opacity-100"
                      x-transition:leave="ease-in duration-200"
@@ -248,7 +278,7 @@
                 <span class="hidden sm:inline-block sm:align-middle sm:h-dvh" aria-hidden="true">&#8203;</span>
 
                 <div x-show="deleteModal.open"
-                     x-transition:enter="ease-out duration-300"
+                     x-transition:enter="ease-out duration-200"
                      x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                      x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
                      x-transition:leave="ease-in duration-200"
@@ -357,6 +387,7 @@
                         type: '',
                         target_temp_min: '',
                         target_temp_max: '',
+                        humidity_enabled: false,
                         target_humidity_min: '',
                         target_humidity_max: '',
                         is_active: true,
@@ -373,6 +404,7 @@
                         type: location.type,
                         target_temp_min: location.target_temp_min ?? '',
                         target_temp_max: location.target_temp_max ?? '',
+                        humidity_enabled: (location.target_humidity_min !== null || location.target_humidity_max !== null),
                         target_humidity_min: location.target_humidity_min ?? '',
                         target_humidity_max: location.target_humidity_max ?? '',
                         is_active: location.is_active,
@@ -398,8 +430,8 @@
                         type: this.modal.form.type,
                         target_temp_min: this.modal.form.target_temp_min ? parseFloat(this.modal.form.target_temp_min) : null,
                         target_temp_max: this.modal.form.target_temp_max ? parseFloat(this.modal.form.target_temp_max) : null,
-                        target_humidity_min: this.modal.form.target_humidity_min ? parseFloat(this.modal.form.target_humidity_min) : null,
-                        target_humidity_max: this.modal.form.target_humidity_max ? parseFloat(this.modal.form.target_humidity_max) : null,
+                        target_humidity_min: this.modal.form.humidity_enabled && this.modal.form.target_humidity_min ? parseFloat(this.modal.form.target_humidity_min) : null,
+                        target_humidity_max: this.modal.form.humidity_enabled && this.modal.form.target_humidity_max ? parseFloat(this.modal.form.target_humidity_max) : null,
                         is_active: this.modal.form.is_active,
                     };
 

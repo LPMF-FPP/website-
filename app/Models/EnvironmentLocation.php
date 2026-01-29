@@ -21,6 +21,11 @@ class EnvironmentLocation extends Model
         'pic_user_id',
     ];
 
+    protected $appends = [
+        'target_humidity_min',
+        'target_humidity_max',
+    ];
+
     protected $casts = [
         'type' => EnvironmentLocationType::class,
         'target_temp_min' => 'decimal:2',
@@ -61,5 +66,15 @@ class EnvironmentLocation extends Model
         }
 
         return $this->getDefaultScheduleWindows();
+    }
+
+    public function getTargetHumidityMinAttribute()
+    {
+        return $this->target_hum_min;
+    }
+
+    public function getTargetHumidityMaxAttribute()
+    {
+        return $this->target_hum_max;
     }
 }

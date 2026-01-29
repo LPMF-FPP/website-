@@ -6,7 +6,7 @@
     <style>
         @page {
             margin: 0;
-            size: 74mm 52mm;
+            size: 75mm 38mm;
         }
         * {
             margin: 0;
@@ -15,13 +15,13 @@
         }
         body {
             font-family: 'DejaVu Sans', Arial, sans-serif;
-            font-size: 5.5pt;
-            line-height: 1.2;
+            font-size: 5pt;
+            line-height: 1.1;
         }
         .label {
-            width: 74mm;
-            height: 52mm;
-            padding: 2mm;
+            width: 75mm;
+            height: 38mm;
+            padding: 1mm;
             position: relative;
             background: #fff;
             overflow: hidden;
@@ -29,19 +29,21 @@
         .label-header {
             text-align: center;
             border-bottom: 1px solid #333;
-            padding-bottom: 1mm;
-            margin-bottom: 1mm;
+            padding-bottom: 0.4mm;
+            margin-bottom: 0.4mm;
         }
         .label-header h1 {
-            font-size: 7pt;
+            font-size: 6.5pt;
             font-weight: bold;
             text-transform: uppercase;
             margin: 0;
+            line-height: 1;
         }
         .label-header .subtitle {
-            font-size: 4pt;
+            font-size: 3.5pt;
             color: #555;
-            margin-top: 0.5mm;
+            margin-top: 0.2mm;
+            line-height: 1;
         }
         .label-body {
             display: table;
@@ -50,61 +52,59 @@
         }
         .label-content {
             display: table-cell;
-            width: 62%;
+            width: 68%;
             vertical-align: top;
-            padding-right: 2mm;
+            padding-right: 1mm;
         }
         .label-qr {
             display: table-cell;
-            width: 38%;
+            width: 32%;
             vertical-align: top;
             text-align: center;
         }
         .label-qr img {
-            width: 15mm;
-            height: 15mm;
+            width: 12mm;
+            height: 12mm;
             display: block;
             margin: 0 auto;
         }
         .qr-text {
-            font-size: 3.5pt;
+            font-size: 3pt;
             color: #666;
-            margin-top: 1mm;
+            margin-top: 0.3mm;
             word-break: break-all;
             overflow: hidden;
-            max-height: 6mm;
+            max-height: 4mm;
         }
         .field {
-            margin-bottom: 0.8mm;
+            margin-bottom: 0.5mm;
             overflow: hidden;
         }
         .field-label {
-            font-size: 4.5pt;
+            font-size: 4pt;
             color: #666;
             text-transform: uppercase;
         }
         .field-value {
-            font-size: 5.5pt;
+            font-size: 5pt;
             font-weight: bold;
-            word-wrap: break-word;
-            overflow-wrap: anywhere;
             word-break: break-word;
             overflow: hidden;
-            max-height: 6mm;
+            line-height: 1.1;
         }
         .field-value.large {
-            font-size: 7pt;
+            font-size: 6.5pt;
         }
         .clamp2 {
-            max-height: 5mm;
+            max-height: 4.5mm;
             overflow: hidden;
         }
         .label-footer {
             position: absolute;
-            bottom: 1mm;
-            left: 2.5mm;
-            right: 2.5mm;
-            font-size: 3.5pt;
+            bottom: 0.4mm;
+            left: 1.2mm;
+            right: 1.2mm;
+            font-size: 3pt;
             color: #999;
         }
     </style>

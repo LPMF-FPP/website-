@@ -417,15 +417,20 @@ class DeliveryController extends Controller
             return back()->with('error', 'Template pesan notifikasi tidak ditemukan.');
         }
 
-        $outbox = \App\Models\WhatsappOutbox::create([
-            'test_request_id' => $request->id,
-            'milestone_key' => 'READY_FOR_PICKUP',
-            'to_phone_e164' => \App\Support\PhoneNormalizer::toE164($phone),
-            'to_jid' => $jid,
-            'message_text' => $message,
-            'status' => 'queued',
-            'attempts' => 0,
-        ]);
+        $outbox = \App\Models\WhatsappOutbox::updateOrCreate(
+            [
+                'test_request_id' => $request->id,
+                'milestone_key' => 'READY_FOR_PICKUP',
+            ],
+            [
+                'to_phone_e164' => \App\Support\PhoneNormalizer::toE164($phone),
+                'to_jid' => $jid,
+                'message_text' => $message,
+                'status' => 'queued',
+                'attempts' => 0,
+                'last_error' => null,
+            ]
+        );
 
         \App\Jobs\SendWhatsAppNotificationJob::dispatch($outbox->id);
 
