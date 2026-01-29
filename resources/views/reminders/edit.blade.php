@@ -73,9 +73,14 @@
                                     @endforeach
                                 </div>
                                 
-                                <button type="button" onclick="addRecipient()" class="mt-2 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-                                    Add Recipient
-                                </button>
+                                <div class="flex space-x-2 mt-2">
+                                    <button type="button" onclick="addRecipient()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                                        Add Recipient
+                                    </button>
+                                    <button type="button" onclick="openGroupModal()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+                                        Fetch Groups
+                                    </button>
+                                </div>
                                 
                                 <div class="mt-6 p-4 bg-gray-50 rounded text-sm text-gray-600">
                                     <p class="font-bold">Tips:</p>
@@ -101,6 +106,31 @@
         </div>
     </div>
 
+    <!-- Group Selection Modal -->
+    <div id="group-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden" style="z-index: 50;">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg leading-6 font-medium text-gray-900 text-center">Select WhatsApp Group</h3>
+                <div class="mt-2 px-2 py-3">
+                    <div id="group-list" class="text-left max-h-60 overflow-y-auto min-h-[100px]">
+                        <!-- Groups will be injected here -->
+                        <div class="animate-pulse flex space-x-4">
+                            <div class="flex-1 space-y-4 py-1">
+                                <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+                                <div class="h-4 bg-gray-200 rounded"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="close-modal" class="px-4 py-2 bg-gray-500 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         function addRecipient() {
             const container = document.getElementById('recipients-container');
@@ -120,6 +150,68 @@
 
         function removeRecipient(btn) {
             btn.closest('.recipient-row').remove();
+        }
+
+        function openGroupModal() {
+            document.getElementById('group-modal').classList.remove('hidden');
+            fetchGroups();
+        }
+
+        document.getElementById('close-modal').addEventListener('click', function() {
+            document.getElementById('group-modal').classList.add('hidden');
+        });
+
+        function fetchGroups() {
+            const list = document.getElementById('group-list');
+            list.innerHTML = '<div class="text-center text-gray-500">Loading...</div>';
+            
+            fetch('{{ route("reminders.fetch-groups") }}')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.groups && data.groups.length > 0) {
+                        let html = '<ul class="divide-y divide-gray-200">';
+                        data.groups.forEach(group => {
+                            const safeName = (group.name || 'Unknown').replace(/'/g, "\\'");
+                            html += `
+                                <li class="py-2 cursor-pointer hover:bg-gray-50 px-2 rounded" onclick="selectGroup('${group.jid}', '${safeName}')">
+                                    <div class="text-sm font-medium text-gray-900">${group.name}</div>
+                                    <div class="text-xs text-gray-500">${group.jid}</div>
+                                </li>
+                            `;
+                        });
+                        html += '</ul>';
+                        list.innerHTML = html;
+                    } else {
+                        list.innerHTML = '<div class="text-center text-red-500 text-sm p-2">No groups found.<br>Ensure the bot is added to groups and has received messages recently.</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    list.innerHTML = '<div class="text-center text-red-500 text-sm">Failed to fetch groups.<br>Check console for details.</div>';
+                });
+        }
+
+        function selectGroup(jid, name) {
+            // Add a new recipient row
+            addRecipient();
+            
+            // Find the last added row
+            const container = document.getElementById('recipients-container');
+            const rows = container.getElementsByClassName('recipient-row');
+            const lastRow = rows[rows.length - 1];
+            
+            if (lastRow) {
+                // Set type to group
+                const select = lastRow.querySelector('select');
+                if (select) select.value = 'group';
+                
+                // Set value to JID
+                const input = lastRow.querySelector('input[type="text"]');
+                if (input) input.value = jid;
+            }
+            
+            // Close modal
+            document.getElementById('group-modal').classList.add('hidden');
         }
     </script>
 </x-app-layout>

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Reminder;
+use App\Services\WhatsApp\GowaClient;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -85,5 +87,28 @@ class ReminderController extends Controller
         \App\Jobs\SendReminderJob::dispatch($reminder);
 
         return back()->with('success', 'Reminder triggered successfully (queued).');
+    }
+
+    public function fetchGroups(): JsonResponse
+    {
+        // $this->authorize('reminders.edit');
+
+        $gowaClient = new GowaClient;
+        $result = $gowaClient->listChats();
+
+        if (! $result['success']) {
+            return response()->json(['error' => $result['error'] ?? 'Failed to fetch groups'], 500);
+        }
+
+        // Filter groups only (JID ends with @g.us)
+        $groups = collect($result['chats'] ?? [])
+            ->filter(fn ($chat) => str_ends_with($chat['jid'] ?? '', '@g.us'))
+            ->map(fn ($chat) => [
+                'jid' => $chat['jid'],
+                'name' => $chat['name'] ?? 'Unknown Group',
+            ])
+            ->values();
+
+        return response()->json(['groups' => $groups]);
     }
 }

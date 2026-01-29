@@ -205,4 +205,56 @@ class GowaClient
             ];
         }
     }
+
+    /**
+     * List all chats from GOWA service (includes groups)
+     */
+    public function listChats(int $limit = 100): array
+    {
+        try {
+            $http = Http::timeout(10);
+
+            if ($this->basicUser && $this->basicPass) {
+                $http = $http->withBasicAuth($this->basicUser, $this->basicPass);
+            }
+
+            if ($this->deviceId) {
+                $http = $http->withHeaders([
+                    'X-Device-Id' => $this->deviceId,
+                ]);
+            }
+
+            $response = $http->get("{$this->baseUrl}/chats", [
+                'limit' => $limit,
+                'offset' => 0,
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                return [
+                    'success' => true,
+                    'chats' => $data['results']['data'] ?? [],
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $response->body(),
+                'status' => $response->status(),
+                'chats' => [],
+            ];
+
+        } catch (\Throwable $e) {
+            Log::warning('Failed to list GOWA chats', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'chats' => [],
+            ];
+        }
+    }
 }

@@ -358,6 +358,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Reminders (WhatsApp Bot)
     Route::prefix('reminders')->name('reminders.')->middleware('can:manage-settings')->group(function () {
         Route::get('/', [App\Http\Controllers\ReminderController::class, 'index'])->name('index');
+        Route::get('/fetch-groups', [App\Http\Controllers\ReminderController::class, 'fetchGroups'])->name('fetch-groups');
         Route::get('/{reminder}/edit', [App\Http\Controllers\ReminderController::class, 'edit'])->name('edit');
         Route::put('/{reminder}', [App\Http\Controllers\ReminderController::class, 'update'])->name('update');
         Route::post('/{reminder}/toggle', [App\Http\Controllers\ReminderController::class, 'toggle'])->name('toggle');
