@@ -37,6 +37,14 @@
 
     async saveSettings() {
         try {
+            // Only send valid fields
+            const payload = {
+                base_url: this.form.base_url,
+                basic_user: this.form.basic_user,
+                basic_pass: this.form.basic_pass,
+                device_id: this.form.device_id
+            };
+
             const res = await fetch('{{ route("whatsapp.settings.save") }}', {
                 method: 'POST',
                 headers: { 
@@ -44,12 +52,15 @@
                     'Content-Type': 'application/json',
                     'Accept': 'application/json'
                 },
-                body: JSON.stringify(this.form)
+                body: JSON.stringify(payload)
             });
+            
+            const data = await res.json();
+            
             if (res.ok) {
                 alert('Settings saved successfully');
             } else {
-                alert('Failed to save settings');
+                alert('Failed to save settings: ' + (data.message || 'Unknown error'));
             }
         } catch(e) { console.error(e); alert('Error saving settings'); }
     },
@@ -59,13 +70,20 @@
         try {
             const res = await fetch('{{ route("whatsapp.settings.devices") }}');
             const data = await res.json();
+            
             if (data.success) {
-                this.devices = data.devices;
+                this.devices = data.devices || [];
             } else {
-                // Ignore error on init if just checking
-                if (this.devices.length === 0) console.warn('Failed to fetch devices', data.error);
+                console.warn('Failed to fetch devices', data.error);
+                if (this.devices.length === 0) {
+                     // Optional: notify user if list is empty and fetch failed
+                     // alert('Failed to refresh devices: ' + (data.error || 'Unknown error'));
+                }
             }
-        } catch(e) { console.error(e); }
+        } catch(e) { 
+            console.error(e); 
+            alert('Error connecting to device service');
+        }
         finally { this.loadingDevices = false; }
     },
 
@@ -221,9 +239,9 @@
                         <input type="text" x-model="form.device_id" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
                     </div>
                     <div class="pt-2">
-                        <button type="submit" class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        <x-button type="submit" variant="primary" block>
                             Save Configuration
-                        </button>
+                        </x-button>
                     </div>
                 </form>
 
@@ -231,7 +249,9 @@
                 <div>
                     <div class="flex justify-between items-center mb-4">
                         <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Connected Devices</h4>
-                        <button @click="fetchDevices" class="text-xs text-primary-600 hover:text-primary-500">Refresh</button>
+                        <x-button @click="fetchDevices" variant="ghost" size="xs" :loading="loadingDevices">
+                            Refresh
+                        </x-button>
                     </div>
                     
                     <div x-show="loadingDevices" class="text-center py-4 text-gray-500 text-sm">Loading devices...</div>
@@ -260,7 +280,9 @@
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg border border-gray-200 dark:border-gray-700 p-6">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100">Template Pesan</h3>
-                <button @click="loadTemplates" class="text-sm text-primary-600 hover:text-primary-500">Refresh Templates</button>
+                <x-button @click="loadTemplates" variant="ghost" size="sm" :loading="loadingTemplates">
+                    Refresh Templates
+                </x-button>
             </div>
 
             <div x-show="loadingTemplates" class="text-center py-8 text-gray-500">Loading templates...</div>
@@ -288,9 +310,9 @@
                                     <label class="block text-sm font-medium text-gray-900 dark:text-gray-100" 
                                            x-text="labels[activeCategory]?.[key] || key"></label>
                                     <div class="flex gap-2">
-                                        <button @click="previewTemplate(activeCategory, key)" class="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">Preview</button>
-                                        <button @click="resetTemplate(activeCategory, key)" class="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 transition-colors">Reset</button>
-                                        <button @click="saveTemplate(activeCategory, key)" class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors">Simpan</button>
+                                        <x-button @click="previewTemplate(activeCategory, key)" variant="outline" size="xs">Preview</x-button>
+                                        <x-button @click="resetTemplate(activeCategory, key)" variant="warning" size="xs">Reset</x-button>
+                                        <x-button @click="saveTemplate(activeCategory, key)" variant="primary" size="xs">Simpan</x-button>
                                     </div>
                                 </div>
 
@@ -341,10 +363,10 @@
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Message</label>
                     <textarea x-model="testMessage.message" rows="3" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"></textarea>
                 </div>
-                <button type="submit" :disabled="sendingTest" class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50">
+                <x-button type="submit" variant="success" block :disabled="sendingTest">
                     <span x-show="!sendingTest">Send Test</span>
                     <span x-show="sendingTest">Sending...</span>
-                </button>
+                </x-button>
             </form>
         </div>
 
