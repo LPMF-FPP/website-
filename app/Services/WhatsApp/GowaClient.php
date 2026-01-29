@@ -34,7 +34,7 @@ class GowaClient
         }
     }
 
-    public function sendMessage(string $jid, string $message): array
+    public function sendMessage(string $jid, string $message, array $mentions = []): array
     {
         try {
             $http = Http::timeout(30);
@@ -51,16 +51,23 @@ class GowaClient
 
             $phone = str_replace('@s.whatsapp.net', '', $jid);
 
-            $response = $http->post("{$this->baseUrl}/send/message", [
+            $payload = [
                 'phone' => $phone,
                 'message' => $message,
-            ]);
+            ];
+
+            if (! empty($mentions)) {
+                $payload['mentions'] = $mentions;
+            }
+
+            $response = $http->post("{$this->baseUrl}/send/message", $payload);
 
             if ($response->successful()) {
                 $data = $response->json();
                 Log::info('WhatsApp message sent successfully', [
                     'to' => $phone,
                     'message_id' => $data['results']['message_id'] ?? $data['message_id'] ?? $data['id'] ?? null,
+                    'has_mentions' => ! empty($mentions),
                 ]);
 
                 return [
@@ -256,5 +263,82 @@ class GowaClient
                 'chats' => [],
             ];
         }
+    }
+
+    /**
+     * Get joined groups (returns groups user has joined)
+     * Limit of 500 groups due to WhatsApp protocol limitation
+     */
+    public function getJoinedGroups(): array
+    {
+        try {
+            $http = Http::timeout(15);
+
+            if ($this->basicUser && $this->basicPass) {
+                $http = $http->withBasicAuth($this->basicUser, $this->basicPass);
+            }
+
+            if ($this->deviceId) {
+                $http = $http->withHeaders([
+                    'X-Device-Id' => $this->deviceId,
+                ]);
+            }
+
+            $response = $http->get("{$this->baseUrl}/user/my/groups");
+
+            if ($response->successful()) {
+                $data = $response->json();
+
+                return [
+                    'success' => true,
+                    'groups' => $data['results']['data'] ?? $data['results'] ?? [],
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $response->body(),
+                'status' => $response->status(),
+                'groups' => [],
+            ];
+
+        } catch (\Throwable $e) {
+            Log::warning('Failed to list GOWA joined groups', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'groups' => [],
+            ];
+        }
+    }
+
+    /**
+     * Get participants for a specific group
+     * Currently GOWA doesn't expose a direct endpoint for this in docs,
+     * but we can try to fetch group metadata if available.
+     *
+     * Based on OpenAPI, there is no direct endpoint to get participants count easily
+     * without fetching group details.
+     *
+     * For now, we'll return a placeholder or empty list if not supported,
+     * or implement if a specific endpoint is found.
+     *
+     * NOTE: Since we don't have a direct endpoint documented for just participants,
+     * we will rely on the user/my/groups endpoint which might return participant count in metadata,
+     * or we assume we can't get exact count yet.
+     */
+    public function getGroupParticipants(string $groupId): array
+    {
+        // For now, returning empty as we don't have a confirmed endpoint for this
+        // in the OpenAPI spec provided.
+        // If needed, we might need to parse it from the chats list if it contains metadata.
+        return [
+            'success' => false,
+            'message' => 'Not implemented yet',
+            'count' => 0,
+        ];
     }
 }

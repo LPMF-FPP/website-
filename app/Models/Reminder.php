@@ -17,12 +17,14 @@ class Reminder extends Model
         'schedule_days',
         'message_template',
         'metadata',
+        'mention_all',
         'last_run_at',
     ];
 
     protected $casts = [
         'is_enabled' => 'boolean',
         'metadata' => 'array',
+        'mention_all' => 'boolean',
         'last_run_at' => 'datetime',
     ];
 

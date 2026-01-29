@@ -22,7 +22,6 @@ use App\Http\Controllers\SettingsPageController;
 use App\Http\Controllers\StaffTaskController;
 use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\TrackingController;
-use App\Http\Controllers\WhatsappBroadcastController;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -330,40 +329,93 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::delete('/documents/{document}', [App\Http\Controllers\InvestigatorDocumentController::class, 'destroy'])
         ->name('investigator.documents.destroy');
 
-    // Staff Tasks
+    // WhatsApp Hub (Admin only)
+    Route::prefix('whatsapp')->name('whatsapp.')->middleware('can:manage-settings')->group(function () {
+        // Main page
+        Route::get('/', [\App\Http\Controllers\WhatsAppHubController::class, 'index'])->name('index');
+
+        // API endpoints
+        Route::get('/overview', [\App\Http\Controllers\WhatsAppHubController::class, 'getOverviewData'])->name('overview');
+        Route::get('/connection', [\App\Http\Controllers\WhatsAppHubController::class, 'getConnectionStatus'])->name('connection');
+
+        // Tasks
+        Route::prefix('tasks')->name('tasks.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\WhatsAppHubController::class, 'getTasks'])->name('index');
+            Route::post('/', [\App\Http\Controllers\WhatsAppHubController::class, 'storeTask'])->name('store');
+            Route::put('/{task}', [\App\Http\Controllers\WhatsAppHubController::class, 'updateTask'])->name('update');
+            Route::patch('/{task}/status', [\App\Http\Controllers\WhatsAppHubController::class, 'updateTaskStatus'])->name('status');
+            Route::delete('/{task}', [\App\Http\Controllers\WhatsAppHubController::class, 'destroyTask'])->name('destroy');
+        });
+
+        // Broadcasts
+        Route::prefix('broadcasts')->name('broadcasts.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\WhatsAppHubController::class, 'getBroadcasts'])->name('index');
+            Route::post('/', [\App\Http\Controllers\WhatsAppHubController::class, 'storeBroadcast'])->name('store');
+            Route::post('/preview-recipients', [\App\Http\Controllers\WhatsAppHubController::class, 'previewRecipients'])->name('preview-recipients');
+            Route::put('/{broadcast}', [\App\Http\Controllers\WhatsAppHubController::class, 'updateBroadcast'])->name('update');
+            Route::delete('/{broadcast}', [\App\Http\Controllers\WhatsAppHubController::class, 'deleteBroadcast'])->name('destroy');
+            Route::post('/{broadcast}/send', [\App\Http\Controllers\WhatsAppHubController::class, 'sendBroadcast'])->name('send');
+            Route::post('/{broadcast}/cancel', [\App\Http\Controllers\WhatsAppHubController::class, 'cancelBroadcast'])->name('cancel');
+        });
+
+        // Reminders
+        Route::prefix('reminders')->name('reminders.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\WhatsAppHubController::class, 'getReminders'])->name('index');
+            Route::put('/{reminder}', [\App\Http\Controllers\WhatsAppHubController::class, 'updateReminder'])->name('update');
+            Route::post('/{reminder}/toggle', [\App\Http\Controllers\WhatsAppHubController::class, 'toggleReminder'])->name('toggle');
+            Route::post('/{reminder}/trigger', [\App\Http\Controllers\WhatsAppHubController::class, 'triggerReminder'])->name('trigger');
+        });
+
+        // Logs
+        Route::get('/logs', [\App\Http\Controllers\WhatsAppHubController::class, 'getLogs'])->name('logs');
+        Route::get('/logs/{batch}', [\App\Http\Controllers\WhatsAppHubController::class, 'getLogDetail'])->name('logs.detail');
+
+        // Groups
+        Route::get('/groups', [\App\Http\Controllers\WhatsAppHubController::class, 'getGroups'])->name('groups');
+        Route::post('/groups/fetch', [\App\Http\Controllers\WhatsAppHubController::class, 'getGroups'])->name('groups.fetch'); // Alias for fetch modal
+        Route::get('/groups/{jid}/participants', [\App\Http\Controllers\WhatsAppHubController::class, 'getGroupParticipants'])->name('groups.participants');
+
+        // Settings
+        Route::prefix('settings')->name('settings.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\WhatsAppHubController::class, 'getSettings'])->name('index');
+            Route::post('/', [\App\Http\Controllers\WhatsAppHubController::class, 'saveSettings'])->name('save');
+            Route::get('/devices', [\App\Http\Controllers\WhatsAppHubController::class, 'getDevices'])->name('devices');
+            Route::post('/test-message', [\App\Http\Controllers\WhatsAppHubController::class, 'sendTestMessage'])->name('test-message');
+            Route::post('/check-connection', [\App\Http\Controllers\WhatsAppHubController::class, 'checkConnection'])->name('check-connection');
+
+            // Templates
+            Route::get('/templates', [\App\Http\Controllers\WhatsAppHubController::class, 'getTemplates'])->name('templates');
+            Route::put('/templates', [\App\Http\Controllers\WhatsAppHubController::class, 'saveTemplates'])->name('templates.save');
+            Route::post('/templates/reset', [\App\Http\Controllers\WhatsAppHubController::class, 'resetTemplate'])->name('templates.reset');
+            Route::post('/templates/preview', [\App\Http\Controllers\WhatsAppHubController::class, 'previewTemplate'])->name('templates.preview');
+        });
+    });
+
+    // Redirects for backward compatibility
+    Route::get('/tasks', function () {
+        return redirect()->route('whatsapp.index', ['tab' => 'tasks']);
+    })->name('tasks.redirect');
+
+    Route::get('/broadcasts', function () {
+        return redirect()->route('whatsapp.index', ['tab' => 'broadcasts']);
+    })->middleware('can:manage-settings');
+
+    Route::get('/reminders', function () {
+        return redirect()->route('whatsapp.index', ['tab' => 'reminders']);
+    })->middleware('can:manage-settings');
+
+    // Staff Tasks (legacy routes removed or repurposed)
+    // We keep specific task routes if they are used by AJAX calls from other modules, but main index is redirected.
+    // For now, we assume the new WhatsAppHubController handles everything for tasks tab.
+
+    /*
+    // OLD TASKS ROUTES (Commented out to prevent conflict, logic moved to Hub)
     Route::prefix('tasks')->name('tasks.')->group(function () {
         Route::get('/', [StaffTaskController::class, 'index'])->name('index');
         Route::post('/', [StaffTaskController::class, 'store'])->name('store');
-        Route::get('/{task}', [StaffTaskController::class, 'show'])->name('show');
-        Route::put('/{task}', [StaffTaskController::class, 'update'])->name('update');
-        Route::patch('/{task}/status', [StaffTaskController::class, 'updateStatus'])->name('status');
-        Route::delete('/{task}', [StaffTaskController::class, 'destroy'])->name('destroy');
-        Route::post('/quick', [StaffTaskController::class, 'quickCreate'])->name('quick');
-        Route::get('/request/{testRequest}', [StaffTaskController::class, 'getForRequest'])->name('for-request');
+        ...
     });
-
-    // WhatsApp Broadcasts (Admin only)
-    Route::prefix('broadcasts')->name('broadcasts.')->middleware('can:manage-settings')->group(function () {
-        Route::get('/', [WhatsappBroadcastController::class, 'index'])->name('index');
-        Route::get('/create', [WhatsappBroadcastController::class, 'create'])->name('create');
-        Route::post('/', [WhatsappBroadcastController::class, 'store'])->name('store');
-        Route::get('/{broadcast}', [WhatsappBroadcastController::class, 'show'])->name('show');
-        Route::put('/{broadcast}', [WhatsappBroadcastController::class, 'update'])->name('update');
-        Route::post('/{broadcast}/send', [WhatsappBroadcastController::class, 'send'])->name('send');
-        Route::post('/{broadcast}/cancel', [WhatsappBroadcastController::class, 'cancel'])->name('cancel');
-        Route::delete('/{broadcast}', [WhatsappBroadcastController::class, 'destroy'])->name('destroy');
-        Route::post('/preview-recipients', [WhatsappBroadcastController::class, 'previewRecipients'])->name('preview-recipients');
-    });
-
-    // Reminders (WhatsApp Bot)
-    Route::prefix('reminders')->name('reminders.')->middleware('can:manage-settings')->group(function () {
-        Route::get('/', [App\Http\Controllers\ReminderController::class, 'index'])->name('index');
-        Route::get('/fetch-groups', [App\Http\Controllers\ReminderController::class, 'fetchGroups'])->name('fetch-groups');
-        Route::get('/{reminder}/edit', [App\Http\Controllers\ReminderController::class, 'edit'])->name('edit');
-        Route::put('/{reminder}', [App\Http\Controllers\ReminderController::class, 'update'])->name('update');
-        Route::post('/{reminder}/toggle', [App\Http\Controllers\ReminderController::class, 'toggle'])->name('toggle');
-        Route::post('/{reminder}/trigger', [App\Http\Controllers\ReminderController::class, 'trigger'])->name('trigger');
-    });
+    */
 
 });
 

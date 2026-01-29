@@ -3,6 +3,8 @@
 namespace App\Services\Reminders;
 
 use App\Models\Reminder;
+use App\Models\WhatsAppMessageBatch;
+use App\Models\WhatsAppMessageLog;
 use App\Services\Reminders\Handlers\IsoCountdownHandler;
 use App\Services\Reminders\Handlers\TemperatureReminderHandler;
 use App\Services\WhatsApp\GowaClient;
@@ -32,41 +34,89 @@ class ReminderService
             return;
         }
 
-        // 3. Send Message
+        // 3. Create Batch
+        $batch = WhatsAppMessageBatch::create([
+            'type' => 'reminder',
+            'source_type' => Reminder::class,
+            'source_id' => $reminder->id,
+            'title' => $reminder->name,
+            'message_preview' => substr($message, 0, 1000),
+            'total_recipients' => $recipients->count(),
+            'mention_all' => $reminder->mention_all ?? false,
+            'started_at' => now(),
+        ]);
+
+        $sentCount = 0;
+        $failedCount = 0;
+
+        // 4. Send Message
         foreach ($recipients as $recipient) {
+            $target = $recipient->recipient_value;
+            $isGroup = $recipient->recipient_type === 'group';
+            $errorMsg = null;
+            $msgId = null;
+            $status = 'pending';
+
+            // Format JID
+            if (! $isGroup && ! str_contains($target, '@')) {
+                if (str_starts_with($target, '08')) {
+                    $target = '62'.substr($target, 1);
+                }
+                if (! str_ends_with($target, '@s.whatsapp.net')) {
+                    $target .= '@s.whatsapp.net';
+                }
+            } elseif ($isGroup && ! str_ends_with($target, '@g.us')) {
+                $target .= '@g.us';
+            }
+
             try {
-                // Determine target (group or phone)
-                $target = $recipient->recipient_value;
-                $isGroup = $recipient->recipient_type === 'group';
-
-                // Send via GowaClient
-                // Note: GowaClient usually handles both individual and group if the ID is correct.
-                // If special handling is needed for groups, we check GowaClient capabilities.
-                // Assuming sendMessage works for both if JID is correct.
-
-                // Format JID if it's a phone number (not a group)
-                if (! $isGroup && ! str_contains($target, '@')) {
-                    // Basic formatting, GowaClient might handle this but good to be safe
-                    // Assuming Indonesian numbers
-                    if (str_starts_with($target, '08')) {
-                        $target = '62'.substr($target, 1);
-                    }
-                    if (! str_ends_with($target, '@s.whatsapp.net')) {
-                        $target .= '@s.whatsapp.net';
-                    }
-                } elseif ($isGroup && ! str_ends_with($target, '@g.us')) {
-                    $target .= '@g.us';
+                // Prepare mentions
+                $mentions = [];
+                if ($isGroup && $reminder->mention_all) {
+                    $mentions[] = '@everyone'; // or whatever keyword GOWA supports, assuming GowaClient handles translation or pass direct
                 }
 
-                $this->gowaClient->sendMessage($target, $message);
-                Log::info("Reminder sent to {$target}");
+                $result = $this->gowaClient->sendMessage($target, $message, $mentions);
+
+                if ($result['success']) {
+                    $status = 'sent';
+                    $msgId = $result['message_id'];
+                    $sentCount++;
+                    Log::info("Reminder sent to {$target}");
+                } else {
+                    $status = 'failed';
+                    $errorMsg = $result['error'] ?? 'Unknown error';
+                    $failedCount++;
+                    Log::error("Failed to send reminder to {$target}: {$errorMsg}");
+                }
 
             } catch (\Exception $e) {
-                Log::error("Failed to send reminder to {$recipient->recipient_value}: ".$e->getMessage());
+                $status = 'failed';
+                $errorMsg = $e->getMessage();
+                $failedCount++;
+                Log::error("Exception sending reminder to {$target}: {$e->getMessage()}");
             }
+
+            // Create Log
+            WhatsAppMessageLog::create([
+                'batch_id' => $batch->id,
+                'recipient_jid' => $target,
+                'recipient_name' => $target, // We don't have name stored in recipient table, use value
+                'recipient_type' => $recipient->recipient_type,
+                'status' => $status,
+                'error_message' => $errorMsg,
+                'message_id' => $msgId,
+                'sent_at' => $status === 'sent' ? now() : null,
+            ]);
         }
 
-        // 4. Update Last Run
+        // 5. Update Batch and Reminder
+        $batch->update([
+            'sent_count' => $sentCount,
+            'failed_count' => $failedCount,
+            'completed_at' => now(),
+        ]);
+
         $reminder->update(['last_run_at' => now()]);
     }
 
