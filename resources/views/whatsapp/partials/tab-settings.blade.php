@@ -249,9 +249,10 @@
                 <div>
                     <div class="flex justify-between items-center mb-4">
                         <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Connected Devices</h4>
-                        <x-button @click="fetchDevices" variant="ghost" size="xs" :loading="loadingDevices">
-                            Refresh
-                        </x-button>
+                        <button type="button" @click="fetchDevices" :disabled="loadingDevices" class="btn btn-ghost text-xs font-medium px-2 py-1 text-primary-700 hover:bg-gray-100 rounded transition-colors disabled:opacity-50">
+                            <span x-show="!loadingDevices">Refresh</span>
+                            <span x-show="loadingDevices">Loading...</span>
+                        </button>
                     </div>
                     
                     <div x-show="loadingDevices" class="text-center py-4 text-gray-500 text-sm">Loading devices...</div>
@@ -280,9 +281,10 @@
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg border border-gray-200 dark:border-gray-700 p-6">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100">Template Pesan</h3>
-                <x-button @click="loadTemplates" variant="ghost" size="sm" :loading="loadingTemplates">
-                    Refresh Templates
-                </x-button>
+                <button type="button" @click="loadTemplates" :disabled="loadingTemplates" class="btn btn-ghost text-sm font-medium px-3 py-1.5 text-primary-700 hover:bg-gray-100 rounded transition-colors disabled:opacity-50">
+                    <span x-show="!loadingTemplates">Refresh Templates</span>
+                    <span x-show="loadingTemplates">Loading...</span>
+                </button>
             </div>
 
             <div x-show="loadingTemplates" class="text-center py-8 text-gray-500">Loading templates...</div>
@@ -363,10 +365,10 @@
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Message</label>
                     <textarea x-model="testMessage.message" rows="3" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"></textarea>
                 </div>
-                <x-button type="submit" variant="success" block :disabled="sendingTest">
+                <button type="submit" :disabled="sendingTest" class="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 transition-all duration-200">
                     <span x-show="!sendingTest">Send Test</span>
                     <span x-show="sendingTest">Sending...</span>
-                </x-button>
+                </button>
             </form>
         </div>
 
