@@ -23,12 +23,56 @@
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 
-**Current Version:** v1.7.9 (29 Januari 2026)  
-**Latest Feature:** Manajemen Penyidik & Presisi Label 121
+**Current Version:** v1.8.0 (29 Januari 2026)  
+**Latest Feature:** WhatsApp Hub (Unified Dashboard)
 
 ---
 
 ## 📰 Recent Changes (v1.5.x)
+
+### v1.8.0 (29 Januari 2026) - WhatsApp Hub: Unified Communication Dashboard
+
+```
+Updated on 2026-01-29
+```
+
+**🎯 Problem Solved:**
+
+Sebelumnya, fitur manajemen WhatsApp tersebar di berbagai halaman: Tugas di `/tasks`, Reminders di `/reminders`, Broadcast di `/broadcasts`, dan pengaturan notifikasi di `/settings`. Ini menyulitkan admin untuk memantau dan mengelola komunikasi secara efisien.
+
+**✨ New Feature: WhatsApp Hub**
+
+Dashboard terpusat yang menggabungkan seluruh fitur komunikasi berbasis WhatsApp dalam satu antarmuka tab yang responsif.
+
+**Fitur Utama:**
+
+1.  **Unified Dashboard (`/whatsapp`):**
+    - **Overview:** Statistik harian (Pesan terkirim, Gagal, Tugas Menunggu, Jadwal Broadcast) + Aktivitas Terkini.
+    - **Tugas (Tasks):** Manajemen tugas staff lengkap (CRUD) dengan notifikasi otomatis via WhatsApp.
+    - **Broadcasts:** Kirim pesan massal ke Investigator atau Staff, dengan preview penerima.
+    - **Reminders:** Manajemen bot reminder otomatis (ISO Countdown, Temperature Alert, dll) dengan fitur "Mention All".
+    - **Logs:** Riwayat pengiriman pesan berbasis batch untuk tracking dan audit yang lebih mudah.
+    - **Pengaturan:** Konfigurasi GOWA API, Device Management, dan Editor Template Notifikasi (Milestone, Command, System, Task).
+
+2.  **Architecture Improvements:**
+    - **Batch Logging:** Sistem logging baru berbasis `WhatsAppMessageBatch` untuk pengelompokan pesan logis.
+    - **Admin Centralization:** Akses dipusatkan untuk role dengan permission `manage-settings`.
+    - **Template Management:** Editor template terintegrasi dengan preview realtime dan placeholder hints.
+
+**📁 Files Created:**
+
+- `app/Http/Controllers/WhatsAppHubController.php`
+- `app/Models/WhatsAppMessageBatch.php`
+- `app/Models/WhatsAppMessageLog.php`
+- `resources/views/whatsapp/index.blade.php`
+- `resources/views/whatsapp/partials/*.blade.php`
+
+**📁 Files Modified:**
+
+- `routes/web.php` (Added Hub routes, redirected legacy routes)
+- `resources/views/layouts/navigation.blade.php` (Updated menu structure)
+- `app/Jobs/SendBroadcastJob.php` (Integrated batch logging)
+- `app/Services/Reminders/ReminderService.php` (Integrated batch logging)
 
 ### v1.7.9 (29 Januari 2026) - Manajemen Penyidik & Presisi Label 121
 

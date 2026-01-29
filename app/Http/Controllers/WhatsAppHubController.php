@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Investigator;
 use App\Models\Reminder;
 use App\Models\StaffTask;
+use App\Models\SystemSetting;
 use App\Models\User;
 use App\Models\WhatsappBroadcast;
 use App\Models\WhatsappBroadcastRecipient;
