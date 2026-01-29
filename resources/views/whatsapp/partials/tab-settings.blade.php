@@ -249,7 +249,7 @@
                 <div>
                     <div class="flex justify-between items-center mb-4">
                         <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Connected Devices</h4>
-                        <button type="button" @click="fetchDevices" :disabled="loadingDevices" class="btn btn-ghost text-xs font-medium px-2 py-1 text-primary-700 hover:bg-gray-100 rounded transition-colors disabled:opacity-50">
+                        <button type="button" @click="fetchDevices" :disabled="loadingDevices" class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition-colors shadow-sm">
                             <span x-show="!loadingDevices">Refresh</span>
                             <span x-show="loadingDevices">Loading...</span>
                         </button>
@@ -265,8 +265,8 @@
                             <template x-for="device in devices" :key="device.id">
                                 <li class="py-2 flex justify-between items-center">
                                     <div>
-                                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100" x-text="device.name || 'Unnamed'"></p>
-                                        <p class="text-xs text-gray-500" x-text="device.device_id"></p>
+                                        <p class="text-sm font-medium text-gray-900 dark:text-gray-100" x-text="device.name || device.phone || device.device_id || 'Unknown Device'"></p>
+                                        <p class="text-xs text-gray-500 font-mono" x-text="device.device_id"></p>
                                     </div>
                                     <span class="px-2 py-0.5 text-xs rounded-full bg-green-100 text-green-800">Connected</span>
                                 </li>
@@ -281,7 +281,7 @@
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg border border-gray-200 dark:border-gray-700 p-6">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100">Template Pesan</h3>
-                <button type="button" @click="loadTemplates" :disabled="loadingTemplates" class="btn btn-ghost text-sm font-medium px-3 py-1.5 text-primary-700 hover:bg-gray-100 rounded transition-colors disabled:opacity-50">
+                <button type="button" @click="loadTemplates" :disabled="loadingTemplates" class="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition-colors shadow-sm">
                     <span x-show="!loadingTemplates">Refresh Templates</span>
                     <span x-show="loadingTemplates">Loading...</span>
                 </button>

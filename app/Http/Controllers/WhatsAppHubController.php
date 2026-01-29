@@ -633,12 +633,33 @@ class WhatsAppHubController extends Controller
             'device_id' => 'required|string',
         ]);
 
-        settings()->set('notifications.whatsapp.base_url', $validated['base_url']);
-        settings()->set('notifications.whatsapp.basic_user', $validated['basic_user']);
-        settings()->set('notifications.whatsapp.device_id', $validated['device_id']);
+        SystemSetting::updateOrCreate(
+            ['key' => 'notifications.whatsapp.base_url'],
+            ['value' => $validated['base_url']]
+        );
+
+        SystemSetting::updateOrCreate(
+            ['key' => 'notifications.whatsapp.basic_user'],
+            ['value' => $validated['basic_user']]
+        );
+
+        SystemSetting::updateOrCreate(
+            ['key' => 'notifications.whatsapp.device_id'],
+            ['value' => $validated['device_id']]
+        );
 
         if (! empty($validated['basic_pass'])) {
-            settings()->set('notifications.whatsapp.basic_pass', encrypt($validated['basic_pass']));
+            SystemSetting::updateOrCreate(
+                ['key' => 'notifications.whatsapp.basic_pass'],
+                ['value' => encrypt($validated['basic_pass'])]
+            );
+        }
+
+        // Clear cache so changes take effect immediately
+        if (function_exists('settings_forget_cache')) {
+            settings_forget_cache();
+        } else {
+            cache()->forget('sys_settings_all');
         }
 
         return response()->json(['message' => 'Settings saved']);
