@@ -10,7 +10,7 @@
     @endphp
     <style>
         @page {
-            size: A4 portrait;
+            size: 165mm 210mm;
             margin: 0;
         }
         * {
@@ -29,8 +29,8 @@
             break-after: page;
         }
         .sheet {
-            padding-top: 2mm;
-            padding-left: 5mm;
+            padding-top: 5mm;
+            padding-left: 7mm;
         }
         .grid-table {
             border-collapse: collapse;
@@ -43,10 +43,10 @@
             padding: 0;
         }
         .gap-x {
-            width: 5mm;
+            width: 2.5mm;
         }
         .gap-y td {
-            height: 3mm;
+            height: 2mm;
         }
         .label {
             width: {{ $labelWidth }}mm;
@@ -156,47 +156,47 @@
             padding-top: 0.2mm;
         }
 
-        /* Checklist Styles - A4 format */
+        /* Checklist Styles - Compact format for 165x210mm */
         .checklist-container {
-            padding: 10mm;
+            padding: 5mm;
         }
         .checklist-header {
             text-align: center;
-            border-bottom: 1.5px solid #000;
-            padding-bottom: 3mm;
-            margin-bottom: 5mm;
+            border-bottom: 1px solid #000;
+            padding-bottom: 2mm;
+            margin-bottom: 3mm;
         }
         .checklist-title {
             margin: 0;
-            font-size: 12pt;
+            font-size: 10pt;
             text-transform: uppercase;
             font-weight: bold;
         }
         .checklist-info {
             width: 100%;
-            margin-bottom: 5mm;
-            font-size: 10pt;
+            margin-bottom: 3mm;
+            font-size: 8pt;
         }
         .checklist-info td {
             vertical-align: top;
-            padding-bottom: 2mm;
+            padding-bottom: 1mm;
         }
         .checklist-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 10pt;
+            font-size: 8pt;
         }
         .checklist-table th, .checklist-table td {
             border: 1px solid #000;
-            padding: 2mm;
+            padding: 1.5mm;
         }
         .checklist-table th {
             background-color: #f0f0f0;
             text-align: center;
         }
         .checkbox {
-            width: 4mm;
-            height: 4mm;
+            width: 3mm;
+            height: 3mm;
             border: 1px solid #000;
             display: inline-block;
         }

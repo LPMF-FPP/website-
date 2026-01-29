@@ -10,7 +10,7 @@
     @endphp
     <style>
         @page {
-            size: A4 portrait;
+            size: 165mm 210mm;
             margin: 0;
         }
         * {
@@ -29,8 +29,8 @@
             break-after: page;
         }
         .sheet {
-            padding-top: 2mm;
-            padding-left: 5mm;
+            padding-top: 5mm;
+            padding-left: 7mm;
         }
         .grid-table {
             border-collapse: collapse;
@@ -43,10 +43,10 @@
             padding: 0;
         }
         .gap-x {
-            width: 5mm;
+            width: 2.5mm;
         }
         .gap-y td {
-            height: 3mm;
+            height: 2mm;
         }
         .label {
             width: {{ $labelWidth }}mm;

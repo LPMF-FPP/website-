@@ -168,7 +168,9 @@ class LabelController extends Controller
             'printDate' => now()->translatedFormat('d M Y H:i'),
         ]);
 
-        $pdf->setPaper('a4', 'portrait');
+        // Custom size for Label 121: 165mm x 210mm
+        // 165mm = 467.72 pt, 210mm = 595.28 pt
+        $pdf->setPaper([0, 0, 467.72, 595.28], 'portrait');
 
         return $pdf->stream("label-barang-bukti-{$requestId}.pdf");
     }
@@ -230,7 +232,8 @@ class LabelController extends Controller
             'printDate' => now()->format('d M Y H:i'),
         ]);
 
-        $pdf->setPaper('a4', 'portrait');
+        // Custom size for Label 121: 165mm x 210mm
+        $pdf->setPaper([0, 0, 467.72, 595.28], 'portrait');
 
         return $pdf->stream("label-sisa-{$requestId}.pdf");
     }
@@ -263,7 +266,8 @@ class LabelController extends Controller
             'printDate' => now()->format('d M Y H:i'),
         ]);
 
-        $pdf->setPaper('a4', 'portrait');
+        // Custom size for Label 121: 165mm x 210mm
+        $pdf->setPaper([0, 0, 467.72, 595.28], 'portrait');
 
         return $pdf->stream("label-sisa-evidence-{$evidenceUnitId}.pdf");
     }
