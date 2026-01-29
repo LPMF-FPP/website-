@@ -169,19 +169,12 @@
                                             @canany(['analysts.view', 'settings.view'])
                                                 <div class="border-t border-gray-100 dark:border-white/10 my-2"></div>
 
-                                                @can('analysts.view')
-                                                <a href="{{ route('analysts.index') }}" class="group flex items-center p-2 rounded-md hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
-                                                    <svg class="w-5 h-5 text-primary-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Manajemen Staff</span>
-                                                </a>
-                                                @endcan
-
-                                                @can('investigators.view')
-                                                <a href="{{ route('investigators.index') }}" class="group flex items-center p-2 rounded-md hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
+                                                @canany(['analysts.view', 'investigators.view'])
+                                                <a href="{{ route('personnel.index') }}" class="group flex items-center p-2 rounded-md hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150 {{ request()->routeIs('personnel.*') ? 'bg-primary-50 dark:bg-accent-800' : '' }}">
                                                     <svg class="w-5 h-5 text-primary-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Manajemen Penyidik</span>
+                                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Manajemen Personel</span>
                                                 </a>
-                                                @endcan
+                                                @endcanany
 
                                                 @can('settings.view')
                                                 <a href="{{ route('settings.index') }}" class="group flex items-center p-2 rounded-md hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
@@ -374,13 +367,9 @@
                             <x-responsive-nav-link href="{{ route('changelogs.index') }}" :active="request()->routeIs('changelogs.*')">Changelogs</x-responsive-nav-link>
                             @endcan
                             
-                        @can('analysts.view')
-                            <x-responsive-nav-link href="{{ route('analysts.index') }}" :active="request()->routeIs('analysts.*')">Manajemen Staff</x-responsive-nav-link>
-                        @endcan
-
-                        @can('investigators.view')
-                            <x-responsive-nav-link href="{{ route('investigators.index') }}" :active="request()->routeIs('investigators.*')">Manajemen Penyidik</x-responsive-nav-link>
-                        @endcan
+                        @canany(['analysts.view', 'investigators.view'])
+                            <x-responsive-nav-link href="{{ route('personnel.index') }}" :active="request()->routeIs('personnel.*')">Manajemen Personel</x-responsive-nav-link>
+                        @endcanany
                             @can('settings.view')
                             <x-responsive-nav-link href="{{ route('settings.index') }}" :active="request()->routeIs('settings.*')">Pengaturan</x-responsive-nav-link>
                             @endcan

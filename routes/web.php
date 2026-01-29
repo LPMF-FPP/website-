@@ -184,12 +184,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('analysts/{analyst}/permissions/reset', [AnalystController::class, 'resetPermissions'])->name('analysts.permissions.reset');
     Route::post('analysts/{analyst}/disable', [AnalystController::class, 'disable'])->name('analysts.disable');
     Route::post('analysts/{analyst}/enable', [AnalystController::class, 'enable'])->name('analysts.enable');
-    Route::resource('analysts', AnalystController::class);
+
+    // Unified Personnel Management
+    Route::get('/personel', [App\Http\Controllers\PersonnelController::class, 'index'])->name('personnel.index');
+
+    // Redirect legacy routes to unified page
+    Route::get('analysts', function () {
+        return redirect()->route('personnel.index', ['tab' => 'staff']);
+    })->name('analysts.index');
+
+    Route::resource('analysts', AnalystController::class)->except(['index']);
 
     // Investigator Management
-    Route::get('investigators', [InvestigatorManagementController::class, 'index'])
-        ->name('investigators.index')
-        ->can('investigators.view');
+    Route::get('investigators', function () {
+        return redirect()->route('personnel.index', ['tab' => 'penyidik']);
+    })->name('investigators.index');
+
+    // Keep API/Detail routes
     Route::get('investigators/{investigator}', [InvestigatorManagementController::class, 'show'])
         ->name('investigators.show')
         ->can('investigators.view');
