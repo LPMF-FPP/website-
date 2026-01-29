@@ -394,7 +394,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Redirects for backward compatibility
     Route::get('/tasks', function () {
         return redirect()->route('whatsapp.index', ['tab' => 'tasks']);
-    })->name('tasks.redirect');
+    })->name('tasks.index');
 
     Route::get('/broadcasts', function () {
         return redirect()->route('whatsapp.index', ['tab' => 'broadcasts']);
