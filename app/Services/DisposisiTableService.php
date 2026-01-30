@@ -53,9 +53,14 @@ class DisposisiTableService
         $status = $this->detectStatus($request);
 
         // Fallback untuk completed date (handle legacy data)
-        $completedDate = $request->completed_at ?? ($request->status === 'completed' ? $request->updated_at : null);
+        // HANYA jika status completed
+        $completedDate = null;
+        if ($request->status === 'completed') {
+            $completedDate = $request->completed_at ?? $request->updated_at;
+        }
 
         // Hasil: Bisa dari completed_at atau updated_at saat ready_for_delivery
+        // Jika ready_for_delivery, tampilkan updated_at sebagai tanggal hasil keluar
         $hasilDate = $request->completed_at ??
             (($request->status === 'completed' || $request->status === 'ready_for_delivery') ? $request->updated_at : null);
 
