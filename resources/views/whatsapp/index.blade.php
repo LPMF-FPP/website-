@@ -131,7 +131,7 @@
                 overviewData: null,
                 tasksData: { tasks: { data: [] }, stats: {}, users: [] },
                 broadcastsData: { data: [], links: [] },
-                remindersData: [],
+                remindersData: { reminders: [] },
                 logsData: { data: [], links: [] },
                 settingsData: null,
 
