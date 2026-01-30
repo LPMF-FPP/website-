@@ -12,7 +12,7 @@
                     <div class="ml-5 w-0 flex-1">
                         <dl>
                             <dt class="text-sm font-medium text-gray-500 truncate">Sent Today</dt>
-                            <dd class="text-lg font-medium text-gray-900 dark:text-gray-100" x-text="overviewData.stats.sent_today"></dd>
+                            <dd class="text-lg font-medium text-gray-900 dark:text-gray-100" x-text="overviewData?.stats?.sent_today ?? 0"></dd>
                         </dl>
                     </div>
                 </div>
@@ -30,7 +30,7 @@
                     <div class="ml-5 w-0 flex-1">
                         <dl>
                             <dt class="text-sm font-medium text-gray-500 truncate">Scheduled</dt>
-                            <dd class="text-lg font-medium text-gray-900 dark:text-gray-100" x-text="overviewData.stats.scheduled"></dd>
+                            <dd class="text-lg font-medium text-gray-900 dark:text-gray-100" x-text="overviewData?.stats?.scheduled ?? 0"></dd>
                         </dl>
                     </div>
                 </div>
@@ -48,7 +48,7 @@
                     <div class="ml-5 w-0 flex-1">
                         <dl>
                             <dt class="text-sm font-medium text-gray-500 truncate">Failed Today</dt>
-                            <dd class="text-lg font-medium text-gray-900 dark:text-gray-100" x-text="overviewData.stats.failed_today"></dd>
+                            <dd class="text-lg font-medium text-gray-900 dark:text-gray-100" x-text="overviewData?.stats?.failed_today ?? 0"></dd>
                         </dl>
                     </div>
                 </div>
@@ -66,7 +66,7 @@
                     <div class="ml-5 w-0 flex-1">
                         <dl>
                             <dt class="text-sm font-medium text-gray-500 truncate">Pending Tasks</dt>
-                            <dd class="text-lg font-medium text-gray-900 dark:text-gray-100" x-text="overviewData.stats.pending_tasks"></dd>
+                            <dd class="text-lg font-medium text-gray-900 dark:text-gray-100" x-text="overviewData?.stats?.pending_tasks ?? 0"></dd>
                         </dl>
                     </div>
                 </div>
@@ -83,12 +83,12 @@
         </div>
         <div class="overflow-hidden">
             <ul class="divide-y divide-gray-200 dark:divide-gray-700">
-                <template x-if="overviewData.recent_activity.length === 0">
+                <template x-if="!overviewData?.recent_activity || overviewData.recent_activity.length === 0">
                     <li class="px-4 py-4 sm:px-6 text-center text-gray-500">
                         No recent activity
                     </li>
                 </template>
-                <template x-for="item in overviewData.recent_activity" :key="item.id">
+                <template x-for="item in overviewData?.recent_activity || []" :key="item.id">
                     <li class="px-4 py-4 sm:px-6 hover:bg-gray-50 dark:hover:bg-gray-750 transition duration-150 ease-in-out">
                         <div class="flex items-center justify-between">
                             <div class="flex flex-col">

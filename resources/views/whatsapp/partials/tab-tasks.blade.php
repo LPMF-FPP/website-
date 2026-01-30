@@ -54,7 +54,7 @@
                     </svg>
                 </div>
                 <div>
-                    <p class="text-2xl font-bold text-gray-900 dark:text-gray-100" x-text="tasksData.stats.pending || 0"></p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-gray-100" x-text="tasksData?.stats?.pending || 0"></p>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Menunggu</p>
                 </div>
             </div>
@@ -67,7 +67,7 @@
                     </svg>
                 </div>
                 <div>
-                    <p class="text-2xl font-bold text-gray-900 dark:text-gray-100" x-text="tasksData.stats.in_progress || 0"></p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-gray-100" x-text="tasksData?.stats?.in_progress || 0"></p>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Dikerjakan</p>
                 </div>
             </div>
@@ -80,7 +80,7 @@
                     </svg>
                 </div>
                 <div>
-                    <p class="text-2xl font-bold text-gray-900 dark:text-gray-100" x-text="tasksData.stats.overdue || 0"></p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-gray-100" x-text="tasksData?.stats?.overdue || 0"></p>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Terlambat</p>
                 </div>
             </div>
@@ -93,7 +93,7 @@
                     </svg>
                 </div>
                 <div>
-                    <p class="text-2xl font-bold text-gray-900 dark:text-gray-100" x-text="tasksData.stats.completed_today || 0"></p>
+                    <p class="text-2xl font-bold text-gray-900 dark:text-gray-100" x-text="tasksData?.stats?.completed_today || 0"></p>
                     <p class="text-sm text-gray-500 dark:text-gray-400">Selesai Hari Ini</p>
                 </div>
             </div>
@@ -125,7 +125,7 @@
                 </select>
             </div>
 
-            <button @click="$dispatch('open-task-modal', { users: tasksData.users })"
+            <button @click="$dispatch('open-task-modal', { users: tasksData?.users || [] })"
                     type="button"
                     class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -139,7 +139,7 @@
     <!-- Task List -->
     <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div class="divide-y divide-gray-200 dark:divide-gray-700">
-            <template x-if="!tasksData.tasks || tasksData.tasks.data.length === 0">
+            <template x-if="!tasksData?.tasks?.data || tasksData.tasks.data.length === 0">
                 <div class="p-12 text-center">
                     <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
@@ -149,7 +149,7 @@
                 </div>
             </template>
             
-            <template x-for="task in tasksData.tasks.data" :key="task.id">
+            <template x-for="task in tasksData?.tasks?.data || []" :key="task.id">
                 <div class="p-4 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
                     <div class="flex items-start justify-between gap-4">
                         <div class="flex items-start gap-3 flex-1">
@@ -217,7 +217,7 @@
 
                         <!-- Actions -->
                         <div class="flex items-center gap-2">
-                            <button @click="$dispatch('open-task-modal', { task: task, users: tasksData.users })"
+                            <button @click="$dispatch('open-task-modal', { task: task, users: tasksData?.users || [] })"
                                     class="p-1 text-gray-400 hover:text-blue-600 rounded transition-colors"
                                     title="Edit">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

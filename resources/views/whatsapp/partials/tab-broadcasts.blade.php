@@ -83,7 +83,7 @@
     <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 mb-6 p-4">
         <select x-model="filterStatus" @change="loadTabData('broadcasts')" class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm focus:ring-primary-500 focus:border-primary-500">
             <option value="all">All Statuses</option>
-            <template x-for="(label, key) in broadcastsData.statuses" :key="key">
+            <template x-for="(label, key) in broadcastsData?.statuses || {}" :key="key">
                 <option :value="key" x-text="label"></option>
             </template>
         </select>
@@ -104,14 +104,14 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                    <template x-if="!broadcastsData.broadcasts || broadcastsData.broadcasts.data.length === 0">
+                    <template x-if="!broadcastsData?.broadcasts?.data || broadcastsData.broadcasts.data.length === 0">
                         <tr>
                             <td colspan="6" class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
                                 No broadcasts found. Create one to get started.
                             </td>
                         </tr>
                     </template>
-                    <template x-for="broadcast in broadcastsData.broadcasts.data" :key="broadcast.id">
+                    <template x-for="broadcast in broadcastsData?.broadcasts?.data || []" :key="broadcast.id">
                         <tr class="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                             <td class="px-6 py-4">
                                 <div class="text-sm font-medium text-gray-900 dark:text-gray-100" x-text="broadcast.title"></div>
