@@ -17,6 +17,7 @@ class DisposisiTableService
     {
         $paginator = $this->buildQuery($filters)->paginate($perPage);
         $paginator->getCollection()->transform(fn ($r) => $this->formatRow($r));
+        $paginator->fragment('disposisi');
 
         return $paginator;
     }

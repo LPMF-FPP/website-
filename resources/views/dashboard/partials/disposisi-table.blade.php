@@ -4,7 +4,7 @@
     $data->appends(request()->query());
 @endphp
 
-<div class="card" x-data="{ 
+<div id="disposisi" class="card" x-data="{ 
     open: {{ request()->has('page') || request()->filled('disposisi_search') ? 'true' : 'false' }}, 
     search: '{{ request('disposisi_search') }}' 
 }">
