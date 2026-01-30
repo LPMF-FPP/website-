@@ -30,6 +30,45 @@
 
 ## 📰 Recent Changes (v1.5.x)
 
+### v1.8.1 (30 Januari 2026) - WhatsApp Reminders & Personnel Tab Fixes
+
+```
+Updated on 2026-01-30
+```
+
+**🎯 Problem Solved:**
+
+1. **Reminders Stuck:** Fitur reminder WhatsApp (suhu, stok, countdown ISO) tidak berjalan karena kesalahan konfigurasi timezone, recipient kosong, dan scheduler server.
+2. **UI/UX Issues:** Tombol toggle reminder di halaman WhatsApp Hub tidak responsif (hanya berubah warna) dan inisialisasi data yang menyebabkan error pada page load.
+3. **Personnel Management:** Redundansi menu "Manajemen Staff" dan "Manajemen Penyidik".
+
+**✨ Improvements:**
+
+- **Reminders System Fix:**
+    - Timezone aplikasi diset ke `Asia/Jakarta` (sebelumnya UTC) agar reminder pagi (07:00, 08:00) berjalan sesuai waktu lokal.
+    - Scheduler server diaktifkan via crontab production.
+    - UI toggle reminder menggunakan "Optimistic Update" agar instan dan responsif.
+    - Data inisialisasi `remindersData` diperbaiki untuk mencegah error JavaScript.
+
+- **Unified Personnel Management:**
+    - Menggabungkan "Manajemen Staff" dan "Manajemen Penyidik" menjadi satu menu **"Personel"**.
+    - Implementasi tab navigation: `/personel?tab=staff` dan `/personel?tab=penyidik`.
+    - Redirect otomatis dari rute lama `/analysts` dan `/investigators`.
+
+- **Audit & Compliance:**
+    - Perbaikan CSS layout violation pada `pd-*.css` (Safe Mode v2).
+    - Memastikan semua reminder memiliki recipients yang valid.
+
+**📁 Files Modified:**
+
+- `config/app.php` (Timezone fix)
+- `routes/console.php` (Scheduler config)
+- `routes/web.php` (Personnel routes)
+- `resources/views/whatsapp/index.blade.php` (JS Data init)
+- `resources/views/whatsapp/partials/tab-reminders.blade.php` (Toggle UI logic)
+- `resources/views/personnel/index.blade.php` (New unified view)
+- `resources/views/layouts/navigation.blade.php` (Menu unification)
+
 ### v1.8.0 (29 Januari 2026) - WhatsApp Hub: Unified Communication Dashboard
 
 ```
