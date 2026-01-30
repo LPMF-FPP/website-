@@ -130,14 +130,20 @@ class DashboardController extends Controller
             $percentage = $avgScore > 0 ? (($avgScore - 1) / 3) * 100 : 0;
 
             // Trend
-            $trend = $avgScore - $lastMonthAvg;
-            $trendDirection = $trend > 0.01 ? 'up' : ($trend < -0.01 ? 'down' : 'stable');
+            if ($lastMonthAvg > 0) {
+                $trend = $avgScore - $lastMonthAvg;
+                $trendDirection = $trend > 0.01 ? 'up' : ($trend < -0.01 ? 'down' : 'stable');
+                $trendValue = round(abs($trend), 2);
+            } else {
+                $trendValue = null;
+                $trendDirection = 'new';
+            }
 
             return [
                 'score' => round($avgScore, 2),
                 'percentage' => round($percentage, 1),
                 'total_responses' => $totalResponses,
-                'trend' => round(abs($trend), 2),
+                'trend' => $trendValue,
                 'trend_direction' => $trendDirection,
             ];
         } catch (\Exception $e) {
@@ -318,6 +324,11 @@ class DashboardController extends Controller
                 $end = $r->completed_at ?? $r->updated_at;
                 $startDate = \Carbon\Carbon::parse($r->submitted_at);
                 $endDate = \Carbon\Carbon::parse($end);
+
+                // Safety check: jika tanggal selesai sebelum tanggal submit
+                if ($endDate->lt($startDate)) {
+                    return 0;
+                }
 
                 // Hitung hari kerja (Senin-Jumat)
                 // Menggunakan diffInWeekdays yang exclude weekend

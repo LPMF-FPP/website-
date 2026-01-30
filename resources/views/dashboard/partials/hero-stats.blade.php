@@ -86,7 +86,12 @@
                             </svg>
                             <span>{{ $customerSatisfaction['total_responses'] }} responden</span>
                         </div>
-                        @if($customerSatisfaction['trend_direction'] === 'up')
+                        @if($customerSatisfaction['trend_direction'] === 'new')
+                            <div class="flex items-center gap-1 text-green-200">
+                                <span>✨</span>
+                                <span>Data bulan pertama</span>
+                            </div>
+                        @elseif($customerSatisfaction['trend_direction'] === 'up')
                             <div class="flex items-center gap-1 text-green-200">
                                 <span>↑</span>
                                 <span>{{ $customerSatisfaction['trend'] }} dari bulan lalu</span>
