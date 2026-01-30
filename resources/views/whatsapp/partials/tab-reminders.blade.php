@@ -1,39 +1,4 @@
-<div x-data="{
-    async toggleReminder(id) {
-        // Optimistic UI update
-        const reminder = $root.remindersData.reminders.find(r => r.id === id);
-        if (reminder) reminder.is_enabled = !reminder.is_enabled;
-        
-        try {
-            const res = await fetch(`/whatsapp/reminders/${id}/toggle`, {
-                method: 'POST',
-                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
-            });
-            if (!res.ok) {
-                // Revert on failure
-                if (reminder) reminder.is_enabled = !reminder.is_enabled;
-                alert('Failed to toggle reminder');
-            }
-        } catch(e) { 
-            if (reminder) reminder.is_enabled = !reminder.is_enabled;
-            console.error(e); 
-        }
-    },
-    async triggerReminder(id) {
-        if (!confirm('Run this reminder immediately?')) return;
-        try {
-            const res = await fetch(`/whatsapp/reminders/${id}/trigger`, {
-                method: 'POST',
-                headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }
-            });
-            if (res.ok) {
-                alert('Reminder triggered (queued)');
-            } else {
-                alert('Failed to trigger reminder');
-            }
-        } catch(e) { console.error(e); }
-    }
-}">
+<div>
     <div class="flex items-center justify-between mb-6">
         <div>
             <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Scheduled Reminders</h2>
@@ -119,4 +84,3 @@
             </div>
         </template>
     </div>
-</div>
