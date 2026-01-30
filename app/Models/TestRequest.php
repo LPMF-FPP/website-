@@ -174,4 +174,9 @@ class TestRequest extends Model
     {
         return $this->hasMany(Suspect::class)->orderBy('order_no');
     }
+
+    public function delivery(): HasOne
+    {
+        return $this->hasOne(Delivery::class, 'request_id');
+    }
 }

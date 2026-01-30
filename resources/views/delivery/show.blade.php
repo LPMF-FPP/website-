@@ -359,6 +359,95 @@
 
             {{-- Right Column: Ringkasan --}}
             <div class="lg:col-span-1 space-y-6">
+                {{-- Surat Pengantar Section --}}
+                <div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-900/5 p-6">
+                    <h3 class="text-base font-semibold text-gray-900 mb-4">Surat Pengantar</h3>
+                    
+                    @if($delivery->has_surat_pengantar)
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Nomor Surat:</span>
+                                <span class="font-medium text-gray-900">{{ $delivery->surat_pengantar_number }}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-gray-500">Tanggal:</span>
+                                <span class="font-medium text-gray-900">{{ $delivery->surat_pengantar_date?->format('d F Y') }}</span>
+                            </div>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-gray-100">
+                            <button 
+                                type="button"
+                                onclick="document.getElementById('sp-form').classList.toggle('hidden')"
+                                class="text-sm text-primary-600 hover:text-primary-800 font-medium"
+                            >
+                                Ubah Data SP
+                            </button>
+                        </div>
+                    @else
+                        <div class="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg mb-4">
+                            <span class="text-amber-500">⚠️</span>
+                            <p class="text-sm text-amber-700">Belum ada data Surat Pengantar</p>
+                        </div>
+                    @endif
+
+                    <form 
+                        id="sp-form"
+                        method="POST" 
+                        action="{{ route('delivery.update-surat-pengantar', $delivery) }}"
+                        class="{{ $delivery->has_surat_pengantar ? 'hidden' : '' }} mt-4 space-y-4"
+                    >
+                        @csrf
+                        @method('PATCH')
+                        
+                        <div>
+                            <label for="surat_pengantar_number" class="block text-sm font-medium text-gray-700 mb-1">
+                                Nomor Surat Pengantar
+                            </label>
+                            <input 
+                                type="text" 
+                                name="surat_pengantar_number" 
+                                id="surat_pengantar_number"
+                                value="{{ old('surat_pengantar_number', $delivery->surat_pengantar_number) }}"
+                                placeholder="B/123/I/2026"
+                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                                required
+                            >
+                        </div>
+                        
+                        <div>
+                            <label for="surat_pengantar_date" class="block text-sm font-medium text-gray-700 mb-1">
+                                Tanggal Surat Pengantar
+                            </label>
+                            <input 
+                                type="date" 
+                                name="surat_pengantar_date" 
+                                id="surat_pengantar_date"
+                                value="{{ old('surat_pengantar_date', $delivery->surat_pengantar_date?->format('Y-m-d')) }}"
+                                class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                                required
+                            >
+                        </div>
+                        
+                        <div class="flex items-center gap-3">
+                            <button 
+                                type="submit" 
+                                class="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700"
+                            >
+                                Simpan
+                            </button>
+                            @if($delivery->has_surat_pengantar)
+                                <button 
+                                    type="button"
+                                    onclick="document.getElementById('sp-form').classList.add('hidden')"
+                                    class="text-sm text-gray-600 hover:text-gray-800"
+                                >
+                                    Batal
+                                </button>
+                            @endif
+                        </div>
+                    </form>
+                </div>
+
                 <div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-900/5 p-6 sticky top-6">
                     <h3 class="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
                         <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>

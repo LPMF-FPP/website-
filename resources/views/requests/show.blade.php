@@ -97,6 +97,66 @@
             </div>
         </div>
 
+        {{-- Tanggal Verifikasi URMIN --}}
+        <div class="bg-white shadow-sm sm:rounded-lg p-6 border border-gray-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-semibold text-gray-900">Tanggal Verifikasi Urmin</h3>
+                    <p class="text-sm text-gray-500 mt-1">
+                        @if($request->verified_at)
+                            Terverifikasi pada: <span class="font-medium text-gray-900">{{ $request->verified_at->format('d F Y') }}</span>
+                        @else
+                            <span class="text-amber-600">⚠️ Belum diinput</span>
+                        @endif
+                    </p>
+                </div>
+                <div x-data="{ editing: false, date: '{{ $request->verified_at?->format('Y-m-d') ?? '' }}', saving: false }">
+                    <template x-if="!editing">
+                        <button @click="editing = true" class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                            </svg>
+                            {{ $request->verified_at ? 'Ubah' : 'Input Tanggal' }}
+                        </button>
+                    </template>
+                    <template x-if="editing">
+                        <form 
+                            method="POST" 
+                            action="{{ route('requests.update-verified-at', $request) }}"
+                            class="flex items-center gap-2"
+                            @submit="saving = true"
+                        >
+                            @csrf
+                            @method('PATCH')
+                            <input 
+                                type="date" 
+                                name="verified_at" 
+                                x-model="date"
+                                class="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                                required
+                            >
+                            <button 
+                                type="submit" 
+                                class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-primary-600 rounded-md hover:bg-primary-700 disabled:opacity-50"
+                                :disabled="saving"
+                            >
+                                <span x-show="!saving">Simpan</span>
+                                <span x-show="saving">Menyimpan...</span>
+                            </button>
+                            <button 
+                                type="button" 
+                                @click="editing = false" 
+                                class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-800"
+                                :disabled="saving"
+                            >
+                                Batal
+                            </button>
+                        </form>
+                    </template>
+                </div>
+            </div>
+        </div>
+
         {{-- 2. Reminder Card --}}
         <div x-data="{ showReminder: true }" 
              x-show="showReminder" 

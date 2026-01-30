@@ -65,6 +65,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Requests
     Route::resource('requests', RequestController::class);
+    Route::patch('requests/{testRequest}/verified-at', [RequestController::class, 'updateVerifiedAt'])
+        ->name('requests.update-verified-at');
 
     // Request document endpoints (sample_receipt, handover_report, request_letter_receipt)
     Route::get('/requests/{testRequest}/documents/{type}', [RequestController::class, 'downloadDocument'])
@@ -218,6 +220,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('delivery')->group(function () {
         Route::get('/', [DeliveryController::class, 'index'])->name('delivery.index');
         Route::get('/{request}', [DeliveryController::class, 'show'])->name('delivery.show');
+        Route::patch('/{delivery}/surat-pengantar', [DeliveryController::class, 'updateSuratPengantar'])
+            ->name('delivery.update-surat-pengantar');
         Route::post('/{request}/send-notification', [DeliveryController::class, 'sendPickupNotification'])
             ->name('delivery.send-notification');
         Route::post('/{request}/complete', [DeliveryController::class, 'markAsCompleted'])
@@ -265,7 +269,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Environment Monitoring
     Route::prefix('monitoring')->name('monitoring.')->group(function () {
         // Automatic Sensors Dashboard (Redirect to Environment Input for now)
-        Route::get('/sensors', fn() => redirect()->route('monitoring.environment.index'))->name('sensors.index');
+        Route::get('/sensors', fn () => redirect()->route('monitoring.environment.index'))->name('sensors.index');
 
         Route::prefix('environment')->name('environment.')->group(function () {
             Route::get('/', [EnvironmentMonitoringController::class, 'index'])->name('index');

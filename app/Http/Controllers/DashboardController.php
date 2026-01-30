@@ -6,6 +6,7 @@ use App\Models\CustomerSurvey;
 use App\Models\Sample;
 use App\Models\TestRequest;
 use App\Models\TestResult;
+use App\Services\DisposisiTableService;
 use App\Services\EnvironmentMonitoringService;
 use App\Services\IkuService;
 use Illuminate\Support\Facades\DB;
@@ -14,7 +15,8 @@ class DashboardController extends Controller
 {
     public function __construct(
         private readonly IkuService $ikuService,
-        private readonly EnvironmentMonitoringService $environmentService
+        private readonly EnvironmentMonitoringService $environmentService,
+        private readonly DisposisiTableService $disposisiService
     ) {}
 
     public function index()
@@ -49,6 +51,12 @@ class DashboardController extends Controller
             // 7. Kepuasan Pelanggan
             $customerSatisfaction = $this->calculateCustomerSatisfaction();
 
+            // 8. Disposisi Table Data
+            $disposisiData = $this->disposisiService->getPaginatedTableData(
+                filters: ['search' => request('disposisi_search')],
+                perPage: 15
+            );
+
             $dashboardData = [
                 'stats' => [
                     'total_requests' => $totalRequests,
@@ -63,6 +71,7 @@ class DashboardController extends Controller
                 'environment_monitoring' => $environmentMonitoring,
                 'avg_processing' => $avgProcessing,
                 'customer_satisfaction' => $customerSatisfaction,
+                'disposisi_table' => $disposisiData,
             ];
 
         } catch (\Exception $e) {
@@ -92,6 +101,7 @@ class DashboardController extends Controller
                     'trend' => 0,
                     'trend_direction' => 'stable',
                 ],
+                'disposisi_table' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 15),
             ];
         }
 

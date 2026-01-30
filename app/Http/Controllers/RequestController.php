@@ -710,6 +710,22 @@ class RequestController extends Controller
         }
     }
 
+    public function updateVerifiedAt(Request $request, TestRequest $testRequest)
+    {
+        $validated = $request->validate([
+            'verified_at' => 'required|date',
+        ], [
+            'verified_at.required' => 'Tanggal verifikasi harus diisi',
+            'verified_at.date' => 'Format tanggal tidak valid',
+        ]);
+
+        $testRequest->update([
+            'verified_at' => $validated['verified_at'],
+        ]);
+
+        return back()->with('success', 'Tanggal verifikasi Urmin berhasil disimpan.');
+    }
+
     /**
      * Remove the specified resource from storage.
      */

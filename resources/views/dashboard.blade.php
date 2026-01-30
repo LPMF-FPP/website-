@@ -15,6 +15,7 @@
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
+            {{-- Environment Monitoring Alert --}}
             @if(isset($environment_monitoring) && $environment_monitoring['enabled'] && $environment_monitoring['is_work_day'] && $environment_monitoring['due_locations']->isNotEmpty())
             <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <div class="flex items-start gap-3">
@@ -62,7 +63,13 @@
             </div>
             @endif
 
-            <!-- Stats Cards (SSR) -->
+            {{-- 🎯 HERO SECTION (PALING ATAS) --}}
+            @include('dashboard.partials.hero-stats', [
+                'avgProcessing' => $avg_processing,
+                'customerSatisfaction' => $customer_satisfaction
+            ])
+
+            {{-- Stats Cards (SSR) --}}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 @php $cards = [
                     ['label' => 'Total Permintaan', 'key' => 'total_requests'],
@@ -99,7 +106,7 @@
                 </div>
             </div>
 
-            <!-- Tiny Status Breakdown Bar -->
+            {{-- Status Breakdown Bar --}}
             @php
                 $breakdown = $status_breakdown ?? [];
                 $total = array_sum($breakdown);
@@ -139,170 +146,73 @@
                 </div>
             </div>
 
-            <!-- Recent Activities (SSR) -->
-            <div class="card">
-                <div class="space-y-4">
-                    <div class="flex items-center justify-between">
-                        <h2 class="text-lg font-semibold text-primary-900">Aktivitas Terbaru</h2>
+            {{-- 📊 Rekapitulasi Disposisi Table --}}
+            @include('dashboard.partials.disposisi-table', ['data' => $disposisi_table])
+
+            {{-- Recent Activities (Collapsible) --}}
+            <div class="card" x-data="{ open: false }">
+                <button 
+                    @click="open = !open" 
+                    class="w-full flex items-center justify-between p-4 text-left hover:bg-gray-50 transition-colors rounded-t-lg"
+                    :class="{ 'border-b border-gray-200': open }"
+                >
+                    <div class="flex items-center gap-3">
+                        <svg 
+                            class="w-5 h-5 text-gray-500 transition-transform duration-200" 
+                            :class="{ 'rotate-90': open }"
+                            fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                        >
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                        </svg>
+                        <h2 class="text-lg font-semibold text-primary-900">
+                            Aktivitas Terbaru
+                            <span class="text-sm font-normal text-gray-500">({{ $recent_activities->count() }} data)</span>
+                        </h2>
                     </div>
-                    @if($recent_activities->count() > 0)
-                        <div class="flow-root">
-                            <ul class="-mb-8">
-                                @foreach($recent_activities as $index => $activity)
-                                <li>
-                                    <div class="relative pb-8">
-                                        @if($index < $recent_activities->count() - 1)
-                                        <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-primary-100"></span>
-                                        @endif
-                                        <div class="relative flex space-x-3">
-                                            <div>
-                                                <span class="h-8 w-8 rounded-full bg-{{ $activity->color }}-500 flex items-center justify-center ring-2 ring-white">
-                                                    <span class="text-white text-sm">{{ $activity->icon }}</span>
-                                                </span>
-                                            </div>
-                                            <div class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
+                    <span class="text-sm text-gray-500" x-text="open ? 'Tutup' : 'Buka'"></span>
+                </button>
+
+                <div x-show="open" x-collapse x-cloak>
+                    <div class="p-4 space-y-4">
+                        @if($recent_activities->count() > 0)
+                            <div class="flow-root">
+                                <ul class="-mb-8">
+                                    @foreach($recent_activities as $index => $activity)
+                                    <li>
+                                        <div class="relative pb-8">
+                                            @if($index < $recent_activities->count() - 1)
+                                            <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-primary-100"></span>
+                                            @endif
+                                            <div class="relative flex space-x-3">
                                                 <div>
-                                                    <p class="text-sm font-medium text-primary-900">{{ $activity->title }}</p>
-                                                    <p class="text-sm text-accent-600">{{ $activity->description }}</p>
+                                                    <span class="h-8 w-8 rounded-full bg-{{ $activity->color }}-500 flex items-center justify-center ring-2 ring-white">
+                                                        <span class="text-white text-sm">{{ $activity->icon }}</span>
+                                                    </span>
                                                 </div>
-                                                <div class="text-right text-sm whitespace-nowrap text-accent-600">
-                                                    {{ $activity->time->diffForHumans() }}
+                                                <div class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
+                                                    <div>
+                                                        <p class="text-sm font-medium text-primary-900">{{ $activity->title }}</p>
+                                                        <p class="text-sm text-accent-600">{{ $activity->description }}</p>
+                                                    </div>
+                                                    <div class="text-right text-sm whitespace-nowrap text-accent-600">
+                                                        {{ $activity->time->diffForHumans() }}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </li>
-                                @endforeach
-                            </ul>
-                        </div>
-                    @else
-                        <div class="text-center py-8">
-                            <p class="text-accent-600">Belum ada aktivitas</p>
-                        </div>
-                    @endif
-                </div>
-            </div>
-
-            <!-- Kecepatan Pengerjaan + Kepuasan Pelanggan -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Card 1: Rata-rata Kecepatan Pengerjaan -->
-                <div class="card">
-                    <div class="space-y-1">
-                        @if(isset($avg_processing) && $avg_processing['average'] !== null)
-                            <div class="flex items-center gap-3">
-                                <div class="p-2 bg-blue-50 rounded-lg">
-                                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <div class="text-3xl font-semibold text-primary-900 tabular-nums">
-                                        {{ $avg_processing['average'] }}
-                                        <span class="text-lg text-gray-500 font-medium">hari/permintaan</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="text-sm font-medium text-accent-600 mt-2">
-                                Rata-rata Kecepatan Pengerjaan Bulan Ini
-                            </div>
-                            <div class="text-xs text-accent-500">
-                                Dihitung dari {{ $avg_processing['count'] }} permintaan yang selesai
+                                    </li>
+                                    @endforeach
+                                </ul>
                             </div>
                         @else
-                            <div class="flex items-center gap-3">
-                                <div class="p-2 bg-gray-50 rounded-lg">
-                                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                </div>
-                                <div class="text-xl font-semibold text-accent-500">
-                                    Belum ada data
-                                </div>
-                            </div>
-                            <div class="text-sm font-medium text-accent-600 mt-2">
-                                Rata-rata Kecepatan Pengerjaan Bulan Ini
-                            </div>
-                        @endif
-                    </div>
-                </div>
-
-                <!-- Card 2: Kepuasan Pelanggan -->
-                <div class="card border-green-100">
-                    <div class="space-y-1">
-                        @if(isset($customer_satisfaction) && $customer_satisfaction['total_responses'] > 0)
-                            <div class="flex items-center gap-3">
-                                <div class="p-2 bg-green-50 rounded-lg">
-                                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                </div>
-                                <div class="flex items-baseline gap-2">
-                                    <div class="text-3xl font-semibold text-green-700 tabular-nums">
-                                        {{ $customer_satisfaction['score'] }}/4
-                                    </div>
-                                    <div class="text-lg font-medium text-green-500 tabular-nums">
-                                        ({{ $customer_satisfaction['percentage'] }}%)
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="text-sm font-medium text-green-600 mt-2">
-                                Nilai Kepuasan Pelanggan Bulan Ini
-                            </div>
-                            <div class="flex items-center gap-2 text-xs text-green-500">
-                                <span>{{ $customer_satisfaction['total_responses'] }} responden</span>
-                                @if($customer_satisfaction['trend_direction'] === 'up')
-                                    <span class="text-green-600">↑ {{ $customer_satisfaction['trend'] }}</span>
-                                @elseif($customer_satisfaction['trend_direction'] === 'down')
-                                    <span class="text-red-500">↓ {{ $customer_satisfaction['trend'] }}</span>
-                                @else
-                                    <span class="text-gray-500">→ stabil</span>
-                                @endif
-                            </div>
-                        @else
-                            <div class="flex items-center gap-3">
-                                <div class="p-2 bg-gray-50 rounded-lg">
-                                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                </div>
-                                <div class="text-xl font-semibold text-green-500">
-                                    Belum ada data
-                                </div>
-                            </div>
-                            <div class="text-sm font-medium text-green-600 mt-2">
-                                Nilai Kepuasan Pelanggan Bulan Ini
+                            <div class="text-center py-8">
+                                <p class="text-accent-600">Belum ada aktivitas</p>
                             </div>
                         @endif
                     </div>
                 </div>
             </div>
 
-            <!-- Quick Actions (unchanged other than labels earlier) -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <a href="{{ route('requests.create') }}" class="card block text-center hover:shadow-md transition-shadow duration-200">
-                    <div class="space-y-2">
-                        <div class="text-4xl mb-4">➕</div>
-                        <h2 class="text-lg font-semibold text-primary-900">Buat Permintaan</h2>
-                        <p class="text-sm text-accent-600">Submit permintaan pengujian baru</p>
-                    </div>
-                </a>
-
-                <a href="{{ route('requests.index') }}" class="card block text-center hover:shadow-md transition-shadow duration-200">
-                    <div class="space-y-2">
-                        <div class="text-4xl mb-4">📄</div>
-                        <h2 class="text-lg font-semibold text-primary-900">Lihat Permintaan</h2>
-                        <p class="text-sm text-accent-600">Monitor status pengujian</p>
-                    </div>
-                </a>
-
-                <a href="{{ route('tracking.index') }}" class="card block text-center hover:shadow-md transition-shadow duration-200">
-                    <div class="space-y-2">
-                        <div class="text-4xl mb-4">🔍</div>
-                        <h2 class="text-lg font-semibold text-primary-900">Tracking Permintaan</h2>
-                        <p class="text-sm text-accent-600">Lacak status permintaan</p>
-                    </div>
-                </a>
-            </div>
         </div>
     </div>
 

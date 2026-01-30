@@ -896,4 +896,26 @@ class DeliveryController extends Controller
             ]);
         }
     }
+
+    /**
+     * Update Surat Pengantar data for a delivery.
+     */
+    public function updateSuratPengantar(Request $request, Delivery $delivery)
+    {
+        $validated = $request->validate([
+            'surat_pengantar_number' => 'required|string|max:100',
+            'surat_pengantar_date' => 'required|date',
+        ], [
+            'surat_pengantar_number.required' => 'Nomor surat pengantar harus diisi',
+            'surat_pengantar_date.required' => 'Tanggal surat pengantar harus diisi',
+        ]);
+
+        $delivery->update([
+            'has_surat_pengantar' => true,
+            'surat_pengantar_number' => $validated['surat_pengantar_number'],
+            'surat_pengantar_date' => $validated['surat_pengantar_date'],
+        ]);
+
+        return back()->with('success', 'Data Surat Pengantar berhasil disimpan.');
+    }
 }

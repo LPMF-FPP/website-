@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Delivery extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
         'request_id',
@@ -18,12 +19,17 @@ class Delivery extends Model
         'delivery_date',
         'status',
         'collected_at',
+        'has_surat_pengantar',
+        'surat_pengantar_number',
+        'surat_pengantar_date',
     ];
 
     protected $casts = [
         'delivery_date' => 'datetime',
         'collected_at' => 'datetime',
         'status' => \App\Enums\DeliveryStatus::class,
+        'has_surat_pengantar' => 'boolean',
+        'surat_pengantar_date' => 'date',
     ];
 
     public function request(): BelongsTo
