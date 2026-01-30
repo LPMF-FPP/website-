@@ -58,7 +58,7 @@ class DisposisiTableService
             'no_sampel' => $noSampel,
             'masuk' => $request->submitted_at ?? $request->created_at,
             'urmin' => $request->verified_at,
-            'hasil' => $request->completed_at,
+            'hasil' => $request->completed_at ?? ($request->status === 'completed' || $request->status === 'ready_for_delivery' ? $request->updated_at : null),
             'sp' => $spDate,
             'ambil' => $ambilDate,
             'status' => $status,

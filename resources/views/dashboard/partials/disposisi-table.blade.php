@@ -1,6 +1,13 @@
 @props(['data'])
 
-<div class="card" x-data="{ open: false, search: '' }">
+@php
+    $data->appends(request()->query());
+@endphp
+
+<div class="card" x-data="{ 
+    open: {{ request()->has('page') || request()->filled('disposisi_search') ? 'true' : 'false' }}, 
+    search: '{{ request('disposisi_search') }}' 
+}">
     {{-- Collapsible Header --}}
     <button 
         @click="open = !open" 
@@ -32,7 +39,8 @@
                     <input 
                         type="text" 
                         x-model="search"
-                        placeholder="Cari TSK / No Sampel..."
+                        @keydown.enter="window.location.href = '?disposisi_search=' + search"
+                        placeholder="Cari TSK / No Sampel (Enter)..."
                         class="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                     >
                     <svg class="w-4 h-4 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
