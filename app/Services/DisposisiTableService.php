@@ -52,15 +52,22 @@ class DisposisiTableService
         $spDate = $request->delivery?->surat_pengantar_date;
         $status = $this->detectStatus($request);
 
+        // Fallback untuk completed date (handle legacy data)
+        $completedDate = $request->completed_at ?? ($request->status === 'completed' ? $request->updated_at : null);
+
+        // Hasil: Bisa dari completed_at atau updated_at saat ready_for_delivery
+        $hasilDate = $request->completed_at ??
+            (($request->status === 'completed' || $request->status === 'ready_for_delivery') ? $request->updated_at : null);
+
         return [
             'id' => $request->id,
             'nama_tsk' => strtoupper($namaTsk),
             'no_sampel' => $noSampel,
             'masuk' => $request->submitted_at ?? $request->created_at,
             'urmin' => $request->verified_at,
-            'hasil' => $request->completed_at ?? ($request->status === 'completed' || $request->status === 'ready_for_delivery' ? $request->updated_at : null),
+            'hasil' => $hasilDate,
             'sp' => $spDate,
-            'ambil' => $request->delivery?->delivery_date,
+            'ambil' => $completedDate,
             'status' => $status,
             'request_number' => $request->request_number,
             'has_delivery' => $request->delivery !== null,
