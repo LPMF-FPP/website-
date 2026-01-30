@@ -1,9 +1,9 @@
 <x-app-layout>
     <x-slot name="header">
         <x-page-header
-            title="Monitoring Lingkungan"
-            :breadcrumbs="[['label' => 'Monitoring'], ['label' => 'Lingkungan']]"
-            description="Pencatatan suhu dan kelembaban untuk ISO 17025/QMS"
+            title="Log Suhu & Kelembaban"
+            :breadcrumbs="[['label' => 'Referensi'], ['label' => 'Log Suhu & Kelembaban']]"
+            description="Pencatatan suhu dan kelembaban harian untuk ISO 17025"
         />
     </x-slot>
 

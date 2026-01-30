@@ -2,7 +2,7 @@
     <x-slot name="header">
         <x-page-header
             title="Koreksi Data Monitoring"
-            :breadcrumbs="[['label' => 'Monitoring'], ['label' => 'Lingkungan', 'url' => route('monitoring.environment.index')], ['label' => 'Koreksi']]"
+            :breadcrumbs="[['label' => 'Referensi'], ['label' => 'Log Suhu & Kelembaban', 'url' => route('monitoring.environment.index')], ['label' => 'Koreksi']]"
             description="Koreksi data pembacaan suhu/kelembaban"
         />
     </x-slot>
