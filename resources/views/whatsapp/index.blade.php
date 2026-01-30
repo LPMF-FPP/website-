@@ -128,9 +128,9 @@
                 ],
                 
                 // Data for tabs
-                overviewData: null,
+                overviewData: { stats: { sent_today: 0, pending_tasks: 0, scheduled: 0, failed_today: 0 }, recent_activity: [] },
                 tasksData: { tasks: { data: [] }, stats: {}, users: [] },
-                broadcastsData: { data: [], links: [] },
+                broadcastsData: { broadcasts: { data: [] }, statuses: {} },
                 remindersData: { reminders: [] },
                 logsData: { logs: { data: [] } },
                 settingsData: null,
