@@ -161,7 +161,10 @@ class LhuNumberingGenerationTest extends TestCase
             'user_id' => $this->admin->id,
         ]);
 
-        $sample = Sample::factory()->create(['test_request_id' => $testRequest->id]);
+        $sample = Sample::factory()->create([
+            'test_request_id' => $testRequest->id,
+            'sample_code' => 'SAMP-LEGACY-TEST', // No digits for sequence extraction
+        ]);
 
         $process = SampleTestProcess::factory()->create([
             'sample_id' => $sample->id,

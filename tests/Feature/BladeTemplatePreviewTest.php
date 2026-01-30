@@ -199,11 +199,12 @@ BLADE;
         $template = <<<'BLADE'
 <html>
 <body>
-    @foreach($labels as $label)
-        <p>{{ $label['resi'] }}</p>
-        <p>{{ $label['kode_sampel'] }}</p>
-        <p>{{ $label['deskripsi_singkat'] }}</p>
-        <p>{{ $label['penyidik'] }}</p>
+    @foreach($rows as $row)
+        @if(isset($row['left']))
+            <p>{{ $row['left']['resi'] }}</p>
+            <p>{{ $row['left']['kode_sampel'] }}</p>
+            <p>{{ $row['left']['deskripsi_singkat'] }}</p>
+        @endif
     @endforeach
 </body>
 </html>
@@ -219,7 +220,6 @@ BLADE;
         $this->assertStringContainsString('RESI-2025-0001', $html);
         $this->assertStringContainsString('BB-2025-001', $html);
         $this->assertStringContainsString('Tablet warna putih logo X', $html);
-        $this->assertStringContainsString('IPDA Budi Santoso', $html);
     }
 
     public function test_preview_requires_authentication(): void

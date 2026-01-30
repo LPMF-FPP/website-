@@ -56,6 +56,10 @@ class TestRequestObserver
             $before = ['status' => $before['status'] ?? null];
             $changes = ['status' => $changes['status']];
 
+            if ($testRequest->status === 'ready_for_delivery') {
+                $this->sendWhatsAppNotification($testRequest, 'READY_FOR_PICKUP');
+            }
+
             if ($testRequest->status === 'completed') {
                 $this->sendWhatsAppNotification($testRequest, 'HANDOVER_COMPLETED');
             }
