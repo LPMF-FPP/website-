@@ -132,7 +132,7 @@
                 tasksData: { tasks: { data: [] }, stats: {}, users: [] },
                 broadcastsData: { data: [], links: [] },
                 remindersData: { reminders: [] },
-                logsData: { data: [], links: [] },
+                logsData: { logs: { data: [] } },
                 settingsData: null,
 
                 // Logs Tab State
