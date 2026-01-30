@@ -5,13 +5,13 @@ namespace Tests\Feature\Settings;
 use App\Models\User;
 use App\Services\WhatsApp\GowaClient;
 use Database\Seeders\SystemSettingSeeder;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery\MockInterface;
 use Tests\TestCase;
 
 class WhatsAppConnectionTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     protected function setUp(): void
     {

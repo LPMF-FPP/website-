@@ -21,6 +21,7 @@ return new class extends Migration
             $table->string('schedule_days', 50)->default('daily'); // daily, weekdays, etc.
             $table->text('message_template');
             $table->jsonb('metadata')->nullable();
+            $table->boolean('mention_all')->default(false);
             $table->timestamp('last_run_at')->nullable();
             $table->timestamps();
         });

@@ -7,12 +7,12 @@ use App\Models\TestRequest;
 use App\Models\User;
 use App\Services\NumberingService;
 use Database\Seeders\SystemSettingSeeder;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class NumberingIntegrationTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     protected function setUp(): void
     {

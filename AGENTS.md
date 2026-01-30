@@ -8,11 +8,49 @@ This file defines the strict workflow, standards, and commands for all agents op
 - **Core Structure**: `app/` (Backend), `resources/` (Frontend), `tests/` (Pest + Dusk), `scripts/audit/` (Guardrails).
 - **Audit System**: Automated CSS/JS/A11y audits via `npm run audit:*`. Reports in `report/`.
 
-## 2. Agent Roles (BMAD + Superpowers)
+## 2. Unified Workflow Architecture
 
-- **Roles**: `bmad-master` (Orchestrator), `bmm-dev` (Impl), `bmm-tea` (Quality), `bmm-ux-designer` (UI).
-- **Superpowers**: `using-superpowers` (Gate), `writing-plans` (Plan), `systematic-debugging` (Fix), `writing-skills` (Meta).
-- **Mandate**: **Invoke relevant skills BEFORE any response.** Check `~/.config/opencode/skills/superpowers/`.
+### 2.1 Two-Layer System
+
+| Layer           | System      | Purpose                   | Location                                 |
+| --------------- | ----------- | ------------------------- | ---------------------------------------- |
+| **Process**     | Superpowers | HOW to work (methodology) | `~/.config/opencode/skills/superpowers/` |
+| **Specialists** | BMAD Agents | WHO does specialized work | `.opencode/agent/`                       |
+
+### 2.2 The Golden Rule
+
+> **Invoke Superpowers skills BEFORE any response.**
+> Delegate to BMAD agents only for specialized work.
+
+### 2.3 Decision Tree
+
+```
+User Request Received
+        │
+        ▼
+┌───────────────────────┐
+│ Check Superpowers     │
+│ skill applicability   │
+└───────────────────────┘
+        │
+        ├─── Creative work? ──→ brainstorming
+        ├─── Implementation? ─→ writing-plans → TDD
+        ├─── Bug/Error? ──────→ systematic-debugging
+        ├─── UI work? ────────→ using-rams / using-ui-skills
+        ├─── Before commit? ──→ verification-before-completion
+        └─── Merge/PR? ───────→ finishing-a-development-branch
+                │
+                ▼
+┌───────────────────────┐
+│ Need specialized      │
+│ expertise?            │
+└───────────────────────┘
+        │
+        ├─── Architecture ────→ @bmm-architect (Task tool)
+        ├─── UI/UX deep work ─→ @bmm-ux-designer (Task tool)
+        ├─── Parallel impl ───→ @bmm-dev (Task tool)
+        └─── Requirements ────→ @bmm-analyst (Task tool)
+```
 
 ## 3. Development Commands
 
@@ -89,11 +127,54 @@ npx stylelint "resources/**/*.css" --fix
 
 ## 6. Workflow & Git
 
-1. **Plan**: Create/update `todos.md` using `writing-plans` skill.
-2. **Implement**: Write code using `writing-code` patterns.
-3. **Verify**: Run `npm run test` and `npm run audit:critical`.
-4. **Document**: Update `WALKTHROUGH.md`.
-5. **Commit**: `git commit -m "feat: description"`.
+### 6.1 Unified Workflow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ 1. GATE: using-superpowers                                   │
+│    "Which skill applies to this task?"                       │
+└─────────────────────────────────────────────────────────────┘
+                           │
+┌─────────────────────────────────────────────────────────────┐
+│ 2. PROCESS: Invoke appropriate skill                         │
+│    brainstorming → writing-plans → TDD → verification       │
+└─────────────────────────────────────────────────────────────┘
+                           │
+┌─────────────────────────────────────────────────────────────┐
+│ 3. DELEGATE (if needed): Task tool → BMAD Agent             │
+│    @bmm-architect, @bmm-ux-designer, @bmm-dev               │
+└─────────────────────────────────────────────────────────────┘
+                           │
+┌─────────────────────────────────────────────────────────────┐
+│ 4. QUALITY GATE: verification-before-completion              │
+│    npm run test && npm run audit:critical                    │
+└─────────────────────────────────────────────────────────────┘
+                           │
+┌─────────────────────────────────────────────────────────────┐
+│ 5. COMPLETE: finishing-a-development-branch                  │
+│    Commit → Merge/PR → Cleanup                               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 6.2 Workflow by Task Type
+
+| Task Type       | Workflow                                                             |
+| --------------- | -------------------------------------------------------------------- |
+| **New Feature** | brainstorming → writing-plans → TDD → verification → finish          |
+| **Bug Fix**     | systematic-debugging → TDD (regression test) → verification → finish |
+| **UI Work**     | brainstorming → @bmm-ux-designer → rams + ui-skills → verification   |
+| **Refactor**    | writing-plans → TDD → verification → finish                          |
+| **Quick Fix**   | systematic-debugging → verification → finish                         |
+
+### 6.3 Quality Gates (Mandatory)
+
+Before ANY commit:
+
+```bash
+npm run test              # All tests pass
+npm run audit:critical    # A11y + CSS guards
+./vendor/bin/pint         # PHP style
+```
 
 ## 7. Design Guidelines (Vercel + Rams/UI Skills)
 
@@ -113,3 +194,35 @@ npx stylelint "resources/**/*.css" --fix
 - [ ] Code formatted (`pint`, `eslint --fix`).
 - [ ] `WALKTHROUGH.md` updated.
 - [ ] `todos.md` tasks marked `[x]`.
+
+## 9. Quick Reference
+
+### 9.1 Skill Invocation Table
+
+| Trigger                | Skill to Invoke                  | Purpose          |
+| ---------------------- | -------------------------------- | ---------------- |
+| "Add feature X"        | `brainstorming`                  | Design first     |
+| "Implement X"          | `writing-plans` → `TDD`          | Plan then code   |
+| "Fix bug" / "Error"    | `systematic-debugging`           | Root cause first |
+| "Review UI"            | `using-rams`                     | A11y check       |
+| "Check UI constraints" | `using-ui-skills`                | UI rules         |
+| "Before commit"        | `verification-before-completion` | Evidence first   |
+| "Merge/PR"             | `finishing-a-development-branch` | Clean finish     |
+| "Multiple tasks"       | `dispatching-parallel-agents`    | Parallel work    |
+
+### 9.2 BMAD Agent Delegation
+
+| Need                  | Agent             | Invoke via |
+| --------------------- | ----------------- | ---------- |
+| Architecture decision | `bmm-architect`   | Task tool  |
+| UI/UX specialized     | `bmm-ux-designer` | Task tool  |
+| Heavy implementation  | `bmm-dev`         | Task tool  |
+| Requirements analysis | `bmm-analyst`     | Task tool  |
+
+### 9.3 Iron Laws (Non-Negotiable)
+
+| Skill                            | Iron Law                                      |
+| -------------------------------- | --------------------------------------------- |
+| `TDD`                            | NO production code WITHOUT failing test first |
+| `systematic-debugging`           | NO fixes WITHOUT root cause investigation     |
+| `verification-before-completion` | NO claims WITHOUT fresh evidence              |

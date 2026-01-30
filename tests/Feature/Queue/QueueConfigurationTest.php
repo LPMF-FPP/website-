@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\Queue;
 
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -10,7 +10,7 @@ use Tests\TestCase;
 
 class QueueConfigurationTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     public function test_queue_tables_exist_when_using_database_driver(): void
     {

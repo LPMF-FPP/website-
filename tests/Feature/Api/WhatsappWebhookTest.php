@@ -72,7 +72,7 @@ class WhatsappWebhookTest extends TestCase
             ->first();
 
         $this->assertNotNull($log);
-        $this->assertEquals('ignored', $log->response_status); // Job processes non-command messages
+        $this->assertEquals('ignored', $log->response_status); // Job processes non-command messages and marks as ignored
         $this->assertJsonStringEqualsJsonString(json_encode($data), json_encode($log->params));
     }
 }

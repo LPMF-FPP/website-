@@ -5,12 +5,12 @@ namespace Tests\Feature\Settings;
 use App\Enums\InstrumentUsageType;
 use App\Models\Instrument;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class InstrumentRequirementsTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     public function test_can_save_instrument_requirements_with_valid_data(): void
     {

@@ -5,12 +5,12 @@ namespace Tests\Feature\Settings;
 use App\Models\Instrument;
 use App\Models\User;
 use Database\Seeders\SystemSettingSeeder;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class InstrumentRequirementsApiTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     protected function setUp(): void
     {

@@ -230,16 +230,24 @@ class DocumentService
         ?TestRequest $req,
         string $type,
         string $baseName,
-        bool $replaceExisting = false
+        bool $replaceExisting = false,
+        ?int $sampleId = null
     ): Document {
-        return DB::transaction(function () use ($binary, $ext, $inv, $req, $type, $baseName, $replaceExisting) {
+        return DB::transaction(function () use ($binary, $ext, $inv, $req, $type, $baseName, $replaceExisting, $sampleId) {
             // Check for existing document if replaceExisting is true
             if ($replaceExisting && $req) {
-                $existing = Document::where('test_request_id', $req->id)
+                $query = Document::where('test_request_id', $req->id)
                     ->where('document_type', $type)
-                    ->where('source', 'generated')
-                    ->latest()
-                    ->first();
+                    ->where('source', 'generated');
+
+                if ($sampleId) {
+                    $query->where('sample_id', $sampleId);
+                } else {
+                    // For request-level documents (no sample), only match other request-level docs
+                    $query->whereNull('sample_id');
+                }
+
+                $existing = $query->latest()->first();
 
                 if ($existing) {
                     // Delete old file from storage
@@ -307,6 +315,7 @@ class DocumentService
             return Document::create([
                 'investigator_id' => $inv->id,
                 'test_request_id' => $req?->id,
+                'sample_id' => $sampleId,
                 'document_type' => $type,
                 'source' => 'generated',
                 'storage_disk' => $this->disk,
@@ -375,7 +384,8 @@ class DocumentService
             req: $req,
             type: $type,
             baseName: $baseName,
-            replaceExisting: $replaceExisting
+            replaceExisting: $replaceExisting,
+            sampleId: $process->sample_id
         );
     }
 

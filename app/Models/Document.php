@@ -13,7 +13,7 @@ class Document extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'investigator_id', 'test_request_id', 'document_type',
+        'investigator_id', 'test_request_id', 'sample_id', 'document_type',
         'source', 'filename', 'original_filename', 'file_path', 'path',
         'file_size', 'mime_type', 'generated_by', 'extra', 'storage_disk',
     ];
@@ -32,6 +32,11 @@ class Document extends Model
     public function testRequest(): BelongsTo
     {
         return $this->belongsTo(TestRequest::class);
+    }
+
+    public function sample(): BelongsTo
+    {
+        return $this->belongsTo(Sample::class);
     }
 
     public function generatedBy(): BelongsTo

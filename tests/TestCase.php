@@ -10,6 +10,9 @@ abstract class TestCase extends BaseTestCase
     {
         parent::setUp();
 
+        // Disable CSRF for all tests
+        $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class);
+
         // Clear settings cache before each test
         if (function_exists('settings_forget_cache')) {
             settings_forget_cache();

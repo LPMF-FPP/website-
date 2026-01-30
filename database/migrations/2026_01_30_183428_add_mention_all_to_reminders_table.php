@@ -6,17 +6,27 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
         Schema::table('reminders', function (Blueprint $table) {
-            $table->boolean('mention_all')->default(false)->after('metadata');
+            if (! Schema::hasColumn('reminders', 'mention_all')) {
+                $table->boolean('mention_all')->default(false)->after('metadata');
+            }
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::table('reminders', function (Blueprint $table) {
-            $table->dropColumn('mention_all');
+            if (Schema::hasColumn('reminders', 'mention_all')) {
+                $table->dropColumn('mention_all');
+            }
         });
     }
 };
