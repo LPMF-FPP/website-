@@ -135,6 +135,35 @@
                 logsData: { data: [], links: [] },
                 settingsData: null,
 
+                // Logs Tab State
+                expandedBatch: null,
+                batchDetails: {},
+                loadingDetails: false,
+
+                // Settings Tab State
+                settingsForm: {
+                    base_url: '',
+                    basic_user: '',
+                    basic_pass: '',
+                    device_id: '',
+                    enabled: false,
+                    enabled_milestones: []
+                },
+                devices: [],
+                testMessage: { phone: '', message: '' },
+                loadingDevices: false,
+                sendingTest: false,
+
+                // Template Editor State
+                templates: {},
+                categories: {},
+                labels: {},
+                placeholders: {},
+                activeCategory: 'milestone',
+                loadingTemplates: false,
+                previews: {},
+                statusMessages: {},
+
                 init() {
                     const urlParams = new URLSearchParams(window.location.search);
                     const tab = urlParams.get('tab');
@@ -142,6 +171,13 @@
                         this.activeTab = tab;
                     }
                     this.loadTabData(this.activeTab);
+
+                    // Initialize settings form when settingsData is loaded
+                    this.$watch('settingsData', (val) => {
+                        if (val) {
+                            this.settingsForm = { ...this.settingsForm, ...val };
+                        }
+                    });
                 },
 
                 async loadTabData(tab) {
@@ -177,6 +213,7 @@
                             case 'settings':
                                 response = await fetch('{{ route("whatsapp.settings.index") }}');
                                 this.settingsData = await response.json();
+                                this.initSettingsTab();
                                 break;
                         }
                     } catch (error) {
@@ -187,6 +224,7 @@
                     }
                 },
 
+                // --- Reminders Functions ---
                 async toggleReminder(id) {
                     // Optimistic UI update
                     const reminder = this.remindersData.reminders.find(r => r.id === id);
@@ -221,6 +259,207 @@
                             alert('Failed to trigger reminder');
                         }
                     } catch(e) { console.error(e); }
+                },
+
+                // --- Logs Functions ---
+                async toggleBatch(id) {
+                    if (this.expandedBatch === id) {
+                        this.expandedBatch = null;
+                        return;
+                    }
+                    this.expandedBatch = id;
+                    if (!this.batchDetails[id]) {
+                        this.loadingDetails = true;
+                        try {
+                            const res = await fetch(`/whatsapp/logs/${id}`);
+                            const data = await res.json();
+                            this.batchDetails[id] = data.messages.data;
+                        } catch (e) { console.error(e); }
+                        finally { this.loadingDetails = false; }
+                    }
+                },
+
+                // --- Settings Functions ---
+                initSettingsTab() {
+                    if (this.settingsData) {
+                        this.settingsForm = { ...this.settingsForm, ...this.settingsData };
+                    }
+                    this.loadTemplates();
+                    this.fetchDevices();
+                },
+
+                async saveSettings() {
+                    try {
+                        const payload = {
+                            base_url: this.settingsForm.base_url,
+                            basic_user: this.settingsForm.basic_user,
+                            basic_pass: this.settingsForm.basic_pass,
+                            device_id: this.settingsForm.device_id
+                        };
+
+                        const res = await fetch('{{ route("whatsapp.settings.save") }}', {
+                            method: 'POST',
+                            headers: { 
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}', 
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify(payload)
+                        });
+                        
+                        const data = await res.json();
+                        
+                        if (res.ok) {
+                            alert('Settings saved successfully');
+                        } else {
+                            alert('Failed to save settings: ' + (data.message || 'Unknown error'));
+                        }
+                    } catch(e) { console.error(e); alert('Error saving settings'); }
+                },
+
+                async fetchDevices() {
+                    this.loadingDevices = true;
+                    try {
+                        const res = await fetch('{{ route("whatsapp.settings.devices") }}');
+                        const data = await res.json();
+                        
+                        if (data.success) {
+                            this.devices = data.devices || [];
+                        } else {
+                            console.warn('Failed to fetch devices', data.error);
+                        }
+                    } catch(e) { 
+                        console.error(e); 
+                        alert('Error connecting to device service');
+                    }
+                    finally { this.loadingDevices = false; }
+                },
+
+                async sendTestMessage() {
+                    if (!this.testMessage.phone || !this.testMessage.message) {
+                        alert('Phone and message are required');
+                        return;
+                    }
+                    this.sendingTest = true;
+                    try {
+                        const res = await fetch('{{ route("whatsapp.settings.test-message") }}', {
+                            method: 'POST',
+                            headers: { 
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}', 
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify(this.testMessage)
+                        });
+                        const data = await res.json();
+                        if (res.ok && data.success) {
+                            alert('Message sent! ID: ' + data.message_id);
+                            this.testMessage.message = '';
+                        } else {
+                            alert('Failed to send: ' + (data.error || 'Unknown error'));
+                        }
+                    } catch(e) { console.error(e); alert('Error sending test message'); }
+                    finally { this.sendingTest = false; }
+                },
+
+                // Template Functions
+                async loadTemplates() {
+                    this.loadingTemplates = true;
+                    try {
+                        const res = await fetch('{{ route("whatsapp.settings.templates") }}');
+                        const data = await res.json();
+                        this.templates = data.templates;
+                        this.categories = data.categories;
+                        this.labels = data.labels;
+                        this.placeholders = data.placeholders;
+                    } catch(e) { console.error(e); alert('Error loading templates'); }
+                    finally { this.loadingTemplates = false; }
+                },
+
+                async saveTemplate(category, key) {
+                    try {
+                        const res = await fetch('{{ route("whatsapp.settings.templates.save") }}', {
+                            method: 'PUT',
+                            headers: { 
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}', 
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                templates: {
+                                    [category]: {
+                                        [key]: this.templates[category][key]
+                                    }
+                                }
+                            })
+                        });
+                        if (res.ok) {
+                            this.statusMessages[`${category}_${key}`] = { success: true, message: 'Saved!' };
+                            setTimeout(() => delete this.statusMessages[`${category}_${key}`], 3000);
+                        } else {
+                            this.statusMessages[`${category}_${key}`] = { success: false, message: 'Failed to save' };
+                        }
+                    } catch(e) { console.error(e); alert('Error saving template'); }
+                },
+
+                async resetTemplate(category, key) {
+                    if (!confirm('Reset template to default?')) return;
+                    try {
+                        const res = await fetch('{{ route("whatsapp.settings.templates.reset") }}', {
+                            method: 'POST',
+                            headers: { 
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}', 
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({ category, key })
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            this.templates[category][key] = data.template;
+                            this.statusMessages[`${category}_${key}`] = { success: true, message: 'Reset!' };
+                            setTimeout(() => delete this.statusMessages[`${category}_${key}`], 3000);
+                        }
+                    } catch(e) { console.error(e); alert('Error resetting template'); }
+                },
+
+                async previewTemplate(category, key) {
+                    try {
+                        const res = await fetch('{{ route("whatsapp.settings.templates.preview") }}', {
+                            method: 'POST',
+                            headers: { 
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}', 
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({ 
+                                category, 
+                                key,
+                                template: this.templates[category][key]
+                            })
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                            this.previews[`${category}_${key}`] = data.preview;
+                        }
+                    } catch(e) { console.error(e); alert('Error previewing template'); }
+                },
+
+                insertPlaceholder(category, key, placeholder) {
+                    const textarea = document.getElementById(`textarea_${category}_${key}`);
+                    if (textarea) {
+                        const start = textarea.selectionStart;
+                        const end = textarea.selectionEnd;
+                        const text = this.templates[category][key];
+                        const before = text.substring(0, start);
+                        const after = text.substring(end, text.length);
+                        this.templates[category][key] = before + '{' + placeholder + '}' + after;
+                        
+                        this.$nextTick(() => {
+                            textarea.focus();
+                            textarea.setSelectionRange(start + placeholder.length + 2, start + placeholder.length + 2);
+                        });
+                    }
                 }
             }
         }

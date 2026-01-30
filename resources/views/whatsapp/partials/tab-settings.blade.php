@@ -1,220 +1,4 @@
-<div x-data="{
-    form: {
-        base_url: '',
-        basic_user: '',
-        basic_pass: '',
-        device_id: '',
-        enabled: false,
-        enabled_milestones: []
-    },
-    devices: [],
-    testMessage: { phone: '', message: '' },
-    loadingDevices: false,
-    sendingTest: false,
-    
-    // Templates
-    templates: {},
-    categories: {},
-    labels: {},
-    placeholders: {},
-    activeCategory: 'milestone',
-    loadingTemplates: false,
-    previews: {},
-    statusMessages: {},
-    
-    init() {
-        if (this.settingsData) {
-            this.form = { ...this.form, ...this.settingsData };
-        }
-        this.$watch('settingsData', val => {
-            if (val) this.form = { ...this.form, ...val };
-        });
-        
-        // Load templates on init
-        this.loadTemplates();
-        this.fetchDevices();
-    },
-
-    async saveSettings() {
-        try {
-            // Only send valid fields
-            const payload = {
-                base_url: this.form.base_url,
-                basic_user: this.form.basic_user,
-                basic_pass: this.form.basic_pass,
-                device_id: this.form.device_id
-            };
-
-            const res = await fetch('{{ route("whatsapp.settings.save") }}', {
-                method: 'POST',
-                headers: { 
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}', 
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(payload)
-            });
-            
-            const data = await res.json();
-            
-            if (res.ok) {
-                alert('Settings saved successfully');
-            } else {
-                alert('Failed to save settings: ' + (data.message || 'Unknown error'));
-            }
-        } catch(e) { console.error(e); alert('Error saving settings'); }
-    },
-
-    async fetchDevices() {
-        this.loadingDevices = true;
-        try {
-            const res = await fetch('{{ route("whatsapp.settings.devices") }}');
-            const data = await res.json();
-            
-            if (data.success) {
-                this.devices = data.devices || [];
-            } else {
-                console.warn('Failed to fetch devices', data.error);
-                if (this.devices.length === 0) {
-                     // Optional: notify user if list is empty and fetch failed
-                     // alert('Failed to refresh devices: ' + (data.error || 'Unknown error'));
-                }
-            }
-        } catch(e) { 
-            console.error(e); 
-            alert('Error connecting to device service');
-        }
-        finally { this.loadingDevices = false; }
-    },
-
-    async sendTest() {
-        if (!this.testMessage.phone || !this.testMessage.message) {
-            alert('Phone and message are required');
-            return;
-        }
-        this.sendingTest = true;
-        try {
-            const res = await fetch('{{ route("whatsapp.settings.test-message") }}', {
-                method: 'POST',
-                headers: { 
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}', 
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify(this.testMessage)
-            });
-            const data = await res.json();
-            if (res.ok && data.success) {
-                alert('Message sent! ID: ' + data.message_id);
-                this.testMessage.message = '';
-            } else {
-                alert('Failed to send: ' + (data.error || 'Unknown error'));
-            }
-        } catch(e) { console.error(e); alert('Error sending test message'); }
-        finally { this.sendingTest = false; }
-    },
-
-    // Templates Logic
-    async loadTemplates() {
-        this.loadingTemplates = true;
-        try {
-            const res = await fetch('{{ route("whatsapp.settings.templates") }}');
-            const data = await res.json();
-            this.templates = data.templates;
-            this.categories = data.categories;
-            this.labels = data.labels;
-            this.placeholders = data.placeholders;
-        } catch(e) { console.error(e); alert('Error loading templates'); }
-        finally { this.loadingTemplates = false; }
-    },
-
-    async saveTemplate(category, key) {
-        try {
-            const res = await fetch('{{ route("whatsapp.settings.templates.save") }}', {
-                method: 'PUT',
-                headers: { 
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}', 
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({
-                    templates: {
-                        [category]: {
-                            [key]: this.templates[category][key]
-                        }
-                    }
-                })
-            });
-            if (res.ok) {
-                this.statusMessages[`${category}_${key}`] = { success: true, message: 'Saved!' };
-                setTimeout(() => delete this.statusMessages[`${category}_${key}`], 3000);
-            } else {
-                this.statusMessages[`${category}_${key}`] = { success: false, message: 'Failed to save' };
-            }
-        } catch(e) { console.error(e); alert('Error saving template'); }
-    },
-
-    async resetTemplate(category, key) {
-        if (!confirm('Reset template to default?')) return;
-        try {
-            const res = await fetch('{{ route("whatsapp.settings.templates.reset") }}', {
-                method: 'POST',
-                headers: { 
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}', 
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ category, key })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                this.templates[category][key] = data.template;
-                this.statusMessages[`${category}_${key}`] = { success: true, message: 'Reset!' };
-                setTimeout(() => delete this.statusMessages[`${category}_${key}`], 3000);
-            }
-        } catch(e) { console.error(e); alert('Error resetting template'); }
-    },
-
-    async previewTemplate(category, key) {
-        try {
-            const res = await fetch('{{ route("whatsapp.settings.templates.preview") }}', {
-                method: 'POST',
-                headers: { 
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}', 
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({ 
-                    category, 
-                    key,
-                    template: this.templates[category][key]
-                })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                this.previews[`${category}_${key}`] = data.preview;
-            }
-        } catch(e) { console.error(e); alert('Error previewing template'); }
-    },
-    
-    insertPlaceholder(category, key, placeholder) {
-        const textarea = document.getElementById(`textarea_${category}_${key}`);
-        if (textarea) {
-            const start = textarea.selectionStart;
-            const end = textarea.selectionEnd;
-            const text = this.templates[category][key];
-            const before = text.substring(0, start);
-            const after = text.substring(end, text.length);
-            this.templates[category][key] = before + '{' + placeholder + '}' + after;
-            
-            // Restore focus and selection
-            this.$nextTick(() => {
-                textarea.focus();
-                textarea.setSelectionRange(start + placeholder.length + 2, start + placeholder.length + 2);
-            });
-        }
-    }
-}">
+<div>
     <div class="space-y-8">
         
         <!-- Section 1: GOWA Configuration -->
@@ -224,19 +8,19 @@
                 <form @submit.prevent="saveSettings" class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Base URL</label>
-                        <input type="url" x-model="form.base_url" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                        <input type="url" x-model="settingsForm.base_url" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Basic Auth User (Optional)</label>
-                        <input type="text" x-model="form.basic_user" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                        <input type="text" x-model="settingsForm.basic_user" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Basic Auth Password (Optional)</label>
-                        <input type="password" x-model="form.basic_pass" placeholder="Leave blank to keep unchanged" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                        <input type="password" x-model="settingsForm.basic_pass" placeholder="Leave blank to keep unchanged" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Device ID</label>
-                        <input type="text" x-model="form.device_id" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                        <input type="text" x-model="settingsForm.device_id" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
                     </div>
                     <div class="pt-2">
                         <x-button type="submit" variant="primary" block>
@@ -363,7 +147,7 @@
         <!-- Section 3: Test Message -->
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg border border-gray-200 dark:border-gray-700 p-6">
             <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100 mb-4">Send Test Message</h3>
-            <form @submit.prevent="sendTest" class="space-y-4">
+            <form @submit.prevent="sendTestMessage" class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Phone Number (e.g. 62812...)</label>
                     <input type="text" x-model="testMessage.phone" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
@@ -380,4 +164,3 @@
         </div>
 
     </div>
-</div>

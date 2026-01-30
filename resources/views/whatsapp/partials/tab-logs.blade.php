@@ -1,24 +1,4 @@
-<div x-data="{
-    expandedBatch: null,
-    batchDetails: {},
-    loadingDetails: false,
-    async toggleBatch(id) {
-        if (this.expandedBatch === id) {
-            this.expandedBatch = null;
-            return;
-        }
-        this.expandedBatch = id;
-        if (!this.batchDetails[id]) {
-            this.loadingDetails = true;
-            try {
-                const res = await fetch(`/whatsapp/logs/${id}`);
-                const data = await res.json();
-                this.batchDetails[id] = data.messages.data; // paginated
-            } catch (e) { console.error(e); }
-            finally { this.loadingDetails = false; }
-        }
-    }
-}">
+<div>
     <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6">Message Logs</h2>
 
     <div class="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg border border-gray-200 dark:border-gray-700">
@@ -102,4 +82,3 @@
             </template>
         </ul>
     </div>
-</div>
