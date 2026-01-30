@@ -50,7 +50,6 @@ class DisposisiTableService
         $noSampel = $this->formatSampleRange($samples);
 
         $spDate = $request->delivery?->surat_pengantar_date;
-        $ambilDate = $request->delivery?->collected_at;
         $status = $this->detectStatus($request);
 
         return [
@@ -61,7 +60,7 @@ class DisposisiTableService
             'urmin' => $request->verified_at,
             'hasil' => $request->completed_at ?? ($request->status === 'completed' || $request->status === 'ready_for_delivery' ? $request->updated_at : null),
             'sp' => $spDate,
-            'ambil' => $ambilDate,
+            'ambil' => $request->delivery?->delivery_date,
             'status' => $status,
             'request_number' => $request->request_number,
             'has_delivery' => $request->delivery !== null,
