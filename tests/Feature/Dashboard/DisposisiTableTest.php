@@ -51,7 +51,7 @@ class DisposisiTableTest extends TestCase
         $service = app(DisposisiTableService::class);
         $result = $service->getTableData();
 
-        $this->assertEquals('stuck_urmin', $result[0]['status']);
+        $this->assertEquals('stuck_14_days', $result[0]['status']);
     }
 
     public function test_service_detects_stuck_hasil_status(): void
@@ -66,7 +66,7 @@ class DisposisiTableTest extends TestCase
         $service = app(DisposisiTableService::class);
         $result = $service->getTableData();
 
-        $this->assertEquals('stuck_hasil', $result[0]['status']);
+        $this->assertEquals('stuck_7_days', $result[0]['status']);
     }
 
     public function test_service_detects_completed_status(): void

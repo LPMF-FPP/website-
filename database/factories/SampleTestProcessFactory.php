@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\TestProcessStage;
 use App\Models\Sample;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -19,7 +20,12 @@ class SampleTestProcessFactory extends Factory
     {
         return [
             'sample_id' => Sample::factory(),
-            'stage' => fake()->randomElement(['reception', 'preparation', 'instrumentation', 'interpretation']),
+            'stage' => fake()->randomElement([
+                TestProcessStage::ADMINISTRATION->value,
+                TestProcessStage::PREPARATION->value,
+                TestProcessStage::INSTRUMENTATION->value,
+                TestProcessStage::INTERPRETATION->value,
+            ]),
             'metadata' => [],
             'performed_by' => null,
             'completed_at' => null,
@@ -29,28 +35,28 @@ class SampleTestProcessFactory extends Factory
     public function reception(): static
     {
         return $this->state(fn (array $attributes) => [
-            'stage' => 'reception',
+            'stage' => TestProcessStage::ADMINISTRATION->value,
         ]);
     }
 
     public function preparation(): static
     {
         return $this->state(fn (array $attributes) => [
-            'stage' => 'preparation',
+            'stage' => TestProcessStage::PREPARATION->value,
         ]);
     }
 
     public function instrumentation(): static
     {
         return $this->state(fn (array $attributes) => [
-            'stage' => 'instrumentation',
+            'stage' => TestProcessStage::INSTRUMENTATION->value,
         ]);
     }
 
     public function interpretation(): static
     {
         return $this->state(fn (array $attributes) => [
-            'stage' => 'interpretation',
+            'stage' => TestProcessStage::INTERPRETATION->value,
         ]);
     }
 

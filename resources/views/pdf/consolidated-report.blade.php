@@ -196,39 +196,44 @@
         </table>
     </div>
 
-    <!-- III. KECEPATAN PENGERJAAN -->
-    @if(isset($report->report_data['processing_time']))
-    <div class="section">
-        <div class="section-title">III. Kecepatan Pengerjaan</div>
-        <div style="border: 1px solid #000; padding: 10px; margin-bottom: 15px;">
-            <p style="margin: 0 0 5px 0;"><strong>Rata-rata Waktu Pengerjaan:</strong> {{ $report->report_data['processing_time']['avg_days'] }} hari</p>
-            <p style="margin: 0 0 10px 0;"><strong>Total Permintaan Selesai:</strong> {{ $report->report_data['processing_time']['total'] }}</p>
-            <p style="margin: 0 0 5px 0; font-weight: bold;">Breakdown:</p>
-            <ul style="margin: 0; padding-left: 20px;">
-                @foreach($report->report_data['processing_time']['categories'] as $item)
-                    <li>{{ $item['label'] }}: {{ $item['count'] }} ({{ $item['percentage'] }}%)</li>
-                @endforeach
-            </ul>
-        </div>
+    <!-- III. KECEPATAN PENGERJAAN & IV. KEPUASAN PELANGGAN -->
+    <div style="page-break-inside: avoid; margin-bottom: 10px;">
+        <table style="width: 100%; border-collapse: collapse; border: none;">
+            <tr>
+                <td style="width: 48%; vertical-align: top; border: none; padding: 0;">
+                    @if(isset($report->report_data['processing_time']))
+                    <div class="section-title">III. Kecepatan Pengerjaan</div>
+                    <div class="compact-box">
+                        <p><strong>Rata-rata Waktu Pengerjaan:</strong> {{ $report->report_data['processing_time']['avg_days'] }} hari</p>
+                        <p><strong>Total Permintaan Selesai:</strong> {{ $report->report_data['processing_time']['total'] }}</p>
+                        <p class="font-bold">Breakdown:</p>
+                        <ul>
+                            @foreach($report->report_data['processing_time']['categories'] as $item)
+                                <li>{{ $item['label'] }}: {{ $item['count'] }} ({{ $item['percentage'] }}%)</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                    @endif
+                </td>
+                <td style="width: 4%; border: none;"></td>
+                <td style="width: 48%; vertical-align: top; border: none; padding: 0;">
+                    @if(isset($report->report_data['satisfaction']))
+                    <div class="section-title">IV. Kepuasan Pelanggan</div>
+                    <div class="compact-box">
+                        <p><strong>Skor Rata-rata:</strong> {{ $report->report_data['satisfaction']['avg_score'] }} / 4.00</p>
+                        <p><strong>Total Responden:</strong> {{ $report->report_data['satisfaction']['total_respondents'] }}</p>
+                        <p class="font-bold">Distribusi Rating:</p>
+                        <ul>
+                            @foreach($report->report_data['satisfaction']['ratings'] as $item)
+                                <li>{{ $item['label'] }}: {{ $item['count'] }} ({{ $item['percentage'] }}%)</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                    @endif
+                </td>
+            </tr>
+        </table>
     </div>
-    @endif
-
-    <!-- IV. KEPUASAN PELANGGAN -->
-    @if(isset($report->report_data['satisfaction']))
-    <div class="section">
-        <div class="section-title">IV. Kepuasan Pelanggan</div>
-        <div style="border: 1px solid #000; padding: 10px; margin-bottom: 15px;">
-            <p style="margin: 0 0 5px 0;"><strong>Skor Rata-rata:</strong> {{ $report->report_data['satisfaction']['avg_score'] }} / 5.00</p>
-            <p style="margin: 0 0 10px 0;"><strong>Total Responden:</strong> {{ $report->report_data['satisfaction']['total_respondents'] }}</p>
-            <p style="margin: 0 0 5px 0; font-weight: bold;">Distribusi Rating:</p>
-            <ul style="margin: 0; padding-left: 20px;">
-                @foreach($report->report_data['satisfaction']['ratings'] as $item)
-                    <li>{{ $item['label'] }}: {{ $item['count'] }} ({{ $item['percentage'] }}%)</li>
-                @endforeach
-            </ul>
-        </div>
-    </div>
-    @endif
 
     <!-- V. DEMOGRAFI TERSANGKA & VI. RENTANG UMUR -->
     <div style="page-break-inside: avoid;">
