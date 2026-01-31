@@ -24,11 +24,11 @@
 
         /* General Content */
         p { text-align: justify; margin-bottom: 10px; }
-        .section-title { font-weight: bold; margin: 20px 0 10px; text-transform: uppercase; }
+        .section-title { font-weight: bold; margin: 12px 0 6px; text-transform: uppercase; font-size: 10pt; }
 
         /* Tables */
-        table.data-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 10pt; }
-        table.data-table th, table.data-table td { border: 1px solid #000; padding: 5px 8px; }
+        table.data-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 10pt; }
+        table.data-table th, table.data-table td { border: 1px solid #000; padding: 4px 6px; }
         table.data-table th { background-color: #f0f0f0; text-align: center; font-weight: bold; }
         
         .text-center { text-align: center; }
@@ -36,6 +36,11 @@
         .font-bold { font-weight: bold; }
         .text-green { color: #166534; }
         .text-red { color: #991b1b; }
+
+        /* Compact Box */
+        .compact-box { border: 1px solid #000; padding: 6px; margin-bottom: 10px; font-size: 9pt; }
+        .compact-box p { margin: 0 0 3px 0; }
+        .compact-box ul { margin: 0; padding-left: 15px; }
 
         /* Signatures */
         .signatures { width: 100%; margin-top: 50px; page-break-inside: avoid; }
