@@ -59,10 +59,8 @@ class DisposisiTableService
             $completedDate = $request->completed_at ?? $request->updated_at;
         }
 
-        // Hasil: Bisa dari completed_at atau updated_at saat ready_for_delivery
-        // Jika ready_for_delivery, tampilkan updated_at sebagai tanggal hasil keluar
-        $hasilDate = $request->completed_at ??
-            (($request->status === 'completed' || $request->status === 'ready_for_delivery') ? $request->updated_at : null);
+        // Hasil: Tanggal dikirim ke penyerahan (saat Delivery record dibuat)
+        $hasilDate = $request->delivery?->created_at;
 
         return [
             'id' => $request->id,
