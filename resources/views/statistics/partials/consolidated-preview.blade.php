@@ -21,7 +21,7 @@
 
     <!-- Paper Preview Container -->
     <div class="bg-gray-100 p-8 rounded-lg overflow-x-auto">
-        <div class="bg-white shadow-lg mx-auto max-w-[210mm] p-[10mm] text-black text-[10pt] leading-normal font-serif">
+        <div class="bg-white shadow-lg mx-auto max-w-[210mm] p-[8mm] text-black text-[10pt] leading-normal font-serif">
             
             <!-- KOP SURAT -->
             <div class="flex items-start justify-between border-b-2 border-black pb-2 mb-4">
@@ -39,20 +39,20 @@
             </div>
 
             <!-- JUDUL -->
-            <div class="text-center mb-6">
+            <div class="text-center mb-4">
                 <h1 class="font-bold text-lg underline uppercase mb-1">Laporan Gabungan Periodik</h1>
                 <p class="font-bold" x-text="'Periode: ' + previewData.period_label"></p>
             </div>
 
             <!-- NARASI PEMBUKA -->
-            <div class="mb-6">
+            <div class="mb-4">
                 <label class="block text-xs font-bold text-gray-400 uppercase mb-1 bg-gray-50 p-1 border border-dashed border-gray-300">Editable Area</label>
                 <textarea x-model="previewData.narratives.opening" rows="3" class="w-full border-gray-300 rounded shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-justify"></textarea>
             </div>
 
             <!-- I. STATISTIK OPERASIONAL -->
-            <div class="mb-6">
-                <h3 class="font-bold mb-2">I. STATISTIK OPERASIONAL</h3>
+            <div class="mb-4">
+                <h3 class="font-bold mb-2 text-sm">I. STATISTIK OPERASIONAL</h3>
                 <table class="w-full border-collapse border border-black text-sm">
                     <thead>
                         <tr class="bg-gray-100">
@@ -118,8 +118,8 @@
             </div>
 
             <!-- II. REKAP ZAT AKTIF -->
-            <div class="mb-6">
-                <h3 class="font-bold mb-2">II. REKAP ZAT AKTIF</h3>
+            <div class="mb-4">
+                <h3 class="font-bold mb-2 text-sm">II. REKAP ZAT AKTIF</h3>
                 <div class="flex gap-4">
                     <!-- Chart Placeholder (Future Phase) -->
                     <!-- <div class="w-1/3 border border-gray-300 flex items-center justify-center bg-gray-50 text-xs text-gray-400">Chart Visualization</div> -->
@@ -159,49 +159,52 @@
                 </div>
             </div>
 
-            <!-- III. KECEPATAN PENGERJAAN -->
-            <div class="mb-6">
-                <h3 class="font-bold mb-2">III. KECEPATAN PENGERJAAN</h3>
-                <div class="border border-black p-4 text-sm bg-white">
-                    <p class="mb-2"><strong>Rata-rata Waktu Pengerjaan:</strong> <span x-text="previewData.processing_time.avg_days"></span> hari</p>
-                    <p class="mb-3"><strong>Total Permintaan Selesai:</strong> <span x-text="previewData.processing_time.total"></span></p>
-                    <p class="mb-2 font-bold">Breakdown:</p>
-                    <ul class="list-disc pl-5">
-                        <template x-for="item in previewData.processing_time.categories">
-                            <li>
-                                <span x-text="item.label"></span>: 
-                                <span x-text="item.count"></span> 
-                                (<span x-text="item.percentage + '%'"></span>)
-                            </li>
-                        </template>
-                    </ul>
+            <!-- III. KECEPATAN PENGERJAAN & IV. KEPUASAN PELANGGAN -->
+            <div class="mb-4 grid grid-cols-2 gap-4">
+                <!-- III. KECEPATAN PENGERJAAN -->
+                <div>
+                    <h3 class="font-bold mb-2 text-sm">III. KECEPATAN PENGERJAAN</h3>
+                    <div class="border border-black p-3 text-xs bg-white h-full">
+                        <p class="mb-2"><strong>Rata-rata Waktu Pengerjaan:</strong> <span x-text="previewData.processing_time.avg_days"></span> hari</p>
+                        <p class="mb-3"><strong>Total Permintaan Selesai:</strong> <span x-text="previewData.processing_time.total"></span></p>
+                        <p class="mb-2 font-bold">Breakdown:</p>
+                        <ul class="list-disc pl-5">
+                            <template x-for="item in previewData.processing_time.categories">
+                                <li>
+                                    <span x-text="item.label"></span>: 
+                                    <span x-text="item.count"></span> 
+                                    (<span x-text="item.percentage + '%'"></span>)
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
                 </div>
-            </div>
 
-            <!-- IV. KEPUASAN PELANGGAN -->
-            <div class="mb-6">
-                <h3 class="font-bold mb-2">IV. KEPUASAN PELANGGAN</h3>
-                <div class="border border-black p-4 text-sm bg-white">
-                    <p class="mb-2"><strong>Skor Rata-rata:</strong> <span x-text="previewData.satisfaction.avg_score"></span> / 4.00</p>
-                    <p class="mb-3"><strong>Total Responden:</strong> <span x-text="previewData.satisfaction.total_respondents"></span></p>
-                    <p class="mb-2 font-bold">Distribusi Rating:</p>
-                    <ul class="list-disc pl-5">
-                        <template x-for="item in previewData.satisfaction.ratings">
-                            <li>
-                                <span x-text="item.label"></span>: 
-                                <span x-text="item.count"></span> 
-                                (<span x-text="item.percentage + '%'"></span>)
-                            </li>
-                        </template>
-                    </ul>
+                <!-- IV. KEPUASAN PELANGGAN -->
+                <div>
+                    <h3 class="font-bold mb-2 text-sm">IV. KEPUASAN PELANGGAN</h3>
+                    <div class="border border-black p-3 text-xs bg-white h-full">
+                        <p class="mb-2"><strong>Skor Rata-rata:</strong> <span x-text="previewData.satisfaction.avg_score"></span> / 4.00</p>
+                        <p class="mb-3"><strong>Total Responden:</strong> <span x-text="previewData.satisfaction.total_respondents"></span></p>
+                        <p class="mb-2 font-bold">Distribusi Rating:</p>
+                        <ul class="list-disc pl-5">
+                            <template x-for="item in previewData.satisfaction.ratings">
+                                <li>
+                                    <span x-text="item.label"></span>: 
+                                    <span x-text="item.count"></span> 
+                                    (<span x-text="item.percentage + '%'"></span>)
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
                 </div>
             </div>
 
             <!-- V. DEMOGRAFI TERSANGKA & VI. RENTANG UMUR -->
-            <div class="mb-6 grid grid-cols-2 gap-6">
+            <div class="mb-4 grid grid-cols-2 gap-6">
                 <!-- Gender -->
                 <div>
-                    <h3 class="font-bold mb-2">V. GENDER TERSANGKA</h3>
+                    <h3 class="font-bold mb-2 text-sm">V. GENDER TERSANGKA</h3>
                     <div class="border border-black p-4 text-sm bg-white h-full">
                         <p class="mb-3"><strong>Total Tersangka:</strong> <span x-text="previewData.gender.total"></span></p>
                         <ul class="list-disc pl-5">
@@ -218,7 +221,7 @@
 
                 <!-- Umur -->
                 <div>
-                    <h3 class="font-bold mb-2">VI. RENTANG UMUR</h3>
+                    <h3 class="font-bold mb-2 text-sm">VI. RENTANG UMUR</h3>
                     <div class="border border-black p-4 text-sm bg-white h-full">
                         <p class="mb-3"><strong>Total Tersangka:</strong> <span x-text="previewData.age_range.total"></span></p>
                         <ul class="list-disc pl-5">
@@ -235,8 +238,8 @@
             </div>
 
             <!-- VII. ASAL USER (TOP 10) -->
-            <div class="mb-6">
-                <h3 class="font-bold mb-2">VII. ASAL USER (TOP 10 JURISDICTION)</h3>
+            <div class="mb-4">
+                <h3 class="font-bold mb-2 text-sm">VII. ASAL USER (TOP 10 JURISDICTION)</h3>
                 <table class="w-full border-collapse border border-black text-sm">
                     <thead>
                         <tr class="bg-gray-100">
@@ -264,8 +267,8 @@
 
             <!-- VIII. IKU (Quarterly Only) -->
             <template x-if="previewData.iku">
-                <div class="mb-6">
-                    <h3 class="font-bold mb-2">VIII. INDEKS KINERJA UTAMA (IKU)</h3>
+                <div class="mb-4">
+                    <h3 class="font-bold mb-2 text-sm">VIII. INDEKS KINERJA UTAMA (IKU)</h3>
                     <div class="border border-black p-4 bg-gray-50 mb-4">
                         <div class="flex justify-between items-center">
                             <div>
