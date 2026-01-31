@@ -74,17 +74,17 @@
                         @forelse($data as $index => $row)
                         <tr 
                             class="hover:bg-gray-50 transition-colors duration-150
-                                @if($row['status'] === 'stuck_urmin') bg-red-50 hover:bg-red-100 @endif
-                                @if($row['status'] === 'stuck_hasil') bg-yellow-50 hover:bg-yellow-100 @endif
+                                @if($row['status'] === 'stuck_14_days') bg-red-50 hover:bg-red-100 @endif
+                                @if($row['status'] === 'stuck_7_days') bg-yellow-50 hover:bg-yellow-100 @endif
                                 @if($row['status'] === 'completed') bg-green-50 hover:bg-green-100 @endif"
                             x-show="search === '' || @json(strtolower($row['nama_tsk'] . ' ' . $row['no_sampel'])).includes(search.toLowerCase())"
                         >
                             <td class="px-3 py-2.5 text-gray-600 text-center">{{ $data->firstItem() + $index }}</td>
                             <td class="px-3 py-2.5 font-medium text-gray-900">
                                 <a href="{{ route('requests.show', $row['id']) }}" class="hover:text-primary-600 hover:underline">
-                                    @if($row['status'] === 'stuck_urmin')
+                                    @if($row['status'] === 'stuck_14_days')
                                         <span class="text-red-500 mr-1">🔴</span>
-                                    @elseif($row['status'] === 'stuck_hasil')
+                                    @elseif($row['status'] === 'stuck_7_days')
                                         <span class="text-yellow-500 mr-1">🟡</span>
                                     @elseif($row['status'] === 'completed')
                                         <span class="text-green-500 mr-1">🟢</span>
@@ -183,11 +183,11 @@
             <div class="flex flex-wrap gap-4 pt-3 border-t border-gray-100 text-xs text-gray-600">
                 <div class="flex items-center gap-1.5">
                     <span>🔴</span>
-                    <span>Belum input Urmin lebih dari 14 hari</span>
+                    <span>Tidak ada perkembangan > 14 hari</span>
                 </div>
                 <div class="flex items-center gap-1.5">
                     <span>🟡</span>
-                    <span>Belum input Hasil lebih dari 7 hari</span>
+                    <span>Tidak ada perkembangan > 7 hari</span>
                 </div>
                 <div class="flex items-center gap-1.5">
                     <span>🟢</span>

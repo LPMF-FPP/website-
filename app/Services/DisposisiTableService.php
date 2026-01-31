@@ -108,20 +108,35 @@ class DisposisiTableService
 
     protected function detectStatus(TestRequest $request): string
     {
-        $masuk = $request->submitted_at ?? $request->created_at;
-
-        if ($request->delivery?->collected_at) {
+        // 1. Jika sudah selesai dan diambil -> completed (Hijau)
+        if ($request->status === 'completed' || $request->delivery?->collected_at) {
             return 'completed';
         }
 
-        if (! $request->verified_at && $masuk && $masuk->diffInDays(now()) > 14) {
-            return 'stuck_urmin';
+        // 2. Tentukan tanggal terakhir aktivitas (last progress)
+        // Urutan: Delivery Created (Kirim ke Penyerahan) -> Verified (Urmin) -> Submitted (Masuk)
+        $lastUpdate = $request->delivery?->created_at
+            ?? $request->verified_at
+            ?? $request->submitted_at
+            ?? $request->created_at;
+
+        if (! $lastUpdate) {
+            return 'in_progress'; // Should not happen if data valid
         }
 
-        if ($request->verified_at && ! $request->completed_at && $request->verified_at->diffInDays(now()) > 7) {
-            return 'stuck_hasil';
+        $daysStuck = $lastUpdate->diffInDays(now());
+
+        // 3. Merah: Tidak ada progress > 14 hari
+        if ($daysStuck > 14) {
+            return 'stuck_14_days';
         }
 
+        // 4. Kuning: Tidak ada progress > 7 hari
+        if ($daysStuck > 7) {
+            return 'stuck_7_days';
+        }
+
+        // 5. Putih: Normal (< 7 hari)
         return 'in_progress';
     }
 }
