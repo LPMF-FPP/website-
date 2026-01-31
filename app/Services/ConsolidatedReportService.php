@@ -135,7 +135,7 @@ class ConsolidatedReportService
         $avgProcessingTime = (float) (TestRequest::whereNotNull('completed_at')
             ->whereBetween('completed_at', [$start, $end])
             ->get()
-            ->avg(fn ($req) => $req->created_at->diffInDays($req->completed_at)) ?? 0);
+            ->avg(fn ($req) => $req->created_at->diffInWeekdays($req->completed_at)) ?? 0);
 
         // Calculate average satisfaction rating
         // FIX: Cast to float to avoid round() errors
@@ -198,7 +198,7 @@ class ConsolidatedReportService
         $requests = TestRequest::whereNotNull('completed_at')
             ->whereBetween('completed_at', [$start, $end])
             ->get()
-            ->map(fn ($r) => $r->created_at->diffInDays($r->completed_at));
+            ->map(fn ($r) => $r->created_at->diffInWeekdays($r->completed_at));
 
         $total = $requests->count();
 
@@ -232,18 +232,17 @@ class ConsolidatedReportService
         $total = $surveys->count();
         $avgScore = (float) ($surveys->avg('score_avg') ?? 0);
 
-        // Group by rounded score (1-5)
+        // Group by rounded score (1-4)
         $ratings = [
-            5 => ['label' => 'Sangat Puas (5)', 'count' => 0],
-            4 => ['label' => 'Puas (4)', 'count' => 0],
-            3 => ['label' => 'Cukup (3)', 'count' => 0],
+            4 => ['label' => 'Sangat Puas (4)', 'count' => 0],
+            3 => ['label' => 'Puas (3)', 'count' => 0],
             2 => ['label' => 'Kurang Puas (2)', 'count' => 0],
             1 => ['label' => 'Tidak Puas (1)', 'count' => 0],
         ];
 
         foreach ($surveys as $survey) {
             $rounded = (int) round((float) $survey->score_avg);
-            $rounded = max(1, min(5, $rounded)); // Clamp 1-5
+            $rounded = max(1, min(4, $rounded)); // Clamp 1-4
             $ratings[$rounded]['count']++;
         }
 
@@ -266,22 +265,25 @@ class ConsolidatedReportService
         $requests = TestRequest::whereBetween('created_at', [$start, $end])
             ->select('suspect_gender', DB::raw('count(*) as total'))
             ->groupBy('suspect_gender')
-            ->get()
-            ->keyBy('suspect_gender');
+            ->get();
 
         $total = $requests->sum('total');
 
+        $maleCount = $requests->firstWhere('suspect_gender', 'Laki-laki')?->total ?? 0;
+        $femaleCount = $requests->firstWhere('suspect_gender', 'Perempuan')?->total ?? 0;
+        $unknownCount = $requests->firstWhere('suspect_gender', null)?->total ?? 0;
+
         $genders = [
-            ['label' => 'Laki-laki', 'key' => 'Laki-laki'],
-            ['label' => 'Perempuan', 'key' => 'Perempuan'],
-            ['label' => 'Tidak Diketahui', 'key' => null],
+            ['label' => 'Laki-laki', 'count' => $maleCount],
+            ['label' => 'Perempuan', 'count' => $femaleCount],
+            ['label' => 'Tidak Diketahui', 'count' => $unknownCount],
         ];
 
         return [
             'items' => collect($genders)->map(fn ($g) => [
                 'label' => $g['label'],
-                'count' => $requests->get($g['key'])?->total ?? 0,
-                'percentage' => $total > 0 ? round((($requests->get($g['key'])?->total ?? 0) / $total) * 100, 1) : 0,
+                'count' => $g['count'],
+                'percentage' => $total > 0 ? round(($g['count'] / $total) * 100, 1) : 0,
             ])->toArray(),
             'total' => $total,
         ];
