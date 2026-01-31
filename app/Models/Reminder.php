@@ -26,6 +26,7 @@ class Reminder extends Model
         'metadata' => 'array',
         'mention_all' => 'boolean',
         'last_run_at' => 'datetime',
+        'schedule_days' => 'array', // Auto convert JSON <-> PHP Array
     ];
 
     public function recipients(): HasMany
@@ -40,11 +41,13 @@ class Reminder extends Model
 
     public function scopeDue(Builder $query): Builder
     {
-        // Simple check for time match.
-        // More complex logic (day of week) will be handled in the service/command
-        // to keep the query simple and database-agnostic regarding time functions
+        // Check if today is in the schedule_days array
+        $today = now()->format('D'); // Mon, Tue, etc.
+
         return $query->where('is_enabled', true)
             ->where('schedule_time', '<=', now()->format('H:i:s'))
+            // Filter by day: Check if JSON array contains today's short name
+            ->whereJsonContains('schedule_days', $today)
             ->where(function ($q) {
                 $q->whereNull('last_run_at')
                     ->orWhereDate('last_run_at', '<', now()->toDateString());

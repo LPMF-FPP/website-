@@ -44,6 +44,24 @@
                                 <input type="time" x-model="form.schedule_time" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
                             </div>
 
+                            <!-- Schedule Days -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Schedule Days</label>
+                                <div class="flex flex-wrap gap-3">
+                                    <template x-for="day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']">
+                                        <label class="flex items-center space-x-2 cursor-pointer bg-gray-50 dark:bg-gray-700/50 px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-600 hover:bg-gray-100 transition-colors">
+                                            <input type="checkbox" :value="day" x-model="form.schedule_days" class="rounded border-gray-300 text-primary-600 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50">
+                                            <span class="text-sm text-gray-700 dark:text-gray-300" x-text="day"></span>
+                                        </label>
+                                    </template>
+                                </div>
+                                <div class="mt-2 flex gap-2 text-xs">
+                                    <button @click="form.schedule_days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']" type="button" class="text-primary-600 hover:text-primary-800 underline">Weekdays Only</button>
+                                    <span class="text-gray-300">|</span>
+                                    <button @click="form.schedule_days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']" type="button" class="text-primary-600 hover:text-primary-800 underline">Everyday</button>
+                                </div>
+                            </div>
+
                             <!-- Target Date (ISO Only) -->
                             <div x-show="form.type === 'iso_countdown'">
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Target Date</label>
@@ -139,6 +157,7 @@
                     name: '',
                     type: '',
                     schedule_time: '',
+                    schedule_days: [],
                     target_date: '',
                     message_template: '',
                     recipients: [],
@@ -165,11 +184,19 @@
 
                 openModal(reminder) {
                     this.isOpen = true;
+                    // Ensure schedule_days is an array. If string (legacy or default not working), default to weekdays.
+                    let days = reminder.schedule_days;
+                    if (!Array.isArray(days)) {
+                         // Fallback if not array
+                         days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+                    }
+
                     this.form = {
                         id: reminder.id,
                         name: reminder.name,
                         type: reminder.type,
                         schedule_time: reminder.schedule_time.substring(0, 5),
+                        schedule_days: days,
                         target_date: reminder.metadata?.target_date || '',
                         message_template: reminder.message_template,
                         recipients: reminder.recipients ? reminder.recipients.map(r => ({

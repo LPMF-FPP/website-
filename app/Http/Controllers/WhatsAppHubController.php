@@ -522,6 +522,8 @@ class WhatsAppHubController extends Controller
             'recipients.*.type' => 'required|in:phone,group',
             'recipients.*.value' => 'required|string',
             'mention_all' => 'boolean',
+            'schedule_days' => 'required|array|min:1',
+            'schedule_days.*' => 'in:Mon,Tue,Wed,Thu,Fri,Sat,Sun',
         ]);
 
         $metadata = $reminder->metadata;
@@ -535,6 +537,7 @@ class WhatsAppHubController extends Controller
             'message_template' => $validated['message_template'],
             'metadata' => $metadata,
             'mention_all' => $request->boolean('mention_all'),
+            'schedule_days' => $validated['schedule_days'],
         ]);
 
         $reminder->recipients()->delete();
