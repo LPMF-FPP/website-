@@ -71,7 +71,7 @@ class SettingsApiTest extends TestCase
         $payload = [
             'branding' => [
                 'lab_code' => 'LPMF',
-                'org_name' => 'Lab Preview',
+                'org_name' => 'Laboratorium Pengujian Mutu Farmasi Kepolisian',
                 'logo_path' => null,
                 'primary_color' => '#123456',
                 'secondary_color' => '#654321',
@@ -105,7 +105,7 @@ class SettingsApiTest extends TestCase
 
         $this->actingAs($user)->putJson('/api/settings/branding', $payload)
             ->assertOk()
-            ->assertJsonPath('branding.org_name', 'Lab Preview');
+            ->assertJsonPath('branding.org_name', 'Laboratorium Pengujian Mutu Farmasi Kepolisian');
 
         $preview = $this->actingAs($user)->post('/api/settings/pdf/preview', $payload);
         $preview->assertOk()

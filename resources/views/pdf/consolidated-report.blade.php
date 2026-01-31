@@ -242,9 +242,9 @@
                 <td style="width: 48%; vertical-align: top; border: none; padding: 0;">
                     @if(isset($report->report_data['gender']))
                     <div class="section-title">V. Gender Tersangka</div>
-                    <div style="border: 1px solid #000; padding: 10px; margin-bottom: 15px;">
-                        <p style="margin: 0 0 10px 0;"><strong>Total Tersangka:</strong> {{ $report->report_data['gender']['total'] }}</p>
-                        <ul style="margin: 0; padding-left: 20px;">
+                    <div class="compact-box">
+                        <p><strong>Total Tersangka:</strong> {{ $report->report_data['gender']['total'] }}</p>
+                        <ul>
                             @foreach($report->report_data['gender']['items'] as $item)
                                 <li>{{ $item['label'] ?? 'Tidak Diketahui' }}: {{ $item['count'] }} ({{ $item['percentage'] }}%)</li>
                             @endforeach
@@ -256,9 +256,9 @@
                 <td style="width: 48%; vertical-align: top; border: none; padding: 0;">
                     @if(isset($report->report_data['age_range']))
                     <div class="section-title">VI. Rentang Umur</div>
-                    <div style="border: 1px solid #000; padding: 10px; margin-bottom: 15px;">
-                        <p style="margin: 0 0 10px 0;"><strong>Total Tersangka:</strong> {{ $report->report_data['age_range']['total'] }}</p>
-                        <ul style="margin: 0; padding-left: 20px;">
+                    <div class="compact-box">
+                        <p><strong>Total Tersangka:</strong> {{ $report->report_data['age_range']['total'] }}</p>
+                        <ul>
                             @foreach($report->report_data['age_range']['items'] as $item)
                                 <li>{{ $item['label'] }}: {{ $item['count'] }} ({{ $item['percentage'] }}%)</li>
                             @endforeach
