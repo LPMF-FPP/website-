@@ -31,7 +31,7 @@
                     <span>Dashboard</span>
                 </button>
 
-                @can('statistics.export')
+@can('statistik.export')
                 <button @click="switchTab('reports')"
                     :class="activeTab === 'reports'
                         ? 'border-indigo-500 text-indigo-600'
@@ -294,7 +294,7 @@
         </div>
 
         <!-- Consolidated Reports Tab Content -->
-        @can('statistics.export')
+        @can('statistik.export')
         <div x-show="activeTab === 'reports'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" style="display: none;">
             @include('statistics.partials.consolidated-form')
         </div>

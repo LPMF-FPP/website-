@@ -17,7 +17,7 @@ class ConsolidatedReportController extends Controller
 
     public function index()
     {
-        $this->authorize('statistics.export');
+        $this->authorize('statistik.export');
 
         // This will be handled in the main StatisticsController@index view with a tab
         // But if accessed directly/via XHR for tab content, we can return partial
@@ -30,7 +30,7 @@ class ConsolidatedReportController extends Controller
 
     public function preview(Request $request)
     {
-        $this->authorize('statistics.export');
+        $this->authorize('statistik.export');
 
         $request->validate([
             'period_type' => ['required', 'in:biweekly,monthly,quarterly'],
@@ -79,7 +79,7 @@ class ConsolidatedReportController extends Controller
 
     public function download(ConsolidatedReport $report)
     {
-        $this->authorize('statistics.export');
+        $this->authorize('statistik.export');
 
         if (! $report->pdf_path || ! Storage::exists($report->pdf_path)) {
             // Attempt regeneration if file missing
@@ -95,7 +95,7 @@ class ConsolidatedReportController extends Controller
 
     public function destroy(ConsolidatedReport $report)
     {
-        $this->authorize('statistics.export');
+        $this->authorize('statistik.export');
 
         $report->delete();
 
@@ -107,7 +107,7 @@ class ConsolidatedReportController extends Controller
 
     public function history()
     {
-        $this->authorize('statistics.export');
+        $this->authorize('statistik.export');
 
         $reports = ConsolidatedReport::with('generatedBy')
             ->orderByDesc('generated_at')

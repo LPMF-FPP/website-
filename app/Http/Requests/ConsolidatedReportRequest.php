@@ -11,7 +11,7 @@ class ConsolidatedReportRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()->can('statistics.export');
+        return $this->user()->can('statistik.export');
     }
 
     /**
