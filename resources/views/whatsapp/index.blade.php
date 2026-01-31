@@ -164,6 +164,22 @@
                 previews: {},
                 statusMessages: {},
 
+                formatDays(days) {
+                    if (!Array.isArray(days) || days.length === 0) return 'Daily'; // Fallback
+                    const allDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                    if (days.length === 7) return 'Everyday';
+                    
+                    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+                    const isWeekdays = days.length === 5 && days.every(d => weekdays.includes(d));
+                    if (isWeekdays) return 'Weekdays';
+
+                    const weekends = ['Sat', 'Sun'];
+                    const isWeekends = days.length === 2 && days.every(d => weekends.includes(d));
+                    if (isWeekends) return 'Weekends';
+
+                    return days.join(', ');
+                },
+
                 init() {
                     const urlParams = new URLSearchParams(window.location.search);
                     const tab = urlParams.get('tab');
