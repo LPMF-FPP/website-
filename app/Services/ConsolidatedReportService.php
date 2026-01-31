@@ -148,15 +148,15 @@ class ConsolidatedReportService
      */
     public function getActiveSubstancesForPeriod(Carbon $start, Carbon $end): array
     {
-        // Reuse ActiveSubstanceService logic but filter by date
-        // Note: ActiveSubstanceService::breakdown() usually takes a limit, not a date range.
-        // We might need to implement a date-filtered version here or extend the service.
-        // For now, let's implement a direct query for accuracy in this specific period.
-
+        // Use case-insensitive grouping to merge "tramadol" and "Tramadol" into one entry
+        // LOWER() ensures consistent grouping regardless of input case
         $substances = Sample::whereBetween('created_at', [$start, $end])
             ->whereNotNull('active_substance')
-            ->select('active_substance', DB::raw('count(*) as total'))
-            ->groupBy('active_substance')
+            ->select(
+                DB::raw('LOWER(TRIM(active_substance)) as normalized_substance'),
+                DB::raw('count(*) as total')
+            )
+            ->groupBy(DB::raw('LOWER(TRIM(active_substance))'))
             ->orderByDesc('total')
             ->get();
 
@@ -164,8 +164,11 @@ class ConsolidatedReportService
         $items = [];
 
         foreach ($substances as $item) {
+            // Normalize display name: "tramadol" -> "Tramadol"
+            $displayName = ucwords(strtolower(trim($item->normalized_substance)));
+
             $items[] = [
-                'name' => $item->active_substance,
+                'name' => $displayName,
                 'count' => $item->total,
                 'percentage' => $totalSamples > 0 ? round(($item->total / $totalSamples) * 100, 1) : 0,
             ];
