@@ -162,119 +162,75 @@
             <!-- III. KECEPATAN PENGERJAAN -->
             <div class="mb-6">
                 <h3 class="font-bold mb-2">III. KECEPATAN PENGERJAAN</h3>
-                <table class="w-full border-collapse border border-black text-sm">
-                    <thead>
-                        <tr class="bg-gray-100">
-                            <th class="border border-black p-2 text-left">Kategori Waktu</th>
-                            <th class="border border-black p-2 text-center w-24">Jumlah</th>
-                            <th class="border border-black p-2 text-center w-24">Persentase</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <div class="border border-black p-4 text-sm bg-white">
+                    <p class="mb-2"><strong>Rata-rata Waktu Pengerjaan:</strong> <span x-text="previewData.processing_time.avg_days"></span> hari</p>
+                    <p class="mb-3"><strong>Total Permintaan Selesai:</strong> <span x-text="previewData.processing_time.total"></span></p>
+                    <p class="mb-2 font-bold">Breakdown:</p>
+                    <ul class="list-disc pl-5">
                         <template x-for="item in previewData.processing_time.categories">
-                            <tr>
-                                <td class="border border-black p-2" x-text="item.label"></td>
-                                <td class="border border-black p-2 text-center" x-text="item.count"></td>
-                                <td class="border border-black p-2 text-center" x-text="item.percentage + '%'"></td>
-                            </tr>
+                            <li>
+                                <span x-text="item.label"></span>: 
+                                <span x-text="item.count"></span> 
+                                (<span x-text="item.percentage + '%'"></span>)
+                            </li>
                         </template>
-                    </tbody>
-                    <tfoot>
-                        <tr class="font-bold bg-gray-50">
-                            <td class="border border-black p-2">TOTAL</td>
-                            <td class="border border-black p-2 text-center" x-text="previewData.processing_time.total"></td>
-                            <td class="border border-black p-2 text-center">100%</td>
-                        </tr>
-                        <tr class="bg-blue-50">
-                            <td colspan="3" class="border border-black p-2 text-center">
-                                Rata-rata: <span class="font-bold" x-text="previewData.processing_time.avg_days"></span> hari
-                            </td>
-                        </tr>
-                    </tfoot>
-                </table>
+                    </ul>
+                </div>
             </div>
 
             <!-- IV. KEPUASAN PELANGGAN -->
             <div class="mb-6">
                 <h3 class="font-bold mb-2">IV. KEPUASAN PELANGGAN</h3>
-                <table class="w-full border-collapse border border-black text-sm">
-                    <thead>
-                        <tr class="bg-gray-100">
-                            <th class="border border-black p-2 text-left">Rating</th>
-                            <th class="border border-black p-2 text-center w-24">Jumlah</th>
-                            <th class="border border-black p-2 text-center w-24">Persentase</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <div class="border border-black p-4 text-sm bg-white">
+                    <p class="mb-2"><strong>Skor Rata-rata:</strong> <span x-text="previewData.satisfaction.avg_score"></span> / 5.00</p>
+                    <p class="mb-3"><strong>Total Responden:</strong> <span x-text="previewData.satisfaction.total_respondents"></span></p>
+                    <p class="mb-2 font-bold">Distribusi Rating:</p>
+                    <ul class="list-disc pl-5">
                         <template x-for="item in previewData.satisfaction.ratings">
-                            <tr>
-                                <td class="border border-black p-2" x-text="item.label"></td>
-                                <td class="border border-black p-2 text-center" x-text="item.count"></td>
-                                <td class="border border-black p-2 text-center" x-text="item.percentage + '%'"></td>
-                            </tr>
+                            <li>
+                                <span x-text="item.label"></span>: 
+                                <span x-text="item.count"></span> 
+                                (<span x-text="item.percentage + '%'"></span>)
+                            </li>
                         </template>
-                    </tbody>
-                    <tfoot>
-                        <tr class="font-bold bg-gray-50">
-                            <td class="border border-black p-2">TOTAL RESPONDEN</td>
-                            <td class="border border-black p-2 text-center" x-text="previewData.satisfaction.total_respondents"></td>
-                            <td class="border border-black p-2 text-center">100%</td>
-                        </tr>
-                        <tr class="bg-blue-50">
-                            <td colspan="3" class="border border-black p-2 text-center">
-                                Skor Rata-rata: <span class="font-bold" x-text="previewData.satisfaction.avg_score"></span> / 5.00
-                            </td>
-                        </tr>
-                    </tfoot>
-                </table>
+                    </ul>
+                </div>
             </div>
 
-            <!-- V. DEMOGRAFI TERSANGKA -->
-            <div class="mb-6 grid grid-cols-2 gap-4">
+            <!-- V. DEMOGRAFI TERSANGKA & VI. RENTANG UMUR -->
+            <div class="mb-6 grid grid-cols-2 gap-6">
                 <!-- Gender -->
                 <div>
                     <h3 class="font-bold mb-2">V. GENDER TERSANGKA</h3>
-                    <table class="w-full border-collapse border border-black text-sm">
-                        <thead>
-                            <tr class="bg-gray-100">
-                                <th class="border border-black p-2 text-left">Gender</th>
-                                <th class="border border-black p-2 text-center">Jml</th>
-                                <th class="border border-black p-2 text-center">%</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                    <div class="border border-black p-4 text-sm bg-white h-full">
+                        <p class="mb-3"><strong>Total Tersangka:</strong> <span x-text="previewData.gender.total"></span></p>
+                        <ul class="list-disc pl-5">
                             <template x-for="item in previewData.gender.items">
-                                <tr>
-                                    <td class="border border-black p-2" x-text="item.label || 'Tidak Diketahui'"></td>
-                                    <td class="border border-black p-2 text-center" x-text="item.count"></td>
-                                    <td class="border border-black p-2 text-center" x-text="item.percentage + '%'"></td>
-                                </tr>
+                                <li>
+                                    <span x-text="item.label || 'Tidak Diketahui'"></span>: 
+                                    <span x-text="item.count"></span> 
+                                    (<span x-text="item.percentage + '%'"></span>)
+                                </li>
                             </template>
-                        </tbody>
-                    </table>
+                        </ul>
+                    </div>
                 </div>
 
                 <!-- Umur -->
                 <div>
                     <h3 class="font-bold mb-2">VI. RENTANG UMUR</h3>
-                    <table class="w-full border-collapse border border-black text-sm">
-                        <thead>
-                            <tr class="bg-gray-100">
-                                <th class="border border-black p-2 text-left">Umur</th>
-                                <th class="border border-black p-2 text-center">Jml</th>
-                                <th class="border border-black p-2 text-center">%</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                    <div class="border border-black p-4 text-sm bg-white h-full">
+                        <p class="mb-3"><strong>Total Tersangka:</strong> <span x-text="previewData.age_range.total"></span></p>
+                        <ul class="list-disc pl-5">
                             <template x-for="item in previewData.age_range.items">
-                                <tr>
-                                    <td class="border border-black p-2" x-text="item.label"></td>
-                                    <td class="border border-black p-2 text-center" x-text="item.count"></td>
-                                    <td class="border border-black p-2 text-center" x-text="item.percentage + '%'"></td>
-                                </tr>
+                                <li>
+                                    <span x-text="item.label"></span>: 
+                                    <span x-text="item.count"></span> 
+                                    (<span x-text="item.percentage + '%'"></span>)
+                                </li>
                             </template>
-                        </tbody>
-                    </table>
+                        </ul>
+                    </div>
                 </div>
             </div>
 

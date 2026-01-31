@@ -192,121 +192,69 @@
     </div>
 
     <!-- III. KECEPATAN PENGERJAAN -->
+    @if(isset($report->report_data['processing_time']))
     <div class="section">
         <div class="section-title">III. Kecepatan Pengerjaan</div>
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th style="width: 50%">Kategori Waktu</th>
-                    <th style="width: 25%">Jumlah</th>
-                    <th style="width: 25%">Persentase</th>
-                </tr>
-            </thead>
-            <tbody>
+        <div style="border: 1px solid #000; padding: 10px; margin-bottom: 15px;">
+            <p style="margin: 0 0 5px 0;"><strong>Rata-rata Waktu Pengerjaan:</strong> {{ $report->report_data['processing_time']['avg_days'] }} hari</p>
+            <p style="margin: 0 0 10px 0;"><strong>Total Permintaan Selesai:</strong> {{ $report->report_data['processing_time']['total'] }}</p>
+            <p style="margin: 0 0 5px 0; font-weight: bold;">Breakdown:</p>
+            <ul style="margin: 0; padding-left: 20px;">
                 @foreach($report->report_data['processing_time']['categories'] as $item)
-                    <tr>
-                        <td>{{ $item['label'] }}</td>
-                        <td class="text-center">{{ $item['count'] }}</td>
-                        <td class="text-center">{{ $item['percentage'] }}%</td>
-                    </tr>
+                    <li>{{ $item['label'] }}: {{ $item['count'] }} ({{ $item['percentage'] }}%)</li>
                 @endforeach
-            </tbody>
-            <tfoot>
-                <tr style="background-color: #f9f9f9; font-weight: bold;">
-                    <td class="text-right">TOTAL</td>
-                    <td class="text-center">{{ $report->report_data['processing_time']['total'] }}</td>
-                    <td class="text-center">100%</td>
-                </tr>
-                <tr>
-                    <td colspan="3" class="text-center" style="background-color: #eff6ff;">
-                        Rata-rata Pengerjaan: <strong>{{ $report->report_data['processing_time']['avg_days'] }}</strong> hari
-                    </td>
-                </tr>
-            </tfoot>
-        </table>
+            </ul>
+        </div>
     </div>
+    @endif
 
     <!-- IV. KEPUASAN PELANGGAN -->
+    @if(isset($report->report_data['satisfaction']))
     <div class="section">
         <div class="section-title">IV. Kepuasan Pelanggan</div>
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th style="width: 50%">Rating</th>
-                    <th style="width: 25%">Jumlah</th>
-                    <th style="width: 25%">Persentase</th>
-                </tr>
-            </thead>
-            <tbody>
+        <div style="border: 1px solid #000; padding: 10px; margin-bottom: 15px;">
+            <p style="margin: 0 0 5px 0;"><strong>Skor Rata-rata:</strong> {{ $report->report_data['satisfaction']['avg_score'] }} / 5.00</p>
+            <p style="margin: 0 0 10px 0;"><strong>Total Responden:</strong> {{ $report->report_data['satisfaction']['total_respondents'] }}</p>
+            <p style="margin: 0 0 5px 0; font-weight: bold;">Distribusi Rating:</p>
+            <ul style="margin: 0; padding-left: 20px;">
                 @foreach($report->report_data['satisfaction']['ratings'] as $item)
-                    <tr>
-                        <td>{{ $item['label'] }}</td>
-                        <td class="text-center">{{ $item['count'] }}</td>
-                        <td class="text-center">{{ $item['percentage'] }}%</td>
-                    </tr>
+                    <li>{{ $item['label'] }}: {{ $item['count'] }} ({{ $item['percentage'] }}%)</li>
                 @endforeach
-            </tbody>
-            <tfoot>
-                <tr style="background-color: #f9f9f9; font-weight: bold;">
-                    <td class="text-right">TOTAL RESPONDEN</td>
-                    <td class="text-center">{{ $report->report_data['satisfaction']['total_respondents'] }}</td>
-                    <td class="text-center">100%</td>
-                </tr>
-                <tr>
-                    <td colspan="3" class="text-center" style="background-color: #eff6ff;">
-                        Skor Rata-rata: <strong>{{ $report->report_data['satisfaction']['avg_score'] }}</strong> / 5.00
-                    </td>
-                </tr>
-            </tfoot>
-        </table>
+            </ul>
+        </div>
     </div>
+    @endif
 
-    <!-- V. DEMOGRAFI TERSANGKA -->
+    <!-- V. DEMOGRAFI TERSANGKA & VI. RENTANG UMUR -->
     <div style="page-break-inside: avoid;">
         <table style="width: 100%; border-collapse: collapse; border: none;">
             <tr>
                 <td style="width: 48%; vertical-align: top; border: none; padding: 0;">
+                    @if(isset($report->report_data['gender']))
                     <div class="section-title">V. Gender Tersangka</div>
-                    <table class="data-table" style="margin-bottom: 0;">
-                        <thead>
-                            <tr>
-                                <th>Gender</th>
-                                <th>Jml</th>
-                                <th>%</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                    <div style="border: 1px solid #000; padding: 10px; margin-bottom: 15px;">
+                        <p style="margin: 0 0 10px 0;"><strong>Total Tersangka:</strong> {{ $report->report_data['gender']['total'] }}</p>
+                        <ul style="margin: 0; padding-left: 20px;">
                             @foreach($report->report_data['gender']['items'] as $item)
-                                <tr>
-                                    <td>{{ $item['label'] ?? 'Tidak Diketahui' }}</td>
-                                    <td class="text-center">{{ $item['count'] }}</td>
-                                    <td class="text-center">{{ $item['percentage'] }}%</td>
-                                </tr>
+                                <li>{{ $item['label'] ?? 'Tidak Diketahui' }}: {{ $item['count'] }} ({{ $item['percentage'] }}%)</li>
                             @endforeach
-                        </tbody>
-                    </table>
+                        </ul>
+                    </div>
+                    @endif
                 </td>
                 <td style="width: 4%; border: none;"></td>
                 <td style="width: 48%; vertical-align: top; border: none; padding: 0;">
+                    @if(isset($report->report_data['age_range']))
                     <div class="section-title">VI. Rentang Umur</div>
-                    <table class="data-table" style="margin-bottom: 0;">
-                        <thead>
-                            <tr>
-                                <th>Umur</th>
-                                <th>Jml</th>
-                                <th>%</th>
-                            </tr>
-                        </thead>
-                        <tbody>
+                    <div style="border: 1px solid #000; padding: 10px; margin-bottom: 15px;">
+                        <p style="margin: 0 0 10px 0;"><strong>Total Tersangka:</strong> {{ $report->report_data['age_range']['total'] }}</p>
+                        <ul style="margin: 0; padding-left: 20px;">
                             @foreach($report->report_data['age_range']['items'] as $item)
-                                <tr>
-                                    <td>{{ $item['label'] }}</td>
-                                    <td class="text-center">{{ $item['count'] }}</td>
-                                    <td class="text-center">{{ $item['percentage'] }}%</td>
-                                </tr>
+                                <li>{{ $item['label'] }}: {{ $item['count'] }} ({{ $item['percentage'] }}%)</li>
                             @endforeach
-                        </tbody>
-                    </table>
+                        </ul>
+                    </div>
+                    @endif
                 </td>
             </tr>
         </table>
