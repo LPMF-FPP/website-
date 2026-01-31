@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ConsolidatedReportRequest;
 use App\Models\ConsolidatedReport;
+use App\Models\SystemSetting;
 use App\Services\ConsolidatedReportService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -130,10 +131,18 @@ class ConsolidatedReportController extends Controller
             'signers.*.nip' => ['nullable', 'string', 'max:50'],
         ]);
 
-        \App\Models\SystemSetting::updateOrCreate(
+        $setting = SystemSetting::where('key', 'consolidated_report.default_signers')->first();
+        $oldValue = $setting ? $setting->value : null;
+
+        SystemSetting::updateOrCreate(
             ['key' => 'consolidated_report.default_signers'],
             ['value' => $request->signers]
         );
+
+        \Log::info('Default signers updated by user '.$request->user()->id, [
+            'old' => $oldValue,
+            'new' => $request->signers,
+        ]);
 
         return response()->json([
             'success' => true,

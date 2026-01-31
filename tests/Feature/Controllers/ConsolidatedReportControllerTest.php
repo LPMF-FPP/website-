@@ -2,12 +2,17 @@
 
 namespace Tests\Feature\Controllers;
 
+use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\ConsolidatedReportService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class ConsolidatedReportControllerTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_index_passes_default_signers_to_view()
     {
         $user = User::factory()->create();
@@ -15,10 +20,6 @@ class ConsolidatedReportControllerTest extends TestCase
         $this->actingAs($user);
 
         // Mock the authorize call on controller to bypass authorization
-        // We use partial mock of controller logic via Gate or just rely on withoutMiddleware not working for authorize() calls inside controller if they use Gate facade explicitly.
-        // Actually, Controller::authorize calls Gate::authorize.
-
-        // Let's force permission via Gate mock, as withoutMiddleware doesn't disable manual authorize calls.
         \Illuminate\Support\Facades\Gate::shouldReceive('authorize')
             ->with('statistik.export', [])
             ->andReturn(true);
@@ -30,13 +31,36 @@ class ConsolidatedReportControllerTest extends TestCase
                 ->andReturn([['role' => 'Mocked']]);
         });
 
-        // $response = $this->getJson(route('consolidated-reports.index')); // AJAX request
-        // getJson sets Accept: application/json, but Laravel's request()->ajax() checks for X-Requested-With: XMLHttpRequest
-        // So we need to ensure it's treated as AJAX
         $response = $this->get(route('consolidated-reports.index'), ['X-Requested-With' => 'XMLHttpRequest']);
 
         $response->assertOk();
         $response->assertViewIs('statistics.partials.consolidated-form');
         $response->assertViewHas('defaultSigners', [['role' => 'Mocked']]);
+    }
+
+    /** @test */
+    public function save_default_signers_logs_changes()
+    {
+        Log::shouldReceive('info')->once()->withArgs(function ($message, $context) {
+            return str_contains($message, 'Default signers updated by user') &&
+                   array_key_exists('old', $context) &&
+                   array_key_exists('new', $context);
+        });
+
+        $user = User::factory()->create();
+
+        \Illuminate\Support\Facades\Gate::shouldReceive('authorize')
+            ->with('statistik.export', [])
+            ->andReturn(true);
+
+        $oldSigners = [['role' => 'old_role', 'name' => 'Old Name']];
+        SystemSetting::create(['key' => 'consolidated_report.default_signers', 'value' => $oldSigners]);
+
+        $newSigners = [['role' => 'new_role', 'name' => 'New Name']];
+
+        $response = $this->actingAs($user)
+            ->putJson(route('consolidated-reports.save-default-signers'), ['signers' => $newSigners]);
+
+        $response->assertOk();
     }
 }
