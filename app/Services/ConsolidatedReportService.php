@@ -267,11 +267,24 @@ class ConsolidatedReportService
             ->groupBy('suspect_gender')
             ->get();
 
-        $total = $requests->sum('total');
+        // Normalize gender variations (male/female, Laki-laki/Perempuan, L/P, etc)
+        $maleCount = 0;
+        $femaleCount = 0;
+        $unknownCount = 0;
 
-        $maleCount = $requests->firstWhere('suspect_gender', 'Laki-laki')?->total ?? 0;
-        $femaleCount = $requests->firstWhere('suspect_gender', 'Perempuan')?->total ?? 0;
-        $unknownCount = $requests->firstWhere('suspect_gender', null)?->total ?? 0;
+        foreach ($requests as $req) {
+            $gender = strtolower(trim($req->suspect_gender ?? ''));
+
+            if (in_array($gender, ['l', 'laki-laki', 'laki', 'pria', 'male', 'm'])) {
+                $maleCount += $req->total;
+            } elseif (in_array($gender, ['p', 'perempuan', 'wanita', 'female', 'f'])) {
+                $femaleCount += $req->total;
+            } else {
+                $unknownCount += $req->total;
+            }
+        }
+
+        $total = $maleCount + $femaleCount + $unknownCount;
 
         $genders = [
             ['label' => 'Laki-laki', 'count' => $maleCount],
