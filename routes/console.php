@@ -11,3 +11,10 @@ use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('inventory:check-alerts')->dailyAt('08:00');
 Schedule::command('reminders:send')->everyMinute();
+
+// Consolidated Reports Auto-Generation
+Schedule::command('reports:generate-consolidated')
+    ->dailyAt('06:00')
+    ->timezone('Asia/Jakarta')
+    ->withoutOverlapping()
+    ->runInBackground();

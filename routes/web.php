@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AnalystController;
+use App\Http\Controllers\ConsolidatedReportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\EnvironmentMonitoringController;
@@ -254,6 +255,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/', [StatisticsController::class, 'index'])->name('statistics.index');
         Route::get('/data', [StatisticsController::class, 'data'])->name('statistics.data');
         Route::get('/export', [StatisticsController::class, 'export'])->name('statistics.export');
+
+        // Consolidated Reports
+        Route::prefix('reports')->name('consolidated-reports.')->group(function () {
+            Route::get('/', [ConsolidatedReportController::class, 'index'])->name('index');
+            Route::get('/history', [ConsolidatedReportController::class, 'history'])->name('history');
+            Route::post('/preview', [ConsolidatedReportController::class, 'preview'])->name('preview');
+            Route::post('/', [ConsolidatedReportController::class, 'store'])->name('store');
+            Route::get('/{report}/download', [ConsolidatedReportController::class, 'download'])->name('download');
+            Route::delete('/{report}', [ConsolidatedReportController::class, 'destroy'])->name('destroy');
+        });
     });
 
     Route::middleware('can:manage-settings')->prefix('reports')->name('reports.')->group(function () {

@@ -6,248 +6,299 @@
         />
     </x-slot>
 
-    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6" x-data="{ loading: false }">
+    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6" x-data="{
+        activeTab: new URLSearchParams(window.location.search).get('tab') || 'dashboard',
+        loading: false,
+        switchTab(tab) {
+            this.activeTab = tab;
+            const url = new URL(window.location);
+            url.searchParams.set('tab', tab);
+            window.history.pushState({}, '', url);
+        }
+    }">
 
-        <!-- Summary Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
-                    <div class="flex items-center">
-                        <div class="p-3 rounded-full bg-green-500 text-white">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
+        <!-- Tab Navigation -->
+        <div class="border-b border-gray-200 bg-white rounded-t-lg px-4 pt-4">
+            <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+                <button @click="switchTab('dashboard')"
+                    :class="activeTab === 'dashboard'
+                        ? 'border-indigo-500 text-indigo-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                    class="group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm">
+                    <svg class="-ml-0.5 mr-2 h-5 w-5" :class="activeTab === 'dashboard' ? 'text-indigo-500' : 'text-gray-400 group-hover:text-gray-500'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    <span>Dashboard</span>
+                </button>
+
+                @can('statistics.export')
+                <button @click="switchTab('reports')"
+                    :class="activeTab === 'reports'
+                        ? 'border-indigo-500 text-indigo-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
+                    class="group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm">
+                    <svg class="-ml-0.5 mr-2 h-5 w-5" :class="activeTab === 'reports' ? 'text-indigo-500' : 'text-gray-400 group-hover:text-gray-500'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span>Laporan Periodik</span>
+                </button>
+                @endcan
+            </nav>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div x-show="activeTab === 'dashboard'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0">
+            
+            <div class="space-y-6">
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                        <div class="p-6">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-full bg-green-500 text-white">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-gray-600">Permintaan Bulan Ini</p>
+                                    <p class="text-2xl font-semibold text-gray-900">{{ $requests_this_month }}</p>
+                                </div>
+                            </div>
                         </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Permintaan Bulan Ini</p>
-                            <p class="text-2xl font-semibold text-gray-900">{{ $requests_this_month }}</p>
+                    </div>
+
+                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                        <div class="p-6">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-full bg-yellow-500 text-white">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 7.172V5L8 4z"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-gray-600">Sampel Tahun Ini</p>
+                                    <p class="text-2xl font-semibold text-gray-900">{{ $samples_this_year }}</p>
+                                    <p class="text-xs text-gray-500">Target IKU: 200/tahun</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                        <div class="p-6">
+                            <div class="flex items-center">
+                                <div class="p-3 rounded-full bg-red-500 text-white">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-4">
+                                    <p class="text-sm font-medium text-gray-600">Zat Aktif Terdeteksi</p>
+                                    <p class="text-2xl font-semibold text-gray-900">{{ $active_substances_detected }}</p>
+                                    @if ($activeSubstanceBreakdown['fallback'] ?? false)
+                                        <p class="text-xs text-yellow-600 mt-1">Menampilkan data simulasi karena belum ada input permintaan.</p>
+                                    @endif
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
-                    <div class="flex items-center">
-                        <div class="p-3 rounded-full bg-yellow-500 text-white">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 7.172V5L8 4z"></path>
-                            </svg>
+                <!-- Charts Grid with Responsive Layout -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <template x-if="loading">
+                        <div class="md:col-span-2 lg:col-span-3">
+                            <x-skeleton-table :columns="3" :rows="6" />
                         </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Sampel Tahun Ini</p>
-                            <p class="text-2xl font-semibold text-gray-900">{{ $samples_this_year }}</p>
-                            <p class="text-xs text-gray-500">Target IKU: 200/tahun</p>
+                    </template>
+
+                    <!-- 1. Asal User (Pie Chart) -->
+                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg h-full">
+                        <div class="p-6 flex flex-col h-full">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">🏢 Asal User</h3>
+                                <button onclick="exportChart('user_origin')"
+                                        class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
+                                    📥 Export
+                                </button>
+                            </div>
+                            <div class="relative flex-1 min-h-[400px]">
+                                <canvas id="userOriginChart"></canvas>
+                                <p data-chart-error="userOrigin" class="mt-4 text-sm text-red-600 text-center hidden">
+                                    Data tidak dapat dimuat. Silakan coba lagi.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 2. Zat Aktif (Doughnut Chart) -->
+                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg h-full">
+                        <div class="p-6 flex flex-col h-full">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">🧪 Jenis Zat Aktif</h3>
+                                <button onclick="exportChart('active_substances')"
+                                        class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
+                                    📥 Export
+                                </button>
+                            </div>
+                            <div class="relative flex-1 min-h-[400px]">
+                                <canvas id="activeSubstancesChart"></canvas>
+                                <p data-chart-error="activeSubstances" class="mt-4 text-sm text-red-600 text-center hidden">
+                                    Data tidak dapat dimuat. Silakan coba lagi.
+                                </p>
+                            </div>
+                            <div class="mt-4 text-center text-sm text-gray-600">
+                                <p id="topActiveSubstancesText">Memuat data zat aktif...</p>
+                                <p id="activeSubstancesSource" class="text-xs text-gray-400 mt-1 hidden">Sumber: data permintaan pengujian terbaru.</p>
+                                <p id="activeSubstancesFallback" class="text-xs text-yellow-600 mt-2 hidden">Menampilkan data simulasi karena belum ada input baru.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Gender Tersangka (Pie Chart) -->
+                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg h-full">
+                        <div class="p-6 flex flex-col h-full">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">👥 Gender Tersangka</h3>
+                                <button onclick="exportChart('suspect_gender')"
+                                        class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
+                                    📥 Export
+                                </button>
+                            </div>
+                            <div class="relative flex-1 min-h-[400px]">
+                                <canvas id="suspectGenderChart"></canvas>
+                                <p data-chart-error="suspectGender" class="mt-4 text-sm text-red-600 text-center hidden">
+                                    Data tidak dapat dimuat. Silakan coba lagi.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 4. Umur Tersangka (Bar Chart) -->
+                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg h-full">
+                        <div class="p-6 flex flex-col h-full">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">📊 Rentang Umur Tersangka</h3>
+                                <button onclick="exportChart('suspect_age')"
+                                        class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
+                                    📥 Export
+                                </button>
+                            </div>
+                            <div class="relative flex-1 min-h-[400px]">
+                                <canvas id="suspectAgeChart"></canvas>
+                                <p data-chart-error="suspectAge" class="mt-4 text-sm text-red-600 text-center hidden">
+                                    Data tidak dapat dimuat. Silakan coba lagi.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 5. Permintaan per Bulan (Line Chart) -->
+                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg h-full">
+                        <div class="p-6 flex flex-col h-full">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">📈 Permintaan per Bulan</h3>
+                                <button onclick="exportChart('monthly_requests')"
+                                        class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
+                                    📥 Export
+                                </button>
+                            </div>
+                            <div class="relative flex-1 min-h-[400px]">
+                                <canvas id="monthlyRequestsChart"></canvas>
+                                <p data-chart-error="monthlyRequests" class="mt-4 text-sm text-red-600 text-center hidden">
+                                    Data tidak dapat dimuat. Silakan coba lagi.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 6. Sampel per Bulan vs Target IKU -->
+                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg h-full">
+                        <div class="p-6 flex flex-col h-full">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">📊 Sampel vs Target IKU</h3>
+                                <button onclick="exportChart('monthly_samples')"
+                                        class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
+                                    📥 Export
+                                </button>
+                            </div>
+                            <div class="relative flex-1 min-h-[400px]">
+                                <canvas id="monthlySamplesChart"></canvas>
+                                <p data-chart-error="monthlySamples" class="mt-4 text-sm text-red-600 text-center hidden">
+                                    Data tidak dapat dimuat. Silakan coba lagi.
+                                </p>
+                            </div>
+                            <div class="mt-4 bg-blue-50 p-4 rounded-lg">
+                                <h4 class="font-medium text-blue-900 mb-2">📋 Informasi IKU</h4>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-blue-800 text-sm">
+                                    <div>
+                                        <strong>Target Tahunan:</strong> 200 sampel
+                                    </div>
+                                    <div>
+                                        <strong>Rata-rata:</strong> 16.7 sampel/bulan
+                                    </div>
+                                    <div id="samplesProgress">
+                                        <strong>Progress:</strong> <span id="currentProgress">Loading...</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <div class="p-6">
-                    <div class="flex items-center">
-                        <div class="p-3 rounded-full bg-red-500 text-white">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>
-                            </svg>
-                        </div>
-                        <div class="ml-4">
-                            <p class="text-sm font-medium text-gray-600">Zat Aktif Terdeteksi</p>
-                            <p class="text-2xl font-semibold text-gray-900">{{ $active_substances_detected }}</p>
-                            @if ($activeSubstanceBreakdown['fallback'] ?? false)
-                                <p class="text-xs text-yellow-600 mt-1">Menampilkan data simulasi karena belum ada input permintaan.</p>
-                            @endif
+                <!-- Data Summary Table -->
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">📋 Ringkasan Data</h3>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bulan Ini</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tahun Ini</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Target/Rata-rata</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Permintaan Pengujian</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $requests_this_month }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ \App\Models\TestRequest::whereYear('created_at', now()->year)->count() }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">32/bulan</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-{{ $requests_this_month >= 32 ? 'green' : 'yellow' }}-100 text-{{ $requests_this_month >= 32 ? 'green' : 'yellow' }}-800">
+                                                {{ $requests_this_month >= 32 ? 'Di Atas Target' : 'Normal' }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Jumlah Sampel</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ \App\Models\Sample::whereYear('created_at', now()->year)->whereMonth('created_at', now()->month)->count() }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $samples_this_year }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">200/tahun (IKU)</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-{{ $samples_this_year >= 160 ? 'green' : 'yellow' }}-100 text-{{ $samples_this_year >= 160 ? 'green' : 'yellow' }}-800">
+                                                {{ $samples_this_year >= 160 ? 'Mendekati Target' : 'Perlu Peningkatan' }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Charts Grid with Responsive Layout -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <template x-if="loading">
-                <div class="md:col-span-2 lg:col-span-3">
-                    <x-skeleton-table :columns="3" :rows="6" />
-                </div>
-            </template>
-
-            <!-- 1. Asal User (Pie Chart) -->
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg h-full">
-                <div class="p-6 flex flex-col h-full">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900">🏢 Asal User</h3>
-                        <button onclick="exportChart('user_origin')"
-                                class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
-                            📥 Export
-                        </button>
-                    </div>
-                    <div class="relative flex-1 min-h-[400px]">
-                        <canvas id="userOriginChart"></canvas>
-                        <p data-chart-error="userOrigin" class="mt-4 text-sm text-red-600 text-center hidden">
-                            Data tidak dapat dimuat. Silakan coba lagi.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 2. Zat Aktif (Doughnut Chart) -->
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg h-full">
-                <div class="p-6 flex flex-col h-full">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900">🧪 Jenis Zat Aktif</h3>
-                        <button onclick="exportChart('active_substances')"
-                                class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
-                            📥 Export
-                        </button>
-                    </div>
-                    <div class="relative flex-1 min-h-[400px]">
-                        <canvas id="activeSubstancesChart"></canvas>
-                        <p data-chart-error="activeSubstances" class="mt-4 text-sm text-red-600 text-center hidden">
-                            Data tidak dapat dimuat. Silakan coba lagi.
-                        </p>
-                    </div>
-                    <div class="mt-4 text-center text-sm text-gray-600">
-                        <p id="topActiveSubstancesText">Memuat data zat aktif...</p>
-                        <p id="activeSubstancesSource" class="text-xs text-gray-400 mt-1 hidden">Sumber: data permintaan pengujian terbaru.</p>
-                        <p id="activeSubstancesFallback" class="text-xs text-yellow-600 mt-2 hidden">Menampilkan data simulasi karena belum ada input baru.</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 3. Gender Tersangka (Pie Chart) -->
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg h-full">
-                <div class="p-6 flex flex-col h-full">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900">👥 Gender Tersangka</h3>
-                        <button onclick="exportChart('suspect_gender')"
-                                class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
-                            📥 Export
-                        </button>
-                    </div>
-                    <div class="relative flex-1 min-h-[400px]">
-                        <canvas id="suspectGenderChart"></canvas>
-                        <p data-chart-error="suspectGender" class="mt-4 text-sm text-red-600 text-center hidden">
-                            Data tidak dapat dimuat. Silakan coba lagi.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 4. Umur Tersangka (Bar Chart) -->
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg h-full">
-                <div class="p-6 flex flex-col h-full">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900">📊 Rentang Umur Tersangka</h3>
-                        <button onclick="exportChart('suspect_age')"
-                                class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
-                            📥 Export
-                        </button>
-                    </div>
-                    <div class="relative flex-1 min-h-[400px]">
-                        <canvas id="suspectAgeChart"></canvas>
-                        <p data-chart-error="suspectAge" class="mt-4 text-sm text-red-600 text-center hidden">
-                            Data tidak dapat dimuat. Silakan coba lagi.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 5. Permintaan per Bulan (Line Chart) -->
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg h-full">
-                <div class="p-6 flex flex-col h-full">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900">📈 Permintaan per Bulan</h3>
-                        <button onclick="exportChart('monthly_requests')"
-                                class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
-                            📥 Export
-                        </button>
-                    </div>
-                    <div class="relative flex-1 min-h-[400px]">
-                        <canvas id="monthlyRequestsChart"></canvas>
-                        <p data-chart-error="monthlyRequests" class="mt-4 text-sm text-red-600 text-center hidden">
-                            Data tidak dapat dimuat. Silakan coba lagi.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 6. Sampel per Bulan vs Target IKU -->
-            <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg h-full">
-                <div class="p-6 flex flex-col h-full">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-lg font-semibold text-gray-900">📊 Sampel vs Target IKU</h3>
-                        <button onclick="exportChart('monthly_samples')"
-                                class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
-                            📥 Export
-                        </button>
-                    </div>
-                    <div class="relative flex-1 min-h-[400px]">
-                        <canvas id="monthlySamplesChart"></canvas>
-                        <p data-chart-error="monthlySamples" class="mt-4 text-sm text-red-600 text-center hidden">
-                            Data tidak dapat dimuat. Silakan coba lagi.
-                        </p>
-                    </div>
-                    <div class="mt-4 bg-blue-50 p-4 rounded-lg">
-                        <h4 class="font-medium text-blue-900 mb-2">📋 Informasi IKU</h4>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-blue-800 text-sm">
-                            <div>
-                                <strong>Target Tahunan:</strong> 200 sampel
-                            </div>
-                            <div>
-                                <strong>Rata-rata:</strong> 16.7 sampel/bulan
-                            </div>
-                            <div id="samplesProgress">
-                                <strong>Progress:</strong> <span id="currentProgress">Loading...</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <!-- Consolidated Reports Tab Content -->
+        @can('statistics.export')
+        <div x-show="activeTab === 'reports'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" style="display: none;">
+            @include('statistics.partials.consolidated-form')
         </div>
-
-        <!-- Data Summary Table -->
-        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-            <div class="p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">📋 Ringkasan Data</h3>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bulan Ini</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tahun Ini</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Target/Rata-rata</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Permintaan Pengujian</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $requests_this_month }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ \App\Models\TestRequest::whereYear('created_at', now()->year)->count() }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">32/bulan</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-{{ $requests_this_month >= 32 ? 'green' : 'yellow' }}-100 text-{{ $requests_this_month >= 32 ? 'green' : 'yellow' }}-800">
-                                        {{ $requests_this_month >= 32 ? 'Di Atas Target' : 'Normal' }}
-                                    </span>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Jumlah Sampel</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ \App\Models\Sample::whereYear('created_at', now()->year)->whereMonth('created_at', now()->month)->count() }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $samples_this_year }}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">200/tahun (IKU)</td>
-                                <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-{{ $samples_this_year >= 160 ? 'green' : 'yellow' }}-100 text-{{ $samples_this_year >= 160 ? 'green' : 'yellow' }}-800">
-                                        {{ $samples_this_year >= 160 ? 'Mendekati Target' : 'Perlu Peningkatan' }}
-                                    </span>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+        @endcan
 
     </div>
 
@@ -280,13 +331,28 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
+            // Only load charts if dashboard tab is active or when switching to it
+            const urlParams = new URLSearchParams(window.location.search);
+            const tab = urlParams.get('tab') || 'dashboard';
+            
+            if (tab === 'dashboard') {
+                loadAllCharts();
+            }
+            
+            // Listen for tab changes if using custom events, or just check visibility
+            // Since we're using x-data for tabs, we might need to hook into that or just load them once
+            // For simplicity, we load them on init as before, they are hidden but exist
+            // Optimization: Load only when visible could be better but might need refactoring
+        });
+        
+        function loadAllCharts() {
             loadUserOriginChart();
             loadActiveSubstancesChart();
             loadSuspectGenderChart();
             loadSuspectAgeChart();
             loadMonthlyRequestsChart();
             loadMonthlySamplesChart();
-        });
+        }
 
         // 1. User Origin Pie Chart
         function loadUserOriginChart() {
@@ -877,13 +943,19 @@
         }
 
         function refreshCharts() {
-            console.log('Refreshing all charts...');
-            loadUserOriginChart();
-            loadActiveSubstancesChart();
-            loadSuspectGenderChart();
-            loadSuspectAgeChart();
-            loadMonthlyRequestsChart();
-            loadMonthlySamplesChart();
+            // Only refresh charts if in dashboard view to save resources
+            const urlParams = new URLSearchParams(window.location.search);
+            const tab = urlParams.get('tab') || 'dashboard';
+            
+            if (tab === 'dashboard') {
+                console.log('Refreshing all charts...');
+                loadUserOriginChart();
+                loadActiveSubstancesChart();
+                loadSuspectGenderChart();
+                loadSuspectAgeChart();
+                loadMonthlyRequestsChart();
+                loadMonthlySamplesChart();
+            }
         }
 
         setInterval(refreshCharts, 300000);
