@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <title>Laporan Gabungan Periodik - {{ $report->period_label }}</title>
     <style>
-        @page { size: A4; margin: 2cm; }
-        body { font-family: 'Times New Roman', serif; font-size: 11pt; line-height: 1.3; color: #000; margin: 0; }
+        @page { size: A4; margin: 1.5cm 1.5cm 2cm 1.5cm; }
+        body { font-family: 'Times New Roman', serif; font-size: 10pt; line-height: 1.25; color: #000; margin: 0; }
         
         /* Kop Surat */
         .header { width: 100%; border-bottom: 3px double #000; padding-bottom: 10px; margin-bottom: 20px; }
