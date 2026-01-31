@@ -131,11 +131,28 @@ class ConsolidatedReportService
             ->count();
 
         // Calculate average processing time (days)
-        // FIX: Cast to float to avoid round() errors
-        $avgProcessingTime = (float) (TestRequest::whereNotNull('completed_at')
-            ->whereBetween('completed_at', [$start, $end])
+        // FIX: Match logic with DashboardController (submitted_at -> completed_at/updated_at, weekdays only)
+        $processingTimes = TestRequest::whereIn('status', ['completed', 'ready_for_delivery', 'delivered'])
+            ->where(function ($query) use ($start, $end) {
+                $query->whereBetween('completed_at', [$start, $end])
+                    ->orWhere(function ($q) use ($start, $end) {
+                        $q->whereNull('completed_at')
+                            ->whereBetween('updated_at', [$start, $end]);
+                    });
+            })
             ->get()
-            ->avg(fn ($req) => $req->created_at->diffInWeekdays($req->completed_at)) ?? 0);
+            ->map(function ($req) {
+                $start = $req->submitted_at ?? $req->created_at;
+                $end = $req->completed_at ?? $req->updated_at;
+
+                if (! $start || ! $end || $end->lt($start)) {
+                    return 0;
+                }
+
+                return $start->diffInWeekdays($end);
+            });
+
+        $avgProcessingTime = (float) ($processingTimes->avg() ?? 0);
 
         // Calculate average satisfaction rating
         // FIX: Cast to float to avoid round() errors
@@ -195,10 +212,25 @@ class ConsolidatedReportService
      */
     public function getProcessingTimeBreakdown(Carbon $start, Carbon $end): array
     {
-        $requests = TestRequest::whereNotNull('completed_at')
-            ->whereBetween('completed_at', [$start, $end])
+        $requests = TestRequest::whereIn('status', ['completed', 'ready_for_delivery', 'delivered'])
+            ->where(function ($query) use ($start, $end) {
+                $query->whereBetween('completed_at', [$start, $end])
+                    ->orWhere(function ($q) use ($start, $end) {
+                        $q->whereNull('completed_at')
+                            ->whereBetween('updated_at', [$start, $end]);
+                    });
+            })
             ->get()
-            ->map(fn ($r) => $r->created_at->diffInWeekdays($r->completed_at));
+            ->map(function ($req) {
+                $start = $req->submitted_at ?? $req->created_at;
+                $end = $req->completed_at ?? $req->updated_at;
+
+                if (! $start || ! $end || $end->lt($start)) {
+                    return 0;
+                }
+
+                return $start->diffInWeekdays($end);
+            });
 
         $total = $requests->count();
 
