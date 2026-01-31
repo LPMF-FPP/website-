@@ -22,7 +22,9 @@ class ConsolidatedReportController extends Controller
         // This will be handled in the main StatisticsController@index view with a tab
         // But if accessed directly/via XHR for tab content, we can return partial
         if (request()->ajax()) {
-            return view('statistics.partials.consolidated-form');
+            $defaultSigners = $this->reportService->getDefaultSigners();
+
+            return view('statistics.partials.consolidated-form', compact('defaultSigners'));
         }
 
         return redirect()->route('statistics.index', ['tab' => 'reports']);
