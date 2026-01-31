@@ -3,14 +3,7 @@
     periodType: 'biweekly',
     startDate: '',
     endDate: '',
-    signers: {{ json_encode(
-        \App\Models\SystemSetting::where('key', 'consolidated_report.default_signers')->value('value') 
-        ?? [
-            ['role' => 'Pembuat', 'name' => '', 'position' => '', 'nip' => ''],
-            ['role' => 'Pemeriksa', 'name' => '', 'position' => '', 'nip' => ''],
-            ['role' => 'Pengesah', 'name' => '', 'position' => '', 'nip' => ''],
-        ]
-    ) }},
+    signers: {{ json_encode($defaultSigners ?? \App\Services\ConsolidatedReportService::DEFAULT_SIGNERS_STRUCTURE) }},
     previewData: null,
     loading: false,
     errorMessage: '',
