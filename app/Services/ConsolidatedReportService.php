@@ -32,6 +32,11 @@ class ConsolidatedReportService
             'period_label' => $this->getPeriodLabel($periodType, $start, $end),
             'statistics' => $this->getStatisticsForPeriod($start, $end),
             'active_substances' => $this->getActiveSubstancesForPeriod($start, $end),
+            'processing_time' => $this->getProcessingTimeBreakdown($start, $end),
+            'satisfaction' => $this->getSatisfactionBreakdown($start, $end),
+            'gender' => $this->getGenderBreakdown($start, $end),
+            'jurisdiction' => $this->getJurisdictionBreakdown($start, $end),
+            'age_range' => $this->getAgeRangeBreakdown($start, $end),
             'iku' => $periodType === 'quarterly' ? $this->ikuService->computeForPeriod($start, $end) : null,
             'comparison' => $this->getComparisonData($periodType, $start),
             'narratives' => $this->getDefaultNarratives($periodType),
@@ -52,6 +57,11 @@ class ConsolidatedReportService
         $reportData = [
             'statistics' => $this->getStatisticsForPeriod($start, $end),
             'active_substances' => $this->getActiveSubstancesForPeriod($start, $end),
+            'processing_time' => $this->getProcessingTimeBreakdown($start, $end),
+            'satisfaction' => $this->getSatisfactionBreakdown($start, $end),
+            'gender' => $this->getGenderBreakdown($start, $end),
+            'jurisdiction' => $this->getJurisdictionBreakdown($start, $end),
+            'age_range' => $this->getAgeRangeBreakdown($start, $end),
             'iku' => $periodType === 'quarterly' ? $this->ikuService->computeForPeriod($start, $end) : null,
         ];
 
@@ -177,6 +187,163 @@ class ConsolidatedReportService
         return [
             'items' => $items,
             'total' => $totalSamples,
+        ];
+    }
+
+    /**
+     * Get processing time breakdown for a period.
+     */
+    public function getProcessingTimeBreakdown(Carbon $start, Carbon $end): array
+    {
+        $requests = TestRequest::whereNotNull('completed_at')
+            ->whereBetween('completed_at', [$start, $end])
+            ->get()
+            ->map(fn ($r) => $r->created_at->diffInDays($r->completed_at));
+
+        $total = $requests->count();
+
+        $categories = [
+            '≤ 3 hari' => $requests->filter(fn ($d) => $d <= 3)->count(),
+            '4-7 hari' => $requests->filter(fn ($d) => $d >= 4 && $d <= 7)->count(),
+            '8-14 hari' => $requests->filter(fn ($d) => $d >= 8 && $d <= 14)->count(),
+            '> 14 hari' => $requests->filter(fn ($d) => $d > 14)->count(),
+        ];
+
+        return [
+            'categories' => collect($categories)->map(fn ($count, $label) => [
+                'label' => $label,
+                'count' => $count,
+                'percentage' => $total > 0 ? round(($count / $total) * 100, 1) : 0,
+            ])->values()->toArray(),
+            'total' => $total,
+            'avg_days' => $total > 0 ? round($requests->avg(), 1) : 0,
+        ];
+    }
+
+    /**
+     * Get customer satisfaction breakdown for a period.
+     */
+    public function getSatisfactionBreakdown(Carbon $start, Carbon $end): array
+    {
+        $surveys = CustomerSurvey::whereBetween('submitted_at', [$start, $end])
+            ->whereNotNull('score_avg')
+            ->get();
+
+        $total = $surveys->count();
+        $avgScore = (float) ($surveys->avg('score_avg') ?? 0);
+
+        // Group by rounded score (1-5)
+        $ratings = [
+            5 => ['label' => 'Sangat Puas (5)', 'count' => 0],
+            4 => ['label' => 'Puas (4)', 'count' => 0],
+            3 => ['label' => 'Cukup (3)', 'count' => 0],
+            2 => ['label' => 'Kurang Puas (2)', 'count' => 0],
+            1 => ['label' => 'Tidak Puas (1)', 'count' => 0],
+        ];
+
+        foreach ($surveys as $survey) {
+            $rounded = (int) round((float) $survey->score_avg);
+            $rounded = max(1, min(5, $rounded)); // Clamp 1-5
+            $ratings[$rounded]['count']++;
+        }
+
+        return [
+            'ratings' => collect($ratings)->map(fn ($r) => [
+                'label' => $r['label'],
+                'count' => $r['count'],
+                'percentage' => $total > 0 ? round(($r['count'] / $total) * 100, 1) : 0,
+            ])->values()->toArray(),
+            'total_respondents' => $total,
+            'avg_score' => round($avgScore, 2),
+        ];
+    }
+
+    /**
+     * Get suspect gender breakdown for a period.
+     */
+    public function getGenderBreakdown(Carbon $start, Carbon $end): array
+    {
+        $requests = TestRequest::whereBetween('created_at', [$start, $end])
+            ->select('suspect_gender', DB::raw('count(*) as total'))
+            ->groupBy('suspect_gender')
+            ->get()
+            ->keyBy('suspect_gender');
+
+        $total = $requests->sum('total');
+
+        $genders = [
+            ['label' => 'Laki-laki', 'key' => 'Laki-laki'],
+            ['label' => 'Perempuan', 'key' => 'Perempuan'],
+            ['label' => 'Tidak Diketahui', 'key' => null],
+        ];
+
+        return [
+            'items' => collect($genders)->map(fn ($g) => [
+                'label' => $g['label'],
+                'count' => $requests->get($g['key'])?->total ?? 0,
+                'percentage' => $total > 0 ? round((($requests->get($g['key'])?->total ?? 0) / $total) * 100, 1) : 0,
+            ])->toArray(),
+            'total' => $total,
+        ];
+    }
+
+    /**
+     * Get jurisdiction (asal user) breakdown for a period.
+     */
+    public function getJurisdictionBreakdown(Carbon $start, Carbon $end): array
+    {
+        $data = TestRequest::whereBetween('test_requests.created_at', [$start, $end])
+            ->join('investigators', 'test_requests.investigator_id', '=', 'investigators.id')
+            ->select('investigators.jurisdiction', DB::raw('count(*) as total'))
+            ->groupBy('investigators.jurisdiction')
+            ->orderByDesc('total')
+            ->limit(10)
+            ->get();
+
+        $total = TestRequest::whereBetween('created_at', [$start, $end])->count();
+
+        return [
+            'items' => $data->map(fn ($item) => [
+                'label' => $item->jurisdiction ?: 'Tidak Diketahui',
+                'count' => $item->total,
+                'percentage' => $total > 0 ? round(($item->total / $total) * 100, 1) : 0,
+            ])->toArray(),
+            'total' => $total,
+        ];
+    }
+
+    /**
+     * Get suspect age range breakdown for a period.
+     */
+    public function getAgeRangeBreakdown(Carbon $start, Carbon $end): array
+    {
+        $requests = TestRequest::whereBetween('created_at', [$start, $end])
+            ->whereNotNull('suspect_age')
+            ->pluck('suspect_age');
+
+        $nullCount = TestRequest::whereBetween('created_at', [$start, $end])
+            ->whereNull('suspect_age')
+            ->count();
+
+        $total = $requests->count() + $nullCount;
+
+        $ranges = [
+            '< 18 tahun' => $requests->filter(fn ($a) => $a < 18)->count(),
+            '18-25 tahun' => $requests->filter(fn ($a) => $a >= 18 && $a <= 25)->count(),
+            '26-35 tahun' => $requests->filter(fn ($a) => $a >= 26 && $a <= 35)->count(),
+            '36-45 tahun' => $requests->filter(fn ($a) => $a >= 36 && $a <= 45)->count(),
+            '46-55 tahun' => $requests->filter(fn ($a) => $a >= 46 && $a <= 55)->count(),
+            '> 55 tahun' => $requests->filter(fn ($a) => $a > 55)->count(),
+            'Tidak Diketahui' => $nullCount,
+        ];
+
+        return [
+            'items' => collect($ranges)->map(fn ($count, $label) => [
+                'label' => $label,
+                'count' => $count,
+                'percentage' => $total > 0 ? round(($count / $total) * 100, 1) : 0,
+            ])->values()->toArray(),
+            'total' => $total,
         ];
     }
 

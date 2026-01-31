@@ -191,10 +191,160 @@
         </table>
     </div>
 
-    <!-- III. IKU (Only if available) -->
+    <!-- III. KECEPATAN PENGERJAAN -->
+    <div class="section">
+        <div class="section-title">III. Kecepatan Pengerjaan</div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 50%">Kategori Waktu</th>
+                    <th style="width: 25%">Jumlah</th>
+                    <th style="width: 25%">Persentase</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($report->report_data['processing_time']['categories'] as $item)
+                    <tr>
+                        <td>{{ $item['label'] }}</td>
+                        <td class="text-center">{{ $item['count'] }}</td>
+                        <td class="text-center">{{ $item['percentage'] }}%</td>
+                    </tr>
+                @endforeach
+            </tbody>
+            <tfoot>
+                <tr style="background-color: #f9f9f9; font-weight: bold;">
+                    <td class="text-right">TOTAL</td>
+                    <td class="text-center">{{ $report->report_data['processing_time']['total'] }}</td>
+                    <td class="text-center">100%</td>
+                </tr>
+                <tr>
+                    <td colspan="3" class="text-center" style="background-color: #eff6ff;">
+                        Rata-rata Pengerjaan: <strong>{{ $report->report_data['processing_time']['avg_days'] }}</strong> hari
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <!-- IV. KEPUASAN PELANGGAN -->
+    <div class="section">
+        <div class="section-title">IV. Kepuasan Pelanggan</div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 50%">Rating</th>
+                    <th style="width: 25%">Jumlah</th>
+                    <th style="width: 25%">Persentase</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($report->report_data['satisfaction']['ratings'] as $item)
+                    <tr>
+                        <td>{{ $item['label'] }}</td>
+                        <td class="text-center">{{ $item['count'] }}</td>
+                        <td class="text-center">{{ $item['percentage'] }}%</td>
+                    </tr>
+                @endforeach
+            </tbody>
+            <tfoot>
+                <tr style="background-color: #f9f9f9; font-weight: bold;">
+                    <td class="text-right">TOTAL RESPONDEN</td>
+                    <td class="text-center">{{ $report->report_data['satisfaction']['total_respondents'] }}</td>
+                    <td class="text-center">100%</td>
+                </tr>
+                <tr>
+                    <td colspan="3" class="text-center" style="background-color: #eff6ff;">
+                        Skor Rata-rata: <strong>{{ $report->report_data['satisfaction']['avg_score'] }}</strong> / 5.00
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <!-- V. DEMOGRAFI TERSANGKA -->
+    <div style="page-break-inside: avoid;">
+        <table style="width: 100%; border-collapse: collapse; border: none;">
+            <tr>
+                <td style="width: 48%; vertical-align: top; border: none; padding: 0;">
+                    <div class="section-title">V. Gender Tersangka</div>
+                    <table class="data-table" style="margin-bottom: 0;">
+                        <thead>
+                            <tr>
+                                <th>Gender</th>
+                                <th>Jml</th>
+                                <th>%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($report->report_data['gender']['items'] as $item)
+                                <tr>
+                                    <td>{{ $item['label'] ?? 'Tidak Diketahui' }}</td>
+                                    <td class="text-center">{{ $item['count'] }}</td>
+                                    <td class="text-center">{{ $item['percentage'] }}%</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </td>
+                <td style="width: 4%; border: none;"></td>
+                <td style="width: 48%; vertical-align: top; border: none; padding: 0;">
+                    <div class="section-title">VI. Rentang Umur</div>
+                    <table class="data-table" style="margin-bottom: 0;">
+                        <thead>
+                            <tr>
+                                <th>Umur</th>
+                                <th>Jml</th>
+                                <th>%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($report->report_data['age_range']['items'] as $item)
+                                <tr>
+                                    <td>{{ $item['label'] }}</td>
+                                    <td class="text-center">{{ $item['count'] }}</td>
+                                    <td class="text-center">{{ $item['percentage'] }}%</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- VII. ASAL USER (TOP 10) -->
+    <div class="section" style="margin-top: 20px;">
+        <div class="section-title">VII. Asal User (Top 10 Jurisdiction)</div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 10%">No</th>
+                    <th style="width: 50%">Jurisdiction / Satuan</th>
+                    <th style="width: 20%">Jumlah</th>
+                    <th style="width: 20%">Persentase</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($report->report_data['jurisdiction']['items'] as $index => $item)
+                    <tr>
+                        <td class="text-center">{{ $index + 1 }}</td>
+                        <td>{{ $item['label'] }}</td>
+                        <td class="text-center">{{ $item['count'] }}</td>
+                        <td class="text-center">{{ $item['percentage'] }}%</td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="4" class="text-center" style="font-style: italic; color: #777;">Tidak ada data.</td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    <!-- VIII. IKU (Only if available) -->
     @if(isset($report->report_data['iku']) && $report->report_data['iku'])
     <div class="section">
-        <div class="section-title">III. Indeks Kinerja Utama (IKU)</div>
+        <div class="section-title">VIII. Indeks Kinerja Utama (IKU)</div>
         
         <div style="border: 1px solid #000; padding: 10px; margin-bottom: 15px; background-color: #f9f9f9;">
             <table style="width: 100%">
