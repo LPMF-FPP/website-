@@ -107,7 +107,7 @@ class ConsolidatedReportService
 
         // Calculate average satisfaction rating
         $avgSatisfaction = CustomerSurvey::whereBetween('submitted_at', [$start, $end])
-            ->avg('overall_satisfaction') ?? 0;
+            ->avg('score_avg') ?? 0;
 
         return [
             'total_requests_received' => $requestsReceived,
