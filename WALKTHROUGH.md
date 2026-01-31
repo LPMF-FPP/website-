@@ -23,12 +23,54 @@
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 
-**Current Version:** v1.8.0 (29 Januari 2026)  
-**Latest Feature:** WhatsApp Hub (Unified Dashboard)
+**Current Version:** v1.8.2 (31 Januari 2026)  
+**Latest Feature:** Flexible WhatsApp Reminders & Dashboard Fixes
 
 ---
 
-## 📰 Recent Changes (v1.5.x)
+## 📰 Recent Changes (v1.8.x)
+
+### v1.8.2 (31 Januari 2026) - Flexible Reminders & Dashboard Precision
+
+```
+Updated on 2026-01-31
+```
+
+**🎯 Problem Solved:**
+
+1.  **Dashboard Disposisi Error:**
+    - Tanggal **HASIL** salah (menggunakan waktu selesai, bukan waktu kirim).
+    - Status Aging (Merah/Kuning) menghitung hari libur (Sabtu/Minggu), membuat data terlihat lebih buruk dari realitanya.
+    - Kolom **AMBIL** muncul sebelum barang benar-benar diambil.
+2.  **Reminder Kaku:**
+    - Jadwal reminder hanya bisa Daily atau Weekdays, tidak bisa memilih hari spesifik (misal: Senin & Kamis saja).
+
+**✨ Improvements:**
+
+- **Flexible Reminder Schedule:**
+    - Admin sekarang bisa memilih hari spesifik (Mon-Sun) untuk setiap reminder.
+    - Tampilan kartu reminder di dashboard menampilkan preview hari (e.g., "Weekdays", "Weekends", "Mon, Thu").
+    - Database migrasi ke tipe `jsonb` untuk fleksibilitas.
+
+- **Dashboard Precision:**
+    - **HASIL Logic:** Menggunakan waktu pembuatan Delivery (`created_at`) sebagai waktu "Kirim ke Penyerahan".
+    - **Business Days Aging:** Status Merah/Kuning sekarang menghitung **Hari Kerja** (exclude Sabtu-Minggu).
+        - 🔴 Merah: Stuck > 14 Hari Kerja
+        - 🟡 Kuning: Stuck > 7 Hari Kerja
+    - **AMBIL Logic:** Hanya muncul jika status benar-benar `completed` (barang diambil).
+
+- **Test Coverage:**
+    - Menambahkan Regression Test Suite (`DashboardBugFixesTest`) untuk menjamin logika bisnis tidak rusak di kemudian hari.
+
+**📁 Files Modified:**
+
+- `app/Services/DisposisiTableService.php` (Business Logic)
+- `app/Models/Reminder.php` (JSON casting, scopeDue update)
+- `app/Http/Controllers/WhatsAppHubController.php` (Validation)
+- `resources/views/dashboard/partials/disposisi-table.blade.php` (UI Legend & Logic)
+- `resources/views/whatsapp/partials/tab-reminders.blade.php` (UI Preview)
+- `resources/views/whatsapp/partials/modal-reminder-edit.blade.php` (UI Form)
+- `database/migrations/2026_01_31_...` (Migration)
 
 ### v1.8.1 (30 Januari 2026) - WhatsApp Reminders & Personnel Tab Fixes
 
