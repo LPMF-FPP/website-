@@ -43,9 +43,9 @@
         .compact-box ul { margin: 0; padding-left: 15px; }
 
         /* Signatures */
-        .signatures { width: 100%; margin-top: 50px; page-break-inside: avoid; }
+        .signatures { width: 100%; margin-top: 25px; page-break-inside: avoid; }
         .signature-box { width: 33%; float: left; text-align: center; }
-        .signature-space { height: 70px; }
+        .signature-space { height: 50px; }
         .signature-name { font-weight: bold; text-decoration: underline; text-transform: uppercase; }
         .signature-nip { font-size: 10pt; }
 
