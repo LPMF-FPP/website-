@@ -31,21 +31,15 @@
                 this.endDate = this.formatDate(new Date(year, month, 0));
             }
         } else if (this.periodType === 'monthly') {
-            // Last month
-            this.startDate = this.formatDate(new Date(year, month - 1, 1));
-            this.endDate = this.formatDate(new Date(year, month, 0));
+            // Current month
+            this.startDate = this.formatDate(new Date(year, month, 1));
+            this.endDate = this.formatDate(new Date(year, month + 1, 0));
         } else if (this.periodType === 'quarterly') {
-            // Last quarter
+            // Current quarter
             const quarter = Math.floor(month / 3);
-            const startMonth = (quarter - 1) * 3;
-            if (startMonth < 0) {
-                // Q4 last year
-                this.startDate = this.formatDate(new Date(year - 1, 9, 1));
-                this.endDate = this.formatDate(new Date(year - 1, 11, 31));
-            } else {
-                this.startDate = this.formatDate(new Date(year, startMonth, 1));
-                this.endDate = this.formatDate(new Date(year, startMonth + 3, 0));
-            }
+            const startMonth = quarter * 3;
+            this.startDate = this.formatDate(new Date(year, startMonth, 1));
+            this.endDate = this.formatDate(new Date(year, startMonth + 3, 0));
         }
     },
 
