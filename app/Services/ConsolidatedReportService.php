@@ -17,6 +17,12 @@ use Illuminate\Support\Facades\Storage;
 
 class ConsolidatedReportService
 {
+    public const DEFAULT_SIGNERS_STRUCTURE = [
+        ['role' => 'Pembuat', 'name' => '', 'position' => '', 'nip' => ''],
+        ['role' => 'Pemeriksa', 'name' => '', 'position' => '', 'nip' => ''],
+        ['role' => 'Pengesah', 'name' => '', 'position' => '', 'nip' => ''],
+    ];
+
     public function __construct(
         private readonly ActiveSubstanceService $activeSubstanceService,
         private readonly IkuService $ikuService,
@@ -476,11 +482,7 @@ class ConsolidatedReportService
         $signers = $this->settings->get('consolidated_report.default_signers', null);
 
         if (empty($signers)) {
-            return [
-                ['role' => 'Pembuat', 'name' => '', 'position' => '', 'nip' => ''],
-                ['role' => 'Pemeriksa', 'name' => '', 'position' => '', 'nip' => ''],
-                ['role' => 'Pengesah', 'name' => '', 'position' => '', 'nip' => ''],
-            ];
+            return self::DEFAULT_SIGNERS_STRUCTURE;
         }
 
         return $signers;
