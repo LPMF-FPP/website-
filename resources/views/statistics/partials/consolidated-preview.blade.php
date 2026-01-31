@@ -182,7 +182,7 @@
             <div class="mb-6">
                 <h3 class="font-bold mb-2">IV. KEPUASAN PELANGGAN</h3>
                 <div class="border border-black p-4 text-sm bg-white">
-                    <p class="mb-2"><strong>Skor Rata-rata:</strong> <span x-text="previewData.satisfaction.avg_score"></span> / 5.00</p>
+                    <p class="mb-2"><strong>Skor Rata-rata:</strong> <span x-text="previewData.satisfaction.avg_score"></span> / 4.00</p>
                     <p class="mb-3"><strong>Total Responden:</strong> <span x-text="previewData.satisfaction.total_respondents"></span></p>
                     <p class="mb-2 font-bold">Distribusi Rating:</p>
                     <ul class="list-disc pl-5">
