@@ -8,6 +8,7 @@ use App\Models\SurveyResponse;
 use App\Models\TestRequest;
 use App\Models\User;
 use App\Services\ActiveSubstanceService;
+use App\Services\ConsolidatedReportService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -16,15 +17,23 @@ class StatisticsController extends Controller
 {
     protected ActiveSubstanceService $activeSubstanceService;
 
-    public function __construct(ActiveSubstanceService $activeSubstanceService)
-    {
+    protected ConsolidatedReportService $reportService;
+
+    public function __construct(
+        ActiveSubstanceService $activeSubstanceService,
+        ConsolidatedReportService $reportService
+    ) {
         $this->activeSubstanceService = $activeSubstanceService;
+        $this->reportService = $reportService;
     }
 
     public function index()
     {
         try {
             $activeSubstanceBreakdown = $this->activeSubstanceService->breakdown(0);
+
+            // Get default signers for the consolidated report form
+            $defaultSigners = $this->reportService->getDefaultSigners();
 
             // 1. Statistik Utama untuk Cards
             $mainStats = [
@@ -88,6 +97,7 @@ class StatisticsController extends Controller
                 'trendData' => $trendData,
                 'surveyStats' => $surveyStats,
                 'activeSubstanceBreakdown' => $activeSubstanceBreakdown,
+                'defaultSigners' => $defaultSigners,
             ]);
 
         } catch (\Exception $e) {
