@@ -271,7 +271,7 @@
     </div>
 
     <!-- VII. ASAL USER (TOP 10) -->
-    <div class="section" style="margin-top: 20px;">
+    <div class="section" style="margin-top: 8px;">
         <div class="section-title">VII. Asal User (Top 10 Jurisdiction)</div>
         <table class="data-table">
             <thead>
@@ -304,7 +304,7 @@
     <div class="section">
         <div class="section-title">VIII. Indeks Kinerja Utama (IKU)</div>
         
-        <div style="border: 1px solid #000; padding: 10px; margin-bottom: 15px; background-color: #f9f9f9;">
+        <div style="border: 1px solid #000; padding: 6px 10px; margin-bottom: 8px; background-color: #f9f9f9;">
             <table style="width: 100%">
                 <tr>
                     <td style="font-weight: bold;">Nilai IKU: {{ $report->report_data['iku']['iku_value'] }}</td>
