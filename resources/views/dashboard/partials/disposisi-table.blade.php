@@ -183,11 +183,11 @@
             <div class="flex flex-wrap gap-4 pt-3 border-t border-gray-100 text-xs text-gray-600">
                 <div class="flex items-center gap-1.5">
                     <span>🔴</span>
-                    <span>Tidak ada perkembangan > 14 hari</span>
+                    <span>Tidak ada perkembangan > 14 hari kerja</span>
                 </div>
                 <div class="flex items-center gap-1.5">
                     <span>🟡</span>
-                    <span>Tidak ada perkembangan > 7 hari</span>
+                    <span>Tidak ada perkembangan > 7 hari kerja</span>
                 </div>
                 <div class="flex items-center gap-1.5">
                     <span>🟢</span>

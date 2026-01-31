@@ -124,9 +124,9 @@ class DisposisiTableService
             return 'in_progress'; // Should not happen if data valid
         }
 
-        $daysStuck = $lastUpdate->diffInDays(now());
+        $daysStuck = $lastUpdate->diffInWeekdays(now());
 
-        // 3. Merah: Tidak ada progress > 14 hari
+        // 3. Merah: Tidak ada progress > 14 hari kerja
         if ($daysStuck > 14) {
             return 'stuck_14_days';
         }

@@ -132,12 +132,17 @@ test('ambil column is null for ready_for_delivery status', function () {
     expect($row['ambil'])->toBeNull();
 });
 
-test('status is red when stuck for more than 14 days', function () {
-    // Arrange: Submitted 15 days ago, no further updates
+test('status is red when stuck for more than 14 weekdays', function () {
+    // Arrange: Set reference time to a Friday to make calculation predictable
+    // Target: > 14 weekdays.
+    // 3 weeks = 15 weekdays. 3 weeks = 21 calendar days.
+    $now = \Carbon\Carbon::parse('2024-01-26 12:00:00'); // Friday
+    \Carbon\Carbon::setTestNow($now);
+
     $request = TestRequest::factory()->create([
         'status' => 'submitted',
-        'submitted_at' => now()->subDays(15),
-        'created_at' => now()->subDays(15),
+        'submitted_at' => $now->copy()->subWeekdays(15)->subHour(), // 15 weekdays + 1 hour ago
+        'created_at' => $now->copy()->subWeekdays(15)->subHour(),
         'verified_at' => null,
         'completed_at' => null,
     ]);
@@ -151,12 +156,16 @@ test('status is red when stuck for more than 14 days', function () {
     expect($row['status'])->toBe('stuck_14_days');
 });
 
-test('status is yellow when stuck for more than 7 days but less than 14', function () {
-    // Arrange: Submitted 8 days ago, no further updates
+test('status is yellow when stuck for more than 7 weekdays but less than 14', function () {
+    // Arrange
+    $now = \Carbon\Carbon::parse('2024-01-26 12:00:00'); // Friday
+    \Carbon\Carbon::setTestNow($now);
+
+    // Target: 8 weekdays (Yellow threshold is > 7)
     $request = TestRequest::factory()->create([
         'status' => 'submitted',
-        'submitted_at' => now()->subDays(8),
-        'created_at' => now()->subDays(8),
+        'submitted_at' => $now->copy()->subWeekdays(8),
+        'created_at' => $now->copy()->subWeekdays(8),
         'verified_at' => null,
         'completed_at' => null,
     ]);
@@ -170,12 +179,16 @@ test('status is yellow when stuck for more than 7 days but less than 14', functi
     expect($row['status'])->toBe('stuck_7_days');
 });
 
-test('status is in_progress when stuck for less than 7 days', function () {
-    // Arrange: Submitted 3 days ago
+test('status is in_progress when stuck for less than 7 weekdays', function () {
+    // Arrange
+    $now = \Carbon\Carbon::parse('2024-01-26 12:00:00'); // Friday
+    \Carbon\Carbon::setTestNow($now);
+
+    // Target: 6 weekdays (< 7)
     $request = TestRequest::factory()->create([
         'status' => 'submitted',
-        'submitted_at' => now()->subDays(3),
-        'created_at' => now()->subDays(3),
+        'submitted_at' => $now->copy()->subWeekdays(6),
+        'created_at' => $now->copy()->subWeekdays(6),
     ]);
 
     // Act
