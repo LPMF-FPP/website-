@@ -84,13 +84,34 @@ class ConsolidatedReportService
     public function getStatisticsForPeriod(Carbon $start, Carbon $end): array
     {
         $requestsReceived = TestRequest::whereBetween('created_at', [$start, $end])->count();
-        $requestsCompleted = TestRequest::whereBetween('completed_at', [$start, $end])->count();
+
+        // FIX: Use robust logic from IkuService to handle null completed_at
+        $requestsCompleted = TestRequest::whereIn('status', ['completed', 'ready_for_delivery', 'delivered'])
+            ->where(function ($query) use ($start, $end) {
+                $query->whereBetween('completed_at', [$start, $end])
+                    ->orWhere(function ($q) use ($start, $end) {
+                        $q->whereNull('completed_at')
+                            ->whereBetween('updated_at', [$start, $end])
+                            ->whereIn('status', ['completed', 'ready_for_delivery', 'delivered']);
+                    });
+            })
+            ->count();
 
         $samplesReceived = Sample::whereBetween('created_at', [$start, $end])->count();
-        $samplesTested = Sample::whereIn('sample_status', ['ready_for_delivery', 'interpretation_done', 'completed'])
+
+        // FIX: Use robust logic from IkuService to handle null testing_completed_at & legacy status
+        $samplesTested = Sample::whereIn('sample_status', [
+            'ready_for_delivery',
+            'interpretation_done',
+            'tested',      // Legacy status
+            'completed',   // Legacy status
+        ])
             ->where(function ($query) use ($start, $end) {
                 $query->whereBetween('testing_completed_at', [$start, $end])
-                    ->orWhereBetween('updated_at', [$start, $end]);
+                    ->orWhere(function ($q) use ($start, $end) {
+                        $q->whereNull('testing_completed_at')
+                            ->whereBetween('updated_at', [$start, $end]);
+                    });
             })
             ->count();
 
@@ -100,14 +121,16 @@ class ConsolidatedReportService
             ->count();
 
         // Calculate average processing time (days)
-        $avgProcessingTime = TestRequest::whereNotNull('completed_at')
+        // FIX: Cast to float to avoid round() errors
+        $avgProcessingTime = (float) (TestRequest::whereNotNull('completed_at')
             ->whereBetween('completed_at', [$start, $end])
             ->get()
-            ->avg(fn ($req) => $req->created_at->diffInDays($req->completed_at)) ?? 0;
+            ->avg(fn ($req) => $req->created_at->diffInDays($req->completed_at)) ?? 0);
 
         // Calculate average satisfaction rating
-        $avgSatisfaction = CustomerSurvey::whereBetween('submitted_at', [$start, $end])
-            ->avg('score_avg') ?? 0;
+        // FIX: Cast to float to avoid round() errors
+        $avgSatisfaction = (float) (CustomerSurvey::whereBetween('submitted_at', [$start, $end])
+            ->avg('score_avg') ?? 0);
 
         return [
             'total_requests_received' => $requestsReceived,
