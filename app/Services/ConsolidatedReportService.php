@@ -473,7 +473,17 @@ class ConsolidatedReportService
      */
     public function getDefaultSigners(): array
     {
-        return $this->settings->get('consolidated_report.default_signers', []);
+        $signers = $this->settings->get('consolidated_report.default_signers', null);
+
+        if (empty($signers)) {
+            return [
+                ['role' => 'Pembuat', 'name' => '', 'position' => '', 'nip' => ''],
+                ['role' => 'Pemeriksa', 'name' => '', 'position' => '', 'nip' => ''],
+                ['role' => 'Pengesah', 'name' => '', 'position' => '', 'nip' => ''],
+            ];
+        }
+
+        return $signers;
     }
 
     /**

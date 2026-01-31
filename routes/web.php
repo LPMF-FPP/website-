@@ -262,6 +262,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('/history', [ConsolidatedReportController::class, 'history'])->name('history');
             Route::post('/preview', [ConsolidatedReportController::class, 'preview'])->name('preview');
             Route::post('/', [ConsolidatedReportController::class, 'store'])->name('store');
+            Route::put('/default-signers', [ConsolidatedReportController::class, 'saveDefaultSigners'])->name('save-default-signers');
             Route::get('/{report}/download', [ConsolidatedReportController::class, 'download'])->name('download');
             Route::delete('/{report}', [ConsolidatedReportController::class, 'destroy'])->name('destroy');
         });

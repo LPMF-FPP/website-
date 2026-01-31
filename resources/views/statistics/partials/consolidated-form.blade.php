@@ -3,12 +3,21 @@
     periodType: 'biweekly',
     startDate: '',
     endDate: '',
-    signers: {{ json_encode(\App\Models\SystemSetting::where('key', 'consolidated_report.default_signers')->value('value') ?? []) }},
+    signers: {{ json_encode(
+        \App\Models\SystemSetting::where('key', 'consolidated_report.default_signers')->value('value') 
+        ?? [
+            ['role' => 'Pembuat', 'name' => '', 'position' => '', 'nip' => ''],
+            ['role' => 'Pemeriksa', 'name' => '', 'position' => '', 'nip' => ''],
+            ['role' => 'Pengesah', 'name' => '', 'position' => '', 'nip' => ''],
+        ]
+    ) }},
     previewData: null,
     loading: false,
     errorMessage: '',
     successMessage: '',
     downloadUrl: '',
+    savingDefaults: false,
+    defaultsSavedMessage: '',
 
     init() {
         this.updateDateRange();
@@ -94,6 +103,26 @@
         .finally(() => {
             this.loading = false;
         });
+    },
+
+    saveAsDefaults() {
+        this.savingDefaults = true;
+        this.defaultsSavedMessage = '';
+        this.errorMessage = '';
+
+        axios.put('{{ route('consolidated-reports.save-default-signers') }}', {
+            signers: this.signers
+        })
+        .then(response => {
+            this.defaultsSavedMessage = response.data.message;
+            setTimeout(() => { this.defaultsSavedMessage = ''; }, 3000);
+        })
+        .catch(error => {
+            this.errorMessage = error.response?.data?.message || 'Gagal menyimpan default.';
+        })
+        .finally(() => {
+            this.savingDefaults = false;
+        });
     }
 }">
 
@@ -140,7 +169,36 @@
 
             <div class="sm:col-span-6">
                 <div class="border-t border-gray-200 my-4"></div>
-                <h4 class="text-md font-medium text-gray-900 mb-4">Penandatangan (Opsional)</h4>
+                <div class="flex justify-between items-center mb-4">
+                    <h4 class="text-md font-medium text-gray-900">Penandatangan (Opsional)</h4>
+                    <button 
+                        @click="saveAsDefaults()" 
+                        :disabled="savingDefaults"
+                        type="button"
+                        class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50">
+                        <svg x-show="savingDefaults" class="animate-spin -ml-0.5 mr-1.5 h-3 w-3 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <svg x-show="!savingDefaults" class="-ml-0.5 mr-1.5 h-3 w-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                        </svg>
+                        <span x-text="savingDefaults ? 'Menyimpan...' : 'Simpan Sebagai Default'"></span>
+                    </button>
+                </div>
+                <!-- Success message for defaults saved -->
+                <div x-show="defaultsSavedMessage" x-transition class="mb-4 bg-green-50 border-l-4 border-green-400 p-3">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-green-700" x-text="defaultsSavedMessage"></p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Signers -->

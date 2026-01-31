@@ -115,4 +115,27 @@ class ConsolidatedReportController extends Controller
 
         return response()->json($reports);
     }
+
+    public function saveDefaultSigners(Request $request)
+    {
+        $this->authorize('statistik.export');
+
+        $request->validate([
+            'signers' => ['required', 'array'],
+            'signers.*.role' => ['required', 'string'],
+            'signers.*.name' => ['nullable', 'string', 'max:255'],
+            'signers.*.position' => ['nullable', 'string', 'max:255'],
+            'signers.*.nip' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        \App\Models\SystemSetting::updateOrCreate(
+            ['key' => 'consolidated_report.default_signers'],
+            ['value' => $request->signers]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Default penandatangan berhasil disimpan.',
+        ]);
+    }
 }
