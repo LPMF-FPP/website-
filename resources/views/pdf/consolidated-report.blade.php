@@ -42,26 +42,29 @@
         .compact-box p { margin: 0 0 3px 0; }
         .compact-box ul { margin: 0; padding-left: 15px; }
 
-        /* Signatures - compact single-line layout */
+        /* Signatures - table-based layout for proper column separation */
         .signatures { width: 100%; margin-top: 25px; page-break-inside: avoid; }
-        .signature-box { width: 33%; float: left; text-align: center; padding: 0 2px; }
+        .signature-table { width: 100%; border-collapse: collapse; }
+        .signature-table td { width: 33.33%; text-align: center; vertical-align: top; padding: 0 4px; }
         .signature-role { font-size: 9pt; margin-bottom: 5px; }
-        .signature-space { height: 50px; }
+        .signature-space { height: 60px; }
         .signature-name { 
-            font-size: 8pt; 
+            font-size: 7.5pt; 
             font-weight: bold; 
             text-decoration: underline; 
-            text-transform: uppercase; 
-            white-space: nowrap;
+            text-transform: uppercase;
+            line-height: 1.2;
+            word-wrap: break-word;
         }
         .signature-position { 
-            font-size: 7pt; 
-            white-space: nowrap;
+            font-size: 7pt;
             margin-top: 2px;
+            line-height: 1.2;
+            word-wrap: break-word;
         }
         .signature-nip { 
-            font-size: 7pt; 
-            white-space: nowrap;
+            font-size: 7pt;
+            margin-top: 1px;
         }
 
         /* Footer */
@@ -380,19 +383,21 @@
             Jakarta, {{ $report->generated_at->translatedFormat('d F Y') }}
         </div>
         
-        @foreach($report->signers as $signer)
-        <div class="signature-box">
-            <div class="signature-role">{{ $signer['role'] }}</div>
-            <div class="signature-space"></div>
-            <div class="signature-name">{{ $signer['name'] }}</div>
-            <div class="signature-position">{{ $signer['position'] }}</div>
-            @if(!empty($signer['nip']))
-                <div class="signature-nip">NIP/NRP: {{ $signer['nip'] }}</div>
-            @endif
-        </div>
-        @endforeach
-        
-        <div style="clear: both;"></div>
+        <table class="signature-table">
+            <tr>
+                @foreach($report->signers as $signer)
+                <td>
+                    <div class="signature-role">{{ $signer['role'] }}</div>
+                    <div class="signature-space"></div>
+                    <div class="signature-name">{{ $signer['name'] }}</div>
+                    <div class="signature-position">{{ $signer['position'] }}</div>
+                    @if(!empty($signer['nip']))
+                        <div class="signature-nip">NIP/NRP: {{ $signer['nip'] }}</div>
+                    @endif
+                </td>
+                @endforeach
+            </tr>
+        </table>
     </div>
 
 </body>
