@@ -116,16 +116,11 @@ class ConsolidatedReportService
     {
         $requestsReceived = TestRequest::whereBetween('created_at', [$start, $end])->count();
 
-        // FIX: Use robust logic from IkuService to handle null completed_at
-        $requestsCompleted = TestRequest::whereIn('status', ['completed', 'ready_for_delivery', 'delivered'])
-            ->where(function ($query) use ($start, $end) {
-                $query->whereBetween('completed_at', [$start, $end])
-                    ->orWhere(function ($q) use ($start, $end) {
-                        $q->whereNull('completed_at')
-                            ->whereBetween('updated_at', [$start, $end])
-                            ->whereIn('status', ['completed', 'ready_for_delivery', 'delivered']);
-                    });
-            })
+        // FIX: Only count requests that are truly completed (picked up by investigator)
+        // Status 'ready_for_delivery' means lab is done but NOT yet picked up
+        // Status 'completed' or 'delivered' means actually picked up
+        $requestsCompleted = TestRequest::whereIn('status', ['completed', 'delivered'])
+            ->whereBetween('completed_at', [$start, $end])
             ->count();
 
         $samplesReceived = Sample::whereBetween('created_at', [$start, $end])->count();
