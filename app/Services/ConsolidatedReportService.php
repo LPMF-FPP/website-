@@ -7,7 +7,6 @@ namespace App\Services;
 use App\Jobs\SendWhatsAppMessage;
 use App\Models\ConsolidatedReport;
 use App\Models\CustomerSurvey;
-use App\Models\Document;
 use App\Models\Sample;
 use App\Models\TestRequest;
 use App\Models\WhatsAppMessageBatch;
@@ -141,9 +140,10 @@ class ConsolidatedReportService
             })
             ->count();
 
-        $lhuIssued = Document::whereIn('document_type', ['laporan_hasil_uji', 'lhu'])
-            ->where('source', 'generated')
-            ->whereBetween('created_at', [$start, $end])
+        // LHU Terbit = LHU yang siap diambil pada periode tersebut (based on ready_for_delivery_at)
+        $lhuIssued = TestRequest::whereIn('status', ['completed', 'ready_for_delivery', 'delivered'])
+            ->whereNotNull('ready_for_delivery_at')
+            ->whereBetween('ready_for_delivery_at', [$start, $end])
             ->count();
 
         // Calculate average processing time (days)
