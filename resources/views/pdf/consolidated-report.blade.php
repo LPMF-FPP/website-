@@ -4,21 +4,21 @@
     <meta charset="utf-8">
     <title>Laporan Gabungan Periodik - {{ $report->period_label }}</title>
     <style>
-        @page { size: A4; margin: 1.5cm 1.5cm 2cm 1.5cm; }
-        body { font-family: 'Times New Roman', serif; font-size: 10pt; line-height: 1.25; color: #000; margin: 0; }
-        
-        /* Kop Surat */
-        .header { width: 100%; border-bottom: 3px double #000; padding-bottom: 10px; margin-bottom: 20px; }
-        .header-table { width: 100%; border-collapse: collapse; }
-        .header-logo { width: 80px; text-align: center; vertical-align: top; }
-        .header-logo img { width: 70px; height: auto; }
-        .header-text { text-align: center; vertical-align: middle; }
-        .instansi { font-size: 14pt; font-weight: bold; text-transform: uppercase; margin: 0; }
-        .sub-instansi { font-size: 16pt; font-weight: bold; text-transform: uppercase; margin: 5px 0; }
-        .alamat { font-size: 9pt; margin: 0; }
+        @page { size: A4; margin: 12mm; }
+        body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #000; line-height: 1.28; margin: 0; padding-bottom: 10mm; }
+
+        /* Kop Surat - matching berita-acara-penerimaan.blade.php */
+        .header { position: relative; margin: 0 0 6px; min-height: 52px; padding: 0 72px; border-bottom: 1px solid #000; padding-bottom: 4px; }
+        .logo { height: 52px; position: absolute; top: 0; }
+        .logo-left { left: 0; }
+        .logo-right { right: 0; }
+        .center { text-align: center; line-height: 1.18; }
+        .instansi { font-weight: 700; text-transform: uppercase; margin: 0; font-size: 11pt; }
+        .lab { font-weight: 700; text-transform: uppercase; margin: 0; font-size: 12pt; }
+        .meta { font-size: 8.8pt; margin: 1px 0 0; }
 
         /* Judul */
-        .title { text-align: center; margin-bottom: 30px; }
+        .title { text-align: center; margin-bottom: 20px; margin-top: 10px; }
         .title h1 { font-size: 14pt; font-weight: bold; text-decoration: underline; text-transform: uppercase; margin: 0; }
         .title p { font-size: 11pt; font-weight: bold; margin: 5px 0 0; }
 
@@ -30,7 +30,7 @@
         table.data-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; font-size: 10pt; }
         table.data-table th, table.data-table td { border: 1px solid #000; padding: 4px 6px; }
         table.data-table th { background-color: #f0f0f0; text-align: center; font-weight: bold; }
-        
+
         .text-center { text-align: center; }
         .text-right { text-align: right; }
         .font-bold { font-weight: bold; }
@@ -42,12 +42,27 @@
         .compact-box p { margin: 0 0 3px 0; }
         .compact-box ul { margin: 0; padding-left: 15px; }
 
-        /* Signatures */
+        /* Signatures - compact single-line layout */
         .signatures { width: 100%; margin-top: 25px; page-break-inside: avoid; }
-        .signature-box { width: 33%; float: left; text-align: center; }
+        .signature-box { width: 33%; float: left; text-align: center; padding: 0 2px; }
+        .signature-role { font-size: 9pt; margin-bottom: 5px; }
         .signature-space { height: 50px; }
-        .signature-name { font-weight: bold; text-decoration: underline; text-transform: uppercase; }
-        .signature-nip { font-size: 10pt; }
+        .signature-name { 
+            font-size: 8pt; 
+            font-weight: bold; 
+            text-decoration: underline; 
+            text-transform: uppercase; 
+            white-space: nowrap;
+        }
+        .signature-position { 
+            font-size: 7pt; 
+            white-space: nowrap;
+            margin-top: 2px;
+        }
+        .signature-nip { 
+            font-size: 7pt; 
+            white-space: nowrap;
+        }
 
         /* Footer */
         .footer { position: fixed; bottom: -1.5cm; left: 0; right: 0; font-size: 8pt; color: #555; text-align: right; font-style: italic; }
@@ -62,21 +77,21 @@
 
     <!-- Kop Surat -->
     <div class="header">
-        <table class="header-table">
-            <tr>
-                <td class="header-logo">
-                    <img src="{{ public_path('images/logo-tribrata-polri.png') }}" alt="Logo Polri">
-                </td>
-                <td class="header-text">
-                    <h2 class="instansi">Pusat Kedokteran dan Kesehatan Polri</h2>
-                    <h3 class="sub-instansi">Laboratorium Pengujian Mutu Farmasi Kepolisian</h3>
-                    <p class="alamat">Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240 • Telp/Fax: 021-4700921 • Email: labmutufarmapol@gmail.com</p>
-                </td>
-                <td class="header-logo">
-                    <img src="{{ public_path('images/logo-pusdokkes-polri.png') }}" alt="Logo Pusdokkes">
-                </td>
-            </tr>
-        </table>
+        @php
+            $leftLogoPath = public_path('images/logo-tribrata-polri.png');
+            $rightLogoPath = public_path('images/logo-pusdokkes-polri.png');
+        @endphp
+        @if(file_exists($leftLogoPath))
+            <img class="logo logo-left" src="{{ $leftLogoPath }}" alt="Logo Polri">
+        @endif
+        <div class="center">
+            <div class="instansi">PUSAT KEDOKTERAN DAN KESEHATAN POLRI</div>
+            <div class="lab">LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN</div>
+            <div class="meta">Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240 • Telp/Fax: 021-4700921 • Email: labmutufarmapol@gmail.com</div>
+        </div>
+        @if(file_exists($rightLogoPath))
+            <img class="logo logo-right" src="{{ $rightLogoPath }}" alt="Logo Pusdokkes">
+        @endif
     </div>
 
     <!-- Judul -->
@@ -228,6 +243,7 @@
                                 <li>{{ $item['label'] }}: {{ $item['count'] }} ({{ $item['percentage'] }}%)</li>
                             @endforeach
                         </ul>
+                        <p style="font-size: 8pt; color: #666; margin-top: 4px; font-style: italic;">*Distribusi berdasarkan pembulatan skor. Rata-rata dihitung dari nilai eksak.</p>
                     </div>
                     @endif
                 </td>
@@ -366,10 +382,10 @@
         
         @foreach($report->signers as $signer)
         <div class="signature-box">
-            <div style="margin-bottom: 5px;">{{ $signer['role'] }}</div>
+            <div class="signature-role">{{ $signer['role'] }}</div>
             <div class="signature-space"></div>
             <div class="signature-name">{{ $signer['name'] }}</div>
-            <div style="font-size: 10pt;">{{ $signer['position'] }}</div>
+            <div class="signature-position">{{ $signer['position'] }}</div>
             @if(!empty($signer['nip']))
                 <div class="signature-nip">NIP/NRP: {{ $signer['nip'] }}</div>
             @endif

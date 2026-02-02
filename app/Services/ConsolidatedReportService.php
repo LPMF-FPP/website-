@@ -62,6 +62,18 @@ class ConsolidatedReportService
         $end = Carbon::parse($data['period_end']);
         $periodType = $data['period_type'];
 
+        // Calculate period label for narrative replacement
+        $periodLabel = $this->getPeriodLabel($periodType, $start, $end);
+
+        // Process narratives to replace placeholders
+        $narratives = $data['narratives'];
+        if (isset($narratives['opening'])) {
+            $narratives['opening'] = str_replace('{period_label}', $periodLabel, $narratives['opening']);
+        }
+        if (isset($narratives['closing'])) {
+            $narratives['closing'] = str_replace('{period_label}', $periodLabel, $narratives['closing']);
+        }
+
         // Prepare data structure
         $reportData = [
             'statistics' => $this->getStatisticsForPeriod($start, $end),
@@ -84,7 +96,7 @@ class ConsolidatedReportService
             'period_label' => $this->getPeriodLabel($periodType, $start, $end),
             'report_data' => $reportData,
             'comparison_data' => $comparisonData,
-            'narrative_sections' => $data['narratives'],
+            'narrative_sections' => $narratives,
             'signers' => $data['signers'],
             'generated_by' => $userId,
             'generated_at' => now(),
