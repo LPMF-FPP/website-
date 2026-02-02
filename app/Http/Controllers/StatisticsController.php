@@ -173,10 +173,12 @@ class StatisticsController extends Controller
     {
         try {
             // Average processing time
-            $avgProcessingTime = TestRequest::whereNotNull('completed_at')
+            $avgProcessingTime = TestRequest::whereNotNull('ready_for_delivery_at')
                 ->get()
                 ->avg(function ($request) {
-                    return $request->created_at->diffInDays($request->completed_at);
+                    $start = $request->submitted_at ?? $request->created_at;
+
+                    return $start->diffInWeekdays($request->ready_for_delivery_at);
                 });
 
             // Success rate
@@ -185,13 +187,15 @@ class StatisticsController extends Controller
             $successRate = $totalTests > 0 ? ($successfulTests / $totalTests) * 100 : 0;
 
             // SLA compliance (target 7 days)
-            $slaCompliant = TestRequest::whereNotNull('completed_at')
+            $slaCompliant = TestRequest::whereNotNull('ready_for_delivery_at')
                 ->get()
                 ->filter(function ($request) {
-                    return $request->created_at->diffInDays($request->completed_at) <= 7;
+                    $start = $request->submitted_at ?? $request->created_at;
+
+                    return $start->diffInWeekdays($request->ready_for_delivery_at) <= 7;
                 })->count();
 
-            $totalCompleted = TestRequest::whereNotNull('completed_at')->count();
+            $totalCompleted = TestRequest::whereNotNull('ready_for_delivery_at')->count();
             $slaCompliance = $totalCompleted > 0 ? ($slaCompliant / $totalCompleted) * 100 : 0;
 
             return [
