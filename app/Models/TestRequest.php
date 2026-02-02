@@ -23,6 +23,7 @@ class TestRequest extends Model
         'incident_location', 'status', 'official_letter_path', 'evidence_photo_path',
 
         'submitted_at', 'verified_at', 'received_at', 'completed_at',
+        'ready_for_delivery_at',
         'rejected_reason', 'rejected_at', 'rejected_by',
 
     ];
@@ -40,6 +41,7 @@ class TestRequest extends Model
         'received_at' => 'datetime',
 
         'completed_at' => 'datetime',
+        'ready_for_delivery_at' => 'datetime',
         'rejected_at' => 'datetime',
 
     ];
