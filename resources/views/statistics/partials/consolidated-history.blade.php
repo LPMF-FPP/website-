@@ -77,16 +77,9 @@
                             </span>
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                            <template x-if="report.download_url">
-                                <a :href="report.download_url" target="_blank" class="text-indigo-600 hover:text-indigo-900" title="Download PDF">
-                                    ⬇️
-                                </a>
-                            </template>
-                            <template x-if="!report.download_url">
-                                <span class="text-gray-400 cursor-not-allowed" title="PDF belum tersedia">
-                                    ⬇️
-                                </span>
-                            </template>
+                            <a :href="report.download_url" target="_blank" class="text-indigo-600 hover:text-indigo-900" title="Download PDF">
+                                ⬇️
+                            </a>
                             <button @click="deleteReport(report.id)" class="text-red-600 hover:text-red-900" title="Hapus Laporan">
                                 🗑️
                             </button>

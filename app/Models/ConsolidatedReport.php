@@ -48,13 +48,10 @@ class ConsolidatedReport extends Model
 
     /**
      * Get the download URL for the report PDF.
+     * Always returns the URL - controller handles regeneration if PDF is missing.
      */
-    public function getDownloadUrlAttribute(): ?string
+    public function getDownloadUrlAttribute(): string
     {
-        if (! $this->pdf_path) {
-            return null;
-        }
-
         return route('consolidated-reports.download', $this);
     }
 }
