@@ -7,11 +7,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
-beforeEach(function () {
-    // Clear existing test requests
-    TestRequest::query()->delete();
-});
-
 test('processing time uses ready_for_delivery_at not completed_at', function () {
     // Create a request that was submitted Jan 6, ready_for_delivery Jan 20, completed Feb 2
     $request = TestRequest::factory()->create([
