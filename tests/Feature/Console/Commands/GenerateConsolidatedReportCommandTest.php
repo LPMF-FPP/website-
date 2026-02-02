@@ -49,7 +49,7 @@ class GenerateConsolidatedReportCommandTest extends TestCase
         $mockReport = Mockery::mock(ConsolidatedReport::class)->makePartial();
         $mockReport->id = 1;
         $mockReport->period_type = 'monthly';
-        $mockReport->shouldReceive('update')->with(['is_auto_generated' => true])->once();
+        // $mockReport->shouldReceive('update')->with(['is_auto_generated' => true])->once(); // Removed
 
         $mockService->shouldReceive('generate')
             ->once()

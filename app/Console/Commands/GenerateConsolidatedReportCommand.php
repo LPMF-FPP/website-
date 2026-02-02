@@ -87,10 +87,7 @@ class GenerateConsolidatedReportCommand extends Command
                     'period_end' => $config['end'],
                     'narratives' => $narratives,
                     'signers' => $signers,
-                ], null); // System generated (user_id = null)
-
-                // Mark as auto-generated
-                $report->update(['is_auto_generated' => true]);
+                ], null, true); // System generated, auto-generated = true
 
                 $this->info("Report generated successfully: ID {$report->id}");
 
