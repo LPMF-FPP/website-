@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <title>Laporan Gabungan Periodik - {{ $report->period_label }}</title>
     <style>
-        @page { size: A4; margin: 12mm; }
-        body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #000; line-height: 1.28; margin: 0; padding-bottom: 10mm; }
+        @page { size: A4; margin: 12mm 12mm 20mm 12mm; }
+        body { font-family: Arial, Helvetica, sans-serif; font-size: 10pt; color: #000; line-height: 1.28; margin: 0; padding-bottom: 15mm; }
 
         /* Kop Surat - matching berita-acara-penerimaan.blade.php */
         .header { position: relative; margin: 0 0 6px; min-height: 52px; padding: 0 72px; border-bottom: 1px solid #000; padding-bottom: 4px; }
@@ -67,8 +67,19 @@
             margin-top: 1px;
         }
 
-        /* Footer */
-        .footer { position: fixed; bottom: -1.5cm; left: 0; right: 0; font-size: 8pt; color: #555; text-align: right; font-style: italic; }
+        /* Footer - fixed at bottom of each page */
+        .footer { 
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            right: 0; 
+            height: 15mm;
+            font-size: 8pt; 
+            color: #555; 
+            text-align: right; 
+            font-style: italic;
+            padding-top: 5mm;
+        }
         .page-number:before { content: counter(page); }
     </style>
 </head>
