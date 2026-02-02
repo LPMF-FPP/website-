@@ -2,11 +2,19 @@
 
 namespace Tests\Unit\Services;
 
+use App\Jobs\SendWhatsAppMessage;
+use App\Models\ConsolidatedReport;
+use App\Repositories\SettingsRepository;
 use App\Services\ConsolidatedReportService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Bus;
+use Mockery;
 use Tests\TestCase;
 
 class ConsolidatedReportServiceTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_default_signers_structure_constant_exists()
     {
         $this->assertTrue(defined(ConsolidatedReportService::class.'::DEFAULT_SIGNERS_STRUCTURE'));
@@ -21,18 +29,11 @@ class ConsolidatedReportServiceTest extends TestCase
 
     public function test_get_default_signers_returns_constant_when_settings_empty()
     {
-        // Mock dependencies if needed, or just instantiate if no complex deps in constructor for this method
-        // Service has dependencies, so we resolve from container or mock
-
-        // Let's rely on the constant test first, then manually verify usage
-        // Or better, mock the SettingsRepository to return null
-
-        $mockSettings = \Mockery::mock(\App\Repositories\SettingsRepository::class);
+        $mockSettings = Mockery::mock(SettingsRepository::class);
         $mockSettings->shouldReceive('get')
             ->with('consolidated_report.default_signers', null)
             ->andReturn(null);
 
-        // We need to construct service with mocks
         $service = new ConsolidatedReportService(
             $this->createMock(\App\Services\ActiveSubstanceService::class),
             $this->createMock(\App\Services\IkuService::class),
@@ -42,5 +43,85 @@ class ConsolidatedReportServiceTest extends TestCase
         $signers = $service->getDefaultSigners();
 
         $this->assertEquals(ConsolidatedReportService::DEFAULT_SIGNERS_STRUCTURE, $signers);
+    }
+
+    public function test_send_generation_notification_disabled()
+    {
+        Bus::fake();
+
+        $mockSettings = Mockery::mock(SettingsRepository::class);
+        $mockSettings->shouldReceive('get')
+            ->with('consolidated_report.notify_on_generate', false)
+            ->andReturn(false);
+
+        $service = new ConsolidatedReportService(
+            $this->createMock(\App\Services\ActiveSubstanceService::class),
+            $this->createMock(\App\Services\IkuService::class),
+            $mockSettings
+        );
+
+        // Dummy report (no DB needed since we mock settings and return early)
+        $report = new ConsolidatedReport;
+
+        $result = $service->sendGenerationNotification($report);
+
+        $this->assertEquals(0, $result);
+        Bus::assertNotDispatched(SendWhatsAppMessage::class);
+    }
+
+    public function test_send_generation_notification_success()
+    {
+        Bus::fake();
+
+        $mockSettings = Mockery::mock(SettingsRepository::class);
+        $mockSettings->shouldReceive('get')
+            ->with('consolidated_report.notify_on_generate', false)
+            ->andReturn(true);
+
+        $mockSettings->shouldReceive('get')
+            ->with('consolidated_report.notify_phone')
+            ->andReturn('+62812345678');
+
+        $service = new ConsolidatedReportService(
+            $this->createMock(\App\Services\ActiveSubstanceService::class),
+            $this->createMock(\App\Services\IkuService::class),
+            $mockSettings
+        );
+
+        // Create a real report because we need ID for Batch source_id
+        // But since we use RefreshDatabase, we can create it
+        // However, we need to bypass foreign keys or create dependencies if ConsolidatedReport has any
+        // ConsolidatedReport seems independent enough based on migration usually
+        // Let's force create one
+        $report = new ConsolidatedReport([
+            'period_type' => 'monthly',
+            'period_start' => now()->startOfMonth(),
+            'period_end' => now()->endOfMonth(),
+            'period_label' => 'Bulan Ini',
+            'generated_at' => now(),
+            'report_data' => ['statistics' => ['total_requests_received' => 10, 'total_samples_received' => 50]],
+            'narrative_sections' => [],
+            'signers' => [],
+            'comparison_data' => [],
+        ]);
+        $report->save();
+
+        $result = $service->sendGenerationNotification($report);
+
+        $this->assertEquals(1, $result);
+
+        Bus::assertDispatched(SendWhatsAppMessage::class, function ($job) {
+            return $job->phone === '+62812345678' &&
+                   str_contains($job->message, 'Laporan monthly periode Bulan Ini') &&
+                   str_contains($job->message, 'Total Permintaan: 10') &&
+                   str_contains($job->message, 'Total Sampel: 50');
+        });
+
+        $this->assertDatabaseHas('whatsapp_message_batches', [
+            'type' => 'consolidated_report_notification',
+            'source_type' => ConsolidatedReport::class,
+            'source_id' => $report->id,
+            'total_recipients' => 1,
+        ]);
     }
 }

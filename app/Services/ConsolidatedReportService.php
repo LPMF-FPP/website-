@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace App\Services;
 
+use App\Jobs\SendWhatsAppMessage;
 use App\Models\ConsolidatedReport;
 use App\Models\CustomerSurvey;
 use App\Models\Document;
 use App\Models\Sample;
 use App\Models\TestRequest;
+use App\Models\WhatsAppMessageBatch;
 use App\Repositories\SettingsRepository;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 class ConsolidatedReportService
@@ -532,6 +535,68 @@ class ConsolidatedReportService
     }
 
     /**
+     * Send notification for generated report.
+     */
+    public function sendGenerationNotification(ConsolidatedReport $report): int
+    {
+        // Check if notification is enabled
+        $notifyEnabled = (bool) $this->settings->get('consolidated_report.notify_on_generate', false);
+
+        if (! $notifyEnabled) {
+            return 0;
+        }
+
+        // Determine target phone
+        $targetPhone = $this->settings->get('consolidated_report.notify_phone');
+        if (empty($targetPhone)) {
+            $targetPhone = '+6285956592404'; // Default fallback
+        }
+
+        // Format message
+        $appUrl = config('app.url');
+        $generatedAt = $report->generated_at ? $report->generated_at->format('d/m/Y H:i') : now()->format('d/m/Y H:i');
+
+        $message = "📊 *LAPORAN GABUNGAN PERIODIK*\n\n";
+        $message .= "Laporan {$report->period_type} periode {$report->period_label} telah di-generate.\n\n";
+        $message .= "📅 Periode: {$report->period_start->format('d/m/Y')} - {$report->period_end->format('d/m/Y')}\n";
+        $message .= "⏰ Waktu Generate: {$generatedAt}\n";
+        $message .= '📈 Total Permintaan: '.($report->report_data['statistics']['total_requests_received'] ?? 0)."\n";
+        $message .= '🧪 Total Sampel: '.($report->report_data['statistics']['total_samples_received'] ?? 0)."\n\n";
+        $message .= "Silakan akses laporan di:\n";
+        $message .= "{$appUrl}/statistics?tab=reports\n\n";
+        $message .= "—\n";
+        $message .= 'Staff Laboratorium Farmapol Pusdokkes Polri';
+
+        try {
+            // Create batch record
+            $batch = WhatsAppMessageBatch::create([
+                'type' => 'consolidated_report_notification',
+                'source_type' => ConsolidatedReport::class,
+                'source_id' => $report->id,
+                'title' => "Laporan {$report->period_label}",
+                'message_preview' => mb_strimwidth($message, 0, 100, '...'),
+                'total_recipients' => 1,
+                'sent_count' => 0,
+                'failed_count' => 0,
+                'mention_all' => false,
+                'started_at' => now(),
+                'created_by' => $report->generated_by,
+            ]);
+
+            // Dispatch job
+            SendWhatsAppMessage::dispatch($targetPhone, $message, $batch->id);
+
+            Log::info("Consolidated report notification queued for {$targetPhone}");
+
+            return 1;
+        } catch (\Exception $e) {
+            Log::error("Failed to send consolidated report notification: {$e->getMessage()}");
+
+            return 0;
+        }
+    }
+
+    /**
      * Determine if reports should be auto-generated today.
      */
     public function shouldAutoGenerate(): array
@@ -549,13 +614,6 @@ class ConsolidatedReportService
         }
 
         if ($today->day === 1) {
-            // Bi-weekly for 16-end of previous month
-            $reports[] = [
-                'type' => 'biweekly',
-                'start' => $today->copy()->subMonth()->startOfMonth()->addDays(15),
-                'end' => $today->copy()->subMonth()->endOfMonth(),
-            ];
-
             // Monthly for previous month
             $reports[] = [
                 'type' => 'monthly',

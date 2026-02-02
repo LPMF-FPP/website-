@@ -63,4 +63,65 @@ class ConsolidatedReportControllerTest extends TestCase
 
         $response->assertOk();
     }
+
+    public function test_store_calls_send_generation_notification()
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        // Mock authorization
+        \Illuminate\Support\Facades\Gate::shouldReceive('authorize')
+            ->with('statistik.export', [])
+            ->andReturn(true);
+
+        // Needed for FormRequest authorization check
+        \Illuminate\Support\Facades\Gate::shouldReceive('forUser')->andReturnSelf();
+        \Illuminate\Support\Facades\Gate::shouldReceive('check')->andReturn(true);
+        \Illuminate\Support\Facades\Gate::shouldReceive('any')->andReturn(true);
+
+        $report = new \App\Models\ConsolidatedReport;
+        $report->id = 1;
+        $report->period_label = 'Test Period';
+        $report->download_url = 'http://example.com/report.pdf';
+
+        $this->mock(ConsolidatedReportService::class, function ($mock) use ($report) {
+            $mock->shouldReceive('generate')
+                ->once()
+                ->andReturn($report);
+
+            $mock->shouldReceive('sendGenerationNotification')
+                ->once()
+                ->with($report);
+        });
+
+        $data = [
+            'period_type' => 'monthly',
+            'period_start' => '2023-01-01',
+            'period_end' => '2023-01-31',
+            'signers' => [
+                [
+                    'role' => 'Pembuat',
+                    'name' => 'Signer 1',
+                    'position' => 'Position 1',
+                    'nip' => '123',
+                ],
+                [
+                    'role' => 'Pemeriksa',
+                    'name' => 'Signer 2',
+                    'position' => 'Position 2',
+                    'nip' => '456',
+                ],
+                [
+                    'role' => 'Pengesah',
+                    'name' => 'Signer 3',
+                    'position' => 'Position 3',
+                    'nip' => '789',
+                ],
+            ],
+        ];
+
+        $response = $this->postJson(route('consolidated-reports.store'), $data);
+
+        $response->assertStatus(201);
+    }
 }

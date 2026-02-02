@@ -61,6 +61,9 @@ class ConsolidatedReportController extends Controller
                 $request->user()->id
             );
 
+            // Send WhatsApp notification
+            $this->reportService->sendGenerationNotification($report);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Laporan berhasil di-generate',

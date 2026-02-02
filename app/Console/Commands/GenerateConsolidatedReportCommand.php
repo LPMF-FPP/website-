@@ -2,10 +2,7 @@
 
 namespace App\Console\Commands;
 
-use App\Jobs\SendWhatsAppMessage;
 use App\Models\SystemSetting;
-use App\Models\User;
-use App\Models\WhatsAppMessageBatch;
 use App\Services\ConsolidatedReportService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -97,8 +94,11 @@ class GenerateConsolidatedReportCommand extends Command
 
                 $this->info("Report generated successfully: ID {$report->id}");
 
-                // Send Notification
-                $this->sendNotification($report);
+                // Send Notification via Service
+                $notifiedCount = $this->reportService->sendGenerationNotification($report);
+                if ($notifiedCount > 0) {
+                    $this->info("Notification dispatched to {$notifiedCount} admins.");
+                }
 
             } catch (\Exception $e) {
                 // Ignore unique constraint violation if not force
@@ -114,47 +114,5 @@ class GenerateConsolidatedReportCommand extends Command
         }
 
         return Command::SUCCESS;
-    }
-
-    private function sendNotification($report): void
-    {
-        // Check if notification enabled
-        $notifyEnabled = SystemSetting::where('key', 'consolidated_report.notify_on_generate')->value('value');
-        if ($notifyEnabled === '0' || $notifyEnabled === false) {
-            return;
-        }
-
-        // Get admins
-        $admins = User::role('admin')->whereNotNull('phone')->get();
-        if ($admins->isEmpty()) {
-            return;
-        }
-
-        $appUrl = config('app.url');
-        $message = "📊 *LAPORAN GABUNGAN PERIODIK*\n\n"
-            ."Laporan {$report->period_type} periode {$report->period_label} telah di-generate secara otomatis.\n\n"
-            ."📅 Periode: {$report->period_start->format('d/m/Y')} - {$report->period_end->format('d/m/Y')}\n"
-            ."⏰ Waktu Generate: {$report->generated_at->format('d/m/Y H:i')}\n"
-            .'📈 Total Permintaan: '.($report->report_data['statistics']['total_requests_received'] ?? 0)."\n"
-            .'🧪 Total Sampel: '.($report->report_data['statistics']['total_samples_received'] ?? 0)."\n\n"
-            ."Silakan akses laporan di:\n"
-            ."{$appUrl}/statistics?tab=reports\n\n"
-            ."—\n"
-            .'Staff Laboratorium Farmapol Pusdokkes Polri';
-
-        // Create batch log
-        $batch = WhatsAppMessageBatch::create([
-            'type' => 'consolidated_report',
-            'reference_id' => $report->id,
-            'total_messages' => $admins->count(),
-            'status' => 'processing',
-        ]);
-
-        foreach ($admins as $admin) {
-            SendWhatsAppMessage::dispatch($admin->phone, $message, $batch->id);
-        }
-
-        $batch->update(['status' => 'completed']);
-        $this->info("Notification dispatched to {$admins->count()} admins.");
     }
 }
