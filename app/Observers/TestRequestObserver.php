@@ -56,9 +56,14 @@ class TestRequestObserver
             $before = ['status' => $before['status'] ?? null];
             $changes = ['status' => $changes['status']];
 
-            if ($testRequest->status === 'ready_for_delivery') {
-                $this->sendWhatsAppNotification($testRequest, 'READY_FOR_PICKUP');
-            }
+            // Note: READY_FOR_PICKUP notification is sent manually from delivery page
+            // after all documents (BA Penyerahan, Labels) are ready.
+            // See DeliveryController::sendPickupNotification()
+
+            // Removed automatic trigger:
+            // if ($testRequest->status === 'ready_for_delivery') {
+            //     $this->sendWhatsAppNotification($testRequest, 'READY_FOR_PICKUP');
+            // }
 
             if ($testRequest->status === 'completed') {
                 $this->sendWhatsAppNotification($testRequest, 'HANDOVER_COMPLETED');
