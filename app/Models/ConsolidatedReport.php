@@ -39,6 +39,11 @@ class ConsolidatedReport extends Model
     ];
 
     /**
+     * Accessors to append to model's array/JSON form.
+     */
+    protected $appends = ['download_url'];
+
+    /**
      * Get the user who generated the report.
      */
     public function generatedBy(): BelongsTo
