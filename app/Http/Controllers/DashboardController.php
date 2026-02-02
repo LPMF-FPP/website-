@@ -307,23 +307,17 @@ class DashboardController extends Controller
 
             $requests = TestRequest::whereIn('status', ['ready_for_delivery', 'completed'])
                 ->whereNotNull('submitted_at')
-                ->where(function ($q) use ($startOfMonth, $endOfMonth) {
-                    $q->whereBetween('completed_at', [$startOfMonth, $endOfMonth])
-                        ->orWhere(function ($q2) use ($startOfMonth, $endOfMonth) {
-                            $q2->whereNull('completed_at')
-                                ->whereBetween('updated_at', [$startOfMonth, $endOfMonth]);
-                        });
-                })
-                ->get(['submitted_at', 'completed_at', 'updated_at']);
+                ->whereNotNull('ready_for_delivery_at')
+                ->whereBetween('ready_for_delivery_at', [$startOfMonth, $endOfMonth])
+                ->get(['submitted_at', 'ready_for_delivery_at']);
 
             if ($requests->isEmpty()) {
                 return ['average' => null, 'count' => 0];
             }
 
             $totalDays = $requests->sum(function ($r) {
-                $end = $r->completed_at ?? $r->updated_at;
                 $startDate = \Carbon\Carbon::parse($r->submitted_at);
-                $endDate = \Carbon\Carbon::parse($end);
+                $endDate = \Carbon\Carbon::parse($r->ready_for_delivery_at);
 
                 // Safety check: jika tanggal selesai sebelum tanggal submit
                 if ($endDate->lt($startDate)) {
