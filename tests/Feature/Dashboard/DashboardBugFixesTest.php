@@ -74,6 +74,7 @@ test('speed calculation handles corrupted dates gracefully', function () {
         'status' => 'completed',
         'submitted_at' => now(),
         'completed_at' => now()->subDays(5),
+        'ready_for_delivery_at' => now()->subDays(5), // Add this to match new logic
         'created_at' => now()->subDays(5),
     ]);
 
