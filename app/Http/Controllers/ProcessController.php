@@ -194,7 +194,7 @@ class ProcessController extends Controller
         // Update test request status to ready_for_delivery
         $testRequest->update([
             'status' => 'ready_for_delivery',
-            'completed_at' => now(),
+            'ready_for_delivery_at' => now(),
         ]);
 
         // Also update all samples status
