@@ -140,7 +140,7 @@
                         'total_requests_received' => 'Permintaan Masuk',
                         'total_requests_completed' => 'Permintaan Selesai',
                         'total_samples_received' => 'Sampel Diterima',
-                        'total_samples_tested' => 'Sampel Diuji',
+                        'total_samples_tested' => 'Sampel yang Telah Diuji',
                         'total_lhu_issued' => 'LHU Terbit',
                     ];
                 @endphp
