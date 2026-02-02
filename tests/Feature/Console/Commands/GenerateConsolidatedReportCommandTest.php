@@ -59,14 +59,14 @@ class GenerateConsolidatedReportCommandTest extends TestCase
         $mockService->shouldReceive('sendGenerationNotification')
             ->once()
             ->with($mockReport)
-            ->andReturn(5); // Simulate 5 admins notified
+            ->andReturn(1); // Simulate 1 admin notified
 
         // Run command
         $this->artisan('reports:generate-consolidated')
             ->expectsOutput('Checking for scheduled reports...')
             ->expectsOutput('Generating monthly report...')
             ->expectsOutput('Report generated successfully: ID 1')
-            ->expectsOutput('Notification dispatched to 5 admins.')
+            ->expectsOutput('Notification dispatched to admin.')
             ->assertSuccessful();
     }
 }

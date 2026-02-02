@@ -97,7 +97,7 @@ class GenerateConsolidatedReportCommand extends Command
                 // Send Notification via Service
                 $notifiedCount = $this->reportService->sendGenerationNotification($report);
                 if ($notifiedCount > 0) {
-                    $this->info("Notification dispatched to {$notifiedCount} admins.");
+                    $this->info('Notification dispatched to admin.');
                 }
 
             } catch (\Exception $e) {

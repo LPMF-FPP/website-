@@ -6,6 +6,7 @@ use App\Jobs\SendWhatsAppMessage;
 use App\Models\ConsolidatedReport;
 use App\Repositories\SettingsRepository;
 use App\Services\ConsolidatedReportService;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Bus;
 use Mockery;
@@ -51,7 +52,7 @@ class ConsolidatedReportServiceTest extends TestCase
 
         $mockSettings = Mockery::mock(SettingsRepository::class);
         $mockSettings->shouldReceive('get')
-            ->with('consolidated_report.notify_on_generate', false)
+            ->with('consolidated_report.notify_on_generate', true)
             ->andReturn(false);
 
         $service = new ConsolidatedReportService(
@@ -75,7 +76,7 @@ class ConsolidatedReportServiceTest extends TestCase
 
         $mockSettings = Mockery::mock(SettingsRepository::class);
         $mockSettings->shouldReceive('get')
-            ->with('consolidated_report.notify_on_generate', false)
+            ->with('consolidated_report.notify_on_generate', true)
             ->andReturn(true);
 
         $mockSettings->shouldReceive('get')
@@ -123,5 +124,45 @@ class ConsolidatedReportServiceTest extends TestCase
             'source_id' => $report->id,
             'total_recipients' => 1,
         ]);
+    }
+
+    public function test_should_auto_generate_biweekly_1_15_on_16th(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 1, 16, 6, 0, 0, 'Asia/Jakarta'));
+
+        $service = app(ConsolidatedReportService::class);
+        $reports = $service->shouldAutoGenerate();
+
+        $this->assertCount(1, $reports);
+        $this->assertEquals('biweekly', $reports[0]['type']);
+        $this->assertEquals(1, $reports[0]['start']->day);
+        $this->assertEquals(15, $reports[0]['end']->day);
+    }
+
+    public function test_should_not_auto_generate_biweekly_16_31_on_1st(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 2, 1, 6, 0, 0, 'Asia/Jakarta'));
+
+        $service = app(ConsolidatedReportService::class);
+        $reports = $service->shouldAutoGenerate();
+
+        // Should only have monthly, NOT biweekly for 16-31
+        $biweeklyReports = array_filter($reports, fn ($r) => $r['type'] === 'biweekly');
+        $this->assertEmpty($biweeklyReports);
+
+        // Monthly should exist
+        $monthlyReports = array_filter($reports, fn ($r) => $r['type'] === 'monthly');
+        $this->assertCount(1, $monthlyReports);
+    }
+
+    public function test_should_auto_generate_monthly_on_1st(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 2, 1, 6, 0, 0, 'Asia/Jakarta'));
+
+        $service = app(ConsolidatedReportService::class);
+        $reports = $service->shouldAutoGenerate();
+
+        $monthlyReports = array_filter($reports, fn ($r) => $r['type'] === 'monthly');
+        $this->assertCount(1, $monthlyReports);
     }
 }

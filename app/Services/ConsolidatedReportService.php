@@ -540,7 +540,7 @@ class ConsolidatedReportService
     public function sendGenerationNotification(ConsolidatedReport $report): int
     {
         // Check if notification is enabled
-        $notifyEnabled = (bool) $this->settings->get('consolidated_report.notify_on_generate', false);
+        $notifyEnabled = (bool) $this->settings->get('consolidated_report.notify_on_generate', true);
 
         if (! $notifyEnabled) {
             return 0;
@@ -604,7 +604,8 @@ class ConsolidatedReportService
         $today = Carbon::now('Asia/Jakarta');
         $reports = [];
 
-        // Bi-weekly: Generate on 16th (for 1-15) and 1st (for 16-end)
+        // Bi-weekly: Generate only on 16th (for 1-15 period)
+        // Note: 16-31 is NOT auto-generated as it's covered by the monthly report
         if ($today->day === 16) {
             $reports[] = [
                 'type' => 'biweekly',
