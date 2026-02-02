@@ -140,11 +140,12 @@ class ConsolidatedReportService
             })
             ->count();
 
-        // LHU Terbit = LHU yang siap diambil pada periode tersebut (based on ready_for_delivery_at)
-        $lhuIssued = TestRequest::whereIn('status', ['completed', 'ready_for_delivery', 'delivered'])
-            ->whereNotNull('ready_for_delivery_at')
-            ->whereBetween('ready_for_delivery_at', [$start, $end])
-            ->count();
+        // LHU Terbit = Jumlah sampel dari request yang siap diambil pada periode tersebut
+        // Setiap sampel menghasilkan satu LHU
+        $lhuIssued = Sample::whereHas('testRequest', function ($query) use ($start, $end) {
+            $query->whereNotNull('ready_for_delivery_at')
+                ->whereBetween('ready_for_delivery_at', [$start, $end]);
+        })->count();
 
         // Calculate average processing time (days)
         // FIX: Calculate from submitted_at to ready_for_delivery_at (weekdays only)
