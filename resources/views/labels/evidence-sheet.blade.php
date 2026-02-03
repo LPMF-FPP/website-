@@ -379,7 +379,6 @@
                     $checklistItems = [
                         'BA Penerimaan',
                         'Laporan Hasil Uji',
-                        'Lampiran Hasil Uji',
                         'BA Penyerahan',
                         'Sisa Sampel',
                         'Sprin Saksi Ahli',
