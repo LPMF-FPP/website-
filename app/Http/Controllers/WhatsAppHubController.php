@@ -591,19 +591,19 @@ class WhatsAppHubController extends Controller
 
     public function getGroups(): JsonResponse
     {
-        // Try to get groups from GOWA
-        $result = $this->gowaClient->listChats();
+        // Use getJoinedGroups() to get ALL groups the bot has joined (not just chats)
+        $result = $this->gowaClient->getJoinedGroups();
 
         if (! $result['success']) {
-            return response()->json(['error' => $result['error']], 500);
+            return response()->json(['error' => $result['error'] ?? 'Failed to fetch groups'], 500);
         }
 
-        $groups = collect($result['chats'] ?? [])
-            ->filter(fn ($chat) => str_ends_with($chat['jid'] ?? '', '@g.us'))
-            ->map(fn ($chat) => [
-                'jid' => $chat['jid'],
-                'name' => $chat['name'] ?? 'Unknown Group',
-                // Metadata might not be available here, frontend will handle participant fetching if needed
+        $groups = collect($result['groups'] ?? [])
+            ->filter(fn ($group) => str_ends_with($group['JID'] ?? $group['jid'] ?? '', '@g.us'))
+            ->map(fn ($group) => [
+                'jid' => $group['JID'] ?? $group['jid'],
+                'name' => $group['Name'] ?? $group['name'] ?? 'Unknown Group',
+                'participant_count' => count($group['Participants'] ?? []),
             ])
             ->values();
 

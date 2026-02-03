@@ -334,9 +334,17 @@ class GowaClient
             if ($response->successful()) {
                 $data = $response->json();
 
+                // Response structure can vary: { "results": { "data": [...] } } or just { "data": [...] } or direct array
+                $groups = $data['results']['data'] ?? $data['results'] ?? $data['data'] ?? $data ?? [];
+
+                // Normalize if single object (rare but possible)
+                if (isset($groups['JID']) || isset($groups['jid'])) {
+                    $groups = [$groups];
+                }
+
                 return [
                     'success' => true,
-                    'groups' => $data['results']['data'] ?? $data['results'] ?? [],
+                    'groups' => $groups,
                 ];
             }
 
