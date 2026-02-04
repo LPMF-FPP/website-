@@ -23,12 +23,54 @@
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 
-**Current Version:** v1.8.2 (31 Januari 2026)  
-**Latest Feature:** Flexible WhatsApp Reminders & Dashboard Fixes
+**Current Version:** v1.9.0 (04 Februari 2026)  
+**Latest Feature:** WhatsApp Admin Whitelist & Report Fixes
 
 ---
 
-## 📰 Recent Changes (v1.8.x)
+## 📰 Recent Changes (v1.9.x)
+
+### v1.9.0 (04 Februari 2026) - WhatsApp Whitelist & Consolidated Report Fixes
+
+```
+Updated on 2026-02-04
+```
+
+**🎯 Problem Solved:**
+
+1. **Unsecured Admin Commands:** Command sensitif WhatsApp (`/restart`, `/status`, `/stok`) bisa diakses oleh siapa saja.
+2. **Laporan Gabungan Tidak Akurat:**
+    - "Permintaan Selesai" menghitung status `ready_for_delivery` (belum diambil).
+    - "LHU Terbit" menghitung dokumen generate, bukan sampel yang siap.
+    - Label "Sampel Diuji" membingungkan user.
+3. **Notifikasi WhatsApp Duplikat:** Pesan "Siap Diambil" terkirim 2x (otomatis + manual).
+4. **WhatsApp Webhook Inactive:** Server pindah IP (206 -> 209), webhook GOWA perlu rekonfigurasi.
+
+**✨ New Features & Fixes:**
+
+- **WhatsApp Admin Whitelist System:**
+    - Sistem akses kontrol baru untuk command admin.
+    - Command: `/whitelist`, `/whitelist add`, `/whitelist del`.
+    - Hanya nomor dalam whitelist (dan Super Admin) yang bisa akses command admin.
+    - Public commands (`/resi`, `/help`) tetap terbuka untuk umum.
+
+- **Consolidated Report Precision:**
+    - **Selesai:** Hanya menghitung status `completed` (sudah diambil) dan `delivered` (sudah diserahkan).
+    - **LHU Terbit:** Dihitung dari jumlah sampel pada permintaan yang statusnya minimal `ready_for_delivery`.
+    - **Label:** Diubah menjadi "Sampel yang Telah Diuji" untuk kejelasan.
+
+- **Fixes:**
+    - Disable auto-notification pada status `ready_for_delivery` (sekarang manual trigger via tombol).
+    - Fix logic `getJoinedGroups()` untuk menampilkan semua grup WhatsApp.
+    - Normalisasi data status "TRAMADOL" (case-insensitive fix).
+
+**📁 Files Modified:**
+
+- `app/Services/WhatsApp/WhitelistService.php` (New Service)
+- `app/Services/WhatsApp/Commands/WhitelistCommand.php` (New Command)
+- `app/Services/ConsolidatedReportService.php` (Report Logic)
+- `database/migrations/2026_02_04_...` (Whitelist Table)
+- `resources/views/pdf/consolidated-report.blade.php` (Label Update)
 
 ### v1.8.2 (31 Januari 2026) - Flexible Reminders & Dashboard Precision
 
