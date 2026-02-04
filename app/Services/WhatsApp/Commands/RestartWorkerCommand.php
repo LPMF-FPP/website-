@@ -3,24 +3,25 @@
 namespace App\Services\WhatsApp\Commands;
 
 use App\Services\WhatsApp\TemplateService;
+use App\Services\WhatsApp\WhitelistService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Log;
 
 class RestartWorkerCommand
 {
     public function __construct(
-        private TemplateService $templateService
+        private TemplateService $templateService,
+        private WhitelistService $whitelistService
     ) {}
 
     public function execute(string $fromJid, array $params): string
     {
-        $senderNumber = explode('@', $fromJid)[0];
-
-        $adminNumber = settings('notifications.whatsapp.admin_number', '6285956592404');
-
-        if ($senderNumber !== $adminNumber) {
+        // Double check permissions (already checked in Dispatcher)
+        if (! $this->whitelistService->isAllowed($fromJid)) {
             return $this->templateService->get('command', 'RESTART_UNAUTHORIZED');
         }
+
+        $senderNumber = explode('@', $fromJid)[0];
 
         try {
             Artisan::call('queue:restart');

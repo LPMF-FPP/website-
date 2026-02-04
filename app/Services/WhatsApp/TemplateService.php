@@ -29,7 +29,7 @@ class TemplateService
         ],
         'command' => [
             'HELP' => "🤖 *BOT LPMF TRACKING*\n\nDaftar command yang tersedia:\n\n📦 */resi {nomor_resi}*\n   Cek status perjalanan permintaan pengujian\n   Contoh: /resi LPMF/001/2026\n\n❓ */help* atau */bantuan*\n   Tampilkan menu bantuan ini\n\n📝 *INPUT MANUAL*\n🌡️ *Suhu*: `/suhu {lokasi} {suhu} {kelembaban} {am/pm}`\n   Contoh: /suhu R01 24.5 60.0 am\n📦 *Stok*: `/stok {masuk/keluar} {nama} {jml}`\n   Contoh: /stok masuk alkohol 5\n\n📊 *INFORMASI*\n🔍 `/stok` (tanpa parameter): Lihat daftar stok item.\n🌡️ `/suhu` (tanpa parameter): Lihat daftar sensor.\n📈 `/status` : Lihat statistik permintaan.\n\n🔔 *FITUR OTOMATIS*\nBot ini juga akan mengirim notifikasi untuk:\n• 🌡️ *Peringatan Suhu* (Real-time)\n• 📦 *Stok Menipis & Kadaluarsa* (Setiap 08:00)\n\n─────────────────\n💬 Hubungi kami jika butuh bantuan lebih lanjut.",
-            'HELP_ADMIN' => "\n\n🛠️ *ADMIN TOOLS*\n`/restart` : Restart System/Queue",
+            'HELP_ADMIN' => "\n\n🛠️ *ADMIN TOOLS*\n`/restart` : Restart System/Queue\n`/whitelist` : Kelola Admin Whitelist",
             'RESI_NOT_FOUND' => "❌ Nomor resi tidak ditemukan: {resi}\n\nPastikan nomor resi benar.",
             'RESI_FORMAT_ERROR' => "❌ Format salah!\n\nGunakan: /resi {nomor_resi}\n\nContoh: /resi LPMF/001/2026",
             'RESI_TRACKING' => "📋 *TRACKING PERMINTAAN PENGUJIAN*\n\n📝 Resi: *{resi}*\n📄 No. Permintaan: {request_number}\n\n👤 Penyidik: {investigator}\n\n📍 *STATUS PERJALANAN:*\n{milestones}\n\n🔔 Status Saat Ini:\n*{current_status}*\n\n📦 Jumlah Sampel: {sample_count}\n\n─────────────────\n💬 Butuh bantuan? Ketik /help",
@@ -38,6 +38,11 @@ class TemplateService
             'STATUS_REPORT' => "📊 *STATISTIK PERMINTAAN*\n\n📥 Bulan Ini: {this_month} permintaan\n📥 Tahun Ini: {this_year} permintaan\n\n📌 Status:\n• Diproses: {in_progress}\n• Siap Ambil: {ready}\n• Selesai: {completed}\n\n─────────────────\n_Update: {timestamp}_",
             'RESTART_SUCCESS' => "✅ Sistem berhasil di-restart.\n\nQueue worker telah dimulai ulang.",
             'RESTART_UNAUTHORIZED' => '❌ Anda tidak memiliki izin untuk menjalankan command ini.',
+            'WHITELIST_ADDED' => '✅ Nomor {phone} ({name}) berhasil ditambahkan ke whitelist.',
+            'WHITELIST_REMOVED' => '✅ Nomor {phone} berhasil dihapus dari whitelist.',
+            'WHITELIST_NOT_FOUND' => '❌ Nomor {phone} tidak ditemukan di whitelist.',
+            'WHITELIST_UNAUTHORIZED' => '❌ Hanya Super Admin yang dapat mengelola whitelist.',
+            'ACCESS_DENIED' => "❌ Maaf, Anda tidak memiliki izin untuk menggunakan command ini.\n\nHubungi admin untuk didaftarkan.",
         ],
         'auto_reply' => [
             'WELCOME' => "👋 Selamat datang di *Bot LPMF Tracking*!\n\nBot ini membantu Anda melacak status permintaan pengujian di Laboratorium Farmapol Pusdokkes Polri.\n\nKetik /help untuk melihat daftar command yang tersedia.",
@@ -75,6 +80,11 @@ class TemplateService
             'STATUS_REPORT' => ['this_month', 'this_year', 'in_progress', 'ready', 'completed', 'timestamp'],
             'RESTART_SUCCESS' => [],
             'RESTART_UNAUTHORIZED' => [],
+            'WHITELIST_ADDED' => ['phone', 'name'],
+            'WHITELIST_REMOVED' => ['phone'],
+            'WHITELIST_NOT_FOUND' => ['phone'],
+            'WHITELIST_UNAUTHORIZED' => [],
+            'ACCESS_DENIED' => [],
         ],
         'auto_reply' => [
             'WELCOME' => [],
@@ -291,6 +301,11 @@ class TemplateService
                 'STATUS_REPORT' => 'Laporan Status (/status)',
                 'RESTART_SUCCESS' => 'Restart Berhasil',
                 'RESTART_UNAUTHORIZED' => 'Tidak Berwenang',
+                'WHITELIST_ADDED' => 'Whitelist Ditambahkan',
+                'WHITELIST_REMOVED' => 'Whitelist Dihapus',
+                'WHITELIST_NOT_FOUND' => 'Whitelist Tidak Ditemukan',
+                'WHITELIST_UNAUTHORIZED' => 'Whitelist Unauthorized',
+                'ACCESS_DENIED' => 'Akses Ditolak',
             ],
             'auto_reply' => [
                 'WELCOME' => 'Pesan Selamat Datang',
@@ -360,6 +375,8 @@ class TemplateService
             'due_at' => '25 Jan 2026 16:00',
             'status' => 'Selesai',
             'completed_at' => '24 Jan 2026 15:30',
+            // Whitelist placeholders
+            'phone' => '628123456789',
         ];
 
         return $samples;

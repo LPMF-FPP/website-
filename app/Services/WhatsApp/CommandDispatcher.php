@@ -8,21 +8,31 @@ use App\Services\WhatsApp\Commands\RestartWorkerCommand;
 use App\Services\WhatsApp\Commands\StatusRequestCommand;
 use App\Services\WhatsApp\Commands\StockTransactionCommand;
 use App\Services\WhatsApp\Commands\TemperatureInputCommand;
+use App\Services\WhatsApp\Commands\WhitelistCommand;
 use Illuminate\Support\Facades\Log;
 
 class CommandDispatcher
 {
     private array $commands = [];
 
+    // Commands that are allowed for everyone (public access)
+    private array $publicCommands = [
+        '/resi',
+        '/help',
+        '/bantuan',
+    ];
+
     public function __construct(
         private GowaClient $client,
         private TemplateService $templateService,
+        private WhitelistService $whitelistService,
         private ResiCommand $resiCommand,
         private HelpCommand $helpCommand,
         private TemperatureInputCommand $temperatureCommand,
         private StockTransactionCommand $stockCommand,
         private StatusRequestCommand $statusCommand,
         private RestartWorkerCommand $restartCommand,
+        private WhitelistCommand $whitelistCommand,
     ) {
         // Register commands
         $this->commands = [
@@ -33,6 +43,7 @@ class CommandDispatcher
             '/stok' => $this->stockCommand,
             '/status' => $this->statusCommand,
             '/restart' => $this->restartCommand,
+            '/whitelist' => $this->whitelistCommand,
         ];
     }
 
@@ -66,6 +77,19 @@ class CommandDispatcher
                 'command' => $command,
                 'params' => $params,
                 'status' => 'unknown_command',
+                'response' => $response,
+            ];
+        }
+
+        // Access Control Check
+        if (! $this->isAllowed($fromJid, $command)) {
+            $response = $this->templateService->get('command', 'ACCESS_DENIED');
+            $this->sendReply($fromJid, $response);
+
+            return [
+                'command' => $command,
+                'params' => $params,
+                'status' => 'access_denied',
                 'response' => $response,
             ];
         }
@@ -119,6 +143,17 @@ class CommandDispatcher
             'command' => $command,
             'params' => $params,
         ];
+    }
+
+    private function isAllowed(string $fromJid, string $command): bool
+    {
+        // Public commands are always allowed
+        if (in_array($command, $this->publicCommands)) {
+            return true;
+        }
+
+        // Check whitelist for protected commands
+        return $this->whitelistService->isAllowed($fromJid);
     }
 
     private function sendReply(string $toJid, string $message): void
