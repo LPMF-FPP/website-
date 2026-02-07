@@ -20,6 +20,10 @@
     </x-slot>
 
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+        
+        <!-- Quick Actions -->
+        @include('inventory.partials.quick-actions')
+
         <!-- Stats Cards -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div class="card">
@@ -38,34 +42,6 @@
                 <div class="text-3xl font-bold {{ $stats['expired'] > 0 ? 'text-red-600' : 'text-primary-900' }}">{{ $stats['expired'] }}</div>
                 <div class="text-sm text-gray-600">Lot Kadaluarsa</div>
             </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
-            <a href="{{ route('inventory.transaction.receipt') }}" class="card text-center hover:shadow-md transition-shadow p-4">
-                <div class="text-2xl mb-2">📥</div>
-                <div class="text-sm font-medium">Penerimaan</div>
-            </a>
-            <a href="{{ route('inventory.transaction.issue') }}" class="card text-center hover:shadow-md transition-shadow p-4">
-                <div class="text-2xl mb-2">📤</div>
-                <div class="text-sm font-medium">Pengeluaran</div>
-            </a>
-            <a href="{{ route('inventory.transaction.transfer') }}" class="card text-center hover:shadow-md transition-shadow p-4">
-                <div class="text-2xl mb-2">🔄</div>
-                <div class="text-sm font-medium">Transfer</div>
-            </a>
-            <a href="{{ route('inventory.stock-card') }}" class="card text-center hover:shadow-md transition-shadow p-4">
-                <div class="text-2xl mb-2">📋</div>
-                <div class="text-sm font-medium">Kartu Stok</div>
-            </a>
-            <a href="{{ route('inventory.transaction.stocktake') }}" class="card text-center hover:shadow-md transition-shadow p-4">
-                <div class="text-2xl mb-2">📊</div>
-                <div class="text-sm font-medium">Stock Opname</div>
-            </a>
-            <a href="{{ route('inventory.disposal.index') }}" class="card text-center hover:shadow-md transition-shadow p-4">
-                <div class="text-2xl mb-2">🧪</div>
-                <div class="text-sm font-medium">Sampel Disposal</div>
-            </a>
         </div>
 
         @if(($eligibleSamplesCount ?? 0) > 0)
