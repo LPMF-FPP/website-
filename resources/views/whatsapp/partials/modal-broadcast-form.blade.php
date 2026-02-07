@@ -59,7 +59,12 @@
                                 <!-- Message -->
                                 <div>
                                     <label class="block text-sm font-medium text-gray-900 dark:text-gray-100">Message</label>
-                                    <textarea x-model="form.message" rows="6" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"></textarea>
+                                    <x-magic-toolbar 
+                                        target="form.message" 
+                                        textarea-id="broadcast-message-field"
+                                        :show-formatting="true"
+                                    />
+                                    <textarea id="broadcast-message-field" x-model="form.message" rows="6" required class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"></textarea>
                                 </div>
 
                                 <!-- Target Type -->

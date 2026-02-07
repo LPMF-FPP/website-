@@ -479,6 +479,15 @@ Route::prefix('referensi/inventori')->name('inventory.')->middleware(['auth', 'v
     // AJAX helpers
     Route::get('ajax/lots', [App\Http\Controllers\Inventory\TransactionController::class, 'getLotsForItem'])->name('ajax.lots');
     Route::get('ajax/balance', [App\Http\Controllers\Inventory\TransactionController::class, 'getBalanceForSelection'])->name('ajax.balance');
+
+    // Sample Disposal (Pemusnahan Sisa Sampel)
+    Route::prefix('disposal')->name('disposal.')->group(function () {
+        Route::get('/', [App\Http\Controllers\Inventory\SampleDisposalController::class, 'index'])->name('index');
+        Route::get('/create', [App\Http\Controllers\Inventory\SampleDisposalController::class, 'create'])->name('create');
+        Route::post('/', [App\Http\Controllers\Inventory\SampleDisposalController::class, 'store'])->name('store');
+        Route::get('/{disposal}', [App\Http\Controllers\Inventory\SampleDisposalController::class, 'show'])->name('show');
+        Route::get('/{disposal}/pdf', [App\Http\Controllers\Inventory\SampleDisposalController::class, 'downloadPdf'])->name('pdf');
+    });
 });
 
 // Label PDF Routes

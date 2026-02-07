@@ -60,7 +60,12 @@
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Deskripsi
                             </label>
-                            <textarea x-model="form.description" rows="3"
+                            <x-magic-toolbar 
+                                target="form.description" 
+                                textarea-id="task-description-field"
+                                :show-formatting="true"
+                            />
+                            <textarea id="task-description-field" x-model="form.description" rows="3"
                                       class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 focus:ring-primary-500 focus:border-primary-500"
                                       placeholder="Deskripsi detail tugas..."></textarea>
                         </div>

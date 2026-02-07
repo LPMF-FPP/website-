@@ -265,6 +265,46 @@ class TemplateService
     }
 
     /**
+     * Get magic variables grouped for Magic Insert Toolbar.
+     *
+     * @return array<string, array<int, string>>
+     */
+    public function getMagicVariables(): array
+    {
+        return [
+            'Global' => [
+                'greetings',
+                'timestamp',
+            ],
+            'Penyidik' => [
+                'nama',
+                'pangkat',
+                'phone',
+                'name',
+            ],
+            'Perkara' => [
+                'nomor surat',
+                'tersangka',
+                'resi',
+                'request_number',
+                'reason',
+            ],
+            'Sampel' => [
+                'sample_count',
+            ],
+            'Status' => [
+                'current_status',
+                'milestones',
+                'this_month',
+                'this_year',
+                'in_progress',
+                'ready',
+                'completed',
+            ],
+        ];
+    }
+
+    /**
      * Get category labels for UI.
      */
     public function getCategoryLabels(): array

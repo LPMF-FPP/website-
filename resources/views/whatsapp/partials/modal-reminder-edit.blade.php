@@ -71,8 +71,13 @@
                             <!-- Message Template -->
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Message Template</label>
-                                <textarea x-model="form.message_template" rows="3" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm font-mono text-xs"></textarea>
-                                <p class="mt-1 text-xs text-gray-500">Available variables: {days_remaining}, {target_date}, {date}, {time}, {temperature}</p>
+                                <x-magic-toolbar 
+                                    target="form.message_template" 
+                                    textarea-id="reminder-message-field"
+                                    :show-formatting="true"
+                                />
+                                <textarea id="reminder-message-field" x-model="form.message_template" rows="3" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm font-mono text-xs"></textarea>
+                                <p class="mt-1 text-xs text-gray-500">Variabel khusus: {days_remaining}, {target_date}, {date}, {time}, {temperature}</p>
                             </div>
 
                             <!-- Recipients -->

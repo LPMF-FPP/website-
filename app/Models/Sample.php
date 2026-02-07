@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\SampleDisposalStatus;
 use App\Enums\SampleStatus;
 use App\Enums\TestProcessStage;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -72,6 +74,9 @@ class Sample extends Model
         'weighed_mass_unit',
         'weighed_by',
         'weighed_at',
+        'disposal_status',
+        'disposal_id',
+        'disposed_at',
 
     ];
 
@@ -94,6 +99,8 @@ class Sample extends Model
         'weighed_mass_value' => 'decimal:6',
         'weighed_mass_unit' => \App\Enums\WeighedMassUnit::class,
         'weighed_at' => 'datetime',
+        'disposal_status' => SampleDisposalStatus::class,
+        'disposed_at' => 'datetime',
     ];
 
     protected static function boot()
@@ -215,5 +222,78 @@ class Sample extends Model
 
         return 'Other - '.$label;
 
+    }
+
+    // ============================================
+    // Disposal Relationships & Scopes
+    // ============================================
+
+    public function disposal(): BelongsTo
+    {
+        return $this->belongsTo(SampleDisposal::class, 'disposal_id');
+    }
+
+    /**
+     * Scope: Samples eligible for disposal
+     * - disposal_status = 'eligible'
+     */
+    public function scopeEligibleForDisposal(Builder $query): Builder
+    {
+        return $query->where('disposal_status', SampleDisposalStatus::ELIGIBLE);
+    }
+
+    /**
+     * Scope: Samples already disposed
+     */
+    public function scopeDisposed(Builder $query): Builder
+    {
+        return $query->where('disposal_status', SampleDisposalStatus::DISPOSED);
+    }
+
+    /**
+     * Scope: Samples pending disposal check
+     */
+    public function scopePendingDisposal(Builder $query): Builder
+    {
+        return $query->where('disposal_status', SampleDisposalStatus::PENDING);
+    }
+
+    /**
+     * Mark sample as eligible for disposal
+     */
+    public function markAsEligible(): void
+    {
+        $this->update([
+            'disposal_status' => SampleDisposalStatus::ELIGIBLE,
+        ]);
+    }
+
+    /**
+     * Mark sample as disposed
+     */
+    public function markAsDisposed(SampleDisposal $disposal): void
+    {
+        $this->update([
+            'disposal_status' => SampleDisposalStatus::DISPOSED,
+            'disposal_id' => $disposal->id,
+            'disposed_at' => now(),
+        ]);
+    }
+
+    /**
+     * Check if sample is eligible for disposal based on business rules
+     * - Has completed interpretation process with LHU number
+     * - Completed 90+ days ago
+     */
+    public function isEligibleForDisposal(): bool
+    {
+        $interpretationProcess = $this->testProcesses()
+            ->where('stage', 'interpretation')
+            ->whereNotNull('completed_at')
+            ->where('completed_at', '<=', now()->subDays(90))
+            ->whereNotNull('metadata->lhu_number')
+            ->first();
+
+        return $interpretationProcess !== null;
     }
 }

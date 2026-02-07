@@ -23,12 +23,64 @@
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 
-**Current Version:** v1.9.0 (04 Februari 2026)  
-**Latest Feature:** WhatsApp Admin Whitelist & Report Fixes
+**Current Version:** v1.10.0 (07 Februari 2026)  
+**Latest Feature:** WhatsApp Magic Insert Toolbar & Sample Disposal System
 
 ---
 
-## 📰 Recent Changes (v1.9.x)
+## 📰 Recent Changes (v1.10.x)
+
+### v1.10.0 (07 Februari 2026) - WhatsApp Magic Insert & Sample Disposal System
+
+```
+Updated on 2026-02-07
+```
+
+**🎯 Problem Solved:**
+
+1. **WhatsApp Template UX Lambat:** Admin harus mengetik placeholder variabel manual (`{nama_penyidik}`, `{resi}`) di Task/Reminder/Broadcast, rawan typo.
+2. **Tidak Ada Tracking Pemusnahan Sampel:** Sampel sisa uji menumpuk tanpa dashboard monitoring, proses batch, dan dokumen audit resmi.
+
+**✨ New Features & Fixes:**
+
+- **Magic Insert Toolbar (WhatsApp Hub):**
+    - Komponen reusable `x-magic-toolbar` untuk 3 form: Task, Reminder, Broadcast.
+    - Dropdown variabel terkelompok (Global, Penyidik, Perkara, Sampel, Status).
+    - Formatting cepat untuk WhatsApp (Bold, Italic, Strikethrough, Monospace).
+    - API `getMagicVariables()` di `TemplateService` untuk source variabel terstandar.
+
+- **Sample Disposal System (Inventory):**
+    - Dashboard pemusnahan di `/referensi/inventori/disposal` dengan tab **Siap Musnah** dan **Riwayat**.
+    - Eksekusi pemusnahan batch dengan metadata saksi, metode, dan catatan.
+    - Generate **Berita Acara Pemusnahan** PDF per batch.
+    - Model relasi lengkap antara `samples` dan `sample_disposals`.
+
+- **Data Layer & Domain:**
+    - Tabel baru `sample_disposals`.
+    - Penambahan kolom `disposal_status`, `disposal_id`, `disposed_at` pada `samples`.
+    - Enum domain: `SampleDisposalStatus`, `SampleDisposalMethod`.
+
+**🧪 Test Coverage:**
+
+- `tests/Feature/Inventory/SampleDisposalTest.php`: 16 test, 37 assertions (PASS).
+- `tests/Unit/Services/WhatsApp/TemplateServiceTest.php`: verifikasi struktur Magic Variables.
+
+**📁 Files Added/Updated (Highlights):**
+
+- `app/Services/WhatsApp/TemplateService.php`
+- `resources/views/components/magic-toolbar.blade.php`
+- `resources/views/whatsapp/partials/modal-task-form.blade.php`
+- `resources/views/whatsapp/partials/modal-reminder-edit.blade.php`
+- `resources/views/whatsapp/partials/modal-broadcast-form.blade.php`
+- `app/Http/Controllers/Inventory/SampleDisposalController.php`
+- `app/Models/SampleDisposal.php`
+- `app/Models/Sample.php`
+- `database/migrations/2026_02_07_000001_create_sample_disposals_table.php`
+- `database/migrations/2026_02_07_000002_add_disposal_columns_to_samples_table.php`
+- `resources/views/inventory/disposal/index.blade.php`
+- `resources/views/inventory/disposal/create.blade.php`
+- `resources/views/inventory/disposal/show.blade.php`
+- `resources/views/pdf/berita-acara-pemusnahan.blade.php`
 
 ### v1.9.0 (04 Februari 2026) - WhatsApp Whitelist & Consolidated Report Fixes
 
