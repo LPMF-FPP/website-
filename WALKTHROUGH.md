@@ -23,12 +23,66 @@
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 
-**Current Version:** v1.10.0 (07 Februari 2026)  
-**Latest Feature:** WhatsApp Magic Insert Toolbar & Sample Disposal System
+**Current Version:** v1.10.1 (07 Februari 2026)  
+**Latest Feature:** Generic Countdown Reminders, Reminder CRUD, and Sample Disposal Access Entry
 
 ---
 
 ## 📰 Recent Changes (v1.10.x)
+
+### v1.10.1 (07 Februari 2026) - Generic Countdown Reminder CRUD + Disposal Access
+
+```
+Updated on 2026-02-07
+```
+
+**🎯 Problem Solved:**
+
+1. WhatsApp Hub tab Reminders hanya bisa edit, belum bisa create/delete reminder.
+2. Countdown reminder terlalu spesifik ke konteks ISO surveillance, belum reusable untuk event lain.
+3. Fitur Sample Disposal sudah ada route tapi belum punya entry point jelas di Inventory Dashboard.
+
+**✨ New Features & Fixes:**
+
+- **Reminder CRUD in WhatsApp Hub:**
+    - Tambah endpoint `POST /whatsapp/reminders` dan `DELETE /whatsapp/reminders/{reminder}`.
+    - Tombol **Tambah Reminder** dan **Delete** ditambahkan di tab Reminders.
+    - Modal reminder di-refactor jadi dual-mode: create + edit.
+
+- **Generic Countdown Reminder:**
+    - Handler baru `CountdownHandler` untuk tipe `countdown` dan kompatibel dengan `iso_countdown`.
+    - Support placeholder: `{event_name}`, `{event_emoji}`, `{target_date}`, `{days_remaining}`, `{milestone_message}`.
+    - Backward-compatible placeholder legacy `{motivation_message}`.
+    - Custom milestones configurable per reminder.
+
+- **Reminder Modal UX Upgrade:**
+    - Tipe reminder selectable saat create.
+    - Professional emoji selector curated untuk konteks lab/audit.
+    - Builder custom milestones (add/remove/sort/reset default).
+
+- **Sample Disposal Access in Inventory:**
+    - Tambah quick action card **Sampel Disposal** di `/referensi/inventori`.
+    - Tambah section conditional yang menampilkan jumlah sampel siap dimusnahkan dan CTA ke modul disposal.
+
+**🧪 Test Coverage:**
+
+- `tests/Feature/WhatsApp/ReminderCrudTest.php` (create countdown + validation + delete cascade).
+- `tests/Unit/Services/Reminders/Handlers/CountdownHandlerTest.php` (placeholder replacement + backward compatibility).
+- `tests/Feature/WhatsApp/ReminderScheduleTest.php` tetap pass.
+
+**📁 Files Added/Updated (Highlights):**
+
+- `app/Services/Reminders/Handlers/CountdownHandler.php` (new)
+- `app/Services/Reminders/ReminderService.php`
+- `app/Http/Controllers/WhatsAppHubController.php`
+- `routes/web.php`
+- `resources/views/whatsapp/partials/modal-reminder-edit.blade.php`
+- `resources/views/whatsapp/partials/tab-reminders.blade.php`
+- `resources/views/whatsapp/index.blade.php`
+- `app/Http/Controllers/Inventory/DashboardController.php`
+- `resources/views/inventory/dashboard.blade.php`
+- `tests/Feature/WhatsApp/ReminderCrudTest.php` (new)
+- `tests/Unit/Services/Reminders/Handlers/CountdownHandlerTest.php` (new)
 
 ### v1.10.0 (07 Februari 2026) - WhatsApp Magic Insert & Sample Disposal System
 

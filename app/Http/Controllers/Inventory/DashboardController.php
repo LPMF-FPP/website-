@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Inventory;
 use App\Http\Controllers\Controller;
 use App\Models\InventoryItem;
 use App\Models\InventoryLot;
+use App\Models\Sample;
 use Carbon\Carbon;
 use Illuminate\View\View;
 
@@ -60,6 +61,7 @@ class DashboardController extends Controller
         $totalLots = InventoryLot::where('status', 'ACTIVE')->count();
         $lowStockCount = $lowStockItems->count();
         $expiredCount = $expiredLots->count();
+        $eligibleSamplesCount = Sample::eligibleForDisposal()->count();
 
         return view('inventory.dashboard', [
             'lowStockItems' => $lowStockItems,
@@ -72,6 +74,7 @@ class DashboardController extends Controller
                 'low_stock' => $lowStockCount,
                 'expired' => $expiredCount,
             ],
+            'eligibleSamplesCount' => $eligibleSamplesCount,
         ]);
     }
 }

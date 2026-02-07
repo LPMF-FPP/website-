@@ -41,7 +41,7 @@
         </div>
 
         <!-- Quick Actions -->
-        <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
             <a href="{{ route('inventory.transaction.receipt') }}" class="card text-center hover:shadow-md transition-shadow p-4">
                 <div class="text-2xl mb-2">📥</div>
                 <div class="text-sm font-medium">Penerimaan</div>
@@ -62,7 +62,27 @@
                 <div class="text-2xl mb-2">📊</div>
                 <div class="text-sm font-medium">Stock Opname</div>
             </a>
+            <a href="{{ route('inventory.disposal.index') }}" class="card text-center hover:shadow-md transition-shadow p-4">
+                <div class="text-2xl mb-2">🧪</div>
+                <div class="text-sm font-medium">Sampel Disposal</div>
+            </a>
         </div>
+
+        @if(($eligibleSamplesCount ?? 0) > 0)
+        <x-page-section title="🧪 Sampel Siap Dimusnahkan">
+            <div class="card flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                    <p class="text-sm text-gray-700">
+                        Ada <span class="font-semibold text-primary-700">{{ $eligibleSamplesCount }}</span> sampel yang sudah memenuhi syarat pemusnahan.
+                    </p>
+                    <p class="text-xs text-gray-500 mt-1">Kelola batch pemusnahan dari modul disposal sampel.</p>
+                </div>
+                <a href="{{ route('inventory.disposal.index') }}" class="inline-flex items-center rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700">
+                    Kelola Disposal Sampel
+                </a>
+            </div>
+        </x-page-section>
+        @endif
 
         <!-- Low Stock Items -->
         @if($lowStockItems->isNotEmpty())

@@ -186,6 +186,11 @@
                     if (tab && this.tabs.find(t => t.id === tab)) {
                         this.activeTab = tab;
                     }
+
+                    window.addEventListener('reminder-saved', () => {
+                        this.loadTabData('reminders');
+                    });
+
                     this.loadTabData(this.activeTab);
 
                     // Initialize settings form when settingsData is loaded
@@ -275,6 +280,31 @@
                             alert('Failed to trigger reminder');
                         }
                     } catch(e) { console.error(e); }
+                },
+
+                async deleteReminder(id) {
+                    if (!confirm('Hapus reminder ini? Tindakan ini tidak bisa dibatalkan.')) return;
+
+                    try {
+                        const res = await fetch(`/whatsapp/reminders/${id}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        if (!res.ok) {
+                            const data = await res.json();
+                            alert(data.message || 'Failed to delete reminder');
+                            return;
+                        }
+
+                        this.remindersData.reminders = this.remindersData.reminders.filter(r => r.id !== id);
+                    } catch (e) {
+                        console.error(e);
+                        alert('Error deleting reminder');
+                    }
                 },
 
                 // --- Logs Functions ---

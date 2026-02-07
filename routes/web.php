@@ -388,7 +388,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Reminders
         Route::prefix('reminders')->name('reminders.')->group(function () {
             Route::get('/', [\App\Http\Controllers\WhatsAppHubController::class, 'getReminders'])->name('index');
+            Route::post('/', [\App\Http\Controllers\WhatsAppHubController::class, 'storeReminder'])->name('store');
             Route::put('/{reminder}', [\App\Http\Controllers\WhatsAppHubController::class, 'updateReminder'])->name('update');
+            Route::delete('/{reminder}', [\App\Http\Controllers\WhatsAppHubController::class, 'deleteReminder'])->name('destroy');
             Route::post('/{reminder}/toggle', [\App\Http\Controllers\WhatsAppHubController::class, 'toggleReminder'])->name('toggle');
             Route::post('/{reminder}/trigger', [\App\Http\Controllers\WhatsAppHubController::class, 'triggerReminder'])->name('trigger');
         });

@@ -5,7 +5,7 @@ namespace App\Services\Reminders;
 use App\Models\Reminder;
 use App\Models\WhatsAppMessageBatch;
 use App\Models\WhatsAppMessageLog;
-use App\Services\Reminders\Handlers\IsoCountdownHandler;
+use App\Services\Reminders\Handlers\CountdownHandler;
 use App\Services\Reminders\Handlers\TemperatureReminderHandler;
 use App\Services\WhatsApp\GowaClient;
 use Illuminate\Support\Facades\Log;
@@ -14,7 +14,7 @@ class ReminderService
 {
     public function __construct(
         protected GowaClient $gowaClient,
-        protected IsoCountdownHandler $isoHandler,
+        protected CountdownHandler $countdownHandler,
         protected TemperatureReminderHandler $tempHandler
     ) {}
 
@@ -123,7 +123,7 @@ class ReminderService
     protected function buildMessage(Reminder $reminder): string
     {
         return match ($reminder->type) {
-            'iso_countdown' => $this->isoHandler->handle($reminder),
+            'iso_countdown', 'countdown' => $this->countdownHandler->handle($reminder),
             'temp_morning', 'temp_afternoon' => $this->tempHandler->handle($reminder),
             default => $reminder->message_template,
         };

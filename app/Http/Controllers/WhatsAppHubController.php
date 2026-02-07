@@ -511,13 +511,74 @@ class WhatsAppHubController extends Controller
         return response()->json(['reminder' => $reminder->load('recipients')]);
     }
 
+    public function storeReminder(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'type' => 'required|in:countdown,iso_countdown,temp_morning,temp_afternoon,custom',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'schedule_time' => 'required|date_format:H:i',
+            'message_template' => 'required|string',
+            'schedule_days' => 'required|array|min:1',
+            'schedule_days.*' => 'in:Mon,Tue,Wed,Thu,Fri,Sat,Sun',
+            'target_date' => 'nullable|date|required_if:type,countdown,iso_countdown',
+            'event_name' => 'nullable|string|max:255|required_if:type,countdown',
+            'event_emoji' => 'nullable|string|max:20',
+            'milestones' => 'nullable|array',
+            'milestones.*.days' => 'required|integer|min:0',
+            'milestones.*.message' => 'required|string|max:500',
+            'recipients' => 'nullable|array',
+            'recipients.*.type' => 'required|in:phone,group',
+            'recipients.*.value' => 'required|string',
+            'mention_all' => 'boolean',
+        ]);
+
+        $metadata = $this->buildCountdownMetadata($validated, $validated['type']);
+
+        $reminder = Reminder::create([
+            'type' => $validated['type'],
+            'name' => $validated['name'],
+            'description' => $validated['description'] ?? null,
+            'is_enabled' => true,
+            'schedule_time' => $validated['schedule_time'].':00',
+            'schedule_days' => $validated['schedule_days'],
+            'message_template' => $validated['message_template'],
+            'metadata' => $metadata,
+            'mention_all' => $request->boolean('mention_all'),
+        ]);
+
+        if (! empty($validated['recipients'])) {
+            foreach ($validated['recipients'] as $recipient) {
+                if (! empty($recipient['value'])) {
+                    $reminder->recipients()->create([
+                        'recipient_type' => $recipient['type'],
+                        'recipient_value' => $recipient['value'],
+                    ]);
+                }
+            }
+        }
+
+        return response()->json([
+            'message' => 'Reminder created',
+            'reminder' => $reminder->fresh()->load('recipients'),
+        ], 201);
+    }
+
     public function updateReminder(Request $request, Reminder $reminder): JsonResponse
     {
         $validated = $request->validate([
+            'name' => 'sometimes|required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'type' => 'sometimes|required|in:countdown,iso_countdown,temp_morning,temp_afternoon,custom',
             'schedule_time' => 'required|date_format:H:i',
             'is_enabled' => 'boolean',
             'message_template' => 'required|string',
             'target_date' => 'nullable|date',
+            'event_name' => 'nullable|string|max:255',
+            'event_emoji' => 'nullable|string|max:20',
+            'milestones' => 'nullable|array',
+            'milestones.*.days' => 'required|integer|min:0',
+            'milestones.*.message' => 'required|string|max:500',
             'recipients' => 'nullable|array',
             'recipients.*.type' => 'required|in:phone,group',
             'recipients.*.value' => 'required|string',
@@ -526,14 +587,19 @@ class WhatsAppHubController extends Controller
             'schedule_days.*' => 'in:Mon,Tue,Wed,Thu,Fri,Sat,Sun',
         ]);
 
-        $metadata = $reminder->metadata;
-        if ($reminder->type === 'iso_countdown' && isset($validated['target_date'])) {
-            $metadata['target_date'] = $validated['target_date'];
+        $type = $validated['type'] ?? $reminder->type;
+        $metadata = $this->buildCountdownMetadata($validated, $type, is_array($reminder->metadata) ? $reminder->metadata : []);
+
+        if (! in_array($type, ['countdown', 'iso_countdown'], true)) {
+            $metadata = is_array($reminder->metadata) ? $reminder->metadata : null;
         }
 
         $reminder->update([
+            'type' => $type,
+            'name' => $validated['name'] ?? $reminder->name,
+            'description' => $validated['description'] ?? $reminder->description,
             'schedule_time' => $validated['schedule_time'].':00',
-            'is_enabled' => $request->has('is_enabled'),
+            'is_enabled' => $validated['is_enabled'] ?? $reminder->is_enabled,
             'message_template' => $validated['message_template'],
             'metadata' => $metadata,
             'mention_all' => $request->boolean('mention_all'),
@@ -567,6 +633,13 @@ class WhatsAppHubController extends Controller
         \App\Jobs\SendReminderJob::dispatch($reminder);
 
         return response()->json(['message' => 'Reminder triggered']);
+    }
+
+    public function deleteReminder(Reminder $reminder): JsonResponse
+    {
+        $reminder->delete();
+
+        return response()->json(['message' => 'Reminder deleted']);
     }
 
     // --- Logs ---
@@ -760,5 +833,61 @@ class WhatsAppHubController extends Controller
         }
 
         return $recipients;
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     * @param  array<string, mixed>  $existing
+     * @return array<string, mixed>|null
+     */
+    private function buildCountdownMetadata(array $validated, string $type, array $existing = []): ?array
+    {
+        if (! in_array($type, ['countdown', 'iso_countdown'], true)) {
+            return null;
+        }
+
+        $metadata = $existing;
+
+        if (isset($validated['target_date'])) {
+            $metadata['target_date'] = $validated['target_date'];
+        }
+
+        if (isset($validated['event_name'])) {
+            $metadata['event_name'] = $validated['event_name'];
+        }
+
+        if (isset($validated['event_emoji'])) {
+            $metadata['event_emoji'] = $validated['event_emoji'];
+        }
+
+        if (isset($validated['milestones']) && is_array($validated['milestones'])) {
+            $metadata['milestones'] = $this->normalizeMilestonesFromRequest($validated['milestones']);
+        }
+
+        return $metadata;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $milestones
+     * @return array<string, string>
+     */
+    private function normalizeMilestonesFromRequest(array $milestones): array
+    {
+        $normalized = [];
+
+        foreach ($milestones as $milestone) {
+            $days = isset($milestone['days']) ? (int) $milestone['days'] : null;
+            $message = trim((string) ($milestone['message'] ?? ''));
+
+            if ($days === null || $days < 0 || $message === '') {
+                continue;
+            }
+
+            $normalized[(string) $days] = $message;
+        }
+
+        krsort($normalized, SORT_NUMERIC);
+
+        return $normalized;
     }
 }

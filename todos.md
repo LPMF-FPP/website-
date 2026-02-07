@@ -1,30 +1,33 @@
-# Task Tracker - WhatsApp Magic Insert & Sample Disposal (v1.10.0)
+# Task Tracker - Reminder CRUD + Generic Countdown + Disposal Access (v1.10.1)
 
 ## Implementation
 
-- [x] Tambah `getMagicVariables()` di WhatsApp `TemplateService`
-- [x] Buat komponen `x-magic-toolbar` untuk form Task/Reminder/Broadcast
-- [x] Integrasi Magic Toolbar ke 3 modal WhatsApp Hub
-- [x] Tambah enum `SampleDisposalStatus` dan `SampleDisposalMethod`
-- [x] Tambah migration `sample_disposals` + kolom disposal di `samples`
-- [x] Buat model `SampleDisposal` + factory
-- [x] Update model `Sample` (relationship, scopes, markAsEligible, markAsDisposed)
-- [x] Buat `SampleDisposalController` + route inventory disposal
-- [x] Buat views disposal (`index`, `create`, `show`)
-- [x] Buat template PDF `berita-acara-pemusnahan`
+- [x] Tambah endpoint create reminder (`POST /whatsapp/reminders`)
+- [x] Tambah endpoint delete reminder (`DELETE /whatsapp/reminders/{reminder}`)
+- [x] Tambah generic `CountdownHandler` reusable untuk multi-context countdown
+- [x] Maintain backward compatibility tipe `iso_countdown`
+- [x] Upgrade modal reminder jadi dual-mode (create/edit)
+- [x] Tambah custom milestone builder pada reminder countdown
+- [x] Tambah curated professional emoji selector
+- [x] Tambah tombol `Tambah Reminder` dan `Delete` di tab Reminders
+- [x] Tambah quick action `Sampel Disposal` di dashboard inventori
+- [x] Tambah indikator jumlah sampel eligible disposal pada dashboard inventori
 
 ## Verification
 
-- [x] Feature test `SampleDisposalTest` (16 test, 37 assertions)
-- [x] Unit/Feature test suite dijalankan (terdapat 1 fail existing pada modul lain)
-- [x] Pint check pass
+- [x] `php vendor/bin/pest tests/Feature/WhatsApp/ReminderCrudTest.php`
+- [x] `php vendor/bin/pest tests/Unit/Services/Reminders/Handlers/CountdownHandlerTest.php`
+- [x] `php vendor/bin/pest tests/Feature/WhatsApp/ReminderScheduleTest.php`
+- [x] `npm run audit:critical`
+- [x] `npm run build`
+- [x] `npm run test` dijalankan (1 fail existing: `ReadyForPickupNotificationTest`)
 
 ## Documentation
 
-- [x] Update `WALKTHROUGH.md` ke v1.10.0
+- [x] Update `WALKTHROUGH.md` ke v1.10.1
 - [x] Update halaman `/changelogs`
 
 ## Release
 
-- [x] Commit dan push ke GitHub
-- [x] Deploy production via SSH (git pull + migrate + cache)
+- [ ] Commit dan push ke GitHub
+- [ ] Deploy production via SSH (git pull + migrate + cache)
