@@ -2,13 +2,21 @@
 
 namespace App\Services\WhatsApp\Commands;
 
-use App\Models\InventoryBalance;
-// Assuming this model exists
 use App\Models\InventoryItem;
+use App\Models\InventoryLocation;
+use App\Models\User;
+use App\Services\InventoryMovementService;
+use App\Services\WhatsApp\WhitelistService;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 class StockTransactionCommand
 {
+    public function __construct(
+        private InventoryMovementService $movementService,
+        private WhitelistService $whitelistService,
+    ) {}
+
     public function execute(string $fromJid, array $params): string
     {
         // If no params (or just "/stok"), list items
@@ -47,7 +55,10 @@ class StockTransactionCommand
 
         $isIn = in_array($type, ['masuk', 'in']);
 
-        $item = InventoryItem::where('name', 'LIKE', "%{$itemName}%")
+        $needle = strtolower($itemName);
+
+        $item = InventoryItem::query()
+            ->whereRaw('LOWER(name) LIKE ?', ['%'.$needle.'%'])
             ->where('is_active', true)
             ->first();
 
@@ -55,38 +66,93 @@ class StockTransactionCommand
             return "⚠️ Barang '{$itemName}' tidak ditemukan.";
         }
 
-        // Phone number for logging
-        // $phone = explode('@', $fromJid)[0];
+        $fromPhone = $this->whitelistService->normalizePhoneNumber($fromJid);
+        $performedBy = $this->resolvePerformedByUserId($fromPhone);
 
         try {
-            DB::beginTransaction();
+            $locationId = $this->resolveLocationId($item->id, $isIn);
+            if (! $locationId) {
+                return '⚠️ Tidak ada lokasi inventori yang terdaftar. Tambahkan lokasi terlebih dahulu.';
+            }
 
-            $locationId = 1;
-
-            $balance = InventoryBalance::firstOrCreate(
-                ['item_id' => $item->id, 'location_id' => $locationId],
-                ['on_hand_qty' => 0]
-            );
+            $notes = "WhatsApp: {$fromPhone}";
 
             if ($isIn) {
-                $balance->increment('on_hand_qty', $qty);
+                $movement = $this->movementService->receipt([
+                    'item_id' => $item->id,
+                    'lot_id' => null,
+                    'location_id' => $locationId,
+                    'qty' => $qty,
+                    'uom' => $item->uom,
+                    'reference_type' => 'MANUAL',
+                    'performed_by' => $performedBy,
+                    'notes' => $notes,
+                ]);
                 $action = 'Penerimaan';
             } else {
-                if ($balance->on_hand_qty < $qty) {
-                    return "⚠️ Stok tidak cukup. Sisa: {$balance->on_hand_qty}";
-                }
-                $balance->decrement('on_hand_qty', $qty);
+                $movement = $this->movementService->issue([
+                    'item_id' => $item->id,
+                    'lot_id' => null,
+                    'location_id' => $locationId,
+                    'qty' => $qty,
+                    'uom' => $item->uom,
+                    'reference_type' => 'MANUAL',
+                    'performed_by' => $performedBy,
+                    'notes' => $notes,
+                ]);
                 $action = 'Pengeluaran';
             }
 
-            DB::commit();
+            $balance = DB::table('inventory_balances')
+                ->where('item_id', $item->id)
+                ->whereNull('lot_id')
+                ->where('location_id', $locationId)
+                ->value('on_hand_qty');
 
-            return "✅ Transaksi Berhasil.\nItem: {$item->name}\nAction: {$action}\nJumlah: {$qty}\nSisa Stok: {$balance->on_hand_qty}";
+            $balanceText = $balance === null ? '0' : (string) ((float) $balance);
 
-        } catch (\Exception $e) {
-            DB::rollBack();
-
+            return "✅ Transaksi Berhasil.\nItem: {$item->name}\nAction: {$action}\nJumlah: {$qty} {$item->uom}\nLokasi ID: {$locationId}\nSisa Stok: {$balanceText}";
+        } catch (RuntimeException $e) {
+            return '⚠️ '.$e->getMessage();
+        } catch (\Throwable $e) {
             return '❌ Gagal memproses transaksi: '.$e->getMessage();
         }
+    }
+
+    private function resolveLocationId(int $itemId, bool $isIn): ?int
+    {
+        $defaultLocationId = InventoryLocation::query()->orderBy('id')->value('id');
+
+        if ($isIn) {
+            return $defaultLocationId;
+        }
+
+        $bestStockLocationId = DB::table('inventory_balances')
+            ->where('item_id', $itemId)
+            ->whereNull('lot_id')
+            ->where('on_hand_qty', '>', 0)
+            ->orderByDesc('on_hand_qty')
+            ->value('location_id');
+
+        return $bestStockLocationId ?: $defaultLocationId;
+    }
+
+    private function resolvePerformedByUserId(string $normalizedE164): ?int
+    {
+        $local = null;
+        $noPrefix = null;
+
+        if (str_starts_with($normalizedE164, '62')) {
+            $noPrefix = substr($normalizedE164, 2);
+            $local = '0'.$noPrefix;
+        }
+
+        return User::query()
+            ->whereIn('phone', array_values(array_filter([
+                $normalizedE164,
+                $local,
+                $noPrefix,
+            ])))
+            ->value('id');
     }
 }

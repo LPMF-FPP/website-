@@ -23,12 +23,59 @@
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 
-**Current Version:** v1.10.1 (07 Februari 2026)  
-**Latest Feature:** Generic Countdown Reminders, Reminder CRUD, and Sample Disposal Access Entry
+**Current Version:** v1.10.2 (08 Februari 2026)  
+**Latest Feature:** WhatsApp /stok Audit Trail Fix + Functional Quick Actions Dashboard
 
 ---
 
 ## 📰 Recent Changes (v1.10.x)
+
+### v1.10.2 (08 Februari 2026) - WhatsApp /stok Audit Trail + Quick Actions Dashboard
+
+```
+Updated on 2026-02-08
+```
+
+**🎯 Problem Solved:**
+
+1. **WhatsApp `/stok` Command Bypass:** Transaksi stok via WhatsApp tidak tercatat di `inventory_movements` (kartu stok kosong, tidak ada audit trail).
+2. **Dashboard Quick Actions Non-Functional:** Widget Pengeluaran/Penerimaan/Transfer Cepat hanya placeholder, tidak bisa submit transaksi.
+3. **Hardcoded Location ID:** Command `/stok` selalu pakai `location_id = 1`, tidak fleksibel.
+
+**✨ New Features & Fixes:**
+
+- **WhatsApp `/stok` Command Refactored:**
+    - Sekarang menggunakan `InventoryMovementService` (sama seperti UI web).
+    - Transaksi tercatat di `inventory_movements` table dengan proper audit trail.
+    - Lokasi otomatis dipilih: untuk `masuk` pakai lokasi pertama, untuk `keluar` pakai lokasi dengan stok terbanyak.
+    - `performed_by` otomatis di-resolve dari nomor telepon pengirim (jika ada user dengan phone match).
+    - Item search case-insensitive untuk kemudahan pengguna.
+
+- **Inventory Dashboard Quick Actions:**
+    - Form **Pengeluaran Cepat**, **Penerimaan Cepat**, dan **Transfer Cepat** sekarang functional.
+    - Dropdown item, lot, dan lokasi diisi dari database.
+    - Submit langsung ke route `inventory.transaction.*` yang existing.
+    - Lot dinamis di-load via AJAX saat item dipilih.
+    - Estimasi sisa stok ditampilkan untuk form Issue.
+
+**🧪 Test Coverage:**
+
+- `tests/Feature/WhatsApp/StockTransactionCommandTest.php` (new: 3 tests)
+    - `stok masuk creates inventory movement and updates balance`
+    - `stok keluar creates inventory movement and updates balance`
+    - `stok sets performed_by when user phone matches from jid`
+- `tests/Feature/Inventory/DashboardTest.php` (existing: passed)
+- `tests/Feature/Inventory/QuickActionTest.php` (existing: passed)
+
+**📁 Files Added/Updated (Highlights):**
+
+- `app/Services/WhatsApp/Commands/StockTransactionCommand.php` (major refactor)
+- `app/Http/Controllers/Inventory/DashboardController.php` (pass items + locations to view)
+- `resources/views/inventory/partials/quick-actions.blade.php` (functional forms + Alpine.js)
+- `tests/Feature/WhatsApp/StockTransactionCommandTest.php` (new)
+- `tests/Feature/Dashboard/DisposisiTableTest.php` (fix flaky time-dependent tests)
+
+---
 
 ### v1.10.1 (07 Februari 2026) - Generic Countdown Reminder CRUD + Disposal Access
 

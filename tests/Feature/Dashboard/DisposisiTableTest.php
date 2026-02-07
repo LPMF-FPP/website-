@@ -43,7 +43,7 @@ class DisposisiTableTest extends TestCase
     public function test_service_detects_stuck_urmin_status(): void
     {
         $request = TestRequest::factory()->create([
-            'submitted_at' => now()->subDays(20),
+            'submitted_at' => now()->subWeekdays(15),
             'verified_at' => null,
         ]);
         Suspect::factory()->create(['test_request_id' => $request->id]);
@@ -57,8 +57,8 @@ class DisposisiTableTest extends TestCase
     public function test_service_detects_stuck_hasil_status(): void
     {
         $request = TestRequest::factory()->create([
-            'submitted_at' => now()->subDays(20),
-            'verified_at' => now()->subDays(10),
+            'submitted_at' => now()->subWeekdays(20),
+            'verified_at' => now()->subWeekdays(8),
             'completed_at' => null,
         ]);
         Suspect::factory()->create(['test_request_id' => $request->id]);

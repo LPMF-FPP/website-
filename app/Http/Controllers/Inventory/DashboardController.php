@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Inventory;
 
 use App\Http\Controllers\Controller;
 use App\Models\InventoryItem;
+use App\Models\InventoryLocation;
 use App\Models\InventoryLot;
 use App\Models\Sample;
 use Carbon\Carbon;
@@ -18,6 +19,16 @@ class DashboardController extends Controller
 
     public function index(): View
     {
+        $quickActionItems = InventoryItem::query()
+            ->active()
+            ->orderBy('name')
+            ->take(200)
+            ->get(['id', 'name', 'uom']);
+
+        $locations = InventoryLocation::query()
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         // Low stock items
         $lowStockItems = InventoryItem::query()
             ->active()
@@ -64,6 +75,8 @@ class DashboardController extends Controller
         $eligibleSamplesCount = Sample::eligibleForDisposal()->count();
 
         return view('inventory.dashboard', [
+            'quickActionItems' => $quickActionItems,
+            'locations' => $locations,
             'lowStockItems' => $lowStockItems,
             'nearExpiry30' => $nearExpiry30,
             'nearExpiry60' => $nearExpiry60,
