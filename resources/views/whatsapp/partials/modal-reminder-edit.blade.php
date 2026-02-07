@@ -89,23 +89,6 @@
                             </div>
                         </div>
 
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Pilih Emoji (Profesional)</label>
-                            <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
-                                <template x-for="emoji in professionalEmojis" :key="emoji.value">
-                                    <button type="button"
-                                            @click="selectEmoji(emoji.value)"
-                                            class="inline-flex items-center justify-center h-10 rounded-md border text-lg transition-colors"
-                                            :class="form.event_emoji === emoji.value
-                                                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30'
-                                                : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'"
-                                            :title="emoji.label"
-                                            x-text="emoji.value"></button>
-                                </template>
-                            </div>
-                            <p class="mt-2 text-xs text-gray-500">Emoji terpilih: <span class="font-medium" x-text="form.event_emoji || 'Belum dipilih'"></span></p>
-                        </div>
-
                         <div class="space-y-2">
                             <div class="flex items-center justify-between">
                                 <h5 class="text-sm font-semibold text-gray-800 dark:text-gray-200">Custom Milestones</h5>
@@ -143,6 +126,23 @@
                         <textarea id="reminder-message-field" x-model="form.message_template" rows="5" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm font-mono text-xs"></textarea>
                         <p class="mt-1 text-xs text-gray-500" x-show="isCountdownType">Variabel countdown: {event_emoji}, {event_name}, {target_date}, {days_remaining}, {milestone_message}</p>
                         <p class="mt-1 text-xs text-gray-500" x-show="!isCountdownType">Variabel umum: {date}, {time}, {temperature}</p>
+
+                        <div class="mt-3">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Pilih Emoji (Profesional)</label>
+                            <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+                                <template x-for="emoji in professionalEmojis" :key="emoji.value">
+                                    <button type="button"
+                                            @click="selectEmoji(emoji.value)"
+                                            class="inline-flex items-center justify-center h-10 rounded-md border text-lg transition-colors"
+                                            :class="form.event_emoji === emoji.value
+                                                ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30'
+                                                : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600'"
+                                            :title="emoji.label"
+                                            x-text="emoji.value"></button>
+                                </template>
+                            </div>
+                            <p class="mt-2 text-xs text-gray-500">Emoji terpilih: <span class="font-medium" x-text="form.event_emoji || 'Belum dipilih'"></span> <span x-show="isCountdownType">(digunakan untuk variabel {event_emoji})</span></p>
+                        </div>
                     </div>
 
                     <div>
@@ -390,6 +390,25 @@
 
                 selectEmoji(emoji) {
                     this.form.event_emoji = emoji;
+
+                    const field = document.getElementById('reminder-message-field');
+                    const currentValue = this.form.message_template || '';
+
+                    if (!field) {
+                        this.form.message_template = `${currentValue}${emoji}`;
+                        return;
+                    }
+
+                    const start = Number.isInteger(field.selectionStart) ? field.selectionStart : currentValue.length;
+                    const end = Number.isInteger(field.selectionEnd) ? field.selectionEnd : start;
+
+                    this.form.message_template = `${currentValue.slice(0, start)}${emoji}${currentValue.slice(end)}`;
+
+                    this.$nextTick(() => {
+                        const cursor = start + emoji.length;
+                        field.focus();
+                        field.setSelectionRange(cursor, cursor);
+                    });
                 },
 
                 buildPayload() {

@@ -108,3 +108,16 @@ it('can delete reminder and cascade recipients', function () {
     $this->assertDatabaseMissing('reminders', ['id' => $reminder->id]);
     $this->assertDatabaseMissing('reminder_recipients', ['id' => $recipient->id]);
 });
+
+it('shows professional emoji picker in message template section', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->get(route('whatsapp.index', ['tab' => 'reminders']));
+
+    $response->assertOk();
+    $response->assertSeeInOrder([
+        'Message Template',
+        'Pilih Emoji (Profesional)',
+        'Emoji terpilih:',
+    ], false);
+});
