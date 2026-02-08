@@ -4,45 +4,42 @@
         locations: @js(($locations ?? collect())->values()),
         defaultLocationId: @js(($locations ?? collect())->first()?->id),
     })"
-    class="bg-white rounded-lg shadow-sm p-6 mb-6"
 >
     <div class="border-b border-gray-200 mb-4">
-        <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+        <nav class="-mb-px flex space-x-4 overflow-x-auto text-sm" aria-label="Tabs">
             <button 
                 @click="activeTab = 'issue'"
-                :class="{ 'border-primary-500 text-primary-600': activeTab === 'issue', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'issue' }"
-                class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                :class="{ 'border-primary-500 text-primary-600 font-semibold': activeTab === 'issue', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'issue' }"
+                class="whitespace-nowrap pb-2 px-1 border-b-2 transition-colors"
             >
-                📤 Pengeluaran Cepat
+                Keluar
             </button>
             <button 
                 @click="activeTab = 'receipt'"
-                :class="{ 'border-primary-500 text-primary-600': activeTab === 'receipt', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'receipt' }"
-                class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                :class="{ 'border-primary-500 text-primary-600 font-semibold': activeTab === 'receipt', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'receipt' }"
+                class="whitespace-nowrap pb-2 px-1 border-b-2 transition-colors"
             >
-                📥 Penerimaan Cepat
+                Masuk
             </button>
              <button 
                 @click="activeTab = 'transfer'"
-                :class="{ 'border-primary-500 text-primary-600': activeTab === 'transfer', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'transfer' }"
-                class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+                :class="{ 'border-primary-500 text-primary-600 font-semibold': activeTab === 'transfer', 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300': activeTab !== 'transfer' }"
+                class="whitespace-nowrap pb-2 px-1 border-b-2 transition-colors"
             >
-                🔄 Transfer Cepat
+                Transfer
             </button>
         </nav>
     </div>
 
     <!-- Quick Issue Form -->
-    <div x-show="activeTab === 'issue'" class="space-y-4">
-        <p class="text-gray-500 text-sm">Catat pengeluaran barang dengan cepat.</p>
-
-        <form method="POST" action="{{ route('inventory.transaction.issue') }}" class="grid grid-cols-12 gap-4 items-end">
+    <div x-show="activeTab === 'issue'" class="space-y-3">
+        <form method="POST" action="{{ route('inventory.transaction.issue') }}" class="space-y-3">
             @csrf
             <input type="hidden" name="reference_type" value="MANUAL" />
 
-            <div class="col-span-12 md:col-span-4">
-                <label class="block text-sm font-medium text-gray-700">Item</label>
-                <select name="item_id" x-model.number="issue.item_id" @change="loadLots('issue')" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Item</label>
+                <select name="item_id" x-model.number="issue.item_id" @change="loadLots('issue')" class="block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-primary-500 focus:ring-primary-500" required>
                     <option value="">Pilih item...</option>
                     <template x-for="it in items" :key="it.id">
                         <option :value="it.id" x-text="it.name + ' (' + it.uom + ')' "></option>
@@ -50,54 +47,58 @@
                 </select>
             </div>
 
-            <div class="col-span-12 md:col-span-3">
-                <label class="block text-sm font-medium text-gray-700">Lot (opsional)</label>
-                <select name="lot_id" x-model.number="issue.lot_id" @change="loadBalance('issue')" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                    <option value="">Semua lot</option>
-                    <template x-for="lot in lots.issue" :key="lot.id">
-                        <option :value="lot.id" :disabled="!lot.can_issue" x-text="lot.lot_no + (lot.expiry_date ? ' · exp ' + lot.expiry_date : '')"></option>
-                    </template>
-                </select>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Lot (opsional)</label>
+                    <select name="lot_id" x-model.number="issue.lot_id" @change="loadBalance('issue')" class="block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-primary-500 focus:ring-primary-500">
+                        <option value="">Semua lot</option>
+                        <template x-for="lot in lots.issue" :key="lot.id">
+                            <option :value="lot.id" :disabled="!lot.can_issue" x-text="lot.lot_no"></option>
+                        </template>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Lokasi</label>
+                    <select name="location_id" x-model.number="issue.location_id" @change="loadBalance('issue')" class="block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-primary-500 focus:ring-primary-500" required>
+                        <option value="">Pilih...</option>
+                        <template x-for="loc in locations" :key="loc.id">
+                            <option :value="loc.id" x-text="loc.name"></option>
+                        </template>
+                    </select>
+                </div>
             </div>
 
-            <div class="col-span-12 md:col-span-3">
-                <label class="block text-sm font-medium text-gray-700">Lokasi</label>
-                <select name="location_id" x-model.number="issue.location_id" @change="loadBalance('issue')" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
-                    <option value="">Pilih lokasi...</option>
-                    <template x-for="loc in locations" :key="loc.id">
-                        <option :value="loc.id" x-text="loc.name"></option>
-                    </template>
-                </select>
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Jumlah</label>
+                <div class="relative rounded-md shadow-sm">
+                    <input name="qty" x-model.number="issue.qty" type="number" step="0.001" min="0.001" required class="block w-full rounded-md border-gray-300 text-sm focus:border-primary-500 focus:ring-primary-500" placeholder="0.00" />
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                         <span class="text-gray-500 sm:text-xs" x-text="items.find(i => i.id == issue.item_id)?.uom || ''"></span>
+                    </div>
+                </div>
+                <p class="mt-1 text-[10px] text-gray-500" x-show="balance.issue !== null">
+                    Stok: <span class="font-mono font-medium text-gray-700" x-text="balance.issue"></span>
+                </p>
             </div>
 
-            <div class="col-span-6 md:col-span-1">
-                <label class="block text-sm font-medium text-gray-700">Qty</label>
-                <input name="qty" x-model.number="issue.qty" type="number" step="0.001" min="0.001" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Catatan</label>
+                <input name="notes" x-model="issue.notes" type="text" class="block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-primary-500 focus:ring-primary-500" placeholder="Opsional..." />
             </div>
 
-            <div class="col-span-6 md:col-span-1">
-                <x-primary-button type="submit" class="w-full justify-center">Proses</x-primary-button>
-            </div>
-
-            <div class="col-span-12">
-                <label class="block text-sm font-medium text-gray-700">Catatan (opsional)</label>
-                <input name="notes" x-model="issue.notes" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="Contoh: pemakaian harian / permintaan analis" />
-                <p class="mt-1 text-xs text-gray-500" x-show="balance.issue !== null">Sisa stok (estimasi): <span class="font-mono" x-text="balance.issue"></span></p>
-            </div>
+            <x-primary-button type="submit" class="w-full justify-center">Simpan Pengeluaran</x-primary-button>
         </form>
     </div>
     
     <!-- Quick Receipt Form -->
-    <div x-show="activeTab === 'receipt'" class="space-y-4" style="display: none;">
-        <p class="text-gray-500 text-sm">Input penerimaan barang baru.</p>
-
-        <form method="POST" action="{{ route('inventory.transaction.receipt') }}" class="grid grid-cols-12 gap-4 items-end">
+    <div x-show="activeTab === 'receipt'" class="space-y-3" style="display: none;">
+        <form method="POST" action="{{ route('inventory.transaction.receipt') }}" class="space-y-3">
             @csrf
             <input type="hidden" name="reference_type" value="MANUAL" />
 
-            <div class="col-span-12 md:col-span-5">
-                <label class="block text-sm font-medium text-gray-700">Item</label>
-                <select name="item_id" x-model.number="receipt.item_id" @change="loadLots('receipt')" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Item</label>
+                <select name="item_id" x-model.number="receipt.item_id" class="block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-primary-500 focus:ring-primary-500" required>
                     <option value="">Pilih item...</option>
                     <template x-for="it in items" :key="it.id">
                         <option :value="it.id" x-text="it.name + ' (' + it.uom + ')' "></option>
@@ -105,42 +106,39 @@
                 </select>
             </div>
 
-            <div class="col-span-12 md:col-span-3">
-                <label class="block text-sm font-medium text-gray-700">Lokasi</label>
-                <select name="location_id" x-model.number="receipt.location_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
-                    <option value="">Pilih lokasi...</option>
-                    <template x-for="loc in locations" :key="loc.id">
-                        <option :value="loc.id" x-text="loc.name"></option>
-                    </template>
-                </select>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Lokasi</label>
+                    <select name="location_id" x-model.number="receipt.location_id" class="block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-primary-500 focus:ring-primary-500" required>
+                        <option value="">Pilih...</option>
+                        <template x-for="loc in locations" :key="loc.id">
+                            <option :value="loc.id" x-text="loc.name"></option>
+                        </template>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Jumlah</label>
+                    <input name="qty" x-model.number="receipt.qty" type="number" step="0.001" min="0.001" required class="block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-primary-500 focus:ring-primary-500" placeholder="0.00" />
+                </div>
             </div>
 
-            <div class="col-span-6 md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700">Qty</label>
-                <input name="qty" x-model.number="receipt.qty" type="number" step="0.001" min="0.001" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Catatan</label>
+                <input name="notes" x-model="receipt.notes" type="text" class="block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-primary-500 focus:ring-primary-500" placeholder="Opsional..." />
             </div>
 
-            <div class="col-span-6 md:col-span-2">
-                <x-primary-button type="submit" class="w-full justify-center">Terima</x-primary-button>
-            </div>
-
-            <div class="col-span-12">
-                <label class="block text-sm font-medium text-gray-700">Catatan (opsional)</label>
-                <input name="notes" x-model="receipt.notes" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="Contoh: penerimaan vendor / hibah" />
-            </div>
+            <x-primary-button type="submit" class="w-full justify-center">Simpan Penerimaan</x-primary-button>
         </form>
     </div>
 
     <!-- Quick Transfer Form -->
-    <div x-show="activeTab === 'transfer'" class="space-y-4" style="display: none;">
-        <p class="text-gray-500 text-sm">Pindahkan barang antar lokasi.</p>
-
-        <form method="POST" action="{{ route('inventory.transaction.transfer') }}" class="grid grid-cols-12 gap-4 items-end">
+    <div x-show="activeTab === 'transfer'" class="space-y-3" style="display: none;">
+        <form method="POST" action="{{ route('inventory.transaction.transfer') }}" class="space-y-3">
             @csrf
 
-            <div class="col-span-12 md:col-span-4">
-                <label class="block text-sm font-medium text-gray-700">Item</label>
-                <select name="item_id" x-model.number="transfer.item_id" @change="loadLots('transfer')" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Item</label>
+                <select name="item_id" x-model.number="transfer.item_id" @change="loadLots('transfer')" class="block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-primary-500 focus:ring-primary-500" required>
                     <option value="">Pilih item...</option>
                     <template x-for="it in items" :key="it.id">
                         <option :value="it.id" x-text="it.name + ' (' + it.uom + ')' "></option>
@@ -148,49 +146,48 @@
                 </select>
             </div>
 
-            <div class="col-span-12 md:col-span-3">
-                <label class="block text-sm font-medium text-gray-700">Lot (opsional)</label>
-                <select name="lot_id" x-model.number="transfer.lot_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Lot (opsional)</label>
+                <select name="lot_id" x-model.number="transfer.lot_id" class="block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-primary-500 focus:ring-primary-500">
                     <option value="">Semua lot</option>
                     <template x-for="lot in lots.transfer" :key="lot.id">
-                        <option :value="lot.id" x-text="lot.lot_no + (lot.expiry_date ? ' · exp ' + lot.expiry_date : '')"></option>
+                        <option :value="lot.id" x-text="lot.lot_no"></option>
                     </template>
                 </select>
             </div>
 
-            <div class="col-span-12 md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700">Dari</label>
-                <select name="from_location_id" x-model.number="transfer.from_location_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
-                    <option value="">Pilih...</option>
-                    <template x-for="loc in locations" :key="loc.id">
-                        <option :value="loc.id" x-text="loc.name"></option>
-                    </template>
-                </select>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Dari</label>
+                    <select name="from_location_id" x-model.number="transfer.from_location_id" class="block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-primary-500 focus:ring-primary-500" required>
+                        <option value="">Pilih...</option>
+                        <template x-for="loc in locations" :key="loc.id">
+                            <option :value="loc.id" x-text="loc.name"></option>
+                        </template>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 mb-1">Ke</label>
+                    <select name="to_location_id" x-model.number="transfer.to_location_id" class="block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-primary-500 focus:ring-primary-500" required>
+                        <option value="">Pilih...</option>
+                        <template x-for="loc in locations" :key="loc.id">
+                            <option :value="loc.id" x-text="loc.name"></option>
+                        </template>
+                    </select>
+                </div>
             </div>
 
-            <div class="col-span-12 md:col-span-2">
-                <label class="block text-sm font-medium text-gray-700">Ke</label>
-                <select name="to_location_id" x-model.number="transfer.to_location_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" required>
-                    <option value="">Pilih...</option>
-                    <template x-for="loc in locations" :key="loc.id">
-                        <option :value="loc.id" x-text="loc.name"></option>
-                    </template>
-                </select>
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Jumlah</label>
+                <input name="qty" x-model.number="transfer.qty" type="number" step="0.001" min="0.001" required class="block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-primary-500 focus:ring-primary-500" placeholder="0.00" />
             </div>
 
-            <div class="col-span-6 md:col-span-1">
-                <label class="block text-sm font-medium text-gray-700">Qty</label>
-                <input name="qty" x-model.number="transfer.qty" type="number" step="0.001" min="0.001" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" />
+            <div>
+                <label class="block text-xs font-medium text-gray-700 mb-1">Catatan</label>
+                <input name="notes" x-model="transfer.notes" type="text" class="block w-full rounded-md border-gray-300 shadow-sm text-sm focus:border-primary-500 focus:ring-primary-500" placeholder="Opsional..." />
             </div>
 
-            <div class="col-span-6 md:col-span-1">
-                <x-primary-button type="submit" class="w-full justify-center">Transfer</x-primary-button>
-            </div>
-
-            <div class="col-span-12">
-                <label class="block text-sm font-medium text-gray-700">Catatan (opsional)</label>
-                <input name="notes" x-model="transfer.notes" type="text" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm" placeholder="Contoh: pindah gudang ke lab" />
-            </div>
+            <x-primary-button type="submit" class="w-full justify-center">Transfer</x-primary-button>
         </form>
     </div>
 </div>

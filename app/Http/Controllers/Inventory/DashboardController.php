@@ -36,10 +36,10 @@ class DashboardController extends Controller
         // Low stock items
         $lowStockItems = InventoryItem::query()
             ->active()
+            ->belowMinStock()
             ->with('balances')
-            ->get()
-            ->filter(fn ($item) => $item->is_below_min_stock)
-            ->take(10);
+            ->take(10)
+            ->get();
 
         // Near expiry lots (30 days)
         $nearExpiry30 = InventoryLot::query()
