@@ -24,7 +24,13 @@
         @endif
 
         <div class="card">
-            <form method="POST" action="{{ route('inventory.transaction.issue') }}">
+            <form
+                id="issue-form"
+                method="POST"
+                action="{{ route('inventory.transaction.issue') }}"
+                data-prefill-item-id="{{ old('item_id', request('item_id')) }}"
+                data-prefill-lot-id="{{ old('lot_id', request('lot_id')) }}"
+            >
                 @csrf
 
                 <div class="space-y-6">
@@ -35,7 +41,7 @@
                             class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
                             <option value="">Pilih item...</option>
                             @foreach($items as $item)
-                                <option value="{{ $item->id }}" data-uom="{{ $item->uom }}" {{ old('item_id') == $item->id ? 'selected' : '' }}>
+                                <option value="{{ $item->id }}" data-uom="{{ $item->uom }}" {{ (string) old('item_id', request('item_id')) === (string) $item->id ? 'selected' : '' }}>
                                     {{ $item->name }} ({{ $item->uom }})
                                 </option>
                             @endforeach
@@ -134,6 +140,10 @@
         const availableQty = document.getElementById('available-qty');
         const lotWarning = document.getElementById('lot-warning');
 
+        const issueForm = document.getElementById('issue-form');
+        const prefillItemId = issueForm?.dataset?.prefillItemId || '';
+        const prefillLotId = issueForm?.dataset?.prefillLotId || '';
+
         let currentUom = '';
 
         function updateBalance() {
@@ -179,6 +189,12 @@
                         }
                         lotSelect.appendChild(opt);
                     });
+
+                    if (prefillLotId) {
+                        lotSelect.value = String(prefillLotId);
+                        lotSelect.dispatchEvent(new Event('change'));
+                    }
+
                     updateBalance();
                 });
         });
@@ -198,6 +214,11 @@
         });
 
         locationSelect.addEventListener('change', updateBalance);
+
+        if (prefillItemId) {
+            itemSelect.value = String(prefillItemId);
+            itemSelect.dispatchEvent(new Event('change'));
+        }
     </script>
-    @endpush
+@endpush
 </x-app-layout>

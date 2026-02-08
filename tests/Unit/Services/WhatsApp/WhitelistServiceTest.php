@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services\WhatsApp;
 
+use App\Models\SystemSetting;
 use App\Services\WhatsApp\WhitelistService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -54,5 +55,22 @@ class WhitelistServiceTest extends TestCase
 
         $this->service->remove($phone);
         $this->assertFalse($this->service->isAllowed($phone));
+    }
+
+    public function test_get_admin_phone_numbers_includes_super_admin_fallback_and_whitelist(): void
+    {
+        SystemSetting::updateOrCreate(
+            ['key' => 'notifications.whatsapp.admin_number'],
+            ['value' => '628777000111']
+        );
+
+        $this->service->add('08123456789', 'Test User');
+
+        $numbers = $this->service->getAdminPhoneNumbers();
+
+        $this->assertContains('628123456789', $numbers);
+        $this->assertContains('628777000111', $numbers);
+
+        $this->assertSame(count(array_unique($numbers)), count($numbers));
     }
 }

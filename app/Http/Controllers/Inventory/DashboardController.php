@@ -8,6 +8,8 @@ use App\Models\InventoryLocation;
 use App\Models\InventoryLot;
 use App\Models\Sample;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -88,6 +90,103 @@ class DashboardController extends Controller
                 'expired' => $expiredCount,
             ],
             'eligibleSamplesCount' => $eligibleSamplesCount,
+        ]);
+    }
+
+    public function ajaxSearch(Request $request): JsonResponse
+    {
+        $q = trim((string) $request->query('q', ''));
+
+        if ($q === '') {
+            return response()->json([
+                'query' => $q,
+                'exact_match' => null,
+                'results' => [],
+            ]);
+        }
+
+        $qLower = strtolower($q);
+
+        $exactLots = InventoryLot::query()
+            ->with('item')
+            ->whereRaw('LOWER(lot_no) = ?', [$qLower])
+            ->where('status', '!=', 'DISPOSED')
+            ->limit(2)
+            ->get();
+
+        $exactMatch = null;
+        if ($exactLots->count() === 1) {
+            $lot = $exactLots->first();
+
+            $exactMatch = [
+                'type' => 'lot',
+                'id' => $lot->id,
+                'item_id' => $lot->item_id,
+                'lot_id' => $lot->id,
+                'label' => ($lot->item?->name ?? 'Item').' · '.$lot->lot_no,
+                'issue_url' => route('inventory.transaction.issue', ['item_id' => $lot->item_id, 'lot_id' => $lot->id]),
+            ];
+        }
+
+        if ($exactMatch === null) {
+            $exactItems = InventoryItem::query()
+                ->active()
+                ->whereRaw('LOWER(name) = ?', [$qLower])
+                ->limit(2)
+                ->get();
+
+            if ($exactItems->count() === 1) {
+                $item = $exactItems->first();
+                $exactMatch = [
+                    'type' => 'item',
+                    'id' => $item->id,
+                    'item_id' => $item->id,
+                    'lot_id' => null,
+                    'label' => $item->name,
+                    'issue_url' => route('inventory.transaction.issue', ['item_id' => $item->id]),
+                ];
+            }
+        }
+
+        $lots = InventoryLot::query()
+            ->with('item')
+            ->whereRaw('LOWER(lot_no) LIKE ?', ['%'.$qLower.'%'])
+            ->where('status', '!=', 'DISPOSED')
+            ->orderBy('lot_no')
+            ->limit(10)
+            ->get()
+            ->map(fn ($lot) => [
+                'type' => 'lot',
+                'id' => $lot->id,
+                'item_id' => $lot->item_id,
+                'lot_id' => $lot->id,
+                'label' => ($lot->item?->name ?? 'Item').' · '.$lot->lot_no,
+                'meta' => $lot->expiry_date ? 'exp '.$lot->expiry_date->format('Y-m-d') : null,
+                'issue_url' => route('inventory.transaction.issue', ['item_id' => $lot->item_id, 'lot_id' => $lot->id]),
+            ])
+            ->values();
+
+        $items = InventoryItem::query()
+            ->active()
+            ->whereRaw('LOWER(name) LIKE ?', ['%'.$qLower.'%'])
+            ->orderBy('name')
+            ->limit(10)
+            ->get(['id', 'name', 'uom'])
+            ->map(fn ($item) => [
+                'type' => 'item',
+                'id' => $item->id,
+                'item_id' => $item->id,
+                'lot_id' => null,
+                'label' => $item->name,
+                'meta' => $item->uom,
+                'issue_url' => route('inventory.transaction.issue', ['item_id' => $item->id]),
+            ])
+            ->values();
+
+        return response()->json([
+            'query' => $q,
+            'exact_match' => $exactMatch,
+            'results' => $lots->concat($items)->values(),
         ]);
     }
 }

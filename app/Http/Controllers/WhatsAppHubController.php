@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\InventoryAlertLog;
+use App\Models\InventoryItem;
+use App\Models\InventoryLot;
 use App\Models\Investigator;
 use App\Models\Reminder;
 use App\Models\StaffTask;
@@ -660,6 +663,81 @@ class WhatsAppHubController extends Controller
         return response()->json(['batch' => $batch, 'messages' => $logs]);
     }
 
+    // --- Inventory Alerts ---
+
+    public function getInventoryAlerts(): JsonResponse
+    {
+        $expiryDays = (int) settings('inventory.alert_expiry_days', 30);
+
+        $lowStockItems = InventoryItem::query()
+            ->active()
+            ->with('balances')
+            ->get()
+            ->filter(fn ($item) => $item->is_below_min_stock)
+            ->take(15)
+            ->values()
+            ->map(fn ($item) => [
+                'id' => $item->id,
+                'name' => $item->name,
+                'uom' => $item->uom,
+                'total_on_hand' => (float) $item->total_on_hand,
+                'min_stock' => (float) $item->min_stock,
+                'edit_url' => route('inventory.items.edit', $item),
+            ]);
+
+        $expiringLots = InventoryLot::query()
+            ->with(['item'])
+            ->nearExpiry($expiryDays)
+            ->where('status', 'ACTIVE')
+            ->whereHas('balances', fn ($q) => $q->where('on_hand_qty', '>', 0))
+            ->orderBy('expiry_date')
+            ->take(15)
+            ->get()
+            ->map(fn ($lot) => [
+                'id' => $lot->id,
+                'item_id' => $lot->item_id,
+                'item_name' => $lot->item?->name,
+                'uom' => $lot->item?->uom,
+                'lot_no' => $lot->lot_no,
+                'expiry_date' => optional($lot->expiry_date)->format('Y-m-d'),
+            ]);
+
+        $history = InventoryAlertLog::query()
+            ->with(['item', 'lot'])
+            ->latest()
+            ->paginate(20);
+
+        $historyData = $history->getCollection()->map(function (InventoryAlertLog $log) {
+            $targetLabel = $log->item?->name ?? ($log->item_id ? 'Item #'.$log->item_id : '-');
+
+            if ($log->alert_type === 'EXPIRY') {
+                $lotNo = $log->lot?->lot_no ?? ($log->lot_id ? 'Lot #'.$log->lot_id : '-');
+                $targetLabel = $targetLabel.' · '.$lotNo;
+            }
+
+            return [
+                'id' => $log->id,
+                'alert_type' => $log->alert_type,
+                'target_label' => $targetLabel,
+                'sent_count' => is_array($log->sent_to) ? count($log->sent_to) : 0,
+                'failed_count' => is_array($log->failed_to) ? count($log->failed_to) : 0,
+                'created_at_human' => optional($log->created_at)->format('Y-m-d H:i'),
+            ];
+        })->values();
+
+        return response()->json([
+            'expiry_days' => $expiryDays,
+            'low_stock' => $lowStockItems,
+            'expiring' => $expiringLots,
+            'history' => [
+                'data' => $historyData,
+                'current_page' => $history->currentPage(),
+                'last_page' => $history->lastPage(),
+                'total' => $history->total(),
+            ],
+        ]);
+    }
+
     // --- Groups & Settings ---
 
     public function getGroups(): JsonResponse
@@ -697,6 +775,7 @@ class WhatsAppHubController extends Controller
             'base_url' => settings('notifications.whatsapp.base_url'),
             'basic_user' => settings('notifications.whatsapp.basic_user'),
             'device_id' => settings('notifications.whatsapp.device_id'),
+            'inventory_alert_expiry_days' => (int) settings('inventory.alert_expiry_days', 30),
             // Don't return password
         ]);
     }
@@ -708,6 +787,7 @@ class WhatsAppHubController extends Controller
             'basic_user' => 'nullable|string',
             'basic_pass' => 'nullable|string',
             'device_id' => 'required|string',
+            'inventory_alert_expiry_days' => 'nullable|integer|min:1|max:365',
         ]);
 
         SystemSetting::updateOrCreate(
@@ -729,6 +809,13 @@ class WhatsAppHubController extends Controller
             SystemSetting::updateOrCreate(
                 ['key' => 'notifications.whatsapp.basic_pass'],
                 ['value' => encrypt($validated['basic_pass'])]
+            );
+        }
+
+        if (array_key_exists('inventory_alert_expiry_days', $validated)) {
+            SystemSetting::updateOrCreate(
+                ['key' => 'inventory.alert_expiry_days'],
+                ['value' => (int) ($validated['inventory_alert_expiry_days'] ?? 30)]
             );
         }
 

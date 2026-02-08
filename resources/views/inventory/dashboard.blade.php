@@ -20,27 +20,30 @@
     </x-slot>
 
     <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+
+        <!-- Global Search / Barcode -->
+        @include('inventory.partials.global-search')
         
         <!-- Quick Actions -->
         @include('inventory.partials.quick-actions')
 
         <!-- Stats Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div class="card">
-                <div class="text-3xl font-bold text-primary-900">{{ $stats['total_items'] }}</div>
-                <div class="text-sm text-gray-600">Total Item Aktif</div>
+                <div class="text-2xl font-bold text-primary-900">{{ $stats['total_items'] }}</div>
+                <div class="text-xs text-gray-600">Total Item Aktif</div>
             </div>
             <div class="card">
-                <div class="text-3xl font-bold text-primary-900">{{ $stats['total_lots'] }}</div>
-                <div class="text-sm text-gray-600">Lot Aktif</div>
+                <div class="text-2xl font-bold text-primary-900">{{ $stats['total_lots'] }}</div>
+                <div class="text-xs text-gray-600">Lot Aktif</div>
             </div>
             <div class="card {{ $stats['low_stock'] > 0 ? 'border-l-4 border-amber-400' : '' }}">
-                <div class="text-3xl font-bold {{ $stats['low_stock'] > 0 ? 'text-amber-600' : 'text-primary-900' }}">{{ $stats['low_stock'] }}</div>
-                <div class="text-sm text-gray-600">Stok Rendah</div>
+                <div class="text-2xl font-bold {{ $stats['low_stock'] > 0 ? 'text-amber-600' : 'text-primary-900' }}">{{ $stats['low_stock'] }}</div>
+                <div class="text-xs text-gray-600">Stok Rendah</div>
             </div>
             <div class="card {{ $stats['expired'] > 0 ? 'border-l-4 border-red-400' : '' }}">
-                <div class="text-3xl font-bold {{ $stats['expired'] > 0 ? 'text-red-600' : 'text-primary-900' }}">{{ $stats['expired'] }}</div>
-                <div class="text-sm text-gray-600">Lot Kadaluarsa</div>
+                <div class="text-2xl font-bold {{ $stats['expired'] > 0 ? 'text-red-600' : 'text-primary-900' }}">{{ $stats['expired'] }}</div>
+                <div class="text-xs text-gray-600">Lot Kadaluarsa</div>
             </div>
         </div>
 
@@ -71,6 +74,7 @@
                             <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600">Tipe</th>
                             <th class="px-4 py-3 text-right text-xs font-semibold text-gray-600">Stok</th>
                             <th class="px-4 py-3 text-right text-xs font-semibold text-gray-600">Min</th>
+                            <th class="px-4 py-3 text-right text-xs font-semibold text-gray-600">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
@@ -83,6 +87,22 @@
                             <td class="px-4 py-3 text-sm text-gray-600">{{ $item->item_type_label }}</td>
                             <td class="px-4 py-3 text-right font-mono text-sm text-red-600">{{ number_format($item->total_on_hand, 2) }} {{ $item->uom }}</td>
                             <td class="px-4 py-3 text-right font-mono text-sm text-gray-600">{{ number_format($item->min_stock, 2) }}</td>
+                            <td class="px-4 py-3 text-right">
+                                <div class="inline-flex items-center gap-3">
+                                    <a
+                                        href="{{ route('inventory.transaction.transfer', ['item_id' => $item->id]) }}"
+                                        class="text-sm font-medium text-primary-700 hover:text-primary-800"
+                                    >
+                                        Transfer
+                                    </a>
+                                    <a
+                                        href="{{ route('inventory.transaction.receipt', ['item_id' => $item->id]) }}"
+                                        class="text-sm font-medium text-gray-700 hover:text-gray-900"
+                                    >
+                                        Penerimaan
+                                    </a>
+                                </div>
+                            </td>
                         </tr>
                         @endforeach
                     </tbody>
@@ -147,7 +167,12 @@
                                 {{ number_format($lot->balances->sum('on_hand_qty'), 2) }} {{ $lot->item->uom }}
                             </td>
                             <td class="px-4 py-3 text-right">
-                                <a href="{{ route('inventory.transaction.dispose') }}" class="text-sm text-red-600 hover:text-red-700 font-medium">Disposal</a>
+                                <a
+                                    href="{{ route('inventory.transaction.dispose', ['item_id' => $lot->item_id, 'lot_id' => $lot->id]) }}"
+                                    class="text-sm text-red-600 hover:text-red-700 font-medium"
+                                >
+                                    Disposal
+                                </a>
                             </td>
                         </tr>
                         @endforeach

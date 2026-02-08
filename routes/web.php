@@ -399,6 +399,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/logs', [\App\Http\Controllers\WhatsAppHubController::class, 'getLogs'])->name('logs');
         Route::get('/logs/{batch}', [\App\Http\Controllers\WhatsAppHubController::class, 'getLogDetail'])->name('logs.detail');
 
+        // Inventory Alerts
+        Route::get('/inventory-alerts', [\App\Http\Controllers\WhatsAppHubController::class, 'getInventoryAlerts'])->name('inventory-alerts');
+
         // Groups
         Route::get('/groups', [\App\Http\Controllers\WhatsAppHubController::class, 'getGroups'])->name('groups');
         Route::post('/groups/fetch', [\App\Http\Controllers\WhatsAppHubController::class, 'getGroups'])->name('groups.fetch'); // Alias for fetch modal
@@ -481,6 +484,7 @@ Route::prefix('referensi/inventori')->name('inventory.')->middleware(['auth', 'v
     // AJAX helpers
     Route::get('ajax/lots', [App\Http\Controllers\Inventory\TransactionController::class, 'getLotsForItem'])->name('ajax.lots');
     Route::get('ajax/balance', [App\Http\Controllers\Inventory\TransactionController::class, 'getBalanceForSelection'])->name('ajax.balance');
+    Route::get('ajax/search', [App\Http\Controllers\Inventory\DashboardController::class, 'ajaxSearch'])->name('ajax.search');
 
     // Sample Disposal (Pemusnahan Sisa Sampel)
     Route::prefix('disposal')->name('disposal.')->group(function () {

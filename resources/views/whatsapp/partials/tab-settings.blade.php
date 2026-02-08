@@ -144,7 +144,39 @@
             </div>
         </div>
 
-        <!-- Section 3: Test Message -->
+        <!-- Section 3: Inventory Alerts -->
+        <div class="bg-white dark:bg-gray-800 shadow rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100 mb-4">Inventory Alerts</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Expiry Alert Threshold (days)
+                    </label>
+                    <input
+                        type="number"
+                        min="1"
+                        max="365"
+                        x-model.number="settingsForm.inventory_alert_expiry_days"
+                        class="mt-1 block w-40 rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                    >
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        Alert dikirim untuk lot yang akan kadaluarsa dalam X hari ke depan.
+                    </p>
+                </div>
+
+                <div class="text-sm text-gray-600 dark:text-gray-300">
+                    <p class="font-medium text-gray-900 dark:text-gray-100">Penerima</p>
+                    <p class="mt-1">
+                        Alert akan dikirim ke semua admin yang ada di whitelist + super admin fallback.
+                    </p>
+                    <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                        Simpan lewat tombol "Save Configuration" di bagian atas.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 4: Test Message -->
         <div class="bg-white dark:bg-gray-800 shadow rounded-lg border border-gray-200 dark:border-gray-700 p-6">
             <h3 class="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100 mb-4">Send Test Message</h3>
             <form @submit.prevent="sendTestMessage" class="space-y-4">

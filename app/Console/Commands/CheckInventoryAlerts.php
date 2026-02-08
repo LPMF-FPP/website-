@@ -19,7 +19,8 @@ class CheckInventoryAlerts extends Command
         $service->checkLowStock();
 
         $this->info('Checking expiry dates...');
-        $service->checkExpiry();
+        $expiryDays = (int) settings('inventory.alert_expiry_days', 30);
+        $service->checkExpiry($expiryDays);
 
         $this->info('Done.');
     }

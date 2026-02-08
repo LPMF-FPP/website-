@@ -15,6 +15,7 @@ class ConsolidatedReportControllerTest extends TestCase
 
     public function test_index_passes_default_signers_to_view()
     {
+        /** @var User $user */
         $user = User::factory()->create();
 
         $this->actingAs($user);
@@ -38,16 +39,12 @@ class ConsolidatedReportControllerTest extends TestCase
         $response->assertViewHas('defaultSigners', [['role' => 'Mocked']]);
     }
 
-    /** @test */
-    public function save_default_signers_logs_changes()
+    public function test_save_default_signers_logs_changes()
     {
-        Log::shouldReceive('info')->once()->withArgs(function ($message, $context) {
-            return str_contains($message, 'Default signers updated by user') &&
-                   array_key_exists('old', $context) &&
-                   array_key_exists('new', $context);
-        });
-
+        /** @var User $user */
         $user = User::factory()->create();
+
+        Log::spy();
 
         \Illuminate\Support\Facades\Gate::shouldReceive('authorize')
             ->with('statistik.export', [])
@@ -62,10 +59,19 @@ class ConsolidatedReportControllerTest extends TestCase
             ->putJson(route('consolidated-reports.save-default-signers'), ['signers' => $newSigners]);
 
         $response->assertOk();
+
+        Log::shouldHaveReceived('info')
+            ->once()
+            ->withArgs(function ($message, $context) use ($user, $oldSigners, $newSigners) {
+                return str_contains($message, 'Default signers updated by user '.$user->id)
+                    && ($context['old'] ?? null) == $oldSigners
+                    && ($context['new'] ?? null) == $newSigners;
+            });
     }
 
     public function test_store_calls_send_generation_notification()
     {
+        /** @var User $user */
         $user = User::factory()->create();
         $this->actingAs($user);
 
