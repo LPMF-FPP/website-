@@ -23,12 +23,51 @@
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 
-**Current Version:** v1.10.2 (08 Februari 2026)  
-**Latest Feature:** WhatsApp /stok Audit Trail Fix + Functional Quick Actions Dashboard
+**Current Version:** v1.10.3 (08 Februari 2026)  
+**Latest Feature:** Inventory Alerts History + Global Search / Barcode Scan
 
 ---
 
 ## 📰 Recent Changes (v1.10.x)
+
+### v1.10.3 (08 Februari 2026) - Inventory Alerts History + Global Search / Barcode Scan
+
+```
+Updated on 2026-02-08
+```
+
+**🎯 Problem Solved:**
+
+1. **Inventory alert tidak punya history:** Sebelumnya alert (low stock/expiry) hanya dikirim ke satu nomor dan tidak ada catatan siapa yang menerima/gagal.
+2. **Pencarian item/lot lambat:** Dashboard inventori belum punya global search untuk scan barcode / lookup cepat.
+3. **Deep link transaksi belum prefill:** Link menuju Issue/Disposal belum otomatis membawa `item_id`/`lot_id`.
+
+**✨ New Features & Fixes:**
+
+- **Inventory Alerts (WhatsApp):**
+    - Alert dikirim ke semua admin di whitelist + super admin fallback.
+    - Threshold expiry configurable via settings (default 30 hari).
+    - History pengiriman disimpan (sent/failed + meta) untuk kebutuhan audit.
+
+- **WhatsApp Hub - Tab Inventory Alerts:**
+    - Preview daftar item low stock dan lot near-expiry.
+    - Riwayat alert terbaru dengan sent_count/failed_count.
+
+- **Inventory Dashboard - Global Search / Barcode:**
+    - Endpoint AJAX search untuk lot_no / nama item.
+    - Exact match auto-direct ke form Issue dengan query param prefill.
+    - Issue form sekarang mendukung prefill `?item_id=...&lot_id=...`.
+    - Link Disposal di tabel expiry lot sekarang prefill `item_id` + `lot_id`.
+    - Tabel low stock menambahkan aksi cepat Transfer/Penerimaan.
+
+**🧪 Test Coverage:**
+
+- `tests/Unit/Services/Inventory/InventoryAlertServiceTest.php` (new)
+- `tests/Feature/WhatsApp/InventoryAlertsTabTest.php` (new)
+- `tests/Feature/Inventory/GlobalSearchTest.php` (new)
+- `tests/Unit/Services/ConsolidatedReportServiceTest.php` (new)
+
+---
 
 ### v1.10.2 (08 Februari 2026) - WhatsApp /stok Audit Trail + Quick Actions Dashboard
 

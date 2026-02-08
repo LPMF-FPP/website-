@@ -1,31 +1,19 @@
-# Task Tracker - WhatsApp /stok Audit Trail + Quick Actions Dashboard (v1.10.2)
+# Task Tracker - v1.10.3 Changelog Sync + Deploy
 
 ## Implementation
 
-- [x] Add failing tests for WhatsApp /stok command creating InventoryMovement
-- [x] Refactor `StockTransactionCommand` to use `InventoryMovementService`
-- [x] Resolve `performed_by` from sender phone number
-- [x] Case-insensitive item search for `/stok` command
-- [x] Auto-select location (first for receipt, best stock for issue)
-- [x] Make dashboard Quick Actions functional (Issue/Receipt/Transfer forms)
-- [x] Wire up forms to existing `inventory.transaction.*` routes
-- [x] Dynamic lot loading via AJAX
-- [x] Fix flaky `DisposisiTableTest` time-dependent assertions
+- [x] Update `WALKTHROUGH.md` ke v1.10.3 (Inventory Alerts History + Global Search)
+- [x] Update halaman `/changelogs` agar menampilkan v1.10.3 dan v1.10.2
+- [x] Jalankan verifikasi minimal (targeted Pest + build/audit bila perlu)
+- [ ] Commit + push perubahan dokumentasi/UI changelog
+- [ ] Deploy ke production (git pull + migrate + cache)
 
 ## Verification
 
-- [x] `php vendor/bin/pest tests/Feature/WhatsApp/StockTransactionCommandTest.php` (3 tests passed)
-- [x] `php vendor/bin/pest tests/Feature/Inventory/` (all passed)
-- [x] `php vendor/bin/pest tests/Feature/Dashboard/DisposisiTableTest.php` (all passed)
-- [x] `npm run audit:critical` (0 violations)
-- [x] `npm run build` (success)
+- [x] `php vendor/bin/pest tests/Feature/Inventory/GlobalSearchTest.php tests/Feature/WhatsApp/InventoryAlertsTabTest.php`
+- [x] `npm run build`
+- [x] `npm run audit:critical`
 
-## Documentation
+## Deployment (Production)
 
-- [x] Update `WALKTHROUGH.md` ke v1.10.2
-- [ ] Update halaman `/changelogs` (optional, can be done later)
-
-## Release
-
-- [ ] Commit dan push ke GitHub
-- [ ] Deploy production via SSH (git pull + migrate + cache)
+- [ ] `ssh <host> "cd <path> && git pull && php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan view:cache"`
