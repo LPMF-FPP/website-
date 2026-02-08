@@ -1,19 +1,30 @@
-# Task Tracker - v1.10.3 Changelog Sync + Deploy
+# Task Tracker - Inventory Dashboard Insights
+
+## Goals
+
+- Make Dashboard Inventori lebih insightful (stok health, top movers, disposal sampel always accessible)
+- Seragamkan gaya tombol (primary solid + secondary outline)
 
 ## Implementation
 
-- [x] Update `WALKTHROUGH.md` ke v1.10.3 (Inventory Alerts History + Global Search)
-- [x] Update halaman `/changelogs` agar menampilkan v1.10.3 dan v1.10.2
-- [x] Jalankan verifikasi minimal (targeted Pest + build/audit bila perlu)
-- [ ] Commit + push perubahan dokumentasi/UI changelog
-- [ ] Deploy ke production (git pull + migrate + cache)
+- [x] Tambah widget Disposal Sampel yang selalu tampil + summary counts + batch terakhir
+- [x] Tambah section "Barang Paling Boros (7 hari terakhir)" berdasarkan volume issue
+- [x] Tambah section "Kesehatan Stok" dengan bullet graph (actual vs min marker)
+- [x] Rapikan tombol header dashboard pakai `x-button` (outline + primary/danger/secondary)
+- [x] Pindahkan Quick Actions ke bagian bawah (biar insight tampil dulu)
+
+## Tests (TDD)
+
+- [x] Tambah/ubah test dashboard untuk disposal widget always visible
+- [x] Tambah/ubah test dashboard untuk top movers
+- [x] Tambah/ubah test dashboard untuk kesehatan stok + bullet graph
+- [x] Tambah test dashboard untuk summary counts disposal
 
 ## Verification
 
-- [x] `php vendor/bin/pest tests/Feature/Inventory/GlobalSearchTest.php tests/Feature/WhatsApp/InventoryAlertsTabTest.php`
-- [x] `npm run build`
-- [x] `npm run audit:critical`
+- [x] `php vendor/bin/pest tests/Feature/Inventory/DashboardTest.php`
 
-## Deployment (Production)
+## Release
 
-- [ ] `ssh <host> "cd <path> && git pull && php artisan migrate --force && php artisan config:cache && php artisan route:cache && php artisan view:cache"`
+- [ ] Commit perubahan (belum dilakukan)
+- [ ] Push ke GitHub (belum dilakukan)

@@ -6,7 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Models\InventoryItem;
 use App\Models\InventoryLocation;
 use App\Models\InventoryLot;
+use App\Models\InventoryMovement;
 use App\Models\Sample;
+use App\Models\SampleDisposal;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -76,6 +78,33 @@ class DashboardController extends Controller
         $expiredCount = $expiredLots->count();
         $eligibleSamplesCount = Sample::eligibleForDisposal()->count();
 
+        $finishedSamplesCount = Sample::query()
+            ->whereNotNull('testing_completed_at')
+            ->whereIn('disposal_status', ['pending', 'eligible'])
+            ->count();
+
+        $disposedThisMonthCount = Sample::query()
+            ->where('disposal_status', 'disposed')
+            ->whereNotNull('disposed_at')
+            ->where('disposed_at', '>=', now()->startOfMonth())
+            ->count();
+
+        $recentSampleDisposals = SampleDisposal::query()
+            ->withCount('samples')
+            ->latest('executed_at')
+            ->take(5)
+            ->get();
+
+        $topMovers = InventoryMovement::query()
+            ->where('movement_type', 'ISSUE')
+            ->where('performed_at', '>=', now()->subDays(7))
+            ->selectRaw('item_id, SUM(qty) as total_qty')
+            ->groupBy('item_id')
+            ->orderByDesc('total_qty')
+            ->with('item:id,name,uom')
+            ->take(5)
+            ->get();
+
         return view('inventory.dashboard', [
             'quickActionItems' => $quickActionItems,
             'locations' => $locations,
@@ -90,6 +119,10 @@ class DashboardController extends Controller
                 'expired' => $expiredCount,
             ],
             'eligibleSamplesCount' => $eligibleSamplesCount,
+            'finishedSamplesCount' => $finishedSamplesCount,
+            'disposedThisMonthCount' => $disposedThisMonthCount,
+            'recentSampleDisposals' => $recentSampleDisposals,
+            'topMovers' => $topMovers,
         ]);
     }
 
