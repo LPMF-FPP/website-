@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\UserPermission;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class AdminUserSeeder extends Seeder
 {
@@ -15,12 +16,14 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
+        $password = Str::random(16);
+
         $admin = User::updateOrCreate(
             ['email' => 'labmutufarmapol@gmail.com'],
             [
                 'name' => 'Admin LPMF',
                 'email' => 'labmutufarmapol@gmail.com',
-                'password' => Hash::make('LPMFjaya1'),
+                'password' => Hash::make($password),
                 'role' => 'admin',
                 'is_active' => true,
                 'email_verified_at' => now(),
@@ -49,6 +52,7 @@ class AdminUserSeeder extends Seeder
 
         $this->command->info('Admin user created successfully!');
         $this->command->info('Email: labmutufarmapol@gmail.com');
-        $this->command->info('Password: LPMFjaya1');
+        $this->command->warn("Generated password: {$password}");
+        $this->command->warn('⚠️  SAVE THIS PASSWORD! It will not be shown again.');
     }
 }
