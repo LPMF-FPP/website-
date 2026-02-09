@@ -16,8 +16,88 @@
                 @endif
 
                 <div class="mb-6">
-                    <h3 class="text-lg font-semibold text-gray-900">Permintaan Siap Diserahkan</h3>
-                    <p class="text-gray-600">Daftar permintaan yang telah menyelesaikan seluruh proses pengujian dan menunggu penyerahan hasil.</p>
+                    <h3 class="text-lg font-semibold text-gray-900">Penyerahan Hasil Pengujian</h3>
+                    <p class="text-gray-600">Ringkasan antrian penyerahan dan riwayat penyerahan.</p>
+                </div>
+
+                {{-- Hero Stats Cards --}}
+                <div class="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+                    {{-- Siap Diserahkan --}}
+                    <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-teal-500 to-teal-700 p-5 shadow-lg">
+                        <div class="absolute inset-0 opacity-10">
+                            <svg class="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                                <defs>
+                                    <pattern id="delivery_grid" width="10" height="10" patternUnits="userSpaceOnUse">
+                                        <path d="M 10 0 L 0 0 0 10" fill="none" stroke="white" stroke-width="0.5" />
+                                    </pattern>
+                                </defs>
+                                <rect width="100" height="100" fill="url(#delivery_grid)" />
+                            </svg>
+                        </div>
+                        <div class="relative z-10">
+                            <div class="flex items-center gap-2 text-sm font-medium text-teal-100">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                                </svg>
+                                Siap Diserahkan
+                            </div>
+                            <div class="mt-2 text-3xl font-bold text-white tabular-nums">{{ $requests->count() }}</div>
+                            <p class="mt-1 text-sm text-teal-200">permintaan menunggu</p>
+                        </div>
+                    </div>
+
+                    {{-- Riwayat Penyerahan --}}
+                    <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-green-500 to-emerald-700 p-5 shadow-lg">
+                        <div class="absolute inset-0 opacity-10">
+                            <svg class="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                                <defs>
+                                    <pattern id="delivery_circles" width="20" height="20" patternUnits="userSpaceOnUse">
+                                        <circle cx="10" cy="10" r="2" fill="white" />
+                                    </pattern>
+                                </defs>
+                                <rect width="100" height="100" fill="url(#delivery_circles)" />
+                            </svg>
+                        </div>
+                        <div class="relative z-10">
+                            <div class="flex items-center gap-2 text-sm font-medium text-green-100">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                Riwayat Penyerahan
+                            </div>
+                            <div class="mt-2 text-3xl font-bold text-white tabular-nums">
+                                {{ method_exists($completedRequests, 'total') ? $completedRequests->total() : $completedRequests->count() }}
+                            </div>
+                            <p class="mt-1 text-sm text-green-200">permintaan selesai</p>
+                        </div>
+                    </div>
+
+                    {{-- Total Sampel Pending --}}
+                    <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-indigo-700 p-5 shadow-lg">
+                        <div class="absolute inset-0 opacity-10">
+                            <svg class="h-full w-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                                <defs>
+                                    <pattern id="delivery_dots" width="8" height="8" patternUnits="userSpaceOnUse">
+                                        <circle cx="4" cy="4" r="1" fill="white" />
+                                    </pattern>
+                                </defs>
+                                <rect width="100" height="100" fill="url(#delivery_dots)" />
+                            </svg>
+                        </div>
+                        <div class="relative z-10">
+                            <div class="flex items-center gap-2 text-sm font-medium text-blue-100">
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                </svg>
+                                Total Sampel Pending
+                            </div>
+                            @php
+                                $totalSamples = $requests->sum(fn ($r) => $r->samples->count());
+                            @endphp
+                            <div class="mt-2 text-3xl font-bold text-white tabular-nums">{{ $totalSamples }}</div>
+                            <p class="mt-1 text-sm text-blue-200">sampel siap diserahkan</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div x-show="loading" class="mb-4">
@@ -40,7 +120,11 @@
                             </thead>
                             <tbody class="divide-y divide-gray-200 bg-white">
                                 @foreach($requests as $request)
-                                    <tr class="transition hover:bg-gray-50">
+                                    <tr class="group cursor-pointer transition-all duration-200 hover:bg-teal-50/50 hover:shadow-sm"
+                                        role="link"
+                                        tabindex="0"
+                                        x-on:click="window.location = '{{ route('delivery.show', $request) }}'"
+                                        x-on:keydown.enter="window.location = '{{ route('delivery.show', $request) }}'">
                                         <td class="px-6 py-4 text-sm font-semibold text-gray-900">
                                             {{ $request->receipt_number ?? $request->request_number }}
                                         </td>
@@ -55,26 +139,41 @@
                                         </td>
                                         <td class="px-6 py-4 text-sm text-gray-900">
                                             @php
-                                                $completedSamples = $request->samples->filter(function($sample) {
+                                                $totalSamplesForRequest = $request->samples->count();
+                                                $completedSamplesForRequest = $request->samples->filter(function ($sample) {
                                                     $requiredStages = ['preparation', 'instrumentation', 'interpretation'];
+
                                                     $completedStages = $sample->testProcesses
-                                                        ->where('completed_at', '!=', null)
-                                                        ->whereIn('stage', $requiredStages)
-                                                        ->groupBy('stage')
+                                                        ->filter(fn ($p) => $p->completed_at)
+                                                        ->map(fn ($p) => is_object($p->stage) ? $p->stage->value : $p->stage)
+                                                        ->filter(fn ($stage) => in_array($stage, $requiredStages, true))
+                                                        ->unique()
                                                         ->count();
+
                                                     return $completedStages === 3;
-                                                });
+                                                })->count();
+
+                                                $percent = $totalSamplesForRequest > 0
+                                                    ? (int) round(($completedSamplesForRequest / $totalSamplesForRequest) * 100)
+                                                    : 0;
                                             @endphp
-                                            <div class="flex items-center">
-                                                <span>{{ $request->samples->count() }} sampel</span>
-                                                @if($completedSamples->count() > 0)
-                                                    <span class="ml-2 inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                                                        {{ $completedSamples->count() }} selesai
+
+                                            <div class="space-y-1.5">
+                                                <div class="flex items-center justify-between text-xs">
+                                                    <span class="font-medium text-gray-700">{{ $totalSamplesForRequest }} sampel</span>
+                                                    <span class="font-semibold {{ $completedSamplesForRequest === $totalSamplesForRequest ? 'text-emerald-700' : 'text-teal-700' }}">
+                                                        {{ $completedSamplesForRequest }}/{{ $totalSamplesForRequest }} selesai
                                                     </span>
-                                                @endif
+                                                </div>
+                                                <div class="h-2 overflow-hidden rounded-full bg-gray-100">
+                                                    <div class="h-full rounded-full bg-gradient-to-r from-teal-400 to-teal-600 transition-all duration-500"
+                                                        x-bind:style="'width: ' + {{ $percent }} + '%'">
+                                                    </div>
+                                                </div>
                                             </div>
-                                            @if($request->request_number === 'REQ-2025-0005' && $completedSamples->count() > 0)
-                                                <div class="mt-1 text-xs text-green-600">Siap untuk diserahkan</div>
+
+                                            @if($request->request_number === 'REQ-2025-0005' && $completedSamplesForRequest > 0)
+                                                <div class="mt-1 text-xs font-medium text-emerald-700">Siap untuk diserahkan</div>
                                             @endif
                                         </td>
                                         <td class="px-6 py-4 text-sm text-gray-900">
@@ -83,12 +182,15 @@
                                         <td class="px-6 py-4 text-right text-sm font-medium">
                                             <div class="flex flex-wrap justify-end gap-2">
                                                 <a href="{{ route('delivery.show', $request) }}"
-                                                   class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-teal-200 bg-teal-50 px-3 py-1.5 text-sm font-medium text-teal-700 transition-colors duration-150 hover:border-teal-300 hover:bg-teal-100">
-                                                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                   class="group inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-teal-200 bg-teal-50 px-3 py-1.5 text-sm font-medium text-teal-700 transition-all duration-200 hover:border-teal-300 hover:bg-teal-100 hover:shadow-md hover:-translate-y-0.5">
+                                                    <svg class="size-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                                     </svg>
                                                     Lihat Detail
+                                                    <svg class="size-3 -translate-x-2 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                                    </svg>
                                                 </a>
                                             </div>
                                         </td>
@@ -99,12 +201,12 @@
                     </div>
                 </template>
                 @else
-                    <div class="py-12 text-center">
-                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        <h3 class="mt-2 text-sm font-medium text-gray-900">Belum ada permintaan yang siap diserahkan</h3>
-                        <p class="mt-1 text-sm text-gray-500">Lengkapi seluruh proses pengujian untuk menampilkan data di sini.</p>
+                    <div class="py-16 text-center">
+                        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-100 to-cyan-100 shadow-inner">
+                            <span class="text-3xl" aria-hidden="true">📦</span>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900">Semua Beres!</h3>
+                        <p class="mt-1 mx-auto max-w-sm text-sm text-gray-500">Tidak ada permintaan yang menunggu penyerahan. Permintaan akan muncul di sini setelah proses pengujian selesai.</p>
                     </div>
                 @endif
             </div>
@@ -169,7 +271,11 @@
                             </thead>
                             <tbody class="divide-y divide-gray-200 bg-white">
                                 @foreach($completedRequests as $request)
-                                    <tr class="transition hover:bg-gray-50">
+                                    <tr class="group cursor-pointer transition-all duration-200 hover:bg-teal-50/50 hover:shadow-sm"
+                                        role="link"
+                                        tabindex="0"
+                                        x-on:click="window.location = '{{ route('delivery.show', $request) }}'"
+                                        x-on:keydown.enter="window.location = '{{ route('delivery.show', $request) }}'">
                                         <td class="px-6 py-4 text-sm font-semibold text-gray-900">
                                             {{ $request->receipt_number ?? $request->request_number }}
                                         </td>
@@ -183,9 +289,16 @@
                                             {{ $request->suspect_name ?? '-' }}
                                         </td>
                                         <td class="px-6 py-4 text-sm text-gray-900">
-                                            <div class="flex items-center">
-                                                <span>{{ $request->samples->count() }} sampel</span>
-                                                <span class="ml-2 inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">Selesai</span>
+                                            <div class="space-y-1.5">
+                                                <div class="flex items-center justify-between text-xs">
+                                                    <span class="font-medium text-gray-700">{{ $request->samples->count() }} sampel</span>
+                                                    <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
+                                                        Selesai
+                                                    </span>
+                                                </div>
+                                                <div class="h-2 overflow-hidden rounded-full bg-gray-100">
+                                                    <div class="h-full w-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600"></div>
+                                                </div>
                                             </div>
                                         </td>
                                         <td class="px-6 py-4 text-sm text-gray-900">
@@ -195,12 +308,15 @@
                                         <td class="px-6 py-4 text-right text-sm font-medium">
                                             <div class="flex flex-wrap justify-end gap-2">
                                                 <a href="{{ route('delivery.show', $request) }}"
-                                                   class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-gray-50 hover:text-gray-900">
-                                                    <svg class="size-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                   class="group inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-all duration-200 hover:bg-gray-50 hover:text-gray-900 hover:shadow-md hover:-translate-y-0.5">
+                                                    <svg class="size-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                                                     </svg>
                                                     Detail
+                                                    <svg class="size-3 -translate-x-2 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                                    </svg>
                                                 </a>
                                             </div>
                                         </td>
@@ -213,12 +329,12 @@
                         {{ $completedRequests->links() }}
                     </div>
                 @else
-                    <div class="py-12 text-center">
-                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        <h3 class="mt-2 text-sm font-medium text-gray-900">Tidak ditemukan data</h3>
-                        <p class="mt-1 text-sm text-gray-500">Coba ubah kata kunci pencarian atau filter Anda.</p>
+                    <div class="py-16 text-center">
+                        <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-gray-100 to-slate-100 shadow-inner">
+                            <span class="text-3xl" aria-hidden="true">🔍</span>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900">Tidak Ditemukan</h3>
+                        <p class="mt-1 mx-auto max-w-sm text-sm text-gray-500">Coba ubah kata kunci pencarian atau hapus filter.</p>
                     </div>
                 @endif
             </div>

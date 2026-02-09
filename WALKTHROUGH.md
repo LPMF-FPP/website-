@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v2.2.1
+# WALKTHROUGH - LPMF LIMS v2.3.0
 
 > **Laboratory Information Management System untuk Laboratorium Pengujian Mutu Farmasi**
 
@@ -23,12 +23,39 @@
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 
-**Current Version:** v2.2.1 (09 Februari 2026)  
-**Latest Feature:** LHU Display in Delivery Detail
+**Current Version:** v2.3.0 (09 Februari 2026)  
+**Latest Feature:** Delivery UX Refresh
 
 ---
 
 ## 📰 Recent Changes (v2.x)
+
+### v2.3.0 (09 Februari 2026) - Delivery UX Refresh
+
+```
+Updated on 2026-02-09
+```
+
+**🎯 Problem Solved:**
+
+1. **Halaman Delivery Terlalu Flat:** Index dan detail penyerahan terasa monoton dan kurang memberikan "visual cues" untuk scanning cepat.
+2. **Progress Kurang Terlihat:** Tidak ada visualisasi progres yang jelas untuk kesiapan sampel per permintaan.
+3. **Empty State Kurang Informatif:** Kondisi kosong terlihat generik dan kurang ramah.
+
+**✨ New Features & Fixes:**
+
+- **Delivery Index (`/delivery`):**
+    - **Hero Stats:** 3 kartu ringkasan (Siap Diserahkan, Riwayat Penyerahan, Total Sampel Pending).
+    - **Progress Bar:** Progres kesiapan sampel per permintaan ditampilkan sebagai progress bar.
+    - **Row Interaction:** Hover lebih hidup + row bisa diklik untuk membuka detail.
+    - **Empty States:** Copy lebih ramah + visual tile (emoji) untuk kondisi kosong.
+
+- **Delivery Detail (`/delivery/{id}`):**
+    - **Stepper Accent:** Border aksen untuk memperjelas hirarki.
+    - **Progress Badge:** Badge progres lebih informatif (pulse saat belum selesai, hijau saat complete).
+    - **Connector Progress:** Garis konektor stepper kini menunjukkan progres (gray → green gradient).
+    - **Celebration Panel:** Panel "Penyerahan Berhasil" saat seluruh langkah selesai.
+    - **Sidebar Status Indicator:** Status ditampilkan dengan tile + ikon agar cepat terbaca.
 
 ### v2.2.1 (09 Februari 2026) - LHU Display in Delivery Detail
 

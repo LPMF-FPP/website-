@@ -41,7 +41,7 @@
             <div class="lg:col-span-2 space-y-6">
                 
                 {{-- Stepper Card --}}
-                <div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-900/5">
+                <div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-900/5 border-l-4 border-teal-500">
                     <div class="border-b border-gray-100 bg-gray-50/50 px-6 py-4">
                         <div class="flex items-center justify-between">
                             <h2 class="text-base font-semibold leading-6 text-gray-900">Langkah Penyerahan</h2>
@@ -49,9 +49,18 @@
                                 $completedCount = collect($stepper)->where('completed', true)->count();
                                 $totalSteps = count($stepper);
                             @endphp
-                            <span class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10">
-                                {{ $completedCount }} dari {{ $totalSteps }} selesai
-                            </span>
+                            @if($completedCount < $totalSteps)
+                                <span class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-inset ring-blue-700/10 animate-pulse">
+                                    {{ $completedCount }} dari {{ $totalSteps }} selesai
+                                </span>
+                            @else
+                                <span class="inline-flex items-center rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-700/10">
+                                    <svg class="mr-1 h-3 w-3" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                    </svg>
+                                    Semua Selesai
+                                </span>
+                            @endif
                         </div>
                     </div>
 
@@ -61,7 +70,7 @@
                                 
                                 {{-- STEP 1: Berita Acara --}}
                                 <li class="relative pb-10">
-                                    <div class="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></div>
+                                    <div class="absolute left-4 top-4 -ml-px h-full w-0.5 {{ ($stepper[2]['completed'] ?? false) ? 'bg-green-500' : (($stepper[1]['completed'] ?? false) ? 'bg-gradient-to-b from-green-500 to-gray-200' : 'bg-gray-200') }}" aria-hidden="true"></div>
                                     <div class="relative flex items-start group">
                                         <span class="flex h-9 items-center">
                                             @if($stepper[1]['completed'])
@@ -107,7 +116,7 @@
 
                                 {{-- STEP 2: Label Sisa --}}
                                 <li class="relative pb-10">
-                                    <div class="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></div>
+                                    <div class="absolute left-4 top-4 -ml-px h-full w-0.5 {{ ($stepper[3]['completed'] ?? false) ? 'bg-green-500' : (($stepper[2]['completed'] ?? false) ? 'bg-gradient-to-b from-green-500 to-gray-200' : 'bg-gray-200') }}" aria-hidden="true"></div>
                                     <div class="relative flex items-start group">
                                         <span class="flex h-9 items-center">
                                             @if($stepper[2]['completed'])
@@ -142,7 +151,7 @@
 
                                 {{-- STEP 3: Notifikasi WhatsApp --}}
                                 <li class="relative pb-10">
-                                    <div class="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></div>
+                                    <div class="absolute left-4 top-4 -ml-px h-full w-0.5 {{ ($stepper[4]['completed'] ?? false) ? 'bg-green-500' : (($stepper[3]['completed'] ?? false) ? 'bg-gradient-to-b from-green-500 to-gray-200' : 'bg-gray-200') }}" aria-hidden="true"></div>
                                     <div class="relative flex items-start group">
                                         <span class="flex h-9 items-center">
                                             @if($stepper[3]['completed'])
@@ -205,7 +214,7 @@
 
                                 {{-- STEP 4: Survei --}}
                                 <li class="relative pb-10">
-                                    <div class="absolute left-4 top-4 -ml-px h-full w-0.5 bg-gray-200" aria-hidden="true"></div>
+                                    <div class="absolute left-4 top-4 -ml-px h-full w-0.5 {{ ($stepper[5]['completed'] ?? false) ? 'bg-green-500' : (($stepper[4]['completed'] ?? false) ? 'bg-gradient-to-b from-green-500 to-gray-200' : 'bg-gray-200') }}" aria-hidden="true"></div>
                                     <div class="relative flex items-start group">
                                         <span class="flex h-9 items-center">
                                             @if($stepper[4]['completed'])
@@ -298,6 +307,20 @@
 
                             </ol>
                         </nav>
+
+                        @if($stepper[5]['completed'] ?? false)
+                            <div class="mt-6 rounded-xl border border-green-200 bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50 p-6">
+                                <div class="flex items-center gap-4">
+                                    <div class="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-green-400 to-emerald-500 shadow-lg">
+                                        <span class="text-3xl" aria-hidden="true">🎉</span>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <h3 class="text-lg font-bold text-green-800">Penyerahan Berhasil!</h3>
+                                        <p class="mt-0.5 text-sm text-green-700">Semua langkah telah diselesaikan dengan sukses.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
                     </div>
                 </div>
 
@@ -477,21 +500,48 @@
                     </h3>
                     
                     <div class="space-y-4 text-sm">
-                        <div>
-                            <div class="text-xs text-gray-500 uppercase tracking-wide">Status</div>
-                            @php
-                                $statusBadges = [
-                                    'submitted' => 'bg-blue-50 text-blue-700 ring-blue-700/10',
-                                    'in_testing' => 'bg-yellow-50 text-yellow-800 ring-yellow-600/20',
-                                    'analysis' => 'bg-orange-50 text-orange-800 ring-orange-600/20',
-                                    'ready_for_delivery' => 'bg-teal-50 text-teal-700 ring-teal-600/20',
-                                    'completed' => 'bg-green-50 text-green-700 ring-green-600/20',
-                                ];
-                                $st = $request->status;
-                            @endphp
-                            <span class="mt-1 inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset {{ $statusBadges[$st] ?? 'bg-gray-50 text-gray-600 ring-gray-500/10' }}">
-                                {{ ucfirst(str_replace('_', ' ', $st)) }}
-                            </span>
+                        @php
+                            $statusBadges = [
+                                'submitted' => 'bg-blue-50 text-blue-700 ring-blue-700/10',
+                                'in_testing' => 'bg-yellow-50 text-yellow-800 ring-yellow-600/20',
+                                'analysis' => 'bg-orange-50 text-orange-800 ring-orange-600/20',
+                                'ready_for_delivery' => 'bg-teal-50 text-teal-700 ring-teal-600/20',
+                                'completed' => 'bg-green-50 text-green-700 ring-green-600/20',
+                            ];
+
+                            $st = is_object($request->status) ? $request->status->value : $request->status;
+                            $statusIndicators = [
+                                'submitted' => ['tile' => 'bg-blue-100', 'icon' => '📝', 'label' => 'Diajukan'],
+                                'in_testing' => ['tile' => 'bg-yellow-100', 'icon' => '🔬', 'label' => 'Dalam Pengujian'],
+                                'analysis' => ['tile' => 'bg-orange-100', 'icon' => '🧪', 'label' => 'Analisis'],
+                                'ready_for_delivery' => ['tile' => 'bg-teal-100', 'icon' => '📦', 'label' => 'Siap Diserahkan'],
+                                'completed' => ['tile' => 'bg-emerald-100', 'icon' => '✅', 'label' => 'Selesai'],
+                            ];
+
+                            $indicator = $statusIndicators[$st] ?? ['tile' => 'bg-gray-100', 'icon' => '📋', 'label' => ucfirst(str_replace('_', ' ', $st))];
+                        @endphp
+
+                        <div class="flex items-center gap-3">
+                            <div class="relative">
+                                <div class="flex h-10 w-10 items-center justify-center rounded-xl {{ $indicator['tile'] }} shadow-inner">
+                                    <span class="text-xl" aria-hidden="true">{{ $indicator['icon'] }}</span>
+                                </div>
+                                @if($st === 'completed')
+                                    <div class="absolute -right-1 -top-1">
+                                        <div class="absolute h-3.5 w-3.5 rounded-full bg-emerald-500 opacity-30 animate-ping"></div>
+                                        <div class="relative h-3.5 w-3.5 rounded-full bg-emerald-500 ring-2 ring-white"></div>
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="min-w-0">
+                                <div class="text-xs text-gray-500 uppercase tracking-wide">Status</div>
+                                <div class="mt-0.5 flex flex-wrap items-center gap-2">
+                                    <span class="font-semibold text-gray-900">{{ $indicator['label'] }}</span>
+                                    <span class="inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset {{ $statusBadges[$st] ?? 'bg-gray-50 text-gray-600 ring-gray-500/10' }}">
+                                        {{ ucfirst(str_replace('_', ' ', $st)) }}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
 
                         <div>
