@@ -26,109 +26,116 @@
                     <th scope="col" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-100">
-                <template x-if="loading">
-                    <tr>
-                        <td colspan="4" class="px-4 py-8 text-center text-gray-500 text-sm">
-                            <svg class="animate-spin h-5 w-5 mx-auto mb-2 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Memuat data stok...
-                        </td>
-                    </tr>
-                </template>
-                
-                <template x-if="!loading && items.length === 0">
-                    <tr>
-                        <td colspan="4" class="px-4 py-8 text-center text-gray-500 text-sm">
-                            Tidak ada item ditemukan.
-                        </td>
-                    </tr>
-                </template>
 
-                <template x-for="item in items" :key="item.id">
-                    <tbody class="group">
-                        <!-- Main Row -->
-                        <tr class="hover:bg-gray-50 transition-colors cursor-pointer" @click="toggleRow(item.id)">
-                            <td class="px-4 py-3 text-gray-400">
-                                <svg class="w-4 h-4 transform transition-transform duration-200" 
-                                     :class="{'rotate-90': expandedRows.includes(item.id)}" 
-                                     fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                                </svg>
-                            </td>
-                            <td class="px-4 py-3">
-                                <div class="text-sm font-bold text-gray-900" x-text="item.name"></div>
-                                <div class="text-xs text-gray-500 mt-0.5" x-text="item.category || '-'"></div>
-                            </td>
-                            <td class="px-4 py-3 text-right">
-                                <div class="flex flex-col items-end">
-                                    <span class="text-sm font-mono font-bold text-gray-800" x-text="formatNumber(item.total_stock || 0)"></span>
-                                    <span class="text-[10px] text-gray-500 uppercase" x-text="item.uom"></span>
-                                </div>
-                            </td>
-                            <td class="px-4 py-3 text-right">
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
-                                      :class="{
-                                          'bg-emerald-100 text-emerald-800': item.status === 'ok',
-                                          'bg-red-100 text-red-800': item.status === 'critical',
-                                          'bg-gray-100 text-gray-800': item.status === 'empty'
-                                      }"
-                                      x-text="getStatusLabel(item.status)">
-                                </span>
-                            </td>
-                        </tr>
-                        <!-- Detail Row (Expanded) -->
-                        <tr x-show="expandedRows.includes(item.id)" x-transition:enter="transition ease-out duration-100" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="bg-gray-50">
-                            <td colspan="4" class="px-4 py-3 border-t border-gray-100 shadow-inner">
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-                                    <!-- Locations -->
-                                    <div>
-                                        <h4 class="font-semibold text-gray-700 mb-2 flex items-center gap-1">
-                                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                            Lokasi Penyimpanan
-                                        </h4>
-                                        <ul class="space-y-1">
-                                            <template x-for="balance in item.balances" :key="balance.id">
-                                                <li class="flex justify-between border-b border-gray-200 border-dashed pb-1 last:border-0" x-show="parseFloat(balance.on_hand_qty) > 0">
-                                                    <span class="text-gray-600" x-text="balance.location?.name || 'Unknown'"></span>
-                                                    <span class="font-mono font-medium" x-text="formatNumber(balance.on_hand_qty) + ' ' + item.uom"></span>
-                                                </li>
-                                            </template>
-                                            <li x-show="!item.balances || item.balances.length === 0" class="text-gray-400 italic">Belum ada stok di lokasi manapun.</li>
-                                        </ul>
-                                    </div>
-                                    <!-- Lots -->
-                                    <div>
-                                        <h4 class="font-semibold text-gray-700 mb-2 flex items-center gap-1">
-                                            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
-                                            Lot Aktif
-                                        </h4>
-                                        <ul class="space-y-1">
-                                            <template x-for="lot in item.lots" :key="lot.id">
-                                                <li class="flex justify-between items-center border-b border-gray-200 border-dashed pb-1 last:border-0">
-                                                    <div>
-                                                        <span class="font-mono text-gray-700" x-text="lot.lot_no"></span>
-                                                        <span class="text-[10px] ml-1 px-1.5 py-0.5 rounded text-white" 
-                                                              :class="isNearExpiry(lot.expiry_date) ? 'bg-orange-500' : 'bg-gray-400'"
-                                                              x-show="lot.expiry_date"
-                                                              x-text="formatDate(lot.expiry_date)"></span>
-                                                    </div>
-                                                </li>
-                                            </template>
-                                            <li x-show="!item.lots || item.lots.length === 0" class="text-gray-400 italic">Tidak ada informasi lot.</li>
-                                        </ul>
-                                        <div class="mt-3 text-right">
-                                            <a :href="`{{ route('inventory.items.index') }}/${item.id}`" class="text-primary-600 hover:text-primary-800 font-medium">Lihat Detail Item &rarr;</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </template>
+            <!-- Loading State -->
+            <tbody class="bg-white divide-y divide-gray-100" x-show="loading">
+                <tr>
+                    <td colspan="4" class="px-4 py-8 text-center text-gray-500 text-sm">
+                        <svg class="animate-spin h-5 w-5 mx-auto mb-2 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Memuat data stok...
+                    </td>
+                </tr>
             </tbody>
+
+            <!-- Empty State -->
+            <tbody class="bg-white divide-y divide-gray-100" x-show="!loading && items.length === 0">
+                <tr>
+                    <td colspan="4" class="px-4 py-8 text-center text-gray-500 text-sm">
+                        Tidak ada item ditemukan.
+                    </td>
+                </tr>
+            </tbody>
+
+            <!-- Data Loop -->
+            <template x-for="item in items" :key="item.id">
+                <tbody class="group border-b border-gray-100 bg-white hover:bg-gray-50 transition-colors">
+                    <!-- Main Row -->
+                    <tr class="cursor-pointer" @click="toggleRow(item.id)">
+                        <td class="px-4 py-3 text-gray-400">
+                            <svg class="w-4 h-4 transform transition-transform duration-200" 
+                                    :class="{'rotate-90': expandedRows.includes(item.id)}" 
+                                    fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="text-sm font-bold text-gray-900" x-text="item.name"></div>
+                            <div class="text-xs text-gray-500 mt-0.5" x-text="item.category || '-'"></div>
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            <div class="flex flex-col items-end">
+                                <span class="text-sm font-mono font-bold text-gray-800" x-text="formatNumber(item.total_stock || 0)"></span>
+                                <span class="text-[10px] text-gray-500 uppercase" x-text="item.uom"></span>
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                                    :class="{
+                                        'bg-emerald-100 text-emerald-800': item.status === 'ok',
+                                        'bg-red-100 text-red-800': item.status === 'critical',
+                                        'bg-gray-100 text-gray-800': item.status === 'empty'
+                                    }"
+                                    x-text="getStatusLabel(item.status)">
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <!-- Detail Row (Expanded) -->
+                    <tr x-show="expandedRows.includes(item.id)" 
+                        x-transition:enter="transition ease-out duration-100" 
+                        x-transition:enter-start="opacity-0" 
+                        x-transition:enter-end="opacity-100" 
+                        class="bg-gray-50">
+                        <td colspan="4" class="px-4 py-3 border-t border-gray-100 shadow-inner">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                                <!-- Locations -->
+                                <div>
+                                    <h4 class="font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                        Lokasi Penyimpanan
+                                    </h4>
+                                    <ul class="space-y-1">
+                                        <template x-for="balance in item.balances" :key="balance.id">
+                                            <li class="flex justify-between border-b border-gray-200 border-dashed pb-1 last:border-0" x-show="parseFloat(balance.on_hand_qty) > 0">
+                                                <span class="text-gray-600" x-text="balance.location?.name || 'Unknown'"></span>
+                                                <span class="font-mono font-medium" x-text="formatNumber(balance.on_hand_qty) + ' ' + item.uom"></span>
+                                            </li>
+                                        </template>
+                                        <li x-show="!item.balances || item.balances.length === 0" class="text-gray-400 italic">Belum ada stok di lokasi manapun.</li>
+                                    </ul>
+                                </div>
+                                <!-- Lots -->
+                                <div>
+                                    <h4 class="font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                                        <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>
+                                        Lot Aktif
+                                    </h4>
+                                    <ul class="space-y-1">
+                                        <template x-for="lot in item.lots" :key="lot.id">
+                                            <li class="flex justify-between items-center border-b border-gray-200 border-dashed pb-1 last:border-0">
+                                                <div>
+                                                    <span class="font-mono text-gray-700" x-text="lot.lot_no"></span>
+                                                    <span class="text-[10px] ml-1 px-1.5 py-0.5 rounded text-white" 
+                                                            :class="isNearExpiry(lot.expiry_date) ? 'bg-orange-500' : 'bg-gray-400'"
+                                                            x-show="lot.expiry_date"
+                                                            x-text="formatDate(lot.expiry_date)"></span>
+                                                </div>
+                                            </li>
+                                        </template>
+                                        <li x-show="!item.lots || item.lots.length === 0" class="text-gray-400 italic">Tidak ada informasi lot.</li>
+                                    </ul>
+                                    <div class="mt-3 text-right">
+                                        <a :href="`{{ route('inventory.items.index') }}/${item.id}`" class="text-primary-600 hover:text-primary-800 font-medium">Lihat Detail Item &rarr;</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </template>
         </table>
     </div>
 
