@@ -159,8 +159,8 @@ Usage:
     <template x-teleport="body">
         <div
             x-show="aiOpen"
-            style="display: none;"
-            class="fixed inset-0 z-[100] overflow-y-auto"
+            style="display: none; z-index: 9999;"
+            class="fixed inset-0 overflow-y-auto"
             aria-labelledby="modal-title"
             role="dialog"
             aria-modal="true"
