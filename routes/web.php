@@ -485,6 +485,7 @@ Route::prefix('referensi/inventori')->name('inventory.')->middleware(['auth', 'v
     Route::get('ajax/lots', [App\Http\Controllers\Inventory\TransactionController::class, 'getLotsForItem'])->name('ajax.lots');
     Route::get('ajax/balance', [App\Http\Controllers\Inventory\TransactionController::class, 'getBalanceForSelection'])->name('ajax.balance');
     Route::get('ajax/search', [App\Http\Controllers\Inventory\DashboardController::class, 'ajaxSearch'])->name('ajax.search');
+    Route::get('ajax/overview', [App\Http\Controllers\Inventory\DashboardController::class, 'ajaxOverview'])->name('ajax.overview');
 
     // Sample Disposal (Pemusnahan Sisa Sampel)
     Route::prefix('disposal')->name('disposal.')->group(function () {

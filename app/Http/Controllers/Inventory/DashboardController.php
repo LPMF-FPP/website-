@@ -222,4 +222,43 @@ class DashboardController extends Controller
             'results' => $lots->concat($items)->values(),
         ]);
     }
+
+    public function ajaxOverview(Request $request): JsonResponse
+    {
+        $query = InventoryItem::query()
+            ->active()
+            ->withSum('balances as total_stock', 'on_hand_qty');
+
+        if ($request->has('q') && $request->q !== '') {
+            $q = strtolower($request->q);
+            $query->whereRaw('LOWER(name) LIKE ?', ['%'.$q.'%']);
+        }
+
+        // Sort by total stock descending by default so users see what they HAVE first
+        // COALESCE is important because items with no balances return NULL for total_stock,
+        // which sorts unexpectedly depending on DB driver. We want 0 at the bottom.
+        $query->orderByRaw('COALESCE((SELECT SUM(on_hand_qty) FROM inventory_balances WHERE item_id = inventory_items.id), 0) DESC')
+            ->orderBy('name');
+
+        $items = $query->paginate(10);
+
+        // Append status field
+        $items->getCollection()->transform(function ($item) {
+            $item->status = 'ok';
+            $totalStock = (float) $item->total_stock;
+
+            if ($totalStock <= 0) {
+                $item->status = 'empty';
+            } elseif ($totalStock <= $item->min_stock) {
+                $item->status = 'critical';
+            }
+
+            // Explicitly set total_stock
+            $item->total_stock = $totalStock;
+
+            return $item;
+        });
+
+        return response()->json($items);
+    }
 }
