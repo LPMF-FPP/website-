@@ -283,4 +283,9 @@ class DashboardController extends Controller
 
         return response()->json($items);
     }
+
+    public function ajaxFastMoving(Request $request): JsonResponse
+    {
+        return response()->json([]);
+    }
 }
