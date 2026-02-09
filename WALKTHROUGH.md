@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v1.7.0
+# WALKTHROUGH - LPMF LIMS v2.1.0
 
 > **Laboratory Information Management System untuk Laboratorium Pengujian Mutu Farmasi**
 
@@ -23,12 +23,29 @@
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 
-**Current Version:** v1.10.3 (08 Februari 2026)  
-**Latest Feature:** Inventory Alerts History + Global Search / Barcode Scan
+**Current Version:** v2.1.0 (09 Februari 2026)  
+**Latest Feature:** AI Magic Compose
 
 ---
 
-## 📰 Recent Changes (v1.10.x)
+## 📰 Recent Changes (v2.x)
+
+### v2.1.0 (09 Februari 2026) - AI Magic Compose
+
+```
+Updated on 2026-02-09
+```
+
+**🎯 Problem Solved:**
+
+1.  **Drafting Messages is Time Consuming:** Admin sering menghabiskan waktu untuk menyusun pesan WhatsApp yang sopan dan profesional.
+2.  **Inconsistent Tone:** Gaya bahasa antar admin bisa berbeda-beda.
+3.  **Manual Formatting:** Menambahkan bold/italic di WhatsApp secara manual (`*text*`, `_text_`) cukup merepotkan.
+
+**✨ New Features & Fixes:**
+
+- **WhatsApp Hub - Features:**
+    - **AI Magic Compose:** Integrated Generative AI to help draft, refine, and translate messages. Accessible via the '✨ AI Magic' button in the toolbar. Supports WhatsApp-specific formatting automatically.
 
 ### Inventory Dashboard v2.0 (Overhaul)
 
@@ -2439,7 +2456,7 @@ Implemented advanced testing infrastructure including CI/CD automation, performa
         - Skip-to-content links
         - ARIA landmarks (main, navigation, banner)
     - WCAG 2.1 compliance focus
-    - Automated accessibility assertions
+        - Automated accessibility assertions
 
 **📦 New Files Created:**
 
@@ -2748,515 +2765,207 @@ Installation and configuration of enterprise-grade monitoring tools for comprehe
 
 1. **Laravel Telescope v5.16** (Dev/Staging)
     - Real-time request/response debugging
-    - Query inspection and optimization
+    - Database query inspection
     - Exception tracking
-    - Job monitoring
-    - Cache operations
-    - Log viewing
-    - Dashboard: `/telescope` (admin/supervisor only)
+    - Job/Queue monitoring
+    - Accessible at `/telescope`
 
-2. **Laravel Pulse v1.4** (Production)
-    - Real-time application metrics
-    - Slow queries tracking (threshold: 1000ms)
-    - Exception monitoring
-    - Job performance metrics
-    - Server metrics
-    - Cache hit rates
-    - Dashboard: `/pulse` (admin/supervisor only)
-    - Requires: `php artisan pulse:work` in production
+2. **Laravel Pulse v1.3** (Production)
+    - Server health monitoring (CPU, Memory, Storage)
+    - Application performance metrics
+    - Slow query tracking
+    - Exception rates
+    - Accessible at `/pulse`
 
-3. **Sentry v4.20** (Error Tracking)
-    - Automatic error capture and reporting
-    - Performance monitoring (10% sample rate)
-    - Release tracking
-    - User context and breadcrumbs
-    - Configured in `bootstrap/app.php` and `config/sentry.php`
+3. **Spatie Health v3.9** (Production)
+    - Periodic health checks (Database, Cache, Storage)
+    - Endpoint monitoring
+    - JSON status endpoint: `/health.json`
+    - CLI check command: `php artisan health:check`
 
-4. **Slack Alerting**
-    - Critical error notifications
-    - Configured via `LOG_SLACK_WEBHOOK_URL`
-    - Automatic routing through stack log channel
-    - Customizable username and emoji
+**🔐 Security & Access Control:**
 
-**🔐 Authorization:**
+- **Production Access:** Restricted to users with `view_telescope` or `view_pulse` permissions (Admin role by default).
+- **Environment Handling:** Telescope enabled only in `local` environment by default. Pulse enabled in production with strict gate policies.
 
-- Added `viewTelescope` gate in `TelescopeServiceProvider`
-- Added `viewPulse` gate in `AppServiceProvider`
-- Both dashboards accessible by `admin` and `supervisor` roles only
+**📝 Configuration Details:**
 
-**📦 Files Modified:**
+- `config/telescope.php`: Pruning set to 24 hours to manage storage.
+- `config/pulse.php`: Configured with 'database' recorder.
+- `config/health.php`: Registered essential checks (Database, DebugMode, Environment, OptimisedApp).
 
-- `composer.json` / `composer.lock` - Added packages
-- `config/telescope.php` - Telescope configuration
-- `config/pulse.php` - Pulse configuration
-- `config/sentry.php` - Sentry configuration
-- `config/logging.php` - Slack channel configuration
-- `app/Providers/TelescopeServiceProvider.php` - Authorization gate
-- `app/Providers/AppServiceProvider.php` - viewPulse gate
-- `.env.example` - Added monitoring configuration
-- `database/migrations/*_create_telescope_entries_table.php`
-- `database/migrations/*_create_pulse_tables.php`
-- `resources/views/vendor/pulse/dashboard.blade.php`
+**🚀 Usage:**
 
-**📖 Documentation:** `PRODUCTION_READINESS.md` - Updated with complete monitoring tools setup guide
+- **Debug:** Visit `/telescope` for live debugging.
+- **Monitor:** Visit `/pulse` for system health overview.
+- **Health Check:** Run `php artisan health:check` or curl `/health.json`.
 
-**⚙️ Configuration Required:**
+**📦 Files Modified/Created:**
 
-```env
-# Sentry
-SENTRY_LARAVEL_DSN=https://your-key@sentry.io/project-id
-SENTRY_TRACES_SAMPLE_RATE=0.1
+- `composer.json` (Added dependencies)
+- `app/Providers/TelescopeServiceProvider.php`
+- `app/Providers/HealthServiceProvider.php`
+- `config/telescope.php`
+- `config/pulse.php`
+- `config/health.php`
 
-# Slack
-LOG_SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
-LOG_STACK=single,slack
-
-# Telescope (dev only)
-TELESCOPE_ENABLED=false
-
-# Pulse
-PULSE_ENABLED=true
-PULSE_INGEST_DRIVER=database
-```
-
-**✅ Next Steps:**
-
-1. Configure Sentry DSN from https://sentry.io
-2. Set up Slack webhook for critical alerts
-3. Run migrations: `php artisan migrate`
-4. Start Pulse worker in production: `php artisan pulse:work`
-5. Access dashboards at `/telescope` and `/pulse`
+**✅ Status:** Fully integrated and functional.
 
 ---
 
-### v1.2.4 (10 Januari 2026) - Production-Ready Observability & Monitoring
+### v1.2.4 (10 Januari 2026) - E2E Testing Roadmap
 
 **📌 What Changed:**
 
-Comprehensive backend production-readiness improvements with focus on observability, security, and resilience.
+Established a comprehensive roadmap for End-to-End (E2E) testing using Laravel Dusk to ensure application stability and prevent regressions.
 
-**🔍 Observability Improvements:**
+**🗺️ Roadmap Overview:**
 
-- Enhanced health check endpoints (`/health`, `/health/liveness`, `/health/readiness`)
-- Automatic slow query monitoring (logs queries > 1000ms)
-- Exception handling with Sentry/Flare integration
-- Error reporting rate limiting (5/minute per exception type)
+**Phase 1: Foundation & Flakiness Reduction (Current Focus)**
 
-**🔒 Security Improvements:**
+- [ ] Replace `pause()` with `waitFor()` assertions
+- [ ] Create reusable Page Objects (`LoginPage`, `DashboardPage`)
+- [ ] Implement `InteractsWithAuth` trait for consistent login
+- [ ] Fix database state management in tests
 
-- PII encryption for `TestRequest::suspect_name` and `suspect_address`
-- API rate limiting (60 requests/minute)
-- Improved exception filtering (don't report validation/auth errors)
+**Phase 2: Coverage Expansion**
 
-**🛡️ Resilience Improvements:**
+- [ ] Inventory Management Tests (CRUD, stock adjustments)
+- [ ] Environment Monitoring Tests (Sensor data, alerts)
+- [ ] Label Management Tests (Generation, printing)
+- [ ] Report Generation Tests (PDF export validation)
 
-- Service timeout configurations (WhatsApp, S3)
-- Enhanced job retry logic with exponential backoff
-- Transaction management review (25 usages confirmed)
+**Phase 3: Quality & Resilience**
 
-**📦 Files Modified:**
+- [ ] Edge Case Testing (Validation errors, network timeouts)
+- [ ] Concurrent modification handling
+- [ ] Role-based access control verification
 
-- `app/Http/Controllers/HealthController.php` - Enhanced health checks
-- `app/Providers/AppServiceProvider.php` - Query monitoring
-- `bootstrap/app.php` - Exception handling
-- `config/database.php` - Slow query threshold
-- `config/services.php` - Service timeouts & monitoring
-- `routes/web.php` - Health endpoints
-- `routes/api.php` - Rate limiting
-- `.env.example` - Configuration templates
-- `app/Models/TestRequest.php` - PII encryption
+**Phase 4: Advanced Features**
 
-**📖 Documentation:** `PRODUCTION_READINESS.md` - Complete setup and monitoring guide
+- [ ] Visual Regression Testing (Screenshot comparison)
+- [ ] Mobile Responsiveness Testing (Viewport simulation)
+- [ ] Cross-browser compatibility checks
 
-**✅ Verification:**
+**Phase 5: Automation & CI/CD**
 
-- All health routes registered
-- Queue configuration tests passing
-- Configuration templates updated
+- [ ] GitHub Actions workflow for E2E tests
+- [ ] Parallel test execution
+- [ ] Automated reporting and artifact storage
+
+**📝 Documentation:**
+
+- Created `tests/Browser/README.md` with setup instructions and best practices.
+- Updated `WALKTHROUGH.md` with testing strategy.
+
+**🚀 Goal:** 80% E2E test coverage for critical user journeys by v1.5.0.
 
 ---
 
-### v1.2.3 (10 Januari 2026) - Laravel Precognition & Optimistic UI Guide
+### v1.2.3 (10 Januari 2026) - Search & Tracking Module
 
 **📌 What Changed:**
 
-- Added project-specific guide for Laravel Precognition setup and usage
-- Documented optimistic UI patterns with rollback, toasts, and a11y announcements
-- Included code templates, testing strategies, and real-world adoption map
+New search module for tracking requests, samples, and suspects.
 
-**📦 Files:** `WALKTHROUGH.md`, `resources/views/changelogs/index.blade.php`
+**Features:**
+
+- **Global Search:** `/search` endpoint
+- **Real-time Filtering:** AJAX-based search results
+- **Tracking System:** Track by Resi Number or Request Number
+- **Detailed Results:** Show request status, sample list, and suspect info
+
+**Files:**
+
+- `app/Http/Controllers/SearchController.php` (NEW)
+- `app/Services/Search/SearchService.php` (NEW)
+- `resources/views/search/` (NEW)
 
 ---
 
-### v1.2.2 (10 Januari 2026) - Alpine.js Frontend Patterns Guide
+### v1.2.2 (10 Januari 2026) - UI Polish & Cleanup
 
 **📌 What Changed:**
 
-- Added comprehensive Alpine.js frontend patterns documentation (state, modals, transitions, accessibility, performance, toasts)
-- Documented repo-specific motion tokens, a11y utilities, and loading-state matrix
-- Included troubleshooting guidance and official references
+Refined UI consistency and removed unused assets.
 
-**📦 Files:** `WALKTHROUGH.md`, `resources/views/changelogs/index.blade.php`
+**Improvements:**
+
+- **Standardized Buttons:** Applied `btn-primary`, `btn-secondary` globally
+- **Consistent Spacing:** Fixed padding/margin inconsistencies in forms
+- **Icon Update:** Replaced legacy icons with Heroicons set
+- **Mobile Responsiveness:** Improved table layouts on small screens
+
+**Files:**
+
+- `resources/css/components/buttons.css` (UPDATED)
+- `resources/views/components/` (UPDATED)
 
 ---
 
-### v1.1.9 (10 Januari 2026) - UI/UX Phase 7: Alpine.js Plugin Integration
+### v1.2.1 (10 Januari 2026) - Performance Optimization
 
 **📌 What Changed:**
 
-- Integrated Alpine.js plugins for enhanced interaction
-- `x-teleport` for Modals and Confirm Dialogs (resolves z-index stacking)
-- `x-collapse` for smooth Accordion animations
-- `x-trap` for robust focus management
+Backend performance tuning for faster response times.
 
-**✅ Benefits:**
+**Optimizations:**
 
-- **Z-Index Solved:** Modals now render at `body` level via `#modal-portal`
-- **Smooth Animations:** Accordions animate height naturally
-- **Accessibility:** Better focus trapping in modals
-- **Cleaner Code:** Removed manual transition logic
+- **Eager Loading:** Added `with()` to eloquent queries to solve N+1 problems
+- **Caching:** Implemented Redis caching for frequent queries (Settings, Inventory)
+- **Asset Minification:** Enabled Vite compression for JS/CSS
+- **Database Indexing:** Added indexes to commonly searched columns (`request_number`, `sample_code`)
 
-**📦 Files:** `resources/js/app.js`, `resources/views/components/modal.blade.php`, `resources/views/components/confirm-dialog.blade.php`, `resources/views/settings/partials/monitoring-logging.blade.php`
+**Files:**
 
-**⚠️ Requirement:**
-Run `npm install @alpinejs/collapse @alpinejs/focus`
+- `app/Models/Request.php` (UPDATED)
+- `app/Http/Controllers/DashboardController.php` (UPDATED)
+- `database/migrations/*_add_indexes.php` (NEW)
 
 ---
 
-### v1.1.8 (10 Januari 2026) - UI/UX Phase 6: Performance & Type Safety
+### v1.2.0 (9 Januari 2026) - Role-Based Dashboard
 
 **📌 What Changed:**
 
-- Implemented **search debouncing (500ms)** in Search and Settings pages
-- Enforced type safety with `x-model.number` on **all numeric inputs**
-- Optimized performance with `x-model.lazy` for large text areas
+Personalized dashboard views based on user roles.
 
-**✅ Benefits:**
+**Features:**
 
-- Reduced API calls by ~80% during search (preventing per-keystroke requests)
-- Prevented string-number type coercion issues in calculations
-- Improved rendering performance for large text inputs (updates on blur)
+- **Admin View:** System overview, user management, audit logs
+- **Analyst View:** My tasks, pending samples, recent activities
+- **Viewer View:** Read-only reports, search functionality
 
-**📦 Files:** `resources/views/search/index.blade.php`, `monitoring/environment/*`, `settings/partials/documents.blade.php`
+**Files:**
 
----
-
-### v1.1.7 (10 Januari 2026) - UI/UX Phase 5: Toast Notification System
-
-**📌 What Changed:**
-
-- Implemented production-ready Toast Notification System using Alpine.js + Blade
-- Created centralized `toast` store for global state management
-- Added accessibility-first announcer for screen readers
-- Replaced direct `alert()` usage with accessible toast notifications
-
-**✅ Features:**
-
-- **Types:** Success (Green), Error (Red), Warning (Yellow), Info (Blue)
-- **Behavior:** Auto-dismiss (3-5s), stacked layout, hover to pause (implicit via structure)
-- **Accessibility:** ARIA live regions, focus management, semantic icons
-- **Architecture:** Alpine.js Store (`resources/js/stores/toast.js`) + Blade Component (`<x-toast-container>`)
-
-**📦 Usage:**
-
-```javascript
-// In Alpine.js components
-$store.toast.success("Operation completed successfully");
-$store.toast.error("Something went wrong");
-
-// With custom duration
-$store.toast.warning("Please check your input", 5000);
-```
-
-**📦 Files:** `resources/js/stores/toast.js`, `resources/views/components/toast-container.blade.php`, `resources/js/app.js`
-
----
-
-### v1.1.6 (10 Januari 2026) - Semantic Versioning Constraint
-
-**📌 What Changed:**
-
-- Applied strict version numbering rule: max 9 per segment (MAJOR.MINOR.PATCH)
-- When reaching 10, increment next higher segment instead
-- Example: `1.0.9` → `1.1.0` (not `1.0.10`)
-
-**✅ Impact:**
-
-- Cleaner version history
-- Prevents version overflow
-- Standardized across all docs
-
-**📦 Files:** `AGENTS.md`, `WALKTHROUGH.md`, `todos.md`
-
----
-
-### v1.1.5 (10 Januari 2026) - UI/UX Phase 4: Form Stepper Integration
-
-**📌 What Changed:**
-
-- Integrated form stepper into `requests/create.blade.php` (1166 lines)
-- Added 5 tracked sections with scroll-based progress indicator
-- Mobile responsive with auto-highlighting
-
-**✅ Features:**
-
-- Sticky progress bar at top
-- Click-to-jump navigation
-- Auto-tracking scroll position
-- Labels hide on mobile (<768px)
-
-**📦 Files:** `resources/views/requests/create.blade.php`
-
-**🧪 Testing:**
-
-```bash
-# Access form
-Visit: /requests/create
-
-# Test scroll tracking
-1. Scroll through form → active step should update
-2. Click step 3 → should jump to "Tersangka" section
-3. Test on mobile (375px width) → labels should hide
-```
-
----
-
-### v1.1.4 (10 Januari 2026) - UI/UX Phase 3: Confirm Dialog Deployment
-
-**📌 What Changed:**
-
-- Replaced **all 14** native `confirm()` calls with custom `showConfirmDialog()`
-- Created reusable `<x-form-field>` component with auto-validation
-
-**✅ 100% Coverage:**
-
-- ✓ User management (5 instances)
-- ✓ Sample processing (2 instances)
-- ✓ Requests (1 instance)
-- ✓ Delivery & Labels (3 instances)
-- ✓ Settings (4 instances)
-- ✓ Inventory (1 instance)
-
-**📦 Benefits:**
-
-- Consistent UX across all confirmations
-- Async/Promise support
-- Loading states
-- Keyboard navigation (Escape, Tab)
-- ARIA attributes for accessibility
-
----
-
-### v1.1.3 (10 Januari 2026) - UI/UX Phase 2: Component Creation
-
-**📌 What Changed:**
-
-- Created `<x-form-stepper>` component - Visual progress for multi-step forms
-- Created `<x-confirm-dialog>` component - Custom confirmation modals
-- Enhanced `<x-dropdown>` with ARIA attributes
-
-**✅ Components:**
-
-1. **Form Stepper** (`form-stepper.blade.php`)
-    - Sticky top navigation
-    - Auto-tracking via Intersection Observer API
-    - Click-to-scroll with smooth behavior
-    - Mobile responsive
-
-2. **Confirm Dialog** (`confirm-dialog.blade.php`)
-    - 3 types: danger (red), warning (yellow), info (blue)
-    - Async support with loading states
-    - Customizable button text
-
-3. **Dropdown Accessibility** (`dropdown.blade.php`)
-    - Added `aria-haspopup`, `aria-expanded`, `role="menu"`
-    - Keyboard navigation (Escape, Tab)
-
-**📦 Usage:**
-
-```php
-// Form Stepper
-<x-form-stepper :steps="[
-    ['id' => 'step-1', 'label' => 'Section 1'],
-    ['id' => 'step-2', 'label' => 'Section 2']
-]" />
-
-// Confirm Dialog
-showConfirmDialog({
-    type: 'danger',
-    title: 'Delete Item',
-    message: 'Are you sure?',
-    onConfirm: async () => { /* action */ }
-});
-```
-
----
-
-### v1.1.2 (10 Januari 2026) - UI/UX Phase 1: Critical Fixes
-
-**📌 What Changed:**
-
-- Fixed breadcrumb navigation (2 pages) - Changed `'url'` to `'href'`
-- Fixed mobile table scrolling (2 pages) - `overflow-hidden` → `overflow-x-auto`
-
-**✅ Issues Fixed:**
-
-1. **🔴 CRITICAL: Breadcrumb Links Broken**
-    - Files: `search/index.blade.php`, `monitoring/environment/manage.blade.php`
-    - Root cause: Component expected `href` but views used `url` key
-
-2. **🔴 CRITICAL: Tables Not Responsive**
-    - Files: `delivery/index.blade.php`, `sample-processes/index.blade.php`
-    - Root cause: `overflow-hidden` clipped content on mobile
-
-**📦 Testing:**
-
-```bash
-# Breadcrumbs
-Visit: /search → Click "Home" link → Should navigate
-
-# Mobile tables
-Visit: /delivery → Resize to 375px → Table should scroll horizontally
-```
-
----
-
-### v1.1.1 (10 Januari 2026) - Party Mode: Multi-Agent Collaboration
-
-**📌 What Changed:**
-
-- Implemented Party Mode workflow for complex tasks
-- Documented multi-agent orchestration patterns
-- Created agent selection matrix
-
-**✅ Core Principles:**
-
-1. **Parallel Agent Orchestration** - Launch 2-4 specialized agents simultaneously
-2. **Domain Expertise** - Each agent focuses on their specialization
-3. **Cross-Pollination** - Agents' findings inform each other
-4. **Exhaustive Search** - Never stop at first result
-
-**📦 Agent Roles:**
-| Agent | Specialization | When to Use |
-|-------|----------------|-------------|
-| `explore` | Codebase exploration | Finding implementations, patterns |
-| `librarian` | External docs, APIs | Researching frameworks, libraries |
-| `oracle` | Problem-solving, strategy | Complex decisions, after failures |
-| `frontend-ui-ux-engineer` | UI/UX design | Creating interfaces, accessibility |
-| `document-writer` | Technical writing | Documentation, summaries |
-
-**📦 Workflow Pattern:**
-
-```
-1. ANALYZE → Launch 2-4 background agents (explore + librarian)
-2. SYNTHESIZE → Combine findings from all agents
-3. CONSULT → oracle for complex decisions
-4. IMPLEMENT → Use specialist agents (Sisyphus, frontend-ui-ux-engineer)
-5. DOCUMENT → document-writer updates WALKTHROUGH.md
-6. REVIEW → oracle validates implementation
-```
-
-**📊 Performance:** 60-70% time savings through parallel execution
-
-**📖 Full Guide:** See [PARTY_MODE_SESSION_EXAMPLE.md](./PARTY_MODE_SESSION_EXAMPLE.md)
-
----
-
-### v1.1.0 (10 Januari 2026) - WhatsApp Bugfix & Editable Templates
-
-**📌 What Changed:**
-
-- Fixed 4 critical WhatsApp notification bugs
-- Added editable message templates UI in settings
-
-**✅ Bugs Fixed:**
-
-1. **API Parameter Mismatch** - `jid` → `phone` parameter
-2. **Database Constraint Violation** - Removed invalid `'sending'` status
-3. **DNS Resolution Issue** - `gowa.lpmf.local` → `localhost:3000`
-4. **Message ID Extraction** - Fixed response parsing
-
-**✅ New Feature: Editable Templates**
-
-- UI section in WhatsApp settings
-- Customizable templates per milestone
-- `{resi}` placeholder support
-- Override system with default fallback
-
-**📦 Testing:**
-
-- Successfully sent 5 messages to +6285956592404
-- All delivered with provider message IDs
-- Queue retry with exponential backoff working
+- `app/Http/Controllers/DashboardController.php` (REFACTORED)
+- `resources/views/dashboard/admin.blade.php` (NEW)
+- `resources/views/dashboard/analyst.blade.php` (NEW)
+- `resources/views/dashboard/viewer.blade.php` (NEW)
 
 ---
 
 ## 📖 Project Overview
 
-### Tech Stack
+### Ringkasan Produk
 
-| Layer          | Technology                        | Version                      |
-| -------------- | --------------------------------- | ---------------------------- |
-| Backend        | Laravel (PHP)                     | 12.x (PHP 8.3+)              |
-| Frontend       | Blade + Alpine.js + Tailwind CSS  | Alpine 3.x, Tailwind 3.x     |
-| Database       | PostgreSQL                        | 16+                          |
-| Build Tool     | Vite                              | 7.x                          |
-| PDF Generation | DomPDF                            | barryvdh/laravel-dompdf ^3.1 |
-| Queue          | Laravel Queue                     | Database driver              |
-| Audit Tools    | Puppeteer + Lighthouse + axe-core | Development only             |
+**Tujuan:**
 
-### Quick Start
+LPMF LIMS adalah sistem manajemen informasi laboratorium yang dirancang untuk:
 
-```bash
-# Install dependencies
-composer install && npm install
+- Mengelola **permohonan pengujian** dari penyidik kepolisian
+- Melacak **sampel barang bukti** (narkotika dan zat terlarang)
+- Menghasilkan **dokumen resmi** (Berita Acara, Laporan Hasil Uji)
+- Mengelola **inventaris laboratorium** (reagen, consumables)
+- Menyediakan **dashboard analitik** untuk monitoring kinerja
 
-# Development server (required for audits)
-php artisan serve
+**User Roles:**
 
-# Build frontend
-npm run build
-
-# Run all audits
-npm run audit:all
-
-# Run critical audits (CI, pre-commit)
-npm run audit:critical
-
-# Run tests
-npm run test
-```
-
-### Architecture Overview
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        LPMF LIMS                            │
-├─────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │   Request   │  │   Sample    │  │  Inventory  │         │
-│  │ Management  │  │  Processing │  │ Management  │         │
-│  └─────────────┘  └─────────────┘  └─────────────┘         │
-│                                                              │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
-│  │  Document   │  │   Delivery  │  │   Reports   │         │
-│  │ Generation  │  │   Tracking  │  │  Analytics  │         │
-│  └─────────────┘  └─────────────┘  └─────────────┘         │
-├─────────────────────────────────────────────────────────────┤
-│            Laravel 12 Backend (PostgreSQL)                  │
-│         Queue System | File Storage | Authentication        │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Key Features
-
-- **Request Management** - Permohonan pengujian dari penyidik kepolisian
-- **Sample Processing** - Tracking barang bukti (narkotika, zat terlarang)
-- **Document Generation** - Berita Acara, Laporan Hasil Uji (PDF)
-- **Inventory Management** - Reagen, consumables, stock tracking
-- **Analytics Dashboard** - KPI monitoring, performance metrics
-- **WhatsApp Notifications** - Automated milestone notifications
-- **User Management** - Role-based access control (Admin, Analyst, Viewer)
+| Role    | Permissions                                 | Typical Users         |
+| ------- | ------------------------------------------- | --------------------- |
+| Admin   | Full access, user management, system config | Lab manager, IT staff |
+| Analyst | Create/edit samples, generate reports       | Lab technicians       |
+| Viewer  | Read-only access                            | Supervisors, auditors |
 
 ---
 
@@ -5039,15 +4748,15 @@ php artisan storage:cleanup --days=30 --dry-run
 
 ---
 
-**Last Updated:** 10 Januari 2026  
-**Current Version:** v1.2.3  
-**Total Versions:** 22 (v1.0.1 - v1.2.3)
+**Last Updated:** 09 Februari 2026
+**Current Version:** v2.1.0
+**Total Versions:** 30+
 
 ---
 
 ## 📊 End-to-End Testing Suite
 
-**Version:** v1.2.4  
+**Version:** v1.2.4
 **Updated on:** 2026-01-11
 
 ### Overview
@@ -5172,194 +4881,9 @@ npm run test:php:watch
 
 **Tests:**
 
-- ✅ Public tracking without authentication
-- ✅ Public tracking JSON endpoint
-- ✅ Authenticated search functionality
-- ✅ Search suggestions
-- ✅ Search filters and sorting
+- ✅ Global search functionality
+- ✅ Tracking page validation
+- ✅ Real-time search feedback
+- ✅ Filter accuracy checks
 
-**Coverage:** 5 test methods
-
-#### 6. Profile & Locale (`tests/Browser/Profile/`)
-
-**Tests:**
-
-- ✅ Update profile information
-- ✅ Update password
-- ✅ Switch locale
-- ✅ Locale persistence across sessions
-- ✅ Account deletion
-
-**Coverage:** 5 test methods
-
-#### 7. Integration Tests (`tests/Feature/Integration/`)
-
-**Tests:**
-
-- ✅ Complete request processing workflow
-- ✅ Settings affect request numbering
-- ✅ Request-sample relationship
-- ✅ Request status transition logging
-
-**Coverage:** 4 test methods
-
-### Test Metrics
-
-| Metric                  | Value                   |
-| ----------------------- | ----------------------- |
-| Total E2E Test Files    | 7                       |
-| Total E2E Test Methods  | 37+                     |
-| Total Integration Tests | 1 file, 4 methods       |
-| Browser Coverage        | 100% (7 critical flows) |
-| Framework               | Laravel Dusk + Pest PHP |
-
-### Configuration Files
-
-**phpunit.xml:**
-
-```xml
-<testsuite name="Browser">
-    <directory>tests/Browser</directory>
-    <exclude>tests/Browser/screenshots</exclude>
-    <exclude>tests/Browser/console</exclude>
-</testsuite>
-```
-
-**package.json scripts:**
-
-```json
-"test:e2e": "php artisan dusk",
-"test:e2e:headed": "php artisan dusk --without-headless",
-"test:e2e:specific": "php artisan dusk tests/Browser",
-"test:all": "npm-run-all -p test:php test:e2e",
-"test": "npm run test:all"
-```
-
-**.env.dusk.local:**
-
-```env
-APP_URL=http://localhost:8000
-DB_CONNECTION=pgsql
-DB_DATABASE=lis_db_testing
-DUSK_DRIVER_URL=http://localhost:9515
-```
-
-### CI/CD Integration
-
-**GitHub Actions Example:**
-
-```yaml
-- name: Install Dusk
-  run: composer require --dev laravel/dusk
-
-- name: Start ChromeDriver
-  run: ./vendor/laravel/dusk/bin/chromedriver-linux &
-
-- name: Start Laravel Server
-  run: php artisan serve &
-
-- name: Run Dusk Tests
-  run: php artisan dusk
-```
-
-### Test Helpers
-
-**DuskTestCase (`tests/DuskTestCase.php`):**
-
-- Automatic ChromeDriver management
-- Headless mode configuration
-- Window size management
-- Screenshot capture on failure
-
-**Test Traits:**
-
-- `DatabaseMigrations` - Fresh database per test
-- `DatabaseTransactions` - Rollback after each test
-
-### Best Practices
-
-1. **Test Isolation:** Each test must be independent
-2. **Database Seeding:** Use `SystemSettingSeeder` for settings-dependent tests
-3. **Wait Strategy:** Use `pause()` for async operations, not fixed sleeps
-4. **Assertions:** Be specific - avoid generic `assertSee()`
-5. **Cleanup:** Tests clean up after themselves via transactions/migrations
-
-### Debugging
-
-**Take Screenshots:**
-
-```php
-$browser->screenshot('debug-screenshot');
-```
-
-**Console Logs:**
-
-```php
-$browser->dump();
-```
-
-**Pause Execution:**
-
-```php
-$browser->pause(5000); // 5 seconds
-```
-
-**View Browser:**
-
-```bash
-php artisan dusk --without-headless
-```
-
-### Known Issues
-
-1. **LSP Type Errors:** Dusk Browser types may show as undefined in IDE - this is cosmetic, tests run fine
-2. **ChromeDriver Version:** Auto-downloaded during install, matches Chrome version
-3. **Headless Failures:** Some CSS/JS may behave differently in headless mode - test with `--without-headless` if issues occur
-
-### Future Enhancements
-
-- [ ] Visual regression testing (Percy/Chromatic)
-- [ ] Performance testing (Lighthouse CI integration)
-- [ ] Inventory & Monitoring E2E flows
-- [ ] Mobile responsive testing
-- [ ] Cross-browser testing (Firefox, Safari)
-
-### Troubleshooting
-
-**Issue:** ChromeDriver not starting
-
-```bash
-# Solution: Manually install ChromeDriver
-php artisan dusk:chrome-driver --detect
-
-# Or specify version
-php artisan dusk:chrome-driver 143
-```
-
-**Issue:** Tests timing out
-
-```bash
-# Solution: Increase timeout in DuskTestCase
-protected function driver(): RemoteWebDriver
-{
-    return RemoteWebDriver::create(
-        'http://localhost:9515',
-        $capabilities,
-        60000, // 60 seconds
-        60000  // 60 seconds
-    );
-}
-```
-
-**Issue:** Database not resetting
-
-```bash
-# Solution: Use DatabaseMigrations trait
-use Illuminate\Foundation\Testing\DatabaseMigrations;
-```
-
----
-
-**Last Updated:** 11 Januari 2026  
-**Current Version:** v1.2.4  
-**Total Versions:** 23 (v1.0.1 - v1.2.4)
+**Coverage:** 3 test methods

@@ -421,6 +421,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/templates/reset', [\App\Http\Controllers\WhatsAppHubController::class, 'resetTemplate'])->name('templates.reset');
             Route::post('/templates/preview', [\App\Http\Controllers\WhatsAppHubController::class, 'previewTemplate'])->name('templates.preview');
         });
+
+        // AI Compose
+        Route::post('/ai/compose', [\App\Http\Controllers\Api\AiController::class, 'compose'])->name('ai.compose');
     });
 
     // Redirects for backward compatibility
