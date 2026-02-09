@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v2.2.0
+# WALKTHROUGH - LPMF LIMS v2.2.1
 
 > **Laboratory Information Management System untuk Laboratorium Pengujian Mutu Farmasi**
 
@@ -23,12 +23,30 @@
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 
-**Current Version:** v2.2.0 (09 Februari 2026)  
-**Latest Feature:** WhatsApp Hub Settings Redesign + Whitelist Manager
+**Current Version:** v2.2.1 (09 Februari 2026)  
+**Latest Feature:** LHU Display in Delivery Detail
 
 ---
 
 ## 📰 Recent Changes (v2.x)
+
+### v2.2.1 (09 Februari 2026) - LHU Display in Delivery Detail
+
+```
+Updated on 2026-02-09
+```
+
+**🎯 Problem Solved:**
+
+1. **LHU Tidak Terlihat di Penyerahan:** Sebelumnya, halaman Detail Penyerahan tidak menampilkan nomor LHU (Laporan Hasil Uji) untuk setiap sampel, sehingga admin harus mencari dokumen secara manual.
+
+**✨ New Features & Fixes:**
+
+- **Delivery Detail Page (`/delivery/{id}`):**
+    - **LHU Number Display:** Setiap sampel di section "Detail Sampel" kini menampilkan nomor LHU jika proses interpretasi sudah selesai.
+    - **PDF Link:** Klik "Buka PDF" untuk membuka dokumen LHU di tab baru.
+    - **Conditional Rendering:** LHU hanya muncul jika ada proses interpretasi dengan nomor LHU yang valid.
+    - **Accessibility:** Screen reader support dengan label "Laporan Hasil Uji {nomor}".
 
 ### v2.2.0 (09 Februari 2026) - Settings Tab Redesign + Whitelist Manager
 
