@@ -41,6 +41,25 @@ class DashboardController extends Controller
             ->take(10)
             ->get();
 
+        // Calculate usage trend for low stock items
+        foreach ($lowStockItems as $item) {
+            $monthlyUsage = InventoryMovement::query()
+                ->where('item_id', $item->id)
+                ->where('movement_type', 'ISSUE')
+                ->where('performed_at', '>=', now()->subDays(30))
+                ->sum('qty');
+
+            $item->monthly_usage = $monthlyUsage;
+
+            if ($item->min_stock > 0 && $monthlyUsage > ($item->min_stock * 2)) {
+                $item->trend = 'high';
+            } elseif ($monthlyUsage > 0) {
+                $item->trend = 'moderate';
+            } else {
+                $item->trend = 'low';
+            }
+        }
+
         // Near expiry lots (30 days)
         $nearExpiry30 = InventoryLot::query()
             ->with(['item', 'balances.location'])
@@ -227,7 +246,10 @@ class DashboardController extends Controller
     {
         $query = InventoryItem::query()
             ->active()
-            ->withSum('balances as total_stock', 'on_hand_qty');
+            ->withSum('balances as total_stock', 'on_hand_qty')
+            ->with(['balances.location', 'lots' => function ($q) {
+                $q->where('status', 'ACTIVE')->orderBy('expiry_date');
+            }]);
 
         if ($request->has('q') && $request->q !== '') {
             $q = strtolower($request->q);
