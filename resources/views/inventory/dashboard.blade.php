@@ -8,6 +8,7 @@
                 <div class="flex flex-wrap gap-2">
                     <x-button variant="outline" size="sm" href="{{ route('inventory.items.index') }}">Master Item</x-button>
                     <x-button variant="outline" size="sm" href="{{ route('inventory.stock-card') }}">Kartu Stok</x-button>
+                    <x-button variant="outline" size="sm" href="{{ route('inventory.transaction.stocktake') }}" class="!border-amber-500 !text-amber-700 hover:!bg-amber-50">Stok Opname</x-button>
                 </div>
             </x-slot>
         </x-page-header>
@@ -59,8 +60,8 @@
                 <!-- Alerts Widget (Tabs) -->
                 @include('inventory.partials.alerts-widget')
 
-                <!-- Top Movers -->
-                @include('inventory.partials.top-movers')
+                <!-- Disposal Widget -->
+                @include('inventory.partials.disposal-widget')
 
             </div>
 
@@ -73,13 +74,15 @@
                     @include('inventory.partials.quick-actions')
                 </div>
 
-                <!-- Disposal Widget -->
-                @include('inventory.partials.disposal-widget')
-
-                <!-- Stock Health -->
-                @include('inventory.partials.stock-health')
+                <!-- Top Movers -->
+                @include('inventory.partials.top-movers')
 
             </div>
+        </div>
+
+        <!-- Bottom Section: Overview -->
+        <div class="mt-6">
+            @include('inventory.partials.overview-widget')
         </div>
 
         @if($lowStockItems->isEmpty() && $nearExpiry30->isEmpty() && $expiredLots->isEmpty())

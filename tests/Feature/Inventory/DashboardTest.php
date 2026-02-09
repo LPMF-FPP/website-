@@ -25,8 +25,31 @@ class DashboardTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('Keluar'); // Quick Issue tab
-        $response->assertSee('Masuk'); // Quick Receipt tab
+        $response->assertSee('Terima'); // Quick Receipt tab
         $response->assertSee('Transfer'); // Quick Transfer tab
+    }
+
+    public function test_dashboard_shows_stock_opname_button(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get(route('inventory.dashboard'));
+
+        $response->assertOk();
+        $response->assertSee('Stok Opname');
+        $response->assertSee(route('inventory.transaction.stocktake'));
+    }
+
+    public function test_dashboard_shows_overview_widget(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get(route('inventory.dashboard'));
+
+        $response->assertOk();
+        $response->assertSee('Ringkasan Inventori');
     }
 
     public function test_dashboard_always_shows_disposal_widget_even_when_no_eligible_samples(): void
@@ -108,35 +131,6 @@ class DashboardTest extends TestCase
         $response->assertOk();
         $response->assertSee('Barang Paling Boros');
         $response->assertSee('Item B');
-    }
-
-    public function test_dashboard_shows_stock_health_section_with_bullet_graph_rows(): void
-    {
-        /** @var User $user */
-        $user = User::factory()->create();
-
-        $location = InventoryLocation::factory()->create();
-
-        $item = InventoryItem::factory()->create([
-            'name' => 'Natrium Klorida',
-            'uom' => 'g',
-            'min_stock' => 10,
-        ]);
-
-        InventoryBalance::create([
-            'item_id' => $item->id,
-            'lot_id' => null,
-            'location_id' => $location->id,
-            'on_hand_qty' => 3,
-            'reserved_qty' => 0,
-            'updated_at' => now(),
-        ]);
-
-        $response = $this->actingAs($user)->get(route('inventory.dashboard'));
-
-        $response->assertOk();
-        $response->assertSee('Kesehatan Stok');
-        $response->assertSee('Natrium Klorida');
     }
 
     public function test_dashboard_disposal_widget_shows_summary_counts(): void
