@@ -11,6 +11,61 @@
 
     <div class="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-6">
 
+        {{-- Version 2.0.0 --}}
+        <div class="card">
+            <div class="flex items-start gap-4 mb-6">
+                <div class="flex-shrink-0 h-12 w-12 bg-indigo-100 rounded-full flex items-center justify-center">
+                    <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center gap-3 mb-1">
+                        <h2 class="text-xl font-bold text-gray-900">LPMF LIMS v2.0.0</h2>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Latest</span>
+                    </div>
+                    <p class="text-sm text-gray-500">Dirilis: {{ now()->translatedFormat('d F Y') }}</p>
+                </div>
+            </div>
+
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-indigo-100 text-indigo-600">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                        </svg>
+                    </span>
+                    Inventory Dashboard 2.0
+                </h3>
+                <ul class="space-y-2 text-sm text-gray-700">
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span><strong>Overview Widget:</strong> Daftar stok real-time dengan pagination dan pencarian. Baris item dapat di-expand untuk melihat detail lokasi dan lot (termasuk tanggal kadaluarsa).</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span><strong>Fast Moving Analysis:</strong> Tombol baru di Quick Actions untuk menampilkan modal analisis 10 item paling sering digunakan dalam 30 hari terakhir.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span><strong>Visual Health Bar & Trend:</strong> Tab "Low Stock" di widget Alerts kini menampilkan progress bar visual untuk sisa stok dan indikator tren pemakaian (High/Moderate/Low).</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <svg class="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span><strong>Layout Optimization:</strong> Tata letak dashboard dioptimalkan (Grid 2/3 + 1/3) dengan Overview Widget yang lebar penuh di bagian bawah untuk keterbacaan maksimal.</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
         {{-- Version 1.10.3 --}}
         <div class="card">
             <div class="flex items-start gap-4 mb-6">
@@ -22,7 +77,6 @@
                 <div class="flex-1">
                     <div class="flex items-center gap-3 mb-1">
                         <h2 class="text-xl font-bold text-gray-900">LPMF LIMS v1.10.3</h2>
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Latest</span>
                     </div>
                     <p class="text-sm text-gray-500">Dirilis: 08 Februari 2026</p>
                 </div>
