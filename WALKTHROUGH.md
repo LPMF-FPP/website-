@@ -30,6 +30,20 @@
 
 ## 📰 Recent Changes (v1.10.x)
 
+### Inventory Dashboard v2.0 (Overhaul)
+
+- **Overview Widget:** Replaced dummy stats with a real-time "Daftar Stok" table.
+    - Features: Pagination, Search, Status Badges.
+    - **Expandable Detail:** Click arrow to see Locations and Lot details (with expiry).
+- **Fast Moving Analysis:**
+    - New button in Quick Actions (Fire Icon).
+    - Opens a modal showing Top 10 items by usage in the last 30 days.
+- **Alerts Widget:**
+    - Redesigned "Low Stock" tab with visual Health Bars and Usage Trend indicators.
+- **Quick Actions:**
+    - Refactored to Grid Button layout for better visibility.
+- **Layout:** Optimized grid (2/3 Left, 1/3 Right) with Overview at the bottom.
+
 ### v1.10.3 (08 Februari 2026) - Inventory Alerts History + Global Search / Barcode Scan
 
 ```
