@@ -16,10 +16,14 @@ class QuickActionTest extends TestCase
 
     public function test_quick_issue_submission()
     {
+        /** @var \Illuminate\Contracts\Auth\Authenticatable $user */
         $user = User::factory()->create();
+        $this->actingAs($user); // Authenticate properly
+
         $item = InventoryItem::factory()->create(['uom' => 'pcs']);
         $lot = InventoryLot::factory()->create(['item_id' => $item->id]);
         $location = InventoryLocation::factory()->create();
+
         InventoryBalance::create([
             'item_id' => $item->id,
             'lot_id' => $lot->id,
@@ -27,7 +31,7 @@ class QuickActionTest extends TestCase
             'on_hand_qty' => 100,
         ]);
 
-        $response = $this->actingAs($user)->post(route('inventory.transaction.issue'), [
+        $response = $this->post(route('inventory.transaction.issue'), [
             'item_id' => $item->id,
             'lot_id' => $lot->id,
             'location_id' => $location->id,
@@ -37,6 +41,7 @@ class QuickActionTest extends TestCase
         ]);
 
         $response->assertRedirect();
+
         $this->assertDatabaseHas('inventory_movements', [
             'item_id' => $item->id,
             'qty' => 5,
