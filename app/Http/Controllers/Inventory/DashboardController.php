@@ -38,18 +38,17 @@ class DashboardController extends Controller
             ->active()
             ->belowMinStock()
             ->with('balances')
+            ->withSum(['movements as monthly_usage' => function ($query) {
+                $query->where('movement_type', 'ISSUE')
+                    ->where('performed_at', '>=', now()->subDays(30));
+            }], 'qty')
             ->take(10)
             ->get();
 
         // Calculate usage trend for low stock items
         foreach ($lowStockItems as $item) {
-            $monthlyUsage = InventoryMovement::query()
-                ->where('item_id', $item->id)
-                ->where('movement_type', 'ISSUE')
-                ->where('performed_at', '>=', now()->subDays(30))
-                ->sum('qty');
-
-            $item->monthly_usage = $monthlyUsage;
+            // monthly_usage is already loaded via withSum
+            $monthlyUsage = $item->monthly_usage ?? 0;
 
             if ($item->min_stock > 0 && $monthlyUsage > ($item->min_stock * 2)) {
                 $item->trend = 'high';
