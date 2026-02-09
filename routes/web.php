@@ -456,7 +456,7 @@ Route::prefix('referensi/inventori')->name('inventory.')->middleware(['auth', 'v
     Route::get('/', [App\Http\Controllers\Inventory\DashboardController::class, 'index'])->name('dashboard');
 
     // Items CRUD
-    Route::resource('items', App\Http\Controllers\Inventory\ItemController::class)->except(['show']);
+    Route::resource('items', App\Http\Controllers\Inventory\ItemController::class);
     Route::get('items/{item}/lots', [App\Http\Controllers\Inventory\LotController::class, 'index'])->name('items.lots');
     Route::post('lots', [App\Http\Controllers\Inventory\LotController::class, 'store'])->name('lots.store');
 

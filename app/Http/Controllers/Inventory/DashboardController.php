@@ -266,6 +266,7 @@ class DashboardController extends Controller
         // Append status field
         $items->getCollection()->transform(function ($item) {
             $item->status = 'ok';
+            $item->category = $item->item_type_label;
             $totalStock = (float) $item->total_stock;
 
             if ($totalStock <= 0) {

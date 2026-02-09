@@ -73,6 +73,11 @@ class ItemController extends Controller
             ->with('success', 'Item berhasil ditambahkan.');
     }
 
+    public function show(InventoryItem $item): RedirectResponse
+    {
+        return redirect()->route('inventory.items.edit', $item);
+    }
+
     public function edit(InventoryItem $item): View
     {
         return view('inventory.items.form', [

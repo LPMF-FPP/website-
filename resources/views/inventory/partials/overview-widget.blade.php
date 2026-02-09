@@ -128,7 +128,7 @@
                                         <li x-show="!item.lots || item.lots.length === 0" class="text-gray-400 italic">Tidak ada informasi lot.</li>
                                     </ul>
                                     <div class="mt-3 text-right">
-                                        <a :href="`{{ route('inventory.items.index') }}/${item.id}`" class="text-primary-600 hover:text-primary-800 font-medium">Lihat Detail Item &rarr;</a>
+                                        <a :href="`{{ route('inventory.items.index') }}/${item.id}/edit`" class="text-primary-600 hover:text-primary-800 font-medium">Lihat Detail Item &rarr;</a>
                                     </div>
                                 </div>
                             </div>
