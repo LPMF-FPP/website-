@@ -93,5 +93,7 @@
         </div>
         @endif
 
+        @include('inventory.partials.fast-moving-modal')
+
     </div>
 </x-app-layout>

@@ -1,7 +1,7 @@
 <div class="bg-white rounded-lg shadow-sm border border-gray-200" x-data="inventoryOverview()">
     <div class="px-4 py-3 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h3 class="font-semibold text-gray-900 flex items-center gap-2">
-            <span>📦</span> Daftar Stok
+            <span>📦</span> Ringkasan Inventori
         </h3>
         <div class="relative max-w-xs w-full">
             <input type="text" 
