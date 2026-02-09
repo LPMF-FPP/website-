@@ -247,7 +247,7 @@ class DashboardController extends Controller
             ->active()
             ->withSum('balances as total_stock', 'on_hand_qty')
             ->with(['balances.location', 'lots' => function ($q) {
-                $q->where('status', 'ACTIVE')->orderBy('expiry_date');
+                $q->active()->orderBy('expiry_date');
             }]);
 
         if ($request->has('q') && $request->q !== '') {

@@ -47,4 +47,31 @@ class DashboardIndexTest extends TestCase
             return $first && $first->monthly_usage == 25 && $first->trend === 'high';
         });
     }
+
+    public function test_ajax_overview_eager_loads_relations()
+    {
+        $user = User::factory()->create();
+        $item = \App\Models\InventoryItem::factory()->create();
+        $location = \App\Models\InventoryLocation::factory()->create(['name' => 'Loc A']);
+        $lot = \App\Models\InventoryLot::factory()->create(['item_id' => $item->id, 'expiry_date' => now()->addDays(10), 'status' => 'ACTIVE']);
+
+        \App\Models\InventoryBalance::factory()->create([
+            'item_id' => $item->id,
+            'location_id' => $location->id,
+            'on_hand_qty' => 10,
+        ]);
+
+        $this->actingAs($user);
+        $response = $this->getJson(route('inventory.ajax.overview'));
+
+        $response->assertStatus(200);
+        $data = $response->json('data.0');
+
+        $this->assertArrayHasKey('balances', $data);
+        $this->assertArrayHasKey('location', $data['balances'][0]); // Check nested location
+        $this->assertEquals('Loc A', $data['balances'][0]['location']['name']);
+
+        $this->assertArrayHasKey('lots', $data);
+        $this->assertEquals($lot->id, $data['lots'][0]['id']);
+    }
 }
