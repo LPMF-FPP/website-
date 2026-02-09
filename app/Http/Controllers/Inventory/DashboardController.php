@@ -286,6 +286,14 @@ class DashboardController extends Controller
 
     public function ajaxFastMoving(Request $request): JsonResponse
     {
-        return response()->json([]);
+        $query = InventoryMovement::query()
+            ->where('movement_type', 'ISSUE')
+            ->where('performed_at', '>=', now()->subDays(30))
+            ->selectRaw('item_id, SUM(qty) as total_out')
+            ->groupBy('item_id')
+            ->orderByDesc('total_out')
+            ->with('item:id,name,uom');
+
+        return response()->json($query->paginate(10));
     }
 }
