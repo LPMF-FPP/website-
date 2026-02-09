@@ -60,33 +60,47 @@
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
-                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Stok</th>
-                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Min</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">Item</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">Ketersediaan</th>
                                 <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
                             @foreach($lowStockItems as $item)
                             <tr class="hover:bg-gray-50">
-                                <td class="px-4 py-3">
+                                <td class="px-4 py-3 align-top">
                                     <div class="text-sm font-medium text-gray-900">{{ $item->name }}</div>
                                     @if($item->brand)
                                         <div class="text-xs text-gray-500">{{ $item->brand }}</div>
                                     @endif
+                                    <div class="text-xs text-gray-400 mt-1">{{ $item->uom }}</div>
                                 </td>
-                                <td class="px-4 py-3 text-right text-sm font-mono text-red-600 font-bold">
-                                    {{ number_format($item->total_on_hand, 2) }} {{ $item->uom }}
-                                </td>
-                                <td class="px-4 py-3 text-right text-sm font-mono text-gray-600">
-                                    {{ number_format($item->min_stock, 2) }}
-                                </td>
-                                <td class="px-4 py-3 text-right text-sm font-medium">
-                                    <div class="flex justify-end gap-2">
-                                        <a href="{{ route('inventory.transaction.receipt', ['item_id' => $item->id]) }}" class="text-primary-600 hover:text-primary-900">Restock</a>
-                                        <span class="text-gray-300">|</span>
-                                        <a href="{{ route('inventory.transaction.transfer', ['item_id' => $item->id]) }}" class="text-gray-600 hover:text-gray-900">Transfer</a>
+                                <td class="px-4 py-3 align-top">
+                                    @php
+                                        $percent = $item->min_stock > 0 ? min(($item->total_on_hand / $item->min_stock) * 100, 100) : 0;
+                                    @endphp
+                                    
+                                    <div class="w-full max-w-xs">
+                                        <div class="flex justify-between items-end mb-1">
+                                            <span class="text-sm font-mono font-bold {{ $item->total_on_hand <= 0 ? 'text-red-600' : 'text-gray-900' }}">
+                                                {{ number_format($item->total_on_hand, 0) }}
+                                            </span>
+                                            <span class="text-xs text-gray-500">
+                                                Min: {{ number_format($item->min_stock, 0) }}
+                                            </span>
+                                        </div>
+                                        
+                                        <div class="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                                            <div class="h-1.5 rounded-full {{ $item->total_on_hand <= 0 ? 'bg-red-600' : 'bg-red-500' }}" 
+                                                 style="width: {{ $percent }}%"></div>
+                                        </div>
                                     </div>
+                                </td>
+                                <td class="px-4 py-3 text-right align-top">
+                                    <a href="{{ route('inventory.transaction.receipt', ['item_id' => $item->id]) }}" 
+                                       class="inline-flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-primary-700 bg-primary-100 hover:bg-primary-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                                        Restock
+                                    </a>
                                 </td>
                             </tr>
                             @endforeach
