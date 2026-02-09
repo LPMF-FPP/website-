@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v2.1.0
+# WALKTHROUGH - LPMF LIMS v2.2.0
 
 > **Laboratory Information Management System untuk Laboratorium Pengujian Mutu Farmasi**
 
@@ -23,12 +23,34 @@
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 
-**Current Version:** v2.1.0 (09 Februari 2026)  
-**Latest Feature:** AI Magic Compose
+**Current Version:** v2.2.0 (09 Februari 2026)  
+**Latest Feature:** WhatsApp Hub Settings Redesign + Whitelist Manager
 
 ---
 
 ## 📰 Recent Changes (v2.x)
+
+### v2.2.0 (09 Februari 2026) - Settings Tab Redesign + Whitelist Manager
+
+```
+Updated on 2026-02-09
+```
+
+**🎯 Problem Solved:**
+
+1.  **Settings Tab Terlalu Panjang (Scroll Fatigue):** Semua konfigurasi dan tools ditumpuk di satu halaman panjang.
+2.  **Template Editor Overwhelming:** Edit template sebelumnya menampilkan banyak template sekaligus sehingga sulit fokus.
+3.  **Quick Test Terkubur:** Fitur paling sering dipakai (Send Test Message + cek devices) ada di paling bawah.
+4.  **Whitelist Tidak Ada Web UI:** Admin whitelist hanya bisa dikelola lewat command WhatsApp (`/whitelist`).
+
+**✨ New Features & Fixes:**
+
+- **WhatsApp Hub - Settings:**
+    - **Horizontal Sub-tabs:** Settings sekarang dibagi menjadi 5 sub-tab: Quick Test, Templates, GOWA, Whitelist, Alerts.
+    - **Quick Test as Default:** Panel Quick Test menjadi entry point (lebih cepat untuk sanity check harian).
+    - **Template Editor Redesign:** Pilih Category + Template lalu edit satu template per waktu (minim scroll).
+    - **Whitelist Manager (Web UI):** Tambah/hapus admin whitelist lewat UI (Super Admin tetap protected).
+    - **Cross-link:** Tab Inventory Alerts menyediakan link langsung ke Whitelist Manager.
 
 ### v2.1.0 (09 Februari 2026) - AI Magic Compose
 

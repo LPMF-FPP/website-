@@ -9,13 +9,22 @@
                         Threshold expiry: <span class="font-mono" x-text="inventoryAlertsData?.expiry_days ?? '-' "></span> hari.
                     </p>
                 </div>
-                <button
-                    type="button"
-                    @click="loadTabData('inventory_alerts')"
-                    class="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-xs font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-650 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition-colors shadow-sm"
-                >
-                    Refresh
-                </button>
+                <div class="flex items-center gap-2">
+                    <button
+                        type="button"
+                        @click="openSettingsSubtab('whitelist')"
+                        class="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-xs font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-650 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors shadow-sm"
+                    >
+                        Kelola Whitelist
+                    </button>
+                    <button
+                        type="button"
+                        @click="loadTabData('inventory_alerts')"
+                        class="inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-xs font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-650 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 transition-colors shadow-sm"
+                    >
+                        Refresh
+                    </button>
+                </div>
             </div>
         </div>
 

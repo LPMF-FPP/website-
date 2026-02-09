@@ -420,6 +420,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::put('/templates', [\App\Http\Controllers\WhatsAppHubController::class, 'saveTemplates'])->name('templates.save');
             Route::post('/templates/reset', [\App\Http\Controllers\WhatsAppHubController::class, 'resetTemplate'])->name('templates.reset');
             Route::post('/templates/preview', [\App\Http\Controllers\WhatsAppHubController::class, 'previewTemplate'])->name('templates.preview');
+
+            // Whitelist Manager (Web UI)
+            Route::prefix('whitelist')->name('whitelist.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\WhatsAppHubController::class, 'getWhitelist'])->name('index');
+                Route::post('/', [\App\Http\Controllers\WhatsAppHubController::class, 'storeWhitelist'])->name('store');
+                Route::delete('/{whitelist}', [\App\Http\Controllers\WhatsAppHubController::class, 'destroyWhitelist'])->name('destroy');
+            });
         });
 
         // AI Compose

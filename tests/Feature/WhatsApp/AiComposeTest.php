@@ -15,7 +15,7 @@ class AiComposeTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         // Set config for AI service
         Config::set('services.ai.base_url', 'https://api.openai.com/v1');
         Config::set('services.ai.key', 'test-key');
@@ -37,10 +37,10 @@ class AiComposeTest extends TestCase
             'choices' => [
                 [
                     'message' => [
-                        'content' => 'This is a mocked AI response.'
-                    ]
-                ]
-            ]
+                        'content' => 'This is a mocked AI response.',
+                    ],
+                ],
+            ],
         ];
 
         Http::fake([

@@ -19,13 +19,21 @@ Usage:
 ])
 
 @php
-    $variables = app(\App\Services\WhatsApp\TemplateService::class)->getMagicVariables();
+    $groupedVariables = app(\App\Services\WhatsApp\TemplateService::class)->getMagicVariables();
+    $flatVariables = collect($groupedVariables)
+        ->flatten()
+        ->filter(fn ($v) => is_string($v) && trim($v) !== '')
+        ->map(fn ($v) => trim($v))
+        ->unique()
+        ->values()
+        ->all();
 @endphp
 
 <div 
     x-data="magicToolbar({ 
-        target: '{{ $target }}',
-        textareaId: '{{ $textareaId }}'
+        target: @js($target),
+        textareaId: @js($textareaId),
+        availableVariables: @js($flatVariables)
     })"
     class="flex items-center gap-1 mb-2 flex-wrap"
     data-magic-toolbar
@@ -61,7 +69,7 @@ Usage:
             class="absolute left-0 z-50 mt-1 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 max-h-64 overflow-y-auto"
             style="display: none;"
         >
-            @foreach($variables as $group => $items)
+            @foreach($groupedVariables as $group => $items)
             <div class="py-1">
                 <div class="px-3 py-1.5 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
                     {{ $group }}
@@ -69,10 +77,10 @@ Usage:
                 @foreach($items as $variable)
                 <button
                     type="button"
-                    @click="insertVariable('{{ $variable }}'); open = false"
+                    @click="insertVariable(@js($variable)); open = false"
                     class="w-full text-left px-3 py-1.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-700 dark:hover:text-primary-300"
                 >
-                    <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">{!! '{' . $variable . '}' !!}</code>
+                    <code class="text-xs bg-gray-100 dark:bg-gray-700 px-1 py-0.5 rounded">{{ '{'.$variable.'}' }}</code>
                 </button>
                 @endforeach
             </div>
@@ -272,6 +280,7 @@ function magicToolbar(config) {
     return {
         target: config.target,
         textareaId: config.textareaId,
+        availableVariables: Array.isArray(config.availableVariables) ? config.availableVariables : [],
         
         // AI State
         aiOpen: false,
@@ -392,7 +401,8 @@ function magicToolbar(config) {
                     },
                     body: JSON.stringify({
                         prompt: this.aiPrompt,
-                        current_text: this.getModelValue()
+                        current_text: this.getModelValue(),
+                        variables: this.availableVariables
                     })
                 });
                 

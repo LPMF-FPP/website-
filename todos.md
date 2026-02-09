@@ -1,29 +1,32 @@
-# Debugging Plan: AI Modal Visibility Issue
+# Current Task: WhatsApp Hub Settings Redesign + Whitelist Manager
 
-## Phase 1: Root Cause Investigation
+## Goals
 
-- **Problem**: AI Modal is clipped/hidden when nested inside other modals/containers with `z-index` or `overflow-hidden`.
-- **Location**: `resources/views/components/magic-toolbar.blade.php`.
-- **Mechanism**: The modal is DOM-nested within the parent component. CSS stacking contexts and overflow rules apply relative to the parent, not the viewport.
-- **Evidence**: Visual clipping or non-rendering when `magic-toolbar` is used inside another modal.
-- **Proposed Solution**: `x-teleport="body"` moves the DOM node to `<body>`, breaking it out of the parent's stacking context/overflow restrictions.
+- Redesign WhatsApp Hub Settings tab into focused horizontal sub-tabs.
+- Add Web UI to manage WhatsApp admin whitelist (view/add/remove).
+- Update documentation: `WALKTHROUGH.md` and `/changelogs` page.
 
-## Phase 2: Pattern Analysis
+## Plan
 
-- **Current Pattern**: In-place rendering.
-- **Target Pattern**: Teleported rendering (standard Alpine/Vue/React portal pattern for modals).
-- **Reference**: Alpine.js `x-teleport` documentation.
+### Batch 1 (Backend + TDD)
 
-## Phase 3: Hypothesis and Testing
+1. Add failing feature tests for whitelist endpoints (Pest).
+2. Add whitelist routes under `/whatsapp/settings`.
+3. Add controller endpoints for whitelist JSON CRUD.
 
-- **Hypothesis**: Wrapping the modal markup in `<template x-teleport="body">` will fix the visibility issue.
-- **Test**:
-    1. Inspect `resources/views/components/magic-toolbar.blade.php`.
-    2. Identify the modal block.
-    3. Apply `x-teleport`.
-    4. Verify syntax correctness (template tag requirement).
+### Batch 2 (Frontend)
 
-## Phase 4: Implementation
+4. Rewrite `resources/views/whatsapp/partials/tab-settings.blade.php` into 5 sub-tabs:
+    - Quick Test (default)
+    - Templates (single-template editor)
+    - GOWA
+    - Whitelist (new)
+    - Alerts
+5. Update Alpine state/methods in `resources/views/whatsapp/index.blade.php`.
+6. Add cross-link from `resources/views/whatsapp/partials/tab-inventory-alerts.blade.php` to Whitelist tab.
 
-- **Action**: Edit `resources/views/components/magic-toolbar.blade.php`.
-- **Constraint**: Keep inner content unchanged. Only wrap the outer div.
+### Batch 3 (Docs + Verification)
+
+7. Update `WALKTHROUGH.md` with new version entry.
+8. Update `resources/views/changelogs/index.blade.php` with new card at top.
+9. Run quality gates: `npm run test` + `npm run audit:critical` + `./vendor/bin/pint`.

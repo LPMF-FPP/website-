@@ -5,8 +5,8 @@ namespace Tests\Unit\Services\AI;
 use App\Services\AI\AiCommsService;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
-use Tests\TestCase;
 use RuntimeException;
+use Tests\TestCase;
 
 class AiCommsServiceTest extends TestCase
 {
@@ -25,14 +25,37 @@ class AiCommsServiceTest extends TestCase
                 'choices' => [
                     [
                         'message' => [
-                            'content' => 'Hello WhatsApp'
-                        ]
-                    ]
-                ]
+                            'content' => 'Hello WhatsApp',
+                        ],
+                    ],
+                ],
             ], 200),
         ]);
 
-        $service = new AiCommsService();
+        $service = new AiCommsService;
+        $result = $service->generateMessage('Draft a message');
+
+        $this->assertEquals('Hello WhatsApp', $result);
+    }
+
+    public function test_generate_message_success_with_trailing_slash_base_url()
+    {
+        Config::set('services.ai.base_url', 'https://api.openai.com/v1/');
+
+        Http::preventStrayRequests();
+        Http::fake([
+            'https://api.openai.com/v1/chat/completions' => Http::response([
+                'choices' => [
+                    [
+                        'message' => [
+                            'content' => 'Hello WhatsApp',
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $service = new AiCommsService;
         $result = $service->generateMessage('Draft a message');
 
         $this->assertEquals('Hello WhatsApp', $result);
@@ -46,8 +69,66 @@ class AiCommsServiceTest extends TestCase
 
         $this->expectException(RuntimeException::class);
 
-        $service = new AiCommsService();
+        $service = new AiCommsService;
         $service->generateMessage('Draft a message');
+    }
+
+    public function test_generate_message_includes_allowed_placeholders_in_system_prompt()
+    {
+        $method = new \ReflectionMethod(AiCommsService::class, 'generateMessage');
+        $this->assertGreaterThanOrEqual(
+            4,
+            $method->getNumberOfParameters(),
+            'generateMessage must accept an allowed placeholder variables parameter.'
+        );
+
+        Http::preventStrayRequests();
+
+        Http::fake([
+            'https://api.openai.com/v1/chat/completions' => function ($request) {
+                $this->assertSame('https://api.openai.com/v1/chat/completions', $request->url());
+
+                $payload = $request->data();
+                $systemPrompt = $payload['messages'][0]['content'] ?? '';
+
+                $this->assertIsString($systemPrompt);
+                $this->assertStringContainsString('{nama}', $systemPrompt);
+                $this->assertStringContainsString('{nomor surat}', $systemPrompt);
+                $this->assertStringContainsString('{priority}', $systemPrompt);
+                $this->assertStringContainsString('{x/y}', $systemPrompt);
+                $this->assertStringNotContainsString('{bad*}', $systemPrompt);
+                $this->assertStringNotContainsString('{x\\y}', $systemPrompt);
+                $this->assertSame(1, substr_count($systemPrompt, '{priority}'));
+                $this->assertStringContainsStringIgnoringCase('only', $systemPrompt);
+                $this->assertStringContainsStringIgnoringCase('do not invent', $systemPrompt);
+
+                return Http::response([
+                    'choices' => [
+                        [
+                            'message' => [
+                                'content' => 'Hello WhatsApp',
+                            ],
+                        ],
+                    ],
+                ], 200);
+            },
+        ]);
+
+        $service = new AiCommsService;
+        $result = $service->generateMessage('Draft a message', null, 'general', [
+            ' nama ',
+            '{nomor surat}',
+            'priority',
+            'priority',
+            '',
+            '{}',
+            '{bad*}',
+            'bad*',
+            'x/y',
+            'x\\y',
+        ]);
+
+        $this->assertEquals('Hello WhatsApp', $result);
     }
 
     public function test_missing_api_key()
@@ -57,7 +138,7 @@ class AiCommsServiceTest extends TestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('AI service is not configured.');
 
-        $service = new AiCommsService();
+        $service = new AiCommsService;
         $service->generateMessage('Draft a message');
     }
 }

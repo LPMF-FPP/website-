@@ -14,9 +14,11 @@ use App\Models\WhatsappBroadcast;
 use App\Models\WhatsappBroadcastRecipient;
 use App\Models\WhatsAppMessageBatch;
 use App\Models\WhatsAppMessageLog;
+use App\Models\WhatsappWhitelist;
 use App\Services\WhatsApp\GowaClient;
 use App\Services\WhatsApp\NotificationService;
 use App\Services\WhatsApp\TemplateService;
+use App\Services\WhatsApp\WhitelistService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -777,6 +779,79 @@ class WhatsAppHubController extends Controller
             'device_id' => settings('notifications.whatsapp.device_id'),
             'inventory_alert_expiry_days' => (int) settings('inventory.alert_expiry_days', 30),
             // Don't return password
+        ]);
+    }
+
+    public function getWhitelist(WhitelistService $whitelistService): JsonResponse
+    {
+        $whitelist = $whitelistService->getAll()->map(fn (WhatsappWhitelist $item) => [
+            'id' => $item->id,
+            'phone_number' => $item->phone_number,
+            'name' => $item->name,
+            'added_by' => $item->added_by,
+            'created_at_human' => $item->created_at?->diffForHumans(),
+        ]);
+
+        $superAdminNumber = $whitelistService->normalizePhoneNumber(
+            (string) settings('notifications.whatsapp.admin_number', '6285956592404')
+        );
+
+        return response()->json([
+            'whitelist' => $whitelist,
+            'super_admin' => [
+                'phone_number' => $superAdminNumber,
+                'name' => 'Super Admin',
+            ],
+        ]);
+    }
+
+    public function storeWhitelist(Request $request, WhitelistService $whitelistService): JsonResponse
+    {
+        $validated = $request->validate([
+            'phone' => 'required|string|min:8|max:25',
+            'name' => 'nullable|string|max:100',
+        ]);
+
+        $normalized = $whitelistService->normalizePhoneNumber($validated['phone']);
+
+        if ($whitelistService->isSuperAdmin($normalized)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Nomor ini adalah Super Admin dan tidak perlu ditambahkan ke whitelist.',
+            ], 422);
+        }
+
+        if (WhatsappWhitelist::where('phone_number', $normalized)->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Nomor sudah terdaftar di whitelist.',
+            ], 422);
+        }
+
+        $addedBy = $request->user()?->name ?? 'Web UI';
+
+        $item = $whitelistService->add($normalized, $validated['name'] ?? null, $addedBy);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Admin berhasil ditambahkan.',
+            'item' => [
+                'id' => $item->id,
+                'phone_number' => $item->phone_number,
+                'name' => $item->name,
+                'added_by' => $item->added_by,
+                'created_at_human' => $item->created_at?->diffForHumans() ?? 'baru saja',
+            ],
+        ], 201);
+    }
+
+    public function destroyWhitelist(WhatsappWhitelist $whitelist): JsonResponse
+    {
+        $whitelist->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Admin berhasil dihapus.',
         ]);
     }
 

@@ -8,9 +8,9 @@ use RuntimeException;
 
 class AiCommsService
 {
-    public function generateMessage(string $prompt, ?string $currentText = null, string $contextType = 'general'): string
+    public function generateMessage(string $prompt, ?string $currentText = null, string $contextType = 'general', array $allowedPlaceholderKeys = []): string
     {
-        $baseUrl = config('services.ai.base_url');
+        $baseUrl = rtrim((string) config('services.ai.base_url'), '/');
         $apiKey = config('services.ai.key');
         $model = config('services.ai.model');
 
@@ -20,6 +20,12 @@ class AiCommsService
         }
 
         $systemPrompt = 'You are an AI assistant for a Laboratory Information System (LIMS). Your task is to draft professional messages for **WhatsApp**. RULES: 1. Use *Bold* for importance. 2. Use _Italic_ for secondary text. 3. Use ~Strike~ for corrections. 4. Use ```Monospace``` for codes. 5. Use professional emojis. 6. Keep it concise.';
+
+        $sanitizedPlaceholderKeys = $this->sanitizeAllowedPlaceholderKeys($allowedPlaceholderKeys);
+        if (! empty($sanitizedPlaceholderKeys)) {
+            $placeholders = array_map(static fn (string $key): string => '{'.$key.'}', $sanitizedPlaceholderKeys);
+            $systemPrompt .= ' Allowed placeholders: '.implode(', ', $placeholders).'. Use ONLY the provided placeholders exactly as written (including braces). Do NOT invent placeholders.';
+        }
 
         $messages = [
             ['role' => 'system', 'content' => $systemPrompt],
@@ -53,5 +59,36 @@ class AiCommsService
             Log::error('AI Service Exception: '.$e->getMessage());
             throw new RuntimeException('Failed to generate message via AI.');
         }
+    }
+
+    private function sanitizeAllowedPlaceholderKeys(array $keys): array
+    {
+        $unique = [];
+
+        foreach ($keys as $key) {
+            if (! is_string($key)) {
+                continue;
+            }
+
+            $key = trim($key);
+            $key = trim($key, '{}');
+            $key = trim($key);
+
+            if ($key === '') {
+                continue;
+            }
+
+            if (! preg_match('/^[A-Za-z0-9 _\/-]+$/', $key)) {
+                continue;
+            }
+
+            $unique[$key] = true;
+
+            if (count($unique) >= 100) {
+                break;
+            }
+        }
+
+        return array_keys($unique);
     }
 }

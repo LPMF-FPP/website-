@@ -148,6 +148,16 @@
                 loadingDetails: false,
 
                 // Settings Tab State
+                activeSettingsTab: 'quick-test',
+                settingsSubTabs: [
+                    { id: 'quick-test', label: 'Quick Test', icon: '⚡' },
+                    { id: 'templates', label: 'Templates', icon: '📝' },
+                    { id: 'gowa', label: 'GOWA', icon: '⚙️' },
+                    { id: 'whitelist', label: 'Whitelist', icon: '👥' },
+                    { id: 'alerts', label: 'Alerts', icon: '🔔' },
+                ],
+                settingsInitialized: false,
+
                 settingsForm: {
                     base_url: '',
                     basic_user: '',
@@ -162,12 +172,21 @@
                 loadingDevices: false,
                 sendingTest: false,
 
+                // Whitelist Manager State
+                whitelistData: { whitelist: [], super_admin: null },
+                whitelistForm: { phone: '', name: '' },
+                loadingWhitelist: false,
+                addingWhitelist: false,
+                whitelistError: '',
+                whitelistSuccess: '',
+
                 // Template Editor State
                 templates: {},
                 categories: {},
                 labels: {},
                 placeholders: {},
                 activeCategory: 'milestone',
+                activeTemplateKey: null,
                 loadingTemplates: false,
                 previews: {},
                 statusMessages: {},
@@ -207,6 +226,12 @@
                             this.settingsForm = { ...this.settingsForm, ...val };
                         }
                     });
+                },
+
+                openSettingsSubtab(subtabId) {
+                    this.activeTab = 'settings';
+                    this.activeSettingsTab = subtabId;
+                    this.loadTabData('settings');
                 },
 
                 async loadTabData(tab) {
@@ -342,8 +367,27 @@
                     if (this.settingsData) {
                         this.settingsForm = { ...this.settingsForm, ...this.settingsData };
                     }
-                    this.loadTemplates();
-                    this.fetchDevices();
+
+                    if (!this.settingsInitialized) {
+                        this.settingsInitialized = true;
+                        this.$watch('activeSettingsTab', (tabId) => {
+                            if (this.activeTab !== 'settings') return;
+                            if (tabId === 'quick-test') this.fetchDevices();
+                            if (tabId === 'templates') this.loadTemplates();
+                            if (tabId === 'whitelist') this.fetchWhitelist();
+                        });
+                    }
+
+                    // Prefetch the default/high-frequency panels
+                    if (this.activeSettingsTab === 'quick-test') {
+                        this.fetchDevices();
+                    }
+                    if (this.activeSettingsTab === 'templates') {
+                        this.loadTemplates();
+                    }
+                    if (this.activeSettingsTab === 'whitelist') {
+                        this.fetchWhitelist();
+                    }
                 },
 
                 async saveSettings() {
@@ -431,8 +475,23 @@
                         this.categories = data.categories;
                         this.labels = data.labels;
                         this.placeholders = data.placeholders;
+
+                        // Default selection
+                        const availableCategories = Object.keys(this.categories || {});
+                        if (!availableCategories.includes(this.activeCategory)) {
+                            this.activeCategory = availableCategories.includes('milestone') ? 'milestone' : (availableCategories[0] || 'milestone');
+                        }
+                        this.onTemplateCategoryChanged();
                     } catch(e) { console.error(e); alert('Error loading templates'); }
                     finally { this.loadingTemplates = false; }
+                },
+
+                onTemplateCategoryChanged() {
+                    const keys = Object.keys(this.templates?.[this.activeCategory] || {});
+                    if (this.activeTemplateKey && keys.includes(this.activeTemplateKey)) {
+                        return;
+                    }
+                    this.activeTemplateKey = keys[0] || null;
                 },
 
                 async saveTemplate(category, key) {
@@ -505,7 +564,7 @@
                 },
 
                 insertPlaceholder(category, key, placeholder) {
-                    const textarea = document.getElementById(`textarea_${category}_${key}`);
+                    const textarea = document.getElementById('template_editor_textarea');
                     if (textarea) {
                         const start = textarea.selectionStart;
                         const end = textarea.selectionEnd;
@@ -518,6 +577,107 @@
                             textarea.focus();
                             textarea.setSelectionRange(start + placeholder.length + 2, start + placeholder.length + 2);
                         });
+                    }
+                },
+
+                // Whitelist Manager
+                async fetchWhitelist() {
+                    this.loadingWhitelist = true;
+                    this.whitelistError = '';
+                    this.whitelistSuccess = '';
+                    try {
+                        const res = await fetch('{{ route("whatsapp.settings.whitelist.index") }}');
+                        const data = await res.json();
+                        if (!res.ok) {
+                            this.whitelistError = data.message || 'Gagal memuat whitelist.';
+                            return;
+                        }
+                        this.whitelistData = data;
+                    } catch (e) {
+                        console.error(e);
+                        this.whitelistError = 'Error memuat whitelist.';
+                    } finally {
+                        this.loadingWhitelist = false;
+                    }
+                },
+
+                async addWhitelist() {
+                    if (!this.whitelistForm.phone) {
+                        this.whitelistError = 'Phone wajib diisi.';
+                        return;
+                    }
+
+                    this.addingWhitelist = true;
+                    this.whitelistError = '';
+                    this.whitelistSuccess = '';
+
+                    try {
+                        const res = await fetch('{{ route("whatsapp.settings.whitelist.store") }}', {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                phone: this.whitelistForm.phone,
+                                name: this.whitelistForm.name
+                            })
+                        });
+
+                        const data = await res.json();
+
+                        if (!res.ok) {
+                            this.whitelistError = data.message || 'Gagal menambahkan admin.';
+                            return;
+                        }
+
+                        this.whitelistSuccess = data.message || 'Admin berhasil ditambahkan.';
+                        this.whitelistForm.phone = '';
+                        this.whitelistForm.name = '';
+
+                        // Update list locally if possible, otherwise refetch
+                        if (data.item) {
+                            this.whitelistData.whitelist = [data.item, ...(this.whitelistData.whitelist || [])];
+                        } else {
+                            await this.fetchWhitelist();
+                        }
+                    } catch (e) {
+                        console.error(e);
+                        this.whitelistError = 'Error menambahkan admin.';
+                    } finally {
+                        this.addingWhitelist = false;
+                    }
+                },
+
+                async removeWhitelist(item) {
+                    if (!item || !item.id) return;
+                    if (!confirm('Hapus admin dari whitelist?')) return;
+
+                    this.whitelistError = '';
+                    this.whitelistSuccess = '';
+
+                    try {
+                        const res = await fetch(`/whatsapp/settings/whitelist/${item.id}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        const data = await res.json();
+
+                        if (!res.ok) {
+                            this.whitelistError = data.message || 'Gagal menghapus admin.';
+                            return;
+                        }
+
+                        this.whitelistSuccess = data.message || 'Admin berhasil dihapus.';
+                        this.whitelistData.whitelist = (this.whitelistData.whitelist || []).filter(w => w.id !== item.id);
+                    } catch (e) {
+                        console.error(e);
+                        this.whitelistError = 'Error menghapus admin.';
                     }
                 }
             }
