@@ -30,6 +30,48 @@
 
 ## 📰 Recent Changes (v2.x)
 
+### v2.3.1 (10 Februari 2026) - Fix Missing Preparation Records
+
+```
+Updated on 2026-02-10
+```
+
+**🎯 Problem Solved:**
+
+1. **Sampel Terlihat Belum Selesai Padahal Sudah:** Request TR-LPMF011I2026 menampilkan "4/5 Sampel" meskipun semua sampel sudah diproses. Akar masalah: record `preparation` stage terhapus karena `destroy()` tidak memiliki validasi.
+2. **Stage Record Bisa Dihapus Sembarangan:** Endpoint `SampleTestProcessController@destroy` tidak memvalidasi apakah stage tersebut masih diperlukan oleh stage berikutnya.
+3. **Bulk Update Tanpa Validasi:** `markReadyForDelivery()` melakukan bulk update status tanpa memverifikasi kelengkapan 3 stage (preparation/instrumentation/interpretation).
+
+**✨ Fixes:**
+
+- **Guard `destroy()` (`SampleTestProcessController`):**
+    - Block deletion jika sample status `ready_for_delivery`
+    - Block deletion jika subsequent stages exist (e.g., tidak bisa hapus `preparation` jika `instrumentation` sudah ada)
+
+- **Validate `markReadyForDelivery()` (`ProcessController`):**
+    - Server-side validation: semua sampel harus punya 3 stage completed sebelum boleh di-mark ready
+    - Return error spesifik dengan kode sampel + stage yang kurang
+
+- **Backfill Command (`app:backfill-missing-preparation`):**
+    - Repair data: insert missing `preparation` records untuk sampel yang terdampak
+    - Metadata `backfilled=true` untuk audit trail
+    - Idempotent: aman dijalankan berulang kali
+
+**📊 Test Coverage:** 11 test methods baru (DestroyGuardTest: 3, MarkReadyForDeliveryTest: 2, BackfillMissingPreparationTest: 4, DeliveryIndexProgressTest: 2)
+
+**📁 Files Changed:**
+
+| File                                                         | Change                                 |
+| ------------------------------------------------------------ | -------------------------------------- |
+| `app/Http/Controllers/SampleTestProcessController.php`       | Guard pada `destroy()`                 |
+| `app/Http/Controllers/ProcessController.php`                 | Validasi pada `markReadyForDelivery()` |
+| `app/Console/Commands/BackfillMissingPreparationCommand.php` | NEW - backfill command                 |
+| `tests/Feature/SampleTestProcess/DestroyGuardTest.php`       | NEW - 3 tests                          |
+| `tests/Feature/Process/MarkReadyForDeliveryTest.php`         | NEW - 2 tests                          |
+| `tests/Feature/Commands/BackfillMissingPreparationTest.php`  | NEW - 4 tests                          |
+| `tests/Feature/Delivery/DeliveryIndexProgressTest.php`       | NEW - 2 tests                          |
+| `tests/Feature/WhatsApp/ReadyForPickupNotificationTest.php`  | Updated fixture                        |
+
 ### v2.3.0 (09 Februari 2026) - Delivery UX Refresh
 
 ```
