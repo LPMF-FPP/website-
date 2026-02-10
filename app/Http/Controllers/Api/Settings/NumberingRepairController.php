@@ -343,17 +343,23 @@ class NumberingRepairController extends Controller
     }
 
     /**
-     * Preview compaction plan (sample_code only).
+     * Preview compaction plan (sample_code, ba, tracking).
      */
     public function compactPreview(string $scope): JsonResponse
     {
         $this->authorizeSettings();
 
-        if ($scope !== 'sample_code') {
+        if (! in_array($scope, ['sample_code', 'ba', 'tracking'])) {
             return response()->json(['error' => 'Scope tidak didukung untuk aksi rapatkan'], 400);
         }
 
         try {
+            if ($scope === 'ba' || $scope === 'tracking') {
+                $result = $this->repairService->previewCompactRequestNumbersInCurrentBucket();
+
+                return response()->json($result);
+            }
+
             $result = $this->repairService->previewCompactSampleCodesForBucket(CarbonImmutable::now());
 
             return response()->json($result);
@@ -365,13 +371,13 @@ class NumberingRepairController extends Controller
     }
 
     /**
-     * Apply compaction (sample_code only).
+     * Apply compaction (sample_code, ba, tracking).
      */
     public function compact(Request $request, string $scope): JsonResponse
     {
         $this->authorizeSettings();
 
-        if ($scope !== 'sample_code') {
+        if (! in_array($scope, ['sample_code', 'ba', 'tracking'])) {
             return response()->json(['error' => 'Scope tidak didukung untuk aksi rapatkan'], 400);
         }
 
@@ -383,8 +389,29 @@ class NumberingRepairController extends Controller
 
         try {
             $bucketNow = CarbonImmutable::now();
-            $preview = $this->repairService->previewCompactSampleCodesForBucket($bucketNow);
 
+            if ($scope === 'ba' || $scope === 'tracking') {
+                $preview = $this->repairService->previewCompactRequestNumbersInCurrentBucket();
+                $apply = $this->repairService->compactRequestNumbersInCurrentBucket($validated['reason']);
+
+                if (! empty($apply['fs_ops'])) {
+                    $this->repairService->executePostCommitFilesystemOps($apply['fs_ops']);
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Nomor BA dan Resi berhasil dirapatkan',
+                    'rename_count' => (int) ($apply['renamed'] ?? 0),
+                    'locked_count' => (int) ($preview['locked_count'] ?? 0),
+                    'counter_before' => (int) ($preview['ba_counter_before'] ?? 0),
+                    'counter_after' => (int) ($preview['ba_counter_after'] ?? 0),
+                    'tracking_counter_before' => (int) ($preview['tracking_counter_before'] ?? 0),
+                    'tracking_counter_after' => (int) ($preview['tracking_counter_after'] ?? 0),
+                    'examples' => $preview['examples'] ?? [],
+                ]);
+            }
+
+            $preview = $this->repairService->previewCompactSampleCodesForBucket($bucketNow);
             $apply = $this->repairService->compactSampleCodesForBucket($bucketNow, $validated['reason']);
 
             $reset = settings('numbering.sample_code.reset') ?? 'never';

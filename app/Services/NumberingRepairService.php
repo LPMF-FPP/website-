@@ -12,7 +12,9 @@ use App\Models\Sequence;
 use App\Models\TestRequest;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class NumberingRepairService
@@ -1220,11 +1222,492 @@ class NumberingRepairService
     }
 
     /**
+     * Compact BA (request_number) and Tracking (receipt_number) in the bucket.
+     */
+    public function previewCompactRequestNumbersInCurrentBucket(int $examplesLimit = 10): array
+    {
+        return $this->previewCompactRequestNumbersForBucket(CarbonImmutable::now(), $examplesLimit);
+    }
+
+    public function previewCompactRequestNumbersForBucket(CarbonImmutable $bucketNow, int $examplesLimit = 10): array
+    {
+        // Use BA settings as anchor for the bucket
+        $reset = settings('numbering.ba.reset') ?? 'never';
+        $bucket = match ($reset) {
+            'yearly' => $bucketNow->format('Y'),
+            'monthly' => $bucketNow->format('Y-m'),
+            'daily' => $bucketNow->format('Y-m-d'),
+            default => 'default',
+        };
+
+        $baCounterBefore = (int) (Sequence::query()
+            ->where('scope', 'ba')
+            ->where('bucket', $bucket)
+            ->value('current_value') ?? 0);
+
+        // For tracking counter, check current tracking bucket
+        $trackingReset = settings('numbering.tracking.reset') ?? 'never';
+        $trackingBucket = match ($trackingReset) {
+            'yearly' => $bucketNow->format('Y'),
+            'monthly' => $bucketNow->format('Y-m'),
+            'daily' => $bucketNow->format('Y-m-d'),
+            default => 'default',
+        };
+        $trackingCounterBefore = (int) (Sequence::query()
+            ->where('scope', 'tracking')
+            ->where('bucket', $trackingBucket)
+            ->value('current_value') ?? 0);
+
+        $requests = $this->queryRequestsForBucket($bucketNow, $reset)
+            ->orderBy('created_at')
+            ->get();
+
+        if ($requests->isEmpty()) {
+            return [
+                'success' => true,
+                'rename_count' => 0,
+                'locked_count' => 0,
+                'examples' => [],
+                'ba_counter_before' => $baCounterBefore,
+                'ba_counter_after' => $baCounterBefore,
+                'tracking_counter_before' => $trackingCounterBefore,
+                'tracking_counter_after' => $trackingCounterBefore,
+            ];
+        }
+
+        $lockedRequestIds = $this->getLockedRequestIds($requests);
+        $built = $this->buildRequestCompactionPlan($requests, $lockedRequestIds);
+        $plan = $built['plan'];
+
+        $examples = array_slice(array_map(fn (array $item) => [
+            'from_ba' => (string) ($item['old_ba'] ?? ''),
+            'to_ba' => (string) ($item['final_ba'] ?? ''),
+            'from_tracking' => (string) ($item['old_tracking'] ?? ''),
+            'to_tracking' => (string) ($item['final_tracking'] ?? ''),
+        ], $plan), 0, max(0, $examplesLimit));
+
+        return [
+            'success' => true,
+            'rename_count' => count($plan),
+            'locked_count' => count($lockedRequestIds),
+            'examples' => $examples,
+            'ba_counter_before' => $baCounterBefore,
+            'ba_counter_after' => (int) $built['ba_counter_after'],
+            'tracking_counter_before' => $trackingCounterBefore,
+            'tracking_counter_after' => (int) $built['tracking_counter_after'],
+        ];
+    }
+
+    public function compactRequestNumbersInCurrentBucket(string $reason = 'Auto compact requests after deletions'): array
+    {
+        return $this->compactRequestNumbersForBucket(CarbonImmutable::now(), $reason);
+    }
+
+    public function compactRequestNumbersForBucket(CarbonImmutable $bucketNow, string $reason = 'Auto compact requests after deletions'): array
+    {
+        $reset = settings('numbering.ba.reset') ?? 'never';
+        $now = $bucketNow;
+
+        $requests = $this->queryRequestsForBucket($now, $reset)
+            ->orderBy('created_at')
+            ->get();
+
+        if ($requests->isEmpty()) {
+            return ['success' => true, 'renamed' => 0];
+        }
+
+        $lockedIds = $this->getLockedRequestIds($requests);
+        $built = $this->buildRequestCompactionPlan($requests, $lockedIds);
+        $plan = $built['plan'];
+
+        if (empty($plan)) {
+            $this->syncSequenceToBucketMaxFromRequest($requests->first());
+
+            return ['success' => true, 'renamed' => 0];
+        }
+
+        return DB::transaction(function () use ($plan, $reason, $requests) {
+            $affectedIds = collect($plan)->pluck('request_id')->all();
+
+            /** @var Collection<int, TestRequest> $affectedRequests */
+            $affectedRequests = TestRequest::query()
+                ->whereIn('id', $affectedIds)
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            $currentLockedIds = $this->getLockedRequestIds($affectedRequests);
+            $newlyLocked = array_intersect($affectedIds, $currentLockedIds);
+
+            if (! empty($newlyLocked)) {
+                throw new \RuntimeException('Some requests became locked during compaction');
+            }
+
+            $finalBaCodes = collect($plan)->pluck('final_ba')->all();
+            if (count($finalBaCodes) !== count(array_unique($finalBaCodes))) {
+                throw new \RuntimeException('Duplicate final BA codes generated');
+            }
+
+            $collision = TestRequest::query()
+                ->whereIn('request_number', $finalBaCodes)
+                ->whereNotIn('id', $affectedIds)
+                ->exists();
+            if ($collision) {
+                throw new \RuntimeException('Collision detected during BA compaction');
+            }
+
+            $fsOps = [];
+            $tmpMap = [];
+
+            // Phase 1: Move to TMP
+            foreach ($plan as $item) {
+                $req = $affectedRequests[$item['request_id']];
+                $tmpBa = 'TMP-BA-'.$req->id.'-'.Str::upper(Str::random(8));
+                $tmpTr = 'TMP-TR-'.$req->id.'-'.Str::upper(Str::random(8));
+
+                $req->request_number = $tmpBa;
+                $req->receipt_number = $tmpTr;
+                $req->save();
+
+                $tmpMap[$req->id] = [
+                    'tmp_ba' => $tmpBa,
+                    'tmp_tr' => $tmpTr,
+                    'final_ba' => (string) $item['final_ba'],
+                    'final_tr' => (string) $item['final_tracking'],
+                    'old_ba' => (string) $item['old_ba'],
+                    'old_tr' => (string) $item['old_tracking'],
+                ];
+            }
+
+            // Phase 2: TMP -> Final
+            foreach ($tmpMap as $reqId => $codes) {
+                $req = $affectedRequests[$reqId];
+
+                $req->request_number = $codes['final_ba'];
+                $req->receipt_number = $codes['final_tr'];
+                $req->save();
+
+                if ($codes['old_ba']) {
+                    $generatedOps = $this->cleanupGeneratedDocs($req);
+                    $fsOps = array_merge($fsOps, $generatedOps);
+
+                    $this->cascadeRequestNumberInDocumentPaths($req, $codes['old_ba'], $codes['final_ba']);
+
+                    if ($req->investigator && $req->investigator->folder_key) {
+                        $fsOps[] = [
+                            'type' => 'move_directory',
+                            'from' => "investigators/{$req->investigator->folder_key}/{$codes['old_ba']}",
+                            'to' => "investigators/{$req->investigator->folder_key}/{$codes['final_ba']}",
+                        ];
+                    }
+                }
+
+                if ($codes['old_tr']) {
+                    $this->cascadeTrackingNumberChange($req, $codes['old_tr'], $codes['final_tr']);
+                }
+
+                // Clear tracking cache for old numbers
+                if ($codes['old_ba']) {
+                    Cache::forget('track:condensed:'.$codes['old_ba']);
+                }
+                if ($codes['old_tr']) {
+                    Cache::forget('track:condensed:'.$codes['old_tr']);
+                }
+            }
+
+            $this->syncSequenceToBucketMaxFromRequest($requests->first());
+
+            return [
+                'success' => true,
+                'renamed' => count($tmpMap),
+                'reason' => $reason,
+                'fs_ops' => $fsOps,
+            ];
+        });
+    }
+
+    protected function getLockedRequestIds(Collection $requests): array
+    {
+        $requestIds = $requests->pluck('id')->all();
+
+        $lockedSampleIds = SampleTestProcess::query()
+            ->whereIn('sample_id', function ($query) use ($requestIds) {
+                $query->select('id')->from('samples')->whereIn('test_request_id', $requestIds);
+            })
+            ->distinct()
+            ->pluck('sample_id');
+
+        if ($lockedSampleIds->isEmpty()) {
+            return [];
+        }
+
+        return Sample::whereIn('id', $lockedSampleIds)
+            ->distinct()
+            ->pluck('test_request_id')
+            ->all();
+    }
+
+    protected function buildRequestCompactionPlan(Collection $requests, array $lockedIds): array
+    {
+        $rows = $requests->map(function (TestRequest $req) use ($lockedIds) {
+            $seq = $this->extractSequenceNumber('ba', $req);
+
+            return [
+                'request' => $req,
+                'seq' => $seq,
+                'locked' => in_array($req->id, $lockedIds, true),
+            ];
+        })->filter(fn (array $row) => is_int($row['seq']) && $row['seq'] > 0)
+            ->sortBy('seq')
+            ->values();
+
+        if ($rows->isEmpty()) {
+            return ['rows' => $rows, 'plan' => [], 'ba_counter_after' => 0, 'tracking_counter_after' => 0];
+        }
+
+        $reservedLockedSeq = $rows->filter(fn ($row) => $row['locked'])
+            ->pluck('seq')->unique()->flip()->all();
+
+        $maxLocked = empty($reservedLockedSeq) ? 0 : max(array_keys($reservedLockedSeq));
+        $nextSeq = 1;
+        $maxAssigned = 0;
+        $plan = [];
+
+        foreach ($rows as $row) {
+            /** @var TestRequest $req */
+            $req = $row['request'];
+            $currentSeq = (int) $row['seq'];
+
+            if ($row['locked']) {
+                $nextSeq = max($nextSeq, $currentSeq + 1);
+
+                continue;
+            }
+
+            while (isset($reservedLockedSeq[$nextSeq])) {
+                $nextSeq++;
+            }
+
+            $desiredSeq = $nextSeq;
+            $nextSeq++;
+            $maxAssigned = max($maxAssigned, $desiredSeq);
+
+            if ($desiredSeq === $currentSeq) {
+                continue;
+            }
+
+            $context = ['now' => CarbonImmutable::parse($req->created_at)];
+            $finalBa = $this->numberingService->preview('ba', $context, $desiredSeq);
+            $finalTr = $this->numberingService->preview('tracking', $context, $desiredSeq);
+
+            $plan[] = [
+                'request_id' => $req->id,
+                'old_ba' => $req->request_number,
+                'old_tracking' => $req->receipt_number,
+                'final_ba' => $finalBa,
+                'final_tracking' => $finalTr,
+            ];
+        }
+
+        return [
+            'rows' => $rows,
+            'plan' => $plan,
+            'ba_counter_after' => max($maxLocked, $maxAssigned),
+            'tracking_counter_after' => max($maxLocked, $maxAssigned),
+        ];
+    }
+
+    protected function queryRequestsForBucket(CarbonImmutable $now, string $reset): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = TestRequest::query();
+
+        if ($reset === 'yearly') {
+            $query->whereYear('created_at', $now->year);
+        } elseif ($reset === 'monthly') {
+            $query->whereYear('created_at', $now->year)->whereMonth('created_at', $now->month);
+        } elseif ($reset === 'daily') {
+            $query->whereDate('created_at', $now->toDateString());
+        }
+
+        return $query;
+    }
+
+    protected function syncSequenceToBucketMaxFromRequest(TestRequest $request): void
+    {
+        $this->syncOneSequenceFromRequest('ba', $request);
+        $this->syncOneSequenceFromRequest('tracking', $request);
+    }
+
+    protected function syncOneSequenceFromRequest(string $scope, TestRequest $request): void
+    {
+        $reset = settings("numbering.$scope.reset") ?? 'never';
+        $now = $request->created_at ? CarbonImmutable::parse($request->created_at) : CarbonImmutable::now();
+        $bucket = match ($reset) {
+            'yearly' => $now->format('Y'),
+            'monthly' => $now->format('Y-m'),
+            'daily' => $now->format('Y-m-d'),
+            default => 'default',
+        };
+
+        $query = TestRequest::query();
+        if ($reset === 'yearly') {
+            $query->whereYear('created_at', $now->year);
+        } elseif ($reset === 'monthly') {
+            $query->whereYear('created_at', $now->year)->whereMonth('created_at', $now->month);
+        } elseif ($reset === 'daily') {
+            $query->whereDate('created_at', $now->toDateString());
+        }
+
+        $maxSeq = $query->get()
+            ->map(fn (TestRequest $r) => $this->extractSequenceNumber($scope, $r))
+            ->filter(fn ($n) => is_int($n) && $n > 0)
+            ->max() ?? 0;
+
+        $sequence = Sequence::firstOrCreate(
+            ['scope' => $scope, 'bucket' => $bucket],
+            ['current_value' => (int) $maxSeq]
+        );
+
+        if ($sequence->current_value !== (int) $maxSeq) {
+            $sequence->current_value = (int) $maxSeq;
+            $sequence->save();
+        }
+    }
+
+    protected function cleanupGeneratedDocs(TestRequest $request): array
+    {
+        $generatedTypes = [
+            'ba_penerimaan', 'ba_penerimaan_html',
+            'ba_penyerahan', 'ba_penyerahan_html',
+            'laporan_hasil_uji', 'laporan_hasil_uji_html',
+            'form_preparation',
+        ];
+
+        $docsToDelete = Document::where('test_request_id', $request->id)
+            ->whereIn('document_type', $generatedTypes)
+            ->where('source', 'generated')
+            ->get();
+
+        $fsOps = [];
+        foreach ($docsToDelete as $doc) {
+            $path = $doc->file_path ?? $doc->path;
+            if ($path) {
+                $fsOps[] = [
+                    'type' => 'delete_file',
+                    'path' => $path,
+                ];
+            }
+            $doc->forceDelete();
+        }
+
+        if ($request->request_number) {
+            $legacyPattern = 'output/Berita_Acara_Penerimaan_'.$request->request_number.'_ID-'.$request->id.'.html';
+            $fsOps[] = [
+                'type' => 'delete_legacy',
+                'path' => $legacyPattern,
+            ];
+        }
+
+        return $fsOps;
+    }
+
+    protected function cascadeRequestNumberInDocumentPaths(TestRequest $request, string $oldRequestNumber, string $newRequestNumber): void
+    {
+        $investigator = $request->investigator;
+        if (! $investigator || ! $investigator->folder_key) {
+            return;
+        }
+
+        $oldDir = "investigators/{$investigator->folder_key}/{$oldRequestNumber}";
+        $newDir = "investigators/{$investigator->folder_key}/{$newRequestNumber}";
+
+        $documents = Document::withTrashed()
+            ->where('test_request_id', $request->id)
+            ->get();
+
+        foreach ($documents as $doc) {
+            $updated = false;
+            if ($doc->file_path && str_contains($doc->file_path, $oldDir)) {
+                $doc->file_path = str_replace($oldDir, $newDir, $doc->file_path);
+                $updated = true;
+            }
+            if ($doc->path && str_contains($doc->path, $oldDir)) {
+                $doc->path = str_replace($oldDir, $newDir, $doc->path);
+                $updated = true;
+            }
+            if ($updated) {
+                $doc->saveQuietly();
+            }
+        }
+    }
+
+    protected function cascadeTrackingNumberChange(TestRequest $request, string $oldNumber, string $newNumber): int
+    {
+        return EvidenceUnit::where('request_id', $request->id)
+            ->where('receipt_code', $oldNumber)
+            ->update(['receipt_code' => $newNumber]);
+    }
+
+    public function executePostCommitFilesystemOps(array $fsOps): array
+    {
+        $disk = Storage::disk('public');
+        $succeeded = 0;
+        $failed = 0;
+
+        foreach ($fsOps as $op) {
+            try {
+                match ($op['type']) {
+                    'move_directory' => $this->moveDirectory($op['from'], $op['to']),
+                    'delete_file' => $this->deleteFileIfExists($disk, $op['path']),
+                    'delete_legacy' => @unlink(base_path($op['path'])),
+                    default => null,
+                };
+                $succeeded++;
+            } catch (\Throwable $e) {
+                Log::warning('Post-commit filesystem op failed', [
+                    'op' => $op,
+                    'error' => $e->getMessage(),
+                ]);
+                $failed++;
+            }
+        }
+
+        return ['succeeded' => $succeeded, 'failed' => $failed];
+    }
+
+    protected function moveDirectory(string $from, string $to): void
+    {
+        $disk = Storage::disk('public');
+        $basePath = $disk->path('');
+
+        $absFrom = $basePath.'/'.ltrim($from, '/');
+        $absTo = $basePath.'/'.ltrim($to, '/');
+
+        if (! is_dir($absFrom)) {
+            return;
+        }
+
+        $parentDir = dirname($absTo);
+        if (! is_dir($parentDir)) {
+            mkdir($parentDir, 0755, true);
+        }
+
+        if (! rename($absFrom, $absTo)) {
+            throw new \RuntimeException("Failed to rename directory: {$absFrom} -> {$absTo}");
+        }
+    }
+
+    protected function deleteFileIfExists($disk, string $path): void
+    {
+        if ($disk->exists($path)) {
+            $disk->delete($path);
+        }
+    }
+
+    /**
      * Build compaction rows + plan without mutating state.
      *
-     * @param  Collection<int, Sample>  $samples
-     * @param  array<int,int>  $lockedIds
-     * @return array{rows:Collection<int,array{sample:Sample,seq:int|null,locked:bool}>,plan:array<int,array{sample_id:int,old_code:string|null,final_code:string}>,counter_after:int}
+     * @return array{rows:Collection, plan:array, ba_counter_after:int, tracking_counter_after:int}
      */
     protected function buildSampleCodeCompactionPlanFromSamples(Collection $samples, array $lockedIds): array
     {
