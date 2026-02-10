@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Models\Document;
+use App\Models\EvidenceUnit;
 use App\Models\NumberingChangeLog;
+use App\Models\RemainingUnit;
 use App\Models\Sample;
 use App\Models\SampleTestProcess;
 use App\Models\Sequence;
@@ -11,6 +13,7 @@ use App\Models\TestRequest;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class NumberingRepairService
 {
@@ -533,15 +536,12 @@ class NumberingRepairService
             $cascadeCount = 0;
 
             if ($scope === 'sample_code' && $oldNumber) {
-                // Update evidence_units that reference this sample
-                $cascadeCount = \App\Models\EvidenceUnit::where('sample_id', $entity->id)
-                    ->where('sample_code', $oldNumber)
-                    ->update(['sample_code' => $newNumber]);
+                $cascadeCount = $this->cascadeSampleCodeChange($entity, $oldNumber, $newNumber);
             }
 
             if ($scope === 'tracking' && $oldNumber) {
                 // Update evidence_units receipt_code if needed
-                $cascadeCount = \App\Models\EvidenceUnit::where('request_id', $entity->id)
+                $cascadeCount = EvidenceUnit::where('request_id', $entity->id)
                     ->where('receipt_code', $oldNumber)
                     ->update(['receipt_code' => $newNumber]);
             }
@@ -935,13 +935,11 @@ class NumberingRepairService
             $cascadeCount = 0;
 
             if ($scope === 'sample_code' && $oldNumber) {
-                $cascadeCount = \App\Models\EvidenceUnit::where('sample_id', $entity->id)
-                    ->where('sample_code', $oldNumber)
-                    ->update(['sample_code' => $newNumber]);
+                $cascadeCount = $this->cascadeSampleCodeChange($entity, $oldNumber, $newNumber);
             }
 
             if ($scope === 'tracking' && $oldNumber) {
-                $cascadeCount = \App\Models\EvidenceUnit::where('request_id', $entity->id)
+                $cascadeCount = EvidenceUnit::where('request_id', $entity->id)
                     ->where('receipt_code', $oldNumber)
                     ->update(['receipt_code' => $newNumber]);
             }
@@ -980,6 +978,393 @@ class NumberingRepairService
                 'cascade_count' => $cascadeCount,
                 'entity_id' => $entity->id,
             ];
+        });
+    }
+
+    /**
+     * Cascade sample_code renames to denormalized label tables.
+     */
+    protected function cascadeSampleCodeChange(Sample $sample, string $oldNumber, string $newNumber): int
+    {
+        $cascadeCount = 0;
+
+        // evidence_units.sample_code
+        $cascadeCount += EvidenceUnit::where('sample_id', $sample->id)
+            ->where('sample_code', $oldNumber)
+            ->update(['sample_code' => $newNumber]);
+
+        // remaining_units.sample_code + remaining_units.remaining_code
+        $evidenceUnitIds = EvidenceUnit::where('sample_id', $sample->id)->pluck('id');
+        if ($evidenceUnitIds->isEmpty()) {
+            return $cascadeCount;
+        }
+
+        $remainingUnits = RemainingUnit::whereIn('evidence_unit_id', $evidenceUnitIds)
+            ->where('sample_code', $oldNumber)
+            ->get();
+
+        foreach ($remainingUnits as $remainingUnit) {
+            $currentRemaining = (string) ($remainingUnit->remaining_code ?? '');
+
+            $suffix = '';
+            if ($currentRemaining !== '' && str_starts_with($currentRemaining, $oldNumber)) {
+                $suffix = substr($currentRemaining, strlen($oldNumber));
+            } elseif (($pos = strpos($currentRemaining, '-SISA')) !== false) {
+                // Fallback: preserve the "-SISA" suffix even if the prefix drifted
+                $suffix = substr($currentRemaining, $pos);
+            } else {
+                $suffix = '-SISA';
+            }
+
+            $remainingUnit->forceFill([
+                'sample_code' => $newNumber,
+                'remaining_code' => $newNumber.$suffix,
+            ])->save();
+
+            $cascadeCount++;
+        }
+
+        return $cascadeCount;
+    }
+
+    /**
+     * Compact sample_code numbering within the active bucket (e.g. current year).
+     *
+     * Rules:
+     * - Skip locked samples (any sample_test_processes row exists)
+     * - Never rename locked samples
+     * - Use two-phase rename (TMP then FINAL) to avoid unique collisions
+     * - Cascade updates to evidence_units and remaining_units
+     */
+    public function previewCompactSampleCodesInCurrentBucket(int $examplesLimit = 10): array
+    {
+        return $this->previewCompactSampleCodesForBucket(CarbonImmutable::now(), $examplesLimit);
+    }
+
+    /**
+     * Preview compaction plan for a specific bucket anchor date.
+     * Uses the exact same plan-building logic as the apply method.
+     */
+    public function previewCompactSampleCodesForBucket(CarbonImmutable $bucketNow, int $examplesLimit = 10): array
+    {
+        $reset = settings('numbering.sample_code.reset') ?? 'never';
+        $bucket = match ($reset) {
+            'yearly' => $bucketNow->format('Y'),
+            'monthly' => $bucketNow->format('Y-m'),
+            'daily' => $bucketNow->format('Y-m-d'),
+            default => 'default',
+        };
+
+        $counterBefore = (int) (Sequence::query()
+            ->where('scope', 'sample_code')
+            ->where('bucket', $bucket)
+            ->value('current_value') ?? 0);
+
+        $samples = $this->querySamplesForBucket($bucketNow, $reset)
+            ->orderBy('created_at')
+            ->get();
+
+        if ($samples->isEmpty()) {
+            return [
+                'success' => true,
+                'rename_count' => 0,
+                'locked_count' => 0,
+                'examples' => [],
+                'counter_before' => $counterBefore,
+                'counter_after' => $counterBefore,
+            ];
+        }
+
+        $lockedIds = SampleTestProcess::query()
+            ->whereIn('sample_id', $samples->pluck('id'))
+            ->distinct()
+            ->pluck('sample_id')
+            ->all();
+
+        $built = $this->buildSampleCodeCompactionPlanFromSamples($samples, $lockedIds);
+        $plan = $built['plan'];
+
+        $examples = array_slice(array_map(fn (array $item) => [
+            'from' => (string) ($item['old_code'] ?? ''),
+            'to' => (string) ($item['final_code'] ?? ''),
+        ], $plan), 0, max(0, $examplesLimit));
+
+        $counterAfter = (int) $built['counter_after'];
+
+        return [
+            'success' => true,
+            'rename_count' => count($plan),
+            'locked_count' => count($lockedIds),
+            'examples' => $examples,
+            'counter_before' => $counterBefore,
+            'counter_after' => $counterAfter,
+        ];
+    }
+
+    public function compactSampleCodesInCurrentBucket(string $reason = 'Auto compact sample codes after deletions'): array
+    {
+        return $this->compactSampleCodesForBucket(CarbonImmutable::now(), $reason);
+    }
+
+    /**
+     * Compact sample_code numbering for a specific bucket anchor date.
+     * This is used when deleting/editing historical requests so we compact
+     * the correct year/month/day bucket.
+     */
+    public function compactSampleCodesForBucket(CarbonImmutable $bucketNow, string $reason = 'Auto compact sample codes after deletions'): array
+    {
+        $reset = settings('numbering.sample_code.reset') ?? 'never';
+        $now = $bucketNow;
+
+        $samples = $this->querySamplesForBucket($now, $reset)
+            ->orderBy('created_at')
+            ->get();
+
+        if ($samples->isEmpty()) {
+            return ['success' => true, 'renamed' => 0];
+        }
+
+        $lockedIds = SampleTestProcess::query()
+            ->whereIn('sample_id', $samples->pluck('id'))
+            ->distinct()
+            ->pluck('sample_id')
+            ->all();
+
+        $built = $this->buildSampleCodeCompactionPlanFromSamples($samples, $lockedIds);
+        $rows = $built['rows'];
+        $plan = $built['plan'];
+
+        if ($rows->isEmpty()) {
+            $this->syncSequenceToBucketMaxFromSample($samples->first());
+
+            return ['success' => true, 'renamed' => 0];
+        }
+
+        if (empty($plan)) {
+            $this->syncSequenceToBucketMaxFromSample($samples->first());
+
+            return ['success' => true, 'renamed' => 0];
+        }
+
+        return DB::transaction(function () use ($plan, $reason, $samples) {
+            $affectedIds = collect($plan)->pluck('sample_id')->all();
+
+            /** @var Collection<int, Sample> $affectedSamples */
+            $affectedSamples = Sample::query()
+                ->whereIn('id', $affectedIds)
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            // Re-check locking inside the transaction to avoid renaming newly-locked samples
+            $becameLocked = SampleTestProcess::query()
+                ->whereIn('sample_id', $affectedIds)
+                ->exists();
+            if ($becameLocked) {
+                throw new \RuntimeException('Some samples became locked during sample_code compaction');
+            }
+
+            $finalCodes = collect($plan)->pluck('final_code')->all();
+            if (count($finalCodes) !== count(array_unique($finalCodes))) {
+                throw new \RuntimeException('Duplicate final_code values generated during sample_code compaction');
+            }
+            $collision = Sample::query()
+                ->whereIn('sample_code', $finalCodes)
+                ->whereNotIn('id', $affectedIds)
+                ->exists();
+            if ($collision) {
+                throw new \RuntimeException('Collision detected during sample_code compaction');
+            }
+
+            // Phase 1: move to TMP codes
+            $tmpMap = [];
+            foreach ($plan as $item) {
+                $sample = $affectedSamples[$item['sample_id']];
+                $oldCode = (string) $item['old_code'];
+                $tmpCode = 'TMP-SC-'.$sample->id.'-'.Str::upper(Str::random(8));
+
+                $sample->sample_code = $tmpCode;
+                $sample->save();
+
+                if ($oldCode !== '') {
+                    $this->cascadeSampleCodeChange($sample, $oldCode, $tmpCode);
+                }
+
+                $tmpMap[$sample->id] = [
+                    'tmp' => $tmpCode,
+                    'final' => (string) $item['final_code'],
+                ];
+            }
+
+            // Phase 2: TMP -> FINAL
+            foreach ($tmpMap as $sampleId => $codes) {
+                $sample = $affectedSamples[$sampleId];
+
+                $tmpCode = $codes['tmp'];
+                $finalCode = $codes['final'];
+
+                $sample->sample_code = $finalCode;
+                $sample->save();
+
+                $this->cascadeSampleCodeChange($sample, $tmpCode, $finalCode);
+            }
+
+            $this->syncSequenceToBucketMaxFromSample($samples->first());
+
+            return [
+                'success' => true,
+                'renamed' => count($tmpMap),
+                'reason' => $reason,
+            ];
+        });
+    }
+
+    /**
+     * Build compaction rows + plan without mutating state.
+     *
+     * @param  Collection<int, Sample>  $samples
+     * @param  array<int,int>  $lockedIds
+     * @return array{rows:Collection<int,array{sample:Sample,seq:int|null,locked:bool}>,plan:array<int,array{sample_id:int,old_code:string|null,final_code:string}>,counter_after:int}
+     */
+    protected function buildSampleCodeCompactionPlanFromSamples(Collection $samples, array $lockedIds): array
+    {
+        $rows = $samples->map(function (Sample $sample) use ($lockedIds) {
+            $seq = $this->extractSequenceNumber('sample_code', $sample);
+
+            return [
+                'sample' => $sample,
+                'seq' => $seq,
+                'locked' => in_array($sample->id, $lockedIds, true),
+            ];
+        })->filter(fn (array $row) => is_int($row['seq']) && $row['seq'] > 0)
+            ->sortBy('seq')
+            ->values();
+
+        if ($rows->isEmpty()) {
+            return [
+                'rows' => $rows,
+                'plan' => [],
+                'counter_after' => 0,
+            ];
+        }
+
+        $reservedLockedSeq = $rows->filter(fn (array $row) => $row['locked'])
+            ->pluck('seq')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+        $reservedLockedSeq = array_flip($reservedLockedSeq);
+
+        $maxLocked = 0;
+        foreach (array_keys($reservedLockedSeq) as $seq) {
+            $maxLocked = max($maxLocked, (int) $seq);
+        }
+
+        $nextSeq = 1;
+        $maxAssigned = 0;
+        $plan = [];
+
+        foreach ($rows as $row) {
+            /** @var Sample $sample */
+            $sample = $row['sample'];
+            $currentSeq = (int) $row['seq'];
+
+            if ($row['locked']) {
+                $nextSeq = max($nextSeq, $currentSeq + 1);
+
+                continue;
+            }
+
+            while (isset($reservedLockedSeq[$nextSeq])) {
+                $nextSeq++;
+            }
+
+            $desiredSeq = $nextSeq;
+            $nextSeq++;
+            $maxAssigned = max($maxAssigned, $desiredSeq);
+
+            if ($desiredSeq === $currentSeq) {
+                continue;
+            }
+
+            $finalCode = $this->numberingService->preview('sample_code', [
+                'now' => CarbonImmutable::parse($sample->created_at),
+            ], $desiredSeq);
+
+            $plan[] = [
+                'sample_id' => $sample->id,
+                'old_code' => $sample->sample_code,
+                'final_code' => $finalCode,
+            ];
+        }
+
+        return [
+            'rows' => $rows,
+            'plan' => $plan,
+            'counter_after' => max($maxLocked, $maxAssigned),
+        ];
+    }
+
+    protected function querySamplesForBucket(CarbonImmutable $now, string $reset): \Illuminate\Database\Eloquent\Builder
+    {
+        $query = Sample::query();
+
+        if ($reset === 'yearly') {
+            $query->whereYear('created_at', $now->year);
+        } elseif ($reset === 'monthly') {
+            $query->whereYear('created_at', $now->year)->whereMonth('created_at', $now->month);
+        } elseif ($reset === 'daily') {
+            $query->whereDate('created_at', $now->toDateString());
+        }
+
+        return $query;
+    }
+
+    protected function syncSequenceToBucketMaxFromSample(Sample $sample): void
+    {
+        DB::transaction(function () use ($sample) {
+            $reset = settings('numbering.sample_code.reset') ?? 'never';
+            $now = $sample->created_at ? CarbonImmutable::parse($sample->created_at) : CarbonImmutable::now();
+            $bucket = match ($reset) {
+                'yearly' => $now->format('Y'),
+                'monthly' => $now->format('Y-m'),
+                'daily' => $now->format('Y-m-d'),
+                default => 'default',
+            };
+
+            $query = Sample::query();
+
+            if ($reset === 'yearly') {
+                $query->whereYear('created_at', $now->year);
+            } elseif ($reset === 'monthly') {
+                $query->whereYear('created_at', $now->year)->whereMonth('created_at', $now->month);
+            } elseif ($reset === 'daily') {
+                $query->whereDate('created_at', $now->toDateString());
+            }
+
+            $maxSeq = $query->get()->map(fn (Sample $s) => $this->extractSequenceNumber('sample_code', $s))
+                ->filter(fn ($n) => is_int($n) && $n > 0)
+                ->max() ?? 0;
+
+            $sequence = Sequence::query()
+                ->where('scope', 'sample_code')
+                ->where('bucket', $bucket)
+                ->lockForUpdate()
+                ->first();
+
+            if (! $sequence) {
+                Sequence::create([
+                    'scope' => 'sample_code',
+                    'bucket' => $bucket,
+                    'current_value' => (int) $maxSeq,
+                ]);
+
+                return;
+            }
+
+            $sequence->current_value = (int) $maxSeq;
+            $sequence->save();
         });
     }
 }

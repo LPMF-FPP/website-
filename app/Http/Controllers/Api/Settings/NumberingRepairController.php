@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Api\Settings;
 
 use App\Http\Controllers\Controller;
+use App\Models\Sequence;
 use App\Services\NumberingRepairService;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class NumberingRepairController extends Controller
 {
@@ -13,11 +16,18 @@ class NumberingRepairController extends Controller
         protected NumberingRepairService $repairService
     ) {}
 
+    private function authorizeSettings(): void
+    {
+        Gate::authorize('manage-settings');
+    }
+
     /**
      * Get counter status for a scope
      */
     public function counterStatus(string $scope): JsonResponse
     {
+        $this->authorizeSettings();
+
         try {
             $status = $this->repairService->getCounterStatus($scope);
 
@@ -32,6 +42,8 @@ class NumberingRepairController extends Controller
      */
     public function scan(string $scope): JsonResponse
     {
+        $this->authorizeSettings();
+
         try {
             $result = $this->repairService->scanProblems($scope);
             $status = $this->repairService->getCounterStatus($scope);
@@ -53,6 +65,8 @@ class NumberingRepairController extends Controller
      */
     public function reset(Request $request, string $scope): JsonResponse
     {
+        $this->authorizeSettings();
+
         $validated = $request->validate([
             'new_value' => 'required|integer|min:0',
             'reason' => 'required|string|max:500',
@@ -84,6 +98,8 @@ class NumberingRepairController extends Controller
      */
     public function sync(Request $request, string $scope): JsonResponse
     {
+        $this->authorizeSettings();
+
         $validated = $request->validate([
             'method' => 'required|in:max,count',
             'reason' => 'required|string|max:500',
@@ -115,6 +131,8 @@ class NumberingRepairController extends Controller
      */
     public function repair(Request $request, string $scope, int $id): JsonResponse
     {
+        $this->authorizeSettings();
+
         $validated = $request->validate([
             'new_number' => 'required|string|max:100',
             'reason' => 'required|string|max:500',
@@ -148,6 +166,8 @@ class NumberingRepairController extends Controller
      */
     public function changeLogs(Request $request): JsonResponse
     {
+        $this->authorizeSettings();
+
         $scope = $request->query('scope');
         $limit = min((int) $request->query('limit', 20), 100);
 
@@ -174,6 +194,8 @@ class NumberingRepairController extends Controller
      */
     public function entityHistory(string $scope, int $id): JsonResponse
     {
+        $this->authorizeSettings();
+
         $config = $this->repairService->getScopeConfig($scope);
         if (! $config) {
             return response()->json(['error' => 'Scope tidak valid'], 400);
@@ -200,6 +222,8 @@ class NumberingRepairController extends Controller
      */
     public function search(Request $request, string $scope): JsonResponse
     {
+        $this->authorizeSettings();
+
         $validated = $request->validate([
             'q' => 'required|string|min:1|max:100',
         ], [
@@ -229,6 +253,8 @@ class NumberingRepairController extends Controller
      */
     public function getDocument(string $scope, int $id): JsonResponse
     {
+        $this->authorizeSettings();
+
         try {
             $document = $this->repairService->getDocument($scope, $id);
 
@@ -250,6 +276,8 @@ class NumberingRepairController extends Controller
      */
     public function documentList(Request $request, string $scope): JsonResponse
     {
+        $this->authorizeSettings();
+
         $page = max(1, (int) $request->query('page', 1));
         $perPage = min(100, max(10, (int) $request->query('per_page', 50)));
 
@@ -271,6 +299,8 @@ class NumberingRepairController extends Controller
      */
     public function canReclaim(string $scope): JsonResponse
     {
+        $this->authorizeSettings();
+
         try {
             $result = $this->repairService->canReclaimGap($scope);
 
@@ -288,6 +318,8 @@ class NumberingRepairController extends Controller
      */
     public function reclaim(Request $request, string $scope): JsonResponse
     {
+        $this->authorizeSettings();
+
         $validated = $request->validate([
             'reason' => 'required|string|max:500',
         ], [
@@ -306,6 +338,79 @@ class NumberingRepairController extends Controller
                 'data' => $result,
             ]);
         } catch (\InvalidArgumentException $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * Preview compaction plan (sample_code only).
+     */
+    public function compactPreview(string $scope): JsonResponse
+    {
+        $this->authorizeSettings();
+
+        if ($scope !== 'sample_code') {
+            return response()->json(['error' => 'Scope tidak didukung untuk aksi rapatkan'], 400);
+        }
+
+        try {
+            $result = $this->repairService->previewCompactSampleCodesForBucket(CarbonImmutable::now());
+
+            return response()->json($result);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        } catch (\RuntimeException $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
+    }
+
+    /**
+     * Apply compaction (sample_code only).
+     */
+    public function compact(Request $request, string $scope): JsonResponse
+    {
+        $this->authorizeSettings();
+
+        if ($scope !== 'sample_code') {
+            return response()->json(['error' => 'Scope tidak didukung untuk aksi rapatkan'], 400);
+        }
+
+        $validated = $request->validate([
+            'reason' => 'required|string|max:500',
+        ], [
+            'reason.required' => 'Alasan wajib diisi',
+        ]);
+
+        try {
+            $bucketNow = CarbonImmutable::now();
+            $preview = $this->repairService->previewCompactSampleCodesForBucket($bucketNow);
+
+            $apply = $this->repairService->compactSampleCodesForBucket($bucketNow, $validated['reason']);
+
+            $reset = settings('numbering.sample_code.reset') ?? 'never';
+            $bucket = match ($reset) {
+                'yearly' => $bucketNow->format('Y'),
+                'monthly' => $bucketNow->format('Y-m'),
+                'daily' => $bucketNow->format('Y-m-d'),
+                default => 'default',
+            };
+            $counterAfter = (int) (Sequence::query()
+                ->where('scope', 'sample_code')
+                ->where('bucket', $bucket)
+                ->value('current_value') ?? 0);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Kode sampel berhasil dirapatkan',
+                'rename_count' => (int) ($apply['renamed'] ?? 0),
+                'locked_count' => (int) ($preview['locked_count'] ?? 0),
+                'counter_before' => (int) ($preview['counter_before'] ?? 0),
+                'counter_after' => $counterAfter,
+                'examples' => $preview['examples'] ?? [],
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        } catch (\RuntimeException $e) {
             return response()->json(['error' => $e->getMessage()], 400);
         }
     }

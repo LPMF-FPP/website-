@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\EvidenceUnit;
+use App\Models\RemainingUnit;
 use App\Models\Sample;
 use App\Models\TestRequest;
 use App\Models\User;
@@ -17,6 +18,7 @@ class NumberingRepairCascadeTest extends TestCase
     public function test_edit_sample_code_cascades_to_evidence_units(): void
     {
         // Authenticate a user for audit logging
+        /** @var User $user */
         $user = User::factory()->create();
         $this->actingAs($user);
 
@@ -48,9 +50,55 @@ class NumberingRepairCascadeTest extends TestCase
         $this->assertEquals('LS072I2026', $evidenceUnit->fresh()->sample_code, 'Evidence unit sample_code should cascade update');
     }
 
+    public function test_edit_sample_code_cascades_to_remaining_units_and_remaining_code(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $request = TestRequest::factory()->create();
+        $sample = Sample::factory()->create([
+            'test_request_id' => $request->id,
+            'sample_code' => 'LS073I2026',
+        ]);
+
+        $evidenceUnit = EvidenceUnit::create([
+            'request_id' => $request->id,
+            'sample_id' => $sample->id,
+            'sample_code' => 'LS073I2026',
+            'receipt_code' => 'TR-LPMF001I2026',
+            'sample_type' => 'Tablet',
+            'sample_desc' => 'Test sample',
+        ]);
+
+        $remainingA = RemainingUnit::create([
+            'evidence_unit_id' => $evidenceUnit->id,
+            'sample_code' => 'LS073I2026',
+            'remaining_code' => 'LS073I2026-SISA',
+        ]);
+        $remainingB = RemainingUnit::create([
+            'evidence_unit_id' => $evidenceUnit->id,
+            'sample_code' => 'LS073I2026',
+            'remaining_code' => 'LS073I2026-SISA-2',
+        ]);
+
+        $service = app(NumberingRepairService::class);
+
+        $result = $service->editNumber('sample_code', $sample->id, 'LS072I2026', 'Reclaim skipped number');
+
+        $this->assertTrue($result['success']);
+
+        $this->assertSame('LS072I2026', $remainingA->fresh()->sample_code);
+        $this->assertSame('LS072I2026-SISA', $remainingA->fresh()->remaining_code);
+
+        $this->assertSame('LS072I2026', $remainingB->fresh()->sample_code);
+        $this->assertSame('LS072I2026-SISA-2', $remainingB->fresh()->remaining_code);
+    }
+
     public function test_edit_sample_code_only_updates_matching_evidence_units(): void
     {
         // Authenticate a user for audit logging
+        /** @var User $user */
         $user = User::factory()->create();
         $this->actingAs($user);
 

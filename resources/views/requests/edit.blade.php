@@ -57,7 +57,8 @@
 
                     {{-- Investigator Type Question --}}
                     @php
-                        $isPolri = $request->investigator->is_polri ?? true;
+                        $persistedIsPolri = $request->investigator?->is_polri ?? true;
+                        $isPolri = old('is_investigator', $persistedIsPolri ? '1' : '0') === '1';
                     @endphp
                     <div class="bg-indigo-50 p-6 rounded-lg border border-indigo-200 mb-6">
                         <h3 class="text-lg font-semibold text-indigo-900 mb-4 flex items-center">
@@ -395,21 +396,44 @@
                         </h3>
 
                         <div class="space-y-4" id="samples-container">
-                            @foreach($request->samples as $index => $sample)
-                                <div class="sample-item bg-white p-6 rounded-lg border border-gray-200 mb-4" data-index="{{ $index }}">
-                                    <div class="flex items-center justify-between mb-4">
-                                        <h4 class="text-md font-medium text-gray-900">Sampel #{{ $index + 1 }}</h4>
-                                        <button type="button" class="text-red-600 hover:text-red-800 text-sm font-medium remove-sample">
-                                            Hapus
-                                        </button>
-                                    </div>
+                             @foreach($request->samples as $index => $sample)
+                                 <div class="sample-item bg-white p-6 rounded-lg border border-gray-200 mb-4" data-index="{{ $index }}">
+                                     <div class="flex items-center justify-between mb-4">
+                                         <h4 class="text-md font-medium text-gray-900">Sampel #{{ $index + 1 }}</h4>
+                                         <button type="button" class="text-red-600 hover:text-red-800 text-sm font-medium remove-sample">
+                                             Hapus
+                                         </button>
+                                     </div>
+ 
+                                     <input type="hidden" name="samples[{{ $index }}][id]" value="{{ $sample->id }}">
 
-                                    <input type="hidden" name="samples[{{ $index }}][id]" value="{{ $sample->id }}">
+                                     @php
+                                         $oldTestTypes = old('samples.' . $index . '.test_types');
+                                         if (is_string($oldTestTypes) && $oldTestTypes !== '') {
+                                             $oldTestTypes = [$oldTestTypes];
+                                         }
 
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">
-                                                Deskripsi Singkat <span class="text-red-500">*</span>
+                                         $persistedRaw = $sample->requested_test_methods;
+                                         if ($persistedRaw === null || $persistedRaw === '') {
+                                             $persistedRaw = $sample->test_methods;
+                                         }
+                                         $persistedTestTypes = [];
+                                         if (is_array($persistedRaw)) {
+                                             $persistedTestTypes = $persistedRaw;
+                                         } elseif (is_string($persistedRaw) && $persistedRaw !== '') {
+                                             $decoded = json_decode($persistedRaw, true);
+                                             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                                                 $persistedTestTypes = $decoded;
+                                             }
+                                         }
+
+                                         $selectedTestTypes = is_array($oldTestTypes) ? $oldTestTypes : $persistedTestTypes;
+                                     @endphp
+ 
+                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                         <div>
+                                             <label class="block text-sm font-medium text-gray-700 mb-1">
+                                                 Deskripsi Singkat <span class="text-red-500">*</span>
                                             </label>
                                             <input type="text"
                                                    name="samples[{{ $index }}][short_description]"
@@ -418,28 +442,53 @@
                                                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
                                         </div>
 
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">
-                                                Zat Aktif
-                                            </label>
-                                            <input type="text"
-                                                   name="samples[{{ $index }}][active_substance]"
-                                                   value="{{ old('samples.'.$index.'.active_substance', $sample->active_substance) }}"
-                                                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                                        </div>
+                                          <div>
+                                              <label class="block text-sm font-medium text-gray-700 mb-1">
+                                                  Zat Aktif <span class="text-red-500">*</span>
+                                              </label>
+                                              <input type="text"
+                                                     name="samples[{{ $index }}][active_substance]"
+                                                     value="{{ old('samples.'.$index.'.active_substance', $sample->active_substance) }}"
+                                                     required
+                                                     class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                          </div>
 
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">
-                                                Jumlah yang Diserahkan <span class="text-red-500">*</span>
-                                            </label>
-                                            <input type="number"
-                                                   name="samples[{{ $index }}][package_quantity]"
-                                                   value="{{ old('samples.'.$index.'.package_quantity', $sample->package_quantity) }}"
-                                                   required
-                                                   min="0"
-                                                   step="0.01"
-                                                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                                        </div>
+                                          <div class="md:col-span-2">
+                                              <fieldset>
+                                                  <legend class="block text-sm font-medium text-gray-700 mb-1">
+                                                      Jenis Pengujian <span class="text-red-500">*</span>
+                                                  </legend>
+
+                                                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                                      <label class="flex items-center space-x-2 rounded-md border border-gray-200 px-3 py-2 bg-gray-50 hover:bg-gray-100">
+                                                          <input type="checkbox" name="samples[{{ $index }}][test_types][]" value="uv_vis" class="sample-test-type-checkbox" {{ in_array('uv_vis', $selectedTestTypes, true) ? 'checked' : '' }}>
+                                                          <span class="text-sm text-gray-700">Identifikasi Spektrofotometri UV-VIS</span>
+                                                      </label>
+                                                      <label class="flex items-center space-x-2 rounded-md border border-gray-200 px-3 py-2 bg-gray-50 hover:bg-gray-100">
+                                                          <input type="checkbox" name="samples[{{ $index }}][test_types][]" value="gc_ms" class="sample-test-type-checkbox" {{ in_array('gc_ms', $selectedTestTypes, true) ? 'checked' : '' }}>
+                                                          <span class="text-sm text-gray-700">Identifikasi GC-MS</span>
+                                                      </label>
+                                                      <label class="flex items-center space-x-2 rounded-md border border-gray-200 px-3 py-2 bg-gray-50 hover:bg-gray-100">
+                                                          <input type="checkbox" name="samples[{{ $index }}][test_types][]" value="lc_ms" class="sample-test-type-checkbox" {{ in_array('lc_ms', $selectedTestTypes, true) ? 'checked' : '' }}>
+                                                          <span class="text-sm text-gray-700">Identifikasi LC-MS</span>
+                                                      </label>
+                                                  </div>
+                                              </fieldset>
+                                              <p class="text-xs text-gray-500 mt-1">Pilih minimal satu jenis pengujian.</p>
+                                          </div>
+ 
+                                         <div>
+                                             <label class="block text-sm font-medium text-gray-700 mb-1">
+                                                 Jumlah yang Diserahkan <span class="text-red-500">*</span>
+                                             </label>
+                                             <input type="number"
+                                                    name="samples[{{ $index }}][package_quantity]"
+                                                    value="{{ old('samples.'.$index.'.package_quantity', $sample->package_quantity) }}"
+                                                    required
+                                                    min="1"
+                                                    step="1"
+                                                    class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                                         </div>
 
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -597,45 +646,69 @@
             newSample.className = 'sample-item bg-white p-6 rounded-lg border border-gray-200 mb-4';
             newSample.dataset.index = sampleIndex;
             
-            newSample.innerHTML = `
-                <div class="flex items-center justify-between mb-4">
-                    <h4 class="text-md font-medium text-gray-900">Sampel #${sampleIndex + 1}</h4>
-                    <button type="button" class="text-red-600 hover:text-red-800 text-sm font-medium remove-sample">
-                        Hapus
-                    </button>
-                </div>
+             newSample.innerHTML = `
+                 <div class="flex items-center justify-between mb-4">
+                     <h4 class="text-md font-medium text-gray-900">Sampel #${sampleIndex + 1}</h4>
+                     <button type="button" class="text-red-600 hover:text-red-800 text-sm font-medium remove-sample">
+                         Hapus
+                     </button>
+                 </div>
+ 
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div>
+                         <label class="block text-sm font-medium text-gray-700 mb-1">
+                             Deskripsi Singkat <span class="text-red-500">*</span>
+                         </label>
+                         <input type="text"
+                                name="samples[${sampleIndex}][short_description]"
+                                required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                     </div>
+ 
+                      <div>
+                          <label class="block text-sm font-medium text-gray-700 mb-1">
+                              Zat Aktif <span class="text-red-500">*</span>
+                          </label>
+                          <input type="text"
+                                 name="samples[${sampleIndex}][active_substance]"
+                                 required
+                                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                      </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                            Deskripsi Singkat <span class="text-red-500">*</span>
-                        </label>
-                        <input type="text"
-                               name="samples[${sampleIndex}][short_description]"
-                               required
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                            Zat Aktif
-                        </label>
-                        <input type="text"
-                               name="samples[${sampleIndex}][active_substance]"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">
-                            Jumlah yang Diserahkan <span class="text-red-500">*</span>
-                        </label>
-                        <input type="number"
-                               name="samples[${sampleIndex}][package_quantity]"
-                               required
-                               min="0"
-                               step="0.01"
-                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                    </div>
+                      <div class="md:col-span-2">
+                          <fieldset>
+                              <legend class="block text-sm font-medium text-gray-700 mb-1">
+                                  Jenis Pengujian <span class="text-red-500">*</span>
+                              </legend>
+                              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                  <label class="flex items-center space-x-2 rounded-md border border-gray-200 px-3 py-2 bg-gray-50 hover:bg-gray-100">
+                                      <input type="checkbox" name="samples[${sampleIndex}][test_types][]" value="uv_vis" class="sample-test-type-checkbox">
+                                      <span class="text-sm text-gray-700">Identifikasi Spektrofotometri UV-VIS</span>
+                                  </label>
+                                  <label class="flex items-center space-x-2 rounded-md border border-gray-200 px-3 py-2 bg-gray-50 hover:bg-gray-100">
+                                      <input type="checkbox" name="samples[${sampleIndex}][test_types][]" value="gc_ms" class="sample-test-type-checkbox">
+                                      <span class="text-sm text-gray-700">Identifikasi GC-MS</span>
+                                  </label>
+                                  <label class="flex items-center space-x-2 rounded-md border border-gray-200 px-3 py-2 bg-gray-50 hover:bg-gray-100">
+                                      <input type="checkbox" name="samples[${sampleIndex}][test_types][]" value="lc_ms" class="sample-test-type-checkbox">
+                                      <span class="text-sm text-gray-700">Identifikasi LC-MS</span>
+                                  </label>
+                              </div>
+                          </fieldset>
+                          <p class="text-xs text-gray-500 mt-1">Pilih minimal satu jenis pengujian.</p>
+                      </div>
+ 
+                     <div>
+                         <label class="block text-sm font-medium text-gray-700 mb-1">
+                             Jumlah yang Diserahkan <span class="text-red-500">*</span>
+                         </label>
+                         <input type="number"
+                                name="samples[${sampleIndex}][package_quantity]"
+                                required
+                                min="1"
+                                step="1"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                     </div>
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">

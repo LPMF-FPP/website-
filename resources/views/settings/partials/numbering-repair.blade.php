@@ -46,7 +46,7 @@
                     </template>
                 </select>
             </div>
-            <div class="pt-6">
+            <div class="pt-6 flex items-center gap-2">
                 <button 
                     type="button"
                     @click="scanScope()"
@@ -54,6 +54,16 @@
                     class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
                     <span x-show="!loading">Scan Masalah</span>
                     <span x-show="loading">Scanning...</span>
+                </button>
+
+                <button
+                    type="button"
+                    x-show="selectedScope === 'sample_code'"
+                    @click="openCompactModal()"
+                    :disabled="!selectedScope || loadingCompactPreview"
+                    class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span x-show="!loadingCompactPreview">Rapatkan Semua</span>
+                    <span x-show="loadingCompactPreview">Preview...</span>
                 </button>
             </div>
         </div>
@@ -649,6 +659,75 @@
             </div>
         </div>
     </div>
+
+    {{-- Compact Modal (Sample Code Only) --}}
+    <div x-show="showCompactModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" aria-modal="true" aria-labelledby="compact-modal-title" @keydown.escape.window="showCompactModal = false">
+        <div class="flex items-center justify-center min-h-screen p-4">
+            <div class="fixed inset-0 bg-black/50" @click="showCompactModal = false"></div>
+            <div class="relative bg-white rounded-lg shadow-xl max-w-lg w-full p-6" x-trap.noscroll.inert="showCompactModal">
+                <h3 id="compact-modal-title" class="text-lg font-semibold text-gray-900 mb-4">Konfirmasi Rapatkan Semua (Kode Sampel)</h3>
+
+                <template x-if="compactPreview">
+                    <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-4">
+                        <p class="text-sm text-indigo-900 font-medium mb-2">Ringkasan Preview</p>
+                        <ul class="text-sm text-indigo-800 space-y-1">
+                            <li>• Rename: <strong x-text="compactPreview.rename_count"></strong></li>
+                            <li>• Terkunci (tidak diubah): <strong x-text="compactPreview.locked_count"></strong></li>
+                            <li>• Counter: <strong x-text="compactPreview.counter_before"></strong> → <strong x-text="compactPreview.counter_after"></strong></li>
+                        </ul>
+
+                        <template x-if="(compactPreview.examples || []).length > 0">
+                            <div class="mt-3 bg-white rounded-lg border border-indigo-200 p-3">
+                                <p class="text-xs text-gray-500 mb-2">Contoh Perubahan (awal):</p>
+                                <div class="space-y-1">
+                                    <template x-for="(ex, idx) in compactPreview.examples" :key="idx">
+                                        <div class="flex items-center gap-2 text-sm">
+                                            <span class="font-mono bg-red-100 text-red-700 px-2 py-1 rounded" x-text="ex.from"></span>
+                                            <span class="text-gray-400">→</span>
+                                            <span class="font-mono bg-green-100 text-green-700 px-2 py-1 rounded" x-text="ex.to"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </template>
+
+                <div class="mb-4">
+                    <label for="compact-reason-input" class="block text-sm font-medium text-gray-700 mb-1">Alasan Rapatkan *</label>
+                    <textarea
+                        id="compact-reason-input"
+                        x-model="compactReason"
+                        rows="3"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        placeholder="Contoh: setelah menghapus beberapa sampel, rapatkan agar tidak ada gap..."></textarea>
+                </div>
+
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                    <p class="text-xs text-yellow-800">
+                        <strong>Catatan:</strong> Aksi ini akan merename kode sampel yang tidak terkunci untuk menutup gap dalam bucket aktif.
+                    </p>
+                </div>
+
+                <div class="flex justify-end gap-2">
+                    <button
+                        type="button"
+                        @click="showCompactModal = false"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Batal
+                    </button>
+                    <button
+                        type="button"
+                        @click="confirmCompact()"
+                        :disabled="!compactReason || compacting"
+                        class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50">
+                        <span x-show="!compacting">Rapatkan Sekarang</span>
+                        <span x-show="compacting">Processing...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -681,6 +760,13 @@ function numberingRepair() {
         showResetModal: false,
         showEditModal: false,
         showSyncModal: false,
+
+        // Compact (sample_code only)
+        showCompactModal: false,
+        compactPreview: null,
+        compactReason: '',
+        loadingCompactPreview: false,
+        compacting: false,
         
         // Reset form
         resetValue: 0,
@@ -945,6 +1031,13 @@ function numberingRepair() {
             // Reset document list state
             this.documentList = [];
             this.documentListMeta = { current_page: 1, last_page: 1, total: 0, has_more: false };
+
+            // Reset compact state
+            this.showCompactModal = false;
+            this.compactPreview = null;
+            this.compactReason = '';
+            this.loadingCompactPreview = false;
+            this.compacting = false;
             
             // Don't auto-scan, let user click the button
             // This prevents race conditions
@@ -998,6 +1091,96 @@ function numberingRepair() {
                 this.changeLogs = data.logs || [];
             } catch (error) {
                 console.error('Fetch logs error:', error);
+            }
+        },
+
+        async openCompactModal() {
+            const scope = this.selectedScope;
+            if (scope !== 'sample_code') return;
+
+            this.loadingCompactPreview = true;
+            this.compactPreview = null;
+            this.compactReason = '';
+
+            try {
+                const response = await fetch(`/api/settings/numbering/repair/${scope}/compact-preview`, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                    },
+                    credentials: 'same-origin',
+                });
+
+                const data = await response.json();
+
+                if (this.selectedScope !== scope) {
+                    return;
+                }
+
+                if (response.ok) {
+                    this.compactPreview = data;
+                    this.showCompactModal = true;
+                } else {
+                    this.handleError(data);
+                }
+            } catch (error) {
+                console.error('Compact preview error:', error);
+                alert('Gagal mengambil preview rapatkan');
+            } finally {
+                this.loadingCompactPreview = false;
+            }
+        },
+
+        async confirmCompact() {
+            const scope = this.selectedScope;
+            if (!this.compactReason) return;
+            if (scope !== 'sample_code') return;
+
+            this.compacting = true;
+
+            try {
+                const response = await fetch(`/api/settings/numbering/repair/${scope}/compact`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content,
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        reason: this.compactReason,
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (this.selectedScope !== scope) {
+                    return;
+                }
+
+                if (response.ok) {
+                    this.showCompactModal = false;
+                    this.compactPreview = null;
+
+                    // Refresh views
+                    if (this.searchQuery && this.searchPerformed) {
+                        this.searchDocuments();
+                    }
+                    if (this.documentList.length > 0) {
+                        this.fetchDocumentList(this.documentListMeta.current_page);
+                    }
+                    this.scanScope();
+                    this.fetchChangeLogs();
+
+                    alert(`Berhasil merapatkan: ${data.rename_count || 0} rename`);
+                } else {
+                    this.handleError(data);
+                }
+            } catch (error) {
+                console.error('Compact apply error:', error);
+                alert('Gagal melakukan rapatkan');
+            } finally {
+                this.compacting = false;
             }
         },
 
