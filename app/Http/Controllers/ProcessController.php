@@ -191,6 +191,39 @@ class ProcessController extends Controller
 
     public function markReadyForDelivery(TestRequest $testRequest, \App\Services\WhatsApp\NotificationService $notificationService): RedirectResponse
     {
+        $requiredStages = ['preparation', 'instrumentation', 'interpretation'];
+
+        $samples = $testRequest->samples()
+            ->select('id', 'sample_code', 'test_request_id')
+            ->with(['testProcesses' => function ($q) {
+                $q->select('id', 'sample_id', 'stage', 'completed_at');
+            }])
+            ->get();
+
+        $incompleteSamples = [];
+        foreach ($samples as $sample) {
+            $completedStages = $sample->testProcesses
+                ->filter(fn ($p) => $p->completed_at !== null)
+                ->map(fn ($p) => $this->stageValue($p->stage))
+                ->filter(fn ($stage) => $stage !== null && in_array($stage, $requiredStages, true))
+                ->unique()
+                ->values()
+                ->toArray();
+
+            $missingStages = array_values(array_diff($requiredStages, $completedStages));
+
+            if (! empty($missingStages)) {
+                $label = $sample->sample_code ?: 'Sampel ID:'.$sample->id;
+                $incompleteSamples[] = $label.' (belum: '.implode(', ', $missingStages).')';
+            }
+        }
+
+        if (! empty($incompleteSamples)) {
+            return back()->withErrors([
+                'error' => 'Tidak dapat mengirim ke penyerahan. Sampel berikut belum lengkap: '.implode('; ', $incompleteSamples),
+            ]);
+        }
+
         // Update test request status to ready_for_delivery
         $testRequest->update([
             'status' => 'ready_for_delivery',

@@ -892,7 +892,46 @@ class SampleTestProcessController extends Controller
     public function destroy(SampleTestProcess $sampleProcess): RedirectResponse
     {
         $sampleProcess->load('sample.testRequest');
-        $testRequest = $sampleProcess->sample?->testRequest;
+
+        $sample = $sampleProcess->sample;
+        $testRequest = $sample?->testRequest;
+
+        $sampleStatusValue = null;
+        if ($sample) {
+            $sampleStatusValue = is_object($sample->status) ? $sample->status->value : $sample->status;
+        }
+
+        // Guard 1: Block deletion if sample is already ready for delivery
+        if ($sampleStatusValue === SampleStatus::READY_FOR_DELIVERY->value) {
+            return back()->withErrors([
+                'error' => 'Tidak dapat menghapus proses: sampel sudah dalam status siap diserahkan.',
+            ]);
+        }
+
+        // Guard 2: Block deletion if subsequent stages exist
+        $stageOrder = ['preparation', 'instrumentation', 'interpretation'];
+        $currentStageValue = $sampleProcess->stage instanceof TestProcessStage
+            ? $sampleProcess->stage->value
+            : $sampleProcess->stage;
+
+        $currentIndex = array_search($currentStageValue, $stageOrder, true);
+
+        if ($currentIndex !== false && $sample) {
+            $subsequentStages = array_slice($stageOrder, $currentIndex + 1);
+
+            if (! empty($subsequentStages)) {
+                $hasSubsequent = $sample->testProcesses()
+                    ->whereIn('stage', $subsequentStages)
+                    ->exists();
+
+                if ($hasSubsequent) {
+                    return back()->withErrors([
+                        'error' => 'Tidak dapat menghapus tahap ini karena tahap selanjutnya sudah ada. Hapus tahap selanjutnya terlebih dahulu.',
+                    ]);
+                }
+            }
+        }
+
         $sampleProcess->delete();
 
         $redirect = $testRequest

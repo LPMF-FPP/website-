@@ -5,6 +5,7 @@ namespace Tests\Feature\WhatsApp;
 use App\Jobs\SendWhatsAppNotificationJob;
 use App\Models\Investigator;
 use App\Models\Sample;
+use App\Models\SampleTestProcess;
 use App\Models\SystemSetting;
 use App\Models\TestRequest;
 use App\Models\User;
@@ -37,6 +38,8 @@ class ReadyForPickupNotificationTest extends TestCase
 
     public function test_mark_ready_for_delivery_updates_status(): void
     {
+        Queue::fake();
+
         /** @var User $user */
         $user = User::factory()->createOne(['role' => 'admin']);
         $investigator = Investigator::factory()->create([
@@ -48,8 +51,24 @@ class ReadyForPickupNotificationTest extends TestCase
         ]);
 
         // Add a sample so it's a valid request
-        Sample::factory()->create([
+        $sample = Sample::factory()->create([
             'test_request_id' => $testRequest->id,
+            'status' => 'interpretation_done',
+            'package_quantity' => 0,
+            'quantity' => 0,
+        ]);
+
+        SampleTestProcess::factory()->preparation()->completed()->create([
+            'sample_id' => $sample->id,
+            'started_at' => now()->subDays(3),
+        ]);
+        SampleTestProcess::factory()->instrumentation()->completed()->create([
+            'sample_id' => $sample->id,
+            'started_at' => now()->subDays(2),
+        ]);
+        SampleTestProcess::factory()->interpretation()->completed()->create([
+            'sample_id' => $sample->id,
+            'started_at' => now()->subDay(),
         ]);
 
         $response = $this->actingAs($user)
