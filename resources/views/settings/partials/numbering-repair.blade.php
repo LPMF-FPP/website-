@@ -256,12 +256,12 @@
                     <table class="w-full text-sm">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Nomor</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Tanggal</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Entitas</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Masalah</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Saran</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Aksi</th>
+                                <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500">Nomor</th>
+                                <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500">Tanggal</th>
+                                <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500">Entitas</th>
+                                <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500">Masalah</th>
+                                <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500">Saran</th>
+                                <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200">
@@ -328,12 +328,12 @@
                             <table class="w-full text-sm">
                                 <thead class="bg-gray-50 sticky top-0">
                                     <tr>
-                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 w-16">#</th>
-                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500" x-text="getEntityLabel('number')"></th>
-                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Entitas</th>
-                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500">Tanggal</th>
-                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 w-24">Status</th>
-                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 w-20">Aksi</th>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 w-16">#</th>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500" x-text="getEntityLabel('number')"></th>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500">Entitas</th>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500">Tanggal</th>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 w-24">Status</th>
+                                        <th scope="col" class="px-3 py-2 text-left text-xs font-medium text-gray-500 w-20">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-200">

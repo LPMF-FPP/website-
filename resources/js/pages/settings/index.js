@@ -183,7 +183,6 @@ export class SettingsClient {
                 per_page: 25,
                 total: 0,
             },
-            documentDeleting: {},
             // Cleanup-related state
             cleanupLoading: false,
             cleanupStats: null,
@@ -420,11 +419,6 @@ export class SettingsClient {
      * Test numbering preview
      */
     async testPreview(scope) {
-        console.log("SettingsClient.testPreview called", {
-            scope,
-            currentForm: this.state.form.numbering?.[scope],
-        });
-
         // Ensure previewState exists
         this.state.previewState = this.state.previewState || {
             numbering: false,
@@ -471,9 +465,6 @@ export class SettingsClient {
             const scopeConfig =
                 this.toPlainObject(this.state.form.numbering?.[scope]) || {};
 
-            console.log("🔍 [testPreview] Starting preview for scope:", scope);
-            console.log("📋 Config from state:", scopeConfig);
-
             // Backend expects: { scope: string, config: { numbering: { [scope]: {...} } } }
             // OR simpler: { scope: string, pattern: string }
             const payload = {
@@ -489,11 +480,6 @@ export class SettingsClient {
                 },
             };
 
-            console.log(
-                "→ POST /api/settings/numbering/preview",
-                JSON.stringify(payload, null, 2),
-            );
-
             const data = await this.apiFetch(this.api.numberingPreview, {
                 method: "POST",
                 body: payload,
@@ -507,9 +493,6 @@ export class SettingsClient {
                 data.data?.example ??
                 "";
 
-            console.log("✓ Preview response:", data);
-            console.log("✓ Extracted preview value:", previewValue);
-
             if (!previewValue || previewValue === "") {
                 throw new Error("Preview kosong. Periksa pattern penomoran.");
             }
@@ -520,13 +503,8 @@ export class SettingsClient {
                 [scope]: previewValue,
             };
 
-            console.log("✓ State updated:", {
-                scope,
-                value: this.state.numberingPreview[scope],
-            });
             this.setScopeStatus(scope, "Preview berhasil!", "text-green-600");
         } catch (error) {
-            console.error("✗ Preview error:", error);
             const errorMessage =
                 error.message || "Gagal melakukan preview penomoran.";
             this.setScopeError(scope, errorMessage);
@@ -651,11 +629,6 @@ export class SettingsClient {
      * Preview PDF
      */
     async previewPdf() {
-        console.log("SettingsClient.previewPdf called", {
-            branding: this.state.form.branding,
-            pdf: this.state.form.pdf,
-        });
-
         this.state.pdfPreviewLoading = true;
         this.state.pdfPreviewError = "";
 
@@ -665,11 +638,6 @@ export class SettingsClient {
         }
 
         try {
-            console.log("→ POST /api/settings/pdf/preview", {
-                branding: this.state.form.branding,
-                pdf: this.state.form.pdf,
-            });
-
             const response = await fetch(this.api.pdfPreview, {
                 method: "POST",
                 headers: {
@@ -687,7 +655,6 @@ export class SettingsClient {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                console.error("✗ PDF preview error:", errorData);
                 throw new Error(
                     errorData.message || "Gagal membuat preview PDF.",
                 );
@@ -696,19 +663,13 @@ export class SettingsClient {
             const contentType = response.headers.get("Content-Type") || "";
             if (contentType.includes("application/json")) {
                 const data = await response.json();
-                console.log("✓ PDF preview URL:", data.url);
                 this.state.pdfPreviewUrl = data.url || "";
             } else {
                 const blob = await response.blob();
                 this.state.pdfPreviewObjectUrl = URL.createObjectURL(blob);
                 this.state.pdfPreviewUrl = this.state.pdfPreviewObjectUrl;
-                console.log(
-                    "✓ PDF preview blob URL created:",
-                    this.state.pdfPreviewUrl,
-                );
             }
         } catch (error) {
-            console.error("✗ PDF preview exception:", error);
             this.state.pdfPreviewError =
                 error.message || "Gagal membuat preview PDF.";
         } finally {
@@ -1451,7 +1412,6 @@ export class SettingsClient {
             this.state.documentsError = message;
             this.setSectionError("documents", message);
             // Don't re-throw to prevent Alpine crashes
-            console.error("fetchDocuments error:", error);
         } finally {
             this.state.documentsLoading = false;
         }
@@ -1481,97 +1441,6 @@ export class SettingsClient {
 
     isDocumentDeleting(path) {
         return !!this.state.documentDeleting?.[path];
-    }
-
-    toggleDocumentSelection(path) {
-        const index = this.state.selectedDocuments.indexOf(path);
-        if (index > -1) {
-            this.state.selectedDocuments.splice(index, 1);
-        } else {
-            this.state.selectedDocuments.push(path);
-        }
-    }
-
-    toggleAllDocuments() {
-        if (
-            this.state.selectedDocuments.length === this.state.documents.length
-        ) {
-            this.state.selectedDocuments = [];
-        } else {
-            this.state.selectedDocuments = this.state.documents.map(
-                (doc) => doc.path,
-            );
-        }
-    }
-
-    isDocumentSelected(path) {
-        return this.state.selectedDocuments.includes(path);
-    }
-
-    get hasSelectedDocuments() {
-        return this.state.selectedDocuments.length > 0;
-    }
-
-    get allDocumentsSelected() {
-        return (
-            this.state.documents.length > 0 &&
-            this.state.selectedDocuments.length === this.state.documents.length
-        );
-    }
-
-    async bulkDeleteDocuments() {
-        if (this.state.selectedDocuments.length === 0) return;
-
-        const count = this.state.selectedDocuments.length;
-        if (!confirm(`Yakin hapus ${count} dokumen yang dipilih?`)) return;
-
-        this.state.bulkDeleteLoading = true;
-        this.setSectionError("documents", "");
-
-        const selectedPaths = [...this.state.selectedDocuments];
-        const documents = this.state.documents.filter((doc) =>
-            selectedPaths.includes(doc.path),
-        );
-
-        let successCount = 0;
-        let failCount = 0;
-        const errors = [];
-
-        for (const doc of documents) {
-            try {
-                await this.apiFetch(this.api.documents, {
-                    method: "DELETE",
-                    body: {
-                        path: doc.path,
-                        document_id: doc.document?.id || null,
-                    },
-                });
-                successCount++;
-            } catch (error) {
-                failCount++;
-                errors.push(`${doc.name}: ${error.message}`);
-            }
-        }
-
-        this.state.bulkDeleteLoading = false;
-        this.state.selectedDocuments = [];
-
-        if (successCount > 0) {
-            this.setSectionStatus(
-                "documents",
-                `${successCount} dokumen berhasil dihapus.` +
-                    (failCount > 0 ? ` ${failCount} gagal.` : ""),
-                failCount > 0 ? "text-amber-600" : "text-emerald-600",
-            );
-        }
-
-        if (errors.length > 0) {
-            this.setSectionError("documents", errors.join("; "));
-        }
-
-        await this.fetchDocuments({
-            page: this.state.documentsPagination.current_page,
-        });
     }
 
     toggleDocumentSelection(path) {
@@ -1746,7 +1615,6 @@ export class SettingsClient {
         try {
             return JSON.parse(JSON.stringify(obj));
         } catch (e) {
-            console.error("Failed to convert to plain object:", e);
             return {};
         }
     }
@@ -1759,7 +1627,6 @@ export class SettingsClient {
                 ? data.backups
                 : [];
         } catch (error) {
-            console.error("fetchEmergencyBackups error:", error);
             this.state.backups = [];
         } finally {
             this.state.backupsLoading = false;

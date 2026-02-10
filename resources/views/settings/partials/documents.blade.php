@@ -135,7 +135,8 @@
             </div>
 
             {{-- Cleanup Result Message --}}
-            <div x-show="client.state.cleanupResult" 
+            <div x-show="client.state.cleanupResult"
+                :role="client.state.cleanupResult?.success ? 'status' : 'alert'"
                 :class="client.state.cleanupResult?.success ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'"
                 class="border rounded-lg p-4 flex items-start gap-3">
                 <svg x-show="client.state.cleanupResult?.success" class="h-5 w-5 text-green-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -176,10 +177,10 @@
                 <h2 class="text-lg font-semibold text-gray-900">Manajemen Dokumen</h2>
                 <p class="text-sm text-gray-500 mt-1">Daftar seluruh file di storage <code class="font-mono text-xs text-gray-600">storage/app/public</code> untuk dipreview, diunduh, atau dihapus.</p>
             </div>
-            <div class="flex items-center text-sm" x-show="client.state.sectionStatus.documents.message">
+            <div class="flex items-center text-sm" x-show="client.state.sectionStatus.documents.message" role="status">
                 <span :class="client.state.sectionStatus.documents.intentClass" x-text="client.state.sectionStatus.documents.message"></span>
             </div>
-            <div class="flex items-center text-sm text-red-600" x-show="client.state.sectionErrors.documents">
+            <div class="flex items-center text-sm text-red-600" x-show="client.state.sectionErrors.documents" role="alert">
                 <span x-text="client.state.sectionErrors.documents"></span>
             </div>
         </div>
@@ -310,22 +311,22 @@
                     </div>
                     <div class="ml-auto flex items-center gap-2 text-xs text-gray-500">
                         <span x-text="`Halaman ${client.state.documentsPagination.current_page} / ${client.state.documentsPagination.last_page}`"></span>
-                        <button 
-                            type="button"
-                            class="px-3 py-1 border border-gray-300 rounded-lg hover:bg-white transition disabled:opacity-50 text-xs"
-                            @click="client.changeDocumentsPage(client.state.documentsPagination.current_page - 1)"
-                            :disabled="client.state.documentsPagination.current_page <= 1 || client.state.documentsLoading">
-                            Prev
-                        </button>
-                        <button 
-                            type="button"
-                            class="px-3 py-1 border border-gray-300 rounded-lg hover:bg-white transition disabled:opacity-50 text-xs"
-                            @click="client.changeDocumentsPage(client.state.documentsPagination.current_page + 1)"
-                            :disabled="client.state.documentsPagination.current_page >= client.state.documentsPagination.last_page || client.state.documentsLoading">
-                            Next
-                        </button>
-                    </div>
-                </div>
+                         <button 
+                             type="button"
+                             class="px-3 py-1 border border-gray-300 rounded-lg hover:bg-white transition disabled:opacity-50 text-xs"
+                             @click="client.changeDocumentsPage(client.state.documentsPagination.current_page - 1)"
+                             :disabled="client.state.documentsPagination.current_page <= 1 || client.state.documentsLoading">
+                             Sebelumnya
+                         </button>
+                         <button 
+                             type="button"
+                             class="px-3 py-1 border border-gray-300 rounded-lg hover:bg-white transition disabled:opacity-50 text-xs"
+                             @click="client.changeDocumentsPage(client.state.documentsPagination.current_page + 1)"
+                             :disabled="client.state.documentsPagination.current_page >= client.state.documentsPagination.last_page || client.state.documentsLoading">
+                             Berikutnya
+                         </button>
+                     </div>
+                 </div>
 
                 <div x-show="client.state.documentsLoading" class="p-6 text-center text-sm text-gray-500">
                     <span class="inline-flex items-center gap-2">
@@ -345,7 +346,7 @@
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead class="bg-gray-50">
                             <tr>
-                                <th class="px-4 py-2 text-left">
+                                <th scope="col" class="px-4 py-2 text-left">
                                     <input 
                                         type="checkbox"
                                         class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
@@ -353,13 +354,13 @@
                                         @change="client.toggleAllDocuments()"
                                         title="Pilih semua">
                                 </th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Dokumen</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Tipe</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Request</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Sumber</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Ukuran</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Diubah</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Aksi</th>
+                                <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500">Dokumen</th>
+                                <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500">Tipe</th>
+                                <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500">Request</th>
+                                <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500">Sumber</th>
+                                <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500">Ukuran</th>
+                                <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500">Diubah</th>
+                                <th scope="col" class="px-4 py-2 text-left text-xs font-medium text-gray-500">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
@@ -397,14 +398,14 @@
                                     </td>
                                     <td class="px-4 py-3 text-sm text-gray-700 space-y-2">
                                         <div class="flex flex-wrap gap-2">
-                                            <template x-if="entry.preview_url">
-                                                <a 
-                                                    :href="entry.preview_url"
-                                                    target="_blank"
-                                                    class="inline-flex items-center px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition">
-                                                    Preview
-                                                </a>
-                                            </template>
+                                             <template x-if="entry.preview_url">
+                                                 <a 
+                                                     :href="entry.preview_url"
+                                                     target="_blank"
+                                                     class="inline-flex items-center px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 transition">
+                                                     Pratinjau
+                                                 </a>
+                                             </template>
                                             <template x-if="entry.download_url">
                                                 <a 
                                                     :href="entry.download_url"

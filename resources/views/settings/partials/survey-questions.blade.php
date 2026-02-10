@@ -8,7 +8,11 @@
     </div>
 
     {{-- Status/Error Messages --}}
-    <div x-show="client.state.sectionStatus?.survey_questions?.message" x-cloak>
+    <div
+        x-show="client.state.sectionStatus?.survey_questions?.message"
+        x-cloak
+        :role="client.state.sectionStatus?.survey_questions?.intentClass?.includes('red') ? 'alert' : 'status'"
+    >
         <div class="flex items-center gap-2 p-3 rounded-lg"
              :class="client.state.sectionStatus?.survey_questions?.intentClass?.includes('green') ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'">
             <span class="text-sm" :class="client.state.sectionStatus?.survey_questions?.intentClass" 

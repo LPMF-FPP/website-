@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v2.3.0
+# WALKTHROUGH - LPMF LIMS v2.3.2
 
 > **Laboratory Information Management System untuk Laboratorium Pengujian Mutu Farmasi**
 
@@ -23,12 +23,69 @@
 | [report/README.md](./report/README.md)                     | Frontend audit system guide             |
 | [tests/Load/README.md](./tests/Load/README.md)             | Load testing documentation              |
 
-**Current Version:** v2.3.0 (09 Februari 2026)  
-**Latest Feature:** Delivery UX Refresh
+**Current Version:** v2.3.2 (10 Februari 2026)  
+**Latest Feature:** Settings Page Production Hardening
 
 ---
 
 ## 📰 Recent Changes (v2.x)
+
+### v2.3.2 (10 Februari 2026) - Settings Page Production Hardening
+
+```
+Updated on 2026-02-10
+```
+
+**🎯 Problem Solved:**
+
+1. **Debug UI Bocor ke Production:** Halaman `/settings` menampilkan "UI State Indicators" debug bar dan route API endpoint di deskripsi bagian.
+2. **Duplicate Code & Console Logs:** 6 method duplikat dan 17 `console.log` statements di JavaScript client settings.
+3. **Tidak Ada Error Recovery:** Jika API gagal saat load, halaman stuck tanpa feedback.
+4. **Aksesibilitas Kurang:** Sidebar tidak memiliki ARIA roles (tablist/tab/tabpanel), live regions belum ada, tabel tanpa `scope`.
+5. **Bahasa Campur-Campur:** Banyak string masih dalam Bahasa Inggris (Refresh, Preview, Save, Next, dsb).
+6. **Branding Section Tersembunyi:** Pengaturan branding & PDF tidak bisa diakses dari sidebar.
+7. **Numbering Repair Selalu Terbuka:** Section repair yang jarang dipakai selalu tampil full, membuat halaman panjang.
+
+**✨ Fixes (10 Tasks):**
+
+- **Task 1 — Remove Debug UI:** Hapus debug bar + ganti deskripsi API route dengan teks Indonesian yang informatif.
+- **Task 2 — Fix Duplicate Methods:** Hapus 6 method duplikat dan state duplikat di `index.js`.
+- **Task 3 — Remove Console Logs:** Hapus 17 `console.log/error` statements dari production code.
+- **Task 4 — Error Recovery UI:** Tambah error state "Gagal Memuat Pengaturan" dengan tombol "Coba Lagi".
+- **Task 5 — ARIA Roles:** Sidebar `role="tablist"`, buttons `role="tab"` + `aria-selected`, panels `role="tabpanel"` + focus management.
+- **Task 6 — Standarisasi Bahasa:** ~20 string diterjemahkan ke Bahasa Indonesia (Refresh→Perbarui, Preview→Pratinjau, dll).
+- **Task 7 — ARIA Live Regions:** Success messages `role="status"`, error messages `role="alert"` di semua partials.
+- **Task 8 — Table Header Scope:** `scope="col"` pada 20 `<th>` elements (documents + numbering-repair).
+- **Task 9 — Branding di Sidebar:** Section "Branding & PDF" ditambahkan di sidebar + warning notice "belum terintegrasi".
+- **Task 10 — Collapse Numbering Repair:** Section repair dibungkus `x-collapse`, default tertutup dengan toggle button.
+
+**Bonus Fix — Inventory Alert Opt-Out:**
+
+- Kolom `receive_inventory_alerts` pada `whatsapp_whitelists` untuk opt-out individual.
+- Service `getInventoryAlertPhoneNumbers()` filter admin yang opt-out.
+
+**📊 Test Coverage:** 315 tests passed, 6 skipped (all pre-existing)
+
+**📁 Files Changed:**
+
+| File                                                                 | Change                                                        |
+| -------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `resources/js/pages/settings/index.js`                               | Fix 6 duplicate methods, remove 17 console.log                |
+| `resources/js/pages/settings/alpine-component.js`                    | Focus management, error handling                              |
+| `resources/views/settings/index.blade.php`                           | Remove debug UI, error recovery, ARIA roles, branding section |
+| `resources/views/settings/partials/numbering.blade.php`              | Indonesian strings, collapse repair, ARIA live regions        |
+| `resources/views/settings/partials/numbering-repair.blade.php`       | `scope="col"` on all th                                       |
+| `resources/views/settings/partials/localization-retention.blade.php` | API routes removed, ARIA live regions                         |
+| `resources/views/settings/partials/branding.blade.php`               | Warning notice, Indonesian strings, ARIA live regions         |
+| `resources/views/settings/partials/documents.blade.php`              | Indonesian strings, `scope="col"`, ARIA live regions          |
+| `resources/views/settings/partials/iku.blade.php`                    | ARIA live regions                                             |
+| `resources/views/settings/partials/survey-questions.blade.php`       | ARIA live regions                                             |
+| `resources/views/settings/partials/monitoring-logging.blade.php`     | ARIA live regions                                             |
+| `resources/views/settings/partials/backup-maintenance.blade.php`     | Indonesian strings                                            |
+| `database/migrations/2026_02_10_103000_...`                          | NEW — add `receive_inventory_alerts` column                   |
+| `app/Models/WhatsappWhitelist.php`                                   | Added fillable + cast                                         |
+| `app/Services/WhatsApp/WhitelistService.php`                         | Added `getInventoryAlertPhoneNumbers()`                       |
+| `app/Services/Inventory/InventoryAlertService.php`                   | Use filtered phone numbers                                    |
 
 ### v2.3.1 (10 Februari 2026) - Fix Missing Preparation Records
 

@@ -10,5 +10,10 @@ class WhatsappWhitelist extends Model
         'phone_number',
         'name',
         'added_by',
+        'receive_inventory_alerts',
+    ];
+
+    protected $casts = [
+        'receive_inventory_alerts' => 'bool',
     ];
 }

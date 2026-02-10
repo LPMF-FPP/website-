@@ -111,6 +111,13 @@ export function registerSettingsComponent() {
                 const previousSection = this._activeSection;
                 this._activeSection = value;
 
+                this.$nextTick(() => {
+                    const panel = document.getElementById(`panel-${value}`);
+                    if (panel && typeof panel.focus === "function") {
+                        panel.focus();
+                    }
+                });
+
                 // Load document templates when switching to templates section
                 if (value === "templates") {
                     if (
@@ -319,9 +326,6 @@ export function registerSettingsComponent() {
             init() {
                 // Guard against double initialization
                 if (this._initialized) {
-                    console.warn(
-                        "⚠️ [Alpine] init already called, skipping duplicate initialization",
-                    );
                     return;
                 }
                 this._initialized = true;
@@ -349,11 +353,16 @@ export function registerSettingsComponent() {
                 this.ensureLocaleDefaults();
 
                 // Load all data
-                this.client.loadAll().then(() => {
-                    this.fetchTimePreview();
-                    this.loadInstrumentRequirements();
-                    this.fetchEmergencyBackups();
-                });
+                this.client
+                    .loadAll()
+                    .then(() => {
+                        this.fetchTimePreview();
+                        this.loadInstrumentRequirements();
+                        this.fetchEmergencyBackups();
+                    })
+                    .catch(() => {
+                        // loadError already set in SettingsClient.loadAll()
+                    });
 
                 // Backward-compatible deep link: /settings#template-dokumen -> /settings/blade-templates
                 if (window.location.hash === "#template-dokumen") {

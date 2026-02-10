@@ -8,7 +8,7 @@
     </div>
 
     {{-- Status Message --}}
-    <div x-show="client.state.sectionStatus?.iku?.message" x-cloak>
+    <div x-show="client.state.sectionStatus?.iku?.message" x-cloak role="status">
         <div class="flex items-center gap-2 p-3 rounded-lg"
              :class="client.state.sectionStatus?.iku?.intentClass?.includes('green') ? 'bg-green-50 border border-green-200' : 
                     (client.state.sectionStatus?.iku?.intentClass?.includes('red') ? 'bg-red-50 border border-red-200' : 'bg-blue-50 border border-blue-200')">
@@ -17,7 +17,7 @@
     </div>
 
     {{-- Error Message --}}
-    <div x-show="client.state.sectionErrors?.iku" x-cloak>
+    <div x-show="client.state.sectionErrors?.iku" x-cloak role="alert">
         <div class="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-200">
             <svg class="h-5 w-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>

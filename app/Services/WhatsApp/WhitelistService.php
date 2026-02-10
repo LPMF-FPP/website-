@@ -94,6 +94,36 @@ class WhitelistService
     }
 
     /**
+     * Get admin phone numbers that should receive inventory alerts.
+     *
+     * Uses whatsapp whitelist opt-out flag: receive_inventory_alerts.
+     *
+     * @return array<int, string>
+     */
+    public function getInventoryAlertPhoneNumbers(): array
+    {
+        $numbers = WhatsappWhitelist::query()
+            ->where(function ($q) {
+                $q->whereNull('receive_inventory_alerts')
+                    ->orWhere('receive_inventory_alerts', true);
+            })
+            ->orderBy('name')
+            ->pluck('phone_number')
+            ->filter()
+            ->map(fn ($n) => $this->normalizePhoneNumber((string) $n))
+            ->values()
+            ->toArray();
+
+        $superAdmin = $this->normalizePhoneNumber(
+            (string) settings('notifications.whatsapp.admin_number', '6285956592404')
+        );
+
+        $numbers[] = $superAdmin;
+
+        return array_values(array_unique($numbers));
+    }
+
+    /**
      * Normalize phone number (remove @s.whatsapp.net, +, etc).
      */
     public function normalizePhoneNumber(string $jidOrPhone): string

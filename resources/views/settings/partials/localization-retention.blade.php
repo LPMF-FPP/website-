@@ -2,7 +2,7 @@
 <div class="bg-white rounded-lg shadow-sm border border-gray-200">
     <div class="p-6 border-b border-gray-200">
         <h2 class="text-lg font-semibold text-gray-900">Lokalisasi & Retensi</h2>
-        <p class="text-sm text-gray-500 mt-1">PUT /localization-retention</p>
+        <p class="text-sm text-gray-500 mt-1">Konfigurasi zona waktu, bahasa, dan pengaturan penyimpanan.</p>
     </div>
     <div class="p-6 space-y-4">
         <div class="text-sm text-gray-700 bg-gray-50 rounded-lg p-3 border border-gray-200">
@@ -71,11 +71,11 @@
     </div>
     <div class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 bg-gray-50 px-6 py-4">
         <div>
-            <p class="text-sm" 
+            <p class="text-sm" role="status"
                :class="client.state.sectionStatus['localization']?.intentClass" 
                x-text="client.state.sectionStatus['localization']?.message" 
                x-show="client.state.sectionStatus['localization']?.message"></p>
-            <p class="text-xs text-red-600" 
+            <p class="text-xs text-red-600" role="alert"
                x-text="client.state.sectionErrors['localization']" 
                x-show="client.state.sectionErrors['localization']"></p>
         </div>
