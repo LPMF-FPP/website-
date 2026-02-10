@@ -530,8 +530,7 @@ class DocumentMaintenanceController extends Controller
         $dbDuplicates = Document::select(
             'test_request_id',
             'document_type',
-            \Illuminate\Support\Facades\DB::raw('COUNT(*) as count'),
-            \Illuminate\Support\Facades\DB::raw('MAX(created_at) as latest_created_at')
+            \Illuminate\Support\Facades\DB::raw('COUNT(*) as count')
         )
             ->where('source', 'generated')
             ->whereNotNull('test_request_id')
@@ -546,7 +545,10 @@ class DocumentMaintenanceController extends Controller
             $docsToRemove = Document::where('test_request_id', $dup->test_request_id)
                 ->where('document_type', $dup->document_type)
                 ->where('source', 'generated')
-                ->where('created_at', '<', $dup->latest_created_at)
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->skip(1)
+                ->take(1000)
                 ->get();
 
             foreach ($docsToRemove as $doc) {
@@ -606,6 +608,11 @@ class DocumentMaintenanceController extends Controller
                 $deleted++;
             } catch (\Throwable $e) {
                 $failed++;
+                Log::warning('Duplicate document cleanup failed (DB)', [
+                    'document_id' => $doc->id ?? null,
+                    'path' => $doc->file_path ?? $doc->path ?? null,
+                    'error' => $e->getMessage(),
+                ]);
             }
         }
 
@@ -618,6 +625,10 @@ class DocumentMaintenanceController extends Controller
                 }
             } catch (\Throwable $e) {
                 $failed++;
+                Log::warning('Duplicate document cleanup failed (Filesystem)', [
+                    'path' => $filePath,
+                    'error' => $e->getMessage(),
+                ]);
             }
         }
 
