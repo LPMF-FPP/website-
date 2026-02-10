@@ -153,27 +153,20 @@
                                                     return $completedStages === 3;
                                                 })->count();
 
-                                                $percent = $totalSamplesForRequest > 0
-                                                    ? (int) round(($completedSamplesForRequest / $totalSamplesForRequest) * 100)
-                                                    : 0;
+                                                $isComplete = $totalSamplesForRequest > 0 && $completedSamplesForRequest === $totalSamplesForRequest;
                                             @endphp
 
-                                            <div class="space-y-1.5">
-                                                <div class="flex items-center justify-between text-xs">
-                                                    <span class="font-medium text-gray-700">{{ $totalSamplesForRequest }} sampel</span>
-                                                    <span class="font-semibold {{ $completedSamplesForRequest === $totalSamplesForRequest ? 'text-emerald-700' : 'text-teal-700' }}">
-                                                        {{ $completedSamplesForRequest }}/{{ $totalSamplesForRequest }} selesai
-                                                    </span>
+                                            @if($isComplete)
+                                                <div class="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                                                    <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                                    </svg>
+                                                    <span>{{ $totalSamplesForRequest }} Sampel</span>
                                                 </div>
-                                                <div class="h-2 overflow-hidden rounded-full bg-gray-100">
-                                                    <div class="h-full rounded-full bg-gradient-to-r from-teal-400 to-teal-600 transition-all duration-500"
-                                                        x-bind:style="'width: ' + {{ $percent }} + '%'">
-                                                    </div>
+                                            @else
+                                                <div class="text-gray-500 font-medium">
+                                                    {{ $completedSamplesForRequest }}/{{ $totalSamplesForRequest }} Sampel
                                                 </div>
-                                            </div>
-
-                                            @if($request->request_number === 'REQ-2025-0005' && $completedSamplesForRequest > 0)
-                                                <div class="mt-1 text-xs font-medium text-emerald-700">Siap untuk diserahkan</div>
                                             @endif
                                         </td>
                                         <td class="px-6 py-4 text-sm text-gray-900">
@@ -289,16 +282,11 @@
                                             {{ $request->suspect_name ?? '-' }}
                                         </td>
                                         <td class="px-6 py-4 text-sm text-gray-900">
-                                            <div class="space-y-1.5">
-                                                <div class="flex items-center justify-between text-xs">
-                                                    <span class="font-medium text-gray-700">{{ $request->samples->count() }} sampel</span>
-                                                    <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
-                                                        Selesai
-                                                    </span>
-                                                </div>
-                                                <div class="h-2 overflow-hidden rounded-full bg-gray-100">
-                                                    <div class="h-full w-full rounded-full bg-gradient-to-r from-emerald-400 to-emerald-600"></div>
-                                                </div>
+                                            <div class="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                                                <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                                </svg>
+                                                <span>{{ $request->samples->count() }} Sampel</span>
                                             </div>
                                         </td>
                                         <td class="px-6 py-4 text-sm text-gray-900">
