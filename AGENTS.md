@@ -229,36 +229,7 @@ npm run audit:critical    # A11y + CSS guards
 
 ## 10. Deployment
 
-### Production Server
-
-- **Host:** 192.168.0.209
-- **Path:** /var/www/lis
-- **Node.js:** 18.19.1 (upgrade ke 20+ direkomendasikan)
-
-### Deploy Command (Full)
-
-```bash
-ssh 192.168.0.209 "cd /var/www/lis && git pull origin main && php artisan migrate --force && npm run build && php artisan optimize"
-```
-
-### Deploy Steps (Manual)
-
-```bash
-# 1. Pull latest code
-ssh 192.168.0.209 "cd /var/www/lis && git pull origin main"
-
-# 2. Run migrations (jika ada migration baru)
-ssh 192.168.0.209 "cd /var/www/lis && php artisan migrate --force"
-
-# 3. Build frontend (jika ada perubahan JS/CSS/Blade)
-ssh 192.168.0.209 "cd /var/www/lis && npm run build"
-
-# 4. Optimize Laravel cache
-ssh 192.168.0.209 "cd /var/www/lis && php artisan optimize"
-```
-
-### Catatan
-
-- Selalu jalankan quality gates lokal sebelum deploy (`npm run test`, `npm run audit:critical`, `./vendor/bin/pint`)
-- `php artisan migrate --force` diperlukan karena production auto-protection
-- `php artisan optimize` cache config, routes, views, dan events
+> **Info deploy ada di `.deploy.local`** (file ini di-gitignore, tidak masuk repo).
+>
+> File tersebut berisi host, path, dan commands untuk deploy ke production.
+> Jika file tidak ada, minta user untuk membuatnya atau berikan template.
