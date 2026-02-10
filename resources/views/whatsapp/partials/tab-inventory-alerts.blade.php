@@ -29,6 +29,55 @@
         </div>
 
         <div class="p-4 sm:p-6">
+            <!-- Recipients -->
+            <div class="mb-6">
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-800 dark:text-gray-100">Penerima</h4>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Pilih admin penerima alert inventory.</p>
+                    </div>
+                </div>
+
+                <div class="mt-3 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                    <template x-if="!inventoryAlertsData?.recipients || inventoryAlertsData.recipients.length === 0">
+                        <div class="px-4 py-3 text-sm text-gray-500">Tidak ada penerima.</div>
+                    </template>
+
+                    <template x-for="(recipient, idx) in inventoryAlertsData?.recipients || []" :key="recipient.id ? `id-${recipient.id}` : `phone-${recipient.phone_number || 'unknown'}-${idx}`">
+                        <label class="flex items-center justify-between gap-4 px-4 py-3 border-t border-gray-200 dark:border-gray-700 first:border-t-0 hover:bg-gray-50 dark:hover:bg-gray-750">
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate" x-text="recipient.name || '-' "></div>
+                                    <template x-if="recipient.is_super_admin">
+                                        <span class="shrink-0 inline-flex items-center px-2 py-0.5 text-[11px] rounded-full bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+                                            Admin Utama
+                                        </span>
+                                    </template>
+                                </div>
+                                <div class="mt-0.5 text-xs font-mono text-gray-600 dark:text-gray-300" x-text="recipient.phone_number || '-' "></div>
+                            </div>
+
+                            <div class="shrink-0 flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    class="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 disabled:opacity-60"
+                                    :checked="recipient.is_super_admin ? true : !!recipient.receive_inventory_alerts"
+                                    :disabled="!recipient.id || recipient.is_super_admin || !!savingInventoryAlertRecipientIds?.[recipient.id]"
+                                    @change="setInventoryAlertRecipient(recipient, $event.target.checked)"
+                                />
+
+                                <template x-if="!!savingInventoryAlertRecipientIds?.[recipient.id]">
+                                    <span class="text-xs text-gray-500">Menyimpan...</span>
+                                </template>
+                                <template x-if="recipient.is_super_admin">
+                                    <span class="text-xs text-gray-500">Terkunci</span>
+                                </template>
+                            </div>
+                        </label>
+                    </template>
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <!-- Low Stock -->
                 <div class="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">

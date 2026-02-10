@@ -116,7 +116,7 @@ class InventoryAlertService
      */
     protected function sendNotification(string $message): array
     {
-        $recipients = $this->whitelistService->getAdminPhoneNumbers();
+        $recipients = $this->whitelistService->getInventoryAlertPhoneNumbers();
 
         $sentTo = [];
         $failedTo = [];

@@ -667,22 +667,56 @@ class WhatsAppHubController extends Controller
 
     // --- Inventory Alerts ---
 
-    public function getInventoryAlerts(): JsonResponse
+    public function getInventoryAlerts(WhitelistService $whitelistService): JsonResponse
     {
         $expiryDays = (int) settings('inventory.alert_expiry_days', 30);
 
+        $superAdminNumber = $whitelistService->normalizePhoneNumber(
+            (string) settings('notifications.whatsapp.admin_number', '6285956592404')
+        );
+
+        $recipients = WhatsappWhitelist::query()
+            ->select(['id', 'phone_number', 'name', 'receive_inventory_alerts'])
+            ->orderBy('name')
+            ->orderBy('id')
+            ->get()
+            ->map(function (WhatsappWhitelist $whitelist) use ($superAdminNumber, $whitelistService) {
+                $normalizedPhoneNumber = $whitelistService->normalizePhoneNumber((string) $whitelist->phone_number);
+                $isSuperAdmin = $normalizedPhoneNumber === $superAdminNumber;
+
+                return [
+                    'id' => $whitelist->id,
+                    'phone_number' => $normalizedPhoneNumber,
+                    'name' => $whitelist->name,
+                    'receive_inventory_alerts' => $isSuperAdmin ? true : (bool) $whitelist->receive_inventory_alerts,
+                    'is_super_admin' => $isSuperAdmin,
+                ];
+            })
+            ->values();
+
+        if ($recipients->firstWhere('is_super_admin', true) === null) {
+            $recipients->prepend([
+                'id' => null,
+                'phone_number' => $superAdminNumber,
+                'name' => 'Super Admin',
+                'receive_inventory_alerts' => true,
+                'is_super_admin' => true,
+            ]);
+        }
+
         $lowStockItems = InventoryItem::query()
             ->active()
-            ->with('balances')
+            ->where('min_stock', '>', 0)
+            ->belowMinStock()
+            ->withSum('balances', 'on_hand_qty')
+            ->orderBy('name')
+            ->limit(15)
             ->get()
-            ->filter(fn ($item) => $item->is_below_min_stock)
-            ->take(15)
-            ->values()
-            ->map(fn ($item) => [
+            ->map(fn (InventoryItem $item) => [
                 'id' => $item->id,
                 'name' => $item->name,
                 'uom' => $item->uom,
-                'total_on_hand' => (float) $item->total_on_hand,
+                'total_on_hand' => (float) ($item->balances_sum_on_hand_qty ?? 0),
                 'min_stock' => (float) $item->min_stock,
                 'edit_url' => route('inventory.items.edit', $item),
             ]);
@@ -731,6 +765,7 @@ class WhatsAppHubController extends Controller
             'expiry_days' => $expiryDays,
             'low_stock' => $lowStockItems,
             'expiring' => $expiringLots,
+            'recipients' => $recipients,
             'history' => [
                 'data' => $historyData,
                 'current_page' => $history->currentPage(),
@@ -852,6 +887,41 @@ class WhatsAppHubController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Admin berhasil dihapus.',
+        ]);
+    }
+
+    public function updateWhitelistInventoryAlert(Request $request, WhatsappWhitelist $whitelist, WhitelistService $whitelistService): JsonResponse
+    {
+        $validated = $request->validate([
+            'receive_inventory_alerts' => 'required|boolean',
+        ]);
+
+        $receiveInventoryAlerts = (bool) $validated['receive_inventory_alerts'];
+
+        if (! $receiveInventoryAlerts && $whitelistService->isSuperAdmin((string) $whitelist->phone_number)) {
+            if (! $whitelist->receive_inventory_alerts) {
+                $whitelist->update(['receive_inventory_alerts' => true]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Super admin harus selalu menerima notifikasi inventory alert.',
+            ], 422);
+        }
+
+        $whitelist->update([
+            'receive_inventory_alerts' => $receiveInventoryAlerts,
+        ]);
+
+        $whitelist->refresh();
+
+        return response()->json([
+            'success' => true,
+            'item' => [
+                'id' => $whitelist->id,
+                'phone_number' => $whitelist->phone_number,
+                'receive_inventory_alerts' => $whitelist->receive_inventory_alerts,
+            ],
         ]);
     }
 
