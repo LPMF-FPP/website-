@@ -425,6 +425,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::prefix('whitelist')->name('whitelist.')->group(function () {
                 Route::get('/', [\App\Http\Controllers\WhatsAppHubController::class, 'getWhitelist'])->name('index');
                 Route::post('/', [\App\Http\Controllers\WhatsAppHubController::class, 'storeWhitelist'])->name('store');
+                Route::patch('/{whitelist}/inventory-alert', [\App\Http\Controllers\WhatsAppHubController::class, 'updateWhitelistInventoryAlert'])
+                    ->name('inventory-alert');
                 Route::delete('/{whitelist}', [\App\Http\Controllers\WhatsAppHubController::class, 'destroyWhitelist'])->name('destroy');
             });
         });

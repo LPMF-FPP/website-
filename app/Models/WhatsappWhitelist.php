@@ -14,6 +14,6 @@ class WhatsappWhitelist extends Model
     ];
 
     protected $casts = [
-        'receive_inventory_alerts' => 'bool',
+        'receive_inventory_alerts' => 'boolean',
     ];
 }

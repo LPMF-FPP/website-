@@ -139,8 +139,11 @@
                 broadcastsData: { broadcasts: { data: [] }, statuses: {} },
                 remindersData: { reminders: [] },
                 logsData: { logs: { data: [] } },
-                inventoryAlertsData: { expiry_days: 30, low_stock: [], expiring: [], history: { data: [] } },
+                inventoryAlertsData: { expiry_days: 30, low_stock: [], expiring: [], recipients: [], history: { data: [] } },
                 settingsData: null,
+
+                // Inventory Alerts Tab State
+                savingInventoryAlertRecipientIds: {},
 
                 // Logs Tab State
                 expandedBatch: null,
@@ -279,6 +282,54 @@
                         alert('Gagal memuat data. Silakan coba lagi.');
                     } finally {
                         this.loading = false;
+                    }
+                },
+
+                // --- Inventory Alerts Functions ---
+                async setInventoryAlertRecipient(recipient, enabled) {
+                    if (!recipient || !recipient.id) return;
+                    if (recipient.is_super_admin) return;
+                    if (this.savingInventoryAlertRecipientIds?.[recipient.id]) return;
+
+                    const prev = !!recipient.receive_inventory_alerts;
+                    recipient.receive_inventory_alerts = !!enabled;
+
+                    this.savingInventoryAlertRecipientIds = {
+                        ...(this.savingInventoryAlertRecipientIds || {}),
+                        [recipient.id]: true,
+                    };
+
+                    try {
+                        const url = '{{ route("whatsapp.settings.whitelist.inventory-alert", ["whitelist" => "__ID__"]) }}'.replace('__ID__', recipient.id);
+                        const res = await fetch(url, {
+                            method: 'PATCH',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                            },
+                            body: JSON.stringify({ receive_inventory_alerts: !!enabled }),
+                        });
+
+                        const data = await res.json().catch(() => null);
+
+                        if (!res.ok) {
+                            recipient.receive_inventory_alerts = prev;
+                            alert(data?.message || 'Gagal menyimpan penerima inventory alert.');
+                            return;
+                        }
+
+                        if (data?.item && typeof data.item.receive_inventory_alerts !== 'undefined') {
+                            recipient.receive_inventory_alerts = !!data.item.receive_inventory_alerts;
+                        }
+                    } catch (e) {
+                        recipient.receive_inventory_alerts = prev;
+                        console.error(e);
+                        alert('Error menyimpan penerima inventory alert.');
+                    } finally {
+                        const next = { ...(this.savingInventoryAlertRecipientIds || {}) };
+                        delete next[recipient.id];
+                        this.savingInventoryAlertRecipientIds = next;
                     }
                 },
 
