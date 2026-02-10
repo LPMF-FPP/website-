@@ -58,7 +58,7 @@
 
                 <button
                     type="button"
-                    x-show="selectedScope === 'sample_code'"
+                    x-show="['sample_code', 'ba', 'tracking'].includes(selectedScope)"
                     @click="openCompactModal()"
                     :disabled="!selectedScope || loadingCompactPreview"
                     class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed">
@@ -665,7 +665,7 @@
         <div class="flex items-center justify-center min-h-screen p-4">
             <div class="fixed inset-0 bg-black/50" @click="showCompactModal = false"></div>
             <div class="relative bg-white rounded-lg shadow-xl max-w-lg w-full p-6" x-trap.noscroll.inert="showCompactModal">
-                <h3 id="compact-modal-title" class="text-lg font-semibold text-gray-900 mb-4">Konfirmasi Rapatkan Semua (Kode Sampel)</h3>
+                <h3 id="compact-modal-title" class="text-lg font-semibold text-gray-900 mb-4">Konfirmasi Rapatkan Semua (<span x-text="scopeLabels[selectedScope]"></span>)</h3>
 
                 <template x-if="compactPreview">
                     <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-4">
@@ -673,19 +673,50 @@
                         <ul class="text-sm text-indigo-800 space-y-1">
                             <li>• Rename: <strong x-text="compactPreview.rename_count"></strong></li>
                             <li>• Terkunci (tidak diubah): <strong x-text="compactPreview.locked_count"></strong></li>
-                            <li>• Counter: <strong x-text="compactPreview.counter_before"></strong> → <strong x-text="compactPreview.counter_after"></strong></li>
+
+                            {{-- Counter Display --}}
+                            <template x-if="selectedScope === 'sample_code'">
+                                <li>• Counter: <strong x-text="compactPreview.counter_before"></strong> → <strong x-text="compactPreview.counter_after"></strong></li>
+                            </template>
+                            <template x-if="selectedScope === 'ba' || selectedScope === 'tracking'">
+                                <li>• Counter BA: <strong x-text="compactPreview.ba_counter_before"></strong> → <strong x-text="compactPreview.ba_counter_after"></strong></li>
+                                <li>• Counter Resi: <strong x-text="compactPreview.tracking_counter_before"></strong> → <strong x-text="compactPreview.tracking_counter_after"></strong></li>
+                            </template>
                         </ul>
 
                         <template x-if="(compactPreview.examples || []).length > 0">
                             <div class="mt-3 bg-white rounded-lg border border-indigo-200 p-3">
                                 <p class="text-xs text-gray-500 mb-2">Contoh Perubahan (awal):</p>
                                 <div class="space-y-1">
-                                    <template x-for="(ex, idx) in compactPreview.examples" :key="idx">
-                                        <div class="flex items-center gap-2 text-sm">
-                                            <span class="font-mono bg-red-100 text-red-700 px-2 py-1 rounded" x-text="ex.from"></span>
-                                            <span class="text-gray-400">→</span>
-                                            <span class="font-mono bg-green-100 text-green-700 px-2 py-1 rounded" x-text="ex.to"></span>
-                                        </div>
+                                    {{-- Sample Code Example --}}
+                                    <template x-if="selectedScope === 'sample_code'">
+                                        <template x-for="(ex, idx) in compactPreview.examples" :key="idx">
+                                            <div class="flex items-center gap-2 text-sm">
+                                                <span class="font-mono bg-red-100 text-red-700 px-2 py-1 rounded" x-text="ex.from"></span>
+                                                <span class="text-gray-400">→</span>
+                                                <span class="font-mono bg-green-100 text-green-700 px-2 py-1 rounded" x-text="ex.to"></span>
+                                            </div>
+                                        </template>
+                                    </template>
+
+                                    {{-- BA/Tracking Example --}}
+                                    <template x-if="selectedScope === 'ba' || selectedScope === 'tracking'">
+                                        <template x-for="(ex, idx) in compactPreview.examples" :key="idx">
+                                            <div class="text-xs border-b border-gray-100 pb-1 mb-1 last:border-0 last:mb-0 last:pb-0">
+                                                <div class="flex items-center gap-2 mb-1">
+                                                    <span class="w-8 text-gray-500">BA:</span>
+                                                    <span class="font-mono bg-red-100 text-red-700 px-1 rounded" x-text="ex.from_ba"></span>
+                                                    <span class="text-gray-400">→</span>
+                                                    <span class="font-mono bg-green-100 text-green-700 px-1 rounded" x-text="ex.to_ba"></span>
+                                                </div>
+                                                <div class="flex items-center gap-2">
+                                                    <span class="w-8 text-gray-500">Resi:</span>
+                                                    <span class="font-mono bg-red-100 text-red-700 px-1 rounded" x-text="ex.from_tracking"></span>
+                                                    <span class="text-gray-400">→</span>
+                                                    <span class="font-mono bg-green-100 text-green-700 px-1 rounded" x-text="ex.to_tracking"></span>
+                                                </div>
+                                            </div>
+                                        </template>
                                     </template>
                                 </div>
                             </div>

@@ -89,7 +89,6 @@ class TestRequestObserver
     public function deleted(TestRequest $testRequest): void
     {
         // Attempt to rollback numbers if they are the latest in sequence
-        // Rollback BA number
         if ($testRequest->request_number) {
             $this->numberingService->rollback('ba', $testRequest->request_number, [
                 'investigator_id' => $testRequest->investigator_id,
@@ -97,30 +96,11 @@ class TestRequestObserver
             ]);
         }
 
-        // Rollback Tracking number
         if ($testRequest->receipt_number) {
             $this->numberingService->rollback('tracking', $testRequest->receipt_number, [
                 'investigator_id' => $testRequest->investigator_id,
                 'now' => $testRequest->created_at,
             ]);
-        }
-
-        // Auto-compact if deleted from current bucket (optional, but good for UX)
-        // Only trigger compaction if rollback FAILED (meaning it wasn't the last one)
-        // But rollback returns void currently.
-        // We can just trigger compaction blindly for the bucket.
-        // NOTE: This can be expensive on every delete. Usually triggered manually via UI or scheduled job.
-        // However, the test "it handles auto compaction via controller" implies this might be desired.
-        // If controller calls delete(), observer runs.
-        // Let's add compaction here.
-
-        $bucketNow = $testRequest->created_at ? \Carbon\CarbonImmutable::parse($testRequest->created_at) : \Carbon\CarbonImmutable::now();
-
-        try {
-            app(\App\Services\NumberingRepairService::class)->compactRequestNumbersForBucket($bucketNow, 'Auto compaction after deletion');
-        } catch (\Exception $e) {
-            // Ignore compaction errors during delete to avoid blocking user feedback
-            \Illuminate\Support\Facades\Log::warning('Auto compaction failed after delete: '.$e->getMessage());
         }
 
         ActivityLogger::log(
