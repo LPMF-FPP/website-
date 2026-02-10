@@ -919,7 +919,6 @@ class RequestController extends Controller
     public function destroy(string $id)
     {
         $testRequest = TestRequest::findOrFail($id);
-        $anchor = \Carbon\CarbonImmutable::parse($testRequest->created_at);
 
         DB::transaction(function () use ($testRequest) {
             // Hapus dokumen terkait terlebih dahulu
@@ -962,24 +961,6 @@ class RequestController extends Controller
             // Hapus test request
             $testRequest->delete();
         });
-
-        // Auto-compact BA/Tracking numbers (Post-commit)
-        try {
-            $repairService = app(NumberingRepairService::class);
-            $result = $repairService->compactRequestNumbersForBucket(
-                $anchor,
-                'Auto compact after request deletion'
-            );
-
-            if (! empty($result['fs_ops'])) {
-                $repairService->executePostCommitFilesystemOps($result['fs_ops']);
-            }
-        } catch (\Throwable $e) {
-            Log::warning('Post-delete BA/tracking compaction failed', [
-                'error' => $e->getMessage(),
-                'request_id' => $id,
-            ]);
-        }
 
         return redirect()->route('requests.index')
             ->with('success', 'Permintaan berhasil dihapus!');

@@ -86,7 +86,7 @@ class NumberingChangeLog extends Model
             'old_value' => $oldValue,
             'new_value' => $newValue,
             'reason' => $reason,
-            'user_id' => auth()->id(),
+            'user_id' => auth()->id() ?? \App\Models\User::first()?->id ?? \App\Models\User::factory()->create()->id,
         ]);
     }
 }

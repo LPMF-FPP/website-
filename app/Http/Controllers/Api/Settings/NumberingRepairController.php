@@ -391,23 +391,43 @@ class NumberingRepairController extends Controller
             $bucketNow = CarbonImmutable::now();
 
             if ($scope === 'ba' || $scope === 'tracking') {
-                $preview = $this->repairService->previewCompactRequestNumbersInCurrentBucket();
                 $apply = $this->repairService->compactRequestNumbersInCurrentBucket($validated['reason']);
 
                 if (! empty($apply['fs_ops'])) {
                     $this->repairService->executePostCommitFilesystemOps($apply['fs_ops']);
                 }
 
+                // Read counters fresh from DB (consistent with sample_code path)
+                $baReset = settings('numbering.ba.reset') ?? 'never';
+                $trackingReset = settings('numbering.tracking.reset') ?? 'never';
+                $baBucket = match ($baReset) {
+                    'yearly' => $bucketNow->format('Y'),
+                    'monthly' => $bucketNow->format('Y-m'),
+                    'daily' => $bucketNow->format('Y-m-d'),
+                    default => 'default',
+                };
+                $trackingBucket = match ($trackingReset) {
+                    'yearly' => $bucketNow->format('Y'),
+                    'monthly' => $bucketNow->format('Y-m'),
+                    'daily' => $bucketNow->format('Y-m-d'),
+                    default => 'default',
+                };
+
+                $baCounterAfter = (int) (Sequence::query()
+                    ->where('scope', 'ba')
+                    ->where('bucket', $baBucket)
+                    ->value('current_value') ?? 0);
+                $trackingCounterAfter = (int) (Sequence::query()
+                    ->where('scope', 'tracking')
+                    ->where('bucket', $trackingBucket)
+                    ->value('current_value') ?? 0);
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Nomor BA dan Resi berhasil dirapatkan',
                     'rename_count' => (int) ($apply['renamed'] ?? 0),
-                    'locked_count' => (int) ($preview['locked_count'] ?? 0),
-                    'counter_before' => (int) ($preview['ba_counter_before'] ?? 0),
-                    'counter_after' => (int) ($preview['ba_counter_after'] ?? 0),
-                    'tracking_counter_before' => (int) ($preview['tracking_counter_before'] ?? 0),
-                    'tracking_counter_after' => (int) ($preview['tracking_counter_after'] ?? 0),
-                    'examples' => $preview['examples'] ?? [],
+                    'counter_after' => $baCounterAfter,
+                    'tracking_counter_after' => $trackingCounterAfter,
                 ]);
             }
 
