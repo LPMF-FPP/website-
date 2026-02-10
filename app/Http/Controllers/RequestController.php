@@ -11,6 +11,7 @@ use App\Models\TestRequest;
 use App\Services\ActiveSubstanceService;
 use App\Services\DocumentGeneration\DocumentRenderService;
 use App\Services\DocumentService;
+use App\Services\NumberingRepairService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -196,7 +197,7 @@ class RequestController extends Controller
             'samples.*.package_quantity' => 'required|integer|min:1',
             'samples.*.unit' => 'required|string|max:50',
             'samples.*.test_types' => 'required|array|min:1',
-            'samples.*.test_types.*' => 'in:uv_vis,gc_ms,lc_ms',
+            'samples.*.test_types.*' => 'required|string|in:uv_vis,gc_ms,lc_ms',
             'samples.*.active_substance' => 'required|string|max:255',
             'samples.*.photos' => 'nullable|array',
             'samples.*.photos.*' => 'image|mimes:jpg,jpeg,png|max:5120',
@@ -501,11 +502,13 @@ class RequestController extends Controller
             'suspect_address' => 'nullable|string',
             // Samples
             'samples' => 'required|array|min:1',
-            'samples.*.id' => 'nullable|exists:samples,id',
+            'samples.*.id' => 'nullable|exists:samples,id,test_request_id,'.$testRequest->id,
             'samples.*.short_description' => 'required|string|max:255',
             'samples.*.active_substance' => 'required|string|max:255',
-            'samples.*.package_quantity' => 'required|numeric|min:0',
+            'samples.*.package_quantity' => 'required|integer|min:1',
             'samples.*.unit' => 'required|string|max:50',
+            'samples.*.test_types' => 'required|array|min:1',
+            'samples.*.test_types.*' => 'required|string|in:uv_vis,gc_ms,lc_ms',
             // Suspects array
             'suspects' => 'required|array|min:1',
             'suspects.*.name' => 'required|string|max:255',
@@ -627,6 +630,8 @@ class RequestController extends Controller
             $submittedSampleIds = [];
 
             foreach ($validated['samples'] as $sampleData) {
+                $encodedTestMethods = json_encode(array_values($sampleData['test_types']));
+
                 if (! empty($sampleData['id'])) {
                     $sample = Sample::find($sampleData['id']);
                     if ($sample && $sample->test_request_id == $testRequest->id) {
@@ -635,6 +640,8 @@ class RequestController extends Controller
                             'active_substance' => $sampleData['active_substance'],
                             'package_quantity' => $sampleData['package_quantity'],
                             'unit' => $sampleData['unit'],
+                            'test_methods' => $encodedTestMethods,
+                            'requested_test_methods' => $encodedTestMethods,
                         ]);
                         $submittedSampleIds[] = $sample->id;
                     }
@@ -646,7 +653,8 @@ class RequestController extends Controller
                         'package_quantity' => $sampleData['package_quantity'],
                         'unit' => $sampleData['unit'],
                         'sample_form' => 'other',
-                        'test_methods' => json_encode(['uv_vis']),
+                        'test_methods' => $encodedTestMethods,
+                        'requested_test_methods' => $encodedTestMethods,
                         'condition' => 'baik',
                         'sample_status' => 'received',
                     ]);
@@ -655,9 +663,25 @@ class RequestController extends Controller
             }
 
             // Delete samples that were removed
-            Sample::where('test_request_id', $testRequest->id)
+            $removedSamples = Sample::where('test_request_id', $testRequest->id)
                 ->whereNotIn('id', $submittedSampleIds)
-                ->delete();
+                ->get();
+
+            foreach ($removedSamples as $removedSample) {
+                // Ensure deleted event can access testRequest without extra queries
+                $removedSample->setRelation('testRequest', $testRequest);
+                $removedSample->delete();
+            }
+
+            // After deletions: compact sample_code numbering (skip locked samples)
+            if ($removedSamples->isNotEmpty()) {
+                $anchor = $removedSamples->min('created_at');
+                $bucketNow = $anchor
+                    ? \Carbon\CarbonImmutable::parse($anchor)
+                    : \Carbon\CarbonImmutable::now();
+
+                app(NumberingRepairService::class)->compactSampleCodesForBucket($bucketNow);
+            }
 
             // DELETE old Berita Acara documents (force re-generation)
             $baDocuments = Document::where('test_request_id', $testRequest->id)

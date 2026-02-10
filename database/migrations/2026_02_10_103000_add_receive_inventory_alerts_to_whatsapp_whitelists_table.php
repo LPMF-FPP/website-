@@ -9,17 +9,21 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('whatsapp_whitelists', function (Blueprint $table) {
-            $table
-                ->boolean('receive_inventory_alerts')
-                ->default(true)
-                ->after('added_by');
+            if (! Schema::hasColumn('whatsapp_whitelists', 'receive_inventory_alerts')) {
+                $table
+                    ->boolean('receive_inventory_alerts')
+                    ->default(true)
+                    ->after('added_by');
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('whatsapp_whitelists', function (Blueprint $table) {
-            $table->dropColumn('receive_inventory_alerts');
+            if (Schema::hasColumn('whatsapp_whitelists', 'receive_inventory_alerts')) {
+                $table->dropColumn('receive_inventory_alerts');
+            }
         });
     }
 };

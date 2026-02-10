@@ -72,6 +72,10 @@ Route::middleware(['throttle:120,1'])->group(function () {
             // Reclaim Gap Routes
             Route::get('/{scope}/can-reclaim', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'canReclaim']);
             Route::post('/{scope}/reclaim', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'reclaim']);
+
+            // Compact (sample_code only for now)
+            Route::get('/{scope}/compact-preview', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'compactPreview']);
+            Route::post('/{scope}/compact', [\App\Http\Controllers\Api\Settings\NumberingRepairController::class, 'compact']);
         });
 
         Route::get('/templates', [ApiTemplateController::class, 'index']);

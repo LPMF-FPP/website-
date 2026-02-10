@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Models\EvidenceUnit;
 use App\Models\Investigator;
+use App\Models\RemainingUnit;
 use App\Models\Sample;
 use App\Models\Sequence;
 use App\Models\TestRequest;
@@ -134,6 +136,7 @@ class NumberingRepairReclaimTest extends TestCase
     public function it_executes_reclaim_and_updates_counter()
     {
         $investigator = Investigator::factory()->create();
+        /** @var User $user */
         $user = User::factory()->create();
         $this->actingAs($user);
 
@@ -183,5 +186,69 @@ class NumberingRepairReclaimTest extends TestCase
         // Verify counter was updated
         $sequence = Sequence::where('scope', 'sample_code')->first();
         $this->assertEquals(1, $sequence->current_value);
+    }
+
+    /** @test */
+    public function it_cascades_reclaim_rename_to_remaining_units(): void
+    {
+        $investigator = Investigator::factory()->create();
+        /** @var User $user */
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $request = TestRequest::create([
+            'investigator_id' => $investigator->id,
+            'user_id' => $user->id,
+            'status' => 'submitted',
+            'request_number' => 'BA-001',
+            'receipt_number' => 'TR-001',
+            'suspect_name' => 'John Doe',
+            'suspect_gender' => 'male',
+            'suspect_age' => 30,
+            'to_office' => 'Kejaksaan',
+            'case_description' => 'Test Case',
+        ]);
+
+        $sample1 = Sample::create([
+            'test_request_id' => $request->id,
+            'short_description' => 'Sample 1',
+            'sample_form' => 'pill',
+            'sample_category' => 'narkotika',
+        ]);
+
+        $sample2 = Sample::create([
+            'test_request_id' => $request->id,
+            'short_description' => 'Sample 2',
+            'sample_form' => 'pill',
+            'sample_category' => 'narkotika',
+        ]);
+
+        $this->assertSame('LS001I'.now()->year, $sample1->sample_code);
+        $this->assertSame('LS002I'.now()->year, $sample2->sample_code);
+
+        $evidenceUnit = EvidenceUnit::create([
+            'request_id' => $request->id,
+            'sample_id' => $sample2->id,
+            'sample_code' => $sample2->sample_code,
+            'receipt_code' => 'TR-LPMF001I'.now()->year,
+            'sample_type' => 'Tablet',
+        ]);
+        $remaining = RemainingUnit::create([
+            'evidence_unit_id' => $evidenceUnit->id,
+            'sample_code' => $sample2->sample_code,
+            'remaining_code' => $sample2->sample_code.'-SISA',
+        ]);
+
+        $sample1->delete();
+
+        $result = $this->repairService->reclaimGap('sample_code', 'Test reclaim');
+        $this->assertTrue($result['success']);
+
+        $sample2->refresh();
+        $remaining->refresh();
+
+        $this->assertSame('LS001I'.now()->year, $sample2->sample_code);
+        $this->assertSame('LS001I'.now()->year, $remaining->sample_code);
+        $this->assertSame('LS001I'.now()->year.'-SISA', $remaining->remaining_code);
     }
 }
