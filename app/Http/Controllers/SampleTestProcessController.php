@@ -383,7 +383,7 @@ class SampleTestProcessController extends Controller
         ]);
     }
 
-    public function generateForm(SampleTestProcess $sampleProcess, string $stage)
+    public function generateForm(SampleTestProcess $sampleProcess, string $stage, \App\Services\DocumentService $docs)
     {
         $sampleProcess->loadMissing(['sample.testRequest.investigator']);
 
@@ -406,7 +406,6 @@ class SampleTestProcessController extends Controller
             ->setOption('dpi', 96)
             ->output();
 
-        $docs = app(\App\Services\DocumentService::class);
         $reqNo = $request->request_number ?? 'REQ-UNKNOWN';
         $sampleCode = $sample->sample_code ?? ('SAMPLE-'.$sampleProcess->sample_id);
         $baseName = "Form-Preparasi-{$sampleCode}-{$reqNo}";
@@ -431,8 +430,14 @@ class SampleTestProcessController extends Controller
         ]);
     }
 
-    public function update(Request $request, SampleTestProcess $sampleProcess): RedirectResponse
-    {
+    public function update(
+        Request $request,
+        SampleTestProcess $sampleProcess,
+        \App\Services\DocumentService $documentService,
+        \App\Services\NumberingService $numberingService,
+        \App\Services\DocumentTemplateService $templateService,
+        \App\Services\PdfRenderService $pdfRenderService
+    ): RedirectResponse {
         $validated = $request->validate([
             'sample_id' => ['required', 'exists:samples,id'],
             'stage' => ['required', 'string', Rule::in(array_column(TestProcessStage::cases(), 'value'))],
@@ -592,44 +597,15 @@ class SampleTestProcessController extends Controller
         ]);
 
         // Auto-generate LHU if interpretation stage and result is finalized
-        if ($isInterpretationStage && ($metadata['test_result'] ?? null)) {
-            try {
-                // Determine if we should generate LHU
-                // 1. Result is positive/negative
-                // 2. Completed at is set (implied by update or explicitly set)
-
-                // We need to pass dependencies to createLhuDocument
-                // Since this is inside update(), we resolve them from container
-                $docs = app(\App\Services\DocumentService::class);
-                $numberingService = app(\App\Services\NumberingService::class);
-                $templateService = app(\App\Services\DocumentTemplateService::class);
-                $pdfRenderService = app(\App\Services\PdfRenderService::class);
-
-                // Logic to get or issue LHU number (same as in generateReport)
-                // We can reuse the logic by refactoring it out, but for now let's copy the essential part
-                // or better yet, call a method that handles number generation + document creation
-
-                // Let's reuse the logic we extracted to generateReport but we can't call it directly
-                // because it returns a response.
-                // We need to call the internal logic.
-
-                // REFACTOR: extract LHU Number generation to a private method too
-                $lhuNumber = $this->ensureLhuNumber($sampleProcess, $numberingService);
-
-                $this->createLhuDocument($sampleProcess, $docs, $templateService, $pdfRenderService, $lhuNumber);
-
-                Log::info('Auto-generated LHU for process', ['process_id' => $sampleProcess->id, 'lhu_number' => $lhuNumber]);
-
-            } catch (\Exception $e) {
-                Log::error('Failed to auto-generate LHU', [
-                    'process_id' => $sampleProcess->id,
-                    'error' => $e->getMessage(),
-                ]);
-                // We don't stop the update process if LHU generation fails, but we log it.
-                // Or should we flash a warning?
-                // For now, silent failure with log is safer than blocking the update.
-            }
-        }
+        $this->attemptAutoGenerateLhu(
+            $sampleProcess,
+            $isInterpretationStage,
+            $metadata,
+            $documentService,
+            $numberingService,
+            $templateService,
+            $pdfRenderService
+        );
 
         // Redirect back to testing.show (parent test request) for better UX flow
         $testRequest = $sampleProcess->sample?->testRequest;
@@ -642,6 +618,37 @@ class SampleTestProcessController extends Controller
         return redirect()
             ->route('testing.index')
             ->with('success', 'Proses pengujian berhasil diperbarui.');
+    }
+
+    private function attemptAutoGenerateLhu(
+        SampleTestProcess $sampleProcess,
+        bool $isInterpretationStage,
+        ?array $metadata,
+        \App\Services\DocumentService $documentService,
+        \App\Services\NumberingService $numberingService,
+        \App\Services\DocumentTemplateService $templateService,
+        \App\Services\PdfRenderService $pdfRenderService
+    ): void {
+        if ($isInterpretationStage && ($metadata['test_result'] ?? null)) {
+            try {
+                // Determine if we should generate LHU
+                // 1. Result is positive/negative
+                // 2. Completed at is set (implied by update or explicitly set)
+
+                $lhuNumber = $this->ensureLhuNumber($sampleProcess, $numberingService);
+
+                $this->createLhuDocument($sampleProcess, $documentService, $templateService, $pdfRenderService, $lhuNumber);
+
+                Log::info('Auto-generated LHU for process', ['process_id' => $sampleProcess->id, 'lhu_number' => $lhuNumber]);
+
+            } catch (\Exception $e) {
+                Log::error('Failed to auto-generate LHU', [
+                    'process_id' => $sampleProcess->id,
+                    'error' => $e->getMessage(),
+                ]);
+                // We don't stop the update process if LHU generation fails, but we log it.
+            }
+        }
     }
 
     /**
@@ -707,11 +714,14 @@ class SampleTestProcessController extends Controller
         return $lhuNumber;
     }
 
-    public function generateReport(SampleTestProcess $sampleProcess, \App\Services\DocumentService $docs, NumberingService $numberingService)
-    {
+    public function generateReport(
+        SampleTestProcess $sampleProcess,
+        \App\Services\DocumentService $docs,
+        NumberingService $numberingService,
+        \App\Services\DocumentTemplateService $templateService,
+        \App\Services\PdfRenderService $pdfRenderService
+    ) {
         $sampleProcess->load(['sample.testRequest.investigator']);
-        $templateService = app(\App\Services\DocumentTemplateService::class);
-        $pdfRenderService = app(\App\Services\PdfRenderService::class);
 
         // Validate that sample exists
         if (! $sampleProcess->sample) {
@@ -1033,6 +1043,16 @@ class SampleTestProcessController extends Controller
 
         if ($completedStages < 3) {
             return back()->withErrors(['error' => 'Semua tahap pengujian harus selesai terlebih dahulu.']);
+        }
+
+        // Guardrail: Ensure LHU document exists before marking ready
+        $hasLhu = \App\Models\Document::where('test_request_id', $sample->test_request_id)
+            ->where('sample_id', $sample->id)
+            ->where('document_type', 'laporan_hasil_uji')
+            ->exists();
+
+        if (! $hasLhu) {
+            return back()->withErrors(['error' => 'LHU belum dibuat. Harap selesaikan interpretasi dan pastikan LHU terbentuk.']);
         }
 
         // Update sample status to ready for delivery
