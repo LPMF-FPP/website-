@@ -214,6 +214,7 @@ class SampleTestProcessController extends Controller
 
             // Check if report document exists in documents table
             $reportDoc = \App\Models\Document::where('test_request_id', $sampleProcess->sample->test_request_id)
+                ->where('sample_id', $sampleProcess->sample_id)
                 ->whereIn('document_type', ['laporan_hasil_uji', 'lab_report'])
                 ->latest()
                 ->first();
@@ -863,6 +864,7 @@ class SampleTestProcessController extends Controller
     {
         // Load relationships needed for response if needed
         $docPdf = Document::where('test_request_id', $sampleProcess->sample->test_request_id)
+            ->where('sample_id', $sampleProcess->sample_id)
             ->where('document_type', 'laporan_hasil_uji')
             ->latest()
             ->first();
