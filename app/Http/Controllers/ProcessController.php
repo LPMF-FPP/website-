@@ -471,8 +471,10 @@ class ProcessController extends Controller
                         $nextStageLabel = TestProcessStage::tryFrom($nextStageValue)?->label();
                     }
                 } else {
-                    // All stages completed
-                    $currentProcess = $processes->sortByDesc('completed_at')->first();
+                    // All stages completed — pick the highest stage in logical order
+                    $currentProcess = $processes
+                        ->sortByDesc(fn ($p) => $stageOrder[$this->stageValue($p->stage)] ?? 0)
+                        ->first();
                     if ($currentProcess?->completed_at) {
                         $statusKey = 'completed';
                         $statusLabel = 'Selesai';
