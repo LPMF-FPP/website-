@@ -591,6 +591,46 @@ class SampleTestProcessController extends Controller
             'metadata' => $metadata,
         ]);
 
+        // Auto-generate LHU if interpretation stage and result is finalized
+        if ($isInterpretationStage && ($metadata['test_result'] ?? null)) {
+            try {
+                // Determine if we should generate LHU
+                // 1. Result is positive/negative
+                // 2. Completed at is set (implied by update or explicitly set)
+
+                // We need to pass dependencies to createLhuDocument
+                // Since this is inside update(), we resolve them from container
+                $docs = app(\App\Services\DocumentService::class);
+                $numberingService = app(\App\Services\NumberingService::class);
+                $templateService = app(\App\Services\DocumentTemplateService::class);
+                $pdfRenderService = app(\App\Services\PdfRenderService::class);
+
+                // Logic to get or issue LHU number (same as in generateReport)
+                // We can reuse the logic by refactoring it out, but for now let's copy the essential part
+                // or better yet, call a method that handles number generation + document creation
+
+                // Let's reuse the logic we extracted to generateReport but we can't call it directly
+                // because it returns a response.
+                // We need to call the internal logic.
+
+                // REFACTOR: extract LHU Number generation to a private method too
+                $lhuNumber = $this->ensureLhuNumber($sampleProcess, $numberingService);
+
+                $this->createLhuDocument($sampleProcess, $docs, $templateService, $pdfRenderService, $lhuNumber);
+
+                Log::info('Auto-generated LHU for process', ['process_id' => $sampleProcess->id, 'lhu_number' => $lhuNumber]);
+
+            } catch (\Exception $e) {
+                Log::error('Failed to auto-generate LHU', [
+                    'process_id' => $sampleProcess->id,
+                    'error' => $e->getMessage(),
+                ]);
+                // We don't stop the update process if LHU generation fails, but we log it.
+                // Or should we flash a warning?
+                // For now, silent failure with log is safer than blocking the update.
+            }
+        }
+
         // Redirect back to testing.show (parent test request) for better UX flow
         $testRequest = $sampleProcess->sample?->testRequest;
         if ($testRequest) {
@@ -620,6 +660,53 @@ class SampleTestProcessController extends Controller
         return null;
     }
 
+    private function ensureLhuNumber(SampleTestProcess $sampleProcess, NumberingService $numberingService): string
+    {
+        $metadata = $sampleProcess->metadata ?? [];
+        $lhuNumber = $metadata['lhu_number'] ?? $metadata['report_number'] ?? $metadata['lab_report_no'] ?? null;
+
+        $sampleCode = $sampleProcess->sample->sample_code ?? '';
+        $sampleSeq = $this->extractSequence($sampleCode);
+        $lhuSeq = $this->extractSequence($lhuNumber);
+
+        $shouldRegenerate = empty($lhuNumber) || ($sampleSeq && $lhuSeq && $sampleSeq !== $lhuSeq);
+
+        if ($shouldRegenerate) {
+            $context = [
+                'sample_id' => $sampleProcess->sample_id,
+                'process_id' => $sampleProcess->id,
+                'sample_code' => $sampleCode,
+            ];
+
+            if ($sampleSeq) {
+                $context['forced_sequence'] = $sampleSeq;
+            }
+
+            $lhuNumber = $numberingService->issue('lhu', $context);
+
+            // Save the new number to metadata
+            $metadata = $sampleProcess->metadata ?? [];
+            $metadata['lhu_number'] = $lhuNumber;
+            $sampleProcess->metadata = $metadata;
+            $sampleProcess->save();
+
+            Log::info('LHU number issued/corrected', [
+                'scope' => 'lhu',
+                'number' => $lhuNumber,
+                'process_id' => $sampleProcess->id,
+                'sample_seq' => $sampleSeq,
+                'old_lhu_seq' => $lhuSeq,
+            ]);
+        } else {
+            Log::debug('Reusing existing LHU number', [
+                'number' => $lhuNumber,
+                'process_id' => $sampleProcess->id,
+            ]);
+        }
+
+        return $lhuNumber;
+    }
+
     public function generateReport(SampleTestProcess $sampleProcess, \App\Services\DocumentService $docs, NumberingService $numberingService)
     {
         $sampleProcess->load(['sample.testRequest.investigator']);
@@ -631,59 +718,23 @@ class SampleTestProcessController extends Controller
             abort(404, 'Sample not found for this process');
         }
 
-        // BUSINESS RULE: Issue LHU number ONCE and persist it. Regeneration reuses the same number.
+        // Use helper to get/generate number
+        $lhuNumber = $this->ensureLhuNumber($sampleProcess, $numberingService);
+
+        // Generate document
+        $this->createLhuDocument($sampleProcess, $docs, $templateService, $pdfRenderService, $lhuNumber);
+
+        return $this->generateReportResponse($sampleProcess);
+    }
+
+    private function createLhuDocument(
+        SampleTestProcess $sampleProcess,
+        \App\Services\DocumentService $docs,
+        \App\Services\DocumentTemplateService $templateService,
+        \App\Services\PdfRenderService $pdfRenderService,
+        string $lhuNumber
+    ): ?Document {
         $metadata = $sampleProcess->metadata ?? [];
-        $lhuNumber = $metadata['lhu_number'] ?? $metadata['report_number'] ?? $metadata['lab_report_no'] ?? null;
-
-        // Auto-correction Logic: Ensure LHU sequence matches Sample sequence
-        $sampleCode = $sampleProcess->sample->sample_code ?? '';
-        $sampleSeq = $this->extractSequence($sampleCode);
-        $lhuSeq = $this->extractSequence($lhuNumber);
-
-        // If sample sequence exists, and (LHU is missing OR LHU sequence doesn't match), regenerate
-        $shouldRegenerate = empty($lhuNumber) || ($sampleSeq && $lhuSeq && $sampleSeq !== $lhuSeq);
-
-        if ($shouldRegenerate) {
-            // No LHU number exists yet OR sequence mismatch - issue a new/corrected one
-            try {
-                $context = [
-                    'sample_id' => $sampleProcess->sample_id,
-                    'process_id' => $sampleProcess->id,
-                    'sample_code' => $sampleCode,
-                ];
-
-                if ($sampleSeq) {
-                    $context['forced_sequence'] = $sampleSeq;
-                }
-
-                $lhuNumber = $numberingService->issue('lhu', $context);
-
-                // Persist the issued number
-                $metadata['lhu_number'] = $lhuNumber;
-                $sampleProcess->metadata = $metadata;
-                $sampleProcess->save();
-
-                Log::info('LHU number issued/corrected', [
-                    'scope' => 'lhu',
-                    'number' => $lhuNumber,
-                    'process_id' => $sampleProcess->id,
-                    'sample_seq' => $sampleSeq,
-                    'old_lhu_seq' => $lhuSeq,
-                ]);
-            } catch (\Exception $e) {
-                Log::error('Failed to issue LHU number', [
-                    'error' => $e->getMessage(),
-                    'process_id' => $sampleProcess->id,
-                ]);
-                throw $e;
-            }
-        } else {
-            // LHU number already exists - reuse it (regenerate PDF with same number)
-            Log::debug('Reusing existing LHU number', [
-                'number' => $lhuNumber,
-                'process_id' => $sampleProcess->id,
-            ]);
-        }
 
         // Try to get active template for LHU
         $template = $templateService->getActiveTemplateByDocType('LHU');
@@ -795,6 +846,21 @@ class SampleTestProcessController extends Controller
             ]);
         }
 
+        return $docPdf;
+    }
+
+    public function generateReportResponse(SampleTestProcess $sampleProcess)
+    {
+        // Load relationships needed for response if needed
+        $docPdf = Document::where('test_request_id', $sampleProcess->sample->test_request_id)
+            ->where('document_type', 'laporan_hasil_uji')
+            ->latest()
+            ->first();
+
+        if (! $docPdf) {
+            abort(404, 'LHU document not found');
+        }
+
         // respond inline or download
         if (request()->boolean('download')) {
             return response()->download(
@@ -804,10 +870,25 @@ class SampleTestProcessController extends Controller
             );
         }
 
-        return response($pdf, 200, [
+        // Re-read file content for inline response since we only have path
+        $content = Storage::disk($docPdf->storage_disk ?? 'public')->get($docPdf->path);
+
+        return response($content, 200, [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="'.$docPdf->filename.'"',
         ]);
+    }
+
+    // Kept for backward compatibility but modified to use new flow
+    public function generateReportOld(SampleTestProcess $sampleProcess, \App\Services\DocumentService $docs, NumberingService $numberingService)
+    {
+        // Redirect to new method or reimplement needed parts
+        // For now, this signature matches the original generateReport
+        // so we will just replace the body of generateReport with the call to createLhuDocument
+        // But wait, the original generateReport returned a Response.
+        // createLhuDocument returns a Document model.
+        // So we need to adapt.
+        return $this->generateReport($sampleProcess, $docs, $numberingService);
     }
 
     /**
