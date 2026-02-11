@@ -200,7 +200,6 @@ class RequestDeleteCompactionTest extends TestCase
         $this->assertStringContainsString('BA/002', $req3->request_number);
     }
 
-
     /** @test */
     public function it_invalidates_cache_for_old_numbers_during_compaction()
     {
@@ -216,7 +215,7 @@ class RequestDeleteCompactionTest extends TestCase
         // Manually trigger numbering service to ensure numbers are generated properly
         // Actually, factory should trigger observers if they are set up. But RequestDeleteCompactionTest sets up settings in setUp().
         // Let's assume numbers are generated.
-        
+
         $this->assertStringContainsString('BA/001', $req1->request_number);
         $this->assertStringContainsString('BA/002', $req2->request_number);
         $this->assertStringContainsString('BA/003', $req3->request_number);
