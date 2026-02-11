@@ -670,6 +670,7 @@ export function registerSettingsComponent() {
                 loading: false,
                 error: "",
             },
+            ikuConfigDirty: false,
             ikuPreview: {
                 loading: false,
                 data: null,
