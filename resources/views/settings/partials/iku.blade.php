@@ -38,6 +38,8 @@
                 <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
             </label>
         </div>
+        <div :class="{ 'opacity-40 pointer-events-none select-none': !client.state.form.iku.enabled }"
+             class="space-y-6 transition-opacity duration-200">
 
         {{-- Period Mode --}}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -58,40 +60,56 @@
             <h3 class="text-sm font-semibold text-gray-800 mb-3">Bobot Komponen IKU</h3>
             <p class="text-xs text-gray-500 mb-4">Total bobot harus sama dengan 100%</p>
             
+            {{-- Visual Weight Distribution Bar --}}
+            <div class="h-3 rounded-full overflow-hidden flex bg-gray-100 mb-4"
+                 x-show="getIkuWeightSum() > 0">
+                <div class="bg-indigo-500 transition-all duration-300" 
+                     :style="'width: ' + (client.state.form.iku.weights.registration || 0) + '%'"
+                     x-show="client.state.form.iku.weights.registration > 0"></div>
+                <div class="bg-emerald-500 transition-all duration-300" 
+                     :style="'width: ' + (client.state.form.iku.weights.lab_exam || 0) + '%'"
+                     x-show="client.state.form.iku.weights.lab_exam > 0"></div>
+                <div class="bg-violet-500 transition-all duration-300" 
+                     :style="'width: ' + (client.state.form.iku.weights.report || 0) + '%'"
+                     x-show="client.state.form.iku.weights.report > 0"></div>
+                <div class="bg-amber-500 transition-all duration-300" 
+                     :style="'width: ' + (client.state.form.iku.weights.survey || 0) + '%'"
+                     x-show="client.state.form.iku.weights.survey > 0"></div>
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div>
+                <div class="border-l-4 border-indigo-500 pl-3">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Registrasi Permohonan</label>
                     <div class="relative">
                         <input type="number" min="0" max="100" step="1"
                                x-model.number="client.state.form.iku.weights.registration"
-                               class="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                               class="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono tabular-nums">
                         <span class="absolute right-3 top-2 text-gray-400">%</span>
                     </div>
                 </div>
-                <div>
+                <div class="border-l-4 border-emerald-500 pl-3">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Pemeriksaan Lab</label>
                     <div class="relative">
                         <input type="number" min="0" max="100" step="1"
                                x-model.number="client.state.form.iku.weights.lab_exam"
-                               class="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                               class="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono tabular-nums">
                         <span class="absolute right-3 top-2 text-gray-400">%</span>
                     </div>
                 </div>
-                <div>
+                <div class="border-l-4 border-violet-500 pl-3">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Laporan Hasil</label>
                     <div class="relative">
                         <input type="number" min="0" max="100" step="1"
                                x-model.number="client.state.form.iku.weights.report"
-                               class="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                               class="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono tabular-nums">
                         <span class="absolute right-3 top-2 text-gray-400">%</span>
                     </div>
                 </div>
-                <div>
+                <div class="border-l-4 border-amber-500 pl-3">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Survei Kepuasan</label>
                     <div class="relative">
                         <input type="number" min="0" max="100" step="1"
                                x-model.number="client.state.form.iku.weights.survey"
-                               class="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                               class="w-full px-3 py-2 pr-8 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono tabular-nums">
                         <span class="absolute right-3 top-2 text-gray-400">%</span>
                     </div>
                 </div>
@@ -100,8 +118,8 @@
             {{-- Weight Sum Indicator --}}
             <div class="mt-3 flex items-center gap-2">
                 <span class="text-sm text-gray-600">Total:</span>
-                <span class="font-medium" 
-                      :class="getIkuWeightSum() === 100 ? 'text-green-600' : 'text-red-600'"
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-semibold"
+                      :class="getIkuWeightSum() === 100 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800 animate-pulse'"
                       x-text="getIkuWeightSum() + '%'"></span>
                 <span x-show="getIkuWeightSum() !== 100" class="text-xs text-red-500">(harus 100%)</span>
             </div>
@@ -112,34 +130,55 @@
             <h3 class="text-sm font-semibold text-gray-800 mb-3">Target Sampel per Tahun</h3>
             <p class="text-xs text-gray-500 mb-4">Nilai D (target sampel dikerjakan) untuk perhitungan komponen Pemeriksaan Lab</p>
             
-            <div class="space-y-3">
-                <template x-for="(value, year) in client.state.form.iku.target_samples_by_year" :key="year">
-                    <div class="flex items-center gap-3">
-                        <span class="text-sm font-medium text-gray-700 w-16" x-text="year"></span>
-                        <input type="number" min="1" step="1"
-                               x-model.number="client.state.form.iku.target_samples_by_year[year]"
-                               class="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <span class="text-sm text-gray-500">sampel</span>
-                        <button type="button" @click="removeIkuTargetYear(year)" 
-                                class="text-red-500 hover:text-red-700 p-1" title="Hapus tahun">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                        </button>
-                    </div>
-                </template>
-            </div>
-
-            {{-- Add Year --}}
-            <div class="flex items-center gap-3 mt-3">
-                <input type="number" x-model.number="ikuNewYear" placeholder="Tahun" min="2020" max="2099"
-                       class="w-24 px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                <input type="number" x-model.number="ikuNewTarget" placeholder="Target" min="1"
-                       class="w-28 px-3 py-2 border border-gray-300 rounded-lg text-sm">
-                <button type="button" @click="addIkuTargetYear()"
-                        class="px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg">
-                    + Tambah Tahun
-                </button>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-gray-200">
+                            <th class="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Tahun</th>
+                            <th class="text-left py-2 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Target Sampel</th>
+                            <th class="text-right py-2 px-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <template x-for="(value, year) in client.state.form.iku.target_samples_by_year" :key="year">
+                            <tr class="border-b border-gray-100 even:bg-gray-50/50">
+                                <td class="py-2 px-3 font-medium text-gray-700 font-mono tabular-nums" x-text="year"></td>
+                                <td class="py-2 px-3">
+                                    <input type="number" min="1" step="1"
+                                           x-model.number="client.state.form.iku.target_samples_by_year[year]"
+                                           class="w-32 px-3 py-1.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono tabular-nums text-sm">
+                                    <span class="text-xs text-gray-500 ml-1">sampel</span>
+                                </td>
+                                <td class="py-2 px-3 text-right">
+                                    <button type="button" @click="removeIkuTargetYear(year)" 
+                                            class="text-red-500 hover:text-red-700 p-1" title="Hapus tahun">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                        </svg>
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                    <tfoot>
+                        <tr class="border-t border-gray-200">
+                            <td class="py-2 px-3">
+                                <input type="number" x-model.number="ikuNewYear" placeholder="Tahun" min="2020" max="2099"
+                                       class="w-24 px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-mono tabular-nums">
+                            </td>
+                            <td class="py-2 px-3">
+                                <input type="number" x-model.number="ikuNewTarget" placeholder="Target" min="1"
+                                       class="w-32 px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-mono tabular-nums">
+                            </td>
+                            <td class="py-2 px-3 text-right">
+                                <button type="button" @click="addIkuTargetYear()"
+                                        class="px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg">
+                                    + Tambah
+                                </button>
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
             </div>
         </div>
 
@@ -167,6 +206,166 @@
                 <span x-text="client.state.loadingSections?.iku ? 'Menyimpan...' : 'Simpan Bagian Ini'"></span>
             </button>
         </div>
+        </div>
+    </div>
+</div>
+
+{{-- IKU Preview Card --}}
+<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-4 mt-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h2 class="text-lg font-semibold text-gray-900">Preview IKU</h2>
+            <p class="text-sm text-gray-500 mt-1">Lihat nilai IKU dengan konfigurasi saat ini</p>
+        </div>
+        <button type="button" @click="refreshIkuPreview()"
+                :disabled="ikuPreview.loading"
+                class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50">
+            <svg x-show="ikuPreview.loading" class="animate-spin -ml-0.5 mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <svg x-show="!ikuPreview.loading" class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+            </svg>
+            Refresh
+        </button>
+    </div>
+
+    <div x-show="ikuPreview.data" x-cloak class="space-y-4">
+        {{-- IKU Value Display --}}
+        <div class="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
+            <div class="text-4xl font-bold text-blue-600 font-mono tabular-nums" x-text="(ikuPreview.data?.iku_value ?? 0).toFixed(2)"></div>
+            <div>
+                <div class="text-lg font-semibold text-gray-800">
+                    Kategori: <span class="text-blue-600" x-text="ikuPreview.data?.iku_category ?? '-'"></span>
+                </div>
+                <div class="text-sm text-gray-500">
+                    Periode: <span x-text="ikuPreview.data?.period?.start"></span> s/d <span x-text="ikuPreview.data?.period?.end"></span>
+                </div>
+            </div>
+        </div>
+
+        {{-- Component Breakdown --}}
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="p-3 bg-gray-50 rounded-lg">
+                <div class="text-xs text-gray-500 uppercase">Registrasi (R)</div>
+                <div class="text-lg font-semibold text-gray-800 font-mono tabular-nums" x-text="((ikuPreview.data?.components?.R ?? 0) * 100).toFixed(1) + '%'"></div>
+                <div class="text-xs text-gray-500">Index: <span class="font-mono tabular-nums" x-text="(ikuPreview.data?.indexes?.registration ?? 0).toFixed(2)"></span></div>
+            </div>
+            <div class="p-3 bg-gray-50 rounded-lg">
+                <div class="text-xs text-gray-500 uppercase">Pem. Lab (P)</div>
+                <div class="text-lg font-semibold text-gray-800 font-mono tabular-nums" x-text="((ikuPreview.data?.components?.P ?? 0) * 100).toFixed(1) + '%'"></div>
+                <div class="text-xs text-gray-500">Index: <span class="font-mono tabular-nums" x-text="(ikuPreview.data?.indexes?.lab_exam ?? 0).toFixed(2)"></span></div>
+            </div>
+            <div class="p-3 bg-gray-50 rounded-lg">
+                <div class="text-xs text-gray-500 uppercase">Laporan (L)</div>
+                <div class="text-lg font-semibold text-gray-800 font-mono tabular-nums" x-text="((ikuPreview.data?.components?.L ?? 0) * 100).toFixed(1) + '%'"></div>
+                <div class="text-xs text-gray-500">Index: <span class="font-mono tabular-nums" x-text="(ikuPreview.data?.indexes?.report ?? 0).toFixed(2)"></span></div>
+            </div>
+            <div class="p-3 bg-gray-50 rounded-lg">
+                <div class="text-xs text-gray-500 uppercase">Survey (S)</div>
+                <div class="text-lg font-semibold text-gray-800 font-mono tabular-nums" x-text="((ikuPreview.data?.components?.S ?? 0) * 100).toFixed(1) + '%'"></div>
+                <div class="text-xs text-gray-500">Index: <span class="font-mono tabular-nums" x-text="(ikuPreview.data?.indexes?.survey ?? 0).toFixed(2)"></span></div>
+            </div>
+        </div>
+
+        {{-- Raw Counts with Comprehensive Description --}}
+        {{-- Raw Counts with Comprehensive Description (collapsible) --}}
+        <details class="bg-gray-50 rounded-lg border border-gray-200" x-data="{ open: false }" @toggle="open = $el.open">
+            <summary class="cursor-pointer px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg select-none flex items-center gap-2 outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-90': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
+                Data Mentah & Rumus Perhitungan
+            </summary>
+            <div class="px-4 pb-4 space-y-3 border-t border-gray-200 pt-3">
+            {{-- Variable Descriptions --}}
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
+                <div class="flex items-start gap-2 p-2 bg-white rounded border border-gray-200">
+                    <span class="font-bold text-blue-600 w-6">A</span>
+                    <div>
+                        <div class="font-medium text-gray-800 font-mono tabular-nums" x-text="ikuPreview.data?.raw_counts?.A ?? 0"></div>
+                        <div class="text-xs text-gray-500">Jumlah permohonan dikerjakan (completed/ready_for_delivery)</div>
+                    </div>
+                </div>
+                <div class="flex items-start gap-2 p-2 bg-white rounded border border-gray-200">
+                    <span class="font-bold text-blue-600 w-6">B</span>
+                    <div>
+                        <div class="font-medium text-gray-800 font-mono tabular-nums" x-text="ikuPreview.data?.raw_counts?.B ?? 0"></div>
+                        <div class="text-xs text-gray-500">Jumlah permohonan diterima (submitted)</div>
+                    </div>
+                </div>
+                <div class="flex items-start gap-2 p-2 bg-white rounded border border-gray-200">
+                    <span class="font-bold text-blue-600 w-6">C</span>
+                    <div>
+                        <div class="font-medium text-gray-800 font-mono tabular-nums" x-text="ikuPreview.data?.raw_counts?.C ?? 0"></div>
+                        <div class="text-xs text-gray-500">Jumlah sampel selesai diuji</div>
+                    </div>
+                </div>
+                <div class="flex items-start gap-2 p-2 bg-white rounded border border-gray-200">
+                    <span class="font-bold text-green-600 w-6">D</span>
+                    <div>
+                        <div class="font-medium text-gray-800 font-mono tabular-nums" x-text="ikuPreview.data?.raw_counts?.D ?? 0"></div>
+                        <div class="text-xs text-gray-500">Target sampel per tahun (dari konfigurasi)</div>
+                    </div>
+                </div>
+                <div class="flex items-start gap-2 p-2 bg-white rounded border border-gray-200">
+                    <span class="font-bold text-blue-600 w-6">E</span>
+                    <div>
+                        <div class="font-medium text-gray-800 font-mono tabular-nums" x-text="ikuPreview.data?.raw_counts?.E ?? 0"></div>
+                        <div class="text-xs text-gray-500">Jumlah LHU diterbitkan</div>
+                    </div>
+                </div>
+                <div class="flex items-start gap-2 p-2 bg-white rounded border border-gray-200">
+                    <span class="font-bold text-blue-600 w-6">F</span>
+                    <div>
+                        <div class="font-medium text-gray-800 font-mono tabular-nums" x-text="ikuPreview.data?.raw_counts?.F ?? 0"></div>
+                        <div class="text-xs text-gray-500">Jumlah survey kepuasan diterima</div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Formula Explanation --}}
+            <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
+                <div class="font-medium text-blue-800 text-sm mb-2">Rumus Komponen:</div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                    <div class="bg-white p-2 rounded">
+                        <span class="font-bold">R</span> = A / B × 100%
+                        <div class="text-gray-500">Registrasi Permohonan</div>
+                    </div>
+                    <div class="bg-white p-2 rounded">
+                        <span class="font-bold">P</span> = C / D × 100%
+                        <div class="text-gray-500">Pemeriksaan Lab</div>
+                    </div>
+                    <div class="bg-white p-2 rounded">
+                        <span class="font-bold">L</span> = E / A × 100%
+                        <div class="text-gray-500">Laporan Hasil</div>
+                    </div>
+                    <div class="bg-white p-2 rounded">
+                        <span class="font-bold">S</span> = F / A × 100%
+                        <div class="text-gray-500">Survey Kepuasan</div>
+                    </div>
+                </div>
+                <div class="mt-2 text-xs text-blue-700">
+                    <strong>IKU</strong> = (R × Bobot_R + P × Bobot_P + L × Bobot_L + S × Bobot_S) × 5 &nbsp;→&nbsp; Skala 0-5
+                </div>
+            </div>
+
+            {{-- Category Scale --}}
+            <div class="mt-3 text-xs text-gray-600">
+                <strong>Kategori:</strong> 
+                A (Sangat Baik: 4.51-5) | 
+                B (Baik: 3.51-4.50) | 
+                C (Cukup: 2.51-3.50) | 
+                D (Kurang: 1.51-2.50) | 
+                E (Sangat Kurang: ≤1.50)
+            </div>
+            </div>
+        </details>
+    </div>
+
+    <div x-show="!ikuPreview.data && !ikuPreview.loading" class="text-center py-8 text-gray-500">
+        <p>Klik "Refresh" untuk melihat preview IKU</p>
     </div>
 </div>
 
@@ -209,154 +408,3 @@
     <div x-show="surveyExport.error" x-cloak class="text-sm text-red-600" x-text="surveyExport.error"></div>
 </div>
 
-{{-- IKU Preview Card --}}
-<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-4 mt-6">
-    <div class="flex items-center justify-between">
-        <div>
-            <h2 class="text-lg font-semibold text-gray-900">Preview IKU</h2>
-            <p class="text-sm text-gray-500 mt-1">Lihat nilai IKU dengan konfigurasi saat ini</p>
-        </div>
-        <button type="button" @click="refreshIkuPreview()"
-                :disabled="ikuPreview.loading"
-                class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50">
-            <svg x-show="ikuPreview.loading" class="animate-spin -ml-0.5 mr-1.5 h-4 w-4" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <svg x-show="!ikuPreview.loading" class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-            </svg>
-            Refresh
-        </button>
-    </div>
-
-    <div x-show="ikuPreview.data" x-cloak class="space-y-4">
-        {{-- IKU Value Display --}}
-        <div class="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
-            <div class="text-4xl font-bold text-blue-600" x-text="(ikuPreview.data?.iku_value ?? 0).toFixed(2)"></div>
-            <div>
-                <div class="text-lg font-semibold text-gray-800">
-                    Kategori: <span class="text-blue-600" x-text="ikuPreview.data?.iku_category ?? '-'"></span>
-                </div>
-                <div class="text-sm text-gray-500">
-                    Periode: <span x-text="ikuPreview.data?.period?.start"></span> s/d <span x-text="ikuPreview.data?.period?.end"></span>
-                </div>
-            </div>
-        </div>
-
-        {{-- Component Breakdown --}}
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div class="p-3 bg-gray-50 rounded-lg">
-                <div class="text-xs text-gray-500 uppercase">Registrasi (R)</div>
-                <div class="text-lg font-semibold text-gray-800" x-text="((ikuPreview.data?.components?.R ?? 0) * 100).toFixed(1) + '%'"></div>
-                <div class="text-xs text-gray-500">Index: <span x-text="(ikuPreview.data?.indexes?.registration ?? 0).toFixed(2)"></span></div>
-            </div>
-            <div class="p-3 bg-gray-50 rounded-lg">
-                <div class="text-xs text-gray-500 uppercase">Pem. Lab (P)</div>
-                <div class="text-lg font-semibold text-gray-800" x-text="((ikuPreview.data?.components?.P ?? 0) * 100).toFixed(1) + '%'"></div>
-                <div class="text-xs text-gray-500">Index: <span x-text="(ikuPreview.data?.indexes?.lab_exam ?? 0).toFixed(2)"></span></div>
-            </div>
-            <div class="p-3 bg-gray-50 rounded-lg">
-                <div class="text-xs text-gray-500 uppercase">Laporan (L)</div>
-                <div class="text-lg font-semibold text-gray-800" x-text="((ikuPreview.data?.components?.L ?? 0) * 100).toFixed(1) + '%'"></div>
-                <div class="text-xs text-gray-500">Index: <span x-text="(ikuPreview.data?.indexes?.report ?? 0).toFixed(2)"></span></div>
-            </div>
-            <div class="p-3 bg-gray-50 rounded-lg">
-                <div class="text-xs text-gray-500 uppercase">Survey (S)</div>
-                <div class="text-lg font-semibold text-gray-800" x-text="((ikuPreview.data?.components?.S ?? 0) * 100).toFixed(1) + '%'"></div>
-                <div class="text-xs text-gray-500">Index: <span x-text="(ikuPreview.data?.indexes?.survey ?? 0).toFixed(2)"></span></div>
-            </div>
-        </div>
-
-        {{-- Raw Counts with Comprehensive Description --}}
-        <div class="bg-gray-50 rounded-lg p-4 space-y-3">
-            <div class="font-medium text-gray-700 text-sm">Data Mentah & Rumus Perhitungan:</div>
-            
-            {{-- Variable Descriptions --}}
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">
-                <div class="flex items-start gap-2 p-2 bg-white rounded border border-gray-200">
-                    <span class="font-bold text-blue-600 w-6">A</span>
-                    <div>
-                        <div class="font-medium text-gray-800" x-text="ikuPreview.data?.raw_counts?.A ?? 0"></div>
-                        <div class="text-xs text-gray-500">Jumlah permohonan dikerjakan (completed/ready_for_delivery)</div>
-                    </div>
-                </div>
-                <div class="flex items-start gap-2 p-2 bg-white rounded border border-gray-200">
-                    <span class="font-bold text-blue-600 w-6">B</span>
-                    <div>
-                        <div class="font-medium text-gray-800" x-text="ikuPreview.data?.raw_counts?.B ?? 0"></div>
-                        <div class="text-xs text-gray-500">Jumlah permohonan diterima (submitted)</div>
-                    </div>
-                </div>
-                <div class="flex items-start gap-2 p-2 bg-white rounded border border-gray-200">
-                    <span class="font-bold text-blue-600 w-6">C</span>
-                    <div>
-                        <div class="font-medium text-gray-800" x-text="ikuPreview.data?.raw_counts?.C ?? 0"></div>
-                        <div class="text-xs text-gray-500">Jumlah sampel selesai diuji</div>
-                    </div>
-                </div>
-                <div class="flex items-start gap-2 p-2 bg-white rounded border border-gray-200">
-                    <span class="font-bold text-green-600 w-6">D</span>
-                    <div>
-                        <div class="font-medium text-gray-800" x-text="ikuPreview.data?.raw_counts?.D ?? 0"></div>
-                        <div class="text-xs text-gray-500">Target sampel per tahun (dari konfigurasi)</div>
-                    </div>
-                </div>
-                <div class="flex items-start gap-2 p-2 bg-white rounded border border-gray-200">
-                    <span class="font-bold text-blue-600 w-6">E</span>
-                    <div>
-                        <div class="font-medium text-gray-800" x-text="ikuPreview.data?.raw_counts?.E ?? 0"></div>
-                        <div class="text-xs text-gray-500">Jumlah LHU diterbitkan</div>
-                    </div>
-                </div>
-                <div class="flex items-start gap-2 p-2 bg-white rounded border border-gray-200">
-                    <span class="font-bold text-blue-600 w-6">F</span>
-                    <div>
-                        <div class="font-medium text-gray-800" x-text="ikuPreview.data?.raw_counts?.F ?? 0"></div>
-                        <div class="text-xs text-gray-500">Jumlah survey kepuasan diterima</div>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Formula Explanation --}}
-            <div class="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                <div class="font-medium text-blue-800 text-sm mb-2">Rumus Komponen:</div>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-                    <div class="bg-white p-2 rounded">
-                        <span class="font-bold">R</span> = A / B × 100%
-                        <div class="text-gray-500">Registrasi Permohonan</div>
-                    </div>
-                    <div class="bg-white p-2 rounded">
-                        <span class="font-bold">P</span> = C / D × 100%
-                        <div class="text-gray-500">Pemeriksaan Lab</div>
-                    </div>
-                    <div class="bg-white p-2 rounded">
-                        <span class="font-bold">L</span> = E / A × 100%
-                        <div class="text-gray-500">Laporan Hasil</div>
-                    </div>
-                    <div class="bg-white p-2 rounded">
-                        <span class="font-bold">S</span> = F / A × 100%
-                        <div class="text-gray-500">Survey Kepuasan</div>
-                    </div>
-                </div>
-                <div class="mt-2 text-xs text-blue-700">
-                    <strong>IKU</strong> = (R × Bobot_R + P × Bobot_P + L × Bobot_L + S × Bobot_S) × 5 &nbsp;→&nbsp; Skala 0-5
-                </div>
-            </div>
-
-            {{-- Category Scale --}}
-            <div class="mt-3 text-xs text-gray-600">
-                <strong>Kategori:</strong> 
-                A (Sangat Baik: 4.51-5) | 
-                B (Baik: 3.51-4.50) | 
-                C (Cukup: 2.51-3.50) | 
-                D (Kurang: 1.51-2.50) | 
-                E (Sangat Kurang: ≤1.50)
-            </div>
-        </div>
-    </div>
-
-    <div x-show="!ikuPreview.data && !ikuPreview.loading" class="text-center py-8 text-gray-500">
-        <p>Klik "Refresh" untuk melihat preview IKU</p>
-    </div>
-</div>
