@@ -1,0 +1,243 @@
+<?php
+
+namespace Tests\Feature\Quality;
+
+use App\Models\Permission;
+use App\Models\QmhDocumentRevision;
+use App\Models\RolePermission;
+use App\Models\User;
+use App\Services\Quality\QmhDocumentService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class QmhRevisionWorkflowTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->createQmhPermissions();
+    }
+
+    public function test_unauthenticated_user_cannot_lock_revision(): void
+    {
+        /** @var User $creator */
+        $creator = User::factory()->create(['role' => 'admin']);
+        $revision = $this->createDraftRevision($creator);
+
+        $response = $this->postJson("/api/quality/revisions/{$revision->id}/lock");
+
+        $response->assertUnauthorized();
+    }
+
+    public function test_lock_conflict_returns_409_for_another_user(): void
+    {
+        /** @var User $owner */
+        $owner = User::factory()->create(['role' => 'admin']);
+        /** @var User $other */
+        $other = User::factory()->create(['role' => 'admin']);
+        $revision = $this->createDraftRevision($owner);
+
+        $this->actingAs($owner)
+            ->postJson("/api/quality/revisions/{$revision->id}/lock")
+            ->assertOk();
+
+        $this->actingAs($other)
+            ->postJson("/api/quality/revisions/{$revision->id}/lock")
+            ->assertStatus(409);
+    }
+
+    public function test_only_lock_owner_can_send_heartbeat(): void
+    {
+        /** @var User $owner */
+        $owner = User::factory()->create(['role' => 'admin']);
+        /** @var User $other */
+        $other = User::factory()->create(['role' => 'admin']);
+        $revision = $this->createDraftRevision($owner);
+
+        $this->actingAs($owner)
+            ->postJson("/api/quality/revisions/{$revision->id}/lock")
+            ->assertOk();
+
+        $this->actingAs($other)
+            ->postJson("/api/quality/revisions/{$revision->id}/heartbeat")
+            ->assertForbidden();
+
+        $this->actingAs($owner)
+            ->postJson("/api/quality/revisions/{$revision->id}/heartbeat")
+            ->assertOk();
+    }
+
+    public function test_force_unlock_requires_reason_and_records_force_unlocker(): void
+    {
+        /** @var User $owner */
+        $owner = User::factory()->create(['role' => 'admin']);
+        /** @var User $forcer */
+        $forcer = User::factory()->create(['role' => 'admin']);
+        $revision = $this->createDraftRevision($owner);
+
+        $this->actingAs($owner)
+            ->postJson("/api/quality/revisions/{$revision->id}/lock")
+            ->assertOk();
+
+        $this->actingAs($forcer)
+            ->postJson("/api/quality/revisions/{$revision->id}/unlock", [
+                'force' => true,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['reason']);
+
+        $this->actingAs($forcer)
+            ->postJson("/api/quality/revisions/{$revision->id}/unlock", [
+                'force' => true,
+                'reason' => 'Emergency handover',
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('qmh_document_locks', [
+            'revision_id' => $revision->id,
+            'force_unlocked_by' => $forcer->id,
+            'force_unlocked_reason' => 'Emergency handover',
+        ]);
+    }
+
+    public function test_submit_requires_lock_owner_and_moves_revision_to_in_review(): void
+    {
+        /** @var User $creator */
+        $creator = User::factory()->create(['role' => 'admin']);
+        /** @var User $reviewer */
+        $reviewer = User::factory()->create(['role' => 'admin']);
+        /** @var User $other */
+        $other = User::factory()->create(['role' => 'admin']);
+        $revision = $this->createDraftRevision($creator);
+
+        $this->actingAs($creator)
+            ->postJson("/api/quality/revisions/{$revision->id}/lock")
+            ->assertOk();
+
+        $this->actingAs($other)
+            ->postJson("/api/quality/revisions/{$revision->id}/submit", [
+                'reviewer_id' => $reviewer->id,
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($creator)
+            ->postJson("/api/quality/revisions/{$revision->id}/submit", [
+                'reviewer_id' => $reviewer->id,
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('qmh_document_revisions', [
+            'id' => $revision->id,
+            'status' => 'in_review',
+            'diperiksa_oleh' => $reviewer->id,
+        ]);
+    }
+
+    public function test_review_endpoint_supports_return_and_pass_paths_with_sod_rules(): void
+    {
+        /** @var User $creator */
+        $creator = User::factory()->create(['role' => 'admin']);
+        /** @var User $reviewer */
+        $reviewer = User::factory()->create(['role' => 'admin']);
+        /** @var User $approver */
+        $approver = User::factory()->create(['role' => 'admin']);
+        $revision = $this->createDraftRevision($creator);
+
+        $this->actingAs($creator)->postJson("/api/quality/revisions/{$revision->id}/lock")->assertOk();
+        $this->actingAs($creator)->postJson("/api/quality/revisions/{$revision->id}/submit", [
+            'reviewer_id' => $reviewer->id,
+        ])->assertOk();
+
+        $this->actingAs($reviewer)
+            ->postJson("/api/quality/revisions/{$revision->id}/review", [
+                'action' => 'return',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['note']);
+
+        $this->actingAs($reviewer)
+            ->postJson("/api/quality/revisions/{$revision->id}/review", [
+                'action' => 'return',
+                'note' => 'Perlu perbaikan minor',
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('qmh_document_revisions', [
+            'id' => $revision->id,
+            'status' => 'draft',
+        ]);
+
+        $this->actingAs($creator)->postJson("/api/quality/revisions/{$revision->id}/lock")->assertOk();
+        $this->actingAs($creator)->postJson("/api/quality/revisions/{$revision->id}/submit", [
+            'reviewer_id' => $reviewer->id,
+        ])->assertOk();
+
+        $this->actingAs($reviewer)
+            ->postJson("/api/quality/revisions/{$revision->id}/review", [
+                'action' => 'pass',
+                'approver_id' => $creator->id,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['approver_id']);
+
+        $this->actingAs($reviewer)
+            ->postJson("/api/quality/revisions/{$revision->id}/review", [
+                'action' => 'pass',
+                'approver_id' => $approver->id,
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('qmh_document_revisions', [
+            'id' => $revision->id,
+            'status' => 'in_approval',
+            'disahkan_oleh' => $approver->id,
+        ]);
+    }
+
+    private function createDraftRevision(User $creator): QmhDocumentRevision
+    {
+        $service = new QmhDocumentService;
+        $document = $service->createDraft([
+            'doc_code' => 'QMH-LOCK-'.str((string) now()->unix())->append((string) random_int(100, 999)),
+            'title' => 'Draft untuk Locking',
+            'clause' => 8,
+            'doc_type' => 'sop',
+        ], $creator->id);
+
+        return $document->currentRevision;
+    }
+
+    private function createQmhPermissions(): void
+    {
+        $viewPermission = Permission::query()->updateOrCreate(
+            ['name' => 'qmh.view'],
+            [
+                'display_name' => 'Lihat Quality Management Hub',
+                'module' => 'qmh',
+                'action' => 'view',
+            ]
+        );
+
+        $createPermission = Permission::query()->updateOrCreate(
+            ['name' => 'qmh.create'],
+            [
+                'display_name' => 'Buat Dokumen Quality Management Hub',
+                'module' => 'qmh',
+                'action' => 'create',
+            ]
+        );
+
+        RolePermission::query()->updateOrCreate([
+            'role' => 'admin',
+            'permission_id' => $viewPermission->id,
+        ]);
+
+        RolePermission::query()->updateOrCreate([
+            'role' => 'admin',
+            'permission_id' => $createPermission->id,
+        ]);
+    }
+}

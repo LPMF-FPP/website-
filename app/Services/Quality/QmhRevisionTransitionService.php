@@ -1,0 +1,121 @@
+<?php
+
+namespace App\Services\Quality;
+
+use App\Models\QmhDocumentRevision;
+use App\Models\QmhWorkflowEvent;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+
+class QmhRevisionTransitionService
+{
+    public function submitForReview(QmhDocumentRevision $revision, int $actorId, int $reviewerId): QmhDocumentRevision
+    {
+        return DB::transaction(function () use ($revision, $actorId, $reviewerId) {
+            $revision->refresh();
+
+            if ($revision->status !== 'draft') {
+                throw ValidationException::withMessages([
+                    'status' => 'Hanya revisi draft yang dapat dikirim ke review.',
+                ]);
+            }
+
+            if ($revision->dibuat_oleh === $reviewerId) {
+                throw ValidationException::withMessages([
+                    'reviewer_id' => 'Pemeriksa tidak boleh sama dengan pembuat.',
+                ]);
+            }
+
+            $lock = $revision->lock()->lockForUpdate()->first();
+            if ($lock === null || ! $lock->isActive() || $lock->locked_by !== $actorId) {
+                throw new AuthorizationException('Submit review hanya bisa dilakukan oleh pemegang lock aktif.');
+            }
+
+            $revision->status = 'in_review';
+            $revision->diperiksa_oleh = $reviewerId;
+            $revision->submitted_at = now();
+            $revision->save();
+
+            $lock->expires_at = now();
+            $lock->save();
+
+            $this->persistWorkflowEvent($revision->id, $actorId, 'submit_review', [
+                'reviewer_id' => $reviewerId,
+            ]);
+
+            return $revision->fresh();
+        });
+    }
+
+    public function returnToDraft(QmhDocumentRevision $revision, int $actorId, string $note): QmhDocumentRevision
+    {
+        return DB::transaction(function () use ($revision, $actorId, $note) {
+            $revision->refresh();
+
+            if ($revision->status !== 'in_review') {
+                throw ValidationException::withMessages([
+                    'status' => 'Hanya revisi in_review yang bisa dikembalikan ke draft.',
+                ]);
+            }
+
+            if ($revision->diperiksa_oleh !== $actorId) {
+                throw new AuthorizationException('Hanya pemeriksa yang ditugaskan yang dapat mengembalikan draft.');
+            }
+
+            $revision->status = 'draft';
+            $revision->reviewed_at = now();
+            $revision->save();
+
+            $this->persistWorkflowEvent($revision->id, $actorId, 'review_return', [
+                'note' => $note,
+            ]);
+
+            return $revision->fresh();
+        });
+    }
+
+    public function passReview(QmhDocumentRevision $revision, int $actorId, int $approverId): QmhDocumentRevision
+    {
+        return DB::transaction(function () use ($revision, $actorId, $approverId) {
+            $revision->refresh();
+
+            if ($revision->status !== 'in_review') {
+                throw ValidationException::withMessages([
+                    'status' => 'Hanya revisi in_review yang bisa diteruskan ke approval.',
+                ]);
+            }
+
+            if ($revision->diperiksa_oleh !== $actorId) {
+                throw new AuthorizationException('Hanya pemeriksa yang ditugaskan yang dapat meneruskan ke approval.');
+            }
+
+            if ($revision->dibuat_oleh === $approverId || $revision->diperiksa_oleh === $approverId) {
+                throw ValidationException::withMessages([
+                    'approver_id' => 'Pengesah harus berbeda dari pembuat dan pemeriksa.',
+                ]);
+            }
+
+            $revision->status = 'in_approval';
+            $revision->disahkan_oleh = $approverId;
+            $revision->reviewed_at = now();
+            $revision->save();
+
+            $this->persistWorkflowEvent($revision->id, $actorId, 'review_pass', [
+                'approver_id' => $approverId,
+            ]);
+
+            return $revision->fresh();
+        });
+    }
+
+    protected function persistWorkflowEvent(int $revisionId, int $actorId, string $eventType, array $payload): void
+    {
+        QmhWorkflowEvent::query()->create([
+            'revision_id' => $revisionId,
+            'event_type' => $eventType,
+            'actor_id' => $actorId,
+            'payload_json' => $payload,
+        ]);
+    }
+}

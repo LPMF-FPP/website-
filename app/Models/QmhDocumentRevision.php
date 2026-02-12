@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class QmhDocumentRevision extends Model
 {
@@ -51,5 +52,10 @@ class QmhDocumentRevision extends Model
     public function workflowEvents(): HasMany
     {
         return $this->hasMany(QmhWorkflowEvent::class, 'revision_id');
+    }
+
+    public function lock(): HasOne
+    {
+        return $this->hasOne(QmhDocumentLock::class, 'revision_id');
     }
 }

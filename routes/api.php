@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\DocumentDownloadController;
 use App\Http\Controllers\Api\JobStatusController;
 use App\Http\Controllers\Api\PeopleController;
 use App\Http\Controllers\Api\Quality\QmhDocumentController;
+use App\Http\Controllers\Api\Quality\QmhRevisionWorkflowController;
 use App\Http\Controllers\Api\RequestDocumentsController;
 use App\Http\Controllers\Api\SampleProcessController;
 use App\Http\Controllers\Api\SearchController;
@@ -55,6 +56,14 @@ Route::middleware(['throttle:120,1'])->group(function () {
 
         Route::post('/documents', [QmhDocumentController::class, 'store'])
             ->middleware('permission:qmh.create');
+
+        Route::prefix('revisions/{revision}')->middleware('permission:qmh.create')->group(function () {
+            Route::post('/lock', [QmhRevisionWorkflowController::class, 'lock']);
+            Route::post('/heartbeat', [QmhRevisionWorkflowController::class, 'heartbeat']);
+            Route::post('/unlock', [QmhRevisionWorkflowController::class, 'unlock']);
+            Route::post('/submit', [QmhRevisionWorkflowController::class, 'submit']);
+            Route::post('/review', [QmhRevisionWorkflowController::class, 'review']);
+        });
     });
 
     Route::middleware(['auth', 'verified'])->prefix('settings')->group(function () {
