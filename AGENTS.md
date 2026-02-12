@@ -1,235 +1,161 @@
-# Agent Guide & Project Workflow
+# AGENTS.md — LPMF LIMS Codebase Guide
 
-This file defines the strict workflow, standards, and commands for all agents operating in this repository.
+## Stack
 
-## 1. Project Snapshot
+Laravel 12 (PHP 8.2+), Blade, Alpine.js 3, Tailwind CSS 3, Vite 7, PostgreSQL.
+Domain: Forensic pharmaceutical laboratory management (Indonesian government context).
+UI text in Bahasa Indonesia, code identifiers in English.
 
-- **Stack**: Laravel 12 (PHP 8.2+), Blade, Alpine.js, Tailwind CSS, Node.js 20+.
-- **Core Structure**: `app/` (Backend), `resources/` (Frontend), `tests/` (Pest + Dusk), `scripts/audit/` (Guardrails).
-- **Audit System**: Automated CSS/JS/A11y audits via `npm run audit:*`. Reports in `report/`.
-
-## 2. Unified Workflow Architecture
-
-### 2.1 Two-Layer System
-
-| Layer           | System      | Purpose                   | Location                                 |
-| --------------- | ----------- | ------------------------- | ---------------------------------------- |
-| **Process**     | Superpowers | HOW to work (methodology) | `~/.config/opencode/skills/superpowers/` |
-| **Specialists** | BMAD Agents | WHO does specialized work | `.opencode/agent/`                       |
-
-### 2.2 The Golden Rule
-
-> **Invoke Superpowers skills BEFORE any response.**
-> Delegate to BMAD agents only for specialized work.
-
-### 2.3 Decision Tree
-
-```
-User Request Received
-        │
-        ▼
-┌───────────────────────┐
-│ Check Superpowers     │
-│ skill applicability   │
-└───────────────────────┘
-        │
-        ├─── Creative work? ──→ brainstorming
-        ├─── Implementation? ─→ writing-plans → TDD
-        ├─── Bug/Error? ──────→ systematic-debugging
-        ├─── UI work? ────────→ using-rams / using-ui-skills
-        ├─── Before commit? ──→ verification-before-completion
-        └─── Merge/PR? ───────→ finishing-a-development-branch
-                │
-                ▼
-┌───────────────────────┐
-│ Need specialized      │
-│ expertise?            │
-└───────────────────────┘
-        │
-        ├─── Architecture ────→ @bmm-architect (Task tool)
-        ├─── UI/UX deep work ─→ @bmm-ux-designer (Task tool)
-        ├─── Parallel impl ───→ @bmm-dev (Task tool)
-        └─── Requirements ────→ @bmm-analyst (Task tool)
-```
-
-## 3. Development Commands
+## Commands
 
 ### Setup & Build
 
 ```bash
-composer install && npm install  # Initial setup
-npm run build                    # Build frontend assets
-php artisan serve                # Start dev server (Required for audits)
+composer install && npm install   # Install all dependencies
+npm run build                     # Build frontend (Vite)
+php artisan serve                 # Dev server (required for audits/E2E)
+composer run dev                  # Concurrent: serve + queue + pail + vite
 ```
 
-### Testing (Crucial)
-
-**Always run tests before pushing.**
+### Testing
 
 ```bash
-# Run ALL tests
-npm run test                     # Parallel PHP + E2E
+# PHP (Pest)
+php vendor/bin/pest                              # All PHP tests
+php vendor/bin/pest --filter UserTest             # Single test by name
+php vendor/bin/pest tests/Unit/ExampleTest.php    # Single file
+php vendor/bin/pest tests/Feature/Settings/       # Single directory
+npm run test:php                                  # Pest --parallel --stop-on-failure
 
-# PHP Tests (Pest)
-npm run test:php                 # Run all PHP tests
-php vendor/bin/pest              # Direct execution
-php vendor/bin/pest --filter UserTest  # Run SINGLE test method/class
-php vendor/bin/pest tests/Unit/ExampleTest.php # Run SPECIFIC FILE
+# E2E (Dusk) — requires `php artisan serve` running
+php artisan dusk                                  # All browser tests
+php artisan dusk tests/Browser/ExampleTest.php    # Single E2E file
+npm run test:e2e                                  # Alias
 
-# E2E Tests (Dusk)
-npm run test:e2e                 # Run all Browser tests
-php artisan dusk tests/Browser/ExampleTest.php # Run SPECIFIC E2E file
+# All tests (parallel PHP + E2E)
+npm run test
 ```
 
-### Auditing & Linting
-
-**"Safe Mode" enforces strict CSS rules.**
+### Linting & Formatting
 
 ```bash
-npm run audit:critical  # MUST PASS (Guard + Cascade + Contrast)
-npm run audit:all       # Full suite (A11y, Lighthouse, etc.)
-npm run audit:guard     # Check for layout property violations in pd-*.css
-
-# Fix Code Style
-./vendor/bin/pint       # Fix PHP code style (PSR-12)
-npx eslint "resources/js/**/*.js" --fix
-npx stylelint "resources/**/*.css" --fix
+./vendor/bin/pint                               # PHP code style (PSR-12)
+npx eslint "resources/js/**/*.js" --fix         # JS lint + fix
+npx stylelint "resources/**/*.css" --fix        # CSS lint + fix
 ```
 
-## 4. Code Style & Standards
-
-### PHP (Laravel)
-
-- **Formatting**: PSR-12 via Pint.
-- **Naming**: `PascalCase` classes, `camelCase` methods, `snake_case` DB columns.
-- **Strictness**: `declare(strict_types=1);` preferred. Return types mandatory.
-- **Safety**: Use `try-catch` + `Log::error()` for external services. No raw exceptions in UI.
-
-### JavaScript (Alpine/Vue)
-
-- **Linting**: ESLint standard. No `eval()`, `var`, or layout thrashing.
-- **Imports**: Sorted alphabetically (builtin > external > internal).
-- **Cleanup**: Remove event listeners to prevent memory leaks.
-
-### CSS (Tailwind)
-
-- **Linting**: Stylelint standard. Avoid ID selectors, `!important` (except utilities), and high specificity.
-- **Performance**: Animate `transform`/`opacity` only.
-- **Safe Mode**: Overlay files (`styles/pd-*.css`) **CANNOT** contain layout properties (margin, padding, width).
-
-## 5. Documentation Protocol
-
-**⚠️ DO NOT CREATE NEW .md FILES** (Exceptions: `README.md`, `report/README.md`, `todos.md`).
-
-1. **WALKTHROUGH.md**: The single source of truth. Append new features with `## [Category]/[Feature]`.
-2. **todos.md**: Active task tracker. Overwrite for current task.
-3. **Docs**: Update `/changelogs` route content to match `WALKTHROUGH.md`.
-
-## 6. Workflow & Git
-
-### 6.1 Unified Workflow
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ 1. GATE: using-superpowers                                   │
-│    "Which skill applies to this task?"                       │
-└─────────────────────────────────────────────────────────────┘
-                           │
-┌─────────────────────────────────────────────────────────────┐
-│ 2. PROCESS: Invoke appropriate skill                         │
-│    brainstorming → writing-plans → TDD → verification       │
-└─────────────────────────────────────────────────────────────┘
-                           │
-┌─────────────────────────────────────────────────────────────┐
-│ 3. DELEGATE (if needed): Task tool → BMAD Agent             │
-│    @bmm-architect, @bmm-ux-designer, @bmm-dev               │
-└─────────────────────────────────────────────────────────────┘
-                           │
-┌─────────────────────────────────────────────────────────────┐
-│ 4. QUALITY GATE: verification-before-completion              │
-│    npm run test && npm run audit:critical                    │
-└─────────────────────────────────────────────────────────────┘
-                           │
-┌─────────────────────────────────────────────────────────────┐
-│ 5. COMPLETE: finishing-a-development-branch                  │
-│    Commit → Merge/PR → Cleanup                               │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### 6.2 Workflow by Task Type
-
-| Task Type       | Workflow                                                             |
-| --------------- | -------------------------------------------------------------------- |
-| **New Feature** | brainstorming → writing-plans → TDD → verification → finish          |
-| **Bug Fix**     | systematic-debugging → TDD (regression test) → verification → finish |
-| **UI Work**     | brainstorming → @bmm-ux-designer → rams + ui-skills → verification   |
-| **Refactor**    | writing-plans → TDD → verification → finish                          |
-| **Quick Fix**   | systematic-debugging → verification → finish                         |
-
-### 6.3 Quality Gates (Mandatory)
-
-Before ANY commit:
+### Auditing
 
 ```bash
-npm run test              # All tests pass
-npm run audit:critical    # A11y + CSS guards
-./vendor/bin/pint         # PHP style
+npm run audit:critical   # MUST PASS before commit (guard + cascade + contrast)
+npm run audit:all        # Full suite (a11y, lighthouse, coverage, etc.)
+npm run audit:guard      # Check pd-*.css for layout property violations
 ```
 
-## 7. Design Guidelines (Vercel + Rams/UI Skills)
+### Quality Gate (before every commit)
 
-- **Core**: Mobile-first, Keyboard accessible, Optimistic UI.
-- **Commands**:
-    - `/rams`: Review UI for accessibility (Alt text, Labels, Contrast).
-    - `/ui-skills`: Enforce constraints (No `h-screen`, `text-balance`, `tabular-nums`).
-- **Checklist**:
-    - [ ] Inputs have labels?
-    - [ ] Loading states (skeletons)?
-    - [ ] Touch targets >= 44px?
+```bash
+npm run test && npm run audit:critical && ./vendor/bin/pint
+```
 
-## 8. Definition of Done
+## Project Structure
 
-- [ ] All tests passed (`npm run test`).
-- [ ] Critical audits passed (`npm run audit:critical`).
-- [ ] Code formatted (`pint`, `eslint --fix`).
-- [ ] `WALKTHROUGH.md` updated.
-- [ ] `todos.md` tasks marked `[x]`.
+```
+app/
+  Console/         Artisan commands
+  Enums/           PHP 8.1 backed enums (14)
+  Http/Controllers/ 34 controllers (+ Api/, Auth/, Inventory/, Settings/)
+  Http/Middleware/  CheckPermission (RBAC)
+  Http/Requests/   Form request validation
+  Models/          59 Eloquent models
+  Observers/       Model lifecycle hooks
+  Policies/        Authorization policies
+  Repositories/    SettingsRepository, DocumentTemplateRepository
+  Services/        28 services (AI/, WhatsApp/, Inventory/, etc.)
+  helpers.php      Global helpers: settings(), fmt_date(), fmt_number()
+resources/
+  css/             Tailwind entry, themes, design tokens
+  js/              Alpine.js components, stores, utils
+  views/           Blade templates (35 subdirectories)
+styles/            pd-*.css overlay files (Safe Mode — NO layout properties)
+tests/
+  Feature/         50 test files (Controllers, API, WhatsApp, Settings, etc.)
+  Unit/            Model + Service + Repository tests
+  Browser/         21 Dusk E2E test dirs (A11y, Mobile, Visual, etc.)
+scripts/audit/     Automated CSS/JS/A11y audit scripts
+.opencode/agent/   BMAD agent definitions (20 agents)
+```
 
-## 9. Quick Reference
+## Code Style
 
-### 9.1 Skill Invocation Table
+### PHP
 
-| Trigger                | Skill to Invoke                  | Purpose          |
-| ---------------------- | -------------------------------- | ---------------- |
-| "Add feature X"        | `brainstorming`                  | Design first     |
-| "Implement X"          | `writing-plans` → `TDD`          | Plan then code   |
-| "Fix bug" / "Error"    | `systematic-debugging`           | Root cause first |
-| "Review UI"            | `using-rams`                     | A11y check       |
-| "Check UI constraints" | `using-ui-skills`                | UI rules         |
-| "Before commit"        | `verification-before-completion` | Evidence first   |
-| "Merge/PR"             | `finishing-a-development-branch` | Clean finish     |
-| "Multiple tasks"       | `dispatching-parallel-agents`    | Parallel work    |
+- **Formatter**: Laravel Pint (PSR-12, default config — no `pint.json`).
+- **Strict types**: `declare(strict_types=1);` preferred for new files.
+- **Naming**: `PascalCase` classes, `camelCase` methods, `snake_case` DB columns/properties.
+- **Return types**: Always declare on methods.
+- **Architecture**: Service layer for business logic. Controllers stay thin.
+  Constructor injection with `private readonly`: `__construct(private readonly FooService $foo)`.
+- **Models**: Explicit `$fillable`, `$casts`. Relationships with return types (`BelongsTo`, `HasMany`).
+  Use scopes, accessors, observers for reusable query/model logic.
+- **Enums**: PHP 8.1 backed enums with `label()`, state machine methods (`canTransitionTo()`).
+- **Error handling**: `try-catch` + `Log::error()` for external services. Never expose raw exceptions to UI.
+- **Helpers**: `settings()`, `fmt_date()`, `fmt_number()` — global helpers in `app/helpers.php`.
+- **Testing**: Pest syntax. `uses(RefreshDatabase::class)`. `actingAs($user)`. `settings_fake()` for test config.
 
-### 9.2 BMAD Agent Delegation
+### JavaScript / Alpine.js
 
-| Need                  | Agent             | Invoke via |
-| --------------------- | ----------------- | ---------- |
-| Architecture decision | `bmm-architect`   | Task tool  |
-| UI/UX specialized     | `bmm-ux-designer` | Task tool  |
-| Heavy implementation  | `bmm-dev`         | Task tool  |
-| Requirements analysis | `bmm-analyst`     | Task tool  |
+- **Linter**: ESLint (`eslint:recommended` + `import` + `unicorn` plugins).
+- **No** `eval()`, `var`, or direct `window.innerWidth`/`document.body` access (DOM thrashing prevention).
+- **Prefer** `const` over `let`. Use `===` strictly.
+- **Import order**: builtin > external > internal (enforced by ESLint).
+- **Alpine patterns**: Register components via `Alpine.data()`, stores via `Alpine.store()`.
+  Clean up event listeners to prevent memory leaks.
+- **AJAX**: Axios (configured in `bootstrap.js`). CSRF token from meta tag.
 
-### 9.3 Iron Laws (Non-Negotiable)
+### CSS / Tailwind
 
-| Skill                            | Iron Law                                      |
-| -------------------------------- | --------------------------------------------- |
-| `TDD`                            | NO production code WITHOUT failing test first |
-| `systematic-debugging`           | NO fixes WITHOUT root cause investigation     |
-| `verification-before-completion` | NO claims WITHOUT fresh evidence              |
+- **Linter**: Stylelint (`stylelint-config-standard` + SCSS + order + performance plugins).
+- **Max specificity**: `0,4,0`. No ID selectors. Max 4 compound selectors.
+- **No `!important`** (warning severity, except utility classes).
+- **Performance**: Only animate `transform`/`opacity` (composited properties).
+- **Custom properties**: Must follow `pd-*`, `theme-*`, or `color-*` naming.
+- **Property order**: positioning > display > box model > visual > typography > transitions.
+- **Safe Mode**: Files in `styles/pd-*.css` **CANNOT** contain layout properties
+  (margin, padding, width, height, position, display, flex, grid, gap, overflow, transform).
+  Enforced by `scripts/audit/guard-nonlayout.mjs`.
+- **Design tokens**: CSS custom properties (`--pd-sem-color-*`, `--pd-spacing-*`).
+  Tailwind extended with medical/health color palette and custom plugin utilities.
+- **Dark mode**: `.dark` class + `[data-theme="dark"]` attribute.
 
-## 10. Deployment
+## BMAD Agent System
 
-> **Info deploy ada di `.deploy.local`** (file ini di-gitignore, tidak masuk repo).
->
-> File tersebut berisi host, path, dan commands untuk deploy ke production.
-> Jika file tidak ada, minta user untuk membuatnya atau berikan template.
+Primary plugin system. Agents in `.opencode/agent/`. Delegate specialized work via Task tool:
+
+| Need                  | Agent             | When to use                          |
+| --------------------- | ----------------- | ------------------------------------ |
+| Architecture decision | `bmm-architect`   | System design, DB schema, API design |
+| UI/UX deep work       | `bmm-ux-designer` | Component design, accessibility      |
+| Heavy implementation  | `bmm-dev`         | Large features, parallel coding      |
+| Requirements analysis | `bmm-analyst`     | Spec refinement, acceptance criteria |
+| Quality assurance     | `bmm-qa`          | Test strategy, coverage gaps         |
+
+## Documentation Rules
+
+- **DO NOT** create new `.md` files. Exceptions: `README.md`, `report/README.md`, `todos.md`.
+- **WALKTHROUGH.md**: Single source of truth. Append with `## [Category]/[Feature]`.
+- **todos.md**: Current task tracker. Overwrite per task.
+
+## Key Domain Concepts
+
+- **TestRequest** → **Sample** (with `sample_code`) → **SampleTestProcess** (4 stages: preparation > instrumentation > interpretation > delivery) → **TestResult**
+- **Delivery/DeliveryItem**: Sample delivery tracking.
+- **Inventory**: Items, Balances, Lots, Locations, Movements, Alerts, Disposal.
+- **WhatsApp**: GOWA API integration — broadcasts, templates, reminders, commands.
+- **IKU**: Performance index calculation (government KPI system).
+- **Numbering**: Auto-generated document codes with repair tools.
+- **Permissions**: 33 permissions with role + user-level overrides (spatie/laravel-permission).
+
+## Deployment
+
+Config in `.deploy.local` (gitignored). Ask user if missing.
