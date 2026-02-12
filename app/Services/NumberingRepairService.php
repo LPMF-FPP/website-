@@ -19,6 +19,17 @@ use Illuminate\Support\Str;
 
 class NumberingRepairService
 {
+    /**
+     * Scopes that inherit their sequence number from parent documents.
+     * These use forced_sequence in NumberingService::issue() and bypass
+     * the Sequence counter entirely. Gap detection is not applicable
+     * because gaps mirror parent document gaps (by design).
+     *
+     * - lhu: inherits sequence from sample_code (via SampleTestProcessController::ensureLhuNumber)
+     * - ba_penyerahan: inherits sequence from request_number (via DeliveryController::handoverGenerate)
+     */
+    public const INHERITED_SEQUENCE_SCOPES = ['lhu', 'ba_penyerahan'];
+
     protected array $scopeConfig = [
         'ba' => [
             'model' => TestRequest::class,
@@ -67,6 +78,14 @@ class NumberingRepairService
     public function getScopeConfig(string $scope): ?array
     {
         return $this->scopeConfig[$scope] ?? null;
+    }
+
+    /**
+     * Check if a scope uses inherited (forced) sequence numbers
+     */
+    public function usesInheritedSequence(string $scope): bool
+    {
+        return in_array($scope, self::INHERITED_SEQUENCE_SCOPES, true);
     }
 
     /**
@@ -252,7 +271,9 @@ class NumberingRepairService
 
         $problems = [];
         $duplicates = $this->detectDuplicates($scope, $documents);
-        $gaps = $this->detectGaps($scope, $documents);
+        $gaps = in_array($scope, self::INHERITED_SEQUENCE_SCOPES, true)
+            ? []
+            : $this->detectGaps($scope, $documents);
 
         foreach ($duplicates as $duplicate) {
             $problems[] = array_merge($duplicate, ['type' => 'duplicate']);
@@ -269,6 +290,7 @@ class NumberingRepairService
         return [
             'scope' => $scope,
             'bucket' => $bucket,
+            'uses_inherited_sequence' => in_array($scope, self::INHERITED_SEQUENCE_SCOPES, true),
             'problems' => $problems,
             'problem_count' => [
                 'duplicate' => count($duplicates),
