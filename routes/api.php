@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\DocumentDownloadController;
 use App\Http\Controllers\Api\JobStatusController;
 use App\Http\Controllers\Api\PeopleController;
 use App\Http\Controllers\Api\Quality\QmhDocumentController;
+use App\Http\Controllers\Api\Quality\QmhReportingController;
 use App\Http\Controllers\Api\Quality\QmhRevisionWorkflowController;
 use App\Http\Controllers\Api\RequestDocumentsController;
 use App\Http\Controllers\Api\SampleProcessController;
@@ -56,6 +57,17 @@ Route::middleware(['throttle:120,1'])->group(function () {
 
         Route::post('/documents', [QmhDocumentController::class, 'store'])
             ->middleware('permission:qmh.create');
+
+        Route::get('/dashboard/summary', [QmhReportingController::class, 'summary'])
+            ->middleware('permission:qmh.report');
+
+        Route::prefix('reports')->middleware('permission:qmh.report')->group(function () {
+            Route::get('/revision-history', [QmhReportingController::class, 'revisionHistory']);
+            Route::get('/revision-history/export', [QmhReportingController::class, 'revisionHistoryExport']);
+            Route::get('/download-history', [QmhReportingController::class, 'downloadHistory']);
+            Route::get('/download-history/export', [QmhReportingController::class, 'downloadHistoryExport']);
+            Route::get('/controlled-distribution', [QmhReportingController::class, 'controlledDistribution']);
+        });
 
         Route::prefix('revisions/{revision}')->middleware('permission:qmh.create')->group(function () {
             Route::post('/lock', [QmhRevisionWorkflowController::class, 'lock']);

@@ -79,6 +79,7 @@ class PermissionSeeder extends Seeder
         // Quality Management Hub
         ['name' => 'qmh.view', 'display_name' => 'Lihat Quality Management Hub', 'module' => 'qmh', 'action' => 'view'],
         ['name' => 'qmh.create', 'display_name' => 'Buat Dokumen Quality Management Hub', 'module' => 'qmh', 'action' => 'create'],
+        ['name' => 'qmh.report', 'display_name' => 'Lihat Laporan Quality Management Hub', 'module' => 'qmh', 'action' => 'report'],
 
         // Reminders
         ['name' => 'reminders.view', 'display_name' => 'Lihat Reminders', 'module' => 'reminders', 'action' => 'view'],
@@ -144,7 +145,7 @@ class PermissionSeeder extends Seeder
             'analysts.view', 'analysts.create', 'analysts.edit',
             'settings.view', 'settings.edit',
             'reminders.view', 'reminders.edit',
-            'qmh.view', 'qmh.create',
+            'qmh.view', 'qmh.create', 'qmh.report',
         ],
         'admin' => [
             // Admin mendapat semua permission
@@ -163,7 +164,7 @@ class PermissionSeeder extends Seeder
             'investigators.view', 'investigators.edit', 'investigators.delete',
             'settings.view', 'settings.edit',
             'reminders.view', 'reminders.edit',
-            'qmh.view', 'qmh.create',
+            'qmh.view', 'qmh.create', 'qmh.report',
         ],
         'supervisor' => [
             // Supervisor sama dengan admin
@@ -181,7 +182,7 @@ class PermissionSeeder extends Seeder
             'analysts.view', 'analysts.create', 'analysts.edit', 'analysts.delete',
             'settings.view', 'settings.edit',
             'reminders.view', 'reminders.edit',
-            'qmh.view', 'qmh.create',
+            'qmh.view', 'qmh.create', 'qmh.report',
         ],
         'analyst' => [
             // analyst sama dengan analis

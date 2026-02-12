@@ -4,6 +4,7 @@ namespace Tests\Feature\Quality;
 
 use App\Models\Permission;
 use App\Models\QmhDocument;
+use App\Models\QmhDocumentDownloadLog;
 use App\Models\QmhDocumentRevision;
 use App\Models\RolePermission;
 use App\Models\User;
@@ -132,6 +133,81 @@ class QmhDocumentWebTest extends TestCase
         $response->assertOk();
         $response->assertSee('QMH-IK-200');
         $response->assertDontSee('QMH-SOP-100');
+    }
+
+    public function test_quality_landing_shows_summary_cards(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-SOP-300',
+            'title' => 'SOP Validasi',
+            'clause' => 8,
+            'doc_type' => 'sop',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $currentRevision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 2,
+            'version_label' => 'E1-R2',
+            'status' => 'published',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+        ]);
+
+        $document->update(['current_revision_id' => $currentRevision->id]);
+
+        QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 1,
+            'version_label' => 'E1-R1',
+            'status' => 'obsolete',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+            'obsolete_at' => now()->subDay(),
+        ]);
+
+        QmhDocumentDownloadLog::query()->create([
+            'document_id' => $document->id,
+            'revision_id' => $currentRevision->id,
+            'edition_number' => 1,
+            'revision_number' => 2,
+            'copy_type' => 'controlled',
+            'downloaded_by' => $user->id,
+            'downloaded_at' => now(),
+            'watermark_text' => 'CONTROLLED COPY',
+            'file_hash' => str_repeat('a', 64),
+        ]);
+
+        QmhDocumentDownloadLog::query()->create([
+            'document_id' => $document->id,
+            'revision_id' => $currentRevision->id,
+            'edition_number' => 1,
+            'revision_number' => 2,
+            'copy_type' => 'uncontrolled',
+            'downloaded_by' => $user->id,
+            'downloaded_at' => now(),
+            'reason' => 'referensi',
+            'watermark_text' => 'UNCONTROLLED COPY',
+            'file_hash' => str_repeat('b', 64),
+        ]);
+
+        $response = $this->actingAs($user)->get('/quality');
+
+        $response->assertOk();
+        $response->assertSee('Total Dokumen');
+        $response->assertSee('Dokumen Published');
+        $response->assertSee('Dokumen In Review');
+        $response->assertSee('Revisi Obsolete');
+        $response->assertSee('Unduhan Controlled');
+        $response->assertSee('Unduhan Uncontrolled');
+        $response->assertSee('Semua Klausul');
+        $response->assertSee('Semua Jenis');
     }
 
     private function createQmhPermissions(): void

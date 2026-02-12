@@ -11,6 +11,7 @@ use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ProcessController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Quality\QmhDocumentController as QualityQmhDocumentController;
+use App\Http\Controllers\Quality\QmhReportController as QualityQmhReportController;
 use App\Http\Controllers\Reports\MonthlyLogReportController;
 use App\Http\Controllers\Reports\SurveyExportController;
 use App\Http\Controllers\RequestController;
@@ -66,6 +67,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/documents', [QualityQmhDocumentController::class, 'store'])
             ->name('documents.store')
             ->middleware('permission:qmh.create');
+
+        Route::get('/reports', [QualityQmhReportController::class, 'index'])
+            ->name('reports.index')
+            ->middleware('permission:qmh.report');
     });
 
     // Dashboard

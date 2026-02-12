@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Quality;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Quality\StoreQmhDocumentRequest;
 use App\Models\QmhDocument;
+use App\Services\Quality\QmhDashboardSummaryService;
 use App\Services\Quality\QmhDocumentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,6 +21,13 @@ class QmhDocumentController extends Controller
 
     public function index(Request $request): View
     {
+        $summaryFilters = validator($request->only(['clause', 'doc_type', 'from', 'to']), [
+            'clause' => ['nullable', 'integer', 'in:4,5,6,7,8'],
+            'doc_type' => ['nullable', 'in:sop,ik,formulir'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+        ])->validate();
+
         $documents = QmhDocument::query()
             ->with('currentRevision')
             ->search($request->string('search')->toString())
@@ -48,8 +56,11 @@ class QmhDocumentController extends Controller
             ->paginate(15)
             ->appends($request->query());
 
+        $summary = app(QmhDashboardSummaryService::class)->summarize($summaryFilters);
+
         return view('quality.index', [
             'documents' => $documents,
+            'summary' => $summary,
         ]);
     }
 

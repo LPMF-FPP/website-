@@ -35,9 +35,34 @@ class PermissionSeederQmhTest extends TestCase
             ->whereHas('permission', fn ($query) => $query->where('name', 'qmh.create'))
             ->exists();
 
+        $adminQmhReport = RolePermission::query()
+            ->where('role', 'admin')
+            ->whereHas('permission', fn ($query) => $query->where('name', 'qmh.report'))
+            ->exists();
+
+        $supervisorQmhReport = RolePermission::query()
+            ->where('role', 'supervisor')
+            ->whereHas('permission', fn ($query) => $query->where('name', 'qmh.report'))
+            ->exists();
+
+        $manajerTeknisQmhReport = RolePermission::query()
+            ->where('role', 'manajer_teknis')
+            ->whereHas('permission', fn ($query) => $query->where('name', 'qmh.report'))
+            ->exists();
+
+        $investigatorQmhReport = RolePermission::query()
+            ->where('role', 'investigator')
+            ->whereHas('permission', fn ($query) => $query->where('name', 'qmh.report'))
+            ->exists();
+
         $this->assertTrue($adminQmhCreate);
         $this->assertTrue($supervisorQmhCreate);
         $this->assertTrue($manajerTeknisQmhCreate);
         $this->assertFalse($investigatorQmhCreate);
+
+        $this->assertTrue($adminQmhReport);
+        $this->assertTrue($supervisorQmhReport);
+        $this->assertTrue($manajerTeknisQmhReport);
+        $this->assertFalse($investigatorQmhReport);
     }
 }
