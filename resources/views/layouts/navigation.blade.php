@@ -154,14 +154,14 @@
                                             </a>
                                             @endcan
 
-                                            @can('qmh.report')
-                                            <a href="{{ route('quality.reports.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/30 transition duration-150 {{ request()->routeIs('quality.reports.*') ? 'bg-teal-50 dark:bg-teal-900/20 rounded-lg' : '' }}">
+                                            @can('qmh.view')
+                                            <a href="{{ route('quality.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/30 transition duration-150 {{ request()->routeIs('quality.*') ? 'bg-teal-50 dark:bg-teal-900/20 rounded-lg' : '' }}">
                                                 <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-teal-100 text-teal-600 dark:bg-teal-900/50 dark:text-teal-400">
                                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-6m3 6V7m3 10v-3m4 7H5a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v14a2 2 0 01-2 2z"></path></svg>
                                                 </div>
                                                 <div class="ml-4">
-                                                    <p class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-teal-700 dark:group-hover:text-teal-400">Laporan QMH</p>
-                                                    <p class="text-sm text-gray-500 dark:text-gray-400">Audit revisi & distribusi dokumen</p>
+                                                    <p class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-teal-700 dark:group-hover:text-teal-400">Dashboard QMH</p>
+                                                    <p class="text-sm text-gray-500 dark:text-gray-400">Hub dokumen mutu dan metrik utama</p>
                                                 </div>
                                             </a>
                                             @endcan
@@ -375,8 +375,8 @@
                             @can('inventori.view')
                             <x-responsive-nav-link href="{{ route('inventory.dashboard') }}" :active="request()->routeIs('inventory.*')">Inventori</x-responsive-nav-link>
                             @endcan
-                            @can('qmh.report')
-                            <x-responsive-nav-link href="{{ route('quality.reports.index') }}" :active="request()->routeIs('quality.reports.*')">Laporan QMH</x-responsive-nav-link>
+                            @can('qmh.view')
+                            <x-responsive-nav-link href="{{ route('quality.index') }}" :active="request()->routeIs('quality.*')">Dashboard QMH</x-responsive-nav-link>
                             @endcan
                             @can('changelogs.view')
                             <x-responsive-nav-link href="{{ route('changelogs.index') }}" :active="request()->routeIs('changelogs.*')">Changelogs</x-responsive-nav-link>
