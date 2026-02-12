@@ -10,6 +10,7 @@ use App\Http\Controllers\InvestigatorManagementController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ProcessController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Quality\QmhDocumentController as QualityQmhDocumentController;
 use App\Http\Controllers\Reports\MonthlyLogReportController;
 use App\Http\Controllers\Reports\SurveyExportController;
 use App\Http\Controllers\RequestController;
@@ -48,6 +49,24 @@ Route::get('/track/{tracking_number}.json', [TrackingController::class, 'json'])
 
 // Authenticated Routes
 Route::middleware(['auth', 'verified'])->group(function () {
+
+    Route::prefix('quality')->name('quality.')->group(function () {
+        Route::get('/', [QualityQmhDocumentController::class, 'landing'])
+            ->name('index')
+            ->middleware('permission:qmh.view');
+
+        Route::get('/documents', [QualityQmhDocumentController::class, 'index'])
+            ->name('documents.index')
+            ->middleware('permission:qmh.view');
+
+        Route::get('/documents/create', [QualityQmhDocumentController::class, 'create'])
+            ->name('documents.create')
+            ->middleware('permission:qmh.create');
+
+        Route::post('/documents', [QualityQmhDocumentController::class, 'store'])
+            ->name('documents.store')
+            ->middleware('permission:qmh.create');
+    });
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -248,7 +267,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/tracking', [TrackingController::class, 'store'])->name('tracking.store');
 
     // Changelogs
-    Route::view('/changelogs', 'changelogs.index')->name('changelogs.index');
+    Route::get('/changelogs', [\App\Http\Controllers\ChangelogController::class, 'index'])->name('changelogs.index');
 
     // Statistics
     Route::prefix('statistics')->group(function () {

@@ -2,474 +2,210 @@
     <x-slot name="header">
         <div class="flex flex-col gap-2">
             <x-breadcrumbs :items="[['label' => 'Beranda', 'href' => route('dashboard')], ['label' => 'Changelogs']]" />
-            <div>
-                <h1 class="text-2xl font-semibold text-primary-900">Changelogs</h1>
-                <p class="text-sm text-accent-600">Riwayat perubahan dan pembaruan sistem LPMF LIMS</p>
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-2xl font-semibold text-primary-900 tracking-tight">System Changelogs</h1>
+                    <p class="text-sm text-accent-600">Riwayat pembaruan dan evolusi sistem LPMF LIMS</p>
+                </div>
+                
+                <!-- Search Box -->
+                <div x-data class="relative w-full md:w-72">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                    </span>
+                    <input 
+                        type="text" 
+                        x-model="$store.changelog.search"
+                        placeholder="Filter by version or keyword..." 
+                        class="pl-10 w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring focus:ring-primary-200 focus:ring-opacity-50 text-sm shadow-sm"
+                    >
+                </div>
             </div>
         </div>
     </x-slot>
 
-    <div class="max-w-4xl mx-auto sm:px-6 lg:px-8 space-y-6">
-
-        {{-- Version 2.2.0 --}}
-        <div class="card">
-            <div class="flex items-start gap-4 mb-6">
-                <div class="flex-shrink-0 h-12 w-12 bg-teal-100 rounded-full flex items-center justify-center">
-                    <svg class="h-6 w-6 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-                    </svg>
-                </div>
-                <div class="flex-1">
-                    <div class="flex items-center gap-3 mb-1">
-                        <h2 class="text-xl font-bold text-gray-900">LPMF LIMS v2.2.0</h2>
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Latest</span>
-                    </div>
-                    <p class="text-sm text-gray-500">Dirilis: 09 Februari 2026</p>
-                </div>
+    <div 
+        x-data="{ 
+            versions: {{ Js::from($changelogs) }},
+            activeVersion: null,
+            init() {
+                if(this.versions.length > 0) this.activeVersion = this.versions[0].id;
+            },
+            get filteredVersions() {
+                if (!$store.changelog.search) return this.versions;
+                const term = $store.changelog.search.toLowerCase();
+                return this.versions.filter(v => 
+                    v.version.toLowerCase().includes(term) || 
+                    v.title.toLowerCase().includes(term) ||
+                    v.content.some(c => c.toLowerCase().includes(term))
+                );
+            },
+            scrollTo(id) {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    this.activeVersion = id;
+                }
+            }
+        }"
+        class="max-w-7xl mx-auto sm:px-6 lg:px-8 py-8"
+    >
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            
+            <!-- Sticky Sidebar (Desktop) -->
+            <div class="hidden lg:block lg:col-span-3 sticky top-8 max-h-[calc(100vh-8rem)] overflow-y-auto pr-2 custom-scrollbar">
+                <nav class="space-y-1" aria-label="Version navigation">
+                    <template x-for="log in filteredVersions" :key="log.id">
+                        <button 
+                            @click="scrollTo(log.id)"
+                            class="w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors border-l-2"
+                            :class="{
+                                'bg-primary-50 text-primary-700 border-primary-500': activeVersion === log.id,
+                                'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-transparent hover:border-gray-300': activeVersion !== log.id
+                            }"
+                        >
+                            <span class="truncate flex-1 text-left" x-text="log.version"></span>
+                            <span 
+                                class="inline-block w-2 h-2 rounded-full ml-2"
+                                :class="{
+                                    'bg-blue-400': log.type === 'feature',
+                                    'bg-green-400': log.type === 'update',
+                                    'bg-red-400': log.type === 'fix' || log.type === 'security',
+                                    'bg-purple-400': log.type === 'design',
+                                }"
+                            ></span>
+                        </button>
+                    </template>
+                </nav>
             </div>
 
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-teal-100 text-teal-600">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            <!-- Main Content -->
+            <div class="lg:col-span-9 space-y-8">
+                <template x-for="(log, index) in filteredVersions" :key="log.id">
+                    <div :id="log.id" class="scroll-mt-24 group relative">
+                        
+                        <!-- Connector Line -->
+                        <div class="absolute left-6 top-10 bottom-0 w-px bg-gray-200 group-last:hidden"></div>
+
+                        <div class="flex items-start gap-4">
+                            <!-- Icon/Badge -->
+                            <div class="relative flex-shrink-0">
+                                <div 
+                                    class="h-12 w-12 rounded-xl flex items-center justify-center shadow-sm border border-white"
+                                    :class="{
+                                        'bg-blue-100 text-blue-600': log.type === 'feature',
+                                        'bg-green-100 text-green-600': log.type === 'update',
+                                        'bg-red-100 text-red-600': log.type === 'fix' || log.type === 'security',
+                                        'bg-purple-100 text-purple-600': log.type === 'design',
+                                        'bg-gray-100 text-gray-500': log.is_archived
+                                    }"
+                                >
+                                    <template x-if="log.type === 'feature'"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></template>
+                                    <template x-if="log.type === 'fix'"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></template>
+                                    <template x-if="log.type === 'security'"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg></template>
+                                    <template x-if="log.type === 'design'"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" /></svg></template>
+                                    <template x-if="log.type === 'update'"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></template>
+                                </div>
+                            </div>
+
+                            <!-- Card Content -->
+                            <div class="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:border-primary-200 transition-colors">
+                                <div class="px-6 py-5">
+                                    <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                                        <div class="flex items-center gap-3">
+                                            <h2 class="text-xl font-bold text-gray-900 font-mono tracking-tight" x-text="log.version"></h2>
+                                            <span 
+                                                class="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-gray-100 text-gray-600"
+                                                x-text="log.date"
+                                            ></span>
+                                        </div>
+                                        <template x-if="index === 0 && !$store.changelog.search">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-primary-50 text-primary-700 border border-primary-100">
+                                                LATEST RELEASE
+                                            </span>
+                                        </template>
+                                    </div>
+
+                                    <h3 class="text-lg font-semibold text-gray-800 mb-4" x-text="log.title"></h3>
+
+                                    <ul class="space-y-3">
+                                        <template x-for="item in log.content">
+                                            <li class="flex items-start gap-3 text-gray-600 text-[15px] leading-relaxed">
+                                                <svg class="w-5 h-5 text-gray-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                                <div x-html="item"></div>
+                                            </li>
+                                        </template>
+                                    </ul>
+                                </div>
+                                <template x-if="log.is_archived">
+                                    <div class="bg-gray-50 px-6 py-2 text-xs text-gray-500 border-t border-gray-100 text-center uppercase tracking-widest font-semibold">
+                                        Archived
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Empty State -->
+                <div x-show="filteredVersions.length === 0" class="text-center py-12 border-2 border-dashed border-gray-200 rounded-xl">
+                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gray-100 mb-4">
+                        <svg class="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
-                    </span>
-                    WhatsApp Hub Settings Redesign + Whitelist Manager
-                </h3>
-                <ul class="space-y-2 text-sm text-gray-700">
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Horizontal Sub-tabs:</strong> Settings WhatsApp Hub dibagi menjadi 5 sub-tab (Quick Test, Templates, GOWA, Whitelist, Alerts) untuk mengurangi scroll fatigue.</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Quick Test Default:</strong> Send Test Message + Connected Devices diprioritaskan sebagai entry point untuk cek harian.</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Template Editor Redesign:</strong> Pilih category + template lalu edit satu template per waktu (lebih fokus, minim scroll).</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Whitelist Manager (Web UI):</strong> Admin whitelist kini bisa dikelola lewat UI (add/remove), dengan Super Admin sebagai protected fallback.</span>
-                    </li>
-                </ul>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900">No versions found</h3>
+                    <p class="text-gray-500 mt-1">Try adjusting your search filters.</p>
+                </div>
             </div>
         </div>
-
-        {{-- Version 2.1.0 --}}
-        <div class="card">
-            <div class="flex items-start gap-4 mb-6">
-                <div class="flex-shrink-0 h-12 w-12 bg-pink-100 rounded-full flex items-center justify-center">
-                    <svg class="h-6 w-6 text-pink-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                    </svg>
-                </div>
-                <div class="flex-1">
-                    <div class="flex items-center gap-3 mb-1">
-                        <h2 class="text-xl font-bold text-gray-900">LPMF LIMS v2.1.0</h2>
-                    </div>
-                    <p class="text-sm text-gray-500">Dirilis: {{ now()->translatedFormat('d F Y') }}</p>
-                </div>
-            </div>
-
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-pink-100 text-pink-600">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                    </span>
-                    AI Magic Compose
-                </h3>
-                <ul class="space-y-2 text-sm text-gray-700">
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-pink-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>AI Magic Compose:</strong> Generate and refine WhatsApp messages instantly with AI assistance. Includes automatic formatting for Bold, Italic, and Monospace.</span>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-        {{-- Version 2.0.0 --}}
-        <div class="card">
-            <div class="flex items-start gap-4 mb-6">
-                <div class="flex-shrink-0 h-12 w-12 bg-indigo-100 rounded-full flex items-center justify-center">
-                    <svg class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                    </svg>
-                </div>
-                <div class="flex-1">
-                    <div class="flex items-center gap-3 mb-1">
-                        <h2 class="text-xl font-bold text-gray-900">LPMF LIMS v2.0.0</h2>
-                    </div>
-                    <p class="text-sm text-gray-500">Dirilis: 09 Februari 2026</p>
-                </div>
-            </div>
-
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-indigo-100 text-indigo-600">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                        </svg>
-                    </span>
-                    Inventory Dashboard 2.0
-                </h3>
-                <ul class="space-y-2 text-sm text-gray-700">
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Overview Widget:</strong> Daftar stok real-time dengan pagination dan pencarian. Baris item dapat di-expand untuk melihat detail lokasi dan lot (termasuk tanggal kadaluarsa).</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Fast Moving Analysis:</strong> Tombol baru di Quick Actions untuk menampilkan modal analisis 10 item paling sering digunakan dalam 30 hari terakhir.</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Visual Health Bar & Trend:</strong> Tab "Low Stock" di widget Alerts kini menampilkan progress bar visual untuk sisa stok dan indikator tren pemakaian (High/Moderate/Low).</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-indigo-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Layout Optimization:</strong> Tata letak dashboard dioptimalkan (Grid 2/3 + 1/3) dengan Overview Widget yang lebar penuh di bagian bawah untuk keterbacaan maksimal.</span>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-        {{-- Version 1.10.3 --}}
-        <div class="card">
-            <div class="flex items-start gap-4 mb-6">
-                <div class="flex-shrink-0 h-12 w-12 bg-amber-100 rounded-full flex items-center justify-center">
-                    <svg class="h-6 w-6 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                </div>
-                <div class="flex-1">
-                    <div class="flex items-center gap-3 mb-1">
-                        <h2 class="text-xl font-bold text-gray-900">LPMF LIMS v1.10.3</h2>
-                    </div>
-                    <p class="text-sm text-gray-500">Dirilis: 08 Februari 2026</p>
-                </div>
-            </div>
-
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-amber-100 text-amber-600">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                        </svg>
-                    </span>
-                    Inventory Alerts History + Global Search / Barcode Scan
-                </h3>
-                <ul class="space-y-2 text-sm text-gray-700">
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Inventory Alerts (WhatsApp):</strong> Alert low stock/expiry sekarang dikirim ke semua admin di whitelist + super admin fallback, lengkap dengan outcome sent/failed.</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Alert History Log:</strong> Catatan pengiriman disimpan di table <code class="font-mono text-xs">inventory_alert_logs</code> untuk audit dan troubleshooting.</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>WhatsApp Hub Tab:</strong> Tab baru <em>Inventory Alerts</em> menampilkan preview low stock, near-expiry, dan history terkini.</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Global Search Dashboard:</strong> Search bar untuk lookup/scan barcode dan deep link ke form Issue/Disposal dengan prefill <code class="font-mono text-xs">item_id</code> dan <code class="font-mono text-xs">lot_id</code>.</span>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-        {{-- Version 1.10.2 --}}
-        <div class="card">
-            <div class="flex items-start gap-4 mb-6">
-                <div class="flex-shrink-0 h-12 w-12 bg-primary-100 rounded-full flex items-center justify-center">
-                    <svg class="h-6 w-6 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                </div>
-                <div class="flex-1">
-                    <div class="flex items-center gap-3 mb-1">
-                        <h2 class="text-xl font-bold text-gray-900">LPMF LIMS v1.10.2</h2>
-                    </div>
-                    <p class="text-sm text-gray-500">Dirilis: 08 Februari 2026</p>
-                </div>
-            </div>
-
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-primary-100 text-primary-600">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                        </svg>
-                    </span>
-                    WhatsApp /stok Audit Trail + Functional Quick Actions Dashboard
-                </h3>
-                <ul class="space-y-2 text-sm text-gray-700">
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>WhatsApp <code class="font-mono text-xs">/stok</code> Fix:</strong> Transaksi via WhatsApp sekarang tercatat di <code class="font-mono text-xs">inventory_movements</code> (audit trail lengkap) dan <code class="font-mono text-xs">performed_by</code> otomatis resolve dari nomor pengirim.</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Quick Actions Dashboard:</strong> Form Pengeluaran/Penerimaan/Transfer Cepat di dashboard inventori sekarang bisa dipakai untuk submit transaksi langsung.</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Lokasi Otomatis:</strong> Untuk stok masuk pakai lokasi pertama, untuk stok keluar pilih lokasi dengan stok terbanyak.</span>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-        {{-- Version 1.10.1 --}}
-        <div class="card">
-            <div class="flex items-start gap-4 mb-6">
-                <div class="flex-shrink-0 h-12 w-12 bg-emerald-100 rounded-full flex items-center justify-center">
-                    <svg class="h-6 w-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                </div>
-                <div class="flex-1">
-                    <div class="flex items-center gap-3 mb-1">
-                        <h2 class="text-xl font-bold text-gray-900">LPMF LIMS v1.10.1</h2>
-                        {{-- <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Latest</span> --}}
-                    </div>
-                    <p class="text-sm text-gray-500">Dirilis: 07 Februari 2026</p>
-                </div>
-            </div>
-
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-emerald-100 text-emerald-600">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                        </svg>
-                    </span>
-                    Generic Countdown Reminder CRUD + Disposal Access
-                </h3>
-                <ul class="space-y-2 text-sm text-gray-700">
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Reminder CRUD:</strong> Tab Reminders sekarang punya tombol <em>Tambah Reminder</em> dan <em>Delete</em> dengan endpoint create/delete dedicated.</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Generic Countdown:</strong> Countdown tidak lagi spesifik ISO; bisa dipakai untuk berbagai event dengan custom milestones dan placeholder dinamis.</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Reminder UX Upgrade:</strong> Modal reminder kini mendukung mode create/edit, curated emoji selector profesional, dan custom milestone builder.</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Sample Disposal Access:</strong> Quick Action "Sampel Disposal" ditambahkan ke Dashboard Inventori beserta indikator jumlah sampel eligible.</span>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-        {{-- Version 1.10.0 --}}
-        <div class="card">
-            <div class="flex items-start gap-4 mb-6">
-                <div class="flex-shrink-0 h-12 w-12 bg-red-100 rounded-full flex items-center justify-center">
-                    <svg class="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                </div>
-                <div class="flex-1">
-                    <div class="flex items-center gap-3 mb-1">
-                        <h2 class="text-xl font-bold text-gray-900">LPMF LIMS v1.10.0</h2>
-                    </div>
-                    <p class="text-sm text-gray-500">Dirilis: 07 Februari 2026</p>
-                </div>
-            </div>
-
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-red-100 text-red-600">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                        </svg>
-                    </span>
-                    WhatsApp Magic Insert & Sample Disposal System
-                </h3>
-                <ul class="space-y-2 text-sm text-gray-700">
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Magic Insert Toolbar:</strong> Tambahan toolbar variabel dan formatting di form Task, Reminder, dan Broadcast pada WhatsApp Hub agar input template lebih cepat dan minim typo.</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Sample Disposal Dashboard:</strong> Fitur baru pemusnahan sisa sampel di modul Inventori dengan tab Siap Musnah dan Riwayat.</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Batch Execution + Audit Trail:</strong> Eksekusi pemusnahan massal dengan metadata saksi/metode, status disposal pada sampel, dan relasi batch disposal untuk kebutuhan audit.</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Berita Acara Pemusnahan PDF:</strong> Dokumen resmi PDF per batch dengan tabel No. LHU, No. LP/Tgl, Tersangka, dan Bukti Sisa (Asal).</span>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-        {{-- Version 1.9.0 --}}
-        <div class="card">
-            <div class="flex items-start gap-4 mb-6">
-                <div class="flex-shrink-0 h-12 w-12 bg-purple-100 rounded-full flex items-center justify-center">
-                    <svg class="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                    </svg>
-                </div>
-                <div class="flex-1">
-                    <div class="flex items-center gap-3 mb-1">
-                        <h2 class="text-xl font-bold text-gray-900">LPMF LIMS v1.9.0</h2>
-                    </div>
-                    <p class="text-sm text-gray-500">Dirilis: 04 Februari 2026</p>
-                </div>
-            </div>
-
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-purple-100 text-purple-600">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                        </svg>
-                    </span>
-                    WhatsApp Whitelist & Report Fixes
-                </h3>
-                <ul class="space-y-2 text-sm text-gray-700">
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-purple-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Admin Whitelist System:</strong> Fitur keamanan baru untuk membatasi akses command admin WhatsApp (`/restart`, `/status`, dll) hanya untuk nomor terdaftar.</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-purple-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Consolidated Report Fix:</strong> Perbaikan logika perhitungan "Permintaan Selesai" dan "LHU Terbit" agar data laporan lebih akurat sesuai kondisi riil.</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-purple-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>WhatsApp Fixes:</strong> Mengatasi notifikasi duplikat pada status "Siap Diambil" dan perbaikan pengambilan daftar grup WhatsApp.</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-purple-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Infrastructure Update:</strong> Update konfigurasi Webhook WhatsApp menyesuaikan perpindahan server ke IP 192.168.0.209.</span>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-        {{-- Version 1.8.2 --}}
-        <div class="card">
-            <div class="flex items-start gap-4 mb-6">
-                <div class="flex-shrink-0 h-12 w-12 bg-green-100 rounded-full flex items-center justify-center">
-                    <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-                <div class="flex-1">
-                    <div class="flex items-center gap-3 mb-1">
-                        <h2 class="text-xl font-bold text-gray-900">LPMF LIMS v1.8.2</h2>
-                        {{-- <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Latest</span> --}}
-                    </div>
-
-                    <p class="text-sm text-gray-500">Dirilis: 31 Januari 2026</p>
-                </div>
-            </div>
-
-            <div class="mb-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-                    <span class="inline-flex items-center justify-center w-6 h-6 rounded bg-green-100 text-green-600">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
-                    </span>
-                    Flexible Reminders & Dashboard Precision
-                </h3>
-                <ul class="space-y-2 text-sm text-gray-700">
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Flexible Reminder Schedule:</strong> Admin sekarang bisa memilih hari spesifik (Senin-Minggu) untuk setiap reminder WhatsApp.</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Dashboard Precision:</strong> Perbaikan logika tanggal HASIL (menggunakan waktu kirim Delivery) dan status Aging (menggunakan Hari Kerja).</span>
-                    </li>
-                    <li class="flex items-start gap-2">
-                        <svg class="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        <span><strong>Improved Logic:</strong> Status Merah/Kuning sekarang mengecualikan hari Sabtu-Minggu agar lebih adil dalam pengukuran kinerja.</span>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
     </div>
+
+    @push('scripts')
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.store('changelog', {
+                search: ''
+            })
+        })
+        
+        // Scroll Spy Logic
+        document.addEventListener('scroll', () => {
+            const versions = document.querySelectorAll('.scroll-mt-24');
+            let activeId = null;
+            
+            versions.forEach(el => {
+                const rect = el.getBoundingClientRect();
+                if (rect.top <= 150) { // Threshold from top
+                    activeId = el.id;
+                }
+            });
+            
+            if (activeId) {
+                // Access Alpine component scope to update activeVersion
+                const container = document.querySelector('[x-data]');
+                if(container && container._x_dataStack) {
+                    container._x_dataStack[0].activeVersion = activeId;
+                }
+            }
+        }, { passive: true });
+    </script>
+    @endpush
+    
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 20px;
+        }
+    </style>
 </x-app-layout>
