@@ -27,6 +27,12 @@ class BeritaAcaraPenerimaanTest extends TestCase
 
         Storage::fake('public');
 
+        // Mock PdfRenderService to prevent slow PDF generation
+        $this->mock(\App\Services\PdfRenderService::class, function ($mock) {
+            $mock->shouldReceive('htmlToPdf')
+                ->andReturn('%PDF-1.4 mock pdf content');
+        });
+
         $this->user = User::factory()->create();
 
         $this->investigator = Investigator::factory()->create([

@@ -30,6 +30,12 @@ class LhuNumberingGenerationTest extends TestCase
 
         settings_forget_cache();
 
+        // Mock PdfRenderService to prevent slow/hanging PDF generation
+        $this->mock(\App\Services\PdfRenderService::class, function ($mock) {
+            $mock->shouldReceive('htmlToPdf')
+                ->andReturn('%PDF-1.4 mock pdf content');
+        });
+
         // Create admin user with proper permissions
         $this->admin = User::factory()->create(['role' => 'admin']);
         $this->investigator = Investigator::factory()->create();

@@ -9,6 +9,7 @@ use App\Models\Sample;
 use App\Models\SampleTestProcess;
 use App\Models\TestRequest;
 use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -25,6 +26,17 @@ class FormPreparationArchiveTest extends TestCase
 
         Storage::fake('public');
         $this->user = User::factory()->create();
+
+        // Mock PDF generation
+        $mockPdf = \Mockery::mock(\Barryvdh\DomPDF\PDF::class);
+        $mockPdf->shouldReceive('loadHTML')->andReturnSelf();
+        $mockPdf->shouldReceive('setPaper')->andReturnSelf();
+        $mockPdf->shouldReceive('setOption')->andReturnSelf();
+        $mockPdf->shouldReceive('output')->andReturn('fake-pdf-content');
+
+        // Since the controller uses the Facade, we need to mock the Facade root or method
+        // But for Facades, shouldReceive on the Facade class works.
+        Pdf::shouldReceive('loadHTML')->andReturn($mockPdf);
     }
 
     public function test_form_preparation_generates_pdf_and_stores_via_document_service(): void

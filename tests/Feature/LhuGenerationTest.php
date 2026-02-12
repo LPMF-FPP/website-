@@ -21,6 +21,12 @@ class LhuGenerationTest extends TestCase
     {
         Storage::fake('public');
 
+        // Mock PdfRenderService to prevent slow PDF generation
+        $this->mock(\App\Services\PdfRenderService::class, function ($mock) {
+            $mock->shouldReceive('htmlToPdf')
+                ->andReturn('%PDF-1.4 mock pdf content');
+        });
+
         // Setup user
         $user = User::factory()->create([
             'role' => 'analis',
@@ -74,6 +80,12 @@ class LhuGenerationTest extends TestCase
     public function test_lhu_generation_fails_gracefully_on_error()
     {
         Storage::fake('public');
+
+        // Mock PdfRenderService to prevent slow PDF generation
+        $this->mock(\App\Services\PdfRenderService::class, function ($mock) {
+            $mock->shouldReceive('htmlToPdf')
+                ->andReturn('%PDF-1.4 mock pdf content');
+        });
 
         // Setup user
         $user = User::factory()->create([

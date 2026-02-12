@@ -279,6 +279,12 @@ class SampleDisposalTest extends TestCase
 
     public function test_can_download_berita_acara_pdf(): void
     {
+        // Mock PdfRenderService
+        $this->mock(\App\Services\PdfRenderService::class, function ($mock) {
+            $mock->shouldReceive('htmlToPdf')
+                ->andReturn('%PDF-1.4 mock pdf content');
+        });
+
         $disposal = SampleDisposal::factory()->create();
         Sample::factory()->count(2)->create([
             'disposal_id' => $disposal->id,

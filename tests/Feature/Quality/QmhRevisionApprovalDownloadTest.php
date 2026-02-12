@@ -8,6 +8,7 @@ use App\Models\QmhDocumentDownloadLog;
 use App\Models\QmhDocumentRevision;
 use App\Models\RolePermission;
 use App\Models\User;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -20,6 +21,16 @@ class QmhRevisionApprovalDownloadTest extends TestCase
         parent::setUp();
 
         $this->createQmhPermissions();
+
+        // Mock PDF generation
+        $mockPdf = \Mockery::mock(\Barryvdh\DomPDF\PDF::class);
+        $mockPdf->shouldReceive('loadHTML')->andReturnSelf();
+        $mockPdf->shouldReceive('setPaper')->andReturnSelf();
+        $mockPdf->shouldReceive('setWarnings')->andReturnSelf();
+        $mockPdf->shouldReceive('setOption')->andReturnSelf();
+        $mockPdf->shouldReceive('output')->andReturn('fake-pdf-content');
+
+        Pdf::shouldReceive('loadHTML')->andReturn($mockPdf);
     }
 
     public function test_unauthenticated_user_cannot_approve_revision(): void
