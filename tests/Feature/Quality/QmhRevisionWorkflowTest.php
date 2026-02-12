@@ -197,6 +197,47 @@ class QmhRevisionWorkflowTest extends TestCase
         ]);
     }
 
+    public function test_save_content_requires_active_lock_owner_and_draft_status(): void
+    {
+        /** @var User $creator */
+        $creator = User::factory()->create(['role' => 'admin']);
+        /** @var User $other */
+        $other = User::factory()->create(['role' => 'admin']);
+        $revision = $this->createDraftRevision($creator);
+
+        $this->actingAs($creator)
+            ->postJson("/api/quality/revisions/{$revision->id}/lock")
+            ->assertOk();
+
+        $this->actingAs($other)
+            ->putJson("/api/quality/revisions/{$revision->id}/content", [
+                'content_html' => '<p>Konten tidak valid karena lock user lain</p>',
+            ])
+            ->assertForbidden();
+
+        $this->actingAs($creator)
+            ->putJson("/api/quality/revisions/{$revision->id}/content", [
+                'content_html' => '<h1>Konten Baru</h1><p>Dokumen siap review.</p>',
+                'content_css' => '.doc{font-size:12px;}',
+                'editor_json' => ['type' => 'doc', 'content' => []],
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('qmh_document_revisions', [
+            'id' => $revision->id,
+            'content_html' => '<h1>Konten Baru</h1><p>Dokumen siap review.</p>',
+            'content_css' => '.doc{font-size:12px;}',
+        ]);
+
+        $revision->update(['status' => 'in_review']);
+
+        $this->actingAs($creator)
+            ->putJson("/api/quality/revisions/{$revision->id}/content", [
+                'content_html' => '<p>Tidak boleh tersimpan</p>',
+            ])
+            ->assertStatus(422);
+    }
+
     private function createDraftRevision(User $creator): QmhDocumentRevision
     {
         $service = new QmhDocumentService;

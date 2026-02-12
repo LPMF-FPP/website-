@@ -88,6 +88,18 @@ class QmhDocumentController extends Controller
         return view('quality.show', compact('document', 'users'));
     }
 
+    public function edit(QmhDocument $document): View
+    {
+        $document->load([
+            'currentRevision.lock.owner',
+        ]);
+
+        return view('quality.edit', [
+            'document' => $document,
+            'revision' => $document->currentRevision,
+        ]);
+    }
+
     public function store(StoreQmhDocumentRequest $request, QmhDocumentService $service): RedirectResponse
     {
         try {

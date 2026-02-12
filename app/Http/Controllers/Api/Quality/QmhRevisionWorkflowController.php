@@ -8,6 +8,7 @@ use App\Http\Requests\Quality\DownloadQmhRevisionRequest;
 use App\Http\Requests\Quality\HeartbeatQmhRevisionRequest;
 use App\Http\Requests\Quality\LockQmhRevisionRequest;
 use App\Http\Requests\Quality\ReviewQmhRevisionRequest;
+use App\Http\Requests\Quality\SaveQmhRevisionContentRequest;
 use App\Http\Requests\Quality\SubmitQmhRevisionRequest;
 use App\Http\Requests\Quality\UnlockQmhRevisionRequest;
 use App\Models\QmhDocumentRevision;
@@ -52,6 +53,39 @@ class QmhRevisionWorkflowController extends Controller
         return response()->json([
             'message' => 'Lock dibuka.',
             'data' => $lock,
+        ]);
+    }
+
+    public function saveContent(SaveQmhRevisionContentRequest $request, QmhDocumentRevision $revision): JsonResponse
+    {
+        if ($revision->status !== 'draft') {
+            return response()->json([
+                'message' => 'Konten hanya dapat diubah saat status draft.',
+            ], 422);
+        }
+
+        $lock = $revision->lock;
+        if ($lock === null || ! $lock->isActive()) {
+            return response()->json([
+                'message' => 'Tidak ada lock aktif untuk revisi ini.',
+            ], 409);
+        }
+
+        if ((int) $lock->locked_by !== (int) $request->user()->id) {
+            return response()->json([
+                'message' => 'Hanya pemilik lock aktif yang dapat menyimpan konten.',
+            ], 403);
+        }
+
+        $revision->update([
+            'content_html' => $request->string('content_html')->toString(),
+            'content_css' => $request->input('content_css'),
+            'editor_json' => $request->input('editor_json'),
+        ]);
+
+        return response()->json([
+            'message' => 'Konten revisi berhasil disimpan.',
+            'data' => $revision->fresh(),
         ]);
     }
 

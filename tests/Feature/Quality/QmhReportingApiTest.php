@@ -350,6 +350,50 @@ class QmhReportingApiTest extends TestCase
         $this->assertStringNotContainsString('QMH-IK-951', $content);
     }
 
+    public function test_controlled_distribution_export_returns_only_controlled_rows(): void
+    {
+        /** @var User $actor */
+        $actor = User::factory()->create(['role' => 'admin']);
+
+        [$document, $revision] = $this->createDocumentWithRevision($actor, 'QMH-SOP-952', 8, 'sop');
+
+        QmhDocumentDownloadLog::query()->create([
+            'document_id' => $document->id,
+            'revision_id' => $revision->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'copy_type' => 'controlled',
+            'downloaded_by' => $actor->id,
+            'downloaded_at' => '2026-02-14 09:00:00',
+            'distribution_target' => 'Unit Terkendali',
+            'watermark_text' => 'CONTROLLED COPY',
+            'file_hash' => str_repeat('1', 64),
+        ]);
+
+        QmhDocumentDownloadLog::query()->create([
+            'document_id' => $document->id,
+            'revision_id' => $revision->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'copy_type' => 'uncontrolled',
+            'downloaded_by' => $actor->id,
+            'downloaded_at' => '2026-02-14 09:10:00',
+            'reason' => 'Referensi',
+            'watermark_text' => 'UNCONTROLLED COPY',
+            'file_hash' => str_repeat('2', 64),
+        ]);
+
+        $response = $this->actingAs($actor)
+            ->get('/api/quality/reports/controlled-distribution/export');
+
+        $response->assertOk();
+
+        $content = (string) $response->getContent();
+
+        $this->assertStringContainsString('Unit Terkendali', $content);
+        $this->assertStringNotContainsString('UNCONTROLLED COPY', $content);
+    }
+
     /**
      * @return array{0: QmhDocument, 1: QmhDocumentRevision}
      */

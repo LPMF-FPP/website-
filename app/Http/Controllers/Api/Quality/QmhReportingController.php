@@ -55,4 +55,14 @@ class QmhReportingController extends Controller
             'Content-Disposition' => 'attachment; filename="'.$csv['filename'].'"',
         ]);
     }
+
+    public function controlledDistributionExport(QmhReportFilterRequest $request, QmhReportingService $service): Response
+    {
+        $csv = $service->exportDownloadHistoryCsv($request->validated(), (string) $request->query('tz', 'Asia/Jakarta'), true);
+
+        return response($csv['content'], 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.$csv['filename'].'"',
+        ]);
+    }
 }

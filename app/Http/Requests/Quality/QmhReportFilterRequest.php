@@ -18,6 +18,7 @@ class QmhReportFilterRequest extends FormRequest
     {
         return [
             'search' => ['nullable', 'string', 'max:255'],
+            'document_id' => ['nullable', 'integer', 'exists:qmh_documents,id'],
             'clause' => ['nullable', 'integer', 'in:4,5,6,7,8'],
             'doc_type' => ['nullable', 'in:sop,ik,formulir'],
             'actor_id' => ['nullable', 'integer', 'exists:users,id'],

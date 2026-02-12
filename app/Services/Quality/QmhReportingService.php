@@ -64,9 +64,9 @@ class QmhReportingService
      * @param  array<string, mixed>  $filters
      * @return array{filename: string, content: string}
      */
-    public function exportDownloadHistoryCsv(array $filters, string $timezone = 'Asia/Jakarta'): array
+    public function exportDownloadHistoryCsv(array $filters, string $timezone = 'Asia/Jakarta', bool $controlledOnly = false): array
     {
-        $rows = $this->downloadHistoryQuery($filters)->get();
+        $rows = $this->downloadHistoryQuery($filters, $controlledOnly)->get();
 
         $stream = fopen('php://temp', 'r+');
 
@@ -90,7 +90,7 @@ class QmhReportingService
         fclose($stream);
 
         return [
-            'filename' => 'qmh-download-history-'.now()->format('Ymd-His').'.csv',
+            'filename' => ($controlledOnly ? 'qmh-controlled-distribution-' : 'qmh-download-history-').now()->format('Ymd-His').'.csv',
             'content' => $content,
         ];
     }
@@ -147,6 +147,7 @@ class QmhReportingService
     private function applyCommonFilters($query, array $filters, string $timestampColumn): void
     {
         $search = isset($filters['search']) ? trim((string) $filters['search']) : '';
+        $documentId = isset($filters['document_id']) ? (int) $filters['document_id'] : null;
         $clause = isset($filters['clause']) ? (int) $filters['clause'] : null;
         $docType = isset($filters['doc_type']) ? (string) $filters['doc_type'] : null;
         $actorId = isset($filters['actor_id']) ? (int) $filters['actor_id'] : null;
@@ -158,6 +159,10 @@ class QmhReportingService
                 $searchQuery->where('documents.doc_code', 'like', '%'.$search.'%')
                     ->orWhere('documents.title', 'like', '%'.$search.'%');
             });
+        }
+
+        if ($documentId !== null) {
+            $query->where('documents.id', $documentId);
         }
 
         if ($clause !== null) {

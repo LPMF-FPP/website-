@@ -64,7 +64,11 @@ class QmhReportingAccessTest extends TestCase
         $this->actingAs($user)
             ->get('/quality/reports')
             ->assertOk()
-            ->assertViewIs('quality.reports.index');
+            ->assertViewIs('quality.reports.index')
+            ->assertSee('Laporan QMH')
+            ->assertSee('Riwayat Revisi')
+            ->assertSee('Riwayat Unduhan')
+            ->assertSee('Distribusi Terkendali');
     }
 
     private function createQmhPermissions(): void

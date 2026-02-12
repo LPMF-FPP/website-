@@ -245,7 +245,45 @@ class QmhDocumentWebTest extends TestCase
             ->get('/quality/documents/'.$document->id)
             ->assertOk()
             ->assertViewIs('quality.show')
-            ->assertSee('QMH-SOP-400');
+            ->assertSee('QMH-SOP-400')
+            ->assertSee('Konten')
+            ->assertSee('Riwayat Revisi')
+            ->assertSee('Riwayat Unduhan');
+    }
+
+    public function test_user_with_qmh_create_permission_can_access_document_edit_page(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-SOP-401',
+            'title' => 'SOP Edit Page',
+            'clause' => 6,
+            'doc_type' => 'sop',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'draft',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+            'content_html' => '<p>Konten awal</p>',
+        ]);
+
+        $document->update(['current_revision_id' => $revision->id]);
+
+        $this->actingAs($user)
+            ->get('/quality/documents/'.$document->id.'/edit')
+            ->assertOk()
+            ->assertViewIs('quality.edit')
+            ->assertSee('Editor Dokumen QMH')
+            ->assertSee('Simpan');
     }
 
     private function createQmhPermissions(): void

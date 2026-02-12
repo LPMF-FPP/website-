@@ -67,12 +67,14 @@ Route::middleware(['throttle:120,1'])->group(function () {
             Route::get('/download-history', [QmhReportingController::class, 'downloadHistory']);
             Route::get('/download-history/export', [QmhReportingController::class, 'downloadHistoryExport']);
             Route::get('/controlled-distribution', [QmhReportingController::class, 'controlledDistribution']);
+            Route::get('/controlled-distribution/export', [QmhReportingController::class, 'controlledDistributionExport']);
         });
 
         Route::prefix('revisions/{revision}')->middleware('permission:qmh.create')->group(function () {
             Route::post('/lock', [QmhRevisionWorkflowController::class, 'lock']);
             Route::post('/heartbeat', [QmhRevisionWorkflowController::class, 'heartbeat']);
             Route::post('/unlock', [QmhRevisionWorkflowController::class, 'unlock']);
+            Route::put('/content', [QmhRevisionWorkflowController::class, 'saveContent']);
             Route::post('/submit', [QmhRevisionWorkflowController::class, 'submit']);
             Route::post('/review', [QmhRevisionWorkflowController::class, 'review']);
             Route::post('/approve', [QmhRevisionWorkflowController::class, 'approve']);

@@ -6,6 +6,7 @@ import focus from "@alpinejs/focus";
 import { createListFetcher } from "./utils/list-fetcher";
 import { initSearchPage } from "./pages/search";
 import { registerSettingsComponent } from "./pages/settings/alpine-component";
+import { qmhEditor } from "./components/qmh-editor";
 import toastStore from "./stores/toast";
 
 // Register Alpine plugins
@@ -77,6 +78,7 @@ document.addEventListener("alpine:init", () => {
     // For backward compat with earlier usage names, you can alias:
     Alpine.data("sampleProcessesList", () => createListFetcher());
     Alpine.data("deliveryList", () => createListFetcher());
+    Alpine.data("qmhEditor", qmhEditor);
 
     // Register settings page component
     registerSettingsComponent();
