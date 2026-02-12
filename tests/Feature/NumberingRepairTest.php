@@ -54,6 +54,7 @@ class NumberingRepairTest extends TestCase
                 'counter_status',
                 'problems',
                 'problem_count' => ['duplicate', 'gap', 'total'],
+                'uses_inherited_sequence',
             ]);
     }
 

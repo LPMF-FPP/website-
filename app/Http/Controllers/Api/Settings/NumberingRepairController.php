@@ -54,6 +54,7 @@ class NumberingRepairController extends Controller
                 'counter_status' => $status,
                 'problems' => $result['problems'],
                 'problem_count' => $result['problem_count'],
+                'uses_inherited_sequence' => $result['uses_inherited_sequence'] ?? false,
             ]);
         } catch (\InvalidArgumentException $e) {
             return response()->json(['error' => $e->getMessage()], 400);

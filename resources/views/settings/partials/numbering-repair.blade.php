@@ -30,6 +30,40 @@
         </div>
     </div>
 
+    {{-- Inherited Sequence Info Banner --}}
+    <template x-if="usesInheritedSequence">
+        <div class="bg-amber-50 border-l-4 border-amber-400 p-4 m-6 mb-0">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <svg class="h-5 w-5 text-amber-400" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-amber-800">Scope dengan Nomor Urut Turunan</h3>
+                    <div class="mt-2 text-sm text-amber-700">
+                        <p>
+                            Scope <strong x-text="scopeLabels[selectedScope]"></strong> menggunakan nomor urut yang diwariskan dari dokumen induk
+                            <template x-if="selectedScope === 'lhu'">
+                                <span>(nomor urut mengikuti <strong>Kode Sampel</strong>)</span>
+                            </template>
+                            <template x-if="selectedScope === 'ba_penyerahan'">
+                                <span>(nomor urut mengikuti <strong>Nomor BA Penerimaan</strong>)</span>
+                            </template>,
+                            sehingga:
+                        </p>
+                        <ul class="list-disc pl-5 mt-1 space-y-1">
+                            <li><strong>Deteksi gap tidak berlaku</strong> — celah pada nomor urut mencerminkan celah pada dokumen induk dan bersifat normal.</li>
+                            <li><strong>Counter database tidak digunakan</strong> — nilai counter mungkin tidak akurat karena scope ini tidak menggunakan counter otomatis.</li>
+                            <li><strong>Deteksi duplikat tetap aktif</strong> — duplikat nomor tetap diperiksa secara normal.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+
     <div class="p-6">
         {{-- Scope Selector --}}
         <div class="flex items-center gap-4 mb-6">
@@ -767,6 +801,7 @@ function numberingRepair() {
         selectedScope: '',
         loading: false,
         scanned: false,
+        usesInheritedSequence: false,
         syncing: false,
         saving: false,
         counterStatus: null,
@@ -1017,6 +1052,7 @@ function numberingRepair() {
                     this.counterStatus = data.counter_status;
                     this.problems = data.problems;
                     this.scanned = true;
+                    this.usesInheritedSequence = data.uses_inherited_sequence || false;
                     
                     // Also check if gap can be reclaimed
                     this.checkReclaim();
@@ -1050,6 +1086,7 @@ function numberingRepair() {
             // Reset state when scope changes
             this.loading = false;
             this.scanned = false;
+            this.usesInheritedSequence = false;
             this.counterStatus = null;
             this.problems = [];
             this.reclaimInfo = null;
