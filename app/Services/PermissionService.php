@@ -161,6 +161,7 @@ class PermissionService
             'changelogs' => 'Changelogs',
             'analysts' => 'Manajemen Staff',
             'settings' => 'Pengaturan Sistem',
+            'qmh' => 'Quality Management Hub',
         ];
 
         return $names[$module] ?? ucfirst($module);
@@ -243,6 +244,7 @@ class PermissionService
             'changelogs' => ['view'],
             'analysts' => ['view', 'create', 'edit', 'delete'],
             'settings' => ['view', 'edit'],
+            'qmh' => ['view', 'create'],
         ];
     }
 

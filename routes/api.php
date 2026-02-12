@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\DocumentDeleteController;
 use App\Http\Controllers\Api\DocumentDownloadController;
 use App\Http\Controllers\Api\JobStatusController;
 use App\Http\Controllers\Api\PeopleController;
+use App\Http\Controllers\Api\Quality\QmhDocumentController;
 use App\Http\Controllers\Api\RequestDocumentsController;
 use App\Http\Controllers\Api\SampleProcessController;
 use App\Http\Controllers\Api\SearchController;
@@ -47,6 +48,14 @@ Route::prefix('monitoring')->middleware('throttle:60,1')->group(function () {
 });
 
 Route::middleware(['throttle:120,1'])->group(function () {
+
+    Route::middleware(['auth', 'verified'])->prefix('quality')->group(function () {
+        Route::get('/documents', [QmhDocumentController::class, 'index'])
+            ->middleware('permission:qmh.view');
+
+        Route::post('/documents', [QmhDocumentController::class, 'store'])
+            ->middleware('permission:qmh.create');
+    });
 
     Route::middleware(['auth', 'verified'])->prefix('settings')->group(function () {
         Route::get('/', [ApiSettingsController::class, 'index']);

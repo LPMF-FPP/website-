@@ -1,0 +1,79 @@
+<?php
+
+namespace App\Http\Controllers\Quality;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Quality\StoreQmhDocumentRequest;
+use App\Models\QmhDocument;
+use App\Services\Quality\QmhDocumentService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
+
+class QmhDocumentController extends Controller
+{
+    public function landing(Request $request): View
+    {
+        return $this->index($request);
+    }
+
+    public function index(Request $request): View
+    {
+        $documents = QmhDocument::query()
+            ->with('currentRevision')
+            ->search($request->string('search')->toString())
+            ->when($request->filled('clause'), function ($query) use ($request) {
+                $query->where('clause', (int) $request->input('clause'));
+            })
+            ->when($request->filled('doc_type'), function ($query) use ($request) {
+                $query->where('doc_type', $request->string('doc_type')->toString());
+            })
+            ->when($request->filled('status'), function ($query) use ($request) {
+                $query->whereHas('currentRevision', function ($revisionQuery) use ($request) {
+                    $revisionQuery->where('status', $request->string('status')->toString());
+                });
+            })
+            ->when($request->filled('edition_number'), function ($query) use ($request) {
+                $query->whereHas('currentRevision', function ($revisionQuery) use ($request) {
+                    $revisionQuery->where('edition_number', (int) $request->input('edition_number'));
+                });
+            })
+            ->when($request->filled('revision_number'), function ($query) use ($request) {
+                $query->whereHas('currentRevision', function ($revisionQuery) use ($request) {
+                    $revisionQuery->where('revision_number', (int) $request->input('revision_number'));
+                });
+            })
+            ->orderBy('doc_code')
+            ->paginate(15)
+            ->appends($request->query());
+
+        return view('quality.index', [
+            'documents' => $documents,
+        ]);
+    }
+
+    public function create(): View
+    {
+        return view('quality.create');
+    }
+
+    public function store(StoreQmhDocumentRequest $request, QmhDocumentService $service): RedirectResponse
+    {
+        try {
+            $service->createDraft($request->validated(), (int) $request->user()->id);
+
+            return redirect()
+                ->route('quality.documents.index')
+                ->with('success', 'Dokumen QMH berhasil dibuat.');
+        } catch (\Throwable $exception) {
+            Log::error('Gagal membuat dokumen QMH dari web form', [
+                'error' => $exception->getMessage(),
+            ]);
+
+            return back()
+                ->withInput()
+                ->withErrors(['general' => 'Gagal membuat dokumen QMH.']);
+        }
+    }
+}
