@@ -55,27 +55,50 @@
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
             <!-- Sticky Sidebar (Desktop) -->
-            <div class="hidden lg:block lg:col-span-3 sticky top-8 max-h-[calc(100vh-8rem)] overflow-y-auto pr-2 custom-scrollbar">
-                <nav class="space-y-1" aria-label="Version navigation">
+            <div class="hidden lg:block lg:col-span-3 sticky top-8 max-h-[calc(100vh-8rem)] overflow-y-auto pr-4 custom-scrollbar">
+                <nav class="space-y-2" aria-label="Version navigation">
                     <template x-for="log in filteredVersions" :key="log.id">
                         <button 
                             @click="scrollTo(log.id)"
-                            class="w-full group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors border-l-2"
+                            class="w-full group flex items-center gap-3 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 border border-transparent"
                             :class="{
-                                'bg-primary-50 text-primary-700 border-primary-500': activeVersion === log.id,
-                                'text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-transparent hover:border-gray-300': activeVersion !== log.id
+                                'bg-white shadow-sm border-gray-100 text-primary-700 scale-[1.02]': activeVersion === log.id,
+                                'text-gray-500 hover:bg-gray-50/80 hover:text-gray-900': activeVersion !== log.id
                             }"
                         >
-                            <span class="truncate flex-1 text-left" x-text="log.version"></span>
-                            <span 
-                                class="inline-block w-2 h-2 rounded-full ml-2"
+                            <!-- Dot Indicator -->
+                            <div 
+                                class="flex-shrink-0 w-2 h-2 rounded-full transition-all duration-300"
                                 :class="{
-                                    'bg-blue-400': log.type === 'feature',
-                                    'bg-green-400': log.type === 'update',
-                                    'bg-red-400': log.type === 'fix' || log.type === 'security',
-                                    'bg-purple-400': log.type === 'design',
+                                    'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]': log.type === 'feature',
+                                    'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]': log.type === 'update',
+                                    'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]': log.type === 'fix' || log.type === 'security',
+                                    'bg-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.5)]': log.type === 'design',
+                                    'bg-gray-300': log.is_archived,
+                                    'scale-125': activeVersion === log.id
                                 }"
-                            ></span>
+                            ></div>
+
+                            <div class="flex flex-col items-start min-w-0">
+                                <span 
+                                    class="font-mono text-[10px] uppercase tracking-wider transition-colors"
+                                    :class="activeVersion === log.id ? 'text-primary-500 font-bold' : 'text-gray-400 group-hover:text-gray-500'" 
+                                    x-text="log.version"
+                                ></span>
+                                <span class="truncate w-full text-left" x-text="log.title"></span>
+                            </div>
+                            
+                            <!-- Active Chevron -->
+                            <svg 
+                                x-show="activeVersion === log.id"
+                                x-transition:enter="transition ease-out duration-200"
+                                x-transition:enter-start="opacity-0 -translate-x-2"
+                                x-transition:enter-end="opacity-100 translate-x-0"
+                                class="w-4 h-4 ml-auto text-primary-400 flex-shrink-0" 
+                                fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            </svg>
                         </button>
                     </template>
                 </nav>
