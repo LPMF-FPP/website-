@@ -36,6 +36,11 @@ class QmhDocument extends Model
         return $this->belongsTo(QmhDocumentRevision::class, 'current_revision_id');
     }
 
+    public function downloadLogs(): HasMany
+    {
+        return $this->hasMany(QmhDocumentDownloadLog::class, 'document_id');
+    }
+
     public function scopeSearch($query, ?string $keyword)
     {
         if (! $keyword) {

@@ -58,4 +58,9 @@ class QmhDocumentRevision extends Model
     {
         return $this->hasOne(QmhDocumentLock::class, 'revision_id');
     }
+
+    public function downloadLogs(): HasMany
+    {
+        return $this->hasMany(QmhDocumentDownloadLog::class, 'revision_id');
+    }
 }

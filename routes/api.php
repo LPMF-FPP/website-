@@ -63,6 +63,8 @@ Route::middleware(['throttle:120,1'])->group(function () {
             Route::post('/unlock', [QmhRevisionWorkflowController::class, 'unlock']);
             Route::post('/submit', [QmhRevisionWorkflowController::class, 'submit']);
             Route::post('/review', [QmhRevisionWorkflowController::class, 'review']);
+            Route::post('/approve', [QmhRevisionWorkflowController::class, 'approve']);
+            Route::post('/download', [QmhRevisionWorkflowController::class, 'download']);
         });
     });
 

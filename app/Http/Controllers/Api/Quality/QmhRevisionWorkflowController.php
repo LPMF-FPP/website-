@@ -3,15 +3,20 @@
 namespace App\Http\Controllers\Api\Quality;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Quality\ApproveQmhRevisionRequest;
+use App\Http\Requests\Quality\DownloadQmhRevisionRequest;
 use App\Http\Requests\Quality\HeartbeatQmhRevisionRequest;
 use App\Http\Requests\Quality\LockQmhRevisionRequest;
 use App\Http\Requests\Quality\ReviewQmhRevisionRequest;
 use App\Http\Requests\Quality\SubmitQmhRevisionRequest;
 use App\Http\Requests\Quality\UnlockQmhRevisionRequest;
 use App\Models\QmhDocumentRevision;
+use App\Services\Quality\QmhRevisionApprovalService;
+use App\Services\Quality\QmhRevisionDownloadService;
 use App\Services\Quality\QmhRevisionLockService;
 use App\Services\Quality\QmhRevisionTransitionService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Response;
 
 class QmhRevisionWorkflowController extends Controller
 {
@@ -88,6 +93,40 @@ class QmhRevisionWorkflowController extends Controller
         return response()->json([
             'message' => 'Revisi diteruskan ke approval.',
             'data' => $updated,
+        ]);
+    }
+
+    public function approve(ApproveQmhRevisionRequest $request, QmhDocumentRevision $revision, QmhRevisionApprovalService $service): JsonResponse
+    {
+        $updated = $service->approve(
+            $revision,
+            (int) $request->user()->id,
+            (bool) $request->boolean('promote_to_new_edition'),
+            $request->input('reason')
+        );
+
+        return response()->json([
+            'message' => 'Revisi berhasil disahkan dan dipublish.',
+            'data' => $updated,
+        ]);
+    }
+
+    public function download(DownloadQmhRevisionRequest $request, QmhDocumentRevision $revision, QmhRevisionDownloadService $service): Response
+    {
+        $result = $service->generateAndLogDownload(
+            $revision,
+            (int) $request->user()->id,
+            $request->string('copy_type')->toString(),
+            $request->input('reason'),
+            $request->input('distribution_target'),
+            $request->ip(),
+            $request->userAgent()
+        );
+
+        return response($result['binary'], 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$result['filename'].'"',
+            'Cache-Control' => 'private, no-store, max-age=0',
         ]);
     }
 }
