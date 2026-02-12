@@ -42,7 +42,10 @@ class QmhDocumentWebTest extends TestCase
         $this->actingAs($user)
             ->get('/quality/documents/create')
             ->assertOk()
-            ->assertViewIs('quality.create');
+            ->assertViewIs('quality.create')
+            ->assertSee('Buat Dokumen')
+            ->assertSee('Simpan Dokumen')
+            ->assertSee('Kembali');
     }
 
     public function test_user_without_qmh_permission_is_redirected_from_quality_pages(): void
@@ -131,6 +134,8 @@ class QmhDocumentWebTest extends TestCase
             ->get('/quality/documents?search=QMH&clause=6&doc_type=ik&status=draft&edition_number=1&revision_number=0');
 
         $response->assertOk();
+        $response->assertSee('Dashboard QMH');
+        $response->assertSee('Lihat');
         $response->assertSee('QMH-IK-200');
         $response->assertDontSee('QMH-SOP-100');
     }
@@ -208,6 +213,39 @@ class QmhDocumentWebTest extends TestCase
         $response->assertSee('Unduhan Uncontrolled');
         $response->assertSee('Semua Klausul');
         $response->assertSee('Semua Jenis');
+    }
+
+    public function test_user_with_qmh_view_permission_can_access_document_show_page(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-SOP-400',
+            'title' => 'SOP Show Page',
+            'clause' => 5,
+            'doc_type' => 'sop',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'draft',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+        ]);
+
+        $document->update(['current_revision_id' => $revision->id]);
+
+        $this->actingAs($user)
+            ->get('/quality/documents/'.$document->id)
+            ->assertOk()
+            ->assertViewIs('quality.show')
+            ->assertSee('QMH-SOP-400');
     }
 
     private function createQmhPermissions(): void

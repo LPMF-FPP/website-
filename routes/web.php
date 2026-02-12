@@ -68,6 +68,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('documents.store')
             ->middleware('permission:qmh.create');
 
+        Route::get('/documents/{document}', [QualityQmhDocumentController::class, 'show'])
+            ->name('documents.show')
+            ->middleware('permission:qmh.view');
+
         Route::get('/reports', [QualityQmhReportController::class, 'index'])
             ->name('reports.index')
             ->middleware('permission:qmh.report');

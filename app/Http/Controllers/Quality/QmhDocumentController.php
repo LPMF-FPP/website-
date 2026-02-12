@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Quality;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Quality\StoreQmhDocumentRequest;
 use App\Models\QmhDocument;
+use App\Models\User;
 use App\Services\Quality\QmhDashboardSummaryService;
 use App\Services\Quality\QmhDocumentService;
 use Illuminate\Http\RedirectResponse;
@@ -67,6 +68,24 @@ class QmhDocumentController extends Controller
     public function create(): View
     {
         return view('quality.create');
+    }
+
+    public function show(QmhDocument $document): View
+    {
+        $document->load([
+            'currentRevision.lock.owner',
+            'revisions' => fn ($query) => $query
+                ->orderByDesc('edition_number')
+                ->orderByDesc('revision_number'),
+            'revisions.workflowEvents' => fn ($query) => $query->latest('id')->limit(5),
+        ]);
+
+        $users = User::query()
+            ->select('id', 'name', 'role')
+            ->orderBy('name')
+            ->get();
+
+        return view('quality.show', compact('document', 'users'));
     }
 
     public function store(StoreQmhDocumentRequest $request, QmhDocumentService $service): RedirectResponse
