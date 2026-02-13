@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use ZipArchive;
 
 class QmhTemplateController extends Controller
 {
@@ -63,6 +64,8 @@ class QmhTemplateController extends Controller
                 ->where('is_active', true)
                 ->update(['is_active' => false]);
 
+            $contentHtml = $this->extractContentHtmlFromDocx($disk, $path);
+
             $template = QmhTemplate::query()->create([
                 'name' => $validated['name'],
                 'clause' => self::DEFAULT_CLAUSE,
@@ -74,6 +77,7 @@ class QmhTemplateController extends Controller
                 'metadata' => [
                     'version_notes' => $validated['version_notes'] ?? null,
                     'uploaded_by' => $request->user()?->id,
+                    'content_html' => $contentHtml,
                 ],
             ]);
 
@@ -117,6 +121,11 @@ class QmhTemplateController extends Controller
                 $disk = $template->storage_disk;
                 $folder = sprintf('qmh/templates/%s', $validated['doc_type']);
                 $nextPath = $uploadedFile->store($folder, $disk);
+
+                $extractedHtml = $this->extractContentHtmlFromDocx($disk, $nextPath);
+                if ($extractedHtml !== null && ! isset($validated['content_html'])) {
+                    $validated['content_html'] = $extractedHtml;
+                }
             }
 
             $nextMetadata = is_array($template->metadata) ? $template->metadata : [];
@@ -272,5 +281,52 @@ class QmhTemplateController extends Controller
             Str::slug($template->name ?: $template->doc_type.'-template'),
             (int) $template->version
         );
+    }
+
+    private function extractContentHtmlFromDocx(string $disk, string $path): ?string
+    {
+        if (! Storage::disk($disk)->exists($path)) {
+            return null;
+        }
+
+        $absolutePath = Storage::disk($disk)->path($path);
+        $zip = new ZipArchive;
+        if ($zip->open($absolutePath) !== true) {
+            return null;
+        }
+
+        $documentXml = $zip->getFromName('word/document.xml');
+        $zip->close();
+
+        if (! is_string($documentXml) || trim($documentXml) === '') {
+            return null;
+        }
+
+        $dom = new \DOMDocument;
+        if (! @($dom->loadXML($documentXml))) {
+            return null;
+        }
+
+        $xpath = new \DOMXPath($dom);
+        $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
+
+        $paragraphs = [];
+        foreach ($xpath->query('//w:body//w:p') ?: [] as $paragraphNode) {
+            $textChunks = [];
+            foreach ($xpath->query('.//w:t', $paragraphNode) ?: [] as $textNode) {
+                $textChunks[] = $textNode->textContent;
+            }
+
+            $line = trim(implode('', $textChunks));
+            if ($line !== '') {
+                $paragraphs[] = '<p>'.e($line).'</p>';
+            }
+        }
+
+        if (empty($paragraphs)) {
+            return '<p></p>';
+        }
+
+        return implode('', $paragraphs);
     }
 }

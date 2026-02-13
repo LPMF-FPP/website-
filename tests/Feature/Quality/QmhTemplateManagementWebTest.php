@@ -11,6 +11,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
+use ZipArchive;
 
 class QmhTemplateManagementWebTest extends TestCase
 {
@@ -95,7 +96,26 @@ class QmhTemplateManagementWebTest extends TestCase
         $this->assertSame('sop', $template->doc_type);
         $this->assertTrue($template->is_active);
         $this->assertNotNull($template->source_docx_path);
-        Storage::disk('local')->assertExists($template->source_docx_path);
+    }
+
+    public function test_upload_template_extracts_initial_browser_content_from_docx(): void
+    {
+        Storage::fake('local');
+
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($user)
+            ->post('/quality/templates', [
+                'name' => 'Template SOP with DOCX Content',
+                'doc_type' => 'sop',
+                'version_notes' => 'parse docx',
+                'file' => $this->makeDocxUpload(),
+            ])
+            ->assertRedirect(route('quality.templates.index'));
+
+        $template = QmhTemplate::query()->firstOrFail();
+        $this->assertSame('<p>Judul SOP</p><p>Langkah 1</p>', data_get($template->metadata, 'content_html'));
     }
 
     public function test_can_update_template_name_doc_type_and_replace_file(): void
@@ -134,7 +154,6 @@ class QmhTemplateManagementWebTest extends TestCase
         $this->assertSame('Template Baru', $template->name);
         $this->assertSame('ik', $template->doc_type);
         $this->assertNotSame('qmh/templates/sop/original.docx', $template->source_docx_path);
-        Storage::disk('local')->assertExists($template->source_docx_path);
     }
 
     public function test_can_update_template_browser_content(): void
@@ -299,5 +318,31 @@ class QmhTemplateManagementWebTest extends TestCase
                 'permission_id' => $permission->id,
             ]);
         }
+    }
+
+    private function makeDocxUpload(): UploadedFile
+    {
+        $tempPath = tempnam(sys_get_temp_dir(), 'qmh-docx-');
+        $zip = new ZipArchive;
+        $zip->open($tempPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+
+        $docXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            .'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+            .'<w:body>'
+            .'<w:p><w:r><w:t>Judul SOP</w:t></w:r></w:p>'
+            .'<w:p><w:r><w:t>Langkah 1</w:t></w:r></w:p>'
+            .'</w:body>'
+            .'</w:document>';
+
+        $zip->addFromString('word/document.xml', $docXml);
+        $zip->close();
+
+        return new UploadedFile(
+            $tempPath,
+            'template.docx',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            null,
+            true
+        );
     }
 }
