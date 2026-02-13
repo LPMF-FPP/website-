@@ -576,6 +576,8 @@ class QmhTemplateController extends Controller
         if ($hasPageField) {
             if ($content === '') {
                 $content = '1';
+            } elseif (preg_match('/^((?:&emsp;|\s|<br>)*)(\/\d+)/', $content, $matches) === 1) {
+                $content = $matches[1].'1'.$matches[2].substr($content, strlen($matches[0]));
             } elseif (str_starts_with($content, '/')) {
                 $content = '1'.$content;
             }
