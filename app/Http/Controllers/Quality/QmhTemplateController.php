@@ -480,7 +480,8 @@ class QmhTemplateController extends Controller
         $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
         $xpath->registerNamespace('r', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships');
 
-        $footerTargets = [];
+        $defaultFooterTargets = [];
+        $fallbackFooterTargets = [];
         foreach ($xpath->query('//w:sectPr/w:footerReference') ?: [] as $footerReference) {
             if (! ($footerReference instanceof \DOMElement)) {
                 continue;
@@ -492,12 +493,23 @@ class QmhTemplateController extends Controller
             }
 
             $target = $this->resolveDocxTargetPath($relationships[$relationshipId]);
-            if ($target === '' || in_array($target, $footerTargets, true)) {
+            if ($target === '') {
                 continue;
             }
 
-            $footerTargets[] = $target;
+            $referenceType = strtolower(trim($footerReference->getAttribute('w:type')));
+            if ($referenceType === '' || $referenceType === 'default') {
+                $defaultFooterTargets[] = $target;
+
+                continue;
+            }
+
+            $fallbackFooterTargets[] = $target;
         }
+
+        $footerTargets = $defaultFooterTargets !== []
+            ? array_values(array_unique($defaultFooterTargets))
+            : array_values(array_unique($fallbackFooterTargets));
 
         if ($footerTargets === []) {
             return '';
