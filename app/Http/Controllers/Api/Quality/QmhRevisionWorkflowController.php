@@ -12,15 +12,41 @@ use App\Http\Requests\Quality\SaveQmhRevisionContentRequest;
 use App\Http\Requests\Quality\SubmitQmhRevisionRequest;
 use App\Http\Requests\Quality\UnlockQmhRevisionRequest;
 use App\Models\QmhDocumentRevision;
+use App\Services\Quality\QmhOfficeEditorService;
 use App\Services\Quality\QmhRevisionApprovalService;
 use App\Services\Quality\QmhRevisionDownloadService;
 use App\Services\Quality\QmhRevisionLockService;
 use App\Services\Quality\QmhRevisionTransitionService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 class QmhRevisionWorkflowController extends Controller
 {
+    public function officeSession(Request $request, QmhDocumentRevision $revision, QmhOfficeEditorService $service): JsonResponse
+    {
+        $session = $service->createSession($revision, $request->user());
+
+        return response()->json([
+            'message' => 'Sesi Office siap digunakan.',
+            'data' => $session,
+        ]);
+    }
+
+    public function officeCallback(Request $request, QmhDocumentRevision $revision, QmhOfficeEditorService $service): JsonResponse
+    {
+        $callbackHostHeader = (string) config('quality.office.callback_host_header', 'X-Office-Callback-Host');
+        $callbackHost = $request->header($callbackHostHeader);
+
+        $result = $service->handleCallback($revision, $request->all(), $callbackHost);
+
+        return response()->json([
+            'error' => 0,
+            'message' => 'Callback Office diterima.',
+            'data' => $result,
+        ]);
+    }
+
     public function lock(LockQmhRevisionRequest $request, QmhDocumentRevision $revision, QmhRevisionLockService $service): JsonResponse
     {
         $lock = $service->acquire($revision, (int) $request->user()->id);

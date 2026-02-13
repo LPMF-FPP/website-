@@ -20,6 +20,28 @@
     $lock = $currentRevision?->lock;
     $lockIsActive = $lock !== null && $lock->isActive();
     $lockedByAnotherUser = $lockIsActive && (int) $lock->locked_by !== (int) auth()->id();
+    $currentUserId = (int) auth()->id();
+
+    $canSubmit = $status === 'draft' && (int) ($currentRevision?->dibuat_oleh ?? 0) === $currentUserId;
+    $submitReason = match (true) {
+        $status !== 'draft' => 'Submit hanya tersedia saat status draft.',
+        (int) ($currentRevision?->dibuat_oleh ?? 0) !== $currentUserId => 'Hanya pembuat revisi yang dapat submit.',
+        default => null,
+    };
+
+    $canReview = $status === 'in_review' && (int) ($currentRevision?->diperiksa_oleh ?? 0) === $currentUserId;
+    $reviewReason = match (true) {
+        $status !== 'in_review' => 'Review hanya tersedia saat status in_review.',
+        (int) ($currentRevision?->diperiksa_oleh ?? 0) !== $currentUserId => 'Hanya pemeriksa yang ditugaskan yang dapat review.',
+        default => null,
+    };
+
+    $canApprove = $status === 'in_approval' && (int) ($currentRevision?->disahkan_oleh ?? 0) === $currentUserId;
+    $approveReason = match (true) {
+        $status !== 'in_approval' => 'Approve hanya tersedia saat status in_approval.',
+        (int) ($currentRevision?->disahkan_oleh ?? 0) !== $currentUserId => 'Hanya pengesah yang ditugaskan yang dapat approve.',
+        default => null,
+    };
 @endphp
 
 <x-app-layout>
@@ -96,15 +118,18 @@
                         <div><span class="font-medium text-gray-600">Klausul:</span> <span class="text-gray-900">{{ $document->clause }}</span></div>
                         <div><span class="font-medium text-gray-600">Jenis:</span> <span class="text-gray-900">{{ strtoupper($document->doc_type) }}</span></div>
                         <div><span class="font-medium text-gray-600">Status:</span> <x-status-badge :label="$statusLabel" :variant="$statusVariant" subtle="true" /></div>
+                        <div><span class="font-medium text-gray-600">Template:</span> <span class="text-gray-900">{{ $currentRevision?->template_name ? $currentRevision->template_name.' (v'.$currentRevision->template_version.')' : '-' }}</span></div>
+                        <div><span class="font-medium text-gray-600">Source DOCX:</span> <span class="text-gray-900">{{ $currentRevision?->source_docx_path ?? '-' }}</span></div>
                         <div><span class="font-medium text-gray-600">Dibuat oleh:</span> <span class="text-gray-900">{{ $usersById->get($currentRevision?->dibuat_oleh)?->name ?? '-' }}</span></div>
                         <div><span class="font-medium text-gray-600">Diperiksa:</span> <span class="text-gray-900">{{ $usersById->get($currentRevision?->diperiksa_oleh)?->name ?? '-' }}</span></div>
                         <div><span class="font-medium text-gray-600">Disahkan:</span> <span class="text-gray-900">{{ $usersById->get($currentRevision?->disahkan_oleh)?->name ?? '-' }}</span></div>
+                        <div><span class="font-medium text-gray-600">Autosave terakhir:</span> <span class="text-gray-900">{{ $currentRevision?->last_autosaved_at?->format('d-m-Y H:i:s') ?? '-' }}</span></div>
                     </div>
                 </div>
 
                 <div class="space-y-2">
                     @if($currentRevision !== null)
-                        @can('qmh.create')
+                        @if(auth()->user()?->hasPermission('qmh.create'))
                             @if(Route::has('quality.documents.edit'))
                                 @if($lockedByAnotherUser)
                                     <button
@@ -132,9 +157,9 @@
                                     Edit Dokumen
                                 </button>
                             @endif
-                        @endcan
+                        @endif
 
-                        @can('qmh.create')
+                        @if(auth()->user()?->hasPermission('qmh.create'))
                             <button
                                 type="button"
                                 @click="openDownloadModal()"
@@ -142,27 +167,57 @@
                             >
                                 Unduh PDF
                             </button>
-                        @endcan
+                        @endif
 
-                        @can('qmh.create')
-                            @if($status === 'draft' && (int) ($currentRevision->dibuat_oleh ?? 0) === (int) auth()->id())
-                                <button type="button" @click="openSubmitModal()" class="inline-flex w-full items-center justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                        @if(auth()->user()?->hasPermission('qmh.create'))
+                            <div class="space-y-1">
+                                <button
+                                    type="button"
+                                    @click="openSubmitModal()"
+                                    @disabled(! $canSubmit)
+                                    title="{{ $submitReason ?? '' }}"
+                                    class="inline-flex w-full items-center justify-center rounded-md px-3 py-2 text-sm font-medium {{ $canSubmit ? 'bg-blue-600 text-white hover:bg-blue-700' : 'cursor-not-allowed bg-gray-100 text-gray-500' }}"
+                                >
                                     Submit untuk Review
                                 </button>
-                            @endif
+                                @if(! $canSubmit && $submitReason)
+                                    <p class="text-xs text-gray-500">{{ $submitReason }}</p>
+                                @endif
+                                @if($status === 'draft' && (int) ($currentRevision?->dibuat_oleh ?? 0) !== $currentUserId)
+                                    <p class="text-xs text-gray-500">Hanya pembuat revisi yang dapat submit.</p>
+                                @endif
+                            </div>
 
-                            @if($status === 'in_review' && (int) ($currentRevision->diperiksa_oleh ?? 0) === (int) auth()->id())
-                                <button type="button" @click="openReviewModal()" class="inline-flex w-full items-center justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                            <div class="space-y-1">
+                                <button
+                                    type="button"
+                                    @click="openReviewModal()"
+                                    @disabled(! $canReview)
+                                    title="{{ $reviewReason ?? '' }}"
+                                    class="inline-flex w-full items-center justify-center rounded-md px-3 py-2 text-sm font-medium {{ $canReview ? 'bg-blue-600 text-white hover:bg-blue-700' : 'cursor-not-allowed bg-gray-100 text-gray-500' }}"
+                                >
                                     Review Dokumen
                                 </button>
-                            @endif
+                                @if(! $canReview && $reviewReason)
+                                    <p class="text-xs text-gray-500">{{ $reviewReason }}</p>
+                                @endif
+                            </div>
 
-                            @if($status === 'in_approval' && (int) ($currentRevision->disahkan_oleh ?? 0) === (int) auth()->id())
-                                <button type="button" @click="openApproveModal()" class="inline-flex w-full items-center justify-center rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700">
+                            <div class="space-y-1">
+                                <button
+                                    type="button"
+                                    @click="openApproveModal()"
+                                    @disabled(! $canApprove)
+                                    title="{{ $approveReason ?? '' }}"
+                                    class="inline-flex w-full items-center justify-center rounded-md px-3 py-2 text-sm font-medium {{ $canApprove ? 'bg-green-600 text-white hover:bg-green-700' : 'cursor-not-allowed bg-gray-100 text-gray-500' }}"
+                                >
                                     Setujui dan Terbitkan
                                 </button>
-                            @endif
-                        @endcan
+                                @if(! $canApprove && $approveReason)
+                                    <p class="text-xs text-gray-500">{{ $approveReason }}</p>
+                                @endif
+                            </div>
+                        @endif
                     @endif
                 </div>
             </div>

@@ -16,6 +16,8 @@ class QmhDocument extends Model
         'title',
         'clause',
         'doc_type',
+        'parent_sop_id',
+        'paired_ik_id',
         'owner_label',
         'current_revision_id',
         'is_active',
@@ -23,6 +25,8 @@ class QmhDocument extends Model
 
     protected $casts = [
         'clause' => 'integer',
+        'parent_sop_id' => 'integer',
+        'paired_ik_id' => 'integer',
         'is_active' => 'boolean',
     ];
 
@@ -34,6 +38,21 @@ class QmhDocument extends Model
     public function currentRevision(): BelongsTo
     {
         return $this->belongsTo(QmhDocumentRevision::class, 'current_revision_id');
+    }
+
+    public function parentSop(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_sop_id');
+    }
+
+    public function pairedIk(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'paired_ik_id');
+    }
+
+    public function children(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_sop_id');
     }
 
     public function downloadLogs(): HasMany

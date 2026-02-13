@@ -24,7 +24,7 @@ class QmhDocumentController extends Controller
     {
         $summaryFilters = validator($request->only(['clause', 'doc_type', 'from', 'to']), [
             'clause' => ['nullable', 'integer', 'in:4,5,6,7,8'],
-            'doc_type' => ['nullable', 'in:sop,ik,formulir'],
+            'doc_type' => ['nullable', 'in:sop,ik,fr,formulir'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
         ])->validate();
@@ -36,7 +36,8 @@ class QmhDocumentController extends Controller
                 $query->where('clause', (int) $request->input('clause'));
             })
             ->when($request->filled('doc_type'), function ($query) use ($request) {
-                $query->where('doc_type', $request->string('doc_type')->toString());
+                $docType = $request->string('doc_type')->toString();
+                $query->where('doc_type', $docType === 'fr' ? 'formulir' : $docType);
             })
             ->when($request->filled('status'), function ($query) use ($request) {
                 $query->whereHas('currentRevision', function ($revisionQuery) use ($request) {
@@ -67,7 +68,25 @@ class QmhDocumentController extends Controller
 
     public function create(): View
     {
-        return view('quality.create');
+        $sopOptions = QmhDocument::query()
+            ->select('id', 'doc_code', 'title', 'clause')
+            ->where('doc_type', 'sop')
+            ->orderBy('clause')
+            ->orderBy('doc_code')
+            ->get();
+
+        $ikOptions = QmhDocument::query()
+            ->select('id', 'doc_code', 'title', 'clause', 'parent_sop_id')
+            ->where('doc_type', 'ik')
+            ->whereNotNull('parent_sop_id')
+            ->orderBy('clause')
+            ->orderBy('doc_code')
+            ->get();
+
+        return view('quality.create', [
+            'sopOptions' => $sopOptions,
+            'ikOptions' => $ikOptions,
+        ]);
     }
 
     public function show(QmhDocument $document): View

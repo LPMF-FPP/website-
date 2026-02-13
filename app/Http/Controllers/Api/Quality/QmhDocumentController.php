@@ -21,7 +21,8 @@ class QmhDocumentController extends Controller
                 $query->where('clause', (int) $request->input('clause'));
             })
             ->when($request->filled('doc_type'), function ($query) use ($request) {
-                $query->where('doc_type', $request->string('doc_type')->toString());
+                $docType = $request->string('doc_type')->toString();
+                $query->where('doc_type', $docType === 'fr' ? 'formulir' : $docType);
             })
             ->when($request->filled('status'), function ($query) use ($request) {
                 $query->whereHas('currentRevision', function ($revisionQuery) use ($request) {

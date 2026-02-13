@@ -18,6 +18,13 @@ class QmhDocumentRevision extends Model
         'revision_number',
         'version_label',
         'status',
+        'template_id',
+        'template_name',
+        'template_version',
+        'source_docx_path',
+        'source_docx_checksum',
+        'source_docx_version',
+        'last_autosaved_at',
         'change_summary',
         'version_bump_mode',
         'editor_json',
@@ -36,7 +43,10 @@ class QmhDocumentRevision extends Model
     protected $casts = [
         'edition_number' => 'integer',
         'revision_number' => 'integer',
+        'template_version' => 'integer',
+        'source_docx_version' => 'integer',
         'editor_json' => 'array',
+        'last_autosaved_at' => 'datetime',
         'submitted_at' => 'datetime',
         'reviewed_at' => 'datetime',
         'approved_at' => 'datetime',
@@ -57,6 +67,11 @@ class QmhDocumentRevision extends Model
     public function lock(): HasOne
     {
         return $this->hasOne(QmhDocumentLock::class, 'revision_id');
+    }
+
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(QmhTemplate::class, 'template_id');
     }
 
     public function downloadLogs(): HasMany

@@ -6,6 +6,7 @@ use App\Models\Permission;
 use App\Models\QmhDocument;
 use App\Models\QmhDocumentDownloadLog;
 use App\Models\QmhDocumentRevision;
+use App\Models\QmhTemplate;
 use App\Models\RolePermission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -63,13 +64,15 @@ class QmhDocumentWebTest extends TestCase
     {
         /** @var User $user */
         $user = User::factory()->create(['role' => 'admin']);
+        $template = $this->createTemplate(5, 'sop');
 
         $response = $this->actingAs($user)
             ->post('/quality/documents', [
                 'doc_code' => 'QMH-WEB-001',
                 'title' => 'Dokumen dari Form Web',
                 'clause' => 5,
-                'doc_type' => 'ik',
+                'doc_type' => 'sop',
+                'template_id' => $template->id,
                 'change_summary' => 'create from web',
             ]);
 
@@ -79,7 +82,7 @@ class QmhDocumentWebTest extends TestCase
             'doc_code' => 'QMH-WEB-001',
             'title' => 'Dokumen dari Form Web',
             'clause' => 5,
-            'doc_type' => 'ik',
+            'doc_type' => 'sop',
         ]);
     }
 
@@ -283,7 +286,44 @@ class QmhDocumentWebTest extends TestCase
             ->assertOk()
             ->assertViewIs('quality.edit')
             ->assertSee('Editor Dokumen QMH')
+            ->assertSee('Edit di Office')
             ->assertSee('Simpan');
+    }
+
+    public function test_detail_page_shows_disabled_reason_for_submit_when_not_revision_owner(): void
+    {
+        /** @var User $owner */
+        $owner = User::factory()->create(['role' => 'admin']);
+        /** @var User $other */
+        $other = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-SOP-402',
+            'title' => 'SOP Disabled Reason',
+            'clause' => 6,
+            'doc_type' => 'sop',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'draft',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $owner->id,
+            'content_html' => '<p>Konten awal</p>',
+        ]);
+
+        $document->update(['current_revision_id' => $revision->id]);
+
+        $this->actingAs($other)
+            ->get('/quality/documents/'.$document->id)
+            ->assertOk()
+            ->assertSee('Submit untuk Review')
+            ->assertSee('Hanya pembuat revisi yang dapat submit.');
     }
 
     private function createQmhPermissions(): void
@@ -314,6 +354,19 @@ class QmhDocumentWebTest extends TestCase
         RolePermission::query()->updateOrCreate([
             'role' => 'admin',
             'permission_id' => $createPermission->id,
+        ]);
+    }
+
+    private function createTemplate(int $clause, string $docType): QmhTemplate
+    {
+        return QmhTemplate::query()->create([
+            'name' => sprintf('Template %s klausul %d', strtoupper($docType), $clause),
+            'clause' => $clause,
+            'doc_type' => $docType,
+            'version' => 1,
+            'storage_disk' => 'local',
+            'source_docx_path' => sprintf('templates/qmh/%s-%d.docx', $docType, $clause),
+            'is_active' => true,
         ]);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Services\Quality;
 
+use App\Models\QmhDocument;
 use App\Models\QmhDocumentRevision;
 use App\Models\QmhWorkflowEvent;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -35,6 +36,24 @@ class QmhRevisionApprovalService
                 throw ValidationException::withMessages([
                     'reason' => 'Alasan wajib diisi untuk manual promote to new edition.',
                 ]);
+            }
+
+            $document = $revision->document()->lockForUpdate()->first();
+            if ($document !== null && $document->doc_type === 'ik') {
+                $pairedFrPublishedExists = QmhDocument::query()
+                    ->whereIn('doc_type', ['formulir', 'fr'])
+                    ->where('paired_ik_id', $document->id)
+                    ->where('parent_sop_id', $document->parent_sop_id)
+                    ->whereHas('currentRevision', function ($query) {
+                        $query->where('status', 'published');
+                    })
+                    ->exists();
+
+                if (! $pairedFrPublishedExists) {
+                    throw ValidationException::withMessages([
+                        'paired_fr' => 'IK wajib memiliki minimal satu FR pendamping yang published pada parent SOP yang sama.',
+                    ]);
+                }
             }
 
             $latestPublished = QmhDocumentRevision::query()

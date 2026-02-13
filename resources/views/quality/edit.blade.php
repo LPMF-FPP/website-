@@ -26,6 +26,7 @@
             lockUrl: @js($revision ? '/api/quality/revisions/'.$revision->id.'/lock' : null),
             heartbeatUrl: @js($revision ? '/api/quality/revisions/'.$revision->id.'/heartbeat' : null),
             unlockUrl: @js($revision ? '/api/quality/revisions/'.$revision->id.'/unlock' : null),
+            officeSessionUrl: @js($revision ? '/api/quality/revisions/'.$revision->id.'/office-session' : null),
             csrfToken: @js(csrf_token()),
         })"
         x-init="init()"
@@ -42,31 +43,58 @@
                     <button type="button" @click="goBack()" class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
                         Kembali
                     </button>
-                    <button type="button" @click="saveNow()" :disabled="saving || !hasLock" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
-                        <span x-text="saving ? 'Menyimpan...' : 'Simpan'"></span>
+                    <button type="button" @click="saveNow()" :disabled="saving || !hasLock || isOfficeEmbedActive()" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+                        <span x-text="saving ? 'Menyimpan...' : (isOfficeEmbedActive() ? 'Autosave Office' : 'Simpan')"></span>
                     </button>
                 </div>
             </div>
         </div>
 
-        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" x-data="qmhEditor({ initialContent: @js($revision?->content_html ?? '<p></p>') })" x-init="init()" @qmh-editor-change="onEditorChange($event.detail)">
-            <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
-                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bold') }" @click="toggleBold()">B</button>
-                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('italic') }" @click="toggleItalic()">I</button>
-                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('underline') }" @click="toggleUnderline()">U</button>
-                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 1 }) }" @click="setHeading(1)">H1</button>
-                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 2 }) }" @click="setHeading(2)">H2</button>
-                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 3 }) }" @click="setHeading(3)">H3</button>
-                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
-                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
-                <button type="button" class="qmh-editor-btn" @click="setAlign('left')">Kiri</button>
-                <button type="button" class="qmh-editor-btn" @click="setAlign('center')">Tengah</button>
-                <button type="button" class="qmh-editor-btn" @click="setAlign('right')">Kanan</button>
-                <button type="button" class="qmh-editor-btn" @click="insertTable()">Tabel</button>
+        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 pb-3">
+                <div>
+                    <h4 class="text-sm font-semibold text-gray-900">Edit di Office</h4>
+                    <p class="text-xs text-gray-500">Sesi Office berjalan dengan lock aktif dan callback autosave.</p>
+                </div>
+                <p class="text-xs text-gray-500" x-show="officeReadyAt" x-text="`Session siap: ${officeReadyAt}`"></p>
             </div>
 
-            <div class="qmh-editor-surface" x-ref="editor"></div>
-            <input type="hidden" x-ref="hiddenInput" name="content_html">
+            <div x-show="officeLoading" class="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">Menyiapkan sesi Office...</div>
+            <div x-show="officeError" class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" x-text="officeError"></div>
+
+            <template x-if="officeFrameUrl">
+                <div class="overflow-hidden rounded-lg border border-gray-200">
+                    <iframe
+                        title="QMH Office Editor"
+                        class="h-[72vh] w-full"
+                        :src="officeFrameUrl"
+                    ></iframe>
+                </div>
+            </template>
+
+            <div x-show="!officeLoading && !officeFrameUrl" class="space-y-3">
+                <p class="text-sm text-amber-700">Server Office belum tersedia. Gunakan editor fallback di bawah ini.</p>
+
+                <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" x-data="qmhEditor({ initialContent: @js($revision?->content_html ?? '<p></p>') })" x-init="init()" @qmh-editor-change="onEditorChange($event.detail)">
+                    <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
+                        <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bold') }" @click="toggleBold()">B</button>
+                        <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('italic') }" @click="toggleItalic()">I</button>
+                        <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('underline') }" @click="toggleUnderline()">U</button>
+                        <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 1 }) }" @click="setHeading(1)">H1</button>
+                        <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 2 }) }" @click="setHeading(2)">H2</button>
+                        <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 3 }) }" @click="setHeading(3)">H3</button>
+                        <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
+                        <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
+                        <button type="button" class="qmh-editor-btn" @click="setAlign('left')">Kiri</button>
+                        <button type="button" class="qmh-editor-btn" @click="setAlign('center')">Tengah</button>
+                        <button type="button" class="qmh-editor-btn" @click="setAlign('right')">Kanan</button>
+                        <button type="button" class="qmh-editor-btn" @click="insertTable()">Tabel</button>
+                    </div>
+
+                    <div class="qmh-editor-surface" x-ref="editor"></div>
+                    <input type="hidden" x-ref="hiddenInput" name="content_html">
+                </div>
+            </div>
         </div>
     </div>
 </x-app-layout>
@@ -81,6 +109,7 @@
                 lockUrl: config.lockUrl,
                 heartbeatUrl: config.heartbeatUrl,
                 unlockUrl: config.unlockUrl,
+                officeSessionUrl: config.officeSessionUrl,
                 csrfToken: config.csrfToken,
                 hasLock: false,
                 heartbeatTimer: null,
@@ -90,6 +119,10 @@
                 editorJson: null,
                 errorMessage: '',
                 saveState: 'idle',
+                officeLoading: false,
+                officeError: '',
+                officeFrameUrl: '',
+                officeReadyAt: '',
 
                 init() {
                     if (!this.revisionId) {
@@ -108,7 +141,12 @@
                     this.saveState = 'dirty';
                 },
 
+                isOfficeEmbedActive() {
+                    return this.officeFrameUrl !== '';
+                },
+
                 saveStatusLabel() {
+                    if (this.isOfficeEmbedActive()) return 'Autosave via Office';
                     if (this.saveState === 'saving') return 'Menyimpan...';
                     if (this.saveState === 'saved') return 'Tersimpan';
                     if (this.saveState === 'dirty') return 'Belum tersimpan';
@@ -127,14 +165,54 @@
 
                     this.hasLock = true;
                     this.startHeartbeat();
+                    await this.startOfficeSession();
+                },
+
+                async startOfficeSession() {
+                    if (!this.officeSessionUrl) {
+                        return;
+                    }
+
+                    this.officeLoading = true;
+                    this.officeError = '';
+
+                    const result = await this.apiPost(this.officeSessionUrl, {});
+                    if (!result.ok) {
+                        this.officeError = result.message || 'Sesi Office tidak tersedia.';
+                        this.officeLoading = false;
+                        return;
+                    }
+
+                    const payload = result.data?.data || null;
+                    const editorUrl = payload?.editor_url || '';
+                    const token = payload?.token || '';
+                    const officeConfig = payload?.config || null;
+
+                    if (!editorUrl || !token || !officeConfig) {
+                        this.officeLoading = false;
+                        return;
+                    }
+
+                    const configEncoded = encodeURIComponent(JSON.stringify(officeConfig));
+                    this.officeFrameUrl = `${editorUrl}?token=${encodeURIComponent(token)}&config=${configEncoded}`;
+                    this.officeReadyAt = new Date().toLocaleString('id-ID', { hour12: false });
+                    this.officeLoading = false;
                 },
 
                 startHeartbeat() {
                     this.stopHeartbeat();
                     this.heartbeatTimer = window.setInterval(async () => {
                         if (!this.hasLock) return;
-                        await this.apiPost(this.heartbeatUrl, {});
-                    }, 300000);
+                        const result = await this.apiPost(this.heartbeatUrl, {});
+                        if (!result.ok) {
+                            this.stopHeartbeat();
+                            this.hasLock = false;
+                            this.errorMessage = 'Lock hilang. Editor berubah read-only, kembali ke detail...';
+                            setTimeout(() => {
+                                window.location.href = this.showUrl;
+                            }, 1500);
+                        }
+                    }, 30000);
                 },
 
                 stopHeartbeat() {
@@ -145,7 +223,7 @@
                 },
 
                 async saveNow() {
-                    if (!this.hasLock || !this.saveUrl) {
+                    if (!this.hasLock || !this.saveUrl || this.isOfficeEmbedActive()) {
                         return;
                     }
 
