@@ -62,6 +62,17 @@ class QmhDocumentWebTest extends TestCase
             ->assertRedirect('/dashboard');
     }
 
+    public function test_create_page_uses_global_qmh_create_factory(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($user)
+            ->get('/quality/documents/create')
+            ->assertOk()
+            ->assertSee('x-data="window.qmhCreatePage({', false);
+    }
+
     public function test_can_store_document_from_web_form_and_redirects_to_document_detail(): void
     {
         /** @var User $user */

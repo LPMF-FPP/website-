@@ -5,6 +5,7 @@ import collapse from "@alpinejs/collapse";
 import focus from "@alpinejs/focus";
 import { createListFetcher } from "./utils/list-fetcher";
 import { initSearchPage } from "./pages/search";
+import { qmhCreatePage } from "./pages/quality-create";
 import { registerSettingsComponent } from "./pages/settings/alpine-component";
 import { qmhEditor } from "./components/qmh-editor";
 import toastStore from "./stores/toast";
@@ -75,6 +76,7 @@ window.Alpine = Alpine;
 document.addEventListener("alpine:init", () => {
     Alpine.store("toast", toastStore);
     Alpine.data("listFetcher", () => createListFetcher());
+    Alpine.data("qmhCreatePage", (config = {}) => qmhCreatePage(config));
     // For backward compat with earlier usage names, you can alias:
     Alpine.data("sampleProcessesList", () => createListFetcher());
     Alpine.data("deliveryList", () => createListFetcher());
@@ -138,6 +140,8 @@ document.addEventListener("alpine:init", () => {
         },
     }));
 });
+
+window.qmhCreatePage = qmhCreatePage;
 
 Alpine.start();
 
