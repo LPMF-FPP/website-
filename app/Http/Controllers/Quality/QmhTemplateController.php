@@ -10,7 +10,9 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
+use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class QmhTemplateController extends Controller
@@ -135,7 +137,39 @@ class QmhTemplateController extends Controller
             ->with('success', 'Template berhasil dinonaktifkan.');
     }
 
-    public function preview(Request $request, QmhTemplate $template): StreamedResponse
+    public function preview(Request $request, QmhTemplate $template): View
+    {
+        $this->authorizePreviewAccess($request);
+        $this->assertTemplateFileExists($template);
+
+        $previewFileUrl = URL::temporarySignedRoute(
+            'quality.templates.preview.file',
+            now()->addMinutes(10),
+            ['template' => $template->id]
+        );
+
+        return view('quality.templates.preview', [
+            'template' => $template,
+            'previewFileUrl' => $previewFileUrl,
+            'officeViewerUrl' => 'https://view.officeapps.live.com/op/embed.aspx?src='.rawurlencode($previewFileUrl),
+        ]);
+    }
+
+    public function previewFile(QmhTemplate $template): StreamedResponse
+    {
+        $this->assertTemplateFileExists($template);
+
+        return Storage::disk($template->storage_disk)->response(
+            $template->source_docx_path,
+            $this->buildTemplateFileName($template),
+            [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ],
+            'inline'
+        );
+    }
+
+    private function authorizePreviewAccess(Request $request): void
     {
         $user = $request->user();
         abort_unless(
@@ -146,24 +180,24 @@ class QmhTemplateController extends Controller
             403,
             'Anda tidak memiliki akses preview template.'
         );
+    }
 
-        $disk = $template->storage_disk;
-        $path = $template->source_docx_path;
+    private function assertTemplateFileExists(QmhTemplate $template): void
+    {
+        abort_if(
+            $template->source_docx_path === null
+            || ! Storage::disk($template->storage_disk)->exists($template->source_docx_path),
+            404,
+            'File template tidak ditemukan.'
+        );
+    }
 
-        abort_if($path === null || ! Storage::disk($disk)->exists($path), 404, 'File template tidak ditemukan.');
-
-        $fileName = sprintf(
+    private function buildTemplateFileName(QmhTemplate $template): string
+    {
+        return sprintf(
             '%s-v%d.docx',
             Str::slug($template->name ?: $template->doc_type.'-template'),
             (int) $template->version
-        );
-
-        return Storage::disk($disk)->response(
-            $path,
-            $fileName,
-            [
-                'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            ]
         );
     }
 }

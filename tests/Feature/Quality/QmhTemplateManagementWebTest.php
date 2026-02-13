@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
 use Tests\TestCase;
 
 class QmhTemplateManagementWebTest extends TestCase
@@ -108,7 +109,7 @@ class QmhTemplateManagementWebTest extends TestCase
         $this->assertTrue($second->fresh()->is_active);
     }
 
-    public function test_can_preview_template_docx_file(): void
+    public function test_template_preview_opens_in_browser_page_not_direct_download(): void
     {
         Storage::fake('local');
 
@@ -130,6 +131,35 @@ class QmhTemplateManagementWebTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('quality.templates.preview', $template))
+            ->assertOk()
+            ->assertSee('Preview Template DOCX')
+            ->assertSee('view.officeapps.live.com');
+    }
+
+    public function test_signed_preview_file_endpoint_returns_docx_stream(): void
+    {
+        Storage::fake('local');
+
+        $path = 'qmh/templates/sop/template-preview.docx';
+        Storage::disk('local')->put($path, 'dummy-docx-content');
+
+        $template = QmhTemplate::query()->create([
+            'name' => 'Template Preview SOP',
+            'clause' => 4,
+            'doc_type' => 'sop',
+            'version' => 1,
+            'storage_disk' => 'local',
+            'source_docx_path' => $path,
+            'is_active' => true,
+        ]);
+
+        $signedUrl = URL::temporarySignedRoute(
+            'quality.templates.preview.file',
+            now()->addMinutes(5),
+            ['template' => $template->id]
+        );
+
+        $this->get($signedUrl)
             ->assertOk()
             ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     }
