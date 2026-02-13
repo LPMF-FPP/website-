@@ -26,7 +26,6 @@ class StoreQmhDocumentRequest extends FormRequest
                 'integer',
                 Rule::exists('qmh_templates', 'id')->where(function ($query) {
                     $query
-                        ->where('clause', (int) $this->input('clause'))
                         ->where('doc_type', $this->normalizedTemplateDocType())
                         ->where('is_active', true);
                 }),

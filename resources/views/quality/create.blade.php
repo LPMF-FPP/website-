@@ -283,6 +283,15 @@
                             </div>
                         </div>
 
+                        <div class="mt-3" x-show="selectedTemplatePreviewUrl()" x-cloak>
+                            <a :href="selectedTemplatePreviewUrl()"
+                               target="_blank"
+                               rel="noopener"
+                               class="inline-flex items-center rounded-md border border-blue-300 bg-white px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50">
+                                Preview Template DOCX
+                            </a>
+                        </div>
+
                         <div class="mt-3 rounded-md border border-blue-100 bg-blue-50 px-3 py-2 text-sm text-blue-900" x-text="templatePreviewSummary()"></div>
                         <p class="mt-2 text-xs text-gray-600">Setelah draft dibuat, lanjutkan ke <strong>Edit Dokumen</strong> untuk mengisi konten/form dokumen secara penuh.</p>
                     </div>

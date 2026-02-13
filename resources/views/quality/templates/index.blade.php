@@ -24,13 +24,7 @@
         @endif
 
         <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            <form method="GET" action="{{ route('quality.templates.index') }}" class="grid gap-3 md:grid-cols-4">
-                <select name="clause" class="rounded-md border-gray-300 text-sm focus:border-primary-600 focus:ring-primary-600">
-                    <option value="">Semua Klausul</option>
-                    @foreach([4, 5, 6, 7, 8] as $clause)
-                        <option value="{{ $clause }}" @selected((string) request('clause') === (string) $clause)>Klausul {{ $clause }}</option>
-                    @endforeach
-                </select>
+            <form method="GET" action="{{ route('quality.templates.index') }}" class="grid gap-3 md:grid-cols-3">
 
                 <select name="doc_type" class="rounded-md border-gray-300 text-sm focus:border-primary-600 focus:ring-primary-600">
                     <option value="">Semua Jenis</option>
@@ -48,7 +42,7 @@
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama template"
                        class="rounded-md border-gray-300 text-sm focus:border-primary-600 focus:ring-primary-600">
 
-                <div class="flex gap-2 md:col-span-4">
+                <div class="flex gap-2 md:col-span-3">
                     <button type="submit" class="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700">Filter</button>
                     <a href="{{ route('quality.templates.index') }}" class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Reset</a>
                 </div>
@@ -57,7 +51,7 @@
 
         <div id="upload-template" class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <h2 class="text-lg font-semibold text-gray-900">Upload Template</h2>
-            <p class="mt-1 text-sm text-gray-600">Upload file DOCX untuk kombinasi klausul dan jenis dokumen yang dipilih. Upload baru otomatis menjadi template aktif.</p>
+            <p class="mt-1 text-sm text-gray-600">Upload file DOCX per jenis dokumen (SOP/IK/FR). Upload baru otomatis menjadi template aktif untuk jenis dokumen tersebut.</p>
 
             <form method="POST" action="{{ route('quality.templates.store') }}" enctype="multipart/form-data" class="mt-4 grid gap-4 md:grid-cols-2">
                 @csrf
@@ -75,16 +69,6 @@
                            class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('file') border-red-400 @else border-gray-300 @enderror"
                            required>
                     @error('file')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
-                </div>
-
-                <div>
-                    <label class="mb-1 block text-sm font-medium text-gray-700" for="clause">Klausul</label>
-                    <select id="clause" name="clause" class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('clause') border-red-400 @else border-gray-300 @enderror" required>
-                        @foreach([4, 5, 6, 7, 8] as $clause)
-                            <option value="{{ $clause }}" @selected((string) old('clause') === (string) $clause)>{{ $clause }}</option>
-                        @endforeach
-                    </select>
-                    @error('clause')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
 
                 <div>
@@ -117,7 +101,6 @@
                 <thead class="bg-gray-50">
                 <tr>
                     <th class="px-4 py-3 text-left font-semibold text-gray-700">Nama</th>
-                    <th class="px-4 py-3 text-left font-semibold text-gray-700">Klausul</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-700">Jenis</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-700">Versi</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
@@ -130,7 +113,6 @@
                 @forelse($templates as $template)
                     <tr>
                         <td class="px-4 py-3 text-gray-900">{{ $template->name }}</td>
-                        <td class="px-4 py-3 text-gray-700">{{ $template->clause }}</td>
                         <td class="px-4 py-3 text-gray-700">{{ strtoupper($template->doc_type) }}</td>
                         <td class="px-4 py-3 text-gray-700">v{{ $template->version }}</td>
                         <td class="px-4 py-3">
@@ -143,6 +125,13 @@
                         <td class="px-4 py-3 text-gray-700 break-all">{{ $template->source_docx_path ?? '-' }}</td>
                         <td class="px-4 py-3 text-gray-700">{{ $template->updated_at?->format('d-m-Y H:i') ?? '-' }}</td>
                         <td class="px-4 py-3 text-right">
+                            <a href="{{ route('quality.templates.preview', $template) }}"
+                               target="_blank"
+                               rel="noopener"
+                               class="inline-flex items-center rounded-md border border-blue-300 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50">
+                                Preview
+                            </a>
+
                             @if($template->is_active)
                                 <form method="POST" action="{{ route('quality.templates.deactivate', $template) }}" class="inline">
                                     @csrf
@@ -164,7 +153,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="px-4 py-8 text-center text-sm text-gray-500">Belum ada template QMH. Upload template pertama untuk mulai menggunakan flow Buat Dokumen.</td>
+                        <td colspan="7" class="px-4 py-8 text-center text-sm text-gray-500">Belum ada template QMH. Upload template pertama untuk mulai menggunakan flow Buat Dokumen.</td>
                     </tr>
                 @endforelse
                 </tbody>

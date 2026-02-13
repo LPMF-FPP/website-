@@ -53,12 +53,11 @@ class QmhTemplateManagementWebTest extends TestCase
         $user = User::factory()->create(['role' => 'admin']);
 
         $response = $this->actingAs($user)->post('/quality/templates', [
-            'name' => 'Template SOP Klausul 4 v1',
-            'clause' => 4,
+            'name' => 'Template SOP v1',
             'doc_type' => 'sop',
             'version_notes' => 'Template awal',
             'file' => UploadedFile::fake()->create(
-                'template-sop-4-v1.docx',
+                'template-sop-v1.docx',
                 128,
                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
             ),
@@ -68,7 +67,7 @@ class QmhTemplateManagementWebTest extends TestCase
 
         $template = QmhTemplate::query()->firstOrFail();
 
-        $this->assertSame('Template SOP Klausul 4 v1', $template->name);
+        $this->assertSame('Template SOP v1', $template->name);
         $this->assertSame(4, $template->clause);
         $this->assertSame('sop', $template->doc_type);
         $this->assertTrue($template->is_active);
@@ -76,28 +75,28 @@ class QmhTemplateManagementWebTest extends TestCase
         Storage::disk('local')->assertExists($template->source_docx_path);
     }
 
-    public function test_activating_template_deactivates_other_active_template_in_same_clause_and_doc_type(): void
+    public function test_activating_template_deactivates_other_active_template_in_same_doc_type(): void
     {
         /** @var User $user */
         $user = User::factory()->create(['role' => 'admin']);
 
         $first = QmhTemplate::query()->create([
-            'name' => 'Template SOP Klausul 5 v1',
-            'clause' => 5,
+            'name' => 'Template SOP Klausul 4 v1',
+            'clause' => 4,
             'doc_type' => 'sop',
             'version' => 1,
             'storage_disk' => 'local',
-            'source_docx_path' => 'templates/qmh/sop-5-v1.docx',
+            'source_docx_path' => 'templates/qmh/sop-4-v1.docx',
             'is_active' => true,
         ]);
 
         $second = QmhTemplate::query()->create([
-            'name' => 'Template SOP Klausul 5 v2',
-            'clause' => 5,
+            'name' => 'Template SOP Klausul 8 v2',
+            'clause' => 8,
             'doc_type' => 'sop',
             'version' => 2,
             'storage_disk' => 'local',
-            'source_docx_path' => 'templates/qmh/sop-5-v2.docx',
+            'source_docx_path' => 'templates/qmh/sop-8-v2.docx',
             'is_active' => false,
         ]);
 
@@ -107,6 +106,32 @@ class QmhTemplateManagementWebTest extends TestCase
 
         $this->assertFalse($first->fresh()->is_active);
         $this->assertTrue($second->fresh()->is_active);
+    }
+
+    public function test_can_preview_template_docx_file(): void
+    {
+        Storage::fake('local');
+
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $path = 'qmh/templates/sop/template-preview.docx';
+        Storage::disk('local')->put($path, 'dummy-docx-content');
+
+        $template = QmhTemplate::query()->create([
+            'name' => 'Template Preview SOP',
+            'clause' => 4,
+            'doc_type' => 'sop',
+            'version' => 1,
+            'storage_disk' => 'local',
+            'source_docx_path' => $path,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('quality.templates.preview', $template))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     }
 
     private function createQmhPermissions(): void

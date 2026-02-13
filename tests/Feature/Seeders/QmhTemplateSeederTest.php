@@ -11,25 +11,11 @@ class QmhTemplateSeederTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_qmh_template_seeder_creates_baseline_templates_for_all_clause_doc_type_combinations(): void
+    public function test_qmh_template_seeder_does_not_create_baseline_templates(): void
     {
         $this->seed(QmhTemplateSeeder::class);
 
-        $this->assertSame(15, QmhTemplate::query()->count());
-        $this->assertSame(15, QmhTemplate::query()->where('is_active', true)->count());
-        $this->assertSame(15, QmhTemplate::query()->where('version', 1)->count());
-
-        $this->assertDatabaseHas('qmh_templates', [
-            'clause' => 4,
-            'doc_type' => 'sop',
-            'is_active' => true,
-        ]);
-
-        $this->assertDatabaseHas('qmh_templates', [
-            'clause' => 8,
-            'doc_type' => 'fr',
-            'is_active' => true,
-        ]);
+        $this->assertSame(0, QmhTemplate::query()->count());
     }
 
     public function test_qmh_template_seeder_is_idempotent(): void
@@ -37,6 +23,6 @@ class QmhTemplateSeederTest extends TestCase
         $this->seed(QmhTemplateSeeder::class);
         $this->seed(QmhTemplateSeeder::class);
 
-        $this->assertSame(15, QmhTemplate::query()->count());
+        $this->assertSame(0, QmhTemplate::query()->count());
     }
 }

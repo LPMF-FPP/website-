@@ -21,7 +21,7 @@ class QmhTemplateDrivenCreateTest extends TestCase
         $this->createQmhPermissions();
     }
 
-    public function test_template_list_endpoint_returns_only_active_templates_for_clause_and_doc_type(): void
+    public function test_template_list_endpoint_returns_only_active_templates_for_doc_type_and_includes_preview_url(): void
     {
         /** @var User $user */
         $user = User::factory()->create(['role' => 'admin']);
@@ -34,6 +34,17 @@ class QmhTemplateDrivenCreateTest extends TestCase
                 'version' => 1,
                 'storage_disk' => 'local',
                 'source_docx_path' => 'templates/qmh/sop-4.docx',
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'name' => 'SOP Klausul 8 Aktif',
+                'clause' => 8,
+                'doc_type' => 'sop',
+                'version' => 3,
+                'storage_disk' => 'local',
+                'source_docx_path' => 'templates/qmh/sop-8.docx',
                 'is_active' => true,
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -62,12 +73,17 @@ class QmhTemplateDrivenCreateTest extends TestCase
             ],
         ]);
 
+        $activeSopTemplate = DB::table('qmh_templates')
+            ->where('name', 'SOP Klausul 8 Aktif')
+            ->first();
+
         $response = $this->actingAs($user)
-            ->getJson('/api/quality/templates?clause=4&doc_type=sop');
+            ->getJson('/api/quality/templates?doc_type=sop');
 
         $response->assertOk();
-        $response->assertJsonCount(1, 'data');
-        $response->assertJsonPath('data.0.name', 'SOP Klausul 4 Aktif');
+        $response->assertJsonCount(2, 'data');
+        $response->assertJsonPath('data.0.name', 'SOP Klausul 8 Aktif');
+        $response->assertJsonPath('data.0.preview_url', route('quality.templates.preview', $activeSopTemplate->id));
     }
 
     public function test_create_document_requires_template_id(): void
@@ -96,8 +112,8 @@ class QmhTemplateDrivenCreateTest extends TestCase
         Storage::disk('local')->put('templates/qmh/sop-template.docx', 'dummy-docx-content');
 
         $templateId = DB::table('qmh_templates')->insertGetId([
-            'name' => 'Template SOP Klausul 5',
-            'clause' => 5,
+            'name' => 'Template SOP Umum',
+            'clause' => 4,
             'doc_type' => 'sop',
             'version' => 2,
             'storage_disk' => 'local',

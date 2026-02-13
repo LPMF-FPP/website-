@@ -70,7 +70,6 @@ export function qmhCreatePage(config = {}) {
 
             try {
                 const params = new URLSearchParams({
-                    clause: String(this.clause),
                     doc_type: this.docType,
                 });
 
@@ -175,6 +174,12 @@ export function qmhCreatePage(config = {}) {
             return template?.source_docx_path || "-";
         },
 
+        selectedTemplatePreviewUrl() {
+            const template = this.selectedTemplate();
+
+            return template?.preview_url || "";
+        },
+
         selectedTemplateUpdatedAt() {
             const template = this.selectedTemplate();
             if (!template?.updated_at) {
@@ -223,7 +228,7 @@ export function qmhCreatePage(config = {}) {
                 return "Template belum dipilih.";
             }
 
-            return `Template ${template.name} (${this.selectedTemplateVersion()}) akan menjadi dasar draft awal. Konten lengkap dapat diisi pada halaman Edit Dokumen setelah draft dibuat.`;
+            return `Template ${template.name} (${this.selectedTemplateVersion()}) akan menjadi dasar draft awal. Gunakan tombol preview untuk cek file DOCX, lalu lanjutkan buat draft.`;
         },
 
         requiresParentSop() {

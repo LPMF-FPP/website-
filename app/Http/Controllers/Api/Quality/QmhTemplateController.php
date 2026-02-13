@@ -13,14 +13,13 @@ class QmhTemplateController extends Controller
     public function index(Request $request): JsonResponse
     {
         $validated = validator($request->all(), [
-            'clause' => ['required', 'integer', Rule::in([4, 5, 6, 7, 8])],
+            'clause' => ['nullable', 'integer', Rule::in([4, 5, 6, 7, 8])],
             'doc_type' => ['required', Rule::in(['sop', 'ik', 'fr', 'formulir'])],
         ])->validate();
 
         $docType = $validated['doc_type'] === 'formulir' ? 'fr' : $validated['doc_type'];
 
         $templates = QmhTemplate::query()
-            ->where('clause', (int) $validated['clause'])
             ->where('doc_type', $docType)
             ->where('is_active', true)
             ->orderByDesc('version')
@@ -35,6 +34,20 @@ class QmhTemplateController extends Controller
                 'source_docx_path',
                 'updated_at',
             ]);
+
+        $templates = $templates->map(function (QmhTemplate $template): array {
+            return [
+                'id' => $template->id,
+                'name' => $template->name,
+                'clause' => $template->clause,
+                'doc_type' => $template->doc_type,
+                'version' => $template->version,
+                'is_active' => $template->is_active,
+                'source_docx_path' => $template->source_docx_path,
+                'updated_at' => $template->updated_at,
+                'preview_url' => route('quality.templates.preview', $template),
+            ];
+        })->values();
 
         return response()->json([
             'data' => $templates,

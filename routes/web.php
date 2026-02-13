@@ -89,6 +89,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('templates.store')
             ->middleware('permission:qmh.template.manage');
 
+        Route::get('/templates/{template}/preview', [QualityQmhTemplateController::class, 'preview'])
+            ->name('templates.preview');
+
         Route::patch('/templates/{template}/activate', [QualityQmhTemplateController::class, 'activate'])
             ->name('templates.activate')
             ->middleware('permission:qmh.template.manage');
