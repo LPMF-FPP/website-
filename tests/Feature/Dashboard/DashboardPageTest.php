@@ -57,4 +57,21 @@ class DashboardPageTest extends TestCase
         $response->assertSee('Kecepatan');
         $response->assertSee('Kepuasan');
     }
+
+    public function test_dashboard_disposisi_search_uses_static_alpine_expression(): void
+    {
+        $user = User::factory()->create();
+        $request = TestRequest::factory()->create([
+            'submitted_at' => now()->subDays(1),
+        ]);
+        Suspect::factory()->create([
+            'test_request_id' => $request->id,
+            'name' => 'REGRESSION TEST TSK',
+        ]);
+
+        $response = $this->actingAs($user)->get(route('dashboard'));
+
+        $response->assertOk();
+        $response->assertSee('$el.textContent.toLowerCase().includes(search.toLowerCase())', false);
+    }
 }

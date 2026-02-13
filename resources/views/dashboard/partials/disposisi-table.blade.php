@@ -77,7 +77,7 @@
                                 @if($row['status'] === 'stuck_14_days') bg-red-50 hover:bg-red-100 @endif
                                 @if($row['status'] === 'stuck_7_days') bg-yellow-50 hover:bg-yellow-100 @endif
                                 @if($row['status'] === 'completed') bg-green-50 hover:bg-green-100 @endif"
-                            x-show="search === '' || @json(strtolower($row['nama_tsk'] . ' ' . $row['no_sampel'])).includes(search.toLowerCase())"
+                            x-show="search === '' || $el.textContent.toLowerCase().includes(search.toLowerCase())"
                         >
                             <td class="px-3 py-2.5 text-gray-600 text-center">{{ $data->firstItem() + $index }}</td>
                             <td class="px-3 py-2.5 font-medium text-gray-900">
