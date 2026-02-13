@@ -493,9 +493,8 @@
             </div>
         </div>
     </div>
-</x-app-layout>
 
-@push('scripts')
+    @push('scripts')
     <script>
         function qmhShowPage(config) {
             return {
@@ -837,4 +836,5 @@
             };
         }
     </script>
-@endpush
+    @endpush
+</x-app-layout>
