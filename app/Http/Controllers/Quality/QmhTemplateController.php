@@ -574,12 +574,11 @@ class QmhTemplateController extends Controller
 
         $hasPageField = ((int) $xpath->evaluate('count(.//w:instrText[contains(translate(normalize-space(.), "abcdefghijklmnopqrstuvwxyz", "ABCDEFGHIJKLMNOPQRSTUVWXYZ"), "PAGE")])', $paragraphNode)) > 0;
         if ($hasPageField) {
-            if ($content === '') {
+            $plainPageText = preg_replace('/\s+/', '', html_entity_decode(strip_tags($content)));
+            if (is_string($plainPageText) && preg_match('/\/(\d+)/', $plainPageText, $matches) === 1) {
+                $content = '1/'.$matches[1];
+            } else {
                 $content = '1';
-            } elseif (preg_match('/^((?:&emsp;|\s|<br>)*)(\/\d+)/', $content, $matches) === 1) {
-                $content = $matches[1].'1'.$matches[2].substr($content, strlen($matches[0]));
-            } elseif (str_starts_with($content, '/')) {
-                $content = '1'.$content;
             }
         }
 
