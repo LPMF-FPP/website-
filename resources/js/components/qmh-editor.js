@@ -57,7 +57,9 @@ export function qmhEditor(config = {}) {
                         TableRow,
                         TableHeader,
                         TableCell,
-                        Image,
+                        Image.configure({
+                            allowBase64: true,
+                        }),
                     ],
                     onUpdate: ({ editor }) => {
                         this.contentHtml = editor.getHTML();
