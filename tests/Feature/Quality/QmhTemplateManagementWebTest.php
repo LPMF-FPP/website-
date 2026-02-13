@@ -118,6 +118,30 @@ class QmhTemplateManagementWebTest extends TestCase
         $this->assertSame('<p>Judul SOP</p><p>Langkah 1</p>', data_get($template->metadata, 'content_html'));
     }
 
+    public function test_upload_template_preserves_table_structure_from_docx_for_browser_editor(): void
+    {
+        Storage::fake('local');
+
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($user)
+            ->post('/quality/templates', [
+                'name' => 'Template SOP with Table',
+                'doc_type' => 'sop',
+                'version_notes' => 'parse table',
+                'file' => $this->makeDocxUploadWithTable(),
+            ])
+            ->assertRedirect(route('quality.templates.index'));
+
+        $template = QmhTemplate::query()->firstOrFail();
+        $contentHtml = (string) data_get($template->metadata, 'content_html', '');
+
+        $this->assertStringContainsString('<table', strtolower($contentHtml));
+        $this->assertStringContainsString('Kolom A', $contentHtml);
+        $this->assertStringContainsString('Kolom B', $contentHtml);
+    }
+
     public function test_can_update_template_name_doc_type_and_replace_file(): void
     {
         Storage::fake('local');
@@ -340,6 +364,36 @@ class QmhTemplateManagementWebTest extends TestCase
         return new UploadedFile(
             $tempPath,
             'template.docx',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            null,
+            true
+        );
+    }
+
+    private function makeDocxUploadWithTable(): UploadedFile
+    {
+        $tempPath = tempnam(sys_get_temp_dir(), 'qmh-docx-table-');
+        $zip = new ZipArchive;
+        $zip->open($tempPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+
+        $docXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            .'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+            .'<w:body>'
+            .'<w:tbl>'
+            .'<w:tr>'
+            .'<w:tc><w:p><w:r><w:t>Kolom A</w:t></w:r></w:p></w:tc>'
+            .'<w:tc><w:p><w:r><w:t>Kolom B</w:t></w:r></w:p></w:tc>'
+            .'</w:tr>'
+            .'</w:tbl>'
+            .'</w:body>'
+            .'</w:document>';
+
+        $zip->addFromString('word/document.xml', $docXml);
+        $zip->close();
+
+        return new UploadedFile(
+            $tempPath,
+            'template-table.docx',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             null,
             true

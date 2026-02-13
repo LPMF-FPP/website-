@@ -296,37 +296,272 @@ class QmhTemplateController extends Controller
         }
 
         $documentXml = $zip->getFromName('word/document.xml');
-        $zip->close();
-
         if (! is_string($documentXml) || trim($documentXml) === '') {
+            $zip->close();
+
             return null;
         }
 
+        $relationships = $this->extractDocxRelationships($zip);
+        $contentHtml = $this->convertDocxXmlToHtml($documentXml, $zip, $relationships);
+
+        $zip->close();
+
+        return $contentHtml;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function extractDocxRelationships(ZipArchive $zip): array
+    {
+        $relsXml = $zip->getFromName('word/_rels/document.xml.rels');
+        if (! is_string($relsXml) || trim($relsXml) === '') {
+            return [];
+        }
+
+        $dom = new \DOMDocument;
+        if (! @($dom->loadXML($relsXml))) {
+            return [];
+        }
+
+        $xpath = new \DOMXPath($dom);
+        $xpath->registerNamespace('rel', 'http://schemas.openxmlformats.org/package/2006/relationships');
+
+        $relationships = [];
+        foreach ($xpath->query('//rel:Relationship') ?: [] as $relationshipNode) {
+            if (! ($relationshipNode instanceof \DOMElement)) {
+                continue;
+            }
+
+            $id = trim($relationshipNode->getAttribute('Id'));
+            $target = trim($relationshipNode->getAttribute('Target'));
+            if ($id === '' || $target === '') {
+                continue;
+            }
+
+            $relationships[$id] = $target;
+        }
+
+        return $relationships;
+    }
+
+    /**
+     * @param  array<string, string>  $relationships
+     */
+    private function convertDocxXmlToHtml(string $documentXml, ZipArchive $zip, array $relationships): string
+    {
         $dom = new \DOMDocument;
         if (! @($dom->loadXML($documentXml))) {
-            return null;
+            return '<p></p>';
         }
 
         $xpath = new \DOMXPath($dom);
         $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
+        $xpath->registerNamespace('a', 'http://schemas.openxmlformats.org/drawingml/2006/main');
+        $xpath->registerNamespace('r', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships');
 
-        $paragraphs = [];
-        foreach ($xpath->query('//w:body//w:p') ?: [] as $paragraphNode) {
-            $textChunks = [];
-            foreach ($xpath->query('.//w:t', $paragraphNode) ?: [] as $textNode) {
-                $textChunks[] = $textNode->textContent;
+        $chunks = [];
+        foreach ($xpath->query('//w:body/*') ?: [] as $blockNode) {
+            if (! ($blockNode instanceof \DOMElement)) {
+                continue;
             }
 
-            $line = trim(implode('', $textChunks));
-            if ($line !== '') {
-                $paragraphs[] = '<p>'.e($line).'</p>';
+            if ($blockNode->localName === 'p') {
+                $chunks[] = $this->renderDocxParagraphNode($blockNode, $xpath, $zip, $relationships);
+
+                continue;
+            }
+
+            if ($blockNode->localName === 'tbl') {
+                $chunks[] = $this->renderDocxTableNode($blockNode, $xpath, $zip, $relationships);
             }
         }
 
-        if (empty($paragraphs)) {
+        $contentHtml = trim(implode('', array_filter($chunks)));
+        if ($contentHtml === '') {
             return '<p></p>';
         }
 
-        return implode('', $paragraphs);
+        return $contentHtml;
+    }
+
+    /**
+     * @param  array<string, string>  $relationships
+     */
+    private function renderDocxParagraphNode(\DOMElement $paragraphNode, \DOMXPath $xpath, ZipArchive $zip, array $relationships): string
+    {
+        $styleName = strtolower((string) $xpath->evaluate('string(./w:pPr/w:pStyle/@w:val)', $paragraphNode));
+        $tagName = match (true) {
+            str_starts_with($styleName, 'heading1') || $styleName === 'title' => 'h1',
+            str_starts_with($styleName, 'heading2') => 'h2',
+            str_starts_with($styleName, 'heading3') => 'h3',
+            default => 'p',
+        };
+
+        $content = $this->renderDocxInlineNodes($paragraphNode, $xpath, $zip, $relationships);
+
+        return sprintf('<%1$s>%2$s</%1$s>', $tagName, $content);
+    }
+
+    /**
+     * @param  array<string, string>  $relationships
+     */
+    private function renderDocxTableNode(\DOMElement $tableNode, \DOMXPath $xpath, ZipArchive $zip, array $relationships): string
+    {
+        $rows = [];
+        foreach ($xpath->query('./w:tr', $tableNode) ?: [] as $rowNode) {
+            if (! ($rowNode instanceof \DOMElement)) {
+                continue;
+            }
+
+            $cells = [];
+            foreach ($xpath->query('./w:tc', $rowNode) ?: [] as $cellNode) {
+                if (! ($cellNode instanceof \DOMElement)) {
+                    continue;
+                }
+
+                $cellContent = $this->renderDocxTableCellNode($cellNode, $xpath, $zip, $relationships);
+                $cells[] = '<td>'.$cellContent.'</td>';
+            }
+
+            $rows[] = '<tr>'.implode('', $cells).'</tr>';
+        }
+
+        return '<table><tbody>'.implode('', $rows).'</tbody></table>';
+    }
+
+    /**
+     * @param  array<string, string>  $relationships
+     */
+    private function renderDocxTableCellNode(\DOMElement $cellNode, \DOMXPath $xpath, ZipArchive $zip, array $relationships): string
+    {
+        $chunks = [];
+        foreach ($xpath->query('./w:p | ./w:tbl', $cellNode) ?: [] as $blockNode) {
+            if (! ($blockNode instanceof \DOMElement)) {
+                continue;
+            }
+
+            if ($blockNode->localName === 'p') {
+                $chunks[] = $this->renderDocxParagraphNode($blockNode, $xpath, $zip, $relationships);
+
+                continue;
+            }
+
+            if ($blockNode->localName === 'tbl') {
+                $chunks[] = $this->renderDocxTableNode($blockNode, $xpath, $zip, $relationships);
+            }
+        }
+
+        return implode('', $chunks);
+    }
+
+    /**
+     * @param  array<string, string>  $relationships
+     */
+    private function renderDocxInlineNodes(\DOMElement $contextNode, \DOMXPath $xpath, ZipArchive $zip, array $relationships): string
+    {
+        $parts = [];
+        foreach ($xpath->query('.//w:t | .//w:br | .//w:tab | .//w:drawing', $contextNode) ?: [] as $inlineNode) {
+            if (! ($inlineNode instanceof \DOMElement)) {
+                continue;
+            }
+
+            if ($inlineNode->localName === 't') {
+                $parts[] = e($inlineNode->textContent);
+
+                continue;
+            }
+
+            if ($inlineNode->localName === 'br') {
+                $parts[] = '<br>';
+
+                continue;
+            }
+
+            if ($inlineNode->localName === 'tab') {
+                $parts[] = '&emsp;';
+
+                continue;
+            }
+
+            if ($inlineNode->localName === 'drawing') {
+                $imageHtml = $this->renderDocxImageNode($inlineNode, $xpath, $zip, $relationships);
+                if ($imageHtml !== null) {
+                    $parts[] = $imageHtml;
+                }
+            }
+        }
+
+        return implode('', $parts);
+    }
+
+    /**
+     * @param  array<string, string>  $relationships
+     */
+    private function renderDocxImageNode(\DOMElement $drawingNode, \DOMXPath $xpath, ZipArchive $zip, array $relationships): ?string
+    {
+        $relationshipId = trim((string) $xpath->evaluate('string(.//a:blip/@r:embed)', $drawingNode));
+        if ($relationshipId === '' || ! array_key_exists($relationshipId, $relationships)) {
+            return null;
+        }
+
+        $entryPath = $this->resolveDocxTargetPath($relationships[$relationshipId]);
+        if ($entryPath === '') {
+            return null;
+        }
+
+        $binary = $zip->getFromName($entryPath);
+        if (! is_string($binary) || $binary === '') {
+            return null;
+        }
+
+        $mimeType = $this->guessDocxAssetMimeType($entryPath);
+
+        return sprintf('<img src="data:%s;base64,%s" alt="">', $mimeType, base64_encode($binary));
+    }
+
+    private function resolveDocxTargetPath(string $target): string
+    {
+        $target = str_replace('\\\\', '/', trim($target));
+        if ($target === '') {
+            return '';
+        }
+
+        $fullPath = str_starts_with($target, '/')
+            ? ltrim($target, '/')
+            : 'word/'.$target;
+
+        $parts = [];
+        foreach (explode('/', $fullPath) as $part) {
+            if ($part === '' || $part === '.') {
+                continue;
+            }
+
+            if ($part === '..') {
+                array_pop($parts);
+
+                continue;
+            }
+
+            $parts[] = $part;
+        }
+
+        return implode('/', $parts);
+    }
+
+    private function guessDocxAssetMimeType(string $path): string
+    {
+        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+
+        return match ($extension) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            'bmp' => 'image/bmp',
+            'svg' => 'image/svg+xml',
+            default => 'application/octet-stream',
+        };
     }
 }
