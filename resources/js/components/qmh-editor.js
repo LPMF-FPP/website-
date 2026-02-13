@@ -1,10 +1,12 @@
 import { Editor } from "@tiptap/core";
+import Color from "@tiptap/extension-color";
 import Image from "@tiptap/extension-image";
 import { Table } from "@tiptap/extension-table";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
 import TableRow from "@tiptap/extension-table-row";
 import TextAlign from "@tiptap/extension-text-align";
+import { TextStyle } from "@tiptap/extension-text-style";
 import StarterKit from "@tiptap/starter-kit";
 
 export function qmhEditor(config = {}) {
@@ -57,6 +59,10 @@ export function qmhEditor(config = {}) {
                         TableRow,
                         TableHeader,
                         TableCell,
+                        TextStyle,
+                        Color.configure({
+                            types: ["textStyle"],
+                        }),
                         Image.configure({
                             allowBase64: true,
                         }),

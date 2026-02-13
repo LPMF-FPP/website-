@@ -585,7 +585,20 @@ class QmhTemplateController extends Controller
 
         $content = $prefix.$content;
 
-        return sprintf('<%1$s>%2$s</%1$s>', $tagName, $content);
+        $paragraphAlignment = strtolower(trim((string) $xpath->evaluate('string(./w:pPr/w:jc/@w:val)', $paragraphNode)));
+        $normalizedAlignment = match ($paragraphAlignment) {
+            'left', 'start' => 'left',
+            'center' => 'center',
+            'right', 'end' => 'right',
+            'both', 'distribute', 'justified' => 'justify',
+            default => '',
+        };
+
+        $attributes = $normalizedAlignment !== ''
+            ? ' style="text-align: '.e($normalizedAlignment).';"'
+            : '';
+
+        return sprintf('<%1$s%3$s>%2$s</%1$s>', $tagName, $content, $attributes);
     }
 
     /**
@@ -650,7 +663,27 @@ class QmhTemplateController extends Controller
     private function renderDocxInlineNodes(\DOMElement $contextNode, \DOMXPath $xpath, ZipArchive $zip, array $relationships): string
     {
         $parts = [];
-        foreach ($xpath->query('.//w:t | .//w:br | .//w:tab | .//w:drawing', $contextNode) ?: [] as $inlineNode) {
+        foreach ($xpath->query('.//w:r', $contextNode) ?: [] as $runNode) {
+            if (! ($runNode instanceof \DOMElement)) {
+                continue;
+            }
+
+            $runHtml = $this->renderDocxRunNode($runNode, $xpath, $zip, $relationships);
+            if ($runHtml !== '') {
+                $parts[] = $runHtml;
+            }
+        }
+
+        return implode('', $parts);
+    }
+
+    /**
+     * @param  array<string, string>  $relationships
+     */
+    private function renderDocxRunNode(\DOMElement $runNode, \DOMXPath $xpath, ZipArchive $zip, array $relationships): string
+    {
+        $parts = [];
+        foreach ($xpath->query('./w:t | ./w:br | ./w:tab | ./w:drawing', $runNode) ?: [] as $inlineNode) {
             if (! ($inlineNode instanceof \DOMElement)) {
                 continue;
             }
@@ -681,7 +714,67 @@ class QmhTemplateController extends Controller
             }
         }
 
-        return implode('', $parts);
+        $content = implode('', $parts);
+        if ($content === '') {
+            return '';
+        }
+
+        $isBold = ((int) $xpath->evaluate('count(./w:rPr/w:b)', $runNode)) > 0
+            && $this->isDocxToggleEnabled((string) $xpath->evaluate('string(./w:rPr/w:b/@w:val)', $runNode));
+        $isItalic = ((int) $xpath->evaluate('count(./w:rPr/w:i)', $runNode)) > 0
+            && $this->isDocxToggleEnabled((string) $xpath->evaluate('string(./w:rPr/w:i/@w:val)', $runNode));
+        $isUnderline = ((int) $xpath->evaluate('count(./w:rPr/w:u)', $runNode)) > 0
+            && $this->isDocxToggleEnabled((string) $xpath->evaluate('string(./w:rPr/w:u/@w:val)', $runNode), ['none']);
+
+        $color = $this->normalizeDocxColorValue((string) $xpath->evaluate('string(./w:rPr/w:color/@w:val)', $runNode));
+
+        if ($isBold) {
+            $content = '<strong>'.$content.'</strong>';
+        }
+
+        if ($isItalic) {
+            $content = '<em>'.$content.'</em>';
+        }
+
+        if ($isUnderline) {
+            $content = '<u>'.$content.'</u>';
+        }
+
+        if ($color !== null) {
+            $content = '<span style="color:#'.$color.'">'.$content.'</span>';
+        }
+
+        return $content;
+    }
+
+    /**
+     * @param  list<string>  $additionalDisabledValues
+     */
+    private function isDocxToggleEnabled(string $rawValue, array $additionalDisabledValues = []): bool
+    {
+        $value = strtolower(trim($rawValue));
+        if ($value === '') {
+            return true;
+        }
+
+        $disabledValues = array_merge(['0', 'false', 'off'], $additionalDisabledValues);
+
+        return ! in_array($value, $disabledValues, true);
+    }
+
+    private function normalizeDocxColorValue(string $rawValue): ?string
+    {
+        $value = strtoupper(trim($rawValue));
+        if ($value === '' || $value === 'AUTO') {
+            return null;
+        }
+
+        $value = preg_replace('/[^0-9A-F]/', '', $value) ?? '';
+        if (strlen($value) < 6) {
+            return null;
+        }
+
+        return substr($value, 0, 6);
     }
 
     /**
