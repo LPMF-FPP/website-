@@ -303,11 +303,15 @@ class QmhTemplateController extends Controller
         }
 
         $relationships = $this->extractDocxRelationships($zip);
-        $contentHtml = $this->convertDocxXmlToHtml($documentXml, $zip, $relationships);
+        $numberingDefinitions = $this->extractDocxNumberingDefinitions($zip);
+        $contentHtml = $this->convertDocxXmlToHtml($documentXml, $zip, $relationships, $numberingDefinitions);
+        $footerHtml = $this->extractDocxFooterHtml($documentXml, $zip, $relationships, $numberingDefinitions);
 
         $zip->close();
 
-        return $contentHtml;
+        $combinedHtml = trim($contentHtml.$footerHtml);
+
+        return $combinedHtml !== '' ? $combinedHtml : '<p></p>';
     }
 
     /**
@@ -347,9 +351,79 @@ class QmhTemplateController extends Controller
     }
 
     /**
-     * @param  array<string, string>  $relationships
+     * @return array<string, array<int, array{format: string, text: string, start: int}>>
      */
-    private function convertDocxXmlToHtml(string $documentXml, ZipArchive $zip, array $relationships): string
+    private function extractDocxNumberingDefinitions(ZipArchive $zip): array
+    {
+        $numberingXml = $zip->getFromName('word/numbering.xml');
+        if (! is_string($numberingXml) || trim($numberingXml) === '') {
+            return [];
+        }
+
+        $dom = new \DOMDocument;
+        if (! @($dom->loadXML($numberingXml))) {
+            return [];
+        }
+
+        $xpath = new \DOMXPath($dom);
+        $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
+
+        $abstractLevels = [];
+        foreach ($xpath->query('//w:abstractNum') ?: [] as $abstractNode) {
+            if (! ($abstractNode instanceof \DOMElement)) {
+                continue;
+            }
+
+            $abstractId = trim($abstractNode->getAttribute('w:abstractNumId'));
+            if ($abstractId === '') {
+                continue;
+            }
+
+            $levels = [];
+            foreach ($xpath->query('./w:lvl', $abstractNode) ?: [] as $levelNode) {
+                if (! ($levelNode instanceof \DOMElement)) {
+                    continue;
+                }
+
+                $ilvl = (int) $levelNode->getAttribute('w:ilvl');
+                $format = trim((string) $xpath->evaluate('string(./w:numFmt/@w:val)', $levelNode));
+                $text = trim((string) $xpath->evaluate('string(./w:lvlText/@w:val)', $levelNode));
+                $start = (int) $xpath->evaluate('string(./w:start/@w:val)', $levelNode);
+
+                $levels[$ilvl] = [
+                    'format' => $format !== '' ? $format : 'decimal',
+                    'text' => $text,
+                    'start' => $start > 0 ? $start : 1,
+                ];
+            }
+
+            $abstractLevels[$abstractId] = $levels;
+        }
+
+        $definitions = [];
+        foreach ($xpath->query('//w:num') ?: [] as $numNode) {
+            if (! ($numNode instanceof \DOMElement)) {
+                continue;
+            }
+
+            $numId = trim($numNode->getAttribute('w:numId'));
+            $abstractId = trim((string) $xpath->evaluate('string(./w:abstractNumId/@w:val)', $numNode));
+
+            if ($numId === '' || $abstractId === '' || ! array_key_exists($abstractId, $abstractLevels)) {
+                continue;
+            }
+
+            $definitions[$numId] = $abstractLevels[$abstractId];
+        }
+
+        return $definitions;
+    }
+
+    /**
+     * @param  array<string, string>  $relationships
+     * @param  array<string, array<int, array{format: string, text: string, start: int}>>  $numberingDefinitions
+     */
+    private function convertDocxXmlToHtml(string $documentXml, ZipArchive $zip, array $relationships, array $numberingDefinitions): string
     {
         $dom = new \DOMDocument;
         if (! @($dom->loadXML($documentXml))) {
@@ -361,20 +435,25 @@ class QmhTemplateController extends Controller
         $xpath->registerNamespace('a', 'http://schemas.openxmlformats.org/drawingml/2006/main');
         $xpath->registerNamespace('r', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships');
 
+        $numberingState = [];
         $chunks = [];
         foreach ($xpath->query('//w:body/*') ?: [] as $blockNode) {
             if (! ($blockNode instanceof \DOMElement)) {
                 continue;
             }
 
+            if ($blockNode->localName === 'sectPr') {
+                continue;
+            }
+
             if ($blockNode->localName === 'p') {
-                $chunks[] = $this->renderDocxParagraphNode($blockNode, $xpath, $zip, $relationships);
+                $chunks[] = $this->renderDocxParagraphNode($blockNode, $xpath, $zip, $relationships, $numberingDefinitions, $numberingState);
 
                 continue;
             }
 
             if ($blockNode->localName === 'tbl') {
-                $chunks[] = $this->renderDocxTableNode($blockNode, $xpath, $zip, $relationships);
+                $chunks[] = $this->renderDocxTableNode($blockNode, $xpath, $zip, $relationships, $numberingDefinitions, $numberingState);
             }
         }
 
@@ -388,8 +467,99 @@ class QmhTemplateController extends Controller
 
     /**
      * @param  array<string, string>  $relationships
+     * @param  array<string, array<int, array{format: string, text: string, start: int}>>  $numberingDefinitions
      */
-    private function renderDocxParagraphNode(\DOMElement $paragraphNode, \DOMXPath $xpath, ZipArchive $zip, array $relationships): string
+    private function extractDocxFooterHtml(string $documentXml, ZipArchive $zip, array $relationships, array $numberingDefinitions): string
+    {
+        $dom = new \DOMDocument;
+        if (! @($dom->loadXML($documentXml))) {
+            return '';
+        }
+
+        $xpath = new \DOMXPath($dom);
+        $xpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
+        $xpath->registerNamespace('r', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships');
+
+        $footerTargets = [];
+        foreach ($xpath->query('//w:sectPr/w:footerReference') ?: [] as $footerReference) {
+            if (! ($footerReference instanceof \DOMElement)) {
+                continue;
+            }
+
+            $relationshipId = trim($footerReference->getAttribute('r:id'));
+            if ($relationshipId === '' || ! array_key_exists($relationshipId, $relationships)) {
+                continue;
+            }
+
+            $target = $this->resolveDocxTargetPath($relationships[$relationshipId]);
+            if ($target === '' || in_array($target, $footerTargets, true)) {
+                continue;
+            }
+
+            $footerTargets[] = $target;
+        }
+
+        if ($footerTargets === []) {
+            return '';
+        }
+
+        $chunks = [];
+        $numberingState = [];
+        foreach ($footerTargets as $footerTarget) {
+            $footerXml = $zip->getFromName($footerTarget);
+            if (! is_string($footerXml) || trim($footerXml) === '') {
+                continue;
+            }
+
+            $footerDom = new \DOMDocument;
+            if (! @($footerDom->loadXML($footerXml))) {
+                continue;
+            }
+
+            $footerXpath = new \DOMXPath($footerDom);
+            $footerXpath->registerNamespace('w', 'http://schemas.openxmlformats.org/wordprocessingml/2006/main');
+            $footerXpath->registerNamespace('a', 'http://schemas.openxmlformats.org/drawingml/2006/main');
+            $footerXpath->registerNamespace('r', 'http://schemas.openxmlformats.org/officeDocument/2006/relationships');
+
+            foreach ($footerXpath->query('/w:ftr/*') ?: [] as $blockNode) {
+                if (! ($blockNode instanceof \DOMElement)) {
+                    continue;
+                }
+
+                if ($blockNode->localName === 'p') {
+                    $html = $this->renderDocxParagraphNode($blockNode, $footerXpath, $zip, $relationships, $numberingDefinitions, $numberingState);
+                    if ($this->isMeaningfulHtmlContent($html)) {
+                        $chunks[] = $html;
+                    }
+
+                    continue;
+                }
+
+                if ($blockNode->localName === 'tbl') {
+                    $html = $this->renderDocxTableNode($blockNode, $footerXpath, $zip, $relationships, $numberingDefinitions, $numberingState);
+                    if ($this->isMeaningfulHtmlContent($html)) {
+                        $chunks[] = $html;
+                    }
+                }
+            }
+        }
+
+        return implode('', $chunks);
+    }
+
+    private function isMeaningfulHtmlContent(string $html): bool
+    {
+        $plainText = trim(str_replace(["\xc2\xa0", '&nbsp;'], '', strip_tags($html)));
+
+        return $plainText !== '';
+    }
+
+    /**
+     * @param  array<string, string>  $relationships
+     * @param  array<string, array<int, array{format: string, text: string, start: int}>>  $numberingDefinitions
+     * @param  array<string, int>  $numberingState
+     */
+    private function renderDocxParagraphNode(\DOMElement $paragraphNode, \DOMXPath $xpath, ZipArchive $zip, array $relationships, array $numberingDefinitions, array &$numberingState): string
     {
         $styleName = strtolower((string) $xpath->evaluate('string(./w:pPr/w:pStyle/@w:val)', $paragraphNode));
         $tagName = match (true) {
@@ -399,15 +569,29 @@ class QmhTemplateController extends Controller
             default => 'p',
         };
 
+        $prefix = $this->resolveDocxParagraphNumberingPrefix($paragraphNode, $xpath, $numberingDefinitions, $numberingState);
         $content = $this->renderDocxInlineNodes($paragraphNode, $xpath, $zip, $relationships);
+
+        $hasPageField = ((int) $xpath->evaluate('count(.//w:instrText[contains(translate(normalize-space(.), "abcdefghijklmnopqrstuvwxyz", "ABCDEFGHIJKLMNOPQRSTUVWXYZ"), "PAGE")])', $paragraphNode)) > 0;
+        if ($hasPageField) {
+            if ($content === '') {
+                $content = '1';
+            } elseif (str_starts_with($content, '/')) {
+                $content = '1'.$content;
+            }
+        }
+
+        $content = $prefix.$content;
 
         return sprintf('<%1$s>%2$s</%1$s>', $tagName, $content);
     }
 
     /**
      * @param  array<string, string>  $relationships
+     * @param  array<string, array<int, array{format: string, text: string, start: int}>>  $numberingDefinitions
+     * @param  array<string, int>  $numberingState
      */
-    private function renderDocxTableNode(\DOMElement $tableNode, \DOMXPath $xpath, ZipArchive $zip, array $relationships): string
+    private function renderDocxTableNode(\DOMElement $tableNode, \DOMXPath $xpath, ZipArchive $zip, array $relationships, array $numberingDefinitions, array &$numberingState): string
     {
         $rows = [];
         foreach ($xpath->query('./w:tr', $tableNode) ?: [] as $rowNode) {
@@ -421,7 +605,7 @@ class QmhTemplateController extends Controller
                     continue;
                 }
 
-                $cellContent = $this->renderDocxTableCellNode($cellNode, $xpath, $zip, $relationships);
+                $cellContent = $this->renderDocxTableCellNode($cellNode, $xpath, $zip, $relationships, $numberingDefinitions, $numberingState);
                 $cells[] = '<td>'.$cellContent.'</td>';
             }
 
@@ -433,8 +617,10 @@ class QmhTemplateController extends Controller
 
     /**
      * @param  array<string, string>  $relationships
+     * @param  array<string, array<int, array{format: string, text: string, start: int}>>  $numberingDefinitions
+     * @param  array<string, int>  $numberingState
      */
-    private function renderDocxTableCellNode(\DOMElement $cellNode, \DOMXPath $xpath, ZipArchive $zip, array $relationships): string
+    private function renderDocxTableCellNode(\DOMElement $cellNode, \DOMXPath $xpath, ZipArchive $zip, array $relationships, array $numberingDefinitions, array &$numberingState): string
     {
         $chunks = [];
         foreach ($xpath->query('./w:p | ./w:tbl', $cellNode) ?: [] as $blockNode) {
@@ -443,13 +629,13 @@ class QmhTemplateController extends Controller
             }
 
             if ($blockNode->localName === 'p') {
-                $chunks[] = $this->renderDocxParagraphNode($blockNode, $xpath, $zip, $relationships);
+                $chunks[] = $this->renderDocxParagraphNode($blockNode, $xpath, $zip, $relationships, $numberingDefinitions, $numberingState);
 
                 continue;
             }
 
             if ($blockNode->localName === 'tbl') {
-                $chunks[] = $this->renderDocxTableNode($blockNode, $xpath, $zip, $relationships);
+                $chunks[] = $this->renderDocxTableNode($blockNode, $xpath, $zip, $relationships, $numberingDefinitions, $numberingState);
             }
         }
 
@@ -494,6 +680,118 @@ class QmhTemplateController extends Controller
         }
 
         return implode('', $parts);
+    }
+
+    /**
+     * @param  array<string, array<int, array{format: string, text: string, start: int}>>  $numberingDefinitions
+     * @param  array<string, int>  $numberingState
+     */
+    private function resolveDocxParagraphNumberingPrefix(\DOMElement $paragraphNode, \DOMXPath $xpath, array $numberingDefinitions, array &$numberingState): string
+    {
+        $numId = trim((string) $xpath->evaluate('string(./w:pPr/w:numPr/w:numId/@w:val)', $paragraphNode));
+        if ($numId === '' || ! array_key_exists($numId, $numberingDefinitions)) {
+            return '';
+        }
+
+        $ilvl = (int) $xpath->evaluate('string(./w:pPr/w:numPr/w:ilvl/@w:val)', $paragraphNode);
+        $levelDefinition = $numberingDefinitions[$numId][$ilvl]
+            ?? $numberingDefinitions[$numId][0]
+            ?? null;
+
+        if ($levelDefinition === null) {
+            return '';
+        }
+
+        $counterKey = $numId.':'.$ilvl;
+        $startValue = max((int) ($levelDefinition['start'] ?? 1), 1);
+        if (! array_key_exists($counterKey, $numberingState)) {
+            $numberingState[$counterKey] = $startValue;
+        } else {
+            $numberingState[$counterKey]++;
+        }
+
+        $marker = $this->formatDocxNumberingMarker($numberingState[$counterKey], $levelDefinition['format'] ?? 'decimal', $levelDefinition['text'] ?? '');
+
+        return $marker !== '' ? e($marker).' ' : '';
+    }
+
+    private function formatDocxNumberingMarker(int $value, string $format, string $levelText): string
+    {
+        $normalizedFormat = strtolower(trim($format));
+        $template = trim($levelText);
+
+        if ($normalizedFormat === 'bullet') {
+            return '•';
+        }
+
+        $formattedNumber = $this->formatDocxListNumber($value, $normalizedFormat);
+        if ($template === '') {
+            return $formattedNumber.'.';
+        }
+
+        return (string) preg_replace('/%\d+/', $formattedNumber, $template);
+    }
+
+    private function formatDocxListNumber(int $value, string $format): string
+    {
+        return match ($format) {
+            'lowerletter' => $this->toAlphabetic($value, false),
+            'upperletter' => $this->toAlphabetic($value, true),
+            'lowerroman' => strtolower($this->toRoman($value)),
+            'upperroman' => $this->toRoman($value),
+            default => (string) $value,
+        };
+    }
+
+    private function toAlphabetic(int $value, bool $upper): string
+    {
+        if ($value < 1) {
+            return '';
+        }
+
+        $result = '';
+        $number = $value;
+        while ($number > 0) {
+            $number--;
+            $result = chr(($number % 26) + 97).$result;
+            $number = intdiv($number, 26);
+        }
+
+        return $upper ? strtoupper($result) : $result;
+    }
+
+    private function toRoman(int $value): string
+    {
+        if ($value < 1) {
+            return '';
+        }
+
+        $map = [
+            'M' => 1000,
+            'CM' => 900,
+            'D' => 500,
+            'CD' => 400,
+            'C' => 100,
+            'XC' => 90,
+            'L' => 50,
+            'XL' => 40,
+            'X' => 10,
+            'IX' => 9,
+            'V' => 5,
+            'IV' => 4,
+            'I' => 1,
+        ];
+
+        $result = '';
+        $number = $value;
+        foreach ($map as $roman => $intValue) {
+            while ($number >= $intValue) {
+                $result .= $roman;
+                $number -= $intValue;
+            }
+        }
+
+        return $result;
     }
 
     /**

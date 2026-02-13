@@ -142,6 +142,33 @@ class QmhTemplateManagementWebTest extends TestCase
         $this->assertStringContainsString('Kolom B', $contentHtml);
     }
 
+    public function test_upload_template_preserves_numbering_and_footer_text_from_docx(): void
+    {
+        Storage::fake('local');
+
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($user)
+            ->post('/quality/templates', [
+                'name' => 'Template SOP with Numbering',
+                'doc_type' => 'sop',
+                'version_notes' => 'parse numbering and footer',
+                'file' => $this->makeDocxUploadWithNumberingAndFooter(),
+            ])
+            ->assertRedirect(route('quality.templates.index'));
+
+        $template = QmhTemplate::query()->firstOrFail();
+        $contentHtml = (string) data_get($template->metadata, 'content_html', '');
+
+        $this->assertStringContainsString('<p>1. TUJUAN</p>', $contentHtml);
+        $this->assertStringContainsString('<p>2. RUANG LINGKUP</p>', $contentHtml);
+        $this->assertStringContainsString('<p>• IK X</p>', $contentHtml);
+        $this->assertStringContainsString('<p>• FR X</p>', $contentHtml);
+        $this->assertStringContainsString('Isi Dokumen ini tidak diperkenankan', $contentHtml);
+        $this->assertStringContainsString('<p>1/1</p>', $contentHtml);
+    }
+
     public function test_can_update_template_name_doc_type_and_replace_file(): void
     {
         Storage::fake('local');
@@ -394,6 +421,57 @@ class QmhTemplateManagementWebTest extends TestCase
         return new UploadedFile(
             $tempPath,
             'template-table.docx',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            null,
+            true
+        );
+    }
+
+    private function makeDocxUploadWithNumberingAndFooter(): UploadedFile
+    {
+        $tempPath = tempnam(sys_get_temp_dir(), 'qmh-docx-numbering-');
+        $zip = new ZipArchive;
+        $zip->open($tempPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+
+        $documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            .'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+            .'<w:body>'
+            .'<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="2"/></w:numPr></w:pPr><w:r><w:t>TUJUAN</w:t></w:r></w:p>'
+            .'<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="2"/></w:numPr></w:pPr><w:r><w:t>RUANG LINGKUP</w:t></w:r></w:p>'
+            .'<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>IK X</w:t></w:r></w:p>'
+            .'<w:p><w:pPr><w:numPr><w:ilvl w:val="0"/><w:numId w:val="1"/></w:numPr></w:pPr><w:r><w:t>FR X</w:t></w:r></w:p>'
+            .'<w:sectPr><w:footerReference w:type="default" r:id="rId8"/></w:sectPr>'
+            .'</w:body>'
+            .'</w:document>';
+
+        $numberingXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            .'<w:numbering xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+            .'<w:abstractNum w:abstractNumId="1"><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="bullet"/><w:lvlText w:val="•"/></w:lvl></w:abstractNum>'
+            .'<w:abstractNum w:abstractNumId="2"><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%1."/></w:lvl></w:abstractNum>'
+            .'<w:num w:numId="1"><w:abstractNumId w:val="1"/></w:num>'
+            .'<w:num w:numId="2"><w:abstractNumId w:val="2"/></w:num>'
+            .'</w:numbering>';
+
+        $documentRelsXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            .'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            .'<Relationship Id="rId8" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer2.xml"/>'
+            .'</Relationships>';
+
+        $footerXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            .'<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+            .'<w:p><w:r><w:fldChar w:fldCharType="begin"/><w:instrText xml:space="preserve">PAGE</w:instrText><w:fldChar w:fldCharType="separate"/><w:fldChar w:fldCharType="end"/></w:r><w:r><w:t>/1</w:t></w:r></w:p>'
+            .'<w:p><w:r><w:t>Isi Dokumen ini tidak diperkenankan untuk disalin atau digandakan tanpa persetujuan</w:t></w:r></w:p>'
+            .'</w:ftr>';
+
+        $zip->addFromString('word/document.xml', $documentXml);
+        $zip->addFromString('word/numbering.xml', $numberingXml);
+        $zip->addFromString('word/_rels/document.xml.rels', $documentRelsXml);
+        $zip->addFromString('word/footer2.xml', $footerXml);
+        $zip->close();
+
+        return new UploadedFile(
+            $tempPath,
+            'template-numbering.docx',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             null,
             true
