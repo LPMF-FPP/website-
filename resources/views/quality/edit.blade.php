@@ -89,6 +89,17 @@
                         <button type="button" class="qmh-editor-btn" @click="setAlign('center')">Tengah</button>
                         <button type="button" class="qmh-editor-btn" @click="setAlign('right')">Kanan</button>
                         <button type="button" class="qmh-editor-btn" @click="insertTable()">Tabel</button>
+                        <button type="button" class="qmh-editor-btn" @click="addTableRowBefore()">+Baris Atas</button>
+                        <button type="button" class="qmh-editor-btn" @click="addTableRowAfter()">+Baris Bawah</button>
+                        <button type="button" class="qmh-editor-btn" @click="deleteTableRow()">-Baris</button>
+                        <button type="button" class="qmh-editor-btn" @click="addTableColumnBefore()">+Kolom Kiri</button>
+                        <button type="button" class="qmh-editor-btn" @click="addTableColumnAfter()">+Kolom Kanan</button>
+                        <button type="button" class="qmh-editor-btn" @click="deleteTableColumn()">-Kolom</button>
+                        <button type="button" class="qmh-editor-btn" @click="mergeTableCells()">Merge Sel</button>
+                        <button type="button" class="qmh-editor-btn" @click="splitTableCell()">Split Sel</button>
+                        <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderRow()">Header Baris</button>
+                        <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderColumn()">Header Kolom</button>
+                        <button type="button" class="qmh-editor-btn" @click="deleteTable()">Hapus Tabel</button>
                     </div>
 
                     <div class="qmh-editor-surface" x-ref="editor"></div>
@@ -97,9 +108,8 @@
             </div>
         </div>
     </div>
-</x-app-layout>
 
-@push('scripts')
+    @push('scripts')
     <script>
         function qmhEditPage(config) {
             return {
@@ -351,4 +361,5 @@
             };
         }
     </script>
-@endpush
+    @endpush
+</x-app-layout>
