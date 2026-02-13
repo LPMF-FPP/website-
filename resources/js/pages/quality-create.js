@@ -1,12 +1,11 @@
 export function qmhCreatePage(config = {}) {
     return {
         templatesUrl: config.templatesUrl,
-        currentStep: 1,
         docCode: config.initialDocCode || "",
         title: config.initialTitle || "",
         changeSummary: config.initialChangeSummary || "",
         clause: config.initialClause,
-        docType: config.initialDocType,
+        docType: config.initialDocType || "",
         templateId: config.initialTemplateId,
         parentSopId: config.initialParentSopId,
         pairedIkId: config.initialPairedIkId,
@@ -19,17 +18,34 @@ export function qmhCreatePage(config = {}) {
         templatesError: "",
         stepError: "",
         isSubmitting: false,
+        contentHtml: config.initialContentHtml || "<p></p>",
+        editorJson: config.initialEditorJson || null,
 
         init() {
             this.handleHierarchyDependencies();
-            this.fetchTemplates();
+            if (this.docType) {
+                this.fetchTemplates();
+            }
         },
 
         onStructureChanged() {
-            this.currentStep = 1;
             this.stepError = "";
             this.handleHierarchyDependencies();
-            this.fetchTemplates();
+            if (this.docType) {
+                this.fetchTemplates();
+            } else {
+                this.templates = [];
+                this.templateId = 0;
+            }
+        },
+
+        onEditorChange(detail) {
+            this.contentHtml = detail?.html || "<p></p>";
+            this.editorJson = detail?.editor_json || null;
+        },
+
+        editorJsonString() {
+            return this.editorJson ? JSON.stringify(this.editorJson) : "";
         },
 
         handleHierarchyDependencies() {
@@ -69,10 +85,7 @@ export function qmhCreatePage(config = {}) {
             this.templatesError = "";
 
             try {
-                const params = new URLSearchParams({
-                    doc_type: this.docType,
-                });
-
+                const params = new URLSearchParams({ doc_type: this.docType });
                 const response = await fetch(
                     `${this.templatesUrl}?${params.toString()}`,
                     {
@@ -86,7 +99,6 @@ export function qmhCreatePage(config = {}) {
                     this.templateId = 0;
                     this.templatesError =
                         "Gagal memuat template. Silakan coba lagi.";
-                    this.currentStep = 1;
 
                     return;
                 }
@@ -104,20 +116,18 @@ export function qmhCreatePage(config = {}) {
                         this.templates.length > 0
                             ? Number(this.templates[0].id)
                             : 0;
-                    this.currentStep = 1;
                 }
             } catch {
                 this.templates = [];
                 this.templateId = 0;
                 this.templatesError =
                     "Terjadi gangguan jaringan saat memuat template.";
-                this.currentStep = 1;
             } finally {
                 this.templatesLoading = false;
             }
         },
 
-        canProceedStep1() {
+        canSubmit() {
             if (
                 !this.docCode ||
                 !this.title ||
@@ -135,100 +145,18 @@ export function qmhCreatePage(config = {}) {
             return true;
         },
 
-        goToPreview() {
+        onSubmit() {
             this.stepError = "";
-
-            if (!this.canProceedStep1()) {
+            if (!this.canSubmit()) {
                 this.stepError =
-                    "Lengkapi struktur dokumen terlebih dahulu sebelum lanjut ke preview.";
+                    "Lengkapi struktur dokumen dan pastikan template aktif tersedia sebelum menyimpan.";
 
-                return;
+                return false;
             }
 
-            this.currentStep = 2;
-        },
+            this.isSubmitting = true;
 
-        selectedTemplate() {
-            return (
-                this.templates.find(
-                    (item) => Number(item.id) === Number(this.templateId),
-                ) || null
-            );
-        },
-
-        selectedTemplateName() {
-            const template = this.selectedTemplate();
-
-            return template ? template.name : "-";
-        },
-
-        selectedTemplateVersion() {
-            const template = this.selectedTemplate();
-
-            return template ? `v${template.version}` : "-";
-        },
-
-        selectedTemplateSourcePath() {
-            const template = this.selectedTemplate();
-
-            return template?.source_docx_path || "-";
-        },
-
-        selectedTemplatePreviewUrl() {
-            const template = this.selectedTemplate();
-
-            return template?.preview_url || "";
-        },
-
-        selectedTemplateUpdatedAt() {
-            const template = this.selectedTemplate();
-            if (!template?.updated_at) {
-                return "-";
-            }
-
-            const date = new Date(template.updated_at);
-            if (Number.isNaN(date.getTime())) {
-                return template.updated_at;
-            }
-
-            return date.toLocaleString("id-ID", { hour12: false });
-        },
-
-        selectedParentSopLabel() {
-            if (!this.parentSopId) {
-                return this.requiresParentSop()
-                    ? "Belum dipilih"
-                    : "Tidak wajib";
-            }
-
-            const sop = this.sopOptions.find(
-                (item) => Number(item.id) === Number(this.parentSopId),
-            );
-
-            return sop ? sop.label : "-";
-        },
-
-        selectedPairedIkLabel() {
-            if (!this.pairedIkId) {
-                return this.requiresPairedIk()
-                    ? "Tanpa pasangan IK"
-                    : "Tidak wajib";
-            }
-
-            const ik = this.ikOptions.find(
-                (item) => Number(item.id) === Number(this.pairedIkId),
-            );
-
-            return ik ? ik.label : "-";
-        },
-
-        templatePreviewSummary() {
-            const template = this.selectedTemplate();
-            if (!template) {
-                return "Template belum dipilih.";
-            }
-
-            return `Template ${template.name} (${this.selectedTemplateVersion()}) akan menjadi dasar draft awal. Gunakan tombol preview untuk cek file DOCX, lalu lanjutkan buat draft.`;
+            return true;
         },
 
         requiresParentSop() {

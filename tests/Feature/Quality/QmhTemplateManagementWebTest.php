@@ -35,6 +35,28 @@ class QmhTemplateManagementWebTest extends TestCase
             ->assertSee('Upload Template');
     }
 
+    public function test_admin_can_access_template_edit_page(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $template = QmhTemplate::query()->create([
+            'name' => 'Template SOP Existing',
+            'clause' => 4,
+            'doc_type' => 'sop',
+            'version' => 1,
+            'storage_disk' => 'local',
+            'source_docx_path' => 'qmh/templates/sop/existing.docx',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('quality.templates.edit', $template))
+            ->assertOk()
+            ->assertSee('Edit Template QMH')
+            ->assertSee('Template SOP Existing');
+    }
+
     public function test_user_without_template_manage_permission_is_redirected_from_template_management_page(): void
     {
         /** @var User $user */
@@ -73,6 +95,45 @@ class QmhTemplateManagementWebTest extends TestCase
         $this->assertSame('sop', $template->doc_type);
         $this->assertTrue($template->is_active);
         $this->assertNotNull($template->source_docx_path);
+        Storage::disk('local')->assertExists($template->source_docx_path);
+    }
+
+    public function test_can_update_template_name_doc_type_and_replace_file(): void
+    {
+        Storage::fake('local');
+
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        Storage::disk('local')->put('qmh/templates/sop/original.docx', 'old-content');
+
+        $template = QmhTemplate::query()->create([
+            'name' => 'Template Lama',
+            'clause' => 4,
+            'doc_type' => 'sop',
+            'version' => 1,
+            'storage_disk' => 'local',
+            'source_docx_path' => 'qmh/templates/sop/original.docx',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->patch(route('quality.templates.update', $template), [
+                'name' => 'Template Baru',
+                'doc_type' => 'ik',
+                'version_notes' => 'ubah jenis dokumen',
+                'file' => UploadedFile::fake()->create(
+                    'template-baru.docx',
+                    128,
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                ),
+            ])
+            ->assertRedirect(route('quality.templates.index'));
+
+        $template->refresh();
+        $this->assertSame('Template Baru', $template->name);
+        $this->assertSame('ik', $template->doc_type);
+        $this->assertNotSame('qmh/templates/sop/original.docx', $template->source_docx_path);
         Storage::disk('local')->assertExists($template->source_docx_path);
     }
 

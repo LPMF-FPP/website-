@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Quality;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Quality\StoreQmhTemplateRequest;
+use App\Http\Requests\Quality\UpdateQmhTemplateRequest;
 use App\Models\QmhTemplate;
 use App\Support\Audit;
 use Illuminate\Http\RedirectResponse;
@@ -87,6 +88,67 @@ class QmhTemplateController extends Controller
         return redirect()
             ->route('quality.templates.index')
             ->with('success', 'Template QMH berhasil diunggah dan diaktifkan.');
+    }
+
+    public function edit(Request $request, QmhTemplate $template): View
+    {
+        $this->authorizeTemplateManage($request);
+
+        return view('quality.templates.edit', [
+            'template' => $template,
+        ]);
+    }
+
+    public function update(UpdateQmhTemplateRequest $request, QmhTemplate $template): RedirectResponse
+    {
+        $validated = $request->validated();
+
+        DB::transaction(function () use ($request, $template, $validated): void {
+            $before = [
+                'name' => $template->name,
+                'doc_type' => $template->doc_type,
+                'source_docx_path' => $template->source_docx_path,
+                'metadata' => $template->metadata,
+            ];
+
+            $nextPath = $template->source_docx_path;
+            if ($request->hasFile('file')) {
+                $uploadedFile = $request->file('file');
+                $disk = $template->storage_disk;
+                $folder = sprintf('qmh/templates/%s', $validated['doc_type']);
+                $nextPath = $uploadedFile->store($folder, $disk);
+            }
+
+            $nextMetadata = is_array($template->metadata) ? $template->metadata : [];
+            $nextMetadata['version_notes'] = $validated['version_notes'] ?? null;
+            $nextMetadata['updated_by'] = $request->user()?->id;
+
+            $template->forceFill([
+                'name' => $validated['name'],
+                'doc_type' => $validated['doc_type'],
+                'source_docx_path' => $nextPath,
+                'metadata' => $nextMetadata,
+            ])->save();
+
+            if ($template->is_active) {
+                QmhTemplate::query()
+                    ->where('doc_type', $template->doc_type)
+                    ->where('id', '!=', $template->id)
+                    ->where('is_active', true)
+                    ->update(['is_active' => false]);
+            }
+
+            Audit::log('QMH_TEMPLATE_UPDATE', (string) $template->id, $before, [
+                'name' => $template->name,
+                'doc_type' => $template->doc_type,
+                'source_docx_path' => $template->source_docx_path,
+                'metadata' => $template->metadata,
+            ]);
+        });
+
+        return redirect()
+            ->route('quality.templates.index')
+            ->with('success', 'Template berhasil diperbarui.');
     }
 
     public function activate(QmhTemplate $template): RedirectResponse
@@ -179,6 +241,16 @@ class QmhTemplateController extends Controller
             ),
             403,
             'Anda tidak memiliki akses preview template.'
+        );
+    }
+
+    private function authorizeTemplateManage(Request $request): void
+    {
+        $user = $request->user();
+        abort_unless(
+            $user !== null && $user->hasPermission('qmh.template.manage'),
+            403,
+            'Anda tidak memiliki akses untuk mengelola template.'
         );
     }
 

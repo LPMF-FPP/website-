@@ -92,6 +92,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/templates/{template}/preview', [QualityQmhTemplateController::class, 'preview'])
             ->name('templates.preview');
 
+        Route::get('/templates/{template}/edit', [QualityQmhTemplateController::class, 'edit'])
+            ->name('templates.edit')
+            ->middleware('permission:qmh.template.manage');
+
+        Route::patch('/templates/{template}', [QualityQmhTemplateController::class, 'update'])
+            ->name('templates.update')
+            ->middleware('permission:qmh.template.manage');
+
         Route::patch('/templates/{template}/activate', [QualityQmhTemplateController::class, 'activate'])
             ->name('templates.activate')
             ->middleware('permission:qmh.template.manage');

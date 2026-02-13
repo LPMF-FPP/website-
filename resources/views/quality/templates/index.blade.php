@@ -125,6 +125,11 @@
                         <td class="px-4 py-3 text-gray-700 break-all">{{ $template->source_docx_path ?? '-' }}</td>
                         <td class="px-4 py-3 text-gray-700">{{ $template->updated_at?->format('d-m-Y H:i') ?? '-' }}</td>
                         <td class="px-4 py-3 text-right">
+                            <a href="{{ route('quality.templates.edit', $template) }}"
+                               class="inline-flex items-center rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50">
+                                Edit
+                            </a>
+
                             <a href="{{ route('quality.templates.preview', $template) }}"
                                target="_blank"
                                rel="noopener"

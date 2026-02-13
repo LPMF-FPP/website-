@@ -45,9 +45,10 @@ class QmhDocumentWebTest extends TestCase
             ->assertOk()
             ->assertViewIs('quality.create')
             ->assertSee('Buat Dokumen')
-            ->assertSee('Struktur Dokumen')
-            ->assertSee('2. Preview', false)
-            ->assertSee('Lanjut ke Preview')
+            ->assertSee('Pilih Struktur Dokumen')
+            ->assertSee('Editor Konten Awal')
+            ->assertDontSee('2. Preview')
+            ->assertDontSee('Lanjut ke Preview')
             ->assertSee('Kembali');
     }
 
@@ -352,7 +353,7 @@ class QmhDocumentWebTest extends TestCase
             ->get('/quality/documents/create')
             ->assertOk()
             ->assertSee('templateManageUrl')
-            ->assertSee('Silakan tambah template di');
+            ->assertSee('Tambah template di');
     }
 
     private function createQmhPermissions(): void
