@@ -21,6 +21,7 @@ class UpdateQmhTemplateRequest extends FormRequest
             'name' => ['required', 'string', 'max:255'],
             'doc_type' => ['required', Rule::in(['sop', 'ik', 'fr'])],
             'file' => ['nullable', 'file', 'mimes:docx', 'max:10240'],
+            'content_html' => ['nullable', 'string'],
             'version_notes' => ['nullable', 'string', 'max:2000'],
         ];
     }

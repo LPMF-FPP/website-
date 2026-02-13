@@ -12,6 +12,8 @@ export function qmhEditor(config = {}) {
         editor: null,
         contentHtml: config.initialContent || "",
         readOnly: Boolean(config.readOnly),
+        editorId: config.editorId || "",
+        setContentListener: null,
 
         init() {
             this.$nextTick(() => {
@@ -48,6 +50,56 @@ export function qmhEditor(config = {}) {
                 if (this.$refs.hiddenInput) {
                     this.$refs.hiddenInput.value = this.editor.getHTML();
                 }
+
+                this.registerSetContentListener();
+
+                if (this.editorId) {
+                    window.dispatchEvent(
+                        new CustomEvent("qmh-editor:ready", {
+                            detail: { target: this.editorId },
+                        }),
+                    );
+                }
+            });
+        },
+
+        registerSetContentListener() {
+            if (!this.editorId) {
+                return;
+            }
+
+            this.setContentListener = (event) => {
+                const detail = event?.detail || {};
+                if (detail.target !== this.editorId) {
+                    return;
+                }
+
+                this.setContent(detail.html || "<p></p>");
+            };
+
+            window.addEventListener(
+                "qmh-editor:set-content",
+                this.setContentListener,
+            );
+        },
+
+        setContent(html) {
+            if (!this.editor) {
+                this.contentHtml = html;
+
+                return;
+            }
+
+            this.editor.commands.setContent(html || "<p></p>", false);
+            this.contentHtml = this.editor.getHTML();
+
+            if (this.$refs.hiddenInput) {
+                this.$refs.hiddenInput.value = this.contentHtml;
+            }
+
+            this.$dispatch("qmh-editor-change", {
+                html: this.contentHtml,
+                editor_json: this.editor.getJSON(),
             });
         },
 
@@ -108,6 +160,14 @@ export function qmhEditor(config = {}) {
         },
 
         destroy() {
+            if (this.setContentListener) {
+                window.removeEventListener(
+                    "qmh-editor:set-content",
+                    this.setContentListener,
+                );
+                this.setContentListener = null;
+            }
+
             if (this.editor) {
                 this.editor.destroy();
                 this.editor = null;

@@ -35,6 +35,7 @@ class QmhTemplateDrivenCreateTest extends TestCase
                 'storage_disk' => 'local',
                 'source_docx_path' => 'templates/qmh/sop-4.docx',
                 'is_active' => true,
+                'metadata' => null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -46,6 +47,7 @@ class QmhTemplateDrivenCreateTest extends TestCase
                 'storage_disk' => 'local',
                 'source_docx_path' => 'templates/qmh/sop-8.docx',
                 'is_active' => true,
+                'metadata' => json_encode(['content_html' => '<p>Template SOP 8</p>']),
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -57,6 +59,7 @@ class QmhTemplateDrivenCreateTest extends TestCase
                 'storage_disk' => 'local',
                 'source_docx_path' => 'templates/qmh/sop-4-obsolete.docx',
                 'is_active' => false,
+                'metadata' => null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -68,6 +71,7 @@ class QmhTemplateDrivenCreateTest extends TestCase
                 'storage_disk' => 'local',
                 'source_docx_path' => 'templates/qmh/ik-4.docx',
                 'is_active' => true,
+                'metadata' => null,
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
@@ -84,6 +88,7 @@ class QmhTemplateDrivenCreateTest extends TestCase
         $response->assertJsonCount(2, 'data');
         $response->assertJsonPath('data.0.name', 'SOP Klausul 8 Aktif');
         $response->assertJsonPath('data.0.preview_url', route('quality.templates.preview', $activeSopTemplate->id));
+        $response->assertJsonPath('data.0.content_html', '<p>Template SOP 8</p>');
     }
 
     public function test_create_document_requires_template_id(): void

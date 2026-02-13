@@ -22,6 +22,7 @@
             initialParentSopId: @js((int) old('parent_sop_id', 0)),
             initialPairedIkId: @js((int) old('paired_ik_id', 0)),
             initialContentHtml: @js(old('content_html', '<p></p>')),
+            editorTargetId: @js('qmh-create-editor'),
             templateManageUrl: @js(route('quality.templates.index')),
             canManageTemplate: @js(auth()->user()?->hasPermission('qmh.template.manage') ?? false),
             sopOptions: @js(($sopOptions ?? collect())->map(fn ($item) => [
@@ -37,6 +38,7 @@
             ])->values()),
         })"
         x-init="init()"
+        @qmh-editor:ready.window="onEditorReady($event)"
     >
         <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <p class="text-sm text-gray-600">Penomoran dokumen diisi manual oleh user.</p>
@@ -142,12 +144,31 @@
                     <label class="mb-1 block text-sm font-medium text-gray-700">Template Aktif</label>
                     <div class="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
                         <p x-show="templatesLoading">Memuat template...</p>
-                        <p x-show="!templatesLoading && templateId">Template terpilih otomatis dari jenis dokumen aktif.</p>
+                        <p x-show="!templatesLoading && templateId">Template aktif tersedia. Pilih template untuk dimuat ke editor.</p>
                         <p x-show="!templatesLoading && !templateId" class="text-amber-700">Belum ada template aktif untuk jenis dokumen ini.</p>
                         <p x-show="templatesError" class="text-red-600" x-text="templatesError"></p>
                         <p class="mt-1 text-xs" x-show="!templatesLoading && !templateId && canManageTemplate">
                             Tambah template di <a :href="templateManageUrl" class="font-medium underline">QMH > Template</a>.
                         </p>
+                    </div>
+
+                    <div class="mt-2" x-show="!templatesLoading && templates.length > 0" x-cloak>
+                        <label class="mb-1 block text-xs font-medium text-gray-600" for="template_id">Pilih Template</label>
+                        <select
+                            id="template_id"
+                            x-model.number="templateId"
+                            @change="onTemplateChanged()"
+                            class="w-full rounded-md border border-gray-300 bg-white text-sm focus:border-primary-600 focus:ring-primary-600"
+                        >
+                            <template x-for="template in templates" :key="template.id">
+                                <option :value="template.id" x-text="`${template.name} (v${template.version})`"></option>
+                            </template>
+                        </select>
+                        <div class="mt-2" x-show="selectedTemplatePreviewUrl()" x-cloak>
+                            <a :href="selectedTemplatePreviewUrl()" target="_blank" rel="noopener" class="inline-flex items-center rounded-md border border-blue-300 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50">
+                                Preview Template
+                            </a>
+                        </div>
                     </div>
                     @error('template_id')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
@@ -194,7 +215,7 @@
 
                 <div x-show="docType" x-cloak class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">Editor Konten Awal</label>
-                    <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" x-data="qmhEditor({ initialContent: @js(old('content_html', '<p></p>') ) })" x-init="init()">
+                    <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" x-data="qmhEditor({ initialContent: @js(old('content_html', '<p></p>') ), editorId: 'qmh-create-editor' })" x-init="init()">
                         <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
                             <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bold') }" @click="toggleBold()">B</button>
                             <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('italic') }" @click="toggleItalic()">I</button>

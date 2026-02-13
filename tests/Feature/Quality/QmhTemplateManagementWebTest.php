@@ -137,6 +137,36 @@ class QmhTemplateManagementWebTest extends TestCase
         Storage::disk('local')->assertExists($template->source_docx_path);
     }
 
+    public function test_can_update_template_browser_content(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $template = QmhTemplate::query()->create([
+            'name' => 'Template Konten Browser',
+            'clause' => 4,
+            'doc_type' => 'sop',
+            'version' => 1,
+            'storage_disk' => 'local',
+            'source_docx_path' => 'qmh/templates/sop/browser.docx',
+            'is_active' => true,
+            'metadata' => [
+                'content_html' => '<p>Lama</p>',
+            ],
+        ]);
+
+        $this->actingAs($user)
+            ->patch(route('quality.templates.update', $template), [
+                'name' => 'Template Konten Browser',
+                'doc_type' => 'sop',
+                'content_html' => '<p>Baru dari browser</p>',
+            ])
+            ->assertRedirect(route('quality.templates.index'));
+
+        $template->refresh();
+        $this->assertSame('<p>Baru dari browser</p>', data_get($template->metadata, 'content_html'));
+    }
+
     public function test_activating_template_deactivates_other_active_template_in_same_doc_type(): void
     {
         /** @var User $user */

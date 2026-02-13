@@ -122,6 +122,7 @@ class QmhTemplateController extends Controller
             $nextMetadata = is_array($template->metadata) ? $template->metadata : [];
             $nextMetadata['version_notes'] = $validated['version_notes'] ?? null;
             $nextMetadata['updated_by'] = $request->user()?->id;
+            $nextMetadata['content_html'] = $validated['content_html'] ?? ($nextMetadata['content_html'] ?? null);
 
             $template->forceFill([
                 'name' => $validated['name'],
