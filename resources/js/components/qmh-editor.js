@@ -12,8 +12,6 @@ export function qmhEditor(config = {}) {
     return {
         contentHtml: config.initialContent || "",
         readOnly: Boolean(config.readOnly),
-        editorId: config.editorId || "",
-        setContentListener: null,
 
         init() {
             this.$nextTick(() => {
@@ -49,67 +47,6 @@ export function qmhEditor(config = {}) {
                 if (this.$refs.hiddenInput) {
                     this.$refs.hiddenInput.value = editorInstance.getHTML();
                 }
-
-                this.registerSetContentListener();
-
-                if (this.editorId) {
-                    window.dispatchEvent(
-                        new CustomEvent("qmh-editor:ready", {
-                            detail: { target: this.editorId },
-                        }),
-                    );
-                }
-            });
-        },
-
-        registerSetContentListener() {
-            if (!this.editorId) {
-                return;
-            }
-
-            this.setContentListener = (event) => {
-                const detail = event?.detail || {};
-                if (detail.target !== this.editorId) {
-                    return;
-                }
-
-                this.setContent(detail.html || "<p></p>");
-            };
-
-            window.addEventListener(
-                "qmh-editor:set-content",
-                this.setContentListener,
-            );
-        },
-
-        setContent(html) {
-            if (!editorInstance) {
-                this.contentHtml = html;
-
-                return;
-            }
-
-            const nextHtml = html || "<p></p>";
-            if (editorInstance.getHTML() === nextHtml) {
-                return;
-            }
-
-            window.requestAnimationFrame(() => {
-                if (!editorInstance) {
-                    return;
-                }
-
-                editorInstance.commands.setContent(nextHtml, false);
-                this.contentHtml = editorInstance.getHTML();
-
-                if (this.$refs.hiddenInput) {
-                    this.$refs.hiddenInput.value = this.contentHtml;
-                }
-
-                this.$dispatch("qmh-editor-change", {
-                    html: this.contentHtml,
-                    editor_json: editorInstance.getJSON(),
-                });
             });
         },
 
@@ -170,14 +107,6 @@ export function qmhEditor(config = {}) {
         },
 
         destroy() {
-            if (this.setContentListener) {
-                window.removeEventListener(
-                    "qmh-editor:set-content",
-                    this.setContentListener,
-                );
-                this.setContentListener = null;
-            }
-
             if (editorInstance) {
                 editorInstance.destroy();
                 editorInstance = null;

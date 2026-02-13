@@ -20,7 +20,6 @@ export function qmhCreatePage(config = {}) {
         isSubmitting: false,
         contentHtml: config.initialContentHtml || "<p></p>",
         editorJson: config.initialEditorJson || null,
-        editorTargetId: config.editorTargetId || "qmh-create-editor",
 
         init() {
             this.handleHierarchyDependencies();
@@ -43,14 +42,6 @@ export function qmhCreatePage(config = {}) {
         onEditorChange(detail) {
             this.contentHtml = detail?.html || "<p></p>";
             this.editorJson = detail?.editor_json || null;
-        },
-
-        onEditorReady(event) {
-            if (event?.detail?.target !== this.editorTargetId) {
-                return;
-            }
-
-            this.applySelectedTemplateToEditor();
         },
 
         editorJsonString() {
@@ -127,7 +118,7 @@ export function qmhCreatePage(config = {}) {
                             : 0;
                 }
 
-                this.applySelectedTemplateToEditor();
+                this.syncContentFromTemplate();
             } catch {
                 this.templates = [];
                 this.templateId = 0;
@@ -139,7 +130,7 @@ export function qmhCreatePage(config = {}) {
         },
 
         onTemplateChanged() {
-            this.applySelectedTemplateToEditor();
+            this.syncContentFromTemplate();
         },
 
         selectedTemplate() {
@@ -150,25 +141,16 @@ export function qmhCreatePage(config = {}) {
             );
         },
 
-        selectedTemplateLabel() {
-            const template = this.selectedTemplate();
-            if (!template) {
-                return "";
-            }
-
-            return `${template.name} (v${template.version})`;
-        },
-
         selectedTemplatePreviewUrl() {
             const template = this.selectedTemplate();
 
             return template?.preview_url || "";
         },
 
-        applySelectedTemplateToEditor() {
+        selectedTemplateContentHtml() {
             const template = this.selectedTemplate();
             if (!template) {
-                return;
+                return this.contentHtml || "<p></p>";
             }
 
             const templateHtml =
@@ -176,19 +158,12 @@ export function qmhCreatePage(config = {}) {
                     ? template.content_html.trim()
                     : "";
 
-            if (!templateHtml) {
-                return;
-            }
+            return templateHtml || "<p></p>";
+        },
 
-            this.contentHtml = templateHtml;
-            window.dispatchEvent(
-                new CustomEvent("qmh-editor:set-content", {
-                    detail: {
-                        target: this.editorTargetId,
-                        html: templateHtml,
-                    },
-                }),
-            );
+        syncContentFromTemplate() {
+            this.contentHtml = this.selectedTemplateContentHtml();
+            this.editorJson = null;
         },
 
         canSubmit() {

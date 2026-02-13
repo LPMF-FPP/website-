@@ -22,7 +22,6 @@
             initialParentSopId: @js((int) old('parent_sop_id', 0)),
             initialPairedIkId: @js((int) old('paired_ik_id', 0)),
             initialContentHtml: @js(old('content_html', '<p></p>')),
-            editorTargetId: @js('qmh-create-editor'),
             templateManageUrl: @js(route('quality.templates.index')),
             canManageTemplate: @js(auth()->user()?->hasPermission('qmh.template.manage') ?? false),
             sopOptions: @js(($sopOptions ?? collect())->map(fn ($item) => [
@@ -38,7 +37,6 @@
             ])->values()),
         })"
         x-init="init()"
-        @qmh-editor:ready.window="onEditorReady($event)"
     >
         <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <p class="text-sm text-gray-600">Penomoran dokumen diisi manual oleh user.</p>
@@ -215,24 +213,29 @@
 
                 <div x-show="docType" x-cloak class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">Editor Konten Awal</label>
-                    <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" x-data="qmhEditor({ initialContent: @js(old('content_html', '<p></p>') ), editorId: 'qmh-create-editor' })" x-init="init()">
-                        <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bold') }" @click="toggleBold()">B</button>
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('italic') }" @click="toggleItalic()">I</button>
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('underline') }" @click="toggleUnderline()">U</button>
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 1 }) }" @click="setHeading(1)">H1</button>
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 2 }) }" @click="setHeading(2)">H2</button>
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 3 }) }" @click="setHeading(3)">H3</button>
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
-                            <button type="button" class="qmh-editor-btn" @click="setAlign('left')">Kiri</button>
-                            <button type="button" class="qmh-editor-btn" @click="setAlign('center')">Tengah</button>
-                            <button type="button" class="qmh-editor-btn" @click="setAlign('right')">Kanan</button>
-                            <button type="button" class="qmh-editor-btn" @click="insertTable()">Tabel</button>
+                    <template x-if="docType">
+                        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                             :key="`qmh-create-editor-${docType}-${templateId || 'none'}`"
+                             x-data="qmhEditor({ initialContent: selectedTemplateContentHtml() })"
+                             x-init="init()">
+                            <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
+                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bold') }" @click="toggleBold()">B</button>
+                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('italic') }" @click="toggleItalic()">I</button>
+                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('underline') }" @click="toggleUnderline()">U</button>
+                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 1 }) }" @click="setHeading(1)">H1</button>
+                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 2 }) }" @click="setHeading(2)">H2</button>
+                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 3 }) }" @click="setHeading(3)">H3</button>
+                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
+                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
+                                <button type="button" class="qmh-editor-btn" @click="setAlign('left')">Kiri</button>
+                                <button type="button" class="qmh-editor-btn" @click="setAlign('center')">Tengah</button>
+                                <button type="button" class="qmh-editor-btn" @click="setAlign('right')">Kanan</button>
+                                <button type="button" class="qmh-editor-btn" @click="insertTable()">Tabel</button>
+                            </div>
+                            <div class="qmh-editor-surface" x-ref="editor"></div>
+                            <input type="hidden" x-ref="hiddenInput" name="editor_hidden_unused">
                         </div>
-                        <div class="qmh-editor-surface" x-ref="editor"></div>
-                        <input type="hidden" x-ref="hiddenInput" name="editor_hidden_unused">
-                    </div>
+                    </template>
                 </div>
 
                 <div>
