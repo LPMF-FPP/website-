@@ -169,6 +169,32 @@ class QmhTemplateManagementWebTest extends TestCase
         $this->assertStringContainsString('<p>1/1</p>', $contentHtml);
     }
 
+    public function test_upload_template_preserves_footer_alignment_and_text_style_from_docx(): void
+    {
+        Storage::fake('local');
+
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($user)
+            ->post('/quality/templates', [
+                'name' => 'Template SOP with Footer Styles',
+                'doc_type' => 'sop',
+                'version_notes' => 'parse footer styles',
+                'file' => $this->makeDocxUploadWithStyledFooter(),
+            ])
+            ->assertRedirect(route('quality.templates.index'));
+
+        $template = QmhTemplate::query()->firstOrFail();
+        $contentHtml = (string) data_get($template->metadata, 'content_html', '');
+
+        $this->assertMatchesRegularExpression('/<p style="text-align: right;">.*1\/1.*<\/p>/', $contentHtml);
+        $this->assertStringContainsString('<p style="text-align: center;">', $contentHtml);
+        $this->assertStringContainsString('style="color:#FF0000"', $contentHtml);
+        $this->assertStringContainsString('<em>', $contentHtml);
+        $this->assertStringContainsString('Isi Dokumen ini tidak diperkenankan', $contentHtml);
+    }
+
     public function test_can_update_template_name_doc_type_and_replace_file(): void
     {
         Storage::fake('local');
@@ -472,6 +498,45 @@ class QmhTemplateManagementWebTest extends TestCase
         return new UploadedFile(
             $tempPath,
             'template-numbering.docx',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            null,
+            true
+        );
+    }
+
+    private function makeDocxUploadWithStyledFooter(): UploadedFile
+    {
+        $tempPath = tempnam(sys_get_temp_dir(), 'qmh-docx-footer-style-');
+        $zip = new ZipArchive;
+        $zip->open($tempPath, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+
+        $documentXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            .'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+            .'<w:body>'
+            .'<w:p><w:r><w:t>Konten Dokumen</w:t></w:r></w:p>'
+            .'<w:sectPr><w:footerReference w:type="default" r:id="rId8"/></w:sectPr>'
+            .'</w:body>'
+            .'</w:document>';
+
+        $documentRelsXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            .'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            .'<Relationship Id="rId8" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer" Target="footer2.xml"/>'
+            .'</Relationships>';
+
+        $footerXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            .'<w:ftr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+            .'<w:p><w:pPr><w:jc w:val="right"/></w:pPr><w:r><w:fldChar w:fldCharType="begin"/><w:instrText xml:space="preserve">PAGE</w:instrText><w:fldChar w:fldCharType="separate"/><w:fldChar w:fldCharType="end"/></w:r><w:r><w:t>/1</w:t></w:r></w:p>'
+            .'<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:rPr><w:i/><w:color w:val="FF0000"/></w:rPr><w:t>Isi Dokumen ini tidak diperkenankan</w:t></w:r></w:p>'
+            .'</w:ftr>';
+
+        $zip->addFromString('word/document.xml', $documentXml);
+        $zip->addFromString('word/_rels/document.xml.rels', $documentRelsXml);
+        $zip->addFromString('word/footer2.xml', $footerXml);
+        $zip->close();
+
+        return new UploadedFile(
+            $tempPath,
+            'template-footer-style.docx',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             null,
             true
