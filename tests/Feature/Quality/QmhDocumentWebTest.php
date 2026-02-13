@@ -60,7 +60,7 @@ class QmhDocumentWebTest extends TestCase
             ->assertRedirect('/dashboard');
     }
 
-    public function test_can_store_document_from_web_form_and_redirects_to_index(): void
+    public function test_can_store_document_from_web_form_and_redirects_to_document_detail(): void
     {
         /** @var User $user */
         $user = User::factory()->create(['role' => 'admin']);
@@ -76,7 +76,11 @@ class QmhDocumentWebTest extends TestCase
                 'change_summary' => 'create from web',
             ]);
 
-        $response->assertRedirect(route('quality.documents.index'));
+        $createdDocument = QmhDocument::query()
+            ->where('doc_code', 'QMH-WEB-001')
+            ->firstOrFail();
+
+        $response->assertRedirect(route('quality.documents.show', $createdDocument));
 
         $this->assertDatabaseHas('qmh_documents', [
             'doc_code' => 'QMH-WEB-001',

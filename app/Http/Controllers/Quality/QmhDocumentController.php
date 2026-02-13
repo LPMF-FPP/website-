@@ -122,11 +122,11 @@ class QmhDocumentController extends Controller
     public function store(StoreQmhDocumentRequest $request, QmhDocumentService $service): RedirectResponse
     {
         try {
-            $service->createDraft($request->validated(), (int) $request->user()->id);
+            $document = $service->createDraft($request->validated(), (int) $request->user()->id);
 
             return redirect()
-                ->route('quality.documents.index')
-                ->with('success', 'Dokumen QMH berhasil dibuat.');
+                ->route('quality.documents.show', $document)
+                ->with('success', 'Dokumen QMH berhasil dibuat. Lanjutkan dengan Edit Dokumen lalu Submit untuk Review.');
         } catch (\Throwable $exception) {
             Log::error('Gagal membuat dokumen QMH dari web form', [
                 'error' => $exception->getMessage(),
