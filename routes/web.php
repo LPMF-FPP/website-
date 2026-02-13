@@ -12,6 +12,7 @@ use App\Http\Controllers\ProcessController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Quality\QmhDocumentController as QualityQmhDocumentController;
 use App\Http\Controllers\Quality\QmhReportController as QualityQmhReportController;
+use App\Http\Controllers\Quality\QmhTemplateController as QualityQmhTemplateController;
 use App\Http\Controllers\Reports\MonthlyLogReportController;
 use App\Http\Controllers\Reports\SurveyExportController;
 use App\Http\Controllers\RequestController;
@@ -79,6 +80,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/reports', [QualityQmhReportController::class, 'index'])
             ->name('reports.index')
             ->middleware('permission:qmh.report');
+
+        Route::get('/templates', [QualityQmhTemplateController::class, 'index'])
+            ->name('templates.index')
+            ->middleware('permission:qmh.template.manage');
+
+        Route::post('/templates', [QualityQmhTemplateController::class, 'store'])
+            ->name('templates.store')
+            ->middleware('permission:qmh.template.manage');
+
+        Route::patch('/templates/{template}/activate', [QualityQmhTemplateController::class, 'activate'])
+            ->name('templates.activate')
+            ->middleware('permission:qmh.template.manage');
+
+        Route::patch('/templates/{template}/deactivate', [QualityQmhTemplateController::class, 'deactivate'])
+            ->name('templates.deactivate')
+            ->middleware('permission:qmh.template.manage');
     });
 
     // Dashboard

@@ -55,6 +55,26 @@ class PermissionSeederQmhTest extends TestCase
             ->whereHas('permission', fn ($query) => $query->where('name', 'qmh.report'))
             ->exists();
 
+        $adminQmhTemplateManage = RolePermission::query()
+            ->where('role', 'admin')
+            ->whereHas('permission', fn ($query) => $query->where('name', 'qmh.template.manage'))
+            ->exists();
+
+        $supervisorQmhTemplateManage = RolePermission::query()
+            ->where('role', 'supervisor')
+            ->whereHas('permission', fn ($query) => $query->where('name', 'qmh.template.manage'))
+            ->exists();
+
+        $manajerTeknisQmhTemplateManage = RolePermission::query()
+            ->where('role', 'manajer_teknis')
+            ->whereHas('permission', fn ($query) => $query->where('name', 'qmh.template.manage'))
+            ->exists();
+
+        $investigatorQmhTemplateManage = RolePermission::query()
+            ->where('role', 'investigator')
+            ->whereHas('permission', fn ($query) => $query->where('name', 'qmh.template.manage'))
+            ->exists();
+
         $this->assertTrue($adminQmhCreate);
         $this->assertTrue($supervisorQmhCreate);
         $this->assertTrue($manajerTeknisQmhCreate);
@@ -64,5 +84,10 @@ class PermissionSeederQmhTest extends TestCase
         $this->assertTrue($supervisorQmhReport);
         $this->assertTrue($manajerTeknisQmhReport);
         $this->assertFalse($investigatorQmhReport);
+
+        $this->assertTrue($adminQmhTemplateManage);
+        $this->assertTrue($supervisorQmhTemplateManage);
+        $this->assertTrue($manajerTeknisQmhTemplateManage);
+        $this->assertFalse($investigatorQmhTemplateManage);
     }
 }

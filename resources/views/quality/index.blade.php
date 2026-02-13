@@ -7,6 +7,12 @@
             ]"
         >
             <x-slot name="actions">
+                @if(auth()->user()?->hasPermission('qmh.template.manage'))
+                    <a href="{{ route('quality.templates.index') }}"
+                       class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        Kelola Template
+                    </a>
+                @endif
                 <a href="{{ route('quality.documents.create') }}"
                    class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
                     Buat Dokumen

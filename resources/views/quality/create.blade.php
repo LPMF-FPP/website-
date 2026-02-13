@@ -21,6 +21,8 @@
             initialTemplateId: @js((int) old('template_id', 0)),
             initialParentSopId: @js((int) old('parent_sop_id', 0)),
             initialPairedIkId: @js((int) old('paired_ik_id', 0)),
+            templateManageUrl: @js(route('quality.templates.index')),
+            canManageTemplate: @js(auth()->user()?->hasPermission('qmh.template.manage') ?? false),
             sopOptions: @js(($sopOptions ?? collect())->map(fn ($item) => [
                 'id' => $item->id,
                 'clause' => $item->clause,
@@ -159,6 +161,13 @@
                     <p class="mt-1 text-xs text-gray-500" x-show="templatesLoading">Memuat template...</p>
                     <p class="mt-1 text-xs text-amber-700" x-show="!templatesLoading && templates.length === 0">
                         Template aktif untuk kombinasi klausul dan jenis dokumen belum tersedia.
+                    </p>
+                    <p class="mt-1 text-xs text-amber-800" x-show="!templatesLoading && templates.length === 0 && canManageTemplate">
+                        Silakan tambah template di
+                        <a :href="templateManageUrl" class="font-medium underline">QMH > Template</a>.
+                    </p>
+                    <p class="mt-1 text-xs text-amber-800" x-show="!templatesLoading && templates.length === 0 && !canManageTemplate">
+                        Hubungi admin untuk menambahkan template melalui menu QMH > Template.
                     </p>
                     <p class="mt-1 text-xs text-red-600" x-show="templatesError" x-text="templatesError"></p>
                     @error('template_id')
@@ -340,6 +349,8 @@
                 templateId: config.initialTemplateId,
                 parentSopId: config.initialParentSopId,
                 pairedIkId: config.initialPairedIkId,
+                templateManageUrl: config.templateManageUrl,
+                canManageTemplate: Boolean(config.canManageTemplate),
                 sopOptions: config.sopOptions || [],
                 ikOptions: config.ikOptions || [],
                 templates: [],

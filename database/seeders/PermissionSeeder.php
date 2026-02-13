@@ -80,6 +80,7 @@ class PermissionSeeder extends Seeder
         ['name' => 'qmh.view', 'display_name' => 'Lihat Quality Management Hub', 'module' => 'qmh', 'action' => 'view'],
         ['name' => 'qmh.create', 'display_name' => 'Buat Dokumen Quality Management Hub', 'module' => 'qmh', 'action' => 'create'],
         ['name' => 'qmh.report', 'display_name' => 'Lihat Laporan Quality Management Hub', 'module' => 'qmh', 'action' => 'report'],
+        ['name' => 'qmh.template.manage', 'display_name' => 'Kelola Template Quality Management Hub', 'module' => 'qmh', 'action' => 'template-manage'],
 
         // Reminders
         ['name' => 'reminders.view', 'display_name' => 'Lihat Reminders', 'module' => 'reminders', 'action' => 'view'],
@@ -145,7 +146,7 @@ class PermissionSeeder extends Seeder
             'analysts.view', 'analysts.create', 'analysts.edit',
             'settings.view', 'settings.edit',
             'reminders.view', 'reminders.edit',
-            'qmh.view', 'qmh.create', 'qmh.report',
+            'qmh.view', 'qmh.create', 'qmh.report', 'qmh.template.manage',
         ],
         'admin' => [
             // Admin mendapat semua permission
@@ -164,7 +165,7 @@ class PermissionSeeder extends Seeder
             'investigators.view', 'investigators.edit', 'investigators.delete',
             'settings.view', 'settings.edit',
             'reminders.view', 'reminders.edit',
-            'qmh.view', 'qmh.create', 'qmh.report',
+            'qmh.view', 'qmh.create', 'qmh.report', 'qmh.template.manage',
         ],
         'supervisor' => [
             // Supervisor sama dengan admin
@@ -182,7 +183,7 @@ class PermissionSeeder extends Seeder
             'analysts.view', 'analysts.create', 'analysts.edit', 'analysts.delete',
             'settings.view', 'settings.edit',
             'reminders.view', 'reminders.edit',
-            'qmh.view', 'qmh.create', 'qmh.report',
+            'qmh.view', 'qmh.create', 'qmh.report', 'qmh.template.manage',
         ],
         'analyst' => [
             // analyst sama dengan analis

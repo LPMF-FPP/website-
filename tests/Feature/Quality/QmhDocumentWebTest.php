@@ -332,6 +332,18 @@ class QmhDocumentWebTest extends TestCase
             ->assertSee('Hanya pembuat revisi yang dapat submit.');
     }
 
+    public function test_create_page_shows_template_management_link_when_no_template_available(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($user)
+            ->get('/quality/documents/create')
+            ->assertOk()
+            ->assertSee('templateManageUrl')
+            ->assertSee('Silakan tambah template di');
+    }
+
     private function createQmhPermissions(): void
     {
         $viewPermission = Permission::query()->updateOrCreate(
@@ -352,6 +364,15 @@ class QmhDocumentWebTest extends TestCase
             ]
         );
 
+        $templateManagePermission = Permission::query()->updateOrCreate(
+            ['name' => 'qmh.template.manage'],
+            [
+                'display_name' => 'Kelola Template Quality Management Hub',
+                'module' => 'qmh',
+                'action' => 'template-manage',
+            ]
+        );
+
         RolePermission::query()->updateOrCreate([
             'role' => 'admin',
             'permission_id' => $viewPermission->id,
@@ -360,6 +381,11 @@ class QmhDocumentWebTest extends TestCase
         RolePermission::query()->updateOrCreate([
             'role' => 'admin',
             'permission_id' => $createPermission->id,
+        ]);
+
+        RolePermission::query()->updateOrCreate([
+            'role' => 'admin',
+            'permission_id' => $templateManagePermission->id,
         ]);
     }
 
