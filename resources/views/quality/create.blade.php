@@ -213,9 +213,8 @@
 
                 <div x-show="docType" x-cloak class="space-y-2">
                     <label class="block text-sm font-medium text-gray-700">Editor Konten Awal</label>
-                    <template x-if="docType">
+                    <template x-if="docType" :key="`qmh-create-editor-${docType}-${templateId || 'none'}`">
                         <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-                             :key="`qmh-create-editor-${docType}-${templateId || 'none'}`"
                              x-data="qmhEditor({ initialContent: selectedTemplateContentHtml() })"
                              x-init="init()">
                             <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
