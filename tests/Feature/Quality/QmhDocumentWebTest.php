@@ -268,6 +268,7 @@ class QmhDocumentWebTest extends TestCase
             ->assertOk()
             ->assertViewIs('quality.show')
             ->assertSee('QMH-SOP-400')
+            ->assertSee('function qmhShowPage(config)', false)
             ->assertSee('Konten')
             ->assertSee('Riwayat Revisi')
             ->assertSee('Riwayat Unduhan');
