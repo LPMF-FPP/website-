@@ -357,6 +357,20 @@ class QmhDocumentWebTest extends TestCase
             ->assertSee('Tambah template di');
     }
 
+    public function test_create_page_rekeys_editor_template_by_doc_type_and_template_id(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($user)
+            ->get('/quality/documents/create')
+            ->assertOk()
+            ->assertSee(
+                '<template x-if="docType" :key="`qmh-create-editor-${docType}-${templateId || \'none\'}`">',
+                false
+            );
+    }
+
     private function createQmhPermissions(): void
     {
         $viewPermission = Permission::query()->updateOrCreate(
