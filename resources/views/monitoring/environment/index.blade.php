@@ -251,7 +251,6 @@
                 },
 
                 init() {
-                    console.log('Environment monitoring initialized');
                 },
 
                 openInputModal(locationId, locationName, hasHumidity) {
@@ -285,7 +284,7 @@
                     this.inputModal.success = '';
 
                     try {
-                        const response = await fetch('{{ route("monitoring.environment.readings.store") }}', {
+                        const response = await fetch('{{ route("monitoring.environment.readings.store", [], false) }}', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
