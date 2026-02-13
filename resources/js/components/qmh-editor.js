@@ -7,8 +7,9 @@ import TextAlign from "@tiptap/extension-text-align";
 import StarterKit from "@tiptap/starter-kit";
 
 export function qmhEditor(config = {}) {
+    let editorInstance = null;
+
     return {
-        editor: null,
         contentHtml: config.initialContent || "",
         readOnly: Boolean(config.readOnly),
         editorId: config.editorId || "",
@@ -16,7 +17,7 @@ export function qmhEditor(config = {}) {
 
         init() {
             this.$nextTick(() => {
-                this.editor = new Editor({
+                editorInstance = new Editor({
                     element: this.$refs.editor,
                     editable: !this.readOnly,
                     content: this.contentHtml || "<p></p>",
@@ -46,7 +47,7 @@ export function qmhEditor(config = {}) {
                 });
 
                 if (this.$refs.hiddenInput) {
-                    this.$refs.hiddenInput.value = this.editor.getHTML();
+                    this.$refs.hiddenInput.value = editorInstance.getHTML();
                 }
 
                 this.registerSetContentListener();
@@ -82,67 +83,78 @@ export function qmhEditor(config = {}) {
         },
 
         setContent(html) {
-            if (!this.editor) {
+            if (!editorInstance) {
                 this.contentHtml = html;
 
                 return;
             }
 
-            this.editor.commands.setContent(html || "<p></p>", false);
-            this.contentHtml = this.editor.getHTML();
-
-            if (this.$refs.hiddenInput) {
-                this.$refs.hiddenInput.value = this.contentHtml;
+            const nextHtml = html || "<p></p>";
+            if (editorInstance.getHTML() === nextHtml) {
+                return;
             }
 
-            this.$dispatch("qmh-editor-change", {
-                html: this.contentHtml,
-                editor_json: this.editor.getJSON(),
+            window.requestAnimationFrame(() => {
+                if (!editorInstance) {
+                    return;
+                }
+
+                editorInstance.commands.setContent(nextHtml, false);
+                this.contentHtml = editorInstance.getHTML();
+
+                if (this.$refs.hiddenInput) {
+                    this.$refs.hiddenInput.value = this.contentHtml;
+                }
+
+                this.$dispatch("qmh-editor-change", {
+                    html: this.contentHtml,
+                    editor_json: editorInstance.getJSON(),
+                });
             });
         },
 
         isActive(name, attrs = {}) {
-            if (!this.editor) {
+            if (!editorInstance) {
                 return false;
             }
 
-            return this.editor.isActive(name, attrs);
+            return editorInstance.isActive(name, attrs);
         },
 
         toggleBold() {
-            this.editor?.chain().focus().toggleBold().run();
+            editorInstance?.chain().focus().toggleBold().run();
         },
 
         toggleItalic() {
-            this.editor?.chain().focus().toggleItalic().run();
+            editorInstance?.chain().focus().toggleItalic().run();
         },
 
         toggleUnderline() {
-            this.editor?.chain().focus().toggleUnderline().run();
+            editorInstance?.chain().focus().toggleUnderline().run();
         },
 
         toggleBulletList() {
-            this.editor?.chain().focus().toggleBulletList().run();
+            editorInstance?.chain().focus().toggleBulletList().run();
         },
 
         toggleOrderedList() {
-            this.editor?.chain().focus().toggleOrderedList().run();
+            editorInstance?.chain().focus().toggleOrderedList().run();
         },
 
         setHeading(level) {
-            this.editor?.chain().focus().toggleHeading({ level }).run();
+            editorInstance?.chain().focus().toggleHeading({ level }).run();
         },
 
         setParagraph() {
-            this.editor?.chain().focus().setParagraph().run();
+            editorInstance?.chain().focus().setParagraph().run();
         },
 
         setAlign(alignment) {
-            this.editor?.chain().focus().setTextAlign(alignment).run();
+            editorInstance?.chain().focus().setTextAlign(alignment).run();
         },
 
         insertTable() {
-            this.editor
+            editorInstance
                 ?.chain()
                 .focus()
                 .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
@@ -150,11 +162,11 @@ export function qmhEditor(config = {}) {
         },
 
         getHTML() {
-            return this.editor ? this.editor.getHTML() : this.contentHtml;
+            return editorInstance ? editorInstance.getHTML() : this.contentHtml;
         },
 
         getJSON() {
-            return this.editor ? this.editor.getJSON() : null;
+            return editorInstance ? editorInstance.getJSON() : null;
         },
 
         destroy() {
@@ -166,9 +178,9 @@ export function qmhEditor(config = {}) {
                 this.setContentListener = null;
             }
 
-            if (this.editor) {
-                this.editor.destroy();
-                this.editor = null;
+            if (editorInstance) {
+                editorInstance.destroy();
+                editorInstance = null;
             }
         },
     };
