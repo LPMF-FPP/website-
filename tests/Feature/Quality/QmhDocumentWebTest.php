@@ -45,7 +45,9 @@ class QmhDocumentWebTest extends TestCase
             ->assertOk()
             ->assertViewIs('quality.create')
             ->assertSee('Buat Dokumen')
-            ->assertSee('Simpan Dokumen')
+            ->assertSee('Struktur Dokumen')
+            ->assertSee('2. Preview', false)
+            ->assertSee('Lanjut ke Preview')
             ->assertSee('Kembali');
     }
 
