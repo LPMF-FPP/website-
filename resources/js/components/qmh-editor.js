@@ -1,4 +1,5 @@
 import { Editor } from "@tiptap/core";
+import Image from "@tiptap/extension-image";
 import { Table } from "@tiptap/extension-table";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
@@ -20,16 +21,31 @@ export function qmhEditor(config = {}) {
         return trimmed.length > 0 ? trimmed : fallbackHtml;
     };
 
+    const toEditorCompatibleHtml = (value) => {
+        const normalized = normalizeHtml(value);
+
+        if (/^<(table|img)\b/i.test(normalized)) {
+            return `<p></p>${normalized}<p></p>`;
+        }
+
+        return normalized;
+    };
+
     return {
         contentHtml: normalizeHtml(config.initialContent),
         readOnly: Boolean(config.readOnly),
 
         init() {
             this.$nextTick(() => {
+                if (editorInstance) {
+                    editorInstance.destroy();
+                    editorInstance = null;
+                }
+
                 editorInstance = new Editor({
                     element: this.$refs.editor,
                     editable: !this.readOnly,
-                    content: this.contentHtml,
+                    content: toEditorCompatibleHtml(this.contentHtml),
                     extensions: [
                         StarterKit,
                         TextAlign.configure({
@@ -41,6 +57,7 @@ export function qmhEditor(config = {}) {
                         TableRow,
                         TableHeader,
                         TableCell,
+                        Image,
                     ],
                     onUpdate: ({ editor }) => {
                         this.contentHtml = editor.getHTML();
@@ -62,7 +79,7 @@ export function qmhEditor(config = {}) {
         },
 
         setContent(nextHtml) {
-            const normalized = normalizeHtml(nextHtml);
+            const normalized = toEditorCompatibleHtml(nextHtml);
             this.contentHtml = normalized;
 
             if (!editorInstance) {
