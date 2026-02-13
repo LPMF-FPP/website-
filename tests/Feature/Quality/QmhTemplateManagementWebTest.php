@@ -55,7 +55,10 @@ class QmhTemplateManagementWebTest extends TestCase
             ->get(route('quality.templates.edit', $template))
             ->assertOk()
             ->assertSee('Edit Template QMH')
-            ->assertSee('Template SOP Existing');
+            ->assertSee('Template SOP Existing')
+            ->assertSee('@click="addTableRowBefore()"', false)
+            ->assertSee('@click="mergeTableCells()"', false)
+            ->assertSee('@click="splitTableCell()"', false);
     }
 
     public function test_user_without_template_manage_permission_is_redirected_from_template_management_page(): void

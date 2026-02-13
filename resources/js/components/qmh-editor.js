@@ -151,6 +151,56 @@ export function qmhEditor(config = {}) {
                 .run();
         },
 
+        addTableRowBefore() {
+            editorInstance?.chain().focus().addRowBefore().run();
+        },
+
+        addTableRowAfter() {
+            editorInstance?.chain().focus().addRowAfter().run();
+        },
+
+        deleteTableRow() {
+            editorInstance?.chain().focus().deleteRow().run();
+        },
+
+        addTableColumnBefore() {
+            editorInstance?.chain().focus().addColumnBefore().run();
+        },
+
+        addTableColumnAfter() {
+            editorInstance?.chain().focus().addColumnAfter().run();
+        },
+
+        deleteTableColumn() {
+            editorInstance?.chain().focus().deleteColumn().run();
+        },
+
+        mergeTableCells() {
+            const merged = editorInstance?.chain().focus().mergeCells().run();
+            if (!merged) {
+                editorInstance?.chain().focus().mergeOrSplit().run();
+            }
+        },
+
+        splitTableCell() {
+            const split = editorInstance?.chain().focus().splitCell().run();
+            if (!split) {
+                editorInstance?.chain().focus().mergeOrSplit().run();
+            }
+        },
+
+        toggleTableHeaderRow() {
+            editorInstance?.chain().focus().toggleHeaderRow().run();
+        },
+
+        toggleTableHeaderColumn() {
+            editorInstance?.chain().focus().toggleHeaderColumn().run();
+        },
+
+        deleteTable() {
+            editorInstance?.chain().focus().deleteTable().run();
+        },
+
         getHTML() {
             return editorInstance ? editorInstance.getHTML() : this.contentHtml;
         },

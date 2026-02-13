@@ -306,6 +306,7 @@ class QmhDocumentWebTest extends TestCase
             ->assertViewIs('quality.edit')
             ->assertSee('Editor Dokumen QMH')
             ->assertSee('Edit di Office')
+            ->assertSee('function qmhEditPage(config)', false)
             ->assertSee('Simpan');
     }
 
@@ -380,6 +381,25 @@ class QmhDocumentWebTest extends TestCase
             ->get('/quality/documents/create')
             ->assertOk()
             ->assertSee('x-effect="setContent(selectedTemplateContentHtml())"', false);
+    }
+
+    public function test_create_page_exposes_complete_table_toolbar_actions(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($user)
+            ->get('/quality/documents/create')
+            ->assertOk()
+            ->assertSee('@click="addTableRowBefore()"', false)
+            ->assertSee('@click="addTableRowAfter()"', false)
+            ->assertSee('@click="deleteTableRow()"', false)
+            ->assertSee('@click="addTableColumnBefore()"', false)
+            ->assertSee('@click="addTableColumnAfter()"', false)
+            ->assertSee('@click="deleteTableColumn()"', false)
+            ->assertSee('@click="mergeTableCells()"', false)
+            ->assertSee('@click="splitTableCell()"', false)
+            ->assertSee('@click="deleteTable()"', false);
     }
 
     private function createQmhPermissions(): void
