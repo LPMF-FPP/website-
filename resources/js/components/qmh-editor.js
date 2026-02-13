@@ -8,9 +8,20 @@ import StarterKit from "@tiptap/starter-kit";
 
 export function qmhEditor(config = {}) {
     let editorInstance = null;
+    const fallbackHtml = "<p></p>";
+
+    const normalizeHtml = (value) => {
+        if (typeof value !== "string") {
+            return fallbackHtml;
+        }
+
+        const trimmed = value.trim();
+
+        return trimmed.length > 0 ? trimmed : fallbackHtml;
+    };
 
     return {
-        contentHtml: config.initialContent || "",
+        contentHtml: normalizeHtml(config.initialContent),
         readOnly: Boolean(config.readOnly),
 
         init() {
@@ -18,7 +29,7 @@ export function qmhEditor(config = {}) {
                 editorInstance = new Editor({
                     element: this.$refs.editor,
                     editable: !this.readOnly,
-                    content: this.contentHtml || "<p></p>",
+                    content: this.contentHtml,
                     extensions: [
                         StarterKit,
                         TextAlign.configure({
@@ -48,6 +59,23 @@ export function qmhEditor(config = {}) {
                     this.$refs.hiddenInput.value = editorInstance.getHTML();
                 }
             });
+        },
+
+        setContent(nextHtml) {
+            const normalized = normalizeHtml(nextHtml);
+            this.contentHtml = normalized;
+
+            if (!editorInstance) {
+                return;
+            }
+
+            if (editorInstance.getHTML() !== normalized) {
+                editorInstance.commands.setContent(normalized, false);
+            }
+
+            if (this.$refs.hiddenInput) {
+                this.$refs.hiddenInput.value = editorInstance.getHTML();
+            }
         },
 
         isActive(name, attrs = {}) {

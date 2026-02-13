@@ -216,7 +216,8 @@
                     <template x-if="docType" :key="`qmh-create-editor-${docType}-${templateId || 'none'}`">
                         <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
                              x-data="qmhEditor({ initialContent: selectedTemplateContentHtml() })"
-                             x-init="init()">
+                             x-init="init()"
+                             x-effect="setContent(selectedTemplateContentHtml())">
                             <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
                                 <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bold') }" @click="toggleBold()">B</button>
                                 <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('italic') }" @click="toggleItalic()">I</button>

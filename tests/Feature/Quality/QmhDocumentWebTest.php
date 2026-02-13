@@ -371,6 +371,17 @@ class QmhDocumentWebTest extends TestCase
             );
     }
 
+    public function test_create_page_syncs_editor_content_from_selected_template(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($user)
+            ->get('/quality/documents/create')
+            ->assertOk()
+            ->assertSee('x-effect="setContent(selectedTemplateContentHtml())"', false);
+    }
+
     private function createQmhPermissions(): void
     {
         $viewPermission = Permission::query()->updateOrCreate(
