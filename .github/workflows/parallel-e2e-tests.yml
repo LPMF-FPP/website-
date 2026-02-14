@@ -65,21 +65,9 @@ jobs:
       - name: Install dependencies
         run: |
           composer install --prefer-dist --no-interaction --no-scripts
+          php artisan package:discover --ansi
           npm ci
           npm run build
-
-      - name: Debug artisan boot
-        run: |
-          echo "=== .env contents (sanitized) ==="
-          grep -E "^(DB_|APP_|CACHE_|SESSION_)" .env
-          echo "=== Testing artisan ==="
-          php artisan --version 2>&1 || true
-          echo "=== Package discover ==="
-          php artisan package:discover --ansi 2>&1 || true
-          echo "=== Key generate ==="
-          php artisan key:generate --env=testing 2>&1 || true
-          echo "=== .env.testing APP_KEY after keygen ==="
-          grep APP_KEY .env.testing
 
       - name: Generate key and migrate
         run: |

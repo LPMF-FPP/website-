@@ -56,7 +56,7 @@ jobs:
       - name: Install Composer dependencies
         run: |
           composer install --prefer-dist --no-interaction --no-progress --no-scripts
-          php artisan package:discover --ansi || true
+          php artisan package:discover --ansi
 
       - name: Install NPM dependencies
         run: npm ci
@@ -164,7 +164,7 @@ jobs:
       - name: Install Composer dependencies
         run: |
           composer install --prefer-dist --no-interaction --no-progress --no-scripts
-          php artisan package:discover --ansi || true
+          php artisan package:discover --ansi
 
       - name: Install NPM dependencies
         run: npm ci
