@@ -70,13 +70,6 @@
             documentId: @js($document->id),
             currentStatus: @js($status),
             currentVersionLabel: @js($currentRevision?->version_label ?? 'E1-R0'),
-            currentUserId: @js((int) auth()->id()),
-            createdById: @js((int) ($currentRevision?->dibuat_oleh ?? 0)),
-            reviewerById: @js((int) ($currentRevision?->diperiksa_oleh ?? 0)),
-            approverById: @js((int) ($currentRevision?->disahkan_oleh ?? 0)),
-            canCreate: @js(auth()->user()?->hasPermission('qmh.create') ?? false),
-            canReport: @js(auth()->user()?->hasPermission('qmh.report') ?? false),
-            isAdmin: @js((auth()->user()?->role ?? '') === 'admin'),
             csrfToken: @js(csrf_token()),
         })"
         x-init="init()"

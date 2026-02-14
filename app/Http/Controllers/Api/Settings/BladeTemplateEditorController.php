@@ -25,6 +25,7 @@ class BladeTemplateEditorController extends Controller
         'ba-penyerahan' => 'resources/views/pdf/ba-penyerahan.blade.php',
         'laporan-hasil-uji' => 'resources/views/pdf/laporan-hasil-uji.blade.php',
         'form-preparation' => 'resources/views/pdf/form-preparation.blade.php',
+        'qmh-document' => 'resources/views/pdf/qmh-document.blade.php',
         // Labels - Evidence (Barang Bukti)
         'label-barang-bukti-sheet' => 'resources/views/labels/evidence-sheet.blade.php',
         'label-barang-bukti-single' => 'resources/views/labels/evidence-single.blade.php',

@@ -23,6 +23,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \App\Http\Middleware\CheckPermission::class,
         ]);
 
+        // Trust all proxies for HTTPS handling
+        $middleware->trustProxies(at: '*');
+
         // Exclude WhatsApp webhook and system endpoints from CSRF verification
         $middleware->validateCsrfTokens(except: [
             'api/whatsapp/webhook',

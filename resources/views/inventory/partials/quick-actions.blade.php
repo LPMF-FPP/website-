@@ -55,15 +55,15 @@
         <!-- Fast Moving Shortcut -->
         <button type="button" 
                 @click="$dispatch('open-modal-fast-moving')"
-                class="flex flex-col items-center justify-center p-4 rounded-lg border-2 border-dashed border-gray-300 bg-white hover:bg-red-50 hover:border-red-300 transition-all group relative overflow-hidden"
+                class="flex flex-col items-center justify-center p-4 rounded-lg border transition-all group relative overflow-hidden shadow-sm hover:shadow-md bg-white border-gray-200 hover:bg-red-50 hover:border-red-200"
         >
-            <div class="p-2 rounded-full bg-red-100 text-red-600 mb-2 group-hover:scale-110 transition-transform">
+            <div class="p-2 rounded-full mb-2 transition-transform group-hover:scale-110 bg-red-50 text-red-600">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15.362 5.214A8.252 8.252 0 0112 21 8.25 8.25 0 016.038 7.048 8.287 8.287 0 009 9.6a8.983 8.983 0 013.361-6.867 8.21 8.21 0 003 2.48z" />
                     <path stroke-linecap="round" stroke-linejoin="round" d="M12 18a3.75 3.75 0 00.495-7.467 5.99 5.99 0 00-1.925 3.546 5.974 5.974 0 01-2.133-1.001A3.75 3.75 0 0012 18z" />
                 </svg>
             </div>
-            <span class="text-sm font-bold text-gray-600 group-hover:text-red-800">Fast Moving</span>
+            <span class="text-sm font-bold text-gray-600 group-hover:text-red-700">Fast Moving</span>
         </button>
     </div>
 
@@ -261,6 +261,8 @@
         </div>
     </div>
 </div>
+
+@include('inventory.partials.fast-moving-modal')
 
 @push('scripts')
     <script>

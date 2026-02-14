@@ -1,187 +1,52 @@
-# LPMF LIMS - Documentation Index
-
-> **Laboratory Information Management System untuk Laboratorium Pengujian Mutu Farmasi**
-
-**Version:** v2.4.0 (12 Februari 2026)  
-**Last Documentation Update:** 12 Februari 2026
-
----
+# LPMF LIMS - Project Documentation Index
 
 ## Project Overview
 
-| Attribute | Value |
-|-----------|-------|
-| **Type** | Single Laravel Monolith |
-| **Domain** | Healthcare / Laboratory Management |
-| **Primary Language** | PHP 8.2+ |
-| **Framework** | Laravel 12 |
-| **Frontend** | Alpine.js 3.x + Tailwind CSS 3.x |
-| **Testing** | Pest (Unit) + Laravel Dusk (E2E) |
+- **Type:** Monolith (single-part)
+- **Project Type:** Web application (`project_type_id: web`)
+- **Primary Language:** PHP 8.2+
+- **Framework:** Laravel 12
+- **Database:** PostgreSQL
+- **Frontend:** Blade + Alpine.js + Tailwind + Vite
 
-### Quick Reference
+## Quick Reference
 
-| Metric | Count |
-|--------|-------|
-| PHP Files | 270 |
-| Blade Templates | 164 |
-| Database Migrations | 105 |
-| Test Files | 98 |
-| Models | 57 |
-| Services | 25+ |
-| Controllers | 34+ |
-
----
+- **Codebase Scale:** 5,229 scanned files, 2,296,478 scanned lines
+- **Core Metrics:** 1,001 PHP files, 205 Blade files, 64 models, 87 controllers, 116 migrations
+- **Route Surface:** 359 literal route declarations (`api.php` + `web.php`)
+- **Architecture Pattern:** Layered Laravel monolith with service-oriented modules
 
 ## Generated Documentation
 
-### Core Documentation
+- [Project Overview](./project-overview.md)
+- [Architecture](./architecture.md)
+- [Source Tree Analysis](./source-tree-analysis.md)
+- [API Contracts](./api-contracts.md)
+- [Data Models](./data-models.md)
+- [Component Inventory](./component-inventory.md)
+- [Development Guide](./development-guide.md)
+- [Deployment Guide](./deployment-guide.md)
 
-| Document | Description |
-|----------|-------------|
-| [Project Overview](./project-overview.md) | Executive summary, tech stack, business domains |
-| [Architecture](./architecture.md) | System architecture, modules, data flow |
-| [Source Tree Analysis](./source-tree-analysis.md) | Directory structure, critical folders |
-| [API Contracts](./api-contracts.md) | REST API endpoints and payloads |
-| [Development Guide](./development-guide.md) | Setup, testing, coding standards |
+## Existing Documentation (Repository)
 
-### Reference Patterns
+- [AGENTS.md](../AGENTS.md) - Codebase rules, standards, and domain constraints
+- [WALKTHROUGH.md](../WALKTHROUGH.md) - Ongoing implementation history and project walkthrough
+- [RAMS_UI_GUIDELINES.md](../RAMS_UI_GUIDELINES.md) - UI/UX and accessibility standards
+- [VERCEL_GUIDELINES.md](../VERCEL_GUIDELINES.md) - Design and frontend principles
+- [report/README.md](../report/README.md) - Frontend audit system guide
+- [tests/Load/README.md](../tests/Load/README.md) - k6 load-testing guide
+- [.github/copilot-instructions.md](../.github/copilot-instructions.md) - Copilot context and coding guidance
+- [ALPINE_JS_PATTERNS.md](./ALPINE_JS_PATTERNS.md) - Alpine interaction and implementation patterns
 
-| Document | Description |
-|----------|-------------|
-| [Alpine.js Patterns](./ALPINE_JS_PATTERNS.md) | Frontend component patterns |
+## Getting Started for AI-Assisted Work
 
----
+1. Start with [Project Overview](./project-overview.md) and [Architecture](./architecture.md)
+2. Use [Source Tree Analysis](./source-tree-analysis.md) to locate implementation targets quickly
+3. Validate integration impact through [API Contracts](./api-contracts.md) and [Data Models](./data-models.md)
+4. Reuse existing UI patterns from [Component Inventory](./component-inventory.md)
+5. Follow run/test/quality steps in [Development Guide](./development-guide.md)
 
-## Existing Project Documentation
+## Update Workflow
 
-| Document | Description |
-|----------|-------------|
-| [WALKTHROUGH.md](../WALKTHROUGH.md) | Comprehensive changelog & feature history (170KB) |
-| [AGENTS.md](../AGENTS.md) | Agent workflow rules and delegation guide |
-| [RAMS_UI_GUIDELINES.md](../RAMS_UI_GUIDELINES.md) | Accessibility & UI standards |
-| [VERCEL_GUIDELINES.md](../VERCEL_GUIDELINES.md) | Design system principles |
-| [report/README.md](../report/README.md) | Audit system documentation |
-| [tests/Load/README.md](../tests/Load/README.md) | Load testing documentation |
-
----
-
-## Key Features
-
-### Request Management
-- Test request submission and tracking
-- Investigator (Penyidik) management
-- Sample registration
-- Berita Acara generation
-
-### Sample Processing
-- Sample review (Kaji Ulang Permintaan)
-- Testing workflow (Pengujian)
-- Instrument logging
-- Lab report generation (LHU)
-
-### Communication (WhatsApp Hub)
-- Automated notifications via GOWA API
-- Staff task management
-- Broadcast messaging
-- Automated reminders
-
-### Monitoring & Reporting
-- Environment monitoring (temperature, humidity)
-- IKU (Performance Index) tracking
-- Consolidated reporting
-
-### Inventory Management
-- Stock tracking for lab consumables
-- Lot management
-- Transaction history
-
----
-
-## Getting Started
-
-### Quick Start
-
-```bash
-# Install dependencies
-composer install && npm install
-
-# Setup environment
-cp .env.example .env
-php artisan key:generate
-
-# Run migrations
-php artisan migrate
-
-# Start development (all services)
-composer dev
-```
-
-### Manual Start
-
-```bash
-# Terminal 1: Laravel server
-php artisan serve
-
-# Terminal 2: Vite dev server
-npm run dev
-```
-
-### Access
-- **Application**: http://localhost:8000
-- **Vite HMR**: http://localhost:5173
-
----
-
-## Testing
-
-```bash
-# All tests
-npm run test
-
-# PHP tests only
-npm run test:php
-
-# E2E browser tests
-npm run test:e2e
-```
-
----
-
-## Quality Audits
-
-```bash
-# Critical audits (must pass before commit)
-npm run audit:critical
-
-# Full audit suite
-npm run audit:all
-
-# Fix code style
-./vendor/bin/pint
-```
-
----
-
-## For AI-Assisted Development
-
-When working with this codebase, reference these documents:
-
-1. **Understanding the system**: Start with [Project Overview](./project-overview.md) and [Architecture](./architecture.md)
-2. **Finding code**: Use [Source Tree Analysis](./source-tree-analysis.md)
-3. **API integration**: Reference [API Contracts](./api-contracts.md)
-4. **Development workflow**: Follow [Development Guide](./development-guide.md)
-5. **Feature history**: Consult [WALKTHROUGH.md](../WALKTHROUGH.md) for context
-6. **Coding standards**: Follow [AGENTS.md](../AGENTS.md) and [RAMS_UI_GUIDELINES.md](../RAMS_UI_GUIDELINES.md)
-
----
-
-## Documentation Maintenance
-
-This documentation was generated by the BMAD Document Project workflow.
-
-**State file**: `docs/project-scan-report.json`
-
-To update documentation:
-1. Run the document-project workflow
-2. Select "Re-scan entire project"
-3. Choose scan depth level
+- Source of truth for generated state: `docs/project-scan-report.json`
+- To refresh this documentation set, re-run BMAD `document-project` workflow

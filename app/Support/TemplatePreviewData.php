@@ -36,6 +36,7 @@ class TemplatePreviewData
             'ba-penyerahan', 'berita-acara-penyerahan' => self::baPenyerahan($now, $forceDummy),
             'laporan-hasil-uji' => self::laporanHasilUji($now, $forceDummy),
             'form-preparation' => self::formPreparation($now, $forceDummy),
+            'qmh-document' => self::qmhDocument($now),
             'label-barang-bukti-sheet' => self::labelEvidenceSheet($now, $forceDummy),
             'label-barang-bukti-single' => self::labelEvidenceSingle($now, $forceDummy),
             'label-sisa-bukti-sheet', 'label-sisa-sampel-sheet' => self::labelRemainingSheet($now, $forceDummy),
@@ -664,6 +665,32 @@ class TemplatePreviewData
             'kondisi' => $unit->condition_received ?? '-',
             'qr' => self::qrPngDataUri($qrContent),
             'qr_text' => $qrContent,
+        ];
+    }
+
+    private static function qmhDocument(Carbon $now): array
+    {
+        $document = (object) [
+            'doc_code' => '4.1',
+            'title' => 'Ketidakberpihakan',
+            'clause' => 4,
+            'doc_type' => 'sop',
+        ];
+
+        $revision = (object) [
+            'version_label' => 'E1-R0',
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'status' => 'draft',
+            'effective_date' => $now->copy()->startOfDay(),
+            'content_html' => '<p>Isi dokumen contoh (preview).</p>',
+            'document' => $document,
+        ];
+
+        return [
+            'revision' => $revision,
+            'contentHtml' => $revision->content_html,
+            'watermarkText' => 'UNCONTROLLED COPY',
         ];
     }
 

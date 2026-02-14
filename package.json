@@ -1,5 +1,7 @@
 {
     "$schema": "https://json.schemastore.org/package.json",
+    "name": "website-",
+    "version": "0.0.0",
     "private": true,
     "type": "module",
     "scripts": {
@@ -28,10 +30,12 @@
     },
     "devDependencies": {
         "@lhci/cli": "^0.14.0",
+        "@playwright/mcp": "^0.0.64",
         "@tailwindcss/forms": "^0.5.10",
         "@tailwindcss/vite": "^4.1.13",
         "@typescript-eslint/eslint-plugin": "^8.0.0",
         "@typescript-eslint/parser": "^8.0.0",
+        "@vitejs/plugin-react": "^4.7.0",
         "alpinejs": "^3.4.2",
         "autoprefixer": "^10.4.21",
         "axe-core": "^4.10.0",
@@ -66,6 +70,7 @@
     "dependencies": {
         "@alpinejs/collapse": "^3.15.3",
         "@alpinejs/focus": "^3.15.3",
+        "@eigenpal/docx-js-editor": "^0.0.7",
         "@tiptap/core": "^3.19.0",
         "@tiptap/extension-color": "^3.19.0",
         "@tiptap/extension-image": "^3.19.0",
@@ -76,6 +81,8 @@
         "@tiptap/extension-text-align": "^3.19.0",
         "@tiptap/extension-text-style": "^3.19.0",
         "@tiptap/extension-underline": "^3.19.0",
-        "@tiptap/starter-kit": "^3.19.0"
+        "@tiptap/starter-kit": "^3.19.0",
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1"
     }
 }
