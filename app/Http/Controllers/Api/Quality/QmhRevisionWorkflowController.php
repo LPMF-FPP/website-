@@ -77,11 +77,28 @@ class QmhRevisionWorkflowController extends Controller
             ], 403);
         }
 
-        $revision->update([
-            'content_html' => $request->string('content_html')->toString(),
-            'content_css' => $request->input('content_css'),
-            'editor_json' => $request->input('editor_json'),
-        ]);
+        $updates = [];
+        if ($request->has('content_html')) {
+            $updates['content_html'] = $request->string('content_html')->toString();
+        }
+
+        if ($request->has('content_css')) {
+            $updates['content_css'] = $request->input('content_css');
+        }
+
+        if ($request->has('editor_json')) {
+            $updates['editor_json'] = $request->input('editor_json');
+        }
+
+        if ($request->has('answers_json')) {
+            $updates['answers_json'] = $request->input('answers_json');
+        }
+
+        if ($request->has('effective_date')) {
+            $updates['effective_date'] = $request->input('effective_date');
+        }
+
+        $revision->update($updates);
 
         return response()->json([
             'message' => 'Konten revisi berhasil disimpan.',

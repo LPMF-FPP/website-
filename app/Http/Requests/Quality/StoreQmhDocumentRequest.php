@@ -33,7 +33,9 @@ class StoreQmhDocumentRequest extends FormRequest
             'parent_sop_id' => ['nullable', 'integer', 'exists:qmh_documents,id'],
             'paired_ik_id' => ['nullable', 'integer', 'exists:qmh_documents,id'],
             'change_summary' => ['nullable', 'string'],
+            'effective_date' => ['nullable', 'date'],
             'editor_json' => ['nullable', 'array'],
+            'answers_json' => ['nullable', 'array'],
             'content_html' => ['nullable', 'string'],
             'content_css' => ['nullable', 'string'],
         ];

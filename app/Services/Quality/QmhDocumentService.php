@@ -44,6 +44,8 @@ class QmhDocumentService
                 'change_summary' => $payload['change_summary'] ?? null,
                 'version_bump_mode' => 'auto',
                 'editor_json' => $payload['editor_json'] ?? null,
+                'answers_json' => $payload['answers_json'] ?? null,
+                'effective_date' => $payload['effective_date'] ?? null,
                 'content_html' => $payload['content_html'] ?? null,
                 'content_css' => $payload['content_css'] ?? null,
                 'dibuat_oleh' => $actorId,

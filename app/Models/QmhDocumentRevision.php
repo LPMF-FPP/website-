@@ -25,6 +25,7 @@ class QmhDocumentRevision extends Model
         'change_summary',
         'version_bump_mode',
         'editor_json',
+        'answers_json',
         'content_html',
         'content_css',
         'dibuat_oleh',
@@ -42,6 +43,7 @@ class QmhDocumentRevision extends Model
         'revision_number' => 'integer',
         'template_version' => 'integer',
         'editor_json' => 'array',
+        'answers_json' => 'array',
         'last_autosaved_at' => 'datetime',
         'submitted_at' => 'datetime',
         'reviewed_at' => 'datetime',
@@ -68,6 +70,21 @@ class QmhDocumentRevision extends Model
     public function template(): BelongsTo
     {
         return $this->belongsTo(QmhTemplate::class, 'template_id');
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'dibuat_oleh');
+    }
+
+    public function reviewedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'diperiksa_oleh');
+    }
+
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'disahkan_oleh');
     }
 
     public function downloadLogs(): HasMany

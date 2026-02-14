@@ -42,7 +42,17 @@ class QmhRevisionDownloadServiceTest extends TestCase
         $html = $service->buildWatermarkedHtml($revision, 'CONTROLLED COPY');
 
         $this->assertStringContainsString('CONTROLLED COPY', $html);
-        $this->assertStringContainsString('E2-R4', $html);
+        $this->assertStringContainsString('E2/R4', $html);
         $this->assertStringContainsString('Konten PDF uji watermark.', $html);
+
+        // Structured header/footer markers (system-generated)
+        $this->assertStringContainsString('No. Dokumen', $html);
+        $this->assertStringContainsString('Edisi/Revisi', $html);
+        $this->assertStringContainsString('Tgl. Efektif', $html);
+        $this->assertStringContainsString('Halaman', $html);
+        $this->assertStringContainsString('DARI', $html);
+        $this->assertStringContainsString('Dibuat Oleh', $html);
+        $this->assertStringContainsString('Diperiksa Oleh', $html);
+        $this->assertStringContainsString('Disahkan Oleh', $html);
     }
 }

@@ -72,7 +72,7 @@ class QmhDocumentWebTest extends TestCase
         $this->actingAs($user)
             ->get('/quality/documents/create')
             ->assertOk()
-            ->assertSee('x-data="qmhCreatePage({', false);
+            ->assertSee('x-data="window.qmhCreatePage({', false);
     }
 
     public function test_can_store_document_from_web_form_and_redirects_to_document_detail(): void

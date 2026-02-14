@@ -101,6 +101,18 @@
                     @error('content_html')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
 
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700" for="form_schema_json">Schema Pertanyaan (JSON)</label>
+                    <p class="mb-2 text-xs text-gray-500">Opsional. Jika kosong, sistem akan memakai schema default (mis. SOP = 8 pertanyaan).</p>
+                    <textarea
+                        id="form_schema_json"
+                        name="form_schema_json"
+                        rows="10"
+                        class="w-full rounded-md border text-xs font-mono leading-relaxed focus:border-primary-600 focus:ring-primary-600 @error('form_schema_json') border-red-400 @else border-gray-300 @enderror"
+                    >{{ old('form_schema_json', data_get($template->metadata, 'form_schema') ? json_encode(data_get($template->metadata, 'form_schema'), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : '') }}</textarea>
+                    @error('form_schema_json')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+
                 <div class="flex items-center justify-between border-t border-gray-200 pt-4">
                     <a href="{{ route('quality.templates.index') }}" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
                         Batal

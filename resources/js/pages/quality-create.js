@@ -4,6 +4,7 @@ export function qmhCreatePage(config = {}) {
         docCode: config.initialDocCode || "",
         title: config.initialTitle || "",
         changeSummary: config.initialChangeSummary || "",
+        effectiveDate: config.initialEffectiveDate || "",
         clause: config.initialClause,
         docType: config.initialDocType || "",
         templateId: config.initialTemplateId,
@@ -20,8 +21,21 @@ export function qmhCreatePage(config = {}) {
         isSubmitting: false,
         previewBeforeSubmitOpen: false,
         submitConfirmed: false,
+        schema: null,
+        answers: {},
+        listAnswerText: {},
+        fieldErrors: {},
 
         init() {
+            const initialAnswers = config.initialAnswersJson;
+            if (
+                initialAnswers &&
+                typeof initialAnswers === "object" &&
+                !Array.isArray(initialAnswers)
+            ) {
+                this.answers = { ...initialAnswers };
+            }
+
             this.handleHierarchyDependencies();
             if (this.docType) {
                 this.fetchTemplates();
@@ -108,6 +122,8 @@ export function qmhCreatePage(config = {}) {
                             ? Number(this.templates[0].id)
                             : 0;
                 }
+
+                this.syncSchemaFromTemplate();
             } catch {
                 this.templates = [];
                 this.templateId = 0;
@@ -119,7 +135,7 @@ export function qmhCreatePage(config = {}) {
         },
 
         onTemplateChanged() {
-            // Template changed — future: could sync schema questions
+            this.syncSchemaFromTemplate();
         },
 
         selectedTemplate() {
@@ -142,6 +158,100 @@ export function qmhCreatePage(config = {}) {
             return typeof template?.content_html === "string"
                 ? template.content_html
                 : "";
+        },
+
+        schemaQuestions() {
+            const template = this.selectedTemplate();
+            const schema = template?.form_schema || this.schema || null;
+            const questions = schema?.questions;
+            return Array.isArray(questions) ? questions : [];
+        },
+
+        syncSchemaFromTemplate() {
+            const template = this.selectedTemplate();
+            this.schema = template?.form_schema || null;
+
+            this.fieldErrors = {};
+
+            const questions = this.schemaQuestions();
+            const nextListText = { ...this.listAnswerText };
+
+            questions.forEach((q) => {
+                const qid = typeof q?.id === "string" ? q.id : "";
+                if (!qid) return;
+
+                if (q.type === "list") {
+                    const existing = this.answers[qid];
+                    const items = Array.isArray(existing)
+                        ? existing.filter(
+                              (val) =>
+                                  typeof val === "string" && val.trim() !== "",
+                          )
+                        : [];
+
+                    this.answers[qid] = items;
+                    nextListText[qid] = items.join("\n");
+                } else {
+                    const existing = this.answers[qid];
+                    if (typeof existing !== "string") {
+                        this.answers[qid] = "";
+                    }
+                }
+            });
+
+            this.listAnswerText = nextListText;
+        },
+
+        syncListAnswer(qid) {
+            const raw =
+                typeof this.listAnswerText[qid] === "string"
+                    ? this.listAnswerText[qid]
+                    : "";
+            const items = raw
+                .split("\n")
+                .map((line) => line.trim())
+                .filter((line) => line !== "");
+
+            this.answers[qid] = items;
+        },
+
+        answerFormFields() {
+            const fields = [];
+            const questions = this.schemaQuestions();
+            questions.forEach((q) => {
+                const qid = typeof q?.id === "string" ? q.id : "";
+                if (!qid) return;
+
+                if (q.type === "list") {
+                    const items = Array.isArray(this.answers[qid])
+                        ? this.answers[qid]
+                        : [];
+                    items.forEach((item) => {
+                        if (typeof item !== "string") return;
+                        const trimmed = item.trim();
+                        if (!trimmed) return;
+                        fields.push({
+                            name: `answers_json[${qid}][]`,
+                            value: trimmed,
+                        });
+                    });
+
+                    return;
+                }
+
+                const val =
+                    typeof this.answers[qid] === "string"
+                        ? this.answers[qid]
+                        : "";
+                if (!val.trim()) return;
+
+                fields.push({
+                    name: `answers_json[${qid}]`,
+                    value: val,
+                });
+            });
+
+            return fields;
         },
 
         escapeHtml(value) {
@@ -231,11 +341,55 @@ export function qmhCreatePage(config = {}) {
             return true;
         },
 
+        validateAnswers() {
+            this.fieldErrors = {};
+
+            const questions = this.schemaQuestions();
+            questions.forEach((q) => {
+                const qid = typeof q?.id === "string" ? q.id : "";
+                if (!qid) return;
+
+                if (!q.required) return;
+
+                if (q.type === "list") {
+                    const items = Array.isArray(this.answers[qid])
+                        ? this.answers[qid].filter(
+                              (val) =>
+                                  typeof val === "string" && val.trim() !== "",
+                          )
+                        : [];
+
+                    if (items.length === 0) {
+                        this.fieldErrors[qid] = "Wajib diisi.";
+                    }
+
+                    return;
+                }
+
+                const val =
+                    typeof this.answers[qid] === "string"
+                        ? this.answers[qid]
+                        : "";
+                if (!val.trim()) {
+                    this.fieldErrors[qid] = "Wajib diisi.";
+                }
+            });
+
+            return Object.keys(this.fieldErrors).length === 0;
+        },
+
         onSubmit() {
             this.stepError = "";
             if (!this.canSubmit()) {
                 this.stepError =
                     "Lengkapi struktur dokumen dan pastikan template aktif tersedia sebelum menyimpan.";
+
+                return false;
+            }
+
+            if (!this.validateAnswers()) {
+                this.stepError =
+                    "Lengkapi jawaban wajib pada bagian pertanyaan sebelum menyimpan.";
 
                 return false;
             }
@@ -276,6 +430,13 @@ export function qmhCreatePage(config = {}) {
 
                 form.submit();
             });
+        },
+
+        previewDocTypeLabel() {
+            if (this.docType === "sop") return "PROSEDUR";
+            if (this.docType === "ik") return "INSTRUKSI KERJA";
+            if (this.docType === "fr") return "FORMULIR";
+            return "DOKUMEN";
         },
 
         requiresParentSop() {
