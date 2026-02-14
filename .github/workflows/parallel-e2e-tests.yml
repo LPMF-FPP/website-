@@ -64,7 +64,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          composer install --prefer-dist --no-interaction
+          composer install --prefer-dist --no-interaction --no-scripts
+          php artisan package:discover --ansi || true
           npm ci
           npm run build
 
