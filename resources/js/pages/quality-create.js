@@ -184,17 +184,16 @@ export function qmhCreatePage(config = {}) {
                 if (q.type === "list") {
                     const existing = this.answers[qid];
                     const items = Array.isArray(existing)
-                        ? existing.filter(
-                              (val) =>
-                                  typeof val === "string" && val.trim() !== "",
-                          )
+                        ? existing
+                              .map((val) => this.normalizePlainAnswer(val))
+                              .filter((val) => val !== "")
                         : [];
 
                     this.answers[qid] = items;
                     nextListText[qid] = items.join("\n");
                 } else {
                     const existing = this.answers[qid];
-                    this.answers[qid] = this.toRichTextHtml(existing);
+                    this.answers[qid] = this.normalizePlainAnswer(existing);
                 }
             });
 
@@ -226,12 +225,11 @@ export function qmhCreatePage(config = {}) {
                         ? this.answers[qid]
                         : [];
                     items.forEach((item) => {
-                        if (typeof item !== "string") return;
-                        const trimmed = item.trim();
-                        if (!trimmed) return;
+                        const normalized = this.normalizePlainAnswer(item);
+                        if (!normalized) return;
                         fields.push({
                             name: `answers_json[${qid}][]`,
-                            value: trimmed,
+                            value: normalized,
                         });
                     });
 
@@ -242,11 +240,12 @@ export function qmhCreatePage(config = {}) {
                     typeof this.answers[qid] === "string"
                         ? this.answers[qid]
                         : "";
-                if (this.isRichTextBlank(val)) return;
+                const normalized = this.normalizePlainAnswer(val);
+                if (!normalized) return;
 
                 fields.push({
                     name: `answers_json[${qid}]`,
-                    value: val,
+                    value: normalized,
                 });
             });
 
@@ -262,44 +261,78 @@ export function qmhCreatePage(config = {}) {
                 .replaceAll("'", "&#39;");
         },
 
-        toRichTextHtml(value) {
-            const raw = typeof value === "string" ? value : "";
-            const trimmed = raw.trim();
-
-            if (!trimmed) {
-                return "<p></p>";
-            }
-
-            if (/<\/?[a-z][\s\S]*>/i.test(trimmed)) {
-                return trimmed;
-            }
-
-            return `<p>${this.escapeHtml(trimmed).replaceAll("\n", "<br>")}</p>`;
-        },
-
-        richTextToPlainText(value) {
+        htmlToPlainText(value) {
             if (typeof value !== "string") {
                 return "";
             }
 
-            const parser = document.createElement("div");
-            parser.innerHTML = value;
+            const container = document.createElement("div");
+            container.innerHTML = value;
 
-            return String(parser.textContent || parser.innerText || "")
+            const text = String(
+                container.innerText || container.textContent || "",
+            );
+
+            return text
                 .replaceAll("\u00a0", " ")
+                .replaceAll("\r\n", "\n")
+                .replaceAll("\r", "\n")
+                .replaceAll(/\n{3,}/g, "\n\n")
                 .trim();
         },
 
-        isRichTextBlank(value) {
-            if (typeof value !== "string" || value.trim() === "") {
-                return true;
+        normalizePlainAnswer(value) {
+            const raw = typeof value === "string" ? value : "";
+            const trimmed = raw.trim();
+
+            if (!trimmed) {
+                return "";
             }
 
-            return this.richTextToPlainText(value) === "";
+            if (/<\/?[a-z][\s\S]*>/i.test(trimmed)) {
+                return this.htmlToPlainText(trimmed);
+            }
+
+            return trimmed;
+        },
+
+        plainTextToEditorHtml(value) {
+            const normalized = this.normalizePlainAnswer(value);
+
+            if (!normalized) {
+                return "<p></p>";
+            }
+
+            return `<p>${this.escapeHtml(normalized).replaceAll("\n", "<br>")}</p>`;
+        },
+
+        listToEditorHtml(value) {
+            const items = Array.isArray(value) ? value : [];
+            const normalizedItems = items
+                .map((item) => this.normalizePlainAnswer(item))
+                .filter((item) => item !== "");
+
+            if (normalizedItems.length === 0) {
+                return "<p></p>";
+            }
+
+            return `<ul>${normalizedItems
+                .map((item) => `<li><p>${this.escapeHtml(item)}</p></li>`)
+                .join("")}</ul>`;
+        },
+
+        isPlainBlank(value) {
+            return this.normalizePlainAnswer(value) === "";
         },
 
         answerEditorInitialValue(qid) {
-            return this.toRichTextHtml(this.answers[qid]);
+            const current = this.answers[qid];
+
+            if (Array.isArray(current)) {
+                return this.listToEditorHtml(current);
+            }
+
+            return this.plainTextToEditorHtml(current);
         },
 
         onRichTextAnswerChange(qid, html) {
@@ -307,7 +340,22 @@ export function qmhCreatePage(config = {}) {
                 return;
             }
 
-            this.answers[qid] = this.toRichTextHtml(html);
+            this.answers[qid] = this.htmlToPlainText(html);
+        },
+
+        onRichTextListAnswerChange(qid, html) {
+            if (typeof qid !== "string" || !qid) {
+                return;
+            }
+
+            const plain = this.htmlToPlainText(html);
+            const items = plain
+                .split("\n")
+                .map((line) => line.trim())
+                .filter((line) => line !== "");
+
+            this.answers[qid] = items;
+            this.listAnswerText[qid] = items.join("\n");
         },
 
         applyPreviewTokens(html) {
@@ -362,12 +410,58 @@ export function qmhCreatePage(config = {}) {
         },
 
         livePreviewHtml() {
+            const questions = this.schemaQuestions();
+            if (questions.length > 0) {
+                return this.structuredPreviewHtml(questions);
+            }
+
             const templateHtml = this.selectedTemplateContentHtml();
             if (!templateHtml) {
                 return this.fallbackPreviewHtml();
             }
 
             return this.applyPreviewTokens(templateHtml);
+        },
+
+        structuredPreviewHtml(questions) {
+            const rows = questions
+                .map((q, idx) => {
+                    const qid = typeof q?.id === "string" ? q.id : "";
+                    if (!qid) return "";
+
+                    const label = this.escapeHtml(q?.label || qid);
+
+                    if (q.type === "list") {
+                        const items = Array.isArray(this.answers[qid])
+                            ? this.answers[qid]
+                                  .map((val) => this.normalizePlainAnswer(val))
+                                  .filter((val) => val !== "")
+                            : [];
+
+                        const listHtml =
+                            items.length > 0
+                                ? `<ul class=\"list-disc pl-5\">${items
+                                      .map(
+                                          (item) =>
+                                              `<li>${this.escapeHtml(item)}</li>`,
+                                      )
+                                      .join("")}</ul>`
+                                : `<p class=\"text-gray-500\">-</p>`;
+
+                        return `<div class=\"space-y-1\"><div class=\"text-xs font-semibold text-gray-900\">${idx + 1}. ${label}</div>${listHtml}</div>`;
+                    }
+
+                    const raw = this.normalizePlainAnswer(this.answers[qid]);
+                    const answerHtml = raw
+                        ? `<p class=\"whitespace-pre-line\">${this.escapeHtml(raw).replaceAll("\n", "<br>")}</p>`
+                        : `<p class=\"text-gray-500\">-</p>`;
+
+                    return `<div class=\"space-y-1\"><div class=\"text-xs font-semibold text-gray-900\">${idx + 1}. ${label}</div>${answerHtml}</div>`;
+                })
+                .filter((row) => row !== "")
+                .join("");
+
+            return `<div class=\"space-y-4 text-sm text-gray-700\">${rows}</div>`;
         },
 
         canSubmit() {
@@ -400,10 +494,9 @@ export function qmhCreatePage(config = {}) {
 
                 if (q.type === "list") {
                     const items = Array.isArray(this.answers[qid])
-                        ? this.answers[qid].filter(
-                              (val) =>
-                                  typeof val === "string" && val.trim() !== "",
-                          )
+                        ? this.answers[qid]
+                              .map((val) => this.normalizePlainAnswer(val))
+                              .filter((val) => val !== "")
                         : [];
 
                     if (items.length === 0) {
@@ -417,7 +510,7 @@ export function qmhCreatePage(config = {}) {
                     typeof this.answers[qid] === "string"
                         ? this.answers[qid]
                         : "";
-                if (this.isRichTextBlank(val)) {
+                if (this.isPlainBlank(val)) {
                     this.fieldErrors[qid] = "Wajib diisi.";
                 }
             });

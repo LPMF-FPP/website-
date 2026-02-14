@@ -270,15 +270,21 @@
                                                 </div>
 
                                                 <div class="mt-3" x-show="q.type === 'list'">
-                                                    <textarea
-                                                        class="w-full rounded-md border border-gray-300 text-sm leading-relaxed focus:border-primary-600 focus:ring-primary-600"
-                                                        rows="4"
-                                                        :id="`q-${q.id}`"
-                                                        :placeholder="'Satu item per baris'"
-                                                        x-model="listAnswerText[q.id]"
-                                                        @input="syncListAnswer(q.id)"
-                                                    ></textarea>
-                                                    <p class="mt-1 text-xs text-gray-500">Tip: satu item per baris. Kosongkan untuk tidak ada.</p>
+                                                    <div
+                                                        class="rounded-xl border border-gray-200 bg-white p-3"
+                                                        x-data="qmhEditor({ initialContent: answerEditorInitialValue(q.id), editorId: `qmh-list-${q.id}` })"
+                                                        x-init="init()"
+                                                        @qmh-editor-change="onRichTextListAnswerChange(q.id, $event.detail.html)"
+                                                    >
+                                                        <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
+                                                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
+                                                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
+                                                        </div>
+
+                                                        <div class="qmh-editor-surface qmh-editor-surface--compact" x-ref="editor"></div>
+                                                        <input type="hidden" x-ref="hiddenInput">
+                                                    </div>
+                                                    <p class="mt-1 text-xs text-gray-500">Tip: satu item per baris. Gunakan Bullets/Number untuk daftar.</p>
                                                 </div>
 
                                                 <div class="mt-3" x-show="q.type !== 'list'">
