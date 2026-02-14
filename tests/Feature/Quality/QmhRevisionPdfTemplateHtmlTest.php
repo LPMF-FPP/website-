@@ -34,7 +34,7 @@ it('renders qmh pdf template html with header fields', function () {
 
     expect($html)->toContain('No. Dokumen');
     expect($html)->toContain('4.1');
-    expect($html)->toContain('E1-R0');
-    expect($html)->toContain('Ketidakberpihakan');
+    expect($html)->toContain('E1/R0');
+    expect($html)->toContain('KETIDAKBERPIHAKAN');
     expect($html)->toContain('UNCONTROLLED COPY');
 });

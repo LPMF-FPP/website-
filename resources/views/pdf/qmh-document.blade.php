@@ -325,14 +325,26 @@
                     @if(count($items) > 0)
                         <ul class="qmh-list">
                             @foreach($items as $item)
-                                <li>{{ $item }}</li>
+                                @php
+                                    $itemText = is_string($item) ? $item : (is_scalar($item) ? (string) $item : json_encode($item));
+                                    $itemText = preg_replace('/<br\s*\/?>/i', "\n", $itemText ?? '');
+                                    $itemText = strip_tags((string) $itemText);
+                                    $itemText = trim((string) $itemText) !== '' ? trim((string) $itemText) : '-';
+                                @endphp
+                                <li>{{ $itemText }}</li>
                             @endforeach
                         </ul>
                     @else
                         <p class="qmh-answer">-</p>
                     @endif
                 @else
-                    <p class="qmh-answer">{!! nl2br(e(is_string($val) ? $val : ($val === null ? '-' : json_encode($val)))) !!}</p>
+                    @php
+                        $raw = is_string($val) ? $val : ($val === null ? '' : (is_scalar($val) ? (string) $val : json_encode($val)));
+                        $raw = preg_replace('/<br\s*\/?>/i', "\n", $raw ?? '');
+                        $raw = strip_tags((string) $raw);
+                        $raw = trim((string) $raw) !== '' ? trim((string) $raw) : '-';
+                    @endphp
+                    <p class="qmh-answer">{!! nl2br(e($raw)) !!}</p>
                 @endif
             </div>
         @endforeach
