@@ -60,6 +60,16 @@ class QmhDocument extends Model
         return $this->hasMany(QmhDocumentDownloadLog::class, 'document_id');
     }
 
+    public function relatedDocuments(): HasMany
+    {
+        return $this->hasMany(QmhDocumentRelation::class, 'source_document_id');
+    }
+
+    public function referencedByDocuments(): HasMany
+    {
+        return $this->hasMany(QmhDocumentRelation::class, 'target_document_id');
+    }
+
     public function scopeSearch($query, ?string $keyword)
     {
         if (! $keyword) {

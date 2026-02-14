@@ -33,7 +33,7 @@ class QmhDocumentWebTest extends TestCase
         $this->actingAs($user)
             ->get('/quality')
             ->assertOk()
-            ->assertViewIs('quality.index');
+            ->assertViewIs('quality.dashboard');
 
         $this->actingAs($user)
             ->get('/quality/documents')

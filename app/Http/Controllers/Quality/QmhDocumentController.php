@@ -17,7 +17,18 @@ class QmhDocumentController extends Controller
 {
     public function landing(Request $request): View
     {
-        return $this->index($request);
+        $summaryFilters = validator($request->only(['clause', 'doc_type', 'from', 'to']), [
+            'clause' => ['nullable', 'integer', 'in:4,5,6,7,8'],
+            'doc_type' => ['nullable', 'in:sop,ik,formulir'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+        ])->validate();
+
+        $summary = app(QmhDashboardSummaryService::class)->summarize($summaryFilters);
+
+        return view('quality.dashboard', [
+            'summary' => $summary,
+        ]);
     }
 
     public function index(Request $request): View

@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\DocumentDeleteController;
 use App\Http\Controllers\Api\DocumentDownloadController;
 use App\Http\Controllers\Api\JobStatusController;
 use App\Http\Controllers\Api\PeopleController;
+use App\Http\Controllers\Api\Quality\QmhDashboardController;
 use App\Http\Controllers\Api\Quality\QmhDocumentController;
 use App\Http\Controllers\Api\Quality\QmhReportingController;
 use App\Http\Controllers\Api\Quality\QmhRevisionWorkflowController;
@@ -61,6 +62,12 @@ Route::middleware(['throttle:120,1'])->group(function () {
 
         Route::get('/templates', [QmhTemplateController::class, 'index'])
             ->middleware('permission:qmh.create');
+
+        Route::get('/dashboard/stats', [QmhDashboardController::class, 'stats'])
+            ->middleware('permission:qmh.view');
+
+        Route::get('/dashboard/tips', [QmhDashboardController::class, 'tips'])
+            ->middleware('permission:qmh.view');
 
         Route::get('/dashboard/summary', [QmhReportingController::class, 'summary'])
             ->middleware('permission:qmh.report');
