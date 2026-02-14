@@ -78,6 +78,7 @@ class QmhTemplateController extends Controller
                     'version_notes' => $validated['version_notes'] ?? null,
                     'uploaded_by' => $request->user()?->id,
                     'content_html' => $contentHtml,
+                    'form_schema' => $validated['form_schema'] ?? null,
                 ],
             ]);
 
@@ -132,6 +133,10 @@ class QmhTemplateController extends Controller
             $nextMetadata['version_notes'] = $validated['version_notes'] ?? null;
             $nextMetadata['updated_by'] = $request->user()?->id;
             $nextMetadata['content_html'] = $validated['content_html'] ?? ($nextMetadata['content_html'] ?? null);
+
+            if (array_key_exists('form_schema', $validated)) {
+                $nextMetadata['form_schema'] = $validated['form_schema'];
+            }
 
             $template->forceFill([
                 'name' => $validated['name'],

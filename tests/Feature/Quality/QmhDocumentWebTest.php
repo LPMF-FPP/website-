@@ -47,9 +47,9 @@ class QmhDocumentWebTest extends TestCase
             ->assertSee('Buat Dokumen')
             ->assertSee('Pilih Struktur Dokumen')
             ->assertSee('Pilih Template')
-            ->assertSee('Editor Konten Awal')
-            ->assertDontSee('2. Preview')
-            ->assertDontSee('Lanjut ke Preview')
+            ->assertSee('Pertanyaan Template')
+            ->assertSee('Preview Dokumen')
+            ->assertDontSee('Editor Konten Awal')
             ->assertSee('Kembali');
     }
 
@@ -306,8 +306,10 @@ class QmhDocumentWebTest extends TestCase
             ->assertOk()
             ->assertViewIs('quality.edit')
             ->assertSee('Editor Dokumen QMH')
-            ->assertSee('Edit di Office')
-            ->assertSee('function qmhEditPage(config)', false)
+            ->assertSee('Pertanyaan Template')
+            ->assertSee('Preview Dokumen')
+            ->assertSee('data-qmh-question-form', false)
+            ->assertSee('data-qmh-preview-panel', false)
             ->assertSee('Simpan');
     }
 
@@ -359,7 +361,7 @@ class QmhDocumentWebTest extends TestCase
             ->assertSee('Tambah template di');
     }
 
-    public function test_create_page_rekeys_editor_template_by_doc_type_and_template_id(): void
+    public function test_create_page_contains_schema_question_form_container(): void
     {
         /** @var User $user */
         $user = User::factory()->create(['role' => 'admin']);
@@ -367,13 +369,10 @@ class QmhDocumentWebTest extends TestCase
         $this->actingAs($user)
             ->get('/quality/documents/create')
             ->assertOk()
-            ->assertSee(
-                '<template x-if="docType" :key="`qmh-create-editor-${docType}-${templateId || \'none\'}`">',
-                false
-            );
+            ->assertSee('data-qmh-question-form', false);
     }
 
-    public function test_create_page_syncs_editor_content_from_selected_template(): void
+    public function test_create_page_contains_live_preview_panel_container(): void
     {
         /** @var User $user */
         $user = User::factory()->create(['role' => 'admin']);
@@ -381,26 +380,7 @@ class QmhDocumentWebTest extends TestCase
         $this->actingAs($user)
             ->get('/quality/documents/create')
             ->assertOk()
-            ->assertSee('x-effect="setContent(selectedTemplateContentHtml())"', false);
-    }
-
-    public function test_create_page_exposes_complete_table_toolbar_actions(): void
-    {
-        /** @var User $user */
-        $user = User::factory()->create(['role' => 'admin']);
-
-        $this->actingAs($user)
-            ->get('/quality/documents/create')
-            ->assertOk()
-            ->assertSee('@click="addTableRowBefore()"', false)
-            ->assertSee('@click="addTableRowAfter()"', false)
-            ->assertSee('@click="deleteTableRow()"', false)
-            ->assertSee('@click="addTableColumnBefore()"', false)
-            ->assertSee('@click="addTableColumnAfter()"', false)
-            ->assertSee('@click="deleteTableColumn()"', false)
-            ->assertSee('@click="mergeTableCells()"', false)
-            ->assertSee('@click="splitTableCell()"', false)
-            ->assertSee('@click="deleteTable()"', false);
+            ->assertSee('data-qmh-preview-panel', false);
     }
 
     private function createQmhPermissions(): void

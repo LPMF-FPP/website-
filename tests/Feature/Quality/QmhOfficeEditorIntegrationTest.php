@@ -20,6 +20,7 @@ class QmhOfficeEditorIntegrationTest extends TestCase
     {
         parent::setUp();
 
+        config()->set('quality.office.editor_url', 'https://office.test.local/editor');
         config()->set('quality.office.jwt_secret', 'qmh-office-test-secret');
         config()->set('quality.office.callback_hosts', ['office.test.local']);
 

@@ -90,15 +90,62 @@ class QmhRevisionDownloadService
 
     public function buildWatermarkedHtml(QmhDocumentRevision $revision, string $watermarkText): string
     {
-        $title = $revision->document?->title ?? 'Dokumen QMH';
-        $bodyHtml = $revision->content_html ?: '<p>Tidak ada konten.</p>';
+        $revision->loadMissing(['document', 'template', 'createdBy', 'reviewedBy', 'approvedBy']);
 
-        return view('quality.pdf.revision-copy', [
-            'title' => $title,
-            'versionLabel' => $revision->version_label,
+        $schema = $this->resolveFormSchema($revision);
+        $answers = is_array($revision->answers_json) ? $revision->answers_json : [];
+
+        return view('pdf.qmh-document', [
+            'revision' => $revision,
+            'schema' => $schema,
+            'answers' => $answers,
             'watermarkText' => $watermarkText,
-            'contentHtml' => $bodyHtml,
         ])->render();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function resolveFormSchema(QmhDocumentRevision $revision): array
+    {
+        $docType = (string) ($revision->document?->doc_type ?? '');
+        $templateMeta = is_array($revision->template?->metadata) ? $revision->template->metadata : [];
+
+        $schema = $templateMeta['form_schema'] ?? null;
+        if (is_array($schema)) {
+            return $schema;
+        }
+
+        return $this->defaultFormSchema($docType);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function defaultFormSchema(string $docType): array
+    {
+        if ($docType !== 'sop') {
+            return [
+                'version' => 1,
+                'doc_type' => $docType,
+                'questions' => [],
+            ];
+        }
+
+        return [
+            'version' => 1,
+            'doc_type' => 'sop',
+            'questions' => [
+                ['id' => 'purpose', 'label' => 'Tujuan', 'type' => 'textarea', 'required' => true],
+                ['id' => 'scope', 'label' => 'Ruang Lingkup', 'type' => 'textarea', 'required' => true],
+                ['id' => 'definitions', 'label' => 'Definisi', 'type' => 'list', 'required' => false],
+                ['id' => 'references', 'label' => 'Referensi', 'type' => 'list', 'required' => false],
+                ['id' => 'procedure', 'label' => 'Prosedur', 'type' => 'textarea', 'required' => true],
+                ['id' => 'records', 'label' => 'Rekaman / Form Terkait', 'type' => 'list', 'required' => false],
+                ['id' => 'responsibilities', 'label' => 'Tanggung Jawab', 'type' => 'textarea', 'required' => false],
+                ['id' => 'attachments', 'label' => 'Lampiran', 'type' => 'list', 'required' => false],
+            ],
+        ];
     }
 
     private function generatePdfBinary(QmhDocumentRevision $revision, string $watermarkText): string
