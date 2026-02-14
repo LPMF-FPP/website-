@@ -43,15 +43,6 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - name: Install Composer dependencies
-        run: composer install --prefer-dist --no-interaction --no-progress --no-scripts
-
-      - name: Install NPM dependencies
-        run: npm ci
-
-      - name: Build frontend assets
-        run: npm run build
-
       - name: Prepare environment
         run: |
           cp .env.testing.example .env.testing
@@ -61,6 +52,15 @@ jobs:
           sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' .env.testing
           sed -i 's/^DB_PORT=.*/DB_PORT=5432/' .env.testing
           cp .env.testing .env
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Install NPM dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run build
 
       - name: Generate application key
         run: php artisan key:generate --env=testing
@@ -149,15 +149,6 @@ jobs:
           chmod +x geckodriver
           sudo mv geckodriver /usr/local/bin/
 
-      - name: Install Composer dependencies
-        run: composer install --prefer-dist --no-interaction --no-progress --no-scripts
-
-      - name: Install NPM dependencies
-        run: npm ci
-
-      - name: Build frontend assets
-        run: npm run build
-
       - name: Prepare environment
         run: |
           cp .env.testing.example .env.testing
@@ -167,6 +158,15 @@ jobs:
           sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' .env.testing
           sed -i 's/^DB_PORT=.*/DB_PORT=5432/' .env.testing
           cp .env.testing .env
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Install NPM dependencies
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run build
 
       - name: Generate application key
         run: php artisan key:generate --env=testing
