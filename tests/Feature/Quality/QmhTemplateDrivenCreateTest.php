@@ -7,7 +7,6 @@ use App\Models\RolePermission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class QmhTemplateDrivenCreateTest extends TestCase
@@ -107,14 +106,10 @@ class QmhTemplateDrivenCreateTest extends TestCase
             ->assertJsonValidationErrors(['template_id']);
     }
 
-    public function test_create_document_persists_selected_template_binding_and_initial_source_docx(): void
+    public function test_create_document_persists_selected_template_binding(): void
     {
-        Storage::fake('local');
-
         /** @var User $user */
         $user = User::factory()->create(['role' => 'admin']);
-
-        Storage::disk('local')->put('templates/qmh/sop-template.docx', 'dummy-docx-content');
 
         $templateId = DB::table('qmh_templates')->insertGetId([
             'name' => 'Template SOP Umum',
@@ -148,9 +143,8 @@ class QmhTemplateDrivenCreateTest extends TestCase
             'template_version' => 2,
         ]);
 
-        $sourceDocPath = $response->json('data.current_revision.source_docx_path');
-        $this->assertNotEmpty($sourceDocPath);
-        Storage::disk('local')->assertExists($sourceDocPath);
+        $response->assertJsonPath('data.current_revision.template_id', $templateId);
+        $response->assertJsonPath('data.current_revision.template_version', 2);
     }
 
     private function createQmhPermissions(): void

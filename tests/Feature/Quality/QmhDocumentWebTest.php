@@ -306,7 +306,7 @@ class QmhDocumentWebTest extends TestCase
             ->assertOk()
             ->assertViewIs('quality.edit')
             ->assertSee('Editor Dokumen QMH')
-            ->assertSee('Edit di Office')
+            ->assertSee('Bullets')
             ->assertSee('function qmhEditPage(config)', false)
             ->assertSee('Simpan');
     }

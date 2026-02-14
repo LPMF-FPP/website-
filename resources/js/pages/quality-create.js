@@ -18,6 +18,8 @@ export function qmhCreatePage(config = {}) {
         templatesError: "",
         stepError: "",
         isSubmitting: false,
+        previewBeforeSubmitOpen: false,
+        submitConfirmed: false,
 
         init() {
             this.handleHierarchyDependencies();
@@ -238,9 +240,42 @@ export function qmhCreatePage(config = {}) {
                 return false;
             }
 
+            if (!this.submitConfirmed) {
+                this.previewBeforeSubmitOpen = true;
+
+                return false;
+            }
+
             this.isSubmitting = true;
+            this.submitConfirmed = false;
+            this.previewBeforeSubmitOpen = false;
 
             return true;
+        },
+
+        cancelSubmitPreview() {
+            this.previewBeforeSubmitOpen = false;
+            this.submitConfirmed = false;
+        },
+
+        confirmSubmitPreview() {
+            this.submitConfirmed = true;
+            this.previewBeforeSubmitOpen = false;
+
+            this.$nextTick(() => {
+                const form = this.$refs?.draftForm;
+                if (!form) {
+                    return;
+                }
+
+                if (typeof form.requestSubmit === "function") {
+                    form.requestSubmit();
+
+                    return;
+                }
+
+                form.submit();
+            });
         },
 
         requiresParentSop() {
