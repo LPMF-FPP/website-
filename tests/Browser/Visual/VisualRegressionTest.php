@@ -3,13 +3,13 @@
 namespace Tests\Browser\Visual;
 
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
 class VisualRegressionTest extends DuskTestCase
 {
-    use DatabaseTransactions;
+    use DatabaseTruncation;
 
     public function test_dashboard_visual_regression(): void
     {
@@ -26,8 +26,10 @@ class VisualRegressionTest extends DuskTestCase
     public function test_login_page_visual_regression(): void
     {
         $this->browse(function (Browser $browser) {
+            $browser->driver->manage()->deleteAllCookies();
+
             $browser->visit('/login')
-                ->waitForText('Login')
+                ->waitFor('input[name="email"]')
                 ->screenshot('login-page-visual-baseline');
         });
     }
@@ -39,7 +41,7 @@ class VisualRegressionTest extends DuskTestCase
         $this->browse(function (Browser $browser) use ($admin) {
             $browser->loginAs($admin)
                 ->visit('/settings')
-                ->waitForText('Settings')
+                ->waitForText('Pengaturan LIMS')
                 ->screenshot('settings-page-visual-baseline');
         });
     }
@@ -51,7 +53,7 @@ class VisualRegressionTest extends DuskTestCase
         $this->browse(function (Browser $browser) use ($user) {
             $browser->loginAs($user)
                 ->visit('/requests/create')
-                ->waitForText('Create New Request')
+                ->waitForText('Formulir Permintaan Pengujian Sampel')
                 ->screenshot('request-create-form-visual-baseline');
         });
     }

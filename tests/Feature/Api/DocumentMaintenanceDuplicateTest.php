@@ -22,8 +22,7 @@ class DocumentMaintenanceDuplicateTest extends TestCase
         \Illuminate\Support\Facades\Gate::define('manage-settings', fn () => true);
     }
 
-    /** @test */
-    public function it_can_cleanup_duplicate_documents_with_identical_timestamps()
+    public function test_it_can_cleanup_duplicate_documents_with_identical_timestamps()
     {
         $user = User::factory()->create();
         $request = TestRequest::factory()->create();

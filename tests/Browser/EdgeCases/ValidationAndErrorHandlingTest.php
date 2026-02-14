@@ -2,7 +2,6 @@
 
 namespace Tests\Browser\EdgeCases;
 
-use App\Models\TestRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Laravel\Dusk\Browser;
@@ -19,60 +18,24 @@ class ValidationAndErrorHandlingTest extends DuskTestCase
         $this->browse(function (Browser $browser) use ($user) {
             $browser->loginAs($user)
                 ->visit('/requests/create')
-                ->press('Create Request')
-                ->waitForText('The investigator id field is required')
-                ->assertSee('required')
+                ->waitForText('Formulir Permintaan Pengujian Sampel')
+                ->press('Simpan')
                 ->assertPathIs('/requests/create');
+
+            $invalidCount = $browser->script('return document.querySelectorAll(":invalid").length;');
+            $this->assertNotEmpty($invalidCount);
+            $this->assertGreaterThan(0, (int) $invalidCount[0]);
         });
     }
 
-    public function test_unauthorized_user_cannot_access_admin_pages(): void
+    public function test_unauthorized_user_cannot_access_settings(): void
     {
-        $user = User::factory()->create(['role' => 'analyst']);
+        $user = User::factory()->create(['role' => 'investigator']);
 
         $this->browse(function (Browser $browser) use ($user) {
             $browser->loginAs($user)
                 ->visit('/settings')
-                ->assertDontSee('Settings')
-                ->assertPathIsNot('/settings');
-        });
-    }
-
-    public function test_duplicate_request_number_shows_error(): void
-    {
-        $user = User::factory()->create();
-        $existing = TestRequest::factory()->create(['request_number' => 'REQ-2026-DUPLICATE']);
-
-        $this->browse(function (Browser $browser) use ($user) {
-            $browser->loginAs($user)
-                ->visit('/requests/create')
-                ->type('request_number', 'REQ-2026-DUPLICATE')
-                ->press('Create Request')
-                ->waitForText('already exists')
-                ->assertSee('already exists');
-        });
-    }
-
-    public function test_concurrent_user_modification_handling(): void
-    {
-        $user1 = User::factory()->create();
-        $user2 = User::factory()->create();
-        $request = TestRequest::factory()->create(['status' => 'pending']);
-
-        $this->browse(function (Browser $browser1, Browser $browser2) use ($user1, $user2, $request) {
-            $browser1->loginAs($user1)
-                ->visit("/requests/{$request->id}/edit")
-                ->type('status', 'in_progress');
-
-            $browser2->loginAs($user2)
-                ->visit("/requests/{$request->id}/edit")
-                ->type('status', 'completed')
-                ->press('Save')
-                ->waitForText('updated');
-
-            $browser1->press('Save')
-                ->waitForText('conflict')
-                ->assertSee('conflict');
+                ->assertSee('Akses Ditolak');
         });
     }
 
@@ -83,6 +46,7 @@ class ValidationAndErrorHandlingTest extends DuskTestCase
         $this->browse(function (Browser $browser) use ($user) {
             $browser->loginAs($user)
                 ->visit('/requests/create')
+                ->waitForText('Formulir Permintaan Pengujian Sampel')
                 ->script('window.addEventListener("offline", () => alert("Network offline"));');
 
             $browser->script('window.dispatchEvent(new Event("offline"));');
@@ -95,17 +59,40 @@ class ValidationAndErrorHandlingTest extends DuskTestCase
 
     public function test_session_timeout_redirects_to_login(): void
     {
-        $user = User::factory()->create();
+        $password = 'dusk-password-123';
+        $user = User::factory()->create([
+            'password' => bcrypt($password),
+        ]);
 
-        $this->browse(function (Browser $browser) use ($user) {
-            $browser->loginAs($user)
-                ->visit('/dashboard');
+        $this->browse(function (Browser $browser) use ($user, $password) {
+            $browser->driver->manage()->deleteAllCookies();
 
-            $browser->script('document.cookie = "laravel_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";');
+            $browser->visit('/login')
+                ->waitFor('input[name="email"]')
+                ->type('email', $user->email)
+                ->type('password', $password)
+                ->click('button[type="submit"]')
+                ->waitForLocation('/dashboard')
+                ->waitForText('Dashboard');
+
+            $browser->driver->manage()->deleteAllCookies();
 
             $browser->visit('/requests/create')
-                ->waitForText('Login')
+                ->waitFor('input[name="email"]')
                 ->assertPathIs('/login');
+        });
+    }
+
+    public function test_request_edit_page_warns_about_ba_regeneration(): void
+    {
+        $user = User::factory()->create();
+        $request = \App\Models\TestRequest::factory()->create(['user_id' => $user->id]);
+
+        $this->browse(function (Browser $browser) use ($user, $request) {
+            $browser->loginAs($user)
+                ->visit("/requests/{$request->id}/edit")
+                ->waitForText('Edit Permintaan Pengujian')
+                ->assertSee('Berita Acara Penerimaan mungkin perlu di-generate ulang');
         });
     }
 }

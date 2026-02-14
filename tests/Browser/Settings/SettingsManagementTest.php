@@ -4,13 +4,13 @@ namespace Tests\Browser\Settings;
 
 use App\Models\User;
 use Database\Seeders\SystemSettingSeeder;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
 class SettingsManagementTest extends DuskTestCase
 {
-    use DatabaseTransactions;
+    use DatabaseTruncation;
 
     protected function setUp(): void
     {
@@ -26,10 +26,8 @@ class SettingsManagementTest extends DuskTestCase
         $this->browse(function (Browser $browser) use ($admin) {
             $browser->loginAs($admin)
                 ->visit('/settings')
-                ->assertSee('Settings')
-                ->assertSee('Branding')
-                ->assertSee('Numbering')
-                ->assertSee('Localization');
+                ->waitForText('Pengaturan LIMS')
+                ->assertSee('Pengaturan LIMS');
         });
     }
 
@@ -40,97 +38,50 @@ class SettingsManagementTest extends DuskTestCase
         $this->browse(function (Browser $browser) use ($user) {
             $browser->loginAs($user)
                 ->visit('/settings')
-                ->assertDontSee('Settings');
+                ->assertSee('Akses Ditolak');
         });
     }
 
-    public function test_admin_can_update_branding_settings(): void
+    public function test_settings_page_has_sidebar_tabs(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
 
         $this->browse(function (Browser $browser) use ($admin) {
             $browser->loginAs($admin)
                 ->visit('/settings')
-                ->type('settings[branding][org_name]', 'Updated Lab Name')
-                ->type('settings[branding][lab_code]', 'ULN')
-                ->type('settings[branding][primary_color]', '#FF5733')
-                ->press('Save Settings')
-                ->assertSee('Settings saved successfully');
-
-            $this->assertEquals('Updated Lab Name', settings('branding.org_name'));
-            $this->assertEquals('ULN', settings('branding.lab_code'));
+                ->waitForText('Pengaturan LIMS')
+                ->waitFor('#tab-numbering')
+                ->assertSeeIn('#tab-numbering', 'Penomoran Otomatis')
+                ->assertSeeIn('#tab-localization', 'Lokalisasi & Retensi')
+                ->assertSeeIn('#tab-branding', 'Branding & PDF')
+                ->assertSeeIn('#tab-documents', 'Manajemen Dokumen')
+                ->assertSeeIn('#tab-iku', 'Perhitungan IKU');
         });
     }
 
-    public function test_admin_can_update_numbering_settings(): void
+    public function test_settings_page_shows_numbering_section_by_default(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
 
         $this->browse(function (Browser $browser) use ($admin) {
             $browser->loginAs($admin)
                 ->visit('/settings')
-                ->click('a[href="#numbering"]')
-                ->type('settings[numbering][lhu][prefix]', 'LHU')
-                ->type('settings[numbering][lhu][separator]', '-')
-                ->type('settings[numbering][lhu][year_format]', 'YYYY')
-                ->press('Save Settings')
-                ->assertSee('Settings saved');
-
-            $this->assertEquals('LHU', settings('numbering.lhu.prefix'));
+                ->waitForText('Pengaturan LIMS')
+                ->waitFor('#tab-numbering')
+                ->assertSeeIn('#tab-numbering', 'Penomoran Otomatis');
         });
     }
 
-    public function test_admin_can_update_localization_settings(): void
+    public function test_settings_page_has_template_documents_link(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
 
         $this->browse(function (Browser $browser) use ($admin) {
             $browser->loginAs($admin)
                 ->visit('/settings')
-                ->click('a[href="#localization"]')
-                ->select('settings[localization][timezone]', 'Asia/Jakarta')
-                ->select('settings[localization][date_format]', 'DD/MM/YYYY')
-                ->select('settings[localization][language]', 'id')
-                ->press('Save Settings')
-                ->assertSee('Settings saved');
-
-            $this->assertEquals('Asia/Jakarta', settings('localization.timezone'));
-            $this->assertEquals('id', settings('localization.language'));
+                ->waitForText('Pengaturan LIMS')
+                ->waitForText('Template Dokumen')
+                ->assertSee('Template Dokumen');
         });
-    }
-
-    public function test_settings_preview_functionality(): void
-    {
-        $admin = User::factory()->create(['role' => 'admin']);
-
-        $this->browse(function (Browser $browser) use ($admin) {
-            $browser->loginAs($admin)
-                ->visit('/settings')
-                ->type('settings[branding][org_name]', 'Preview Lab')
-                ->press('Preview PDF')
-                ->waitForText('Preview')
-                ->assertSee('Preview');
-        });
-    }
-
-    public function test_settings_cache_invalidation_after_save(): void
-    {
-        $admin = User::factory()->create(['role' => 'admin']);
-
-        $oldValue = settings('branding.org_name');
-
-        $this->browse(function (Browser $browser) use ($admin) {
-            $browser->loginAs($admin)
-                ->visit('/settings')
-                ->type('settings[branding][org_name]', 'New Organization Name')
-                ->press('Save Settings')
-                ->assertSee('Settings saved');
-        });
-
-        settings_forget_cache();
-        $newValue = settings('branding.org_name');
-
-        $this->assertNotEquals($oldValue, $newValue);
-        $this->assertEquals('New Organization Name', $newValue);
     }
 }

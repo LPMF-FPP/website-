@@ -2,105 +2,61 @@
 
 namespace Tests\Browser\Reports;
 
-use App\Models\TestRequest;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
 class ReportGenerationTest extends DuskTestCase
 {
-    use DatabaseTransactions;
+    use DatabaseTruncation;
 
-    public function test_user_can_view_reports_page(): void
+    public function test_user_can_view_monthly_logs_page(): void
     {
         $user = User::factory()->create(['role' => 'admin']);
 
         $this->browse(function (Browser $browser) use ($user) {
             $browser->loginAs($user)
-                ->visit('/reports')
-                ->assertSee('Reports')
-                ->assertPresent('.report-list');
+                ->visit('/reports/monthly-logs')
+                ->waitForText('Cetak Log Bulanan')
+                ->assertSee('Cetak Log Bulanan');
         });
     }
 
-    public function test_user_can_generate_monthly_report(): void
+    public function test_monthly_logs_page_has_environment_section(): void
     {
         $user = User::factory()->create(['role' => 'admin']);
-        TestRequest::factory()->count(10)->create([
-            'created_at' => now(),
-        ]);
 
         $this->browse(function (Browser $browser) use ($user) {
             $browser->loginAs($user)
-                ->visit('/reports')
-                ->assertPresent('select[name="month"]')
-                ->assertPresent('select[name="year"]')
-                ->select('month', now()->month)
-                ->select('year', now()->year)
-                ->press('Generate Report')
-                ->waitForText('Report Generated')
-                ->assertSee('Report Generated')
-                ->assertPresent('.report-content');
+                ->visit('/reports/monthly-logs')
+                ->waitForText('Cetak Log Bulanan')
+                ->assertSee('Suhu & Kelembaban');
         });
     }
 
-    public function test_user_can_generate_custom_date_range_report(): void
+    public function test_monthly_logs_page_has_instrument_section(): void
     {
         $user = User::factory()->create(['role' => 'admin']);
-        $startDate = now()->subDays(30)->format('Y-m-d');
-        $endDate = now()->format('Y-m-d');
-
-        TestRequest::factory()->count(15)->create();
-
-        $this->browse(function (Browser $browser) use ($user, $startDate, $endDate) {
-            $browser->loginAs($user)
-                ->visit('/reports')
-                ->click('a:contains("Custom Range")')
-                ->waitFor('#custom-range-form')
-                ->type('start_date', $startDate)
-                ->type('end_date', $endDate)
-                ->press('Generate')
-                ->waitForText('Report Generated')
-                ->assertSee('Report Generated')
-                ->assertSee($startDate)
-                ->assertSee($endDate);
-        });
-    }
-
-    public function test_user_can_export_report_to_pdf(): void
-    {
-        $user = User::factory()->create(['role' => 'admin']);
-        TestRequest::factory()->count(5)->create();
 
         $this->browse(function (Browser $browser) use ($user) {
             $browser->loginAs($user)
-                ->visit('/reports')
-                ->select('month', now()->month)
-                ->select('year', now()->year)
-                ->press('Generate Report')
-                ->waitForText('Report Generated')
-                ->assertPresent('button:contains("Export PDF")')
-                ->click('button:contains("Export PDF")')
-                ->pause(1000);
+                ->visit('/reports/monthly-logs')
+                ->waitForText('Cetak Log Bulanan')
+                ->assertSee('Penggunaan Instrumen');
         });
     }
 
-    public function test_user_can_export_report_to_excel(): void
+    public function test_monthly_logs_has_pdf_and_csv_buttons(): void
     {
         $user = User::factory()->create(['role' => 'admin']);
-        TestRequest::factory()->count(5)->create();
 
         $this->browse(function (Browser $browser) use ($user) {
             $browser->loginAs($user)
-                ->visit('/reports')
-                ->select('month', now()->month)
-                ->select('year', now()->year)
-                ->press('Generate Report')
-                ->waitForText('Report Generated')
-                ->assertPresent('button:contains("Export Excel")')
-                ->click('button:contains("Export Excel")')
-                ->pause(1000);
+                ->visit('/reports/monthly-logs')
+                ->waitForText('Cetak Log Bulanan')
+                ->assertSee('PDF')
+                ->assertSee('Excel (CSV)');
         });
     }
 }

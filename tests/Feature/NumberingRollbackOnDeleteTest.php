@@ -29,8 +29,7 @@ class NumberingRollbackOnDeleteTest extends TestCase
         ]);
     }
 
-    /** @test */
-    public function it_rollbacks_ba_and_tracking_when_last_test_request_is_deleted()
+    public function test_it_rollbacks_ba_and_tracking_when_last_test_request_is_deleted()
     {
         $investigator = Investigator::factory()->create();
         $user = User::factory()->create();
@@ -65,8 +64,7 @@ class NumberingRollbackOnDeleteTest extends TestCase
         $this->assertEquals(0, $trackingSequence->current_value);
     }
 
-    /** @test */
-    public function it_does_not_rollback_when_deleting_non_last_test_request()
+    public function test_it_does_not_rollback_when_deleting_non_last_test_request()
     {
         $investigator = Investigator::factory()->create();
         $user = User::factory()->create();
@@ -105,8 +103,7 @@ class NumberingRollbackOnDeleteTest extends TestCase
         $this->assertEquals(2, $baSequence->current_value);
     }
 
-    /** @test */
-    public function it_rollbacks_sample_code_when_last_sample_is_deleted()
+    public function test_it_rollbacks_sample_code_when_last_sample_is_deleted()
     {
         $investigator = Investigator::factory()->create();
         $user = User::factory()->create();
@@ -141,8 +138,7 @@ class NumberingRollbackOnDeleteTest extends TestCase
         $this->assertEquals(0, $sampleSequence->current_value);
     }
 
-    /** @test */
-    public function it_does_not_rollback_when_deleting_non_last_sample()
+    public function test_it_does_not_rollback_when_deleting_non_last_sample()
     {
         $investigator = Investigator::factory()->create();
         $user = User::factory()->create();

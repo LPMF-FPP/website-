@@ -6,8 +6,7 @@ use Tests\TestCase;
 
 class TrackingJsonNotFoundTest extends TestCase
 {
-    /** @test */
-    public function not_found_tracking_number_returns_404_without_cached_flag()
+    public function test_not_found_tracking_number_returns_404_without_cached_flag()
     {
         $resp = $this->getJson('/track/REQ-1999-9999.json');
         $resp->assertStatus(404);

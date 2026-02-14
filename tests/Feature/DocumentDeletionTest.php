@@ -65,8 +65,7 @@ class DocumentDeletionTest extends TestCase
         ]);
     }
 
-    /** @test */
-    public function authenticated_user_can_delete_document()
+    public function test_authenticated_user_can_delete_document()
     {
         $response = $this->actingAs($this->user)
             ->deleteJson("/requests/{$this->testRequest->id}/documents/sample_receipt");
@@ -87,16 +86,14 @@ class DocumentDeletionTest extends TestCase
         Storage::disk('documents')->assertMissing($this->document->file_path);
     }
 
-    /** @test */
-    public function unauthenticated_user_cannot_delete_document()
+    public function test_unauthenticated_user_cannot_delete_document()
     {
         $response = $this->deleteJson("/requests/{$this->testRequest->id}/documents/sample_receipt");
 
         $response->assertStatus(401);
     }
 
-    /** @test */
-    public function cannot_delete_document_with_invalid_type()
+    public function test_cannot_delete_document_with_invalid_type()
     {
         $response = $this->actingAs($this->user)
             ->deleteJson("/requests/{$this->testRequest->id}/documents/invalid_type");
@@ -108,8 +105,7 @@ class DocumentDeletionTest extends TestCase
             ]);
     }
 
-    /** @test */
-    public function returns_404_when_document_not_found()
+    public function test_returns_404_when_document_not_found()
     {
         $response = $this->actingAs($this->user)
             ->deleteJson("/requests/{$this->testRequest->id}/documents/handover_report");
@@ -121,8 +117,7 @@ class DocumentDeletionTest extends TestCase
             ]);
     }
 
-    /** @test */
-    public function can_delete_all_document_types()
+    public function test_can_delete_all_document_types()
     {
         $documentTypes = ['sample_receipt', 'handover_report', 'request_letter_receipt'];
 
@@ -155,8 +150,7 @@ class DocumentDeletionTest extends TestCase
         }
     }
 
-    /** @test */
-    public function deletion_is_idempotent_when_file_already_deleted()
+    public function test_deletion_is_idempotent_when_file_already_deleted()
     {
         // Delete the file from storage first
         Storage::disk('documents')->delete($this->document->file_path);

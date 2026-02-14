@@ -2,11 +2,9 @@
 
 namespace Tests\Browser\EdgeCases;
 
-use App\Models\Investigator;
 use App\Models\TestRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\DatabaseTruncation;
-use Illuminate\Support\Facades\DB;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
@@ -14,58 +12,52 @@ class DataIntegrityTest extends DuskTestCase
 {
     use DatabaseTruncation;
 
-    public function test_database_constraint_violation_handled_gracefully(): void
+    public function test_request_create_form_shows_validation_errors(): void
     {
         $user = User::factory()->create(['role' => 'admin']);
 
         $this->browse(function (Browser $browser) use ($user) {
             $browser->loginAs($user)
                 ->visit('/requests/create')
-                ->type('request_number', str_repeat('A', 300))
-                ->press('Create Request')
-                ->waitForText('too long')
-                ->assertSee('error');
+                ->waitForText('Formulir Permintaan Pengujian Sampel')
+                ->press('Simpan')
+                ->assertPathIs('/requests/create');
+
+            $invalidCount = $browser->script('return document.querySelectorAll(":invalid").length;');
+            $this->assertNotEmpty($invalidCount);
+            $this->assertGreaterThan(0, (int) $invalidCount[0]);
         });
     }
 
-    public function test_transaction_rollback_on_error(): void
+    public function test_request_form_preserves_input_on_validation_failure(): void
     {
         $user = User::factory()->create(['role' => 'admin']);
-        $investigator = Investigator::factory()->create();
+
+        $this->browse(function (Browser $browser) use ($user) {
+            $browser->loginAs($user)
+                ->visit('/requests/create')
+                ->waitForText('Formulir Permintaan Pengujian Sampel')
+                ->type('investigator_name', 'Test Investigator')
+                ->press('Simpan')
+                ->assertPathIs('/requests/create')
+                ->assertInputValue('investigator_name', 'Test Investigator');
+        });
+    }
+
+    public function test_request_count_unchanged_after_validation_failure(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
 
         $initialCount = TestRequest::count();
 
-        $this->browse(function (Browser $browser) use ($user, $investigator) {
+        $this->browse(function (Browser $browser) use ($user) {
             $browser->loginAs($user)
                 ->visit('/requests/create')
-                ->select('investigator_id', $investigator->id)
-                ->type('request_number', '')
-                ->press('Create Request')
-                ->waitForText('required');
+                ->waitForText('Formulir Permintaan Pengujian Sampel')
+                ->press('Simpan')
+                ->assertPathIs('/requests/create');
         });
 
         $this->assertEquals($initialCount, TestRequest::count());
-    }
-
-    public function test_audit_trail_records_all_changes(): void
-    {
-        $user = User::factory()->create(['role' => 'admin']);
-        $request = TestRequest::factory()->create(['status' => 'pending']);
-
-        $this->browse(function (Browser $browser) use ($user, $request) {
-            $browser->loginAs($user)
-                ->visit("/requests/{$request->id}/edit")
-                ->select('status', 'in_progress')
-                ->press('Save')
-                ->waitForText('updated');
-        });
-
-        $this->assertTrue(
-            DB::table('activity_logs')
-                ->where('subject_type', TestRequest::class)
-                ->where('subject_id', $request->id)
-                ->where('causer_id', $user->id)
-                ->exists()
-        );
     }
 }

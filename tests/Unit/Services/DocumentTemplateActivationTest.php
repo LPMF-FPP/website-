@@ -22,10 +22,9 @@ class DocumentTemplateActivationTest extends TestCase
     }
 
     /**
-     * @test
      * Unit test: When activating a BA template, other BA templates should become is_active=false
      */
-    public function activating_ba_template_deactivates_other_ba_templates(): void
+    public function test_activating_ba_template_deactivates_other_ba_templates(): void
     {
         // Create 3 BA Penerimaan templates
         $baTemplate1 = DocumentTemplate::factory()->create([
@@ -90,10 +89,9 @@ class DocumentTemplateActivationTest extends TestCase
     }
 
     /**
-     * @test
      * Activating template via repository deactivates others of same type
      */
-    public function activating_template_deactivates_same_type_only(): void
+    public function test_activating_template_deactivates_same_type_only(): void
     {
         // Create BA Penerimaan templates with different versions
         $ba1 = DocumentTemplate::factory()->create([
@@ -141,10 +139,9 @@ class DocumentTemplateActivationTest extends TestCase
     }
 
     /**
-     * @test
      * Creating template with is_active=true deactivates existing active templates
      */
-    public function creating_active_template_deactivates_existing(): void
+    public function test_creating_active_template_deactivates_existing(): void
     {
         $existing = DocumentTemplate::factory()->create([
             'type' => DocumentType::BA_PENERIMAAN,
@@ -168,10 +165,9 @@ class DocumentTemplateActivationTest extends TestCase
     }
 
     /**
-     * @test
      * Multiple templates can be inactive
      */
-    public function multiple_templates_can_be_inactive(): void
+    public function test_multiple_templates_can_be_inactive(): void
     {
         // Create 3 templates with different versions to avoid unique constraint
         for ($i = 1; $i <= 3; $i++) {
@@ -191,10 +187,9 @@ class DocumentTemplateActivationTest extends TestCase
     }
 
     /**
-     * @test
      * Deactivating template works correctly
      */
-    public function can_deactivate_template(): void
+    public function test_can_deactivate_template(): void
     {
         $template = DocumentTemplate::factory()->create([
             'type' => DocumentType::BA_PENERIMAAN,
