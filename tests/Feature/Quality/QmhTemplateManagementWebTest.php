@@ -266,6 +266,51 @@ class QmhTemplateManagementWebTest extends TestCase
         $this->assertSame('<p>Baru dari browser</p>', data_get($template->metadata, 'content_html'));
     }
 
+    public function test_can_update_template_form_schema_metadata_from_json_textarea(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $template = QmhTemplate::query()->create([
+            'name' => 'Template Schema Pertanyaan',
+            'clause' => 4,
+            'doc_type' => 'sop',
+            'version' => 1,
+            'storage_disk' => 'local',
+            'source_docx_path' => 'qmh/templates/sop/schema.docx',
+            'is_active' => true,
+            'metadata' => [
+                'content_html' => '<p>Lama</p>',
+            ],
+        ]);
+
+        $schema = [
+            'version' => 1,
+            'questions' => [
+                [
+                    'id' => 'purpose',
+                    'label' => 'Tujuan',
+                    'type' => 'textarea',
+                    'required' => true,
+                ],
+            ],
+        ];
+
+        $this->actingAs($user)
+            ->patch(route('quality.templates.update', $template), [
+                'name' => 'Template Schema Pertanyaan',
+                'doc_type' => 'sop',
+                'form_schema_json' => json_encode($schema, JSON_THROW_ON_ERROR),
+            ])
+            ->assertRedirect(route('quality.templates.index'));
+
+        $template->refresh();
+
+        $this->assertSame('purpose', data_get($template->metadata, 'form_schema.questions.0.id'));
+        $this->assertSame('Tujuan', data_get($template->metadata, 'form_schema.questions.0.label'));
+        $this->assertTrue((bool) data_get($template->metadata, 'form_schema.questions.0.required'));
+    }
+
     public function test_activating_template_deactivates_other_active_template_in_same_doc_type(): void
     {
         /** @var User $user */

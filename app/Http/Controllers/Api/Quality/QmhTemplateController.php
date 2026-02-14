@@ -39,6 +39,8 @@ class QmhTemplateController extends Controller
         $templates = $templates->map(function (QmhTemplate $template): array {
             $metadata = is_array($template->metadata) ? $template->metadata : [];
 
+            $formSchema = $metadata['form_schema'] ?? $this->defaultFormSchema((string) $template->doc_type);
+
             return [
                 'id' => $template->id,
                 'name' => $template->name,
@@ -50,11 +52,41 @@ class QmhTemplateController extends Controller
                 'updated_at' => $template->updated_at,
                 'preview_url' => route('quality.templates.preview', $template),
                 'content_html' => $metadata['content_html'] ?? null,
+                'form_schema' => $formSchema,
             ];
         })->values();
 
         return response()->json([
             'data' => $templates,
         ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function defaultFormSchema(string $docType): array
+    {
+        if ($docType !== 'sop') {
+            return [
+                'version' => 1,
+                'doc_type' => $docType,
+                'questions' => [],
+            ];
+        }
+
+        return [
+            'version' => 1,
+            'doc_type' => 'sop',
+            'questions' => [
+                ['id' => 'purpose', 'label' => 'Tujuan', 'type' => 'textarea', 'required' => true],
+                ['id' => 'scope', 'label' => 'Ruang Lingkup', 'type' => 'textarea', 'required' => true],
+                ['id' => 'definitions', 'label' => 'Definisi', 'type' => 'list', 'required' => false],
+                ['id' => 'references', 'label' => 'Referensi', 'type' => 'list', 'required' => false],
+                ['id' => 'procedure', 'label' => 'Prosedur', 'type' => 'textarea', 'required' => true],
+                ['id' => 'records', 'label' => 'Rekaman / Form Terkait', 'type' => 'list', 'required' => false],
+                ['id' => 'responsibilities', 'label' => 'Tanggung Jawab', 'type' => 'textarea', 'required' => false],
+                ['id' => 'attachments', 'label' => 'Lampiran', 'type' => 'list', 'required' => false],
+            ],
+        ];
     }
 }
