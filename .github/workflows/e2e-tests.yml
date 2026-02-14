@@ -52,8 +52,15 @@ jobs:
       - name: Build frontend assets
         run: npm run build
 
-      - name: Copy environment file
-        run: cp .env.example .env.testing
+      - name: Prepare environment
+        run: |
+          cp .env.testing.example .env.testing
+          sed -i 's/^DB_DATABASE=.*/DB_DATABASE=lis_db_test/' .env.testing
+          sed -i 's/^DB_USERNAME=.*/DB_USERNAME=postgres/' .env.testing
+          sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=postgres/' .env.testing
+          sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' .env.testing
+          sed -i 's/^DB_PORT=.*/DB_PORT=5432/' .env.testing
+          cp .env.testing .env
 
       - name: Generate application key
         run: php artisan key:generate --env=testing
@@ -143,7 +150,7 @@ jobs:
           sudo mv geckodriver /usr/local/bin/
 
       - name: Install Composer dependencies
-        run: composer install --prefer-dist --no-interaction --no-progress
+        run: composer install --prefer-dist --no-interaction --no-progress --no-scripts
 
       - name: Install NPM dependencies
         run: npm ci
@@ -151,8 +158,15 @@ jobs:
       - name: Build frontend assets
         run: npm run build
 
-      - name: Copy environment file
-        run: cp .env.example .env.testing
+      - name: Prepare environment
+        run: |
+          cp .env.testing.example .env.testing
+          sed -i 's/^DB_DATABASE=.*/DB_DATABASE=lis_db_test/' .env.testing
+          sed -i 's/^DB_USERNAME=.*/DB_USERNAME=postgres/' .env.testing
+          sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=postgres/' .env.testing
+          sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' .env.testing
+          sed -i 's/^DB_PORT=.*/DB_PORT=5432/' .env.testing
+          cp .env.testing .env
 
       - name: Generate application key
         run: php artisan key:generate --env=testing

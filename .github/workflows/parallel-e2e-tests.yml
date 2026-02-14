@@ -60,7 +60,13 @@ jobs:
 
       - name: Prepare environment
         run: |
-          cp .env.example .env.testing
+          cp .env.testing.example .env.testing
+          sed -i 's/^DB_DATABASE=.*/DB_DATABASE=lis_db_test/' .env.testing
+          sed -i 's/^DB_USERNAME=.*/DB_USERNAME=postgres/' .env.testing
+          sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=postgres/' .env.testing
+          sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' .env.testing
+          sed -i 's/^DB_PORT=.*/DB_PORT=5432/' .env.testing
+          cp .env.testing .env
           php artisan key:generate --env=testing
           php artisan migrate:fresh --seed --env=testing
 
