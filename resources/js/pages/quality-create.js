@@ -18,8 +18,6 @@ export function qmhCreatePage(config = {}) {
         templatesError: "",
         stepError: "",
         isSubmitting: false,
-        contentHtml: config.initialContentHtml || "<p></p>",
-        editorJson: config.initialEditorJson || null,
 
         init() {
             this.handleHierarchyDependencies();
@@ -37,15 +35,6 @@ export function qmhCreatePage(config = {}) {
                 this.templates = [];
                 this.templateId = 0;
             }
-        },
-
-        onEditorChange(detail) {
-            this.contentHtml = detail?.html || "<p></p>";
-            this.editorJson = detail?.editor_json || null;
-        },
-
-        editorJsonString() {
-            return this.editorJson ? JSON.stringify(this.editorJson) : "";
         },
 
         handleHierarchyDependencies() {
@@ -117,8 +106,6 @@ export function qmhCreatePage(config = {}) {
                             ? Number(this.templates[0].id)
                             : 0;
                 }
-
-                this.syncContentFromTemplate();
             } catch {
                 this.templates = [];
                 this.templateId = 0;
@@ -130,7 +117,7 @@ export function qmhCreatePage(config = {}) {
         },
 
         onTemplateChanged() {
-            this.syncContentFromTemplate();
+            // Template changed — future: could sync schema questions
         },
 
         selectedTemplate() {
@@ -145,25 +132,6 @@ export function qmhCreatePage(config = {}) {
             const template = this.selectedTemplate();
 
             return template?.preview_url || "";
-        },
-
-        selectedTemplateContentHtml() {
-            const template = this.selectedTemplate();
-            if (!template) {
-                return this.contentHtml || "<p></p>";
-            }
-
-            const templateHtml =
-                typeof template.content_html === "string"
-                    ? template.content_html.trim()
-                    : "";
-
-            return templateHtml || "<p></p>";
-        },
-
-        syncContentFromTemplate() {
-            this.contentHtml = this.selectedTemplateContentHtml();
-            this.editorJson = null;
         },
 
         canSubmit() {

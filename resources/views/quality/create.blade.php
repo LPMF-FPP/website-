@@ -11,7 +11,7 @@
 
     <div
         class="mx-auto max-w-4xl space-y-6 sm:px-6 lg:px-8"
-        x-data="window.qmhCreatePage({
+        x-data="qmhCreatePage({
             templatesUrl: @js('/api/quality/templates'),
             initialDocCode: @js(old('doc_code', '')),
             initialTitle: @js(old('title', '')),
@@ -21,7 +21,6 @@
             initialTemplateId: @js((int) old('template_id', 0)),
             initialParentSopId: @js((int) old('parent_sop_id', 0)),
             initialPairedIkId: @js((int) old('paired_ik_id', 0)),
-            initialContentHtml: @js(old('content_html', '<p></p>')),
             templateManageUrl: @js(route('quality.templates.index')),
             canManageTemplate: @js(auth()->user()?->hasPermission('qmh.template.manage') ?? false),
             sopOptions: @js(($sopOptions ?? collect())->map(fn ($item) => [
@@ -52,11 +51,10 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ route('quality.documents.store') }}" class="mt-4 space-y-5" @qmh-editor-change="onEditorChange($event.detail)" @submit.prevent="if (onSubmit()) $el.submit()">
+            <form method="POST" action="{{ route('quality.documents.store') }}" class="mt-4 space-y-5" @submit.prevent="if (onSubmit()) $el.submit()">
                 @csrf
 
                 <input type="hidden" name="template_id" :value="templateId">
-                <input type="hidden" name="content_html" :value="contentHtml">
 
                 <div class="rounded-lg border border-blue-100 bg-blue-50 p-4">
                     <h3 class="text-sm font-semibold text-blue-900">Pilih Struktur Dokumen</h3>
@@ -209,44 +207,6 @@
                     @error('paired_ik_id')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
-                </div>
-
-                <div x-show="docType" x-cloak class="space-y-2">
-                    <label class="block text-sm font-medium text-gray-700">Editor Konten Awal</label>
-                    <template x-if="docType" :key="`qmh-create-editor-${docType}-${templateId || 'none'}`">
-                        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-                             x-data="qmhEditor({ initialContent: selectedTemplateContentHtml() })"
-                             x-init="init()"
-                             x-effect="setContent(selectedTemplateContentHtml())">
-                            <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
-                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bold') }" @click="toggleBold()">B</button>
-                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('italic') }" @click="toggleItalic()">I</button>
-                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('underline') }" @click="toggleUnderline()">U</button>
-                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 1 }) }" @click="setHeading(1)">H1</button>
-                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 2 }) }" @click="setHeading(2)">H2</button>
-                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 3 }) }" @click="setHeading(3)">H3</button>
-                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
-                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
-                                <button type="button" class="qmh-editor-btn" @click="setAlign('left')">Kiri</button>
-                                <button type="button" class="qmh-editor-btn" @click="setAlign('center')">Tengah</button>
-                                <button type="button" class="qmh-editor-btn" @click="setAlign('right')">Kanan</button>
-                                <button type="button" class="qmh-editor-btn" @click="insertTable()">Tabel</button>
-                                <button type="button" class="qmh-editor-btn" @click="addTableRowBefore()">+Baris Atas</button>
-                                <button type="button" class="qmh-editor-btn" @click="addTableRowAfter()">+Baris Bawah</button>
-                                <button type="button" class="qmh-editor-btn" @click="deleteTableRow()">-Baris</button>
-                                <button type="button" class="qmh-editor-btn" @click="addTableColumnBefore()">+Kolom Kiri</button>
-                                <button type="button" class="qmh-editor-btn" @click="addTableColumnAfter()">+Kolom Kanan</button>
-                                <button type="button" class="qmh-editor-btn" @click="deleteTableColumn()">-Kolom</button>
-                                <button type="button" class="qmh-editor-btn" @click="mergeTableCells()">Merge Sel</button>
-                                <button type="button" class="qmh-editor-btn" @click="splitTableCell()">Split Sel</button>
-                                <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderRow()">Header Baris</button>
-                                <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderColumn()">Header Kolom</button>
-                                <button type="button" class="qmh-editor-btn" @click="deleteTable()">Hapus Tabel</button>
-                            </div>
-                            <div class="qmh-editor-surface" x-ref="editor"></div>
-                            <input type="hidden" x-ref="hiddenInput" name="editor_hidden_unused">
-                        </div>
-                    </template>
                 </div>
 
                 <div>

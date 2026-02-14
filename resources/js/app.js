@@ -14,9 +14,6 @@ import toastStore from "./stores/toast";
 Alpine.plugin(collapse);
 Alpine.plugin(focus);
 
-// Register custom Alpine components
-registerSettingsComponent();
-
 // Theme manager
 (function () {
     const STORAGE_KEY = "ui.theme";
@@ -140,8 +137,6 @@ document.addEventListener("alpine:init", () => {
         },
     }));
 });
-
-window.qmhCreatePage = qmhCreatePage;
 
 Alpine.start();
 

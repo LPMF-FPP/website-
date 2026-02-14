@@ -70,13 +70,6 @@
             documentId: @js($document->id),
             currentStatus: @js($status),
             currentVersionLabel: @js($currentRevision?->version_label ?? 'E1-R0'),
-            currentUserId: @js((int) auth()->id()),
-            createdById: @js((int) ($currentRevision?->dibuat_oleh ?? 0)),
-            reviewerById: @js((int) ($currentRevision?->diperiksa_oleh ?? 0)),
-            approverById: @js((int) ($currentRevision?->disahkan_oleh ?? 0)),
-            canCreate: @js(auth()->user()?->hasPermission('qmh.create') ?? false),
-            canReport: @js(auth()->user()?->hasPermission('qmh.report') ?? false),
-            isAdmin: @js((auth()->user()?->role ?? '') === 'admin'),
             csrfToken: @js(csrf_token()),
         })"
         x-init="init()"
@@ -156,6 +149,28 @@
                                 >
                                     Edit Dokumen
                                 </button>
+                            @endif
+                        @endif
+
+                        @if(auth()->user()?->hasPermission('qmh.create'))
+                            @if(Route::has('quality.documents.edit-docx'))
+                                @if($lockedByAnotherUser)
+                                    <button
+                                        type="button"
+                                        class="inline-flex w-full cursor-not-allowed items-center justify-center rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-sm font-medium text-gray-500"
+                                        title="Dokumen dikunci oleh pengguna lain"
+                                        disabled
+                                    >
+                                        Edit DOCX
+                                    </button>
+                                @else
+                                    <a
+                                        href="{{ route('quality.documents.edit-docx', $document) }}"
+                                        class="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                    >
+                                        Edit DOCX
+                                    </a>
+                                @endif
                             @endif
                         @endif
 
@@ -722,7 +737,7 @@
                             method: 'POST',
                             credentials: 'same-origin',
                             headers: {
-                                'Accept': 'application/pdf',
+                                'Accept': 'application/pdf, application/json',
                                 'Content-Type': 'application/json',
                                 'X-CSRF-TOKEN': this.csrfToken,
                             },
