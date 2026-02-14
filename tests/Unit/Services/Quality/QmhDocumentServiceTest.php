@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services\Quality;
 
+use App\Models\QmhTemplate;
 use App\Models\User;
 use App\Services\Quality\QmhDocumentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -68,6 +69,40 @@ class QmhDocumentServiceTest extends TestCase
 
         $this->assertDatabaseMissing('qmh_documents', [
             'doc_code' => 'QMH-SOP-ROLLBACK',
+        ]);
+    }
+
+    public function test_create_draft_uses_template_html_when_payload_content_is_empty(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        $service = new QmhDocumentService;
+
+        $template = QmhTemplate::query()->create([
+            'name' => 'Template SOP Uji',
+            'clause' => 4,
+            'doc_type' => 'sop',
+            'version' => 1,
+            'storage_disk' => 'local',
+            'source_docx_path' => 'qmh/templates/sop-uji.docx',
+            'is_active' => true,
+            'metadata' => [
+                'content_html' => '<p>Konten dari template</p>',
+            ],
+        ]);
+
+        $document = $service->createDraft([
+            'doc_code' => 'QMH-SOP-TPL-001',
+            'title' => 'SOP Template Auto Load',
+            'clause' => 4,
+            'doc_type' => 'sop',
+            'template_id' => $template->id,
+            'content_html' => '',
+        ], $user->id);
+
+        $this->assertDatabaseHas('qmh_document_revisions', [
+            'document_id' => $document->id,
+            'template_id' => $template->id,
+            'content_html' => '<p>Konten dari template</p>',
         ]);
     }
 }

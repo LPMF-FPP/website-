@@ -21,6 +21,7 @@
         class="space-y-4 sm:px-6 lg:px-8"
         x-data="qmhEditPage({
             revisionId: @js($revision?->id),
+            initialContent: @js($revision?->content_html ?? '<p></p>'),
             showUrl: @js(route('quality.documents.show', $document)),
             saveUrl: @js($revision ? '/api/quality/revisions/'.$revision->id.'/content' : null),
             lockUrl: @js($revision ? '/api/quality/revisions/'.$revision->id.'/lock' : null),
@@ -43,7 +44,7 @@
                         Kembali
                     </button>
                     <button type="button" @click="saveNow()" :disabled="saving || !hasLock" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
-                        <span x-text="saving ? 'Menyimpan...' : 'Simpan'"></span>
+                        <span x-text="saving ? 'Menyimpan...' : 'Simpan Draft'"></span>
                     </button>
                 </div>
             </div>
@@ -146,6 +147,7 @@
         function qmhEditPage(config) {
             return {
                 revisionId: config.revisionId,
+                initialContent: typeof config.initialContent === 'string' ? config.initialContent : '<p></p>',
                 showUrl: config.showUrl,
                 saveUrl: config.saveUrl,
                 lockUrl: config.lockUrl,
@@ -156,7 +158,7 @@
                 heartbeatTimer: null,
                 saving: false,
                 dirty: false,
-                contentHtml: '',
+                contentHtml: typeof config.initialContent === 'string' && config.initialContent.trim() !== '' ? config.initialContent : '<p></p>',
                 editorJson: null,
                 errorMessage: '',
                 saveState: 'idle',

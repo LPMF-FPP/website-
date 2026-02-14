@@ -21,6 +21,19 @@ class QmhDocumentService
                     ->firstOrFail();
             }
 
+            $templateMetadata = is_array($template?->metadata) ? $template->metadata : [];
+            $templateContentHtml = isset($templateMetadata['content_html']) && is_string($templateMetadata['content_html'])
+                ? trim($templateMetadata['content_html'])
+                : '';
+
+            $payloadContentHtml = isset($payload['content_html']) && is_string($payload['content_html'])
+                ? trim($payload['content_html'])
+                : '';
+
+            $resolvedContentHtml = $payloadContentHtml !== ''
+                ? $payloadContentHtml
+                : ($templateContentHtml !== '' ? $templateContentHtml : '<p></p>');
+
             $document = QmhDocument::query()->create([
                 'doc_code' => $payload['doc_code'],
                 'title' => $payload['title'],
@@ -46,7 +59,7 @@ class QmhDocumentService
                 'editor_json' => $payload['editor_json'] ?? null,
                 'answers_json' => $payload['answers_json'] ?? null,
                 'effective_date' => $payload['effective_date'] ?? null,
-                'content_html' => $payload['content_html'] ?? null,
+                'content_html' => $resolvedContentHtml,
                 'content_css' => $payload['content_css'] ?? null,
                 'dibuat_oleh' => $actorId,
             ]);
