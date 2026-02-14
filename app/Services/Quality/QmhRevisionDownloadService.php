@@ -5,6 +5,7 @@ namespace App\Services\Quality;
 use App\Models\QmhDocumentDownloadLog;
 use App\Models\QmhDocumentRevision;
 use App\Models\QmhWorkflowEvent;
+use App\Support\QmhAnswerSanitizer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -88,7 +89,7 @@ class QmhRevisionDownloadService
         $revision->loadMissing(['document', 'template', 'createdBy', 'reviewedBy', 'approvedBy']);
 
         $schema = $this->resolveFormSchema($revision);
-        $answers = is_array($revision->answers_json) ? $revision->answers_json : [];
+        $answers = QmhAnswerSanitizer::sanitizeAnswersJson($revision->answers_json);
 
         return view('pdf.qmh-document', [
             'revision' => $revision,

@@ -185,15 +185,32 @@ export function qmhCreatePage(config = {}) {
                     const existing = this.answers[qid];
                     const items = Array.isArray(existing)
                         ? existing
-                              .map((val) => this.normalizePlainAnswer(val))
-                              .filter((val) => val !== "")
+                              .map((val) =>
+                                  typeof val === "string" ? val : "",
+                              )
+                              .filter((val) => val.trim() !== "")
+                              .filter((val) => !this.isEditorBlank(val))
                         : [];
 
                     this.answers[qid] = items;
-                    nextListText[qid] = items.join("\n");
+                    nextListText[qid] = items
+                        .map((val) => this.htmlToPlainText(val))
+                        .join("\n");
                 } else {
                     const existing = this.answers[qid];
-                    this.answers[qid] = this.normalizePlainAnswer(existing);
+                    if (typeof existing !== "string") {
+                        this.answers[qid] = "";
+
+                        return;
+                    }
+
+                    if (this.looksLikeHtml(existing)) {
+                        this.answers[qid] = this.normalizeEditorHtml(existing);
+
+                        return;
+                    }
+
+                    this.answers[qid] = this.normalizePlainText(existing);
                 }
             });
 
@@ -225,8 +242,29 @@ export function qmhCreatePage(config = {}) {
                         ? this.answers[qid]
                         : [];
                     items.forEach((item) => {
-                        const normalized = this.normalizePlainAnswer(item);
-                        if (!normalized) return;
+                        if (typeof item !== "string") {
+                            return;
+                        }
+
+                        if (this.looksLikeHtml(item)) {
+                            const normalizedHtml =
+                                this.normalizeEditorHtml(item);
+                            if (this.isEditorBlank(normalizedHtml)) {
+                                return;
+                            }
+
+                            fields.push({
+                                name: `answers_json[${qid}][]`,
+                                value: normalizedHtml,
+                            });
+
+                            return;
+                        }
+
+                        const normalized = this.normalizePlainText(item);
+                        if (!normalized) {
+                            return;
+                        }
                         fields.push({
                             name: `answers_json[${qid}][]`,
                             value: normalized,
@@ -240,8 +278,24 @@ export function qmhCreatePage(config = {}) {
                     typeof this.answers[qid] === "string"
                         ? this.answers[qid]
                         : "";
-                const normalized = this.normalizePlainAnswer(val);
-                if (!normalized) return;
+                if (this.looksLikeHtml(val)) {
+                    const normalizedHtml = this.normalizeEditorHtml(val);
+                    if (this.isEditorBlank(normalizedHtml)) {
+                        return;
+                    }
+
+                    fields.push({
+                        name: `answers_json[${qid}]`,
+                        value: normalizedHtml,
+                    });
+
+                    return;
+                }
+
+                const normalized = this.normalizePlainText(val);
+                if (!normalized) {
+                    return;
+                }
 
                 fields.push({
                     name: `answers_json[${qid}]`,
@@ -281,23 +335,45 @@ export function qmhCreatePage(config = {}) {
                 .trim();
         },
 
-        normalizePlainAnswer(value) {
+        looksLikeHtml(value) {
+            if (typeof value !== "string") {
+                return false;
+            }
+
+            return /<\/?[a-z][\s\S]*>/i.test(value);
+        },
+
+        normalizePlainText(value) {
+            const raw = typeof value === "string" ? value : "";
+
+            return raw.trim();
+        },
+
+        normalizeEditorHtml(value) {
             const raw = typeof value === "string" ? value : "";
             const trimmed = raw.trim();
 
             if (!trimmed) {
-                return "";
-            }
-
-            if (/<\/?[a-z][\s\S]*>/i.test(trimmed)) {
-                return this.htmlToPlainText(trimmed);
+                return "<p></p>";
             }
 
             return trimmed;
         },
 
+        isEditorBlank(value) {
+            if (typeof value !== "string") {
+                return true;
+            }
+
+            if (!value.trim()) {
+                return true;
+            }
+
+            return this.htmlToPlainText(value) === "";
+        },
+
         plainTextToEditorHtml(value) {
-            const normalized = this.normalizePlainAnswer(value);
+            const normalized = this.normalizePlainText(value);
 
             if (!normalized) {
                 return "<p></p>";
@@ -309,20 +385,25 @@ export function qmhCreatePage(config = {}) {
         listToEditorHtml(value) {
             const items = Array.isArray(value) ? value : [];
             const normalizedItems = items
-                .map((item) => this.normalizePlainAnswer(item))
-                .filter((item) => item !== "");
+                .map((item) =>
+                    typeof item === "string" ? item.trim() : String(item ?? ""),
+                )
+                .filter((item) => item !== "")
+                .map((item) => {
+                    if (this.looksLikeHtml(item)) {
+                        return item;
+                    }
+
+                    return `<p>${this.escapeHtml(item)}</p>`;
+                });
 
             if (normalizedItems.length === 0) {
                 return "<p></p>";
             }
 
             return `<ul>${normalizedItems
-                .map((item) => `<li><p>${this.escapeHtml(item)}</p></li>`)
+                .map((item) => `<li>${item}</li>`)
                 .join("")}</ul>`;
-        },
-
-        isPlainBlank(value) {
-            return this.normalizePlainAnswer(value) === "";
         },
 
         answerEditorInitialValue(qid) {
@@ -330,6 +411,10 @@ export function qmhCreatePage(config = {}) {
 
             if (Array.isArray(current)) {
                 return this.listToEditorHtml(current);
+            }
+
+            if (this.looksLikeHtml(current)) {
+                return this.normalizeEditorHtml(current);
             }
 
             return this.plainTextToEditorHtml(current);
@@ -340,7 +425,7 @@ export function qmhCreatePage(config = {}) {
                 return;
             }
 
-            this.answers[qid] = this.htmlToPlainText(html);
+            this.answers[qid] = this.normalizeEditorHtml(html);
         },
 
         onRichTextListAnswerChange(qid, html) {
@@ -348,14 +433,94 @@ export function qmhCreatePage(config = {}) {
                 return;
             }
 
-            const plain = this.htmlToPlainText(html);
-            const items = plain
-                .split("\n")
-                .map((line) => line.trim())
-                .filter((line) => line !== "");
+            const container = document.createElement("div");
+            container.innerHTML = html;
+
+            const liNodes = Array.from(container.querySelectorAll("li"));
+            let items = [];
+
+            if (liNodes.length > 0) {
+                items = liNodes
+                    .map((node) => String(node.innerHTML || "").trim())
+                    .filter((val) => val !== "")
+                    .map((val) =>
+                        this.looksLikeHtml(val)
+                            ? this.normalizeEditorHtml(val)
+                            : `<p>${this.escapeHtml(val)}</p>`,
+                    );
+            } else {
+                const plain = this.htmlToPlainText(html);
+                items = plain
+                    .split("\n")
+                    .map((line) => line.trim())
+                    .filter((line) => line !== "")
+                    .map((line) => `<p>${this.escapeHtml(line)}</p>`);
+            }
 
             this.answers[qid] = items;
-            this.listAnswerText[qid] = items.join("\n");
+            this.listAnswerText[qid] = items
+                .map((item) => this.htmlToPlainText(item))
+                .join("\n");
+        },
+
+        sanitizePreviewHtml(value) {
+            const raw = typeof value === "string" ? value : "";
+            if (!raw.trim()) {
+                return "";
+            }
+
+            const allowedTags = new Set([
+                "p",
+                "br",
+                "strong",
+                "b",
+                "em",
+                "i",
+                "u",
+                "ul",
+                "ol",
+                "li",
+            ]);
+
+            const doc = document.createElement("div");
+            doc.innerHTML = raw;
+
+            doc.querySelectorAll("script, style").forEach((node) =>
+                node.remove(),
+            );
+
+            const walker = document.createTreeWalker(
+                doc,
+                NodeFilter.SHOW_ELEMENT,
+            );
+            const nodes = [];
+            while (walker.nextNode()) {
+                nodes.push(walker.currentNode);
+            }
+
+            nodes.forEach((node) => {
+                const tag = String(node.tagName || "").toLowerCase();
+
+                Array.from(node.attributes || []).forEach((attr) => {
+                    const name = String(attr.name || "").toLowerCase();
+                    node.removeAttribute(attr.name);
+
+                    if (name === "href" || name === "src") {
+                        node.removeAttribute(attr.name);
+                    }
+                });
+
+                if (!allowedTags.has(tag)) {
+                    const parent = node.parentNode;
+                    if (!parent) return;
+                    while (node.firstChild) {
+                        parent.insertBefore(node.firstChild, node);
+                    }
+                    parent.removeChild(node);
+                }
+            });
+
+            return doc.innerHTML;
         },
 
         applyPreviewTokens(html) {
@@ -433,28 +598,61 @@ export function qmhCreatePage(config = {}) {
 
                     if (q.type === "list") {
                         const items = Array.isArray(this.answers[qid])
-                            ? this.answers[qid]
-                                  .map((val) => this.normalizePlainAnswer(val))
-                                  .filter((val) => val !== "")
+                            ? this.answers[qid].filter(
+                                  (val) => typeof val === "string",
+                              )
                             : [];
 
+                        const filledItems = items
+                            .map((item) => {
+                                if (this.looksLikeHtml(item)) {
+                                    const normalized =
+                                        this.normalizeEditorHtml(item);
+                                    if (this.isEditorBlank(normalized)) {
+                                        return "";
+                                    }
+
+                                    return this.sanitizePreviewHtml(normalized);
+                                }
+
+                                const normalized =
+                                    this.normalizePlainText(item);
+                                if (!normalized) {
+                                    return "";
+                                }
+
+                                return this.escapeHtml(normalized);
+                            })
+                            .filter((item) => item !== "");
+
                         const listHtml =
-                            items.length > 0
-                                ? `<ul class=\"list-disc pl-5\">${items
-                                      .map(
-                                          (item) =>
-                                              `<li>${this.escapeHtml(item)}</li>`,
-                                      )
+                            filledItems.length > 0
+                                ? `<ul class=\"list-disc pl-5\">${filledItems
+                                      .map((item) => `<li>${item}</li>`)
                                       .join("")}</ul>`
                                 : `<p class=\"text-gray-500\">-</p>`;
 
                         return `<div class=\"space-y-1\"><div class=\"text-xs font-semibold text-gray-900\">${idx + 1}. ${label}</div>${listHtml}</div>`;
                     }
 
-                    const raw = this.normalizePlainAnswer(this.answers[qid]);
-                    const answerHtml = raw
-                        ? `<p class=\"whitespace-pre-line\">${this.escapeHtml(raw).replaceAll("\n", "<br>")}</p>`
-                        : `<p class=\"text-gray-500\">-</p>`;
+                    const raw =
+                        typeof this.answers[qid] === "string"
+                            ? this.answers[qid]
+                            : "";
+
+                    let answerHtml = '<p class="text-gray-500">-</p>';
+
+                    if (this.looksLikeHtml(raw)) {
+                        const normalized = this.normalizeEditorHtml(raw);
+                        if (!this.isEditorBlank(normalized)) {
+                            answerHtml = this.sanitizePreviewHtml(normalized);
+                        }
+                    } else {
+                        const normalized = this.normalizePlainText(raw);
+                        if (normalized) {
+                            answerHtml = `<p>${this.escapeHtml(normalized).replaceAll("\n", "<br>")}</p>`;
+                        }
+                    }
 
                     return `<div class=\"space-y-1\"><div class=\"text-xs font-semibold text-gray-900\">${idx + 1}. ${label}</div>${answerHtml}</div>`;
                 })
@@ -495,8 +693,8 @@ export function qmhCreatePage(config = {}) {
                 if (q.type === "list") {
                     const items = Array.isArray(this.answers[qid])
                         ? this.answers[qid]
-                              .map((val) => this.normalizePlainAnswer(val))
-                              .filter((val) => val !== "")
+                              .filter((val) => typeof val === "string")
+                              .filter((val) => this.htmlToPlainText(val) !== "")
                         : [];
 
                     if (items.length === 0) {
@@ -510,7 +708,15 @@ export function qmhCreatePage(config = {}) {
                     typeof this.answers[qid] === "string"
                         ? this.answers[qid]
                         : "";
-                if (this.isPlainBlank(val)) {
+                if (this.looksLikeHtml(val)) {
+                    if (this.isEditorBlank(val)) {
+                        this.fieldErrors[qid] = "Wajib diisi.";
+                    }
+
+                    return;
+                }
+
+                if (!this.normalizePlainText(val)) {
                     this.fieldErrors[qid] = "Wajib diisi.";
                 }
             });

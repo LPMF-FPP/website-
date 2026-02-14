@@ -16,6 +16,7 @@ use App\Services\Quality\QmhRevisionApprovalService;
 use App\Services\Quality\QmhRevisionDownloadService;
 use App\Services\Quality\QmhRevisionLockService;
 use App\Services\Quality\QmhRevisionTransitionService;
+use App\Support\QmhAnswerSanitizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 
@@ -91,7 +92,7 @@ class QmhRevisionWorkflowController extends Controller
         }
 
         if ($request->has('answers_json')) {
-            $updates['answers_json'] = $request->input('answers_json');
+            $updates['answers_json'] = QmhAnswerSanitizer::sanitizeAnswersJson($request->input('answers_json'));
         }
 
         if ($request->has('effective_date')) {
