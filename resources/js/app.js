@@ -69,6 +69,7 @@ Alpine.plugin(focus);
 })();
 
 window.Alpine = Alpine;
+window.qmhCreatePage = qmhCreatePage;
 
 document.addEventListener("alpine:init", () => {
     Alpine.store("toast", toastStore);
