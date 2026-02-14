@@ -36,8 +36,7 @@ class NumberingRepairReclaimTest extends TestCase
         ]);
     }
 
-    /** @test */
-    public function it_detects_reclaimable_gap_when_last_document_deleted()
+    public function test_it_detects_reclaimable_gap_when_last_document_deleted()
     {
         $investigator = Investigator::factory()->create();
         $user = User::factory()->create();
@@ -87,8 +86,7 @@ class NumberingRepairReclaimTest extends TestCase
         $this->assertEquals('LS002I'.now()->year, $result['document_to_rename']['new_number']);
     }
 
-    /** @test */
-    public function it_cannot_reclaim_gap_in_middle_of_sequence_if_not_last_gap()
+    public function test_it_cannot_reclaim_gap_in_middle_of_sequence_if_not_last_gap()
     {
         $investigator = Investigator::factory()->create();
         $user = User::factory()->create();
@@ -132,8 +130,7 @@ class NumberingRepairReclaimTest extends TestCase
         $this->assertEquals(2, $result['gaps'][0]);
     }
 
-    /** @test */
-    public function it_executes_reclaim_and_updates_counter()
+    public function test_it_executes_reclaim_and_updates_counter()
     {
         $investigator = Investigator::factory()->create();
         /** @var User $user */
@@ -188,8 +185,7 @@ class NumberingRepairReclaimTest extends TestCase
         $this->assertEquals(1, $sequence->current_value);
     }
 
-    /** @test */
-    public function it_cascades_reclaim_rename_to_remaining_units(): void
+    public function test_it_cascades_reclaim_rename_to_remaining_units(): void
     {
         $investigator = Investigator::factory()->create();
         /** @var User $user */

@@ -50,8 +50,7 @@ class RequestDeleteCompactionTest extends TestCase
         \Illuminate\Support\Facades\Cache::forget('settings.all');
     }
 
-    /** @test */
-    public function it_compacts_ba_and_tracking_numbers_after_deletion()
+    public function test_it_compacts_ba_and_tracking_numbers_after_deletion()
     {
         $user = User::factory()->create();
         $date = CarbonImmutable::create(2026, 2, 10, 10, 0, 0);
@@ -86,8 +85,7 @@ class RequestDeleteCompactionTest extends TestCase
         $this->assertEquals(2, $counter);
     }
 
-    /** @test */
-    public function it_skips_locked_requests_during_compaction()
+    public function test_it_skips_locked_requests_during_compaction()
     {
         $user = User::factory()->create();
         $date = CarbonImmutable::create(2026, 2, 10, 10, 0, 0);
@@ -126,8 +124,7 @@ class RequestDeleteCompactionTest extends TestCase
         $this->assertEquals(4, $counter);
     }
 
-    /** @test */
-    public function it_cascades_changes_to_evidence_units_and_documents()
+    public function test_it_cascades_changes_to_evidence_units_and_documents()
     {
         $user = User::factory()->create();
         $date = CarbonImmutable::create(2026, 2, 10, 10, 0, 0);
@@ -180,8 +177,7 @@ class RequestDeleteCompactionTest extends TestCase
         $this->assertStringNotContainsString('002', $doc->file_path);
     }
 
-    /** @test */
-    public function it_handles_auto_compaction_via_controller()
+    public function test_it_handles_auto_compaction_via_controller()
     {
         $user = User::factory()->create();
         $date = CarbonImmutable::create(2026, 2, 10, 10, 0, 0);
@@ -200,8 +196,7 @@ class RequestDeleteCompactionTest extends TestCase
         $this->assertStringContainsString('BA/002', $req3->request_number);
     }
 
-    /** @test */
-    public function it_invalidates_cache_for_old_numbers_during_compaction()
+    public function test_it_invalidates_cache_for_old_numbers_during_compaction()
     {
         $user = User::factory()->create();
         $date = CarbonImmutable::create(2026, 2, 10, 10, 0, 0);

@@ -78,9 +78,6 @@ Route::middleware(['throttle:120,1'])->group(function () {
             Route::post('/lock', [QmhRevisionWorkflowController::class, 'lock']);
             Route::post('/heartbeat', [QmhRevisionWorkflowController::class, 'heartbeat']);
             Route::post('/unlock', [QmhRevisionWorkflowController::class, 'unlock']);
-            Route::post('/office-session', [QmhRevisionWorkflowController::class, 'officeSession']);
-            Route::get('/docx', [QmhRevisionWorkflowController::class, 'downloadDocx']);
-            Route::put('/docx', [QmhRevisionWorkflowController::class, 'saveDocx']);
             Route::put('/content', [QmhRevisionWorkflowController::class, 'saveContent']);
             Route::post('/submit', [QmhRevisionWorkflowController::class, 'submit']);
             Route::post('/review', [QmhRevisionWorkflowController::class, 'review']);
@@ -88,8 +85,6 @@ Route::middleware(['throttle:120,1'])->group(function () {
             Route::post('/download', [QmhRevisionWorkflowController::class, 'download']);
         });
     });
-
-    Route::post('/quality/revisions/{revision}/office-callback', [QmhRevisionWorkflowController::class, 'officeCallback']);
 
     Route::middleware(['auth', 'verified'])->prefix('settings')->group(function () {
         Route::get('/', [ApiSettingsController::class, 'index']);

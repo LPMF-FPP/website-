@@ -12,15 +12,13 @@ class TrackingJsonTest extends TestCase
 {
     use DatabaseTransactions;
 
-    /** @test */
-    public function it_returns_404_for_unknown_tracking_number()
+    public function test_it_returns_404_for_unknown_tracking_number()
     {
         $this->getJson('/track/UNKNOWN-9999.json')
             ->assertStatus(404);
     }
 
-    /** @test */
-    public function it_returns_condensed_payload_structure()
+    public function test_it_returns_condensed_payload_structure()
     {
         // Minimal factory assumptions; adjust field names to match actual schema
         $request = TestRequest::factory()->create([

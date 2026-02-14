@@ -53,7 +53,7 @@
                 </div>
             @endif
 
-            <form method="POST" action="{{ route('quality.documents.store') }}" class="mt-4 space-y-5" @submit.prevent="if (onSubmit()) $el.submit()">
+            <form method="POST" action="{{ route('quality.documents.store') }}" class="mt-4 space-y-5" x-ref="draftForm" @submit.prevent="if (onSubmit()) $el.submit()">
                 @csrf
 
                 <input type="hidden" name="template_id" :value="templateId">
@@ -426,6 +426,58 @@
 
                 <p x-show="stepError" x-cloak class="text-sm text-red-600" x-text="stepError"></p>
             </form>
+        </div>
+
+        <div
+            x-show="previewBeforeSubmitOpen"
+            x-cloak
+            x-transition.opacity
+            @keydown.escape.window="cancelSubmitPreview()"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 p-4"
+        >
+            <div class="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-xl bg-white shadow-2xl" @click.outside="cancelSubmitPreview()">
+                <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+                    <div>
+                        <h3 class="text-base font-semibold text-gray-900">Preview Dokumen Sebelum Simpan Draft</h3>
+                        <p class="mt-1 text-xs text-gray-500">Cek konten terlebih dahulu, lalu lanjutkan simpan draft jika sudah sesuai.</p>
+                    </div>
+                    <button
+                        type="button"
+                        @click="cancelSubmitPreview()"
+                        class="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                        Tutup
+                    </button>
+                </div>
+
+                <div class="max-h-[calc(90vh-8.5rem)] overflow-auto px-6 py-4">
+                    <div class="mb-4 grid gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 text-xs text-gray-700 md:grid-cols-4">
+                        <div><span class="font-medium">Klausul:</span> <span x-text="clause || '-'">-</span></div>
+                        <div><span class="font-medium">Jenis:</span> <span x-text="(docType || '-').toUpperCase()">-</span></div>
+                        <div><span class="font-medium">Kode:</span> <span x-text="docCode || '-'">-</span></div>
+                        <div><span class="font-medium">Template:</span> <span x-text="selectedTemplate()?.name || '-'">-</span></div>
+                    </div>
+
+                    <div class="prose prose-sm max-w-none rounded-lg border border-gray-200 bg-white p-4" x-html="livePreviewHtml()"></div>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 border-t border-gray-200 px-6 py-4">
+                    <button
+                        type="button"
+                        @click="cancelSubmitPreview()"
+                        class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    >
+                        Kembali Edit
+                    </button>
+                    <button
+                        type="button"
+                        @click="confirmSubmitPreview()"
+                        class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                    >
+                        Lanjut Simpan Draft
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </x-app-layout>

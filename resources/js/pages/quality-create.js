@@ -19,6 +19,8 @@ export function qmhCreatePage(config = {}) {
         templatesError: "",
         stepError: "",
         isSubmitting: false,
+        previewBeforeSubmitOpen: false,
+        submitConfirmed: false,
         schema: null,
         answers: {},
         listAnswerText: {},
@@ -150,6 +152,14 @@ export function qmhCreatePage(config = {}) {
             return template?.preview_url || "";
         },
 
+        selectedTemplateContentHtml() {
+            const template = this.selectedTemplate();
+
+            return typeof template?.content_html === "string"
+                ? template.content_html
+                : "";
+        },
+
         schemaQuestions() {
             const template = this.selectedTemplate();
             const schema = template?.form_schema || this.schema || null;
@@ -175,8 +185,7 @@ export function qmhCreatePage(config = {}) {
                     const items = Array.isArray(existing)
                         ? existing.filter(
                               (val) =>
-                                  typeof val === "string" &&
-                                  val.trim() !== "",
+                                  typeof val === "string" && val.trim() !== "",
                           )
                         : [];
 
@@ -194,7 +203,10 @@ export function qmhCreatePage(config = {}) {
         },
 
         syncListAnswer(qid) {
-            const raw = typeof this.listAnswerText[qid] === "string" ? this.listAnswerText[qid] : "";
+            const raw =
+                typeof this.listAnswerText[qid] === "string"
+                    ? this.listAnswerText[qid]
+                    : "";
             const items = raw
                 .split("\n")
                 .map((line) => line.trim())
@@ -227,7 +239,10 @@ export function qmhCreatePage(config = {}) {
                     return;
                 }
 
-                const val = typeof this.answers[qid] === "string" ? this.answers[qid] : "";
+                const val =
+                    typeof this.answers[qid] === "string"
+                        ? this.answers[qid]
+                        : "";
                 if (!val.trim()) return;
 
                 fields.push({
@@ -237,6 +252,75 @@ export function qmhCreatePage(config = {}) {
             });
 
             return fields;
+        },
+
+        escapeHtml(value) {
+            return String(value ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#39;");
+        },
+
+        applyPreviewTokens(html) {
+            let output = String(html || "");
+            const title = this.escapeHtml(this.title || "-");
+            const docCode = this.escapeHtml(this.docCode || "-");
+            const clause = this.escapeHtml(this.clause || "-");
+            const docType = this.escapeHtml(
+                (this.docType || "-").toUpperCase(),
+            );
+            const changeSummary = this.escapeHtml(
+                this.changeSummary || "-",
+            ).replaceAll("\n", "<br>");
+
+            const tokenMap = {
+                "{{title}}": title,
+                "{{ title }}": title,
+                "{{doc_code}}": docCode,
+                "{{ doc_code }}": docCode,
+                "{{clause}}": clause,
+                "{{ clause }}": clause,
+                "{{doc_type}}": docType,
+                "{{ doc_type }}": docType,
+                "{{change_summary}}": changeSummary,
+                "{{ change_summary }}": changeSummary,
+                "[TITLE]": title,
+                "[DOC_CODE]": docCode,
+                "[CLAUSE]": clause,
+                "[DOC_TYPE]": docType,
+                "[CHANGE_SUMMARY]": changeSummary,
+            };
+
+            for (const [token, value] of Object.entries(tokenMap)) {
+                output = output.split(token).join(value);
+            }
+
+            return output;
+        },
+
+        fallbackPreviewHtml() {
+            const title = this.escapeHtml(this.title || "(Belum diisi)");
+            const docCode = this.escapeHtml(this.docCode || "(Belum diisi)");
+            const clause = this.escapeHtml(this.clause || "-");
+            const docType = this.escapeHtml(
+                (this.docType || "-").toUpperCase(),
+            );
+            const changeSummary = this.escapeHtml(
+                this.changeSummary || "-",
+            ).replaceAll("\n", "<br>");
+
+            return `<div class="space-y-3 text-sm text-gray-700"><div class="rounded-md border border-gray-200 bg-white p-3"><p><strong>Jenis:</strong> ${docType}</p><p><strong>Klausul:</strong> ${clause}</p><p><strong>Kode:</strong> ${docCode}</p><p><strong>Judul:</strong> ${title}</p><p><strong>Ringkasan Perubahan:</strong><br>${changeSummary}</p></div><p class="text-xs text-gray-500">Preview template HTML belum tersedia. Konten akan mengikuti template aktif saat dokumen dibuat.</p></div>`;
+        },
+
+        livePreviewHtml() {
+            const templateHtml = this.selectedTemplateContentHtml();
+            if (!templateHtml) {
+                return this.fallbackPreviewHtml();
+            }
+
+            return this.applyPreviewTokens(templateHtml);
         },
 
         canSubmit() {
@@ -269,12 +353,10 @@ export function qmhCreatePage(config = {}) {
 
                 if (q.type === "list") {
                     const items = Array.isArray(this.answers[qid])
-                        ? this.answers[qid]
-                              .filter(
-                                  (val) =>
-                                      typeof val === "string" &&
-                                      val.trim() !== "",
-                              )
+                        ? this.answers[qid].filter(
+                              (val) =>
+                                  typeof val === "string" && val.trim() !== "",
+                          )
                         : [];
 
                     if (items.length === 0) {
@@ -284,7 +366,10 @@ export function qmhCreatePage(config = {}) {
                     return;
                 }
 
-                const val = typeof this.answers[qid] === "string" ? this.answers[qid] : "";
+                const val =
+                    typeof this.answers[qid] === "string"
+                        ? this.answers[qid]
+                        : "";
                 if (!val.trim()) {
                     this.fieldErrors[qid] = "Wajib diisi.";
                 }
@@ -309,9 +394,42 @@ export function qmhCreatePage(config = {}) {
                 return false;
             }
 
+            if (!this.submitConfirmed) {
+                this.previewBeforeSubmitOpen = true;
+
+                return false;
+            }
+
             this.isSubmitting = true;
+            this.submitConfirmed = false;
+            this.previewBeforeSubmitOpen = false;
 
             return true;
+        },
+
+        cancelSubmitPreview() {
+            this.previewBeforeSubmitOpen = false;
+            this.submitConfirmed = false;
+        },
+
+        confirmSubmitPreview() {
+            this.submitConfirmed = true;
+            this.previewBeforeSubmitOpen = false;
+
+            this.$nextTick(() => {
+                const form = this.$refs?.draftForm;
+                if (!form) {
+                    return;
+                }
+
+                if (typeof form.requestSubmit === "function") {
+                    form.requestSubmit();
+
+                    return;
+                }
+
+                form.submit();
+            });
         },
 
         previewDocTypeLabel() {

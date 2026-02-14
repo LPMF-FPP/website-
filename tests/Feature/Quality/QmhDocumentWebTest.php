@@ -47,9 +47,9 @@ class QmhDocumentWebTest extends TestCase
             ->assertSee('Buat Dokumen')
             ->assertSee('Pilih Struktur Dokumen')
             ->assertSee('Pilih Template')
-            ->assertSee('Pertanyaan Template')
-            ->assertSee('Preview Dokumen')
             ->assertDontSee('Editor Konten Awal')
+            ->assertDontSee('2. Preview')
+            ->assertDontSee('Lanjut ke Preview')
             ->assertSee('Kembali');
     }
 
@@ -306,10 +306,8 @@ class QmhDocumentWebTest extends TestCase
             ->assertOk()
             ->assertViewIs('quality.edit')
             ->assertSee('Editor Dokumen QMH')
-            ->assertSee('Pertanyaan Template')
-            ->assertSee('Preview Dokumen')
-            ->assertSee('data-qmh-question-form', false)
-            ->assertSee('data-qmh-preview-panel', false)
+            ->assertSee('Bullets')
+            ->assertSee('function qmhEditPage(config)', false)
             ->assertSee('Simpan');
     }
 
@@ -361,7 +359,7 @@ class QmhDocumentWebTest extends TestCase
             ->assertSee('Tambah template di');
     }
 
-    public function test_create_page_contains_schema_question_form_container(): void
+    public function test_create_page_does_not_contain_legacy_tiptap_editor(): void
     {
         /** @var User $user */
         $user = User::factory()->create(['role' => 'admin']);
@@ -369,18 +367,9 @@ class QmhDocumentWebTest extends TestCase
         $this->actingAs($user)
             ->get('/quality/documents/create')
             ->assertOk()
-            ->assertSee('data-qmh-question-form', false);
-    }
-
-    public function test_create_page_contains_live_preview_panel_container(): void
-    {
-        /** @var User $user */
-        $user = User::factory()->create(['role' => 'admin']);
-
-        $this->actingAs($user)
-            ->get('/quality/documents/create')
-            ->assertOk()
-            ->assertSee('data-qmh-preview-panel', false);
+            ->assertDontSee('qmh-editor-surface', false)
+            ->assertDontSee('editor_hidden_unused', false)
+            ->assertDontSee('@click="toggleBold()"', false);
     }
 
     private function createQmhPermissions(): void

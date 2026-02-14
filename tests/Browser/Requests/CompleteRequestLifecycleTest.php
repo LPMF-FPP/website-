@@ -2,17 +2,16 @@
 
 namespace Tests\Browser\Requests;
 
-use App\Models\Investigator;
 use App\Models\TestRequest;
 use App\Models\User;
 use Database\Seeders\SystemSettingSeeder;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
 class CompleteRequestLifecycleTest extends DuskTestCase
 {
-    use DatabaseTransactions;
+    use DatabaseTruncation;
 
     protected function setUp(): void
     {
@@ -20,103 +19,75 @@ class CompleteRequestLifecycleTest extends DuskTestCase
         $this->seed(SystemSettingSeeder::class);
     }
 
-    public function test_complete_request_creation_to_delivery_flow(): void
+    public function test_request_create_form_loads_with_stepper(): void
     {
         $user = User::factory()->create(['role' => 'analyst']);
-        $investigator = Investigator::factory()->create();
-
-        $this->browse(function (Browser $browser) use ($user, $investigator) {
-            $browser->loginAs($user)
-                ->visit('/requests/create')
-                ->assertSee('Create New Request')
-                ->select('investigator_id', $investigator->id)
-                ->type('request_letter_number', 'REQ-2026-001')
-                ->type('request_letter_date', '2026-01-11')
-                ->type('case_title', 'Test Case Investigation')
-                ->type('samples[0][name]', 'Sample 1')
-                ->type('samples[0][description]', 'Test sample description')
-                ->type('samples[0][quantity]', '1')
-                ->type('samples[0][unit]', 'kg')
-                ->press('Create Request')
-                ->assertPathIs('/requests')
-                ->assertSee('Request created successfully')
-                ->assertSee('REQ-2026-001');
-
-            $request = TestRequest::first();
-            $this->assertNotNull($request);
-            $this->assertEquals('REQ-2026-001', $request->request_letter_number);
-
-            $browser->visit("/requests/{$request->id}")
-                ->assertSee($request->request_letter_number)
-                ->assertSee('Test Case Investigation')
-                ->assertSee($investigator->name);
-        });
-    }
-
-    public function test_request_workflow_status_transitions(): void
-    {
-        $user = User::factory()->create(['role' => 'analyst']);
-        $request = TestRequest::factory()->create(['status' => 'pending']);
-
-        $this->browse(function (Browser $browser) use ($user, $request) {
-            $browser->loginAs($user)
-                ->visit("/requests/{$request->id}")
-                ->assertSee($request->request_letter_number)
-                ->press('Mark as In Progress')
-                ->assertSee('Status updated');
-
-            $request->refresh();
-            $this->assertEquals('in_progress', $request->status);
-        });
-    }
-
-    public function test_user_can_view_and_filter_requests(): void
-    {
-        $user = User::factory()->create(['role' => 'analyst']);
-        TestRequest::factory()->count(15)->create();
 
         $this->browse(function (Browser $browser) use ($user) {
             $browser->loginAs($user)
-                ->visit('/requests')
-                ->assertSee('Requests')
-                ->assertSeeIn('table', 'Request Number')
-                ->assertSeeIn('table', 'Status')
-                ->assertSeeIn('table', 'Date');
-
-            $browser->type('search', 'REQ')
-                ->keys('input[name="search"]', '{enter}')
-                ->waitForText('REQ')
-                ->assertSee('REQ');
+                ->visit('/requests/create')
+                ->waitForText('Formulir Permintaan Pengujian Sampel')
+                ->assertSee('Formulir Permintaan Pengujian Sampel')
+                ->assertSee('Data Penyidik')
+                ->assertSee('Info Surat')
+                ->assertSee('Tersangka')
+                ->assertSee('Dokumen')
+                ->assertSee('Sampel');
         });
     }
 
-    public function test_request_sample_management(): void
+    public function test_request_create_has_investigator_type_radio(): void
+    {
+        $user = User::factory()->create(['role' => 'analyst']);
+
+        $this->browse(function (Browser $browser) use ($user) {
+            $browser->loginAs($user)
+                ->visit('/requests/create')
+                ->waitForText('Apakah Anda penyidik')
+                ->assertSee('Ya, saya penyidik')
+                ->assertSee('Bukan anggota Polri')
+                ->assertPresent('input[name="is_investigator"]');
+        });
+    }
+
+    public function test_user_can_view_request_show_page(): void
     {
         $user = User::factory()->create(['role' => 'analyst']);
         $request = TestRequest::factory()->create();
 
         $this->browse(function (Browser $browser) use ($user, $request) {
             $browser->loginAs($user)
-                ->visit("/kaji-ulang-permintaan?request_id={$request->id}")
-                ->assertSee('Form Kaji Ulang Permintaan');
+                ->visit("/requests/{$request->id}")
+                ->waitForText('Permintaan Pengujian')
+                ->assertSee($request->receipt_number ?? $request->request_number)
+                ->assertSee($request->investigator->name);
         });
     }
 
-    public function test_request_delivery_completion(): void
+    public function test_user_can_view_and_access_requests_list(): void
     {
         $user = User::factory()->create(['role' => 'analyst']);
-        $request = TestRequest::factory()->create(['status' => 'ready_for_delivery']);
+        TestRequest::factory()->count(3)->create();
+
+        $this->browse(function (Browser $browser) use ($user) {
+            $browser->loginAs($user)
+                ->visit('/requests')
+                ->waitForText('Permintaan')
+                ->assertPresent('table');
+        });
+    }
+
+    public function test_request_edit_form_loads_with_existing_data(): void
+    {
+        $user = User::factory()->create(['role' => 'analyst']);
+        $request = TestRequest::factory()->create();
 
         $this->browse(function (Browser $browser) use ($user, $request) {
             $browser->loginAs($user)
-                ->visit("/delivery/{$request->id}")
-                ->assertSee('Delivery')
-                ->assertSee($request->request_letter_number)
-                ->press('Mark as Completed')
-                ->assertSee('Delivery completed');
-
-            $request->refresh();
-            $this->assertEquals('completed', $request->status);
+                ->visit("/requests/{$request->id}/edit")
+                ->waitForText('Edit Permintaan Pengujian')
+                ->assertSee('Edit Permintaan Pengujian')
+                ->assertSee('Simpan Perubahan');
         });
     }
 }

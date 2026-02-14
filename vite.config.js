@@ -9,7 +9,6 @@ export default defineConfig({
             input: [
                 "resources/css/app.css",
                 "resources/js/app.js",
-                "resources/js/pages/qmh-docx-editor.jsx",
                 "resources/js/pages/settings/index.js",
                 "resources/js/pages/requests-form.js",
                 // Scoped UI entry (opt-in per page)
@@ -24,10 +23,6 @@ export default defineConfig({
                 manualChunks(id) {
                     if (id.includes("@tiptap/")) {
                         return "qmh-editor";
-                    }
-
-                    if (id.includes("@eigenpal/docx-js-editor")) {
-                        return "qmh-docx-editor";
                     }
 
                     if (id.includes("alpinejs") || id.includes("@alpinejs/")) {

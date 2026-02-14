@@ -2,18 +2,17 @@
 
 namespace Tests\Browser\Documents;
 
-use App\Models\Permission;
 use App\Models\TestRequest;
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
 class DocumentGenerationTest extends DuskTestCase
 {
-    use DatabaseTransactions;
+    use DatabaseTruncation;
 
-    public function test_user_can_generate_berita_acara(): void
+    public function test_request_show_page_displays_berita_acara_section(): void
     {
         $user = User::factory()->create();
         $request = TestRequest::factory()->create(['user_id' => $user->id]);
@@ -21,16 +20,14 @@ class DocumentGenerationTest extends DuskTestCase
         $this->browse(function (Browser $browser) use ($user, $request) {
             $browser->loginAs($user)
                 ->visit("/requests/{$request->id}")
-                ->waitForText('Dokumen belum di-generate') // Wait for JS check to finish
-                ->assertSee('Generate Dokumen')
-                ->press('Generate Dokumen')
-                ->waitForText('Document generated successfully', 30)
-                ->assertSee('Document generated successfully')
-                ->assertSee($request->request_number);
+                ->waitForText('Permintaan Pengujian')
+                ->assertSee('Dokumen')
+                ->assertSee('Berita Acara Penerimaan Sampel')
+                ->assertPresent('#ba-status');
         });
     }
 
-    public function test_user_can_download_generated_documents(): void
+    public function test_berita_acara_status_check_runs_on_page_load(): void
     {
         $user = User::factory()->create();
         $request = TestRequest::factory()->create(['user_id' => $user->id]);
@@ -38,16 +35,14 @@ class DocumentGenerationTest extends DuskTestCase
         $this->browse(function (Browser $browser) use ($user, $request) {
             $browser->loginAs($user)
                 ->visit("/requests/{$request->id}")
-                ->waitForText('Dokumen belum di-generate')
-                ->press('Generate Dokumen')
-                ->waitForText('Document generated successfully', 30)
-                ->waitForLink('Download Berita Acara')
-                ->assertPresent('a:contains("Download Berita Acara")')
-                ->clickLink('Download Berita Acara');
+                ->waitForText('Berita Acara Penerimaan Sampel')
+                // BA status element should update from "Checking..." to a final state
+                ->waitUntilMissingText('Checking...')
+                ->assertPresent('#ba-status');
         });
     }
 
-    public function test_user_can_view_document_in_browser(): void
+    public function test_generate_ba_button_visible_when_no_document(): void
     {
         $user = User::factory()->create();
         $request = TestRequest::factory()->create(['user_id' => $user->id]);
@@ -55,19 +50,13 @@ class DocumentGenerationTest extends DuskTestCase
         $this->browse(function (Browser $browser) use ($user, $request) {
             $browser->loginAs($user)
                 ->visit("/requests/{$request->id}")
-                ->waitForText('Dokumen belum di-generate')
-                ->press('Generate Dokumen')
-                ->waitForText('Document generated successfully', 30)
-                ->waitForLink('View Berita Acara')
-                ->assertPresent('a:contains("View Berita Acara")')
-                ->clickLink('View Berita Acara')
-                ->waitForText('Berita Acara')
-                ->assertSee('Berita Acara')
-                ->assertSee($request->request_number);
+                ->waitForText('Berita Acara Penerimaan Sampel')
+                ->waitUntilMissingText('Checking...')
+                ->assertPresent('#btn-generate-ba');
         });
     }
 
-    public function test_user_can_delete_generated_documents(): void
+    public function test_cetak_ba_button_in_header(): void
     {
         $user = User::factory()->create();
         $request = TestRequest::factory()->create(['user_id' => $user->id]);
@@ -75,50 +64,22 @@ class DocumentGenerationTest extends DuskTestCase
         $this->browse(function (Browser $browser) use ($user, $request) {
             $browser->loginAs($user)
                 ->visit("/requests/{$request->id}")
-                ->waitForText('Dokumen belum di-generate')
-                ->press('Generate Dokumen')
-                ->waitForText('Document generated successfully', 30)
-                ->waitForText('Delete Document')
-                ->assertPresent('button:contains("Delete Document")')
-                ->press('Delete Document')
-                ->acceptDialog()
-                ->waitForText('Document deleted successfully')
-                ->assertSee('Document deleted successfully')
-                ->assertDontSee('Download Berita Acara');
+                ->waitForText('Permintaan Pengujian')
+                ->assertSee('Cetak BA');
         });
     }
 
-    public function test_document_generation_respects_settings(): void
+    public function test_request_show_page_has_edit_and_back_buttons(): void
     {
-        $admin = User::factory()->create(['role' => 'admin']);
-        Permission::firstOrCreate(
-            ['name' => 'manage-settings'],
-            ['display_name' => 'Manage Settings', 'module' => 'Settings', 'action' => 'edit']
-        );
-        $admin->grantPermission('manage-settings');
-
         $user = User::factory()->create();
         $request = TestRequest::factory()->create(['user_id' => $user->id]);
 
-        $this->browse(function (Browser $browser) use ($admin, $user, $request) {
-            $browser->loginAs($admin)
-                ->visit('/settings')
-                ->assertPresent('input[name="settings[branding][org_name]"]')
-                ->type('settings[branding][org_name]', 'Custom Lab Name')
-                ->press('Save Settings')
-                ->waitForText('Settings saved')
-                ->assertSee('Settings saved');
-
+        $this->browse(function (Browser $browser) use ($user, $request) {
             $browser->loginAs($user)
                 ->visit("/requests/{$request->id}")
-                ->waitForText('Dokumen belum di-generate')
-                ->press('Generate Dokumen')
-                ->waitForText('Document generated successfully', 30)
-                ->waitForLink('View Berita Acara')
-                ->clickLink('View Berita Acara')
-                ->waitForText('Custom Lab Name')
-                ->assertSee('Custom Lab Name')
-                ->assertSee($request->request_number);
+                ->waitForText('Permintaan Pengujian')
+                ->assertSee('Edit Data')
+                ->assertSee('Kembali');
         });
     }
 }

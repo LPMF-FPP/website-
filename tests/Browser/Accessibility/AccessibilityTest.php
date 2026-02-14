@@ -3,13 +3,13 @@
 namespace Tests\Browser\Accessibility;
 
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
+use Illuminate\Foundation\Testing\DatabaseTruncation;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
 class AccessibilityTest extends DuskTestCase
 {
-    use DatabaseMigrations;
+    use DatabaseTruncation;
 
     protected function setUp(): void
     {

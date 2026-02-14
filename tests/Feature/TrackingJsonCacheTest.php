@@ -7,8 +7,7 @@ use Tests\TestCase;
 
 class TrackingJsonCacheTest extends TestCase
 {
-    /** @test */
-    public function json_endpoint_sets_cached_flag_and_reuses_cache()
+    public function test_json_endpoint_sets_cached_flag_and_reuses_cache()
     {
         Cache::flush();
         $id = 'REQ-2025-0001';

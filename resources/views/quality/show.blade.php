@@ -112,7 +112,6 @@
                         <div><span class="font-medium text-gray-600">Jenis:</span> <span class="text-gray-900">{{ strtoupper($document->doc_type) }}</span></div>
                         <div><span class="font-medium text-gray-600">Status:</span> <x-status-badge :label="$statusLabel" :variant="$statusVariant" subtle="true" /></div>
                         <div><span class="font-medium text-gray-600">Template:</span> <span class="text-gray-900">{{ $currentRevision?->template_name ? $currentRevision->template_name.' (v'.$currentRevision->template_version.')' : '-' }}</span></div>
-                        <div><span class="font-medium text-gray-600">Source DOCX:</span> <span class="text-gray-900">{{ $currentRevision?->source_docx_path ?? '-' }}</span></div>
                         <div><span class="font-medium text-gray-600">Dibuat oleh:</span> <span class="text-gray-900">{{ $usersById->get($currentRevision?->dibuat_oleh)?->name ?? '-' }}</span></div>
                         <div><span class="font-medium text-gray-600">Diperiksa:</span> <span class="text-gray-900">{{ $usersById->get($currentRevision?->diperiksa_oleh)?->name ?? '-' }}</span></div>
                         <div><span class="font-medium text-gray-600">Disahkan:</span> <span class="text-gray-900">{{ $usersById->get($currentRevision?->disahkan_oleh)?->name ?? '-' }}</span></div>
@@ -149,28 +148,6 @@
                                 >
                                     Edit Dokumen
                                 </button>
-                            @endif
-                        @endif
-
-                        @if(auth()->user()?->hasPermission('qmh.create'))
-                            @if(Route::has('quality.documents.edit-docx'))
-                                @if($lockedByAnotherUser)
-                                    <button
-                                        type="button"
-                                        class="inline-flex w-full cursor-not-allowed items-center justify-center rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-sm font-medium text-gray-500"
-                                        title="Dokumen dikunci oleh pengguna lain"
-                                        disabled
-                                    >
-                                        Edit DOCX
-                                    </button>
-                                @else
-                                    <a
-                                        href="{{ route('quality.documents.edit-docx', $document) }}"
-                                        class="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                                    >
-                                        Edit DOCX
-                                    </a>
-                                @endif
                             @endif
                         @endif
 

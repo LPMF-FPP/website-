@@ -10,7 +10,6 @@ use App\Models\RolePermission;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class QmhRevisionApprovalDownloadTest extends TestCase
@@ -180,29 +179,6 @@ class QmhRevisionApprovalDownloadTest extends TestCase
             'downloaded_by' => $approver->id,
             'watermark_text' => 'CONTROLLED COPY',
         ]);
-    }
-
-    public function test_docx_based_download_returns_503_when_soffice_not_available(): void
-    {
-        config()->set('quality.export.docx_to_pdf.enabled', true);
-        config()->set('quality.export.docx_to_pdf.soffice_binary', 'soffice-missing');
-
-        [$revision, $approver] = $this->createRevisionInApproval();
-
-        $revision->update([
-            'source_docx_path' => 'qmh/tests/source.docx',
-            'export_pdf_from_docx' => true,
-        ]);
-
-        Storage::disk('local')->put('qmh/tests/source.docx', 'not-a-real-docx');
-
-        $this->actingAs($approver)
-            ->postJson("/api/quality/revisions/{$revision->id}/download", [
-                'copy_type' => 'uncontrolled',
-                'reason' => 'Uji konversi DOCX',
-            ])
-            ->assertStatus(503)
-            ->assertJsonPath('message', 'Konversi DOCX ke PDF belum tersedia. Hubungi administrator.');
     }
 
     /**

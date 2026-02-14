@@ -7,7 +7,6 @@ use App\Models\QmhDocumentRevision;
 use App\Models\QmhTemplate;
 use App\Models\QmhWorkflowEvent;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 class QmhDocumentService
 {
@@ -20,11 +19,6 @@ class QmhDocumentService
                     ->whereKey((int) $payload['template_id'])
                     ->lockForUpdate()
                     ->firstOrFail();
-            }
-
-            $sourceDocx = ['path' => null, 'checksum' => null];
-            if ($template !== null) {
-                $sourceDocx = $this->cloneTemplateSourceDocx($template, (string) $payload['doc_code']);
             }
 
             $document = QmhDocument::query()->create([
@@ -47,9 +41,6 @@ class QmhDocumentService
                 'template_id' => $template?->id,
                 'template_name' => $template?->name,
                 'template_version' => $template?->version,
-                'source_docx_path' => $sourceDocx['path'],
-                'source_docx_checksum' => $sourceDocx['checksum'],
-                'source_docx_version' => 1,
                 'change_summary' => $payload['change_summary'] ?? null,
                 'version_bump_mode' => 'auto',
                 'editor_json' => $payload['editor_json'] ?? null,
@@ -73,27 +64,6 @@ class QmhDocumentService
 
             return $document->fresh(['currentRevision']);
         });
-    }
-
-    /**
-     * @return array{path: string|null, checksum: string|null}
-     */
-    private function cloneTemplateSourceDocx(QmhTemplate $template, string $docCode): array
-    {
-        $disk = $template->storage_disk;
-        $sourcePath = $template->source_docx_path;
-
-        if ($sourcePath === null || ! Storage::disk($disk)->exists($sourcePath)) {
-            return ['path' => null, 'checksum' => null];
-        }
-
-        $targetPath = sprintf('qmh/%s/E1-R0/source.docx', $docCode);
-        Storage::disk($disk)->copy($sourcePath, $targetPath);
-
-        return [
-            'path' => $targetPath,
-            'checksum' => hash('sha256', (string) Storage::disk($disk)->get($targetPath)),
-        ];
     }
 
     protected function persistWorkflowEvent(int $revisionId, int $actorId, array $payload): void
