@@ -1,10 +1,7 @@
 name: Parallel E2E Tests
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
   matrix-test:
@@ -65,14 +62,8 @@ jobs:
       - name: Install dependencies
         run: |
           composer install --prefer-dist --no-interaction --no-scripts
-          echo "=== .env DB config ==="
-          grep -E "^(DB_|APP_KEY|APP_ENV)" .env
-          echo "=== PHP version ==="
-          php -v
-          echo "=== Testing raw artisan ==="
-          php artisan --version 2>&1
-          echo "=== Package discover ==="
-          php artisan package:discover --ansi 2>&1
+          php artisan key:generate
+          php artisan package:discover --ansi
           npm ci
           npm run build
 
