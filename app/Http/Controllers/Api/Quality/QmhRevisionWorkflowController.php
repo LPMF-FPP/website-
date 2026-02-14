@@ -20,6 +20,8 @@ use App\Services\Quality\QmhRevisionTransitionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class QmhRevisionWorkflowController extends Controller
 {
@@ -79,6 +81,105 @@ class QmhRevisionWorkflowController extends Controller
         return response()->json([
             'message' => 'Lock dibuka.',
             'data' => $lock,
+        ]);
+    }
+
+    public function downloadDocx(Request $request, QmhDocumentRevision $revision): StreamedResponse
+    {
+        $revision->loadMissing(['document', 'lock', 'template']);
+
+        if ($revision->status !== 'draft') {
+            abort(422, 'Dokumen hanya dapat diedit saat status draft.');
+        }
+
+        $lock = $revision->lock;
+        if ($lock === null || ! $lock->isActive()) {
+            abort(409, 'Tidak ada lock aktif untuk revisi ini.');
+        }
+
+        if ((int) $lock->locked_by !== (int) $request->user()->id) {
+            abort(403, 'Hanya pemilik lock aktif yang dapat mengakses file DOCX.');
+        }
+
+        $disk = $revision->template?->storage_disk ?? 'local';
+        $path = $revision->source_docx_path;
+
+        if (! is_string($path) || trim($path) === '' || ! Storage::disk($disk)->exists($path)) {
+            abort(404, 'File DOCX tidak ditemukan.');
+        }
+
+        $filename = sprintf('%s-%s.docx', $revision->document?->doc_code ?? 'qmh-document', $revision->version_label);
+
+        return Storage::disk($disk)->response($path, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ]);
+    }
+
+    public function saveDocx(Request $request, QmhDocumentRevision $revision): JsonResponse
+    {
+        $revision->loadMissing(['document', 'lock', 'template']);
+
+        if ($revision->status !== 'draft') {
+            return response()->json([
+                'message' => 'Dokumen hanya dapat diedit saat status draft.',
+            ], 422);
+        }
+
+        $lock = $revision->lock;
+        if ($lock === null || ! $lock->isActive()) {
+            return response()->json([
+                'message' => 'Tidak ada lock aktif untuk revisi ini.',
+            ], 409);
+        }
+
+        if ((int) $lock->locked_by !== (int) $request->user()->id) {
+            return response()->json([
+                'message' => 'Hanya pemilik lock aktif yang dapat menyimpan file DOCX.',
+            ], 403);
+        }
+
+        $disk = $revision->template?->storage_disk ?? 'local';
+
+        $docCode = $revision->document?->doc_code ?? 'qmh-document';
+        $versionLabel = $revision->version_label ?: 'E1-R0';
+        $targetPath = $revision->source_docx_path;
+        if (! is_string($targetPath) || trim($targetPath) === '') {
+            $targetPath = sprintf('qmh/%s/%s/source.docx', $docCode, $versionLabel);
+        }
+
+        $dir = trim((string) dirname($targetPath), '.');
+        $name = (string) basename($targetPath);
+
+        $uploaded = $request->file('file');
+        $checksum = null;
+        if ($uploaded) {
+            $uploaded->storeAs($dir, $name, $disk);
+
+            $absolutePath = Storage::disk($disk)->path($targetPath);
+            $checksum = is_file($absolutePath) ? hash_file('sha256', $absolutePath) : null;
+        } else {
+            $binary = $request->getContent();
+            if (! is_string($binary) || $binary === '') {
+                return response()->json([
+                    'message' => 'File DOCX wajib diunggah.',
+                ], 422);
+            }
+
+            Storage::disk($disk)->put($targetPath, $binary);
+            $checksum = hash('sha256', $binary);
+        }
+
+        $revision->forceFill([
+            'source_docx_path' => $targetPath,
+            'source_docx_checksum' => $checksum,
+            'source_docx_version' => max(1, (int) $revision->source_docx_version) + 1,
+            'last_autosaved_at' => now(),
+            'export_pdf_from_docx' => true,
+        ])->save();
+
+        return response()->json([
+            'message' => 'DOCX berhasil disimpan.',
+            'data' => $revision->fresh(),
         ]);
     }
 

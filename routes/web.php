@@ -11,6 +11,7 @@ use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ProcessController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Quality\QmhDocumentController as QualityQmhDocumentController;
+use App\Http\Controllers\Quality\QmhOfficeEmbedController;
 use App\Http\Controllers\Quality\QmhReportController as QualityQmhReportController;
 use App\Http\Controllers\Quality\QmhTemplateController as QualityQmhTemplateController;
 use App\Http\Controllers\Reports\MonthlyLogReportController;
@@ -75,6 +76,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('/documents/{document}/edit', [QualityQmhDocumentController::class, 'edit'])
             ->name('documents.edit')
+            ->middleware('permission:qmh.create');
+
+        Route::get('/documents/{document}/edit-docx', [QualityQmhDocumentController::class, 'editDocx'])
+            ->name('documents.edit-docx')
+            ->middleware('permission:qmh.create');
+
+        Route::get('/office/editor', [QmhOfficeEmbedController::class, 'editor'])
+            ->name('office.editor')
             ->middleware('permission:qmh.create');
 
         Route::get('/reports', [QualityQmhReportController::class, 'index'])
