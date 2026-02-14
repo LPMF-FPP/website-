@@ -20,6 +20,7 @@ export function qmhCreatePage(config = {}) {
         stepError: "",
         isSubmitting: false,
         previewBeforeSubmitOpen: false,
+        previewMode: null,
         submitConfirmed: false,
         schema: null,
         answers: {},
@@ -193,9 +194,7 @@ export function qmhCreatePage(config = {}) {
                     nextListText[qid] = items.join("\n");
                 } else {
                     const existing = this.answers[qid];
-                    if (typeof existing !== "string") {
-                        this.answers[qid] = "";
-                    }
+                    this.answers[qid] = this.toRichTextHtml(existing);
                 }
             });
 
@@ -243,7 +242,7 @@ export function qmhCreatePage(config = {}) {
                     typeof this.answers[qid] === "string"
                         ? this.answers[qid]
                         : "";
-                if (!val.trim()) return;
+                if (this.isRichTextBlank(val)) return;
 
                 fields.push({
                     name: `answers_json[${qid}]`,
@@ -261,6 +260,54 @@ export function qmhCreatePage(config = {}) {
                 .replaceAll(">", "&gt;")
                 .replaceAll('"', "&quot;")
                 .replaceAll("'", "&#39;");
+        },
+
+        toRichTextHtml(value) {
+            const raw = typeof value === "string" ? value : "";
+            const trimmed = raw.trim();
+
+            if (!trimmed) {
+                return "<p></p>";
+            }
+
+            if (/<\/?[a-z][\s\S]*>/i.test(trimmed)) {
+                return trimmed;
+            }
+
+            return `<p>${this.escapeHtml(trimmed).replaceAll("\n", "<br>")}</p>`;
+        },
+
+        richTextToPlainText(value) {
+            if (typeof value !== "string") {
+                return "";
+            }
+
+            const parser = document.createElement("div");
+            parser.innerHTML = value;
+
+            return String(parser.textContent || parser.innerText || "")
+                .replaceAll("\u00a0", " ")
+                .trim();
+        },
+
+        isRichTextBlank(value) {
+            if (typeof value !== "string" || value.trim() === "") {
+                return true;
+            }
+
+            return this.richTextToPlainText(value) === "";
+        },
+
+        answerEditorInitialValue(qid) {
+            return this.toRichTextHtml(this.answers[qid]);
+        },
+
+        onRichTextAnswerChange(qid, html) {
+            if (typeof qid !== "string" || !qid) {
+                return;
+            }
+
+            this.answers[qid] = this.toRichTextHtml(html);
         },
 
         applyPreviewTokens(html) {
@@ -370,7 +417,7 @@ export function qmhCreatePage(config = {}) {
                     typeof this.answers[qid] === "string"
                         ? this.answers[qid]
                         : "";
-                if (!val.trim()) {
+                if (this.isRichTextBlank(val)) {
                     this.fieldErrors[qid] = "Wajib diisi.";
                 }
             });
@@ -395,6 +442,7 @@ export function qmhCreatePage(config = {}) {
             }
 
             if (!this.submitConfirmed) {
+                this.previewMode = "submit";
                 this.previewBeforeSubmitOpen = true;
 
                 return false;
@@ -410,11 +458,13 @@ export function qmhCreatePage(config = {}) {
         cancelSubmitPreview() {
             this.previewBeforeSubmitOpen = false;
             this.submitConfirmed = false;
+            this.previewMode = null;
         },
 
         confirmSubmitPreview() {
             this.submitConfirmed = true;
             this.previewBeforeSubmitOpen = false;
+            this.previewMode = null;
 
             this.$nextTick(() => {
                 const form = this.$refs?.draftForm;
@@ -430,6 +480,12 @@ export function qmhCreatePage(config = {}) {
 
                 form.submit();
             });
+        },
+
+        openQuickPreview() {
+            this.previewMode = "manual";
+            this.submitConfirmed = false;
+            this.previewBeforeSubmitOpen = true;
         },
 
         previewDocTypeLabel() {
