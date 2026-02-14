@@ -52,6 +52,19 @@ class QmhDocumentRevision extends Model
         'obsolete_at' => 'datetime',
     ];
 
+    public function getIsOverdueAttribute(): bool
+    {
+        if ($this->status === 'in_review' && $this->submitted_at) {
+            return $this->submitted_at->diffInDays(now()) > 7;
+        }
+
+        if ($this->status === 'draft') {
+            return $this->created_at->diffInDays(now()) > 30;
+        }
+
+        return false;
+    }
+
     public function document(): BelongsTo
     {
         return $this->belongsTo(QmhDocument::class, 'document_id');

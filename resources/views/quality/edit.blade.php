@@ -49,42 +49,100 @@
             </div>
         </div>
 
-        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" x-data="qmhEditor({ initialContent: @js($revision?->content_html ?? '<p></p>') })" x-init="init()" @qmh-editor-change="onEditorChange($event.detail)">
-                <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
-                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bold') }" @click="toggleBold()">B</button>
-                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('italic') }" @click="toggleItalic()">I</button>
-                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('underline') }" @click="toggleUnderline()">U</button>
-                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 1 }) }" @click="setHeading(1)">H1</button>
-                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 2 }) }" @click="setHeading(2)">H2</button>
-                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 3 }) }" @click="setHeading(3)">H3</button>
-                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
-                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
-                    <button type="button" class="qmh-editor-btn" @click="setAlign('left')">Kiri</button>
-                    <button type="button" class="qmh-editor-btn" @click="setAlign('center')">Tengah</button>
-                    <button type="button" class="qmh-editor-btn" @click="setAlign('right')">Kanan</button>
-                    <button type="button" class="qmh-editor-btn" @click="insertTable()">Tabel</button>
-                    <button type="button" class="qmh-editor-btn" @click="addTableRowBefore()">+Baris Atas</button>
-                    <button type="button" class="qmh-editor-btn" @click="addTableRowAfter()">+Baris Bawah</button>
-                    <button type="button" class="qmh-editor-btn" @click="deleteTableRow()">-Baris</button>
-                    <button type="button" class="qmh-editor-btn" @click="addTableColumnBefore()">+Kolom Kiri</button>
-                    <button type="button" class="qmh-editor-btn" @click="addTableColumnAfter()">+Kolom Kanan</button>
-                    <button type="button" class="qmh-editor-btn" @click="deleteTableColumn()">-Kolom</button>
-                    <button type="button" class="qmh-editor-btn" @click="mergeTableCells()">Merge Sel</button>
-                    <button type="button" class="qmh-editor-btn" @click="splitTableCell()">Split Sel</button>
-                    <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderRow()">Header Baris</button>
-                    <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderColumn()">Header Kolom</button>
-                    <button type="button" class="qmh-editor-btn" @click="deleteTable()">Hapus Tabel</button>
-                </div>
+        <div class="grid grid-cols-12 gap-6">
+            <div class="col-span-12 lg:col-span-8">
+                <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                    <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" x-data="qmhEditor({ initialContent: @js($revision?->content_html ?? '<p></p>') })" x-init="init()" @qmh-editor-change="onEditorChange($event.detail)">
+                        <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
+                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bold') }" @click="toggleBold()">B</button>
+                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('italic') }" @click="toggleItalic()">I</button>
+                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('underline') }" @click="toggleUnderline()">U</button>
+                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 1 }) }" @click="setHeading(1)">H1</button>
+                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 2 }) }" @click="setHeading(2)">H2</button>
+                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 3 }) }" @click="setHeading(3)">H3</button>
+                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
+                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
+                            <button type="button" class="qmh-editor-btn" @click="setAlign('left')">Kiri</button>
+                            <button type="button" class="qmh-editor-btn" @click="setAlign('center')">Tengah</button>
+                            <button type="button" class="qmh-editor-btn" @click="setAlign('right')">Kanan</button>
+                            <button type="button" class="qmh-editor-btn" @click="insertTable()">Tabel</button>
+                            <button type="button" class="qmh-editor-btn" @click="addTableRowBefore()">+Baris Atas</button>
+                            <button type="button" class="qmh-editor-btn" @click="addTableRowAfter()">+Baris Bawah</button>
+                            <button type="button" class="qmh-editor-btn" @click="deleteTableRow()">-Baris</button>
+                            <button type="button" class="qmh-editor-btn" @click="addTableColumnBefore()">+Kolom Kiri</button>
+                            <button type="button" class="qmh-editor-btn" @click="addTableColumnAfter()">+Kolom Kanan</button>
+                            <button type="button" class="qmh-editor-btn" @click="deleteTableColumn()">-Kolom</button>
+                            <button type="button" class="qmh-editor-btn" @click="mergeTableCells()">Merge Sel</button>
+                            <button type="button" class="qmh-editor-btn" @click="splitTableCell()">Split Sel</button>
+                            <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderRow()">Header Baris</button>
+                            <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderColumn()">Header Kolom</button>
+                            <button type="button" class="qmh-editor-btn" @click="deleteTable()">Hapus Tabel</button>
+                        </div>
 
-                <div class="qmh-editor-surface" x-ref="editor"></div>
-                <input type="hidden" x-ref="hiddenInput" name="content_html">
+                        <div class="qmh-editor-surface" x-ref="editor"></div>
+                        <input type="hidden" x-ref="hiddenInput" name="content_html">
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-span-12 lg:col-span-4">
+                <div class="sticky top-6 rounded-xl border border-blue-200 bg-blue-50 p-4 shadow-sm" x-data="qmhSidekick({ clause: @js($document->clause) })" x-init="init()">
+                    <div class="mb-3 flex items-center justify-between">
+                        <h3 class="font-semibold text-blue-900">
+                            <span class="mr-2">🤖</span> Sidekick ISO 17025
+                        </h3>
+                        <span class="rounded bg-blue-200 px-2 py-0.5 text-xs font-bold text-blue-800" x-text="'Klausul ' + clause"></span>
+                    </div>
+
+                    <div x-show="loading" class="text-sm text-blue-700 animate-pulse">Memuat tips...</div>
+
+                    <div x-show="!loading && tips" x-transition>
+                        <div class="mb-4 rounded-lg bg-white p-3 shadow-sm border border-blue-100">
+                            <p class="text-sm text-gray-700 font-medium" x-text="tips.requirement"></p>
+                        </div>
+
+                        <h4 class="mb-2 text-xs font-bold uppercase tracking-wider text-blue-800">Checklist Wajib</h4>
+                        <ul class="space-y-2">
+                            <template x-for="(item, index) in tips.checklist" :key="index">
+                                <li class="flex items-start gap-2 text-sm text-gray-700">
+                                    <input type="checkbox" class="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <span x-text="item"></span>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     @push('scripts')
     <script>
+        function qmhSidekick(config) {
+            return {
+                clause: config.clause,
+                loading: true,
+                tips: null,
+
+                init() {
+                    this.fetchTips();
+                },
+
+                async fetchTips() {
+                    try {
+                        const res = await fetch(`/api/quality/dashboard/tips?clause=${this.clause}`);
+                        if (res.ok) {
+                            this.tips = await res.json();
+                        }
+                    } catch (e) {
+                        console.error('Failed to load sidekick tips', e);
+                    } finally {
+                        this.loading = false;
+                    }
+                }
+            };
+        }
+
         function qmhEditPage(config) {
             return {
                 revisionId: config.revisionId,
