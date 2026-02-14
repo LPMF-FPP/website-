@@ -119,6 +119,18 @@ class QmhDocumentController extends Controller
         ]);
     }
 
+    public function editDocx(QmhDocument $document): View
+    {
+        $document->load([
+            'currentRevision.lock.owner',
+        ]);
+
+        return view('quality.edit-docx', [
+            'document' => $document,
+            'revision' => $document->currentRevision,
+        ]);
+    }
+
     public function store(StoreQmhDocumentRequest $request, QmhDocumentService $service): RedirectResponse
     {
         try {

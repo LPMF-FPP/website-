@@ -1,10 +1,7 @@
 name: Parallel E2E Tests
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
   matrix-test:
@@ -52,15 +49,26 @@ jobs:
           node-version: "20"
           cache: "npm"
 
+      - name: Prepare environment
+        run: |
+          cp .env.testing.example .env.testing
+          sed -i 's/^DB_DATABASE=.*/DB_DATABASE=lis_db_test/' .env.testing
+          sed -i 's/^DB_USERNAME=.*/DB_USERNAME=postgres/' .env.testing
+          sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=postgres/' .env.testing
+          sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' .env.testing
+          sed -i 's/^DB_PORT=.*/DB_PORT=5432/' .env.testing
+          cp .env.testing .env
+
       - name: Install dependencies
         run: |
-          composer install --prefer-dist --no-interaction
+          composer install --prefer-dist --no-interaction --no-scripts
+          php artisan key:generate
+          php artisan package:discover --ansi
           npm ci
           npm run build
 
-      - name: Prepare environment
+      - name: Generate key and migrate
         run: |
-          cp .env.example .env.testing
           php artisan key:generate --env=testing
           php artisan migrate:fresh --seed --env=testing
 

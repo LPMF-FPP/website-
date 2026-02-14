@@ -73,7 +73,7 @@
             </template>
 
             <div x-show="!officeLoading && !officeFrameUrl" class="space-y-3">
-                <p class="text-sm text-amber-700">Server Office belum tersedia. Gunakan editor fallback di bawah ini.</p>
+                <p class="text-sm text-amber-700" x-show="!officeError">Server Office belum tersedia. Gunakan editor fallback di bawah ini.</p>
 
                 <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" x-data="qmhEditor({ initialContent: @js($revision?->content_html ?? '<p></p>') })" x-init="init()" @qmh-editor-change="onEditorChange($event.detail)">
                     <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">

@@ -17,16 +17,30 @@ if (! function_exists('settings')) {
      */
     function settings(?string $key = null, $default = null)
     {
-        $all = cache()->remember('sys_settings_all', 60, function () {
-            if (! Schema::hasTable('settings')) {
-                return [];
-            }
+        $all = [];
 
-            return SystemSetting::query()
-                ->get()
-                ->mapWithKeys(fn (SystemSetting $row) => [$row->key => $row->value])
-                ->toArray();
-        });
+        try {
+            $all = cache()->remember('sys_settings_all', 60, function () {
+                try {
+                    if (! Schema::hasTable('settings')) {
+                        return [];
+                    }
+                } catch (Throwable $e) {
+                    return [];
+                }
+
+                try {
+                    return SystemSetting::query()
+                        ->get()
+                        ->mapWithKeys(fn (SystemSetting $row) => [$row->key => $row->value])
+                        ->toArray();
+                } catch (Throwable $e) {
+                    return [];
+                }
+            });
+        } catch (Throwable $e) {
+            $all = [];
+        }
 
         // Merge in overrides (not persisted / not cached) – overrides take precedence
         if (! empty($GLOBALS['__settings_overrides'])) {
