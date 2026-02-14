@@ -230,7 +230,7 @@
                 </div>
 
                 <div x-show="docType" x-cloak class="grid gap-6 lg:grid-cols-12">
-                    <div class="lg:col-span-7" data-qmh-question-form>
+                    <div class="lg:col-span-12" data-qmh-question-form>
                         <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                             <div class="flex items-start justify-between gap-3">
                                 <div>
@@ -256,7 +256,7 @@
 
                                 <template x-if="schemaQuestions().length > 0">
                                     <div class="space-y-4">
-                                        <template x-for="(q, idx) in schemaQuestions()" :key="q.id || idx">
+                                        <template x-for="(q, idx) in schemaQuestions()" :key="`${templateId}:${q.id || idx}`">
                                             <div class="rounded-lg border border-gray-200 bg-white p-4">
                                                 <div class="flex items-start justify-between gap-3">
                                                     <div>
@@ -282,13 +282,23 @@
                                                 </div>
 
                                                 <div class="mt-3" x-show="q.type !== 'list'">
-                                                    <textarea
-                                                        class="w-full rounded-md border border-gray-300 text-sm leading-relaxed focus:border-primary-600 focus:ring-primary-600"
-                                                        rows="5"
-                                                        :id="`q-${q.id}`"
-                                                        :placeholder="q.required ? 'Wajib diisi' : 'Opsional'"
-                                                        x-model.trim="answers[q.id]"
-                                                    ></textarea>
+                                                    <div
+                                                        class="rounded-xl border border-gray-200 bg-white p-3"
+                                                        x-data="qmhEditor({ initialContent: answerEditorInitialValue(q.id), editorId: `qmh-answer-${q.id}` })"
+                                                        x-init="init()"
+                                                        @qmh-editor-change="onRichTextAnswerChange(q.id, $event.detail.html)"
+                                                    >
+                                                        <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
+                                                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bold') }" @click="toggleBold()">B</button>
+                                                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('italic') }" @click="toggleItalic()">I</button>
+                                                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('underline') }" @click="toggleUnderline()">U</button>
+                                                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
+                                                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
+                                                        </div>
+
+                                                        <div class="qmh-editor-surface qmh-editor-surface--compact" x-ref="editor"></div>
+                                                        <input type="hidden" x-ref="hiddenInput">
+                                                    </div>
                                                 </div>
 
                                                 <p class="mt-2 text-sm text-red-600" x-show="fieldErrors[q.id]" x-text="fieldErrors[q.id]"></p>
@@ -296,95 +306,6 @@
                                         </template>
                                     </div>
                                 </template>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="lg:col-span-5" data-qmh-preview-panel>
-                        <div class="sticky top-6 rounded-xl border border-gray-200 bg-gradient-to-br from-slate-50 to-white p-5 shadow-sm">
-                            <div class="flex items-center justify-between">
-                                <h3 class="text-sm font-semibold text-gray-900">Preview Dokumen</h3>
-                                <p class="text-xs text-gray-500">HTML preview</p>
-                            </div>
-
-                            <div class="mt-4 overflow-hidden rounded-lg border border-gray-200 bg-white">
-                                <div class="relative bg-white p-4">
-                                    <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
-                                        <div class="select-none text-4xl font-bold tracking-[0.35em] text-slate-200" style="transform: rotate(-25deg);">
-                                            DRAFT
-                                        </div>
-                                    </div>
-
-                                    <div class="relative">
-                                        <div class="border border-gray-800">
-                                            <div class="grid grid-cols-3">
-                                                <div class="border-r border-gray-800 p-3 text-center">
-                                                    <img src="/images/logo-pusdokkes-polri.png" alt="Logo" class="mx-auto h-10 w-auto" onerror="this.style.display='none'">
-                                                    <p class="mt-2 text-[10px] font-bold uppercase leading-tight text-gray-900">Laboratorium Pengujian Mutu<br>Farmapol Pusdokkes Polri</p>
-                                                </div>
-                                                <div class="border-r border-gray-800 p-3 text-center">
-                                                    <p class="text-xs font-bold uppercase tracking-wide text-gray-900" x-text="previewDocTypeLabel()"></p>
-                                                    <p class="mt-2 text-[11px] font-bold uppercase text-gray-900" x-text="`[${(title || 'JUDUL PROSEDUR').toUpperCase()}]`"></p>
-                                                </div>
-                                                <div class="p-0">
-                                                    <table class="w-full border-collapse text-[10px]">
-                                                        <tr>
-                                                            <td class="border border-gray-800 px-2 py-1 font-medium">No. Dokumen</td>
-                                                            <td class="border border-gray-800 px-2 py-1" x-text="docCode || '-' "></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td class="border border-gray-800 px-2 py-1 font-medium">Edisi/Revisi</td>
-                                                            <td class="border border-gray-800 px-2 py-1">E1/R0</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td class="border border-gray-800 px-2 py-1 font-medium">Tgl. Efektif</td>
-                                                            <td class="border border-gray-800 px-2 py-1" x-text="effectiveDate || '-' "></td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td class="border border-gray-800 px-2 py-1 font-medium">Halaman</td>
-                                                            <td class="border border-gray-800 px-2 py-1">1 DARI 1</td>
-                                                        </tr>
-                                                        <tr>
-                                                            <td class="border border-gray-800 px-2 py-1 font-medium">Status</td>
-                                                            <td class="border border-gray-800 px-2 py-1">DRAFT</td>
-                                                        </tr>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div class="mt-4 space-y-3">
-                                            <template x-for="(q, idx) in schemaQuestions()" :key="`pv-${q.id}-${idx}`">
-                                                <div>
-                                                    <p class="text-xs font-semibold text-gray-900" x-text="`${idx + 1}. ${q.label || q.id}`"></p>
-                                                    <template x-if="q.type === 'list'">
-                                                        <ul class="mt-1 list-disc space-y-0.5 pl-5 text-xs text-gray-700">
-                                                            <template x-for="(item, ii) in (Array.isArray(answers[q.id]) ? answers[q.id] : [])" :key="`li-${q.id}-${ii}`">
-                                                                <li x-text="item"></li>
-                                                            </template>
-                                                            <li x-show="!Array.isArray(answers[q.id]) || answers[q.id].length === 0" class="list-none text-gray-400">-</li>
-                                                        </ul>
-                                                    </template>
-                                                    <template x-if="q.type !== 'list'">
-                                                        <p class="mt-1 whitespace-pre-line text-xs text-gray-700" x-text="answers[q.id] ? answers[q.id] : '-' "></p>
-                                                    </template>
-                                                </div>
-                                            </template>
-                                        </div>
-
-                                        <div class="mt-4 border border-gray-800">
-                                            <div class="grid grid-cols-4 text-[9px]">
-                                                <div class="border-r border-gray-800 p-2 font-bold">Dibuat</div>
-                                                <div class="border-r border-gray-800 p-2 font-bold">Diperiksa</div>
-                                                <div class="border-r border-gray-800 p-2 font-bold">Disahkan</div>
-                                                <div class="p-2 text-right">1/1</div>
-                                            </div>
-                                            <div class="border-t border-gray-800 p-2 text-center text-[9px] italic text-red-700">
-                                                Isi Dokumen ini tidak diperkenankan untuk disalin atau digandakan tanpa persetujuan.
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -410,18 +331,28 @@
                         Kembali
                     </a>
 
-                    <button type="submit"
-                            :disabled="isSubmitting || !canSubmit()"
-                            :class="{ 'cursor-not-allowed opacity-50': isSubmitting || !canSubmit() }"
-                            class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
-                        <template x-if="isSubmitting">
-                            <svg class="-ml-1 mr-2 h-4 w-4 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                            </svg>
-                        </template>
-                        <span x-text="isSubmitting ? 'Menyimpan...' : 'Simpan Draft'">Simpan Draft</span>
-                    </button>
+                    <div class="flex items-center gap-2">
+                        <button
+                            type="button"
+                            @click="openQuickPreview()"
+                            class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        >
+                            Preview
+                        </button>
+
+                        <button type="submit"
+                                :disabled="isSubmitting || !canSubmit()"
+                                :class="{ 'cursor-not-allowed opacity-50': isSubmitting || !canSubmit() }"
+                                class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                            <template x-if="isSubmitting">
+                                <svg class="-ml-1 mr-2 h-4 w-4 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                                </svg>
+                            </template>
+                            <span x-text="isSubmitting ? 'Menyimpan...' : 'Simpan Draft'">Simpan Draft</span>
+                        </button>
+                    </div>
                 </div>
 
                 <p x-show="stepError" x-cloak class="text-sm text-red-600" x-text="stepError"></p>
@@ -438,8 +369,8 @@
             <div class="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-xl bg-white shadow-2xl" @click.outside="cancelSubmitPreview()">
                 <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4">
                     <div>
-                        <h3 class="text-base font-semibold text-gray-900">Preview Dokumen Sebelum Simpan Draft</h3>
-                        <p class="mt-1 text-xs text-gray-500">Cek konten terlebih dahulu, lalu lanjutkan simpan draft jika sudah sesuai.</p>
+                        <h3 class="text-base font-semibold text-gray-900" x-text="previewMode === 'submit' ? 'Preview Dokumen Sebelum Simpan Draft' : 'Preview Dokumen'"></h3>
+                        <p class="mt-1 text-xs text-gray-500" x-show="previewMode === 'submit'">Cek konten terlebih dahulu, lalu lanjutkan simpan draft jika sudah sesuai.</p>
                     </div>
                     <button
                         type="button"
@@ -466,12 +397,13 @@
                         type="button"
                         @click="cancelSubmitPreview()"
                         class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        x-text="previewMode === 'submit' ? 'Kembali Edit' : 'Tutup'"
                     >
-                        Kembali Edit
                     </button>
                     <button
                         type="button"
                         @click="confirmSubmitPreview()"
+                        x-show="previewMode === 'submit'"
                         class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
                     >
                         Lanjut Simpan Draft

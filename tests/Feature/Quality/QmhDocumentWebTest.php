@@ -359,7 +359,7 @@ class QmhDocumentWebTest extends TestCase
             ->assertSee('Tambah template di');
     }
 
-    public function test_create_page_does_not_contain_legacy_tiptap_editor(): void
+    public function test_create_page_uses_tiptap_for_question_editor_windows(): void
     {
         /** @var User $user */
         $user = User::factory()->create(['role' => 'admin']);
@@ -367,9 +367,9 @@ class QmhDocumentWebTest extends TestCase
         $this->actingAs($user)
             ->get('/quality/documents/create')
             ->assertOk()
-            ->assertDontSee('qmh-editor-surface', false)
+            ->assertSee('qmh-editor-surface qmh-editor-surface--compact', false)
             ->assertDontSee('editor_hidden_unused', false)
-            ->assertDontSee('@click="toggleBold()"', false);
+            ->assertSee('@click="toggleBold()"', false);
     }
 
     private function createQmhPermissions(): void
