@@ -9,6 +9,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException;
 use Symfony\Component\HttpKernel\Exception\UnauthorizedHttpException;
 
 class QmhOfficeEditorService
@@ -29,6 +30,11 @@ class QmhOfficeEditorService
         $lock = $revision->lock;
         if ($lock === null || ! $lock->isActive() || (int) $lock->locked_by !== (int) $actor->id) {
             throw new AuthorizationException('Sesi Office hanya dapat dibuka oleh pemilik lock aktif.');
+        }
+
+        $editorUrl = trim((string) config('quality.office.editor_url', ''));
+        if ($editorUrl === '') {
+            throw new ServiceUnavailableHttpException(null, 'Server Office belum dikonfigurasi. Hubungi administrator.');
         }
 
         $token = $this->encodeToken([
@@ -61,7 +67,7 @@ class QmhOfficeEditorService
         return [
             'revision_id' => (int) $revision->id,
             'token' => $token,
-            'editor_url' => (string) config('quality.office.editor_url', ''),
+            'editor_url' => $editorUrl,
             'config' => $config,
         ];
     }

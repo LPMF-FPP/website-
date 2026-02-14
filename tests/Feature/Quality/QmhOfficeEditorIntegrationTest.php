@@ -20,6 +20,7 @@ class QmhOfficeEditorIntegrationTest extends TestCase
     {
         parent::setUp();
 
+        config()->set('quality.office.editor_url', 'https://office.test.local/editor');
         config()->set('quality.office.jwt_secret', 'qmh-office-test-secret');
         config()->set('quality.office.callback_hosts', ['office.test.local']);
 
@@ -51,9 +52,80 @@ class QmhOfficeEditorIntegrationTest extends TestCase
             'data' => [
                 'revision_id',
                 'token',
+                'editor_url',
                 'config',
             ],
         ]);
+    }
+
+    public function test_office_session_returns_service_unavailable_when_editor_url_not_configured(): void
+    {
+        config()->set('quality.office.editor_url', '');
+
+        /** @var User $creator */
+        $creator = User::factory()->create(['role' => 'admin']);
+        $revision = $this->createDraftRevision($creator);
+
+        $this->actingAs($creator)
+            ->postJson("/api/quality/revisions/{$revision->id}/lock")
+            ->assertOk();
+
+        $this->actingAs($creator)
+            ->postJson("/api/quality/revisions/{$revision->id}/office-session")
+            ->assertStatus(503)
+            ->assertJsonPath('message', 'Server Office belum dikonfigurasi. Hubungi administrator.');
+    }
+
+    public function test_office_embed_page_renders_for_lock_owner_with_valid_token(): void
+    {
+        config()->set('quality.office.editor_url', '/quality/office/editor');
+
+        /** @var User $creator */
+        $creator = User::factory()->create(['role' => 'admin']);
+        $revision = $this->createDraftRevision($creator);
+
+        $this->actingAs($creator)
+            ->postJson("/api/quality/revisions/{$revision->id}/lock")
+            ->assertOk();
+
+        $sessionResponse = $this->actingAs($creator)
+            ->postJson("/api/quality/revisions/{$revision->id}/office-session");
+
+        $sessionResponse->assertOk();
+        $token = (string) ($sessionResponse->json('data.token') ?? '');
+        $this->assertNotSame('', $token);
+
+        $this->actingAs($creator)
+            ->get('/quality/office/editor?token='.urlencode($token).'&config=%7B%7D')
+            ->assertOk()
+            ->assertSee('QMH Office Editor');
+    }
+
+    public function test_office_embed_page_rejects_token_user_mismatch(): void
+    {
+        config()->set('quality.office.editor_url', '/quality/office/editor');
+
+        /** @var User $creator */
+        $creator = User::factory()->create(['role' => 'admin']);
+        /** @var User $intruder */
+        $intruder = User::factory()->create(['role' => 'admin']);
+
+        $revision = $this->createDraftRevision($creator);
+
+        $this->actingAs($creator)
+            ->postJson("/api/quality/revisions/{$revision->id}/lock")
+            ->assertOk();
+
+        $sessionResponse = $this->actingAs($creator)
+            ->postJson("/api/quality/revisions/{$revision->id}/office-session");
+
+        $sessionResponse->assertOk();
+        $token = (string) ($sessionResponse->json('data.token') ?? '');
+        $this->assertNotSame('', $token);
+
+        $this->actingAs($intruder)
+            ->get('/quality/office/editor?token='.urlencode($token))
+            ->assertForbidden();
     }
 
     public function test_office_callback_rejects_invalid_signature_or_untrusted_host(): void

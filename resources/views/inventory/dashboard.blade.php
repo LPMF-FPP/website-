@@ -92,8 +92,5 @@
             <p class="text-gray-500 text-sm">Tidak ada item kritis yang perlu perhatian Anda.</p>
         </div>
         @endif
-
-        @include('inventory.partials.fast-moving-modal')
-
     </div>
 </x-app-layout>

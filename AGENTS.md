@@ -132,6 +132,8 @@ scripts/audit/     Automated CSS/JS/A11y audit scripts
 
 Primary plugin system. Agents in `.opencode/agent/`. Delegate specialized work via Task tool:
 
+- BMAD workspace root for agents/workflows/config: `/home/lpmf-dev/website-/_bmad/`
+
 | Need                  | Agent             | When to use                          |
 | --------------------- | ----------------- | ------------------------------------ |
 | Architecture decision | `bmm-architect`   | System design, DB schema, API design |

@@ -134,6 +134,83 @@ export function qmhCreatePage(config = {}) {
             return template?.preview_url || "";
         },
 
+        selectedTemplateContentHtml() {
+            const template = this.selectedTemplate();
+
+            return typeof template?.content_html === "string"
+                ? template.content_html
+                : "";
+        },
+
+        escapeHtml(value) {
+            return String(value ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#39;");
+        },
+
+        applyPreviewTokens(html) {
+            let output = String(html || "");
+            const title = this.escapeHtml(this.title || "-");
+            const docCode = this.escapeHtml(this.docCode || "-");
+            const clause = this.escapeHtml(this.clause || "-");
+            const docType = this.escapeHtml(
+                (this.docType || "-").toUpperCase(),
+            );
+            const changeSummary = this.escapeHtml(
+                this.changeSummary || "-",
+            ).replaceAll("\n", "<br>");
+
+            const tokenMap = {
+                "{{title}}": title,
+                "{{ title }}": title,
+                "{{doc_code}}": docCode,
+                "{{ doc_code }}": docCode,
+                "{{clause}}": clause,
+                "{{ clause }}": clause,
+                "{{doc_type}}": docType,
+                "{{ doc_type }}": docType,
+                "{{change_summary}}": changeSummary,
+                "{{ change_summary }}": changeSummary,
+                "[TITLE]": title,
+                "[DOC_CODE]": docCode,
+                "[CLAUSE]": clause,
+                "[DOC_TYPE]": docType,
+                "[CHANGE_SUMMARY]": changeSummary,
+            };
+
+            for (const [token, value] of Object.entries(tokenMap)) {
+                output = output.split(token).join(value);
+            }
+
+            return output;
+        },
+
+        fallbackPreviewHtml() {
+            const title = this.escapeHtml(this.title || "(Belum diisi)");
+            const docCode = this.escapeHtml(this.docCode || "(Belum diisi)");
+            const clause = this.escapeHtml(this.clause || "-");
+            const docType = this.escapeHtml(
+                (this.docType || "-").toUpperCase(),
+            );
+            const changeSummary = this.escapeHtml(
+                this.changeSummary || "-",
+            ).replaceAll("\n", "<br>");
+
+            return `<div class="space-y-3 text-sm text-gray-700"><div class="rounded-md border border-gray-200 bg-white p-3"><p><strong>Jenis:</strong> ${docType}</p><p><strong>Klausul:</strong> ${clause}</p><p><strong>Kode:</strong> ${docCode}</p><p><strong>Judul:</strong> ${title}</p><p><strong>Ringkasan Perubahan:</strong><br>${changeSummary}</p></div><p class="text-xs text-gray-500">Preview template HTML belum tersedia. Konten akan mengikuti template aktif saat dokumen dibuat.</p></div>`;
+        },
+
+        livePreviewHtml() {
+            const templateHtml = this.selectedTemplateContentHtml();
+            if (!templateHtml) {
+                return this.fallbackPreviewHtml();
+            }
+
+            return this.applyPreviewTokens(templateHtml);
+        },
+
         canSubmit() {
             if (
                 !this.docCode ||

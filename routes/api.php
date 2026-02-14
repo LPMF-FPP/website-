@@ -79,6 +79,8 @@ Route::middleware(['throttle:120,1'])->group(function () {
             Route::post('/heartbeat', [QmhRevisionWorkflowController::class, 'heartbeat']);
             Route::post('/unlock', [QmhRevisionWorkflowController::class, 'unlock']);
             Route::post('/office-session', [QmhRevisionWorkflowController::class, 'officeSession']);
+            Route::get('/docx', [QmhRevisionWorkflowController::class, 'downloadDocx']);
+            Route::put('/docx', [QmhRevisionWorkflowController::class, 'saveDocx']);
             Route::put('/content', [QmhRevisionWorkflowController::class, 'saveContent']);
             Route::post('/submit', [QmhRevisionWorkflowController::class, 'submit']);
             Route::post('/review', [QmhRevisionWorkflowController::class, 'review']);
