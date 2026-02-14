@@ -6,6 +6,7 @@ use App\Models\QmhDocument;
 use App\Models\QmhDocumentRevision;
 use App\Models\QmhTemplate;
 use App\Models\QmhWorkflowEvent;
+use App\Support\QmhAnswerSanitizer;
 use Illuminate\Support\Facades\DB;
 
 class QmhDocumentService
@@ -34,6 +35,11 @@ class QmhDocumentService
                 ? $payloadContentHtml
                 : ($templateContentHtml !== '' ? $templateContentHtml : '<p></p>');
 
+            $answersJson = null;
+            if (array_key_exists('answers_json', $payload)) {
+                $answersJson = QmhAnswerSanitizer::sanitizeAnswersJson($payload['answers_json']);
+            }
+
             $document = QmhDocument::query()->create([
                 'doc_code' => $payload['doc_code'],
                 'title' => $payload['title'],
@@ -57,7 +63,7 @@ class QmhDocumentService
                 'change_summary' => $payload['change_summary'] ?? null,
                 'version_bump_mode' => 'auto',
                 'editor_json' => $payload['editor_json'] ?? null,
-                'answers_json' => $payload['answers_json'] ?? null,
+                'answers_json' => $answersJson,
                 'effective_date' => $payload['effective_date'] ?? null,
                 'content_html' => $resolvedContentHtml,
                 'content_css' => $payload['content_css'] ?? null,

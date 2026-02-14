@@ -21,17 +21,26 @@
     $schema = is_array($schema ?? null) ? $schema : ['questions' => []];
     $questions = is_array($schema['questions'] ?? null) ? $schema['questions'] : [];
     $answers = is_array($answers ?? null) ? $answers : (is_array($revision->answers_json ?? null) ? $revision->answers_json : []);
+    $answers = \App\Support\QmhAnswerSanitizer::sanitizeAnswersJson($answers);
 
     $hasStructuredAnswers = false;
     if (is_array($answers) && count($answers) > 0) {
         foreach ($answers as $val) {
-            if (is_string($val) && trim($val) !== '') {
+            if (is_string($val) && \App\Support\QmhAnswerSanitizer::plainText($val) !== '') {
                 $hasStructuredAnswers = true;
                 break;
             }
             if (is_array($val) && count($val) > 0) {
-                $hasStructuredAnswers = true;
-                break;
+                foreach ($val as $item) {
+                    if (! is_string($item)) {
+                        continue;
+                    }
+
+                    if (\App\Support\QmhAnswerSanitizer::plainText($item) !== '') {
+                        $hasStructuredAnswers = true;
+                        break 2;
+                    }
+                }
             }
         }
     }
@@ -182,6 +191,20 @@
             margin: 0;
         }
 
+        .qmh-answer p {
+            margin: 0;
+        }
+
+        .qmh-answer ul,
+        .qmh-answer ol {
+            margin: 0;
+            padding-left: 16px;
+        }
+
+        .qmh-answer li {
+            margin: 0;
+        }
+
         .qmh-list {
             margin: 0;
             padding-left: 16px;
@@ -327,11 +350,18 @@
                             @foreach($items as $item)
                                 @php
                                     $itemText = is_string($item) ? $item : (is_scalar($item) ? (string) $item : json_encode($item));
-                                    $itemText = preg_replace('/<br\s*\/?>/i', "\n", $itemText ?? '');
-                                    $itemText = strip_tags((string) $itemText);
-                                    $itemText = trim((string) $itemText) !== '' ? trim((string) $itemText) : '-';
+                                    $itemText = trim((string) $itemText);
+                                    $isHtml = $itemText !== '' && \App\Support\QmhAnswerSanitizer::looksLikeHtml($itemText);
                                 @endphp
-                                <li>{{ $itemText }}</li>
+                                <li>
+                                    @if($itemText === '' || \App\Support\QmhAnswerSanitizer::plainText($itemText) === '')
+                                        -
+                                    @elseif($isHtml)
+                                        <div class="qmh-answer">{!! $itemText !!}</div>
+                                    @else
+                                        {{ $itemText }}
+                                    @endif
+                                </li>
                             @endforeach
                         </ul>
                     @else
@@ -340,11 +370,16 @@
                 @else
                     @php
                         $raw = is_string($val) ? $val : ($val === null ? '' : (is_scalar($val) ? (string) $val : json_encode($val)));
-                        $raw = preg_replace('/<br\s*\/?>/i', "\n", $raw ?? '');
-                        $raw = strip_tags((string) $raw);
-                        $raw = trim((string) $raw) !== '' ? trim((string) $raw) : '-';
+                        $raw = trim((string) $raw);
+                        $isHtml = $raw !== '' && \App\Support\QmhAnswerSanitizer::looksLikeHtml($raw);
                     @endphp
-                    <p class="qmh-answer">{!! nl2br(e($raw)) !!}</p>
+                    @if($raw === '' || \App\Support\QmhAnswerSanitizer::plainText($raw) === '')
+                        <p class="qmh-answer">-</p>
+                    @elseif($isHtml)
+                        <div class="qmh-answer">{!! $raw !!}</div>
+                    @else
+                        <p class="qmh-answer">{!! nl2br(e($raw)) !!}</p>
+                    @endif
                 @endif
             </div>
         @endforeach
