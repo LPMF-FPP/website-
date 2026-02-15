@@ -220,6 +220,46 @@
             list-style-type: disc;
         }
 
+        .form-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+
+        .form-table td {
+            border: 1px solid #111827;
+            padding: 6px 8px;
+            vertical-align: top;
+        }
+
+        .form-no {
+            width: 6%;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .form-label {
+            width: 28%;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .form-value {
+            width: 66%;
+        }
+
+        .form-row--sm .qmh-answer {
+            min-height: 18px;
+        }
+
+        .form-row--md .qmh-answer {
+            min-height: 42px;
+        }
+
+        .form-row--lg .qmh-answer {
+            min-height: 72px;
+        }
+
         .signoff {
             width: 100%;
             border-collapse: collapse;
@@ -467,6 +507,83 @@
                 </td>
             </tr>
         </table>
+    @elseif(($document?->doc_type ?? '') === 'formulir')
+        @php
+            $formQuestions = $questions;
+
+            $renderCell = function (mixed $val, string $type = 'text'): string {
+                if ($val === null) {
+                    return '<div class="qmh-answer">&nbsp;</div>';
+                }
+
+                if (is_string($val)) {
+                    $raw = trim($val);
+                    if ($raw === '' || \App\Support\QmhAnswerSanitizer::plainText($raw) === '') {
+                        return '<div class="qmh-answer">&nbsp;</div>';
+                    }
+
+                    if (\App\Support\QmhAnswerSanitizer::looksLikeHtml($raw)) {
+                        return '<div class="qmh-answer">'.$raw.'</div>';
+                    }
+
+                    return '<div class="qmh-answer">'.nl2br(e($raw)).'</div>';
+                }
+
+                if (is_array($val) && $type === 'list') {
+                    $items = array_values(array_filter($val, fn ($item) => is_string($item) && trim($item) !== ''));
+                    if (count($items) === 0) {
+                        return '<div class="qmh-answer">&nbsp;</div>';
+                    }
+
+                    $html = '<ul class="qmh-list">';
+                    foreach ($items as $item) {
+                        $raw = trim((string) $item);
+                        if ($raw === '' || \App\Support\QmhAnswerSanitizer::plainText($raw) === '') {
+                            continue;
+                        }
+
+                        if (\App\Support\QmhAnswerSanitizer::looksLikeHtml($raw)) {
+                            $html .= '<li><div class="qmh-answer">'.$raw.'</div></li>';
+                        } else {
+                            $html .= '<li>'.e($raw).'</li>';
+                        }
+                    }
+                    $html .= '</ul>';
+
+                    return $html;
+                }
+
+                return '<div class="qmh-answer">'.e(json_encode($val)).'</div>';
+            };
+
+            $rowHeightClass = function (string $type): string {
+                return match ($type) {
+                    'textarea' => 'form-row--lg',
+                    'list' => 'form-row--md',
+                    default => 'form-row--sm',
+                };
+            };
+        @endphp
+
+        @if(count($formQuestions) === 0)
+            <div class="qmh-answer">Form schema belum diatur untuk formulir ini.</div>
+        @else
+            <table class="form-table">
+                @foreach($formQuestions as $idx => $q)
+                    @php
+                        $qid = (string) ($q['id'] ?? '');
+                        $label = (string) ($q['label'] ?? $qid);
+                        $type = (string) ($q['type'] ?? 'text');
+                        $val = $qid !== '' ? ($answers[$qid] ?? null) : null;
+                    @endphp
+                    <tr class="{{ $rowHeightClass($type) }}">
+                        <td class="form-no">{{ $idx + 1 }}</td>
+                        <td class="form-label">{{ strtoupper($label) }}</td>
+                        <td class="form-value">{!! $renderCell($val, $type) !!}</td>
+                    </tr>
+                @endforeach
+            </table>
+        @endif
     @elseif(count($questions) > 0 && $hasStructuredAnswers)
         @foreach($questions as $idx => $q)
             @php

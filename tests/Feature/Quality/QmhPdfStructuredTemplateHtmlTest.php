@@ -116,4 +116,50 @@ class QmhPdfStructuredTemplateHtmlTest extends TestCase
         $this->assertStringContainsString('<ol', $html);
         $this->assertStringContainsString('Definisi 2', $html);
     }
+
+    public function test_pdf_template_renders_formulir_schema_as_table(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-FR-PDF-001',
+            'title' => 'Formulir Uji',
+            'clause' => 4,
+            'doc_type' => 'formulir',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'draft',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+            'answers_json' => [],
+        ]);
+
+        $schema = [
+            'version' => 1,
+            'doc_type' => 'fr',
+            'questions' => [
+                ['id' => 'field_a', 'label' => 'Kolom A', 'type' => 'text', 'required' => false],
+                ['id' => 'field_b', 'label' => 'Kolom B', 'type' => 'textarea', 'required' => false],
+            ],
+        ];
+
+        $html = view('pdf.qmh-document', [
+            'revision' => $revision->load(['document', 'createdBy', 'reviewedBy', 'approvedBy']),
+            'schema' => $schema,
+            'answers' => $revision->answers_json,
+            'watermarkText' => 'DRAFT',
+        ])->render();
+
+        $this->assertStringContainsString('form-table', $html);
+        $this->assertStringContainsString('KOLOM A', $html);
+        $this->assertStringContainsString('KOLOM B', $html);
+    }
 }
