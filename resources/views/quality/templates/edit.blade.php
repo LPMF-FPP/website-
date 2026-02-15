@@ -50,14 +50,6 @@
                 </div>
 
                 <div>
-                    <label class="mb-1 block text-sm font-medium text-gray-700" for="file">Ganti File DOCX (Opsional)</label>
-                    <input id="file" name="file" type="file" accept=".docx"
-                           class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('file') border-red-400 @else border-gray-300 @enderror">
-                    <p class="mt-1 text-xs text-gray-500">Kosongkan jika tidak ingin mengganti file.</p>
-                    @error('file')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
-                </div>
-
-                <div>
                     <label class="mb-1 block text-sm font-medium text-gray-700" for="version_notes">Catatan</label>
                     <textarea id="version_notes" name="version_notes" rows="3"
                               class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('version_notes') border-red-400 @else border-gray-300 @enderror">{{ old('version_notes', data_get($template->metadata, 'version_notes')) }}</textarea>

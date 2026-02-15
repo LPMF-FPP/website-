@@ -430,7 +430,8 @@ class QmhTemplateManagementWebTest extends TestCase
             ->get(route('quality.templates.preview', $template))
             ->assertOk()
             ->assertSee('Preview Template QMH')
-            ->assertSee('Buka File Langsung')
+            ->assertSee('Preview ini menggunakan konten HTML template aktif.')
+            ->assertDontSee('Buka File Langsung')
             ->assertDontSee('view.officeapps.live.com');
     }
 

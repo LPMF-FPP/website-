@@ -22,12 +22,19 @@ class QmhRevisionApprovalDownloadTest extends TestCase
 
         $this->createQmhPermissions();
 
+        $mockCanvas = \Mockery::mock();
+        $mockCanvas->shouldReceive('get_page_count')->andReturn(2);
+
+        $mockDompdf = \Mockery::mock();
+        $mockDompdf->shouldReceive('getCanvas')->andReturn($mockCanvas);
+
         // Mock PDF generation
         $mockPdf = \Mockery::mock(\Barryvdh\DomPDF\PDF::class);
-        $mockPdf->shouldReceive('loadHTML')->andReturnSelf();
         $mockPdf->shouldReceive('setPaper')->andReturnSelf();
         $mockPdf->shouldReceive('setWarnings')->andReturnSelf();
         $mockPdf->shouldReceive('setOption')->andReturnSelf();
+        $mockPdf->shouldReceive('render')->andReturnNull();
+        $mockPdf->shouldReceive('getDomPDF')->andReturn($mockDompdf);
         $mockPdf->shouldReceive('output')->andReturn('fake-pdf-content');
 
         Pdf::shouldReceive('loadHTML')->andReturn($mockPdf);

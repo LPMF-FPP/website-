@@ -140,7 +140,7 @@
                                             <div class="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-900" x-text="(q.label || q.id).toUpperCase()"></div>
                                         </template>
 
-                                        <template x-if="q.type === 'text'">
+                                        <template x-if="q.type === 'text' && isFormulir">
                                             <input
                                                 :id="`q-${q.id}`"
                                                 type="text"
@@ -152,7 +152,26 @@
                                             />
                                         </template>
 
-                                        <template x-if="q.type === 'textarea'">
+                                        <template x-if="q.type === 'text' && !isFormulir">
+                                            <div
+                                                class="rounded-xl border border-gray-200 bg-white p-3"
+                                                x-data="qmhEditor({ initialContent: answerEditorInitialValue(q.id), editorId: `qmh-answer-${q.id}`, readOnly: !hasLock || revisionStatus !== 'draft' })"
+                                                x-init="init()"
+                                                @qmh-editor-change="onRichTextAnswerChange(q.id, $event.detail.html); dirty = true; saveState = 'dirty'"
+                                            >
+                                                <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
+                                                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bold') }" @click="toggleBold()">B</button>
+                                                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('italic') }" @click="toggleItalic()">I</button>
+                                                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('underline') }" @click="toggleUnderline()">U</button>
+                                                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
+                                                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
+                                                </div>
+
+                                                <div class="qmh-editor-surface qmh-editor-surface--compact" x-ref="editor"></div>
+                                            </div>
+                                        </template>
+
+                                        <template x-if="q.type === 'textarea' && isFormulir">
                                             <textarea
                                                 :id="`q-${q.id}`"
                                                 rows="4"
@@ -162,6 +181,25 @@
                                                 :disabled="!hasLock || revisionStatus !== 'draft'"
                                                 class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary-600 focus:ring-primary-600"
                                             ></textarea>
+                                        </template>
+
+                                        <template x-if="q.type === 'textarea' && !isFormulir">
+                                            <div
+                                                class="rounded-xl border border-gray-200 bg-white p-3"
+                                                x-data="qmhEditor({ initialContent: answerEditorInitialValue(q.id), editorId: `qmh-answer-${q.id}`, readOnly: !hasLock || revisionStatus !== 'draft' })"
+                                                x-init="init()"
+                                                @qmh-editor-change="onRichTextAnswerChange(q.id, $event.detail.html); dirty = true; saveState = 'dirty'"
+                                            >
+                                                <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
+                                                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bold') }" @click="toggleBold()">B</button>
+                                                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('italic') }" @click="toggleItalic()">I</button>
+                                                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('underline') }" @click="toggleUnderline()">U</button>
+                                                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
+                                                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
+                                                </div>
+
+                                                <div class="qmh-editor-surface qmh-editor-surface--compact" x-ref="editor"></div>
+                                            </div>
                                         </template>
 
                                         <template x-if="q.type === 'list' && isFormulir">
@@ -383,7 +421,7 @@
             </div>
         </div>
 
-    <div x-show="submitModal.open" x-cloak x-trap.noscroll.inert="submitModal.open" class="fixed inset-0 z-pd-modal overflow-y-auto" role="dialog" aria-modal="true">
+    <div x-show="submitModal.open" x-cloak x-trap.noscroll="submitModal.open" class="fixed inset-0 z-pd-modal overflow-y-auto" role="dialog" aria-modal="true">
         <div class="flex min-h-dvh items-center justify-center px-4 py-8">
             <div class="fixed inset-0 bg-gray-900/50" @click="closeSubmitModal()"></div>
             <div class="relative w-full max-w-lg rounded-xl bg-white p-5 shadow-xl" x-transition>
@@ -406,7 +444,7 @@
                 </div>
 
                 <div class="mt-5 flex justify-end gap-2">
-                    <button type="button" class="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700" @click="closeSubmitModal()">Batal</button>
+                    <button type="button" x-ref="submitModalCloseBtn" class="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700" @click="closeSubmitModal()">Batal</button>
                     <button
                         type="button"
                         class="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50"
@@ -419,7 +457,7 @@
         </div>
     </div>
 
-    <div x-show="previewModalOpen" x-cloak x-trap.noscroll.inert="previewModalOpen" class="fixed inset-0 z-pd-modal overflow-y-auto" role="dialog" aria-modal="true">
+    <div x-show="previewModalOpen" x-cloak x-trap.noscroll="previewModalOpen" class="fixed inset-0 z-pd-modal overflow-y-auto" role="dialog" aria-modal="true">
         <div class="flex min-h-dvh items-center justify-center px-4 py-8">
             <div class="fixed inset-0 bg-gray-900/50" @click="closePreviewModal()"></div>
             <div class="relative w-full max-w-5xl rounded-xl bg-white p-5 shadow-xl h-[85vh] flex flex-col" x-transition>
@@ -428,7 +466,7 @@
                         <h3 class="text-lg font-semibold text-gray-900">Preview PDF</h3>
                         <p class="mt-1 text-sm text-gray-600">Preview lengkap dengan header, footer, dan signatories. (Effective Date akan muncul setelah dipublish)</p>
                     </div>
-                    <button type="button" class="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" @click="closePreviewModal()">Tutup</button>
+                    <button type="button" x-ref="previewModalCloseBtn" class="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" @click="closePreviewModal()">Tutup</button>
                 </div>
 
                 <div class="mt-4 flex-1 overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
@@ -485,6 +523,7 @@
                 pdfPreviewUrl: null,
                 pdfPreviewLoading: false,
                 submitModal: { open: false, reviewerId: '', loading: false, error: '' },
+                lastFocusedElement: null,
                 initialContent: typeof config.initialContent === 'string' ? config.initialContent : '<p></p>',
                 showUrl: config.showUrl,
                 saveUrl: config.saveUrl,
@@ -512,6 +551,7 @@
                     }
 
                     this.ensureSchemaFromAnswers();
+                    this.normalizeAnswersPayload();
 
                     if (this.isFormulir) {
                         if (!this.schema || typeof this.schema !== 'object') {
@@ -656,16 +696,178 @@
 
                 htmlToPlainText(html) {
                     if (typeof html !== 'string') return '';
+                    const normalized = this.stripXmlDeclaration(html);
                     const div = document.createElement('div');
-                    div.innerHTML = html;
+                    div.innerHTML = normalized;
                     const txt = div.textContent || '';
                     return txt.replace(/\u00a0/g, ' ').trim();
+                },
+
+                stripXmlDeclaration(value) {
+                    if (typeof value !== 'string') {
+                        return '';
+                    }
+
+                    return value.replace(/^<\?xml[^>]*\?>\s*/i, '').trim();
+                },
+
+                looksLikeHtml(value) {
+                    if (typeof value !== 'string') {
+                        return false;
+                    }
+
+                    return /<\/?[a-z][\s\S]*>/i.test(value);
+                },
+
+                normalizePlainText(value) {
+                    const raw = typeof value === 'string' ? value : '';
+                    return this.stripXmlDeclaration(raw);
+                },
+
+                escapeHtml(value) {
+                    return String(value ?? '')
+                        .replaceAll('&', '&amp;')
+                        .replaceAll('<', '&lt;')
+                        .replaceAll('>', '&gt;')
+                        .replaceAll('"', '&quot;')
+                        .replaceAll("'", '&#39;');
+                },
+
+                normalizeEditorHtml(value) {
+                    const raw = this.stripXmlDeclaration(typeof value === 'string' ? value : '');
+                    const trimmed = raw.trim();
+
+                    if (!trimmed) {
+                        return '<p></p>';
+                    }
+
+                    return trimmed;
+                },
+
+                plainTextToEditorHtml(value) {
+                    const normalized = this.normalizePlainText(value);
+
+                    if (!normalized) {
+                        return '<p></p>';
+                    }
+
+                    return `<p>${this.escapeHtml(normalized).replaceAll('\n', '<br>')}</p>`;
+                },
+
+                listToEditorHtml(value) {
+                    const items = Array.isArray(value) ? value : [];
+                    const normalizedItems = items
+                        .map((item) => typeof item === 'string' ? this.stripXmlDeclaration(item) : String(item ?? ''))
+                        .map((item) => item.trim())
+                        .filter((item) => item !== '')
+                        .map((item) => {
+                            if (this.looksLikeHtml(item)) {
+                                return item;
+                            }
+
+                            return `<p>${this.escapeHtml(item)}</p>`;
+                        });
+
+                    if (normalizedItems.length === 0) {
+                        return '<p></p>';
+                    }
+
+                    return `<ul>${normalizedItems.map((item) => `<li>${item}</li>`).join('')}</ul>`;
+                },
+
+                answerEditorInitialValue(qid) {
+                    const current = this.answers[qid];
+
+                    if (Array.isArray(current)) {
+                        return this.listToEditorHtml(current);
+                    }
+
+                    if (this.looksLikeHtml(current)) {
+                        return this.normalizeEditorHtml(current);
+                    }
+
+                    return this.plainTextToEditorHtml(current);
+                },
+
+                onRichTextAnswerChange(qid, html) {
+                    if (typeof qid !== 'string' || !qid) {
+                        return;
+                    }
+
+                    this.answers[qid] = this.normalizeEditorHtml(html);
+                },
+
+                onRichTextListAnswerChange(qid, html) {
+                    if (typeof qid !== 'string' || !qid) {
+                        return;
+                    }
+
+                    const normalized = this.normalizeEditorHtml(html);
+                    const listHtml = this.extractListContainerHtml(normalized);
+
+                    if (listHtml) {
+                        this.answers[qid] = listHtml;
+                        this.listAnswerText[qid] = this.htmlToPlainText(listHtml);
+
+                        return;
+                    }
+
+                    const plain = this.htmlToPlainText(normalized);
+                    const items = plain
+                        .split('\n')
+                        .map((line) => line.trim())
+                        .filter((line) => line !== '')
+                        .map((line) => `<li><p>${this.escapeHtml(line)}</p></li>`)
+                        .join('');
+
+                    const fallback = items ? `<ul>${items}</ul>` : '<p></p>';
+
+                    this.answers[qid] = fallback;
+                    this.listAnswerText[qid] = this.htmlToPlainText(fallback);
+                },
+
+                extractListContainerHtml(html) {
+                    if (typeof html !== 'string') {
+                        return '';
+                    }
+
+                    const container = document.createElement('div');
+                    container.innerHTML = this.stripXmlDeclaration(html);
+
+                    const list = container.querySelector('ol, ul');
+                    if (!list) {
+                        return '';
+                    }
+
+                    return this.normalizeEditorHtml(list.outerHTML || '');
+                },
+
+                normalizeAnswersPayload() {
+                    if (!this.answers || typeof this.answers !== 'object') {
+                        this.answers = {};
+                        return;
+                    }
+
+                    Object.keys(this.answers).forEach((key) => {
+                        const val = this.answers[key];
+
+                        if (typeof val === 'string') {
+                            this.answers[key] = this.stripXmlDeclaration(val);
+                            return;
+                        }
+
+                        if (Array.isArray(val)) {
+                            this.answers[key] = val
+                                .map((item) => typeof item === 'string' ? this.stripXmlDeclaration(item) : item)
+                                .filter((item) => !(typeof item === 'string' && item.trim() === ''));
+                        }
+                    });
                 },
 
                 extractListItemsFromHtml(html) {
                     if (typeof html !== 'string' || !html.trim()) return [];
                     const div = document.createElement('div');
-                    div.innerHTML = html;
+                    div.innerHTML = this.stripXmlDeclaration(html);
                     const lis = Array.from(div.querySelectorAll('li'));
                     if (lis.length > 0) {
                         return lis
@@ -701,27 +903,48 @@
 
                         if (q.type === 'list') {
                             const existing = this.answers[qid];
-                            if (typeof existing === 'string') {
-                                const items = this.extractListItemsFromHtml(existing);
+                            if (this.isFormulir) {
+                                if (typeof existing === 'string') {
+                                    const items = this.extractListItemsFromHtml(existing);
+                                    this.answers[qid] = items;
+                                    nextListText[qid] = items.join('\n');
+                                    return;
+                                }
+
+                                const items = Array.isArray(existing)
+                                    ? existing
+                                          .filter((v) => typeof v === 'string')
+                                          .map((v) => this.stripXmlDeclaration(v))
+                                          .map((v) => v.trim())
+                                          .filter((v) => v !== '')
+                                    : [];
                                 this.answers[qid] = items;
                                 nextListText[qid] = items.join('\n');
                                 return;
                             }
 
-                            const items = Array.isArray(existing)
-                                ? existing
-                                      .filter((v) => typeof v === 'string')
-                                      .map((v) => v.trim())
-                                      .filter((v) => v !== '')
-                                : [];
-                            this.answers[qid] = items;
-                            nextListText[qid] = items.join('\n');
+                            if (typeof existing === 'string') {
+                                const normalizedHtml = this.normalizeEditorHtml(existing);
+                                this.answers[qid] = normalizedHtml;
+                                nextListText[qid] = this.htmlToPlainText(normalizedHtml);
+                                return;
+                            }
+
+                            if (Array.isArray(existing)) {
+                                const normalizedHtml = this.listToEditorHtml(existing);
+                                this.answers[qid] = normalizedHtml;
+                                nextListText[qid] = this.htmlToPlainText(normalizedHtml);
+                                return;
+                            }
+
+                            this.answers[qid] = '<p></p>';
+                            nextListText[qid] = '';
                             return;
                         }
 
                         const existing = this.answers[qid];
                         if (typeof existing === 'string') {
-                            this.answers[qid] = existing.trim();
+                            this.answers[qid] = this.stripXmlDeclaration(existing);
                             return;
                         }
                         if (existing == null) {
@@ -763,8 +986,20 @@
                         }
 
                         if (q.type === 'list') {
-                            const items = Array.isArray(this.answers[qid]) ? this.answers[qid] : [];
-                            if (isRequired && items.length === 0) {
+                            if (this.isFormulir) {
+                                const items = Array.isArray(this.answers[qid]) ? this.answers[qid] : [];
+                                if (isRequired && items.length === 0) {
+                                    this.fieldErrors[qid] = 'Wajib diisi.';
+                                }
+                                return;
+                            }
+
+                            const val = this.answers[qid];
+                            const hasContent = Array.isArray(val)
+                                ? val.length > 0
+                                : (typeof val === 'string' && this.htmlToPlainText(val) !== '');
+
+                            if (isRequired && !hasContent) {
                                 this.fieldErrors[qid] = 'Wajib diisi.';
                             }
                             return;
@@ -810,10 +1045,14 @@
                         return;
                     }
 
+                    this.lastFocusedElement = document.activeElement;
                     this.submitModal.open = true;
                     this.submitModal.loading = false;
                     this.submitModal.error = '';
                     this.submitModal.reviewerId = '';
+                    this.$nextTick(() => {
+                        this.$refs.submitModalCloseBtn?.focus();
+                    });
                 },
 
                 closeSubmitModal() {
@@ -823,6 +1062,13 @@
 
                     this.submitModal.open = false;
                     this.submitModal.error = '';
+
+                    if (this.lastFocusedElement && typeof this.lastFocusedElement.focus === 'function') {
+                        this.$nextTick(() => {
+                            this.lastFocusedElement.focus();
+                            this.lastFocusedElement = null;
+                        });
+                    }
                 },
 
                 async submitForReview() {
@@ -854,15 +1100,26 @@
                 },
 
                 openPreviewModal() {
+                    this.lastFocusedElement = document.activeElement;
                     this.previewModalOpen = true;
                     this.pdfPreviewUrl = null;
                     this.pdfPreviewLoading = true;
+                    this.$nextTick(() => {
+                        this.$refs.previewModalCloseBtn?.focus();
+                    });
                     this.loadPdfPreview();
                 },
 
                 closePreviewModal() {
                     this.previewModalOpen = false;
                     this.pdfPreviewUrl = null;
+
+                    if (this.lastFocusedElement && typeof this.lastFocusedElement.focus === 'function') {
+                        this.$nextTick(() => {
+                            this.lastFocusedElement.focus();
+                            this.lastFocusedElement = null;
+                        });
+                    }
                 },
 
                 async loadPdfPreview() {
@@ -962,7 +1219,7 @@
                         const hasSchema = this.schemaQuestions().length > 0;
 
                         // Ensure list answers are synced from textareas.
-                        if (hasSchema) {
+                        if (hasSchema && this.isFormulir) {
                             this.schemaQuestions().forEach((q) => {
                                 if (q?.type === 'list' && typeof q?.id === 'string') {
                                     this.syncListAnswer(q.id);

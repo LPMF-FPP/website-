@@ -60,8 +60,11 @@ class QmhPdfStructuredTemplateHtmlTest extends TestCase
         $this->assertStringContainsString('Edisi/Revisi', $html);
         $this->assertStringContainsString('Tgl. Efektif', $html);
         $this->assertStringContainsString('Halaman', $html);
-        $this->assertStringContainsString('{PAGE_NUM} DARI {PAGE_COUNT}', $html);
-        $this->assertStringContainsString('{PAGE_NUM}/{PAGE_COUNT}', $html);
+        $this->assertStringContainsString('page-number', $html);
+        $this->assertStringNotContainsString('DARI -', $html);
+        $this->assertStringContainsString('Halaman <span class="page-number"></span>/-', $html);
+        $this->assertStringContainsString('SOP UJI PDF', $html);
+        $this->assertStringNotContainsString('[SOP UJI PDF]', $html);
 
         $this->assertStringContainsString('Dibuat Oleh:', $html);
         $this->assertStringContainsString('Diperiksa Oleh:', $html);
@@ -116,6 +119,53 @@ class QmhPdfStructuredTemplateHtmlTest extends TestCase
         $this->assertStringContainsString('<em>dokumen</em>', $html);
         $this->assertStringContainsString('<ol', $html);
         $this->assertStringContainsString('Definisi 2', $html);
+    }
+
+    public function test_pdf_template_uses_resolved_page_count_when_provided(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-SOP-PDF-PAGE-001',
+            'title' => 'SOP Uji Halaman',
+            'clause' => 4,
+            'doc_type' => 'sop',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'draft',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+            'answers_json' => [
+                'purpose' => '<p>Tujuan</p>',
+            ],
+        ]);
+
+        $schema = [
+            'version' => 1,
+            'doc_type' => 'sop',
+            'questions' => [
+                ['id' => 'purpose', 'label' => 'Tujuan', 'type' => 'textarea', 'required' => true],
+            ],
+        ];
+
+        $html = view('pdf.qmh-document', [
+            'revision' => $revision->load(['document', 'createdBy', 'reviewedBy', 'approvedBy']),
+            'schema' => $schema,
+            'answers' => $revision->answers_json,
+            'watermarkText' => 'DRAFT',
+            'resolvedPageCount' => 2,
+        ])->render();
+
+        $this->assertStringNotContainsString('DARI 2', $html);
+        $this->assertStringContainsString('Halaman <span class="page-number"></span>/2', $html);
     }
 
     public function test_pdf_template_renders_formulir_schema_as_table(): void
