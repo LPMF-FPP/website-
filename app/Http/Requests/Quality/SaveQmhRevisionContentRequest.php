@@ -105,7 +105,9 @@ class SaveQmhRevisionContentRequest extends FormRequest
             'editor_json' => ['nullable', 'array'],
             'answers_json' => ['nullable', 'array'],
             'form_schema_json' => ['nullable', 'array'],
-            'effective_date' => ['nullable', 'date'],
+            'dibuat_oleh' => ['nullable', 'integer', 'exists:users,id'],
+            'diperiksa_oleh' => ['nullable', 'integer', 'exists:users,id'],
+            'disahkan_oleh' => ['nullable', 'integer', 'exists:users,id'],
         ];
     }
 
@@ -113,6 +115,24 @@ class SaveQmhRevisionContentRequest extends FormRequest
     {
         $validator->after(function ($validator): void {
             $revision = $this->route('revision');
+
+            // Validate SoD if signatories are provided
+            $dibuat = (int) ($this->input('dibuat_oleh') ?: ($revision?->dibuat_oleh ?? 0));
+            $diperiksa = (int) ($this->input('diperiksa_oleh') ?: ($revision?->diperiksa_oleh ?? 0));
+            $disahkan = (int) ($this->input('disahkan_oleh') ?: ($revision?->disahkan_oleh ?? 0));
+
+            if ($dibuat && $diperiksa && $dibuat === $diperiksa) {
+                $validator->errors()->add('diperiksa_oleh', 'Pemeriksa tidak boleh sama dengan Pembuat.');
+            }
+
+            if ($dibuat && $disahkan && $dibuat === $disahkan) {
+                $validator->errors()->add('disahkan_oleh', 'Pengesah tidak boleh sama dengan Pembuat.');
+            }
+
+            if ($diperiksa && $disahkan && $diperiksa === $disahkan) {
+                $validator->errors()->add('disahkan_oleh', 'Pengesah tidak boleh sama dengan Pemeriksa.');
+            }
+
             $isFormulir = false;
             if ($revision instanceof QmhDocumentRevision) {
                 $revision->loadMissing('document');
@@ -150,6 +170,11 @@ class SaveQmhRevisionContentRequest extends FormRequest
 
             if ($this->has('form_schema_json')) {
                 $validator->errors()->add('form_schema_json', 'Schema pertanyaan hanya dapat diubah untuk dokumen Formulir (FR).');
+            }
+
+            // Task 6: Allow answers_json without content_html if answers exist (schema-first editing)
+            if ($hasAnswers) {
+                return;
             }
 
             if (! $hasHtml) {

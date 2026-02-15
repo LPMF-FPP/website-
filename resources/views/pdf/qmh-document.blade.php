@@ -13,7 +13,9 @@
         default => 'DOKUMEN',
     };
 
-    $effectiveDate = $revision->effective_date?->format('d-m-Y') ?? '-';
+    $effectiveDate = ($revision->effective_date && $revision->status === 'published')
+        ? $revision->effective_date->format('d-m-Y')
+        : '-';
     $statusLabel = strtoupper((string) ($revision->status ?? ''));
     $versionLabelRaw = (string) ($revision->version_label ?? sprintf('E%d-R%d', (int) $revision->edition_number, (int) $revision->revision_number));
     $versionLabel = str_replace('-', '/', $versionLabelRaw);

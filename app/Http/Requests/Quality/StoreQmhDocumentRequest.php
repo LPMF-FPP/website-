@@ -30,6 +30,18 @@ class StoreQmhDocumentRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $user = $this->user();
+        if ($user !== null) {
+            $isAdmin = (string) ($user->role ?? '') === 'admin';
+            $dibuatProvided = $this->filled('dibuat_oleh');
+
+            if (! $dibuatProvided || ! $isAdmin) {
+                $this->merge([
+                    'dibuat_oleh' => (int) $user->id,
+                ]);
+            }
+        }
+
         if ($this->normalizedTemplateDocType() !== 'fr') {
             return;
         }
@@ -95,18 +107,36 @@ class StoreQmhDocumentRequest extends FormRequest
             'parent_sop_id' => ['nullable', 'integer', 'exists:qmh_documents,id'],
             'paired_ik_id' => ['nullable', 'integer', 'exists:qmh_documents,id'],
             'change_summary' => ['nullable', 'string'],
-            'effective_date' => ['nullable', 'date'],
             'editor_json' => ['nullable', 'array'],
             'answers_json' => ['nullable', 'array'],
             'form_schema_json' => ['nullable', 'array'],
             'content_html' => ['nullable', 'string'],
             'content_css' => ['nullable', 'string'],
+            'dibuat_oleh' => ['required', 'integer', 'exists:users,id'],
+            'diperiksa_oleh' => ['nullable', 'integer', 'exists:users,id'],
+            'disahkan_oleh' => ['nullable', 'integer', 'exists:users,id'],
         ];
     }
 
     public function withValidator($validator): void
     {
         $validator->after(function ($validator): void {
+            $dibuat = (int) $this->input('dibuat_oleh');
+            $diperiksa = (int) $this->input('diperiksa_oleh');
+            $disahkan = (int) $this->input('disahkan_oleh');
+
+            if ($dibuat && $diperiksa && $dibuat === $diperiksa) {
+                $validator->errors()->add('diperiksa_oleh', 'Pemeriksa tidak boleh sama dengan Pembuat.');
+            }
+
+            if ($dibuat && $disahkan && $dibuat === $disahkan) {
+                $validator->errors()->add('disahkan_oleh', 'Pengesah tidak boleh sama dengan Pembuat.');
+            }
+
+            if ($diperiksa && $disahkan && $diperiksa === $disahkan) {
+                $validator->errors()->add('disahkan_oleh', 'Pengesah tidak boleh sama dengan Pemeriksa.');
+            }
+
             $docType = $this->normalizedTemplateDocType();
             $parentSopId = $this->input('parent_sop_id');
             $pairedIkId = $this->input('paired_ik_id');

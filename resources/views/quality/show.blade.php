@@ -230,7 +230,58 @@
 
             <div class="p-4">
                 <div x-show="activeTab === 'content'" x-cloak>
-                    @if($currentRevision?->content_html)
+                    @if(isset($currentRevision) && (
+                        ($currentRevision->document?->doc_type === 'formulir')
+                        || (! empty(data_get($currentRevision->form_schema_json, 'questions')))
+                        || (! empty(data_get($currentRevision->template?->metadata, 'form_schema.questions')))
+                    ))
+                        <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                            <h3 class="mb-4 text-center font-bold uppercase">{{ $currentRevision->document?->title }}</h3>
+
+                            @php
+                                $schema = $currentRevision->form_schema_json
+                                    ?? (is_array(data_get($currentRevision->template?->metadata, 'form_schema'))
+                                        ? data_get($currentRevision->template?->metadata, 'form_schema')
+                                        : []);
+                                $questions = is_array(data_get($schema, 'questions')) ? data_get($schema, 'questions') : [];
+                                $answers = is_array($currentRevision->answers_json ?? null) ? ($currentRevision->answers_json ?? []) : [];
+                            @endphp
+
+                            <div class="space-y-4">
+                                @foreach($questions as $idx => $q)
+                                    @php
+                                        $qid = (string) ($q['id'] ?? '');
+                                        $label = (string) ($q['label'] ?? ($qid !== '' ? $qid : ''));
+                                        $type = (string) ($q['type'] ?? 'text');
+                                        $val = $qid !== '' ? ($answers[$qid] ?? null) : null;
+                                    @endphp
+
+                                    <div class="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                                        <div class="flex items-start justify-between">
+                                            <div class="font-semibold text-gray-900">{{ $idx + 1 }}. {{ $label }}</div>
+                                        </div>
+                                        <div class="mt-2 text-gray-800">
+                                            @if($type === 'section')
+                                                <div class="font-bold uppercase text-gray-600">{{ $label !== '' ? $label : 'SECTION' }}</div>
+                                            @elseif($type === 'checkbox')
+                                                <div class="font-medium">{{ $val ? 'YA' : 'TIDAK' }}</div>
+                                            @elseif($type === 'list' && is_array($val))
+                                                <ul class="list-disc pl-5">
+                                                    @foreach($val as $item)
+                                                        <li>{{ $item }}</li>
+                                                    @endforeach
+                                                </ul>
+                                            @elseif(is_string($val) && \App\Support\QmhAnswerSanitizer::looksLikeHtml($val))
+                                                <div class="prose prose-sm max-w-none">{!! \App\Support\QmhHtmlSanitizer::sanitize($val) !!}</div>
+                                            @else
+                                                <div class="whitespace-pre-wrap">{{ $val ?? '-' }}</div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @elseif($currentRevision?->content_html)
                         <article class="prose prose-sm max-w-none text-gray-700">
                             {!! \App\Support\QmhHtmlSanitizer::sanitize($currentRevision->content_html) !!}
                         </article>

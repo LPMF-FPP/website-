@@ -78,10 +78,12 @@ class QmhDocumentService
                 'editor_json' => $payload['editor_json'] ?? null,
                 'answers_json' => $answersJson,
                 'form_schema_json' => $schemaSnapshot,
-                'effective_date' => $payload['effective_date'] ?? null,
+                'effective_date' => null, // Auto-set on publish
                 'content_html' => $resolvedContentHtml,
                 'content_css' => $payload['content_css'] ?? null,
-                'dibuat_oleh' => $actorId,
+                'dibuat_oleh' => $payload['dibuat_oleh'] ?? $actorId,
+                'diperiksa_oleh' => $payload['diperiksa_oleh'] ?? null,
+                'disahkan_oleh' => $payload['disahkan_oleh'] ?? null,
             ]);
 
             $document->current_revision_id = $revision->id;

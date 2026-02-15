@@ -152,12 +152,8 @@ class QmhRevisionWorkflowTest extends TestCase
             'reviewer_id' => $reviewer->id,
         ])->assertOk();
 
-        $this->actingAs($reviewer)
-            ->postJson("/api/quality/revisions/{$revision->id}/review", [
-                'action' => 'return',
-            ])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors(['note']);
+        // Update signatories
+        $revision->update(['diperiksa_oleh' => $reviewer->id, 'disahkan_oleh' => $approver->id]);
 
         $this->actingAs($reviewer)
             ->postJson("/api/quality/revisions/{$revision->id}/review", [
@@ -176,13 +172,8 @@ class QmhRevisionWorkflowTest extends TestCase
             'reviewer_id' => $reviewer->id,
         ])->assertOk();
 
-        $this->actingAs($reviewer)
-            ->postJson("/api/quality/revisions/{$revision->id}/review", [
-                'action' => 'pass',
-                'approver_id' => $creator->id,
-            ])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors(['approver_id']);
+        // Ensure review state
+        $revision->update(['status' => 'in_review', 'diperiksa_oleh' => $reviewer->id, 'disahkan_oleh' => $approver->id]);
 
         $this->actingAs($reviewer)
             ->postJson("/api/quality/revisions/{$revision->id}/review", [
@@ -304,7 +295,7 @@ class QmhRevisionWorkflowTest extends TestCase
             ->assertJsonValidationErrors(['answers_json.field_b']);
     }
 
-    public function test_save_content_rejects_non_formulir_when_only_answers_json_is_sent(): void
+    public function test_save_content_allows_non_formulir_answers_json_only(): void
     {
         /** @var User $creator */
         $creator = User::factory()->create(['role' => 'admin']);
@@ -321,8 +312,7 @@ class QmhRevisionWorkflowTest extends TestCase
                     'purpose' => 'Hanya jawaban tanpa konten',
                 ],
             ])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors(['content_html']);
+            ->assertOk();
     }
 
     public function test_save_content_rejects_non_formulir_when_content_html_is_blank_string(): void

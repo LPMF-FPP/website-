@@ -25,8 +25,11 @@ class QmhPreviewPdfRequest extends FormRequest
             'parent_sop_id' => ['nullable', 'integer', 'exists:qmh_documents,id'],
             'paired_ik_id' => ['nullable', 'integer', 'exists:qmh_documents,id'],
             'change_summary' => ['nullable', 'string'],
-            'effective_date' => ['nullable', 'date'],
             'answers_json' => ['nullable', 'array'],
+            'content_html' => ['nullable', 'string'],
+            'dibuat_oleh' => ['nullable', 'integer', 'exists:users,id'],
+            'diperiksa_oleh' => ['nullable', 'integer', 'exists:users,id'],
+            'disahkan_oleh' => ['nullable', 'integer', 'exists:users,id'],
         ];
     }
 }

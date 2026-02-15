@@ -194,6 +194,7 @@ class QmhDocumentWebTest extends TestCase
                 'doc_type' => 'sop',
                 'template_id' => $template->id,
                 'change_summary' => 'create from web',
+                'dibuat_oleh' => $user->id,
             ]);
 
         $createdDocument = QmhDocument::query()

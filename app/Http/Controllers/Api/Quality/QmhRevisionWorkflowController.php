@@ -7,6 +7,7 @@ use App\Http\Requests\Quality\ApproveQmhRevisionRequest;
 use App\Http\Requests\Quality\DownloadQmhRevisionRequest;
 use App\Http\Requests\Quality\HeartbeatQmhRevisionRequest;
 use App\Http\Requests\Quality\LockQmhRevisionRequest;
+use App\Http\Requests\Quality\QmhPreviewPdfRequest;
 use App\Http\Requests\Quality\ReviewQmhRevisionRequest;
 use App\Http\Requests\Quality\SaveQmhRevisionContentRequest;
 use App\Http\Requests\Quality\SubmitQmhRevisionRequest;
@@ -109,8 +110,14 @@ class QmhRevisionWorkflowController extends Controller
             $updates['form_schema_json'] = $request->input('form_schema_json');
         }
 
-        if ($request->has('effective_date')) {
-            $updates['effective_date'] = $request->input('effective_date');
+        if ($request->has('dibuat_oleh') && (string) ($request->user()?->role ?? '') === 'admin') {
+            $updates['dibuat_oleh'] = $request->input('dibuat_oleh');
+        }
+        if ($request->has('diperiksa_oleh')) {
+            $updates['diperiksa_oleh'] = $request->input('diperiksa_oleh');
+        }
+        if ($request->has('disahkan_oleh')) {
+            $updates['disahkan_oleh'] = $request->input('disahkan_oleh');
         }
 
         $revision->update($updates);
@@ -118,6 +125,54 @@ class QmhRevisionWorkflowController extends Controller
         return response()->json([
             'message' => 'Konten revisi berhasil disimpan.',
             'data' => $revision->fresh(),
+        ]);
+    }
+
+    public function previewPdf(QmhPreviewPdfRequest $request, QmhDocumentRevision $revision, QmhRevisionDownloadService $service): Response
+    {
+        // Hydrate revision with preview data (but don't save)
+        $validated = $request->validated();
+
+        $revision->fill([
+            'change_summary' => $validated['change_summary'] ?? $revision->change_summary,
+            'answers_json' => QmhAnswerSanitizer::sanitizeAnswersJson($validated['answers_json'] ?? ($revision->answers_json ?? [])),
+            'content_html' => isset($validated['content_html']) && is_string($validated['content_html']) && trim($validated['content_html']) !== ''
+                ? $validated['content_html']
+                : ($revision->content_html ?? '<p></p>'),
+        ]);
+
+        if (array_key_exists('dibuat_oleh', $validated)) {
+            $revision->dibuat_oleh = $validated['dibuat_oleh'];
+        }
+        if (array_key_exists('diperiksa_oleh', $validated)) {
+            $revision->diperiksa_oleh = $validated['diperiksa_oleh'];
+        }
+        if (array_key_exists('disahkan_oleh', $validated)) {
+            $revision->disahkan_oleh = $validated['disahkan_oleh'];
+        }
+
+        // Override effective_date to be null for draft preview
+        if ($revision->status !== 'published') {
+            $revision->effective_date = null;
+        }
+
+        // Ensure relations are loaded
+        $revision->loadMissing(['document', 'template', 'createdBy', 'reviewedBy', 'approvedBy']);
+
+        // Generate HTML
+        $html = $service->buildWatermarkedHtml($revision, 'DRAFT PREVIEW');
+
+        $binary = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)
+            ->setPaper('a4')
+            ->setWarnings(false)
+            ->setOption('isRemoteEnabled', false)
+            ->setOption('isHtml5ParserEnabled', true)
+            ->output();
+
+        return response($binary, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="preview.pdf"',
+            'Cache-Control' => 'private, no-store, max-age=0',
         ]);
     }
 

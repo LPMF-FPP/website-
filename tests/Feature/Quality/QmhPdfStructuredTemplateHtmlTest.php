@@ -36,7 +36,6 @@ class QmhPdfStructuredTemplateHtmlTest extends TestCase
             'status' => 'draft',
             'version_bump_mode' => 'auto',
             'dibuat_oleh' => $user->id,
-            'effective_date' => '2026-02-14',
             'answers_json' => [
                 'purpose' => 'Tujuan dokumen.',
             ],
@@ -253,7 +252,6 @@ class QmhPdfStructuredTemplateHtmlTest extends TestCase
             'status' => 'draft',
             'version_bump_mode' => 'auto',
             'dibuat_oleh' => $user->id,
-            'effective_date' => '2026-02-15',
             'answers_json' => [
                 'agree' => true,
             ],

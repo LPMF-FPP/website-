@@ -94,9 +94,16 @@ class QmhDocumentController extends Controller
             ->orderBy('doc_code')
             ->get();
 
+        $users = User::query()
+            ->select('id', 'name', 'role')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
         return view('quality.create', [
             'sopOptions' => $sopOptions,
             'ikOptions' => $ikOptions,
+            'users' => $users,
         ]);
     }
 
@@ -104,6 +111,7 @@ class QmhDocumentController extends Controller
     {
         $document->load([
             'currentRevision.lock.owner',
+            'currentRevision.template',
             'revisions' => fn ($query) => $query
                 ->orderByDesc('edition_number')
                 ->orderByDesc('revision_number'),

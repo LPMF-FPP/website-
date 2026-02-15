@@ -24,7 +24,6 @@ it('renders qmh pdf template html with header fields', function () {
         'version_label' => 'E1-R0',
         'status' => 'draft',
         'content_html' => '<p>Isi dokumen</p>',
-        'effective_date' => '2026-02-14',
     ]);
 
     /** @var QmhRevisionDownloadService $service */
