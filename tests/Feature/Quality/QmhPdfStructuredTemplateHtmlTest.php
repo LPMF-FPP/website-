@@ -66,4 +66,54 @@ class QmhPdfStructuredTemplateHtmlTest extends TestCase
         $this->assertStringContainsString('Diperiksa Oleh:', $html);
         $this->assertStringContainsString('Disahkan Oleh:', $html);
     }
+
+    public function test_pdf_template_renders_rich_text_answers_and_ordered_lists(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-SOP-PDF-HTML-001',
+            'title' => 'SOP Uji Rich Text',
+            'clause' => 4,
+            'doc_type' => 'sop',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'draft',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+            'answers_json' => [
+                'purpose' => '<p><strong>Tujuan</strong> <em>dokumen</em></p>',
+                'definitions' => '<ol><li><p>Definisi 1</p></li><li><p>Definisi 2</p></li></ol>',
+            ],
+        ]);
+
+        $schema = [
+            'version' => 1,
+            'doc_type' => 'sop',
+            'questions' => [
+                ['id' => 'purpose', 'label' => 'Tujuan', 'type' => 'textarea', 'required' => true],
+                ['id' => 'definitions', 'label' => 'Definisi', 'type' => 'list', 'required' => false],
+            ],
+        ];
+
+        $html = view('pdf.qmh-document', [
+            'revision' => $revision->load(['document', 'createdBy', 'reviewedBy', 'approvedBy']),
+            'schema' => $schema,
+            'answers' => $revision->answers_json,
+            'watermarkText' => 'UNCONTROLLED COPY',
+        ])->render();
+
+        $this->assertStringContainsString('<strong>Tujuan</strong>', $html);
+        $this->assertStringContainsString('<em>dokumen</em>', $html);
+        $this->assertStringContainsString('<ol', $html);
+        $this->assertStringContainsString('Definisi 2', $html);
+    }
 }
