@@ -20,7 +20,6 @@
             initialDocCode: @js(old('doc_code', '')),
             initialTitle: @js(old('title', '')),
             initialChangeSummary: @js(old('change_summary', '')),
-            initialEffectiveDate: @js(old('effective_date', '')),
             users: @js($users ?? []),
             dibuatOleh: @js((int) old('dibuat_oleh', auth()->id())),
             diperiksaOleh: @js((int) old('diperiksa_oleh', 0)),

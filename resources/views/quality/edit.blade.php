@@ -98,178 +98,176 @@
         <div class="grid grid-cols-12 gap-6">
             <div class="col-span-12 lg:col-span-8">
                 <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                    @if(true) {{-- Render schema editor for ALL types if schema exists --}}
-                        <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700" x-show="schemaQuestions().length > 0">
-                            Editor menggunakan schema pertanyaan revisi (snapshot) dan disimpan sebagai `answers_json`.
+                    <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700" x-show="schemaQuestions().length > 0">
+                        Editor menggunakan schema pertanyaan revisi (snapshot) dan disimpan sebagai `answers_json`.
+                    </div>
+
+                    <div class="mt-4 rounded-lg border border-gray-200 bg-white p-4" x-show="revisionStatus === 'draft' && isFormulir" x-cloak>
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <p class="text-sm font-semibold text-gray-900">Pertanyaan Template</p>
+                                <p class="mt-1 text-xs text-gray-500">Bisa diedit hanya saat draft dan pemilik lock.</p>
+                            </div>
+                            <button
+                                type="button"
+                                class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                @click="showSchemaEditor = !showSchemaEditor"
+                            >
+                                <span x-text="showSchemaEditor ? 'Tutup Editor' : 'Edit Pertanyaan'"></span>
+                            </button>
                         </div>
 
-                        <div class="mt-4 rounded-lg border border-gray-200 bg-white p-4" x-show="revisionStatus === 'draft' && isFormulir" x-cloak>
-                            <div class="flex flex-wrap items-center justify-between gap-3">
-                                <div>
-                                    <p class="text-sm font-semibold text-gray-900">Pertanyaan Template</p>
-                                    <p class="mt-1 text-xs text-gray-500">Bisa diedit hanya saat draft dan pemilik lock.</p>
-                                </div>
-                                <button
-                                    type="button"
-                                    class="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                                    @click="showSchemaEditor = !showSchemaEditor"
+                        <template x-if="showSchemaEditor">
+                            <div class="mt-4" :class="hasLock ? '' : 'pointer-events-none opacity-60'">
+                                <div
+                                    class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                                    x-data="qmhFormBuilder({
+                                        docType: docType === 'formulir' ? 'fr' : docType,
+                                        initialSchema: schema,
+                                        initialJson: '',
+                                    })"
+                                    x-init="init()"
                                 >
-                                    <span x-text="showSchemaEditor ? 'Tutup Editor' : 'Edit Pertanyaan'"></span>
-                                </button>
-                            </div>
-
-                            <template x-if="showSchemaEditor">
-                                <div class="mt-4" :class="hasLock ? '' : 'pointer-events-none opacity-60'">
-                                    <div
-                                        class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-                                        x-data="qmhFormBuilder({
-                                            docType: docType === 'formulir' ? 'fr' : docType,
-                                            initialSchema: schema,
-                                            initialJson: '',
-                                        })"
-                                        x-init="init()"
-                                    >
-                                        <div class="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 pb-3">
-                                            <div class="flex flex-wrap items-center gap-2">
-                                                <button type="button" class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-xs font-medium text-white hover:bg-primary-700" @click="addQuestion('text')">
-                                                    + Pertanyaan
-                                                </button>
-                                                <button type="button" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50" @click="addQuestion('section')">
-                                                    + Section
-                                                </button>
-                                                <button type="button" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50" @click="showRawJson = !showRawJson">
+                                    <div class="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 pb-3">
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <button type="button" class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-xs font-medium text-white hover:bg-primary-700" @click="addQuestion('text')">
+                                                + Pertanyaan
+                                            </button>
+                                            <button type="button" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50" @click="addQuestion('section')">
+                                                + Section
+                                            </button>
+                                            <button type="button" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50" @click="showRawJson = !showRawJson">
                                                     <span x-text="showRawJson ? 'Sembunyikan JSON' : 'Tampilkan JSON'"></span>
                                                 </button>
-                                            </div>
-
-                                            <div class="text-xs text-gray-500">
-                                                <span x-text="questions.length"></span> pertanyaan
-                                            </div>
                                         </div>
 
-                                        <template x-if="jsonError">
-                                            <div class="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800" x-text="jsonError"></div>
-                                        </template>
+                                        <div class="text-xs text-gray-500">
+                                            <span x-text="questions.length"></span> pertanyaan
+                                        </div>
+                                    </div>
 
-                                        <div class="space-y-3">
-                                            <template x-for="(q, idx) in questions" :key="idx">
-                                                <div class="rounded-lg border border-gray-200 p-3">
-                                                    <div class="flex flex-wrap items-start justify-between gap-2">
-                                                        <div class="flex-1 min-w-[240px]">
-                                                            <div class="grid gap-2 sm:grid-cols-12">
-                                                                <div class="sm:col-span-5">
-                                                                    <label class="block text-[11px] font-semibold text-gray-600">Label</label>
-                                                                    <input
-                                                                        type="text"
-                                                                        class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-                                                                        x-model="q.label"
-                                                                        @input.debounce.150ms="onLabelChanged(idx)"
-                                                                        placeholder="Contoh: Nama Petugas"
-                                                                    />
-                                                                </div>
+                                    <template x-if="jsonError">
+                                        <div class="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800" x-text="jsonError"></div>
+                                    </template>
 
-                                                                <div class="sm:col-span-3">
-                                                                    <label class="block text-[11px] font-semibold text-gray-600">Tipe</label>
-                                                                    <select
-                                                                        class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-                                                                        x-model="q.type"
-                                                                        @change="onTypeChanged(idx)"
-                                                                    >
-                                                                        <option value="section">Section</option>
-                                                                        <option value="text">Text</option>
-                                                                        <option value="textarea">Textarea</option>
-                                                                        <option value="list">List</option>
-                                                                        <option value="select">Select</option>
-                                                                        <option value="checkbox">Checkbox</option>
-                                                                        <option value="date">Date</option>
-                                                                        <option value="number">Number</option>
-                                                                    </select>
-                                                                </div>
-
-                                                                <div class="sm:col-span-3">
-                                                                    <label class="block text-[11px] font-semibold text-gray-600">ID</label>
-                                                                    <input
-                                                                        type="text"
-                                                                        class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 font-mono text-xs"
-                                                                        x-model="q.id"
-                                                                        @input.debounce.150ms="q.auto_id = false; syncJson()"
-                                                                        placeholder="field_name"
-                                                                    />
-                                                                    <p class="mt-1 text-[10px] text-gray-500">a-z, 0-9, _ (max 64)</p>
-                                                                </div>
-
-                                                                <div class="sm:col-span-1">
-                                                                    <label class="block text-[11px] font-semibold text-gray-600">Wajib</label>
-                                                                    <input
-                                                                        type="checkbox"
-                                                                        class="mt-3 h-4 w-4 rounded border-gray-300 text-primary-600"
-                                                                        x-model="q.required"
-                                                                        :disabled="q.type === 'section'"
-                                                                        @change="syncJson()"
-                                                                    />
-                                                                </div>
+                                    <div class="space-y-3">
+                                        <template x-for="(q, idx) in questions" :key="idx">
+                                            <div class="rounded-lg border border-gray-200 p-3">
+                                                <div class="flex flex-wrap items-start justify-between gap-2">
+                                                    <div class="flex-1 min-w-[240px]">
+                                                        <div class="grid gap-2 sm:grid-cols-12">
+                                                            <div class="sm:col-span-5">
+                                                                <label class="block text-[11px] font-semibold text-gray-600">Label</label>
+                                                                <input
+                                                                    type="text"
+                                                                    class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                                                                    x-model="q.label"
+                                                                    @input.debounce.150ms="onLabelChanged(idx)"
+                                                                    placeholder="Contoh: Nama Petugas"
+                                                                />
                                                             </div>
 
-                                                            <div class="mt-2 grid gap-2 sm:grid-cols-12">
-                                                                <div class="sm:col-span-6">
-                                                                    <label class="block text-[11px] font-semibold text-gray-600">Help (opsional)</label>
-                                                                    <input
-                                                                        type="text"
-                                                                        class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-                                                                        x-model="q.help"
-                                                                        @input.debounce.150ms="syncJson()"
-                                                                        placeholder="Contoh: isi sesuai format di label"
-                                                                    />
-                                                                </div>
-                                                                <div class="sm:col-span-6">
-                                                                    <label class="block text-[11px] font-semibold text-gray-600">Placeholder (opsional)</label>
-                                                                    <input
-                                                                        type="text"
-                                                                        class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-                                                                        x-model="q.placeholder"
-                                                                        @input.debounce.150ms="syncJson()"
-                                                                        placeholder="Contoh: 2026-02-15"
-                                                                    />
-                                                                </div>
+                                                            <div class="sm:col-span-3">
+                                                                <label class="block text-[11px] font-semibold text-gray-600">Tipe</label>
+                                                                <select
+                                                                    class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                                                                    x-model="q.type"
+                                                                    @change="onTypeChanged(idx)"
+                                                                >
+                                                                    <option value="section">Section</option>
+                                                                    <option value="text">Text</option>
+                                                                    <option value="textarea">Textarea</option>
+                                                                    <option value="list">List</option>
+                                                                    <option value="select">Select</option>
+                                                                    <option value="checkbox">Checkbox</option>
+                                                                    <option value="date">Date</option>
+                                                                    <option value="number">Number</option>
+                                                                </select>
                                                             </div>
 
-                                                            <template x-if="q.type === 'select'">
-                                                                <div class="mt-3 rounded-md border border-gray-200 bg-gray-50 p-3">
-                                                                    <div class="flex items-center justify-between">
-                                                                        <div class="text-xs font-semibold text-gray-700">Options</div>
-                                                                        <button type="button" class="text-xs font-medium text-primary-700 hover:underline" @click="addSelectOption(idx)">
-                                                                            + Tambah option
-                                                                        </button>
-                                                                    </div>
+                                                            <div class="sm:col-span-3">
+                                                                <label class="block text-[11px] font-semibold text-gray-600">ID</label>
+                                                                <input
+                                                                    type="text"
+                                                                    class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 font-mono text-xs"
+                                                                    x-model="q.id"
+                                                                    @input.debounce.150ms="q.auto_id = false; syncJson()"
+                                                                    placeholder="field_name"
+                                                                />
+                                                                <p class="mt-1 text-[10px] text-gray-500">a-z, 0-9, _ (max 64)</p>
+                                                            </div>
 
-                                                                    <div class="mt-2 space-y-2">
-                                                                        <template x-for="(opt, optIdx) in q.options" :key="optIdx">
-                                                                            <div class="grid grid-cols-12 gap-2 items-center">
-                                                                                <div class="col-span-5">
-                                                                                    <input type="text" class="w-full rounded-md border border-gray-300 px-2 py-1.5 font-mono text-xs" x-model="opt.value" @input.debounce.150ms="syncJson()" placeholder="value" />
-                                                                                </div>
-                                                                                <div class="col-span-6">
-                                                                                    <input type="text" class="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm" x-model="opt.label" @input.debounce.150ms="syncJson()" placeholder="label" />
-                                                                                </div>
-                                                                                <div class="col-span-1 text-right">
-                                                                                    <button type="button" class="text-xs text-red-600 hover:underline" @click="deleteSelectOption(idx, optIdx)">Hapus</button>
-                                                                                </div>
+                                                            <div class="sm:col-span-1">
+                                                                <label class="block text-[11px] font-semibold text-gray-600">Wajib</label>
+                                                                <input
+                                                                    type="checkbox"
+                                                                    class="mt-3 h-4 w-4 rounded border-gray-300 text-primary-600"
+                                                                    x-model="q.required"
+                                                                    :disabled="q.type === 'section'"
+                                                                    @change="syncJson()"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <div class="mt-2 grid gap-2 sm:grid-cols-12">
+                                                            <div class="sm:col-span-6">
+                                                                <label class="block text-[11px] font-semibold text-gray-600">Help (opsional)</label>
+                                                                <input
+                                                                    type="text"
+                                                                    class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                                                                    x-model="q.help"
+                                                                    @input.debounce.150ms="syncJson()"
+                                                                    placeholder="Contoh: isi sesuai format di label"
+                                                                />
+                                                            </div>
+                                                            <div class="sm:col-span-6">
+                                                                <label class="block text-[11px] font-semibold text-gray-600">Placeholder (opsional)</label>
+                                                                <input
+                                                                    type="text"
+                                                                    class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                                                                    x-model="q.placeholder"
+                                                                    @input.debounce.150ms="syncJson()"
+                                                                    placeholder="Contoh: 2026-02-15"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        <template x-if="q.type === 'select'">
+                                                            <div class="mt-3 rounded-md border border-gray-200 bg-gray-50 p-3">
+                                                                <div class="flex items-center justify-between">
+                                                                    <div class="text-xs font-semibold text-gray-700">Options</div>
+                                                                    <button type="button" class="text-xs font-medium text-primary-700 hover:underline" @click="addSelectOption(idx)">
+                                                                        + Tambah option
+                                                                    </button>
+                                                                </div>
+
+                                                                <div class="mt-2 space-y-2">
+                                                                    <template x-for="(opt, optIdx) in q.options" :key="optIdx">
+                                                                        <div class="grid grid-cols-12 gap-2 items-center">
+                                                                            <div class="col-span-5">
+                                                                                <input type="text" class="w-full rounded-md border border-gray-300 px-2 py-1.5 font-mono text-xs" x-model="opt.value" @input.debounce.150ms="syncJson()" placeholder="value" />
                                                                             </div>
-                                                                        </template>
-                                                                    </div>
+                                                                            <div class="col-span-6">
+                                                                                <input type="text" class="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm" x-model="opt.label" @input.debounce.150ms="syncJson()" placeholder="label" />
+                                                                            </div>
+                                                                            <div class="col-span-1 text-right">
+                                                                                <button type="button" class="text-xs text-red-600 hover:underline" @click="deleteSelectOption(idx, optIdx)">Hapus</button>
+                                                                            </div>
+                                                                        </div>
+                                                                    </template>
                                                                 </div>
-                                                            </template>
-                                                        </div>
-
-                                                        <div class="flex flex-col items-end gap-2">
-                                                            <div class="flex gap-1">
-                                                                <button type="button" class="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-50" @click="moveUp(idx)" :disabled="idx === 0">Up</button>
-                                                                <button type="button" class="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-50" @click="moveDown(idx)" :disabled="idx === questions.length - 1">Down</button>
                                                             </div>
-                                                            <button type="button" class="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100" @click="deleteQuestion(idx)">
-                                                                Hapus
-                                                            </button>
+                                                        </template>
+                                                    </div>
+
+                                                    <div class="flex flex-col items-end gap-2">
+                                                        <div class="flex gap-1">
+                                                            <button type="button" class="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-50" @click="moveUp(idx)" :disabled="idx === 0">Up</button>
+                                                            <button type="button" class="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-50" @click="moveDown(idx)" :disabled="idx === questions.length - 1">Down</button>
                                                         </div>
+                                                        <button type="button" class="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100" @click="deleteQuestion(idx)">
+                                                            Hapus
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </template>
@@ -440,7 +438,7 @@
                                 </div>
                             </template>
                         </div>
-                    @endif
+                    </div>
 
                     <div x-show="schemaQuestions().length === 0" x-cloak>
                         <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" x-data="qmhEditor({ initialContent: @js($revision?->content_html ?? '<p></p>') })" x-init="init()" @qmh-editor-change="onEditorChange($event.detail)">
@@ -951,21 +949,22 @@
                 async loadPdfPreview() {
                     this.pdfPreviewLoading = true;
                     try {
-                        // Prepare payload with current draft state
+                        const hasSchema = this.schemaQuestions().length > 0;
+
                         const payload = {
+                            doc_type: this.docType || '',
+                            clause: this.clause,
+                            doc_code: this.docCode,
+                            title: this.documentTitle,
+                            template_id: this.templateId ? Number(this.templateId) : null,
                             change_summary: null,
                             answers_json: { ...this.answers },
-                            // content_html is sent implicitly for non-formulir via existing content logic if needed,
-                            // but preview endpoint might fetch from revision unless we override.
-                            // The task spec says "Update edit preview modal to use PDF preview... using the revision preview endpoint".
-                            // If we want WYSIWYG of *unsaved* changes, we must post them.
-                            // But qmhEditPage logic already autosaves or has save state.
-                            // Let's assume we post current state to preview endpoint.
+                            content_html: hasSchema ? null : (this.contentHtml || '<p></p>'),
+                            dibuat_oleh: this.dibuatOleh,
+                            diperiksa_oleh: this.diperiksaOleh,
+                            disahkan_oleh: this.disahkanOleh,
                         };
 
-                        // Actually, the endpoint is POST /api/quality/revisions/{revision}/preview/pdf
-                        // We should send the current editor state.
-                        
                         const response = await fetch(`/api/quality/revisions/${this.revisionId}/preview/pdf`, {
                             method: 'POST',
                             credentials: 'same-origin',
@@ -985,30 +984,10 @@
                         this.pdfPreviewUrl = URL.createObjectURL(blob);
                     } catch (error) {
                         console.error(error);
-                        this.pdfPreviewUrl = null; // Error state handled in template
+                        this.pdfPreviewUrl = null;
                     } finally {
                         this.pdfPreviewLoading = false;
                     }
-                },
-
-                formatPreviewAnswer(q) {
-                    const qid = typeof q?.id === 'string' ? q.id : '';
-                    const type = String(q?.type || 'text');
-                    const val = qid ? this.answers[qid] : '';
-
-                    if (type === 'checkbox') {
-                        return this.coerceBoolean(val) ? 'Ya' : 'Tidak';
-                    }
-
-                    if (val == null) {
-                        return '';
-                    }
-
-                    if (Array.isArray(val)) {
-                        return val.join(', ');
-                    }
-
-                    return String(val);
                 },
 
                 async acquireLock() {
@@ -1028,7 +1007,10 @@
                 startHeartbeat() {
                     this.stopHeartbeat();
                     this.heartbeatTimer = window.setInterval(async () => {
-                        if (!this.hasLock) return;
+                        if (!this.hasLock) {
+                            return;
+                        }
+
                         const result = await this.apiPost(this.heartbeatUrl, {});
                         if (!result.ok) {
                             this.stopHeartbeat();
@@ -1058,33 +1040,38 @@
                     this.errorMessage = '';
 
                     try {
-                        let payload = {
-                            content_html: this.contentHtml || '<p></p>',
-                            content_css: null,
-                        editor_json: this.editorJson,
-                        dibuat_oleh: this.dibuatOleh,
-                        diperiksa_oleh: this.diperiksaOleh,
-                        disahkan_oleh: this.disahkanOleh,
-                    };
+                        const hasSchema = this.schemaQuestions().length > 0;
 
-                    if (this.isFormulir) {
-                            this.errorMessage = '';
-                            if (!this.validateFormAnswers()) {
-                                this.errorMessage = 'Lengkapi jawaban wajib sebelum menyimpan.';
-                                this.saveState = 'dirty';
-                                return;
-                            }
-
-                            // Ensure list answers are synced from textareas.
+                        // Ensure list answers are synced from textareas.
+                        if (hasSchema) {
                             this.schemaQuestions().forEach((q) => {
                                 if (q?.type === 'list' && typeof q?.id === 'string') {
                                     this.syncListAnswer(q.id);
                                 }
                             });
+                        }
 
+                        let payload;
+
+                        if (hasSchema) {
                             payload = {
-                                answers_json: this.answers,
-                                form_schema_json: this.schema,
+                                answers_json: { ...this.answers },
+                                dibuat_oleh: this.dibuatOleh,
+                                diperiksa_oleh: this.diperiksaOleh,
+                                disahkan_oleh: this.disahkanOleh,
+                            };
+
+                            if (this.isFormulir) {
+                                payload.form_schema_json = this.schema;
+                            }
+                        } else {
+                            payload = {
+                                content_html: this.contentHtml || '<p></p>',
+                                content_css: null,
+                                editor_json: this.editorJson,
+                                dibuat_oleh: this.dibuatOleh,
+                                diperiksa_oleh: this.diperiksaOleh,
+                                disahkan_oleh: this.disahkanOleh,
                             };
                         }
 

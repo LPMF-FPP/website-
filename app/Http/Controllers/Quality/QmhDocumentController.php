@@ -111,6 +111,7 @@ class QmhDocumentController extends Controller
     {
         $document->load([
             'currentRevision.lock.owner',
+            'currentRevision.template',
             'revisions' => fn ($query) => $query
                 ->orderByDesc('edition_number')
                 ->orderByDesc('revision_number'),

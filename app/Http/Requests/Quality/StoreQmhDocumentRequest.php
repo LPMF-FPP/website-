@@ -30,6 +30,18 @@ class StoreQmhDocumentRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $user = $this->user();
+        if ($user !== null) {
+            $isAdmin = (string) ($user->role ?? '') === 'admin';
+            $dibuatProvided = $this->filled('dibuat_oleh');
+
+            if (! $dibuatProvided || ! $isAdmin) {
+                $this->merge([
+                    'dibuat_oleh' => (int) $user->id,
+                ]);
+            }
+        }
+
         if ($this->normalizedTemplateDocType() !== 'fr') {
             return;
         }

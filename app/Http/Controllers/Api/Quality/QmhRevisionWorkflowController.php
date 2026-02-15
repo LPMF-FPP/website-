@@ -110,7 +110,7 @@ class QmhRevisionWorkflowController extends Controller
             $updates['form_schema_json'] = $request->input('form_schema_json');
         }
 
-        if ($request->has('dibuat_oleh')) {
+        if ($request->has('dibuat_oleh') && (string) ($request->user()?->role ?? '') === 'admin') {
             $updates['dibuat_oleh'] = $request->input('dibuat_oleh');
         }
         if ($request->has('diperiksa_oleh')) {
@@ -136,11 +136,25 @@ class QmhRevisionWorkflowController extends Controller
         $revision->fill([
             'change_summary' => $validated['change_summary'] ?? $revision->change_summary,
             'answers_json' => QmhAnswerSanitizer::sanitizeAnswersJson($validated['answers_json'] ?? ($revision->answers_json ?? [])),
-            'content_html' => $revision->content_html ?? '<p></p>', // Fallback
+            'content_html' => isset($validated['content_html']) && is_string($validated['content_html']) && trim($validated['content_html']) !== ''
+                ? $validated['content_html']
+                : ($revision->content_html ?? '<p></p>'),
         ]);
 
-        // Override effective_date to be null for draft preview (Task 3)
-        $revision->effective_date = null;
+        if (array_key_exists('dibuat_oleh', $validated)) {
+            $revision->dibuat_oleh = $validated['dibuat_oleh'];
+        }
+        if (array_key_exists('diperiksa_oleh', $validated)) {
+            $revision->diperiksa_oleh = $validated['diperiksa_oleh'];
+        }
+        if (array_key_exists('disahkan_oleh', $validated)) {
+            $revision->disahkan_oleh = $validated['disahkan_oleh'];
+        }
+
+        // Override effective_date to be null for draft preview
+        if ($revision->status !== 'published') {
+            $revision->effective_date = null;
+        }
 
         // Ensure relations are loaded
         $revision->loadMissing(['document', 'template', 'createdBy', 'reviewedBy', 'approvedBy']);
@@ -151,7 +165,7 @@ class QmhRevisionWorkflowController extends Controller
         $binary = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)
             ->setPaper('a4')
             ->setWarnings(false)
-            ->setOption('isRemoteEnabled', true)
+            ->setOption('isRemoteEnabled', false)
             ->setOption('isHtml5ParserEnabled', true)
             ->output();
 

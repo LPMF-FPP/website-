@@ -230,30 +230,39 @@
 
             <div class="p-4">
                 <div x-show="activeTab === 'content'" x-cloak>
-                    @if(isset($currentRevision) && ($currentRevision->document?->doc_type === 'formulir' || ($currentRevision->form_schema_json && !empty($currentRevision->form_schema_json['questions']))))
+                    @if(isset($currentRevision) && (
+                        ($currentRevision->document?->doc_type === 'formulir')
+                        || (! empty(data_get($currentRevision->form_schema_json, 'questions')))
+                        || (! empty(data_get($currentRevision->template?->metadata, 'form_schema.questions')))
+                    ))
                         <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                             <h3 class="mb-4 text-center font-bold uppercase">{{ $currentRevision->document?->title }}</h3>
-                            
+
                             @php
-                                $schema = $currentRevision->form_schema_json ?? [];
-                                $questions = $schema['questions'] ?? [];
-                                $answers = $currentRevision->answers_json ?? [];
+                                $schema = $currentRevision->form_schema_json
+                                    ?? (is_array(data_get($currentRevision->template?->metadata, 'form_schema'))
+                                        ? data_get($currentRevision->template?->metadata, 'form_schema')
+                                        : []);
+                                $questions = is_array(data_get($schema, 'questions')) ? data_get($schema, 'questions') : [];
+                                $answers = is_array($currentRevision->answers_json ?? null) ? ($currentRevision->answers_json ?? []) : [];
                             @endphp
 
                             <div class="space-y-4">
                                 @foreach($questions as $idx => $q)
+                                    @php
+                                        $qid = (string) ($q['id'] ?? '');
+                                        $label = (string) ($q['label'] ?? ($qid !== '' ? $qid : ''));
+                                        $type = (string) ($q['type'] ?? 'text');
+                                        $val = $qid !== '' ? ($answers[$qid] ?? null) : null;
+                                    @endphp
+
                                     <div class="rounded-lg border border-gray-100 bg-gray-50 p-4">
                                         <div class="flex items-start justify-between">
-                                            <div class="font-semibold text-gray-900">{{ $idx + 1 }}. {{ $q['label'] ?? $q['id'] }}</div>
+                                            <div class="font-semibold text-gray-900">{{ $idx + 1 }}. {{ $label }}</div>
                                         </div>
                                         <div class="mt-2 text-gray-800">
-                                            @php
-                                                $val = $answers[$q['id']] ?? null;
-                                                $type = $q['type'] ?? 'text';
-                                            @endphp
-
                                             @if($type === 'section')
-                                                <div class="font-bold uppercase text-gray-600">SECTION</div>
+                                                <div class="font-bold uppercase text-gray-600">{{ $label !== '' ? $label : 'SECTION' }}</div>
                                             @elseif($type === 'checkbox')
                                                 <div class="font-medium">{{ $val ? 'YA' : 'TIDAK' }}</div>
                                             @elseif($type === 'list' && is_array($val))
