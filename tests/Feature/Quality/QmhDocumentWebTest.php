@@ -211,6 +211,39 @@ class QmhDocumentWebTest extends TestCase
         ]);
     }
 
+    public function test_store_non_formulir_ignores_empty_form_schema_json(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+        $template = $this->createTemplate(5, 'sop');
+
+        $response = $this->actingAs($user)
+            ->post('/quality/documents', [
+                'doc_code' => 'QMH-WEB-002',
+                'title' => 'Dokumen SOP dengan schema kosong',
+                'clause' => 5,
+                'doc_type' => 'sop',
+                'template_id' => $template->id,
+                'change_summary' => 'store with empty schema field',
+                'dibuat_oleh' => $user->id,
+                'form_schema_json' => '',
+            ]);
+
+        $createdDocument = QmhDocument::query()
+            ->where('doc_code', 'QMH-WEB-002')
+            ->firstOrFail();
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect(route('quality.documents.show', $createdDocument));
+
+        $this->assertDatabaseHas('qmh_documents', [
+            'doc_code' => 'QMH-WEB-002',
+            'title' => 'Dokumen SOP dengan schema kosong',
+            'doc_type' => 'sop',
+        ]);
+    }
+
     public function test_web_index_supports_search_and_filter_query_params(): void
     {
         /** @var User $user */
