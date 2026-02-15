@@ -57,6 +57,10 @@
             canSubmitForReview: @js($canSubmitForReview),
             submitReason: @js($submitReason),
             reviewerOptions: @js($reviewerOptions),
+            users: @js($users ?? []),
+            dibuatOleh: @js((int) ($revision?->dibuat_oleh ?? 0)),
+            diperiksaOleh: @js((int) ($revision?->diperiksa_oleh ?? 0)),
+            disahkanOleh: @js((int) ($revision?->disahkan_oleh ?? 0)),
             docType: @js($document->doc_type),
             isFormulir: @js(($document?->doc_type ?? '') === 'formulir'),
             initialSchema: @js($revision?->form_schema_json ?? data_get($revision?->template?->metadata, 'form_schema')),
@@ -93,7 +97,59 @@
 
         <div class="grid grid-cols-12 gap-6">
             <div class="col-span-12 lg:col-span-8">
-                <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" x-show="revisionStatus === 'draft'" x-cloak>
+                    <h3 class="mb-3 text-sm font-semibold text-gray-900">Penanda Tangan</h3>
+                    <div class="grid gap-4 md:grid-cols-3">
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-gray-700" for="dibuat_oleh">Dibuat Oleh</label>
+                            <select
+                                id="dibuat_oleh"
+                                x-model.number="dibuatOleh"
+                                @change="dirty = true; saveState = 'dirty'"
+                                :disabled="!hasLock || {{ auth()->user()->role !== 'admin' ? 'true' : 'false' }}"
+                                class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 border-gray-300 disabled:bg-gray-100 disabled:text-gray-500"
+                            >
+                                <template x-for="user in users" :key="user.id">
+                                    <option :value="user.id" x-text="`${user.name} (${user.role})`"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-gray-700" for="diperiksa_oleh">Diperiksa Oleh</label>
+                            <select
+                                id="diperiksa_oleh"
+                                x-model.number="diperiksaOleh"
+                                @change="dirty = true; saveState = 'dirty'"
+                                :disabled="!hasLock"
+                                class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 border-gray-300 disabled:bg-gray-100 disabled:text-gray-500"
+                            >
+                                <option value="0">Pilih Pemeriksa</option>
+                                <template x-for="user in users" :key="user.id">
+                                    <option :value="user.id" x-text="`${user.name} (${user.role})`" :disabled="user.id === dibuatOleh"></option>
+                                </template>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-gray-700" for="disahkan_oleh">Disahkan Oleh</label>
+                            <select
+                                id="disahkan_oleh"
+                                x-model.number="disahkanOleh"
+                                @change="dirty = true; saveState = 'dirty'"
+                                :disabled="!hasLock"
+                                class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 border-gray-300 disabled:bg-gray-100 disabled:text-gray-500"
+                            >
+                                <option value="0">Pilih Pengesah</option>
+                                <template x-for="user in users" :key="user.id">
+                                    <option :value="user.id" x-text="`${user.name} (${user.role})`" :disabled="user.id === dibuatOleh || user.id === diperiksaOleh"></option>
+                                </template>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                     @if(($document?->doc_type ?? '') === 'formulir')
                         <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
                             Editor Formulir menggunakan schema pertanyaan revisi (snapshot) dan disimpan sebagai `answers_json`.
@@ -627,6 +683,10 @@
                 canSubmitForReview: Boolean(config.canSubmitForReview),
                 submitReason: typeof config.submitReason === 'string' ? config.submitReason : '',
                 reviewerOptions: Array.isArray(config.reviewerOptions) ? config.reviewerOptions : [],
+                users: Array.isArray(config.users) ? config.users : [],
+                dibuatOleh: config.dibuatOleh,
+                diperiksaOleh: config.diperiksaOleh,
+                disahkanOleh: config.disahkanOleh,
                 docType: typeof config.docType === 'string' ? config.docType : '',
                 isFormulir: Boolean(config.isFormulir),
                 schema: config.initialSchema && typeof config.initialSchema === 'object' ? config.initialSchema : null,
@@ -998,10 +1058,13 @@
                         let payload = {
                             content_html: this.contentHtml || '<p></p>',
                             content_css: null,
-                            editor_json: this.editorJson,
-                        };
+                        editor_json: this.editorJson,
+                        dibuat_oleh: this.dibuatOleh,
+                        diperiksa_oleh: this.diperiksaOleh,
+                        disahkan_oleh: this.disahkanOleh,
+                    };
 
-                        if (this.isFormulir) {
+                    if (this.isFormulir) {
                             this.errorMessage = '';
                             if (!this.validateFormAnswers()) {
                                 this.errorMessage = 'Lengkapi jawaban wajib sebelum menyimpan.';

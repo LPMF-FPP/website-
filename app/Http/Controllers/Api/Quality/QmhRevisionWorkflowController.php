@@ -109,10 +109,6 @@ class QmhRevisionWorkflowController extends Controller
             $updates['form_schema_json'] = $request->input('form_schema_json');
         }
 
-        if ($request->has('effective_date')) {
-            $updates['effective_date'] = $request->input('effective_date');
-        }
-
         $revision->update($updates);
 
         return response()->json([

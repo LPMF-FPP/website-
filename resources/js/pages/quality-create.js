@@ -5,7 +5,6 @@ export function qmhCreatePage(config = {}) {
         docCode: config.initialDocCode || "",
         title: config.initialTitle || "",
         changeSummary: config.initialChangeSummary || "",
-        effectiveDate: config.initialEffectiveDate || "",
         clause: config.initialClause,
         docType: config.initialDocType || "",
         templateId: config.initialTemplateId,
@@ -18,6 +17,13 @@ export function qmhCreatePage(config = {}) {
         templates: [],
         templatesLoading: false,
         templatesError: "",
+        users: config.users || [],
+        dibuatOleh: config.dibuatOleh,
+        diperiksaOleh: config.diperiksaOleh,
+        disahkanOleh: config.disahkanOleh,
+        currentUserRole: config.currentUserRole,
+        currentUserId: config.currentUserId,
+        signatoriesError: "",
         stepError: "",
         isSubmitting: false,
         previewBeforeSubmitOpen: false,
@@ -45,7 +51,9 @@ export function qmhCreatePage(config = {}) {
                 this.fetchTemplates();
             }
 
-            this.step = this.initialStep();
+            if (!this.dibuatOleh) {
+                this.dibuatOleh = this.currentUserId;
+            }
         },
 
         initialStep() {
@@ -150,6 +158,23 @@ export function qmhCreatePage(config = {}) {
                         "Pilih template aktif terlebih dahulu sebelum review.";
                     return;
                 }
+
+                if (!this.dibuatOleh) {
+                    this.stepError = "Pilih penanda tangan 'Dibuat Oleh'.";
+                    return;
+                }
+
+                if (
+                    this.dibuatOleh === this.diperiksaOleh ||
+                    this.dibuatOleh === this.disahkanOleh ||
+                    (this.diperiksaOleh &&
+                        this.diperiksaOleh === this.disahkanOleh)
+                ) {
+                    this.stepError =
+                        "Penanda tangan tidak boleh sama (Segregation of Duties).";
+                    return;
+                }
+
                 this.step = 4;
             }
         },
@@ -1092,6 +1117,15 @@ export function qmhCreatePage(config = {}) {
                 return false;
             }
 
+            if (
+                !this.dibuatOleh ||
+                this.dibuatOleh === this.diperiksaOleh ||
+                this.dibuatOleh === this.disahkanOleh ||
+                (this.diperiksaOleh && this.diperiksaOleh === this.disahkanOleh)
+            ) {
+                return false;
+            }
+
             return true;
         },
 
@@ -1271,7 +1305,7 @@ export function qmhCreatePage(config = {}) {
             this.stepError = "";
             if (!this.canSubmit()) {
                 this.stepError =
-                    "Lengkapi struktur dokumen dan pastikan template aktif tersedia sebelum menyimpan.";
+                    "Lengkapi struktur dokumen dan pastikan template aktif serta penanda tangan valid sebelum menyimpan.";
 
                 return false;
             }
@@ -1351,9 +1385,11 @@ export function qmhCreatePage(config = {}) {
                 template_id: this.templateId || null,
                 parent_sop_id: this.parentSopId || null,
                 paired_ik_id: this.pairedIkId || null,
-                effective_date: this.effectiveDate || null,
                 change_summary: this.changeSummary || null,
                 answers_json: answers,
+                dibuat_oleh: this.dibuatOleh || null,
+                diperiksa_oleh: this.diperiksaOleh || null,
+                disahkan_oleh: this.disahkanOleh || null,
             };
         },
 

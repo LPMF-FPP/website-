@@ -50,7 +50,7 @@ class QmhDocumentAnswersApiTest extends TestCase
             'clause' => 4,
             'doc_type' => 'sop',
             'template_id' => $templateId,
-            'effective_date' => '2026-02-14',
+            'dibuat_oleh' => $user->id,
             'answers_json' => [
                 'purpose' => 'Menjelaskan tujuan prosedur.',
                 'scope' => 'Berlaku untuk semua sampel.',
@@ -67,11 +67,12 @@ class QmhDocumentAnswersApiTest extends TestCase
         $documentId = (int) $response->json('data.id');
         $this->assertDatabaseHas('qmh_document_revisions', [
             'document_id' => $documentId,
-            'effective_date' => '2026-02-14',
+            'effective_date' => null,
+            'dibuat_oleh' => $user->id,
         ]);
     }
 
-    public function test_save_revision_content_can_persist_answers_json_and_effective_date(): void
+    public function test_save_revision_content_can_persist_answers_json_ignoring_effective_date_input(): void
     {
         Storage::fake('local');
 
@@ -100,6 +101,7 @@ class QmhDocumentAnswersApiTest extends TestCase
                 'clause' => 4,
                 'doc_type' => 'sop',
                 'template_id' => $templateId,
+                'dibuat_oleh' => $user->id,
             ]);
 
         $createResponse->assertCreated();
@@ -125,7 +127,7 @@ class QmhDocumentAnswersApiTest extends TestCase
         $revision = QmhDocumentRevision::query()->findOrFail($revisionId);
 
         $this->assertSame('Tujuan revisi', data_get($revision->answers_json, 'purpose'));
-        $this->assertSame('2026-03-01', optional($revision->effective_date)->format('Y-m-d'));
+        $this->assertNull($revision->effective_date);
     }
 
     public function test_create_document_allows_rich_text_answers_and_preserves_ordered_lists(): void
@@ -156,6 +158,7 @@ class QmhDocumentAnswersApiTest extends TestCase
             'clause' => 4,
             'doc_type' => 'sop',
             'template_id' => $templateId,
+            'dibuat_oleh' => $user->id,
             'answers_json' => [
                 'purpose' => '<p><strong>Tujuan</strong> <em>dokumen</em></p>',
                 'definitions' => '<ol><li><p>Definisi 1</p></li><li><p>Definisi 2</p></li></ol>',

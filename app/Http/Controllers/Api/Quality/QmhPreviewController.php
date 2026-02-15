@@ -81,7 +81,7 @@ class QmhPreviewController extends Controller
             'template_version' => $template?->version,
             'change_summary' => $validated['change_summary'] ?? null,
             'answers_json' => $answers,
-            'effective_date' => $validated['effective_date'] ?? null,
+            'effective_date' => null, // Auto-set on publish
             'content_html' => '<p></p>',
         ]);
 

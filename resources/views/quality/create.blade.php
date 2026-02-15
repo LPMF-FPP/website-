@@ -21,6 +21,12 @@
             initialTitle: @js(old('title', '')),
             initialChangeSummary: @js(old('change_summary', '')),
             initialEffectiveDate: @js(old('effective_date', '')),
+            users: @js($users ?? []),
+            dibuatOleh: @js((int) old('dibuat_oleh', auth()->id())),
+            diperiksaOleh: @js((int) old('diperiksa_oleh', 0)),
+            disahkanOleh: @js((int) old('disahkan_oleh', 0)),
+            currentUserRole: @js(auth()->user()->role),
+            currentUserId: @js(auth()->id()),
             initialAnswersJson: @js(old('answers_json', [])),
             initialClause: @js((int) old('clause', 4)),
             initialDocType: @js(old('doc_type', '')),
@@ -81,8 +87,8 @@
                         <div class="mt-0.5">Kode, judul</div>
                     </button>
                     <button type="button" @click="goToStep(3)" class="rounded-lg border px-3 py-2 text-left text-xs transition" :class="step === 3 ? 'border-primary-300 bg-white text-primary-900' : (canGoToStep(3) ? 'border-gray-200 bg-white text-gray-700 hover:border-primary-300' : 'border-gray-100 bg-white text-gray-300')">
-                        <div class="font-semibold">3. Template</div>
-                        <div class="mt-0.5">Pertanyaan</div>
+                        <div class="font-semibold">3. Template & Signatories</div>
+                        <div class="mt-0.5">Pertanyaan & Penanda Tangan</div>
                     </button>
                     <button type="button" @click="goToStep(4)" class="rounded-lg border px-3 py-2 text-left text-xs transition" :class="step === 4 ? 'border-primary-300 bg-white text-primary-900' : (canGoToStep(4) ? 'border-gray-200 bg-white text-gray-700 hover:border-primary-300' : 'border-gray-100 bg-white text-gray-300')">
                         <div class="font-semibold">4. Review</div>
@@ -97,6 +103,9 @@
                 @csrf
 
                 <input type="hidden" name="template_id" :value="templateId">
+                <input type="hidden" name="dibuat_oleh" :value="dibuatOleh">
+                <input type="hidden" name="diperiksa_oleh" :value="diperiksaOleh">
+                <input type="hidden" name="disahkan_oleh" :value="disahkanOleh">
 
                 <template x-for="field in answerFormFields()" :key="`${field.name}:${field.value}`">
                     <input type="hidden" :name="field.name" :value="field.value">
@@ -196,17 +205,7 @@
                     </div>
 
                     <div>
-                        <label class="mb-1 block text-sm font-medium text-gray-700" for="effective_date">Tgl. Efektif (Opsional)</label>
-                        <input
-                            id="effective_date"
-                            name="effective_date"
-                            type="date"
-                            x-model="effectiveDate"
-                            class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('effective_date') border-red-400 @else border-gray-300 @enderror"
-                        >
-                        @error('effective_date')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
+                        {{-- Effective date is now auto-set on publish --}}
                     </div>
                 </div>
 
@@ -260,8 +259,8 @@
 
                 <div x-show="step === 3" x-cloak class="space-y-5">
                     <div class="rounded-lg border border-gray-200 bg-white p-4">
-                        <h3 class="text-sm font-semibold text-gray-900">Template & Pertanyaan</h3>
-                        <p class="mt-1 text-xs text-gray-500">Pilih template aktif lalu isi/atur pertanyaan sesuai kebutuhan.</p>
+                        <h3 class="text-sm font-semibold text-gray-900">Template & Signatories</h3>
+                        <p class="mt-1 text-xs text-gray-500">Pilih template aktif, isi/atur pertanyaan, dan tentukan penanda tangan.</p>
                     </div>
 
                     <div x-show="docType" x-cloak>
@@ -274,6 +273,68 @@
                         <p class="mt-1 text-xs" x-show="!templatesLoading && !templateId && canManageTemplate">
                             Tambah template di <a :href="templateManageUrl" class="font-medium underline">QMH > Template</a>.
                         </p>
+                    </div>
+
+                    <div class="mt-4" x-show="!templatesLoading && templates.length > 0" x-cloak>
+                        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                            <h3 class="mb-3 text-sm font-semibold text-gray-900">Penanda Tangan</h3>
+                            <div class="grid gap-4 md:grid-cols-3">
+                                <div>
+                                    <label class="mb-1 block text-xs font-medium text-gray-700" for="dibuat_oleh">Dibuat Oleh</label>
+                                    <select
+                                        id="dibuat_oleh"
+                                        name="dibuat_oleh"
+                                        x-model.number="dibuatOleh"
+                                        :disabled="currentUserRole !== 'admin'"
+                                        class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('dibuat_oleh') border-red-400 @else border-gray-300 @enderror disabled:bg-gray-100 disabled:text-gray-500"
+                                    >
+                                        <template x-for="user in users" :key="user.id">
+                                            <option :value="user.id" x-text="`${user.name} (${user.role})`"></option>
+                                        </template>
+                                    </select>
+                                    @error('dibuat_oleh')
+                                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <label class="mb-1 block text-xs font-medium text-gray-700" for="diperiksa_oleh">Diperiksa Oleh</label>
+                                    <select
+                                        id="diperiksa_oleh"
+                                        name="diperiksa_oleh"
+                                        x-model.number="diperiksaOleh"
+                                        class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('diperiksa_oleh') border-red-400 @else border-gray-300 @enderror"
+                                    >
+                                        <option value="0">Pilih Pemeriksa</option>
+                                        <template x-for="user in users" :key="user.id">
+                                            <option :value="user.id" x-text="`${user.name} (${user.role})`" :disabled="user.id === dibuatOleh"></option>
+                                        </template>
+                                    </select>
+                                    @error('diperiksa_oleh')
+                                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
+                                <div>
+                                    <label class="mb-1 block text-xs font-medium text-gray-700" for="disahkan_oleh">Disahkan Oleh</label>
+                                    <select
+                                        id="disahkan_oleh"
+                                        name="disahkan_oleh"
+                                        x-model.number="disahkanOleh"
+                                        class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('disahkan_oleh') border-red-400 @else border-gray-300 @enderror"
+                                    >
+                                        <option value="0">Pilih Pengesah</option>
+                                        <template x-for="user in users" :key="user.id">
+                                            <option :value="user.id" x-text="`${user.name} (${user.role})`" :disabled="user.id === dibuatOleh || user.id === diperiksaOleh"></option>
+                                        </template>
+                                    </select>
+                                    @error('disahkan_oleh')
+                                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            </div>
+                            <p class="mt-2 text-xs text-gray-500" x-show="signatoriesError" x-text="signatoriesError" class="text-red-600"></p>
+                        </div>
                     </div>
 
                     <div class="mt-2" x-show="!templatesLoading && templates.length > 0" x-cloak>

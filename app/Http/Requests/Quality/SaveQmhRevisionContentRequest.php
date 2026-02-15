@@ -105,7 +105,6 @@ class SaveQmhRevisionContentRequest extends FormRequest
             'editor_json' => ['nullable', 'array'],
             'answers_json' => ['nullable', 'array'],
             'form_schema_json' => ['nullable', 'array'],
-            'effective_date' => ['nullable', 'date'],
         ];
     }
 
