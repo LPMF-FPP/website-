@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Quality;
 
+use App\Support\QmhFormSchemaValidator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -60,6 +61,13 @@ class UpdateQmhTemplateRequest extends FormRequest
     {
         $validator->after(function ($validator): void {
             if (! $this->schemaJsonDecodeFailed) {
+                $schema = $this->input('form_schema');
+                if ($schema !== null) {
+                    foreach (QmhFormSchemaValidator::errors($schema) as $message) {
+                        $validator->errors()->add('form_schema_json', $message);
+                    }
+                }
+
                 return;
             }
 

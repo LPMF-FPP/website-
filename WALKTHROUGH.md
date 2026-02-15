@@ -196,3 +196,145 @@ WhatsApp service berjalan di container Docker terpisah.
 - **WhatsApp Bot:** Initial implementation of `/resi` and `/help` commands.
 
 </details>
+
+---
+
+## Quality/QMH Form Builder (Formulir/FR)
+
+### Context
+
+QMH `FR` (UI) disimpan sebagai `doc_type=formulir` (DB). Saat ini schema pertanyaan formulir disimpan sebagai JSON di metadata template dan dipakai untuk:
+
+- Render input di halaman create/edit QMH.
+- Render structured preview (browser) dan output PDF.
+
+Perubahan terbaru sudah memastikan structured preview dan PDF untuk `formulir` ditampilkan dalam format tabel bernomor agar hasil lebih "form-like".
+
+### Goals
+
+- Menggantikan editing schema berbasis textarea JSON menjadi **Form Builder UI** yang mudah dipakai admin.
+- Menambah tipe field umum formulir (incremental) dan memastikan konsistensi render di:
+    - Form input (create/edit)
+    - Structured preview
+    - PDF
+- Menambah validasi server-side untuk jawaban formulir berbasis schema (required + tipe).
+- Menjaga backward compatibility untuk dokumen lama (schema versi lama & jawaban lama).
+
+### Non-Goals (v1)
+
+- Workflow QMH (draft/submit/review/approve) tidak diubah.
+- Tidak membangun editor DOCX/OnlyOffice.
+- Tidak membangun grid/repeating table yang kompleks (ditunda ke v2).
+
+### Canonical Schema (Template Metadata)
+
+Schema disimpan di `QmhTemplate.metadata.form_schema` dan digunakan sebagai payload `schema` di UI.
+
+Struktur v1 (existing + extension):
+
+```json
+{
+    "version": 1,
+    "doc_type": "fr",
+    "questions": [
+        {
+            "id": "field_a",
+            "label": "Kolom A",
+            "type": "text",
+            "required": false,
+            "help": "Opsional help text",
+            "placeholder": "Contoh isi"
+        }
+    ]
+}
+```
+
+#### Question Types (v1)
+
+- `section`: pemisah/judul (tidak punya jawaban)
+- `text`: string satu baris
+- `textarea`: string multi baris
+- `list`: list item (array string) atau rich-text HTML (legacy supported)
+- `select`: pilihan satu (string) dengan `options`
+- `checkbox`: boolean
+- `date`: string format `YYYY-MM-DD`
+- `number`: string/number (disimpan string untuk konsistensi JSON)
+
+Untuk `select`, tambahkan:
+
+```json
+{
+    "id": "status",
+    "label": "Status",
+    "type": "select",
+    "required": true,
+    "options": [
+        { "value": "ok", "label": "Sesuai" },
+        { "value": "nok", "label": "Tidak Sesuai" }
+    ]
+}
+```
+
+### Answers Model (Revision)
+
+Jawaban disimpan di `QmhDocumentRevision.answers_json` sebagai object dengan key = `question.id`.
+
+Kontrak jawaban v1:
+
+- `text`/`textarea`/`date`/`number`/`select`: string (boleh empty string; required validated)
+- `checkbox`: boolean
+- `list`: array of string (preferred). Legacy: string HTML yang berisi list masih diterima untuk backward compatibility.
+- `section`: tidak ada key (atau diabaikan jika ada).
+
+### Validation Rules (Server-Side)
+
+Implementasikan validasi terpusat (service/support) untuk memastikan:
+
+- Semua `question.id` unique, non-empty, max length (mis. 64), pattern aman (`[a-z0-9_]+`).
+- Untuk `select`: `options` wajib ada, `value` unique.
+- Saat save answers:
+    - Required: value tidak blank (text/textarea/select/date/number), list minimal 1 item non-blank, checkbox harus boolean.
+    - Unknown answer keys: boleh disimpan (compat) tapi ditandai untuk UI "unmapped answers" (future).
+
+### Rendering Requirements
+
+- Create/Edit: field renderer berdasarkan `type`.
+- Structured preview:
+    - `section` dirender sebagai row spanning (future); v1 bisa dirender sebagai label tanpa nomor.
+    - Blank values tetap tampil placeholder kosong agar form tidak "lompat".
+- PDF:
+    - Output tabel bernomor (No/Label/Isi).
+    - Row height adaptif minimal per tipe (text/list/textarea) + checkbox/date/select readable.
+
+### Builder UI (Template Editor)
+
+Lokasi: halaman edit template QMH.
+
+Kemampuan minimum:
+
+- Add question (pilih type, label, auto-generate id).
+- Edit question properties (label, required, help, placeholder, options).
+- Reorder questions (drag/drop) dan delete.
+- Live JSON preview + hidden textarea (`form_schema_json`) tetap jadi source-of-truth untuk submit.
+- Guardrails: mencegah duplicate id, invalid JSON, dan menampilkan error inline.
+
+### Backward Compatibility
+
+- Schema versi lama tanpa field tambahan tetap valid.
+- Jawaban existing tidak dimodifikasi saat schema berubah; renderer harus toleran terhadap missing ids.
+- Untuk `list`: dukung kedua representasi (array dan HTML string).
+
+### Testing Strategy
+
+- Pest:
+    - Unit test validator schema (valid/invalid cases).
+    - Feature test update template menyimpan `form_schema_json` hasil builder.
+    - Feature test create/save dokumen FR dengan required fields.
+- Dusk (optional, setelah v1 stabil): drag/drop reorder + submit.
+
+### Acceptance Criteria (v1)
+
+- Admin dapat membuat & mengedit schema FR dari UI builder tanpa mengetik JSON.
+- Dokumen FR create/edit render field sesuai schema.
+- Structured preview dan PDF menampilkan hasil dalam tabel yang konsisten untuk semua tipe v1.
+- Validation server-side menolak submit/save jika required field kosong.

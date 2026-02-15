@@ -311,6 +311,43 @@ class QmhTemplateManagementWebTest extends TestCase
         $this->assertTrue((bool) data_get($template->metadata, 'form_schema.questions.0.required'));
     }
 
+    public function test_update_template_rejects_invalid_form_schema_json(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $template = QmhTemplate::query()->create([
+            'name' => 'Template Invalid Schema',
+            'clause' => 4,
+            'doc_type' => 'fr',
+            'version' => 1,
+            'storage_disk' => 'local',
+            'source_docx_path' => 'qmh/templates/fr/invalid-schema.docx',
+            'is_active' => true,
+        ]);
+
+        $schema = [
+            'version' => 1,
+            'doc_type' => 'fr',
+            'questions' => [
+                ['id' => 'field_a', 'label' => 'A', 'type' => 'text', 'required' => false],
+                ['id' => 'field_a', 'label' => 'A dupe', 'type' => 'text', 'required' => false],
+            ],
+        ];
+
+        $this->actingAs($user)
+            ->from(route('quality.templates.edit', $template))
+            ->patch(route('quality.templates.update', $template), [
+                'name' => 'Template Invalid Schema',
+                'doc_type' => 'fr',
+                'form_schema_json' => json_encode($schema, JSON_THROW_ON_ERROR),
+            ])
+            ->assertRedirect(route('quality.templates.edit', $template));
+
+        $this->assertTrue(session()->has('errors'));
+        $this->assertNotEmpty(session('errors')->get('form_schema_json'));
+    }
+
     public function test_activating_template_deactivates_other_active_template_in_same_doc_type(): void
     {
         /** @var User $user */

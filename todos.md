@@ -42,3 +42,34 @@ Refactor QMH ke baseline final v2:
 1. Deploy Sprint B dahulu (soft deprecate) untuk menurunkan risiko.
 2. Monitoring error route/API 24-48 jam pasca deploy.
 3. Lanjut Sprint C hanya jika tidak ada regresi operasional.
+
+---
+
+# Next Task: QMH Form Builder (Formulir/FR)
+
+## Objective
+
+Bangun Form Builder UI untuk schema formulir (FR) dan perluas tipe field v1, dengan validasi server-side dan render konsisten (create/edit, preview, PDF).
+
+## Scope (v1)
+
+- Builder UI di halaman edit template QMH (replace JSON textarea sebagai primary UI, JSON tetap jadi output).
+- Tipe field v1: `section`, `text`, `textarea`, `list`, `select`, `checkbox`, `date`, `number`.
+- Validasi server-side: required + type check saat simpan jawaban.
+- Rendering: input, structured preview, dan PDF.
+
+## Tasks
+
+- [ ] Spec final + acceptance criteria terkunci di `WALKTHROUGH.md`
+- [ ] Implement schema validator (PHP support/service)
+- [ ] Implement Form Builder UI (Alpine) di template editor
+- [ ] Render field types v1 di halaman create/edit QMH
+- [ ] Update structured preview & PDF untuk type baru (checkbox/select/date/number/section)
+- [ ] Add/Update Pest tests (schema + save answers + PDF HTML)
+
+## Verification Checklist
+
+- [ ] `php vendor/bin/pest`
+- [ ] `npm run audit:critical`
+- [ ] `./vendor/bin/pint`
+- [ ] UAT: edit template FR -> buat dokumen -> preview -> PDF

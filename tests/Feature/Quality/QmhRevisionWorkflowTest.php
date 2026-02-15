@@ -4,6 +4,7 @@ namespace Tests\Feature\Quality;
 
 use App\Models\Permission;
 use App\Models\QmhDocumentRevision;
+use App\Models\QmhTemplate;
 use App\Models\RolePermission;
 use App\Models\User;
 use App\Services\Quality\QmhDocumentService;
@@ -238,6 +239,67 @@ class QmhRevisionWorkflowTest extends TestCase
             ->assertStatus(422);
     }
 
+    public function test_save_content_rejects_formulir_missing_required_answers(): void
+    {
+        /** @var User $creator */
+        $creator = User::factory()->create(['role' => 'admin']);
+
+        $revision = $this->createDraftRevisionFormulir($creator);
+
+        $this->actingAs($creator)
+            ->postJson("/api/quality/revisions/{$revision->id}/lock")
+            ->assertOk();
+
+        $this->actingAs($creator)
+            ->putJson("/api/quality/revisions/{$revision->id}/content", [
+                'answers_json' => [
+                    'field_a' => '',
+                ],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['answers_json.field_a']);
+    }
+
+    public function test_save_content_rejects_non_formulir_when_only_answers_json_is_sent(): void
+    {
+        /** @var User $creator */
+        $creator = User::factory()->create(['role' => 'admin']);
+
+        $revision = $this->createDraftRevision($creator);
+
+        $this->actingAs($creator)
+            ->postJson("/api/quality/revisions/{$revision->id}/lock")
+            ->assertOk();
+
+        $this->actingAs($creator)
+            ->putJson("/api/quality/revisions/{$revision->id}/content", [
+                'answers_json' => [
+                    'purpose' => 'Hanya jawaban tanpa konten',
+                ],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['content_html']);
+    }
+
+    public function test_save_content_rejects_non_formulir_when_content_html_is_blank_string(): void
+    {
+        /** @var User $creator */
+        $creator = User::factory()->create(['role' => 'admin']);
+
+        $revision = $this->createDraftRevision($creator);
+
+        $this->actingAs($creator)
+            ->postJson("/api/quality/revisions/{$revision->id}/lock")
+            ->assertOk();
+
+        $this->actingAs($creator)
+            ->putJson("/api/quality/revisions/{$revision->id}/content", [
+                'content_html' => '   ',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['content_html']);
+    }
+
     private function createDraftRevision(User $creator): QmhDocumentRevision
     {
         $service = new QmhDocumentService;
@@ -246,6 +308,40 @@ class QmhRevisionWorkflowTest extends TestCase
             'title' => 'Draft untuk Locking',
             'clause' => 8,
             'doc_type' => 'sop',
+        ], $creator->id);
+
+        return $document->currentRevision;
+    }
+
+    private function createDraftRevisionFormulir(User $creator): QmhDocumentRevision
+    {
+        $template = QmhTemplate::query()->create([
+            'name' => 'Template FR Required',
+            'clause' => 8,
+            'doc_type' => 'fr',
+            'version' => 1,
+            'storage_disk' => 'local',
+            'source_docx_path' => 'qmh/templates/fr/required.docx',
+            'is_active' => true,
+            'metadata' => [
+                'form_schema' => [
+                    'version' => 1,
+                    'doc_type' => 'fr',
+                    'questions' => [
+                        ['id' => 'field_a', 'label' => 'Kolom A', 'type' => 'text', 'required' => true],
+                    ],
+                ],
+            ],
+        ]);
+
+        $service = new QmhDocumentService;
+        $document = $service->createDraft([
+            'doc_code' => 'QMH-FR-LOCK-'.str((string) now()->unix())->append((string) random_int(100, 999)),
+            'title' => 'Draft Formulir',
+            'clause' => 8,
+            'doc_type' => 'fr',
+            'template_id' => $template->id,
+            'answers_json' => [],
         ], $creator->id);
 
         return $document->currentRevision;

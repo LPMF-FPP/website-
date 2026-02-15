@@ -122,6 +122,7 @@ class QmhDocumentController extends Controller
     {
         $document->load([
             'currentRevision.lock.owner',
+            'currentRevision.template',
         ]);
 
         return view('quality.edit', [

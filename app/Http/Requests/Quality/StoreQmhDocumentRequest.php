@@ -4,14 +4,41 @@ namespace App\Http\Requests\Quality;
 
 use App\Models\QmhDocument;
 use App\Models\QmhTemplate;
+use App\Support\QmhFormAnswersValidator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreQmhDocumentRequest extends FormRequest
 {
+    /**
+     * @var array<string, string>
+     */
+    private array $answersErrors = [];
+
     public function authorize(): bool
     {
         return $this->user()?->hasPermission('qmh.create') ?? false;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->normalizedTemplateDocType() !== 'fr') {
+            return;
+        }
+
+        $template = $this->template();
+        $metadata = is_array($template?->metadata) ? $template->metadata : [];
+        $schema = $metadata['form_schema'] ?? null;
+        if (! is_array($schema)) {
+            return;
+        }
+
+        $result = QmhFormAnswersValidator::validateAndNormalize($schema, $this->input('answers_json'));
+        $this->answersErrors = $result['errors'];
+
+        $this->merge([
+            'answers_json' => $result['normalized'],
+        ]);
     }
 
     public function rules(): array
@@ -102,6 +129,10 @@ class StoreQmhDocumentRequest extends FormRequest
                 if ($parentSop !== null && (int) $pairedIk->parent_sop_id !== (int) $parentSop->id) {
                     $validator->errors()->add('paired_ik_id', 'FR dan IK pasangan wajib berada pada parent SOP yang sama.');
                 }
+            }
+
+            foreach ($this->answersErrors as $key => $message) {
+                $validator->errors()->add($key, $message);
             }
         });
     }

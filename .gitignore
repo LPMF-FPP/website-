@@ -50,6 +50,7 @@ Thumbs.db
 
 # Temporary and generated files
 test.txt
+qmh-living-system-tech-spec.md
 
 /docs/
 /.worktrees/
@@ -72,4 +73,3 @@ session-*.md
 
 # Local deploy config (contains server IP/credentials)
 .deploy.local
-
