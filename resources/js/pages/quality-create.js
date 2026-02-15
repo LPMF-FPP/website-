@@ -950,6 +950,10 @@ export function qmhCreatePage(config = {}) {
                 return;
             }
 
+            const csrfToken = document
+                .querySelector('meta[name="csrf-token"]')
+                ?.getAttribute("content");
+
             const previewWindow = window.open("about:blank", "_blank");
             if (!previewWindow) {
                 this.pdfPreviewError =
@@ -965,6 +969,7 @@ export function qmhCreatePage(config = {}) {
                     headers: {
                         Accept: "application/pdf",
                         "Content-Type": "application/json",
+                        ...(csrfToken ? { "X-CSRF-TOKEN": csrfToken } : {}),
                     },
                     body: JSON.stringify(this.previewPdfPayload()),
                 });
