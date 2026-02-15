@@ -58,24 +58,48 @@
     $reviewedBy = $revision->reviewedBy;
     $approvedBy = $revision->approvedBy;
 
-    $signerIdentity = static function ($user): string {
+    $signerNameRank = static function ($user): string {
         if (! $user) {
             return '-';
         }
 
+        $name = trim((string) ($user->name ?? ''));
         $rank = trim((string) ($user->rank ?? ''));
-        $nrp = trim((string) ($user->nrp ?? ''));
-        $nip = trim((string) ($user->nip ?? ''));
 
+        $namePart = $name !== '' ? $name : '-';
         $rankPart = $rank !== '' ? $rank : '-';
-        $idPart = $nrp !== '' ? $nrp : ($nip !== '' ? $nip : '-');
 
-        return sprintf('%s/%s', $rankPart, $idPart);
+        return sprintf('%s/%s', $namePart, $rankPart);
     };
 
-    $createdIdentity = $signerIdentity($createdBy);
-    $reviewedIdentity = $signerIdentity($reviewedBy);
-    $approvedIdentity = $signerIdentity($approvedBy);
+    $signerPosition = static function ($user): string {
+        if (! $user) {
+            return '-';
+        }
+
+        $jabatan = trim((string) data_get($user, 'jabatan', ''));
+        if ($jabatan !== '') {
+            return $jabatan;
+        }
+
+        $role = trim((string) ($user->role ?? ''));
+
+        return match ($role) {
+            'manajer_teknis' => 'Manajer Teknis',
+            'penyelia' => 'Penyelia',
+            'analis' => 'Analis',
+            'supervisor' => 'Supervisor',
+            'admin' => 'Admin',
+            default => $role !== '' ? ucwords(str_replace('_', ' ', $role)) : '-',
+        };
+    };
+
+    $createdNameRank = $signerNameRank($createdBy);
+    $reviewedNameRank = $signerNameRank($reviewedBy);
+    $approvedNameRank = $signerNameRank($approvedBy);
+    $createdPosition = $signerPosition($createdBy);
+    $reviewedPosition = $signerPosition($reviewedBy);
+    $approvedPosition = $signerPosition($approvedBy);
 
     $redNotice = (string) ($redNotice ?? 'Isi Dokumen ini tidak diperkenankan untuk disalin atau digandakan tanpa persetujuan dari Kepala Farmasi Kepolisian Pusdokkes Polri');
     $resolvedPageCount = isset($resolvedPageCount) && is_int($resolvedPageCount) && $resolvedPageCount > 0 ? $resolvedPageCount : null;
@@ -390,10 +414,10 @@
             <th>Disahkan Oleh:</th>
         </tr>
         <tr>
-            <td class="row-label">Nama</td>
-            <td>{{ $createdBy?->display_name_with_title ?? '-' }}</td>
-            <td>{{ $reviewedBy?->display_name_with_title ?? '-' }}</td>
-            <td>{{ $approvedBy?->display_name_with_title ?? '-' }}</td>
+            <td class="row-label">Nama/Pangkat</td>
+            <td>{{ $createdNameRank }}</td>
+            <td>{{ $reviewedNameRank }}</td>
+            <td>{{ $approvedNameRank }}</td>
         </tr>
         <tr>
             <td class="row-label">Tanda Tangan</td>
@@ -402,10 +426,10 @@
             <td style="height: 18px">&nbsp;</td>
         </tr>
         <tr>
-            <td class="row-label">Pangkat/NRP/NIPR</td>
-            <td>{{ $createdIdentity }}</td>
-            <td>{{ $reviewedIdentity }}</td>
-            <td>{{ $approvedIdentity }}</td>
+            <td class="row-label">Jabatan</td>
+            <td>{{ $createdPosition }}</td>
+            <td>{{ $reviewedPosition }}</td>
+            <td>{{ $approvedPosition }}</td>
         </tr>
     </table>
 
