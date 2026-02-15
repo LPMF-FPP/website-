@@ -889,10 +889,6 @@
                                 diperiksa_oleh: this.diperiksaOleh,
                                 disahkan_oleh: this.disahkanOleh,
                             };
-
-                            if (this.isFormulir) {
-                                payload.form_schema_json = this.schema;
-                            }
                         } else {
                             payload = {
                                 content_html: this.contentHtml || '<p></p>',
