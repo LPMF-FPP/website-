@@ -147,6 +147,7 @@ class RequestDeleteCompactionTest extends TestCase
         ]);
 
         // Create document with path containing request number
+        $oldRequestNumber = $req2->request_number;
         $inv = $req2->investigator;
         $docPath = "investigators/{$inv->folder_key}/{$req2->request_number}/uploads/test.pdf";
         $doc = Document::factory()->create([
@@ -174,7 +175,7 @@ class RequestDeleteCompactionTest extends TestCase
 
         // Document path should be updated
         $this->assertStringContainsString($req2->request_number, $doc->file_path);
-        $this->assertStringNotContainsString('002', $doc->file_path);
+        $this->assertStringNotContainsString($oldRequestNumber, $doc->file_path);
     }
 
     public function test_it_handles_auto_compaction_via_controller()

@@ -656,6 +656,10 @@ export function qmhCreatePage(config = {}) {
         },
 
         structuredPreviewHtml(questions) {
+            if (this.docType === "fr") {
+                return this.structuredFormPreviewHtml(questions);
+            }
+
             const rows = questions
                 .map((q, idx) => {
                     const qid = typeof q?.id === "string" ? q.id : "";
@@ -765,6 +769,63 @@ export function qmhCreatePage(config = {}) {
                 .join("");
 
             return `<div class=\"space-y-4 text-sm text-gray-700\">${rows}</div>`;
+        },
+
+        structuredFormPreviewHtml(questions) {
+            const rows = questions
+                .map((q, idx) => {
+                    const qid = typeof q?.id === "string" ? q.id : "";
+                    if (!qid) return "";
+
+                    const label = this.escapeHtml(q?.label || qid);
+                    const type = String(q?.type || "text");
+                    const val = this.answers[qid];
+
+                    let cell = '<div class="text-gray-400">&nbsp;</div>';
+
+                    if (type === "list") {
+                        if (
+                            typeof val === "string" &&
+                            this.looksLikeHtml(val)
+                        ) {
+                            const normalized =
+                                this.extractListContainerHtml(val) || val;
+                            cell = this.isEditorBlank(normalized)
+                                ? cell
+                                : this.sanitizePreviewHtml(normalized);
+                        } else if (Array.isArray(val)) {
+                            const items = val
+                                .filter((v) => typeof v === "string")
+                                .map((v) => String(v).trim())
+                                .filter((v) => v !== "");
+                            if (items.length > 0) {
+                                cell = `<ul class=\"list-disc pl-5\">${items
+                                    .map(
+                                        (v) => `<li>${this.escapeHtml(v)}</li>`,
+                                    )
+                                    .join("")}</ul>`;
+                            }
+                        }
+                    } else if (typeof val === "string") {
+                        if (this.looksLikeHtml(val)) {
+                            const normalized = this.normalizeEditorHtml(val);
+                            cell = this.isEditorBlank(normalized)
+                                ? cell
+                                : this.sanitizePreviewHtml(normalized);
+                        } else {
+                            const normalized = this.normalizePlainText(val);
+                            if (normalized) {
+                                cell = `<div class=\"whitespace-pre-line\">${this.escapeHtml(normalized).replaceAll("\n", "<br>")}</div>`;
+                            }
+                        }
+                    }
+
+                    return `<tr><td class=\"border border-gray-200 px-2 py-2 text-xs font-semibold text-gray-700 text-center\">${idx + 1}</td><td class=\"border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-800\">${label.toUpperCase()}</td><td class=\"border border-gray-200 px-3 py-2 text-sm text-gray-700\">${cell}</td></tr>`;
+                })
+                .filter((row) => row !== "")
+                .join("");
+
+            return `<div class=\"overflow-hidden rounded-lg border border-gray-200\"><table class=\"w-full border-collapse\"><tbody>${rows}</tbody></table></div>`;
         },
 
         canSubmit() {
