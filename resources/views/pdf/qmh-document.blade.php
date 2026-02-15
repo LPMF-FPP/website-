@@ -199,6 +199,15 @@
         .qmh-answer ol {
             margin: 0;
             padding-left: 16px;
+            list-style-position: outside;
+        }
+
+        .qmh-answer ul {
+            list-style-type: disc;
+        }
+
+        .qmh-answer ol {
+            list-style-type: decimal;
         }
 
         .qmh-answer li {
@@ -208,6 +217,7 @@
         .qmh-list {
             margin: 0;
             padding-left: 16px;
+            list-style-type: disc;
         }
 
         .signoff {
@@ -342,30 +352,54 @@
             <div class="qmh-section">
                 <div class="qmh-question">{{ ($idx + 1).'. '.$label }}</div>
                 @if($type === 'list')
-                    @php
-                        $items = is_array($val) ? $val : (is_string($val) && trim($val) !== '' ? [$val] : []);
-                    @endphp
-                    @if(count($items) > 0)
-                        <ul class="qmh-list">
-                            @foreach($items as $item)
-                                @php
-                                    $itemText = is_string($item) ? $item : (is_scalar($item) ? (string) $item : json_encode($item));
-                                    $itemText = trim((string) $itemText);
-                                    $isHtml = $itemText !== '' && \App\Support\QmhAnswerSanitizer::looksLikeHtml($itemText);
-                                @endphp
+                    @if(is_string($val))
+                        @php
+                            $rawList = trim((string) $val);
+                            $isHtmlList = $rawList !== '' && \App\Support\QmhAnswerSanitizer::looksLikeHtml($rawList);
+                            $hasListContainer = $isHtmlList && preg_match('/<(ol|ul)\b/i', $rawList) === 1;
+                        @endphp
+
+                        @if($rawList === '' || \App\Support\QmhAnswerSanitizer::plainText($rawList) === '')
+                            <p class="qmh-answer">-</p>
+                        @elseif($hasListContainer)
+                            <div class="qmh-answer">{!! $rawList !!}</div>
+                        @else
+                            <ul class="qmh-list">
                                 <li>
-                                    @if($itemText === '' || \App\Support\QmhAnswerSanitizer::plainText($itemText) === '')
-                                        -
-                                    @elseif($isHtml)
-                                        <div class="qmh-answer">{!! $itemText !!}</div>
+                                    @if($isHtmlList)
+                                        <div class="qmh-answer">{!! $rawList !!}</div>
                                     @else
-                                        {{ $itemText }}
+                                        {{ $rawList }}
                                     @endif
                                 </li>
-                            @endforeach
-                        </ul>
+                            </ul>
+                        @endif
                     @else
-                        <p class="qmh-answer">-</p>
+                        @php
+                            $items = is_array($val) ? $val : [];
+                        @endphp
+                        @if(count($items) > 0)
+                            <ul class="qmh-list">
+                                @foreach($items as $item)
+                                    @php
+                                        $itemText = is_string($item) ? $item : (is_scalar($item) ? (string) $item : json_encode($item));
+                                        $itemText = trim((string) $itemText);
+                                        $isHtml = $itemText !== '' && \App\Support\QmhAnswerSanitizer::looksLikeHtml($itemText);
+                                    @endphp
+                                    <li>
+                                        @if($itemText === '' || \App\Support\QmhAnswerSanitizer::plainText($itemText) === '')
+                                            -
+                                        @elseif($isHtml)
+                                            <div class="qmh-answer">{!! $itemText !!}</div>
+                                        @else
+                                            {{ $itemText }}
+                                        @endif
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @else
+                            <p class="qmh-answer">-</p>
+                        @endif
                     @endif
                 @else
                     @php

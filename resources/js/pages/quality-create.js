@@ -183,13 +183,49 @@ export function qmhCreatePage(config = {}) {
 
                 if (q.type === "list") {
                     const existing = this.answers[qid];
+                    if (typeof existing === "string") {
+                        if (this.looksLikeHtml(existing)) {
+                            const normalized =
+                                this.normalizeEditorHtml(existing);
+                            const listHtml =
+                                this.extractListContainerHtml(normalized);
+
+                            this.answers[qid] = listHtml || normalized;
+                            nextListText[qid] = this.htmlToPlainText(
+                                this.answers[qid],
+                            );
+
+                            return;
+                        }
+
+                        const plain = this.normalizePlainText(existing);
+                        const lines = plain
+                            .split("\n")
+                            .map((line) => line.trim())
+                            .filter((line) => line !== "");
+                        const items = lines
+                            .map(
+                                (line) =>
+                                    `<li><p>${this.escapeHtml(line)}</p></li>`,
+                            )
+                            .join("");
+
+                        const fallback = items
+                            ? `<ul>${items}</ul>`
+                            : "<p></p>";
+
+                        this.answers[qid] = fallback;
+                        nextListText[qid] = this.htmlToPlainText(fallback);
+
+                        return;
+                    }
+
                     const items = Array.isArray(existing)
                         ? existing
                               .map((val) =>
                                   typeof val === "string" ? val : "",
                               )
                               .filter((val) => val.trim() !== "")
-                              .filter((val) => !this.isEditorBlank(val))
                         : [];
 
                     this.answers[qid] = items;
@@ -238,9 +274,28 @@ export function qmhCreatePage(config = {}) {
                 if (!qid) return;
 
                 if (q.type === "list") {
-                    const items = Array.isArray(this.answers[qid])
-                        ? this.answers[qid]
-                        : [];
+                    const current = this.answers[qid];
+
+                    if (typeof current === "string") {
+                        const normalizedHtml =
+                            this.normalizeEditorHtml(current);
+                        const listHtml =
+                            this.extractListContainerHtml(normalizedHtml) ||
+                            normalizedHtml;
+
+                        if (this.isEditorBlank(listHtml)) {
+                            return;
+                        }
+
+                        fields.push({
+                            name: `answers_json[${qid}]`,
+                            value: listHtml,
+                        });
+
+                        return;
+                    }
+
+                    const items = Array.isArray(current) ? current : [];
                     items.forEach((item) => {
                         if (typeof item !== "string") {
                             return;
@@ -433,34 +488,44 @@ export function qmhCreatePage(config = {}) {
                 return;
             }
 
+            const normalized = this.normalizeEditorHtml(html);
+            const listHtml = this.extractListContainerHtml(normalized);
+
+            if (listHtml) {
+                this.answers[qid] = listHtml;
+                this.listAnswerText[qid] = this.htmlToPlainText(listHtml);
+
+                return;
+            }
+
+            const plain = this.htmlToPlainText(normalized);
+            const items = plain
+                .split("\n")
+                .map((line) => line.trim())
+                .filter((line) => line !== "")
+                .map((line) => `<li><p>${this.escapeHtml(line)}</p></li>`)
+                .join("");
+
+            const fallback = items ? `<ul>${items}</ul>` : "<p></p>";
+
+            this.answers[qid] = fallback;
+            this.listAnswerText[qid] = this.htmlToPlainText(fallback);
+        },
+
+        extractListContainerHtml(html) {
+            if (typeof html !== "string") {
+                return "";
+            }
+
             const container = document.createElement("div");
             container.innerHTML = html;
 
-            const liNodes = Array.from(container.querySelectorAll("li"));
-            let items = [];
-
-            if (liNodes.length > 0) {
-                items = liNodes
-                    .map((node) => String(node.innerHTML || "").trim())
-                    .filter((val) => val !== "")
-                    .map((val) =>
-                        this.looksLikeHtml(val)
-                            ? this.normalizeEditorHtml(val)
-                            : `<p>${this.escapeHtml(val)}</p>`,
-                    );
-            } else {
-                const plain = this.htmlToPlainText(html);
-                items = plain
-                    .split("\n")
-                    .map((line) => line.trim())
-                    .filter((line) => line !== "")
-                    .map((line) => `<p>${this.escapeHtml(line)}</p>`);
+            const list = container.querySelector("ol, ul");
+            if (!list) {
+                return "";
             }
 
-            this.answers[qid] = items;
-            this.listAnswerText[qid] = items
-                .map((item) => this.htmlToPlainText(item))
-                .join("\n");
+            return this.normalizeEditorHtml(list.outerHTML || "");
         },
 
         sanitizePreviewHtml(value) {
@@ -597,10 +662,48 @@ export function qmhCreatePage(config = {}) {
                     const label = this.escapeHtml(q?.label || qid);
 
                     if (q.type === "list") {
-                        const items = Array.isArray(this.answers[qid])
-                            ? this.answers[qid].filter(
-                                  (val) => typeof val === "string",
-                              )
+                        const current = this.answers[qid];
+
+                        if (typeof current === "string") {
+                            if (this.looksLikeHtml(current)) {
+                                const normalized =
+                                    this.normalizeEditorHtml(current);
+                                const listHtml =
+                                    this.extractListContainerHtml(normalized) ||
+                                    normalized;
+
+                                const previewHtml = this.isEditorBlank(listHtml)
+                                    ? `<p class=\"text-gray-500\">-</p>`
+                                    : this.sanitizePreviewHtml(listHtml);
+
+                                return `<div class=\"space-y-1\"><div class=\"text-xs font-semibold text-gray-900\">${idx + 1}. ${label}</div>${previewHtml}</div>`;
+                            }
+
+                            const plain = this.normalizePlainText(current);
+                            if (!plain) {
+                                return `<div class=\"space-y-1\"><div class=\"text-xs font-semibold text-gray-900\">${idx + 1}. ${label}</div><p class=\"text-gray-500\">-</p></div>`;
+                            }
+
+                            const lines = plain
+                                .split("\n")
+                                .map((line) => line.trim())
+                                .filter((line) => line !== "");
+                            const items = lines
+                                .map(
+                                    (line) =>
+                                        `<li>${this.escapeHtml(line)}</li>`,
+                                )
+                                .join("");
+
+                            const previewHtml = items
+                                ? `<ul class=\"list-disc pl-5\">${items}</ul>`
+                                : `<p class=\"text-gray-500\">-</p>`;
+
+                            return `<div class=\"space-y-1\"><div class=\"text-xs font-semibold text-gray-900\">${idx + 1}. ${label}</div>${previewHtml}</div>`;
+                        }
+
+                        const items = Array.isArray(current)
+                            ? current.filter((val) => typeof val === "string")
                             : [];
 
                         const filledItems = items
@@ -691,8 +794,31 @@ export function qmhCreatePage(config = {}) {
                 if (!q.required) return;
 
                 if (q.type === "list") {
-                    const items = Array.isArray(this.answers[qid])
-                        ? this.answers[qid]
+                    const current = this.answers[qid];
+
+                    if (typeof current === "string") {
+                        if (this.looksLikeHtml(current)) {
+                            const normalized =
+                                this.normalizeEditorHtml(current);
+                            const listHtml =
+                                this.extractListContainerHtml(normalized) ||
+                                normalized;
+                            if (this.isEditorBlank(listHtml)) {
+                                this.fieldErrors[qid] = "Wajib diisi.";
+                            }
+
+                            return;
+                        }
+
+                        if (!this.normalizePlainText(current)) {
+                            this.fieldErrors[qid] = "Wajib diisi.";
+                        }
+
+                        return;
+                    }
+
+                    const items = Array.isArray(current)
+                        ? current
                               .filter((val) => typeof val === "string")
                               .filter((val) => this.htmlToPlainText(val) !== "")
                         : [];

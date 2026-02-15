@@ -128,6 +128,56 @@ class QmhDocumentAnswersApiTest extends TestCase
         $this->assertSame('2026-03-01', optional($revision->effective_date)->format('Y-m-d'));
     }
 
+    public function test_create_document_allows_rich_text_answers_and_preserves_ordered_lists(): void
+    {
+        Storage::fake('local');
+
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        Storage::disk('local')->put('qmh/templates/sop/template.docx', 'dummy');
+
+        $templateId = DB::table('qmh_templates')->insertGetId([
+            'name' => 'SOP Template Rich Text',
+            'clause' => 4,
+            'doc_type' => 'sop',
+            'version' => 1,
+            'storage_disk' => 'local',
+            'source_docx_path' => 'qmh/templates/sop/template.docx',
+            'is_active' => true,
+            'metadata' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $payload = [
+            'doc_code' => 'QMH-SOP-ANS-HTML-001',
+            'title' => 'SOP Uji Rich Text',
+            'clause' => 4,
+            'doc_type' => 'sop',
+            'template_id' => $templateId,
+            'answers_json' => [
+                'purpose' => '<p><strong>Tujuan</strong> <em>dokumen</em></p>',
+                'definitions' => '<ol><li><p>Definisi 1</p></li><li><p>Definisi 2</p></li></ol>',
+            ],
+        ];
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/quality/documents', $payload);
+
+        $response->assertCreated();
+
+        $answers = $response->json('data.current_revision.answers_json');
+        $this->assertIsArray($answers);
+        $this->assertIsString($answers['purpose'] ?? null);
+        $this->assertIsString($answers['definitions'] ?? null);
+
+        $this->assertStringContainsString('<strong>', (string) ($answers['purpose'] ?? ''));
+        $this->assertStringContainsString('<em>', (string) ($answers['purpose'] ?? ''));
+        $this->assertStringContainsString('<ol', (string) ($answers['definitions'] ?? ''));
+        $this->assertStringContainsString('Definisi 2', (string) ($answers['definitions'] ?? ''));
+    }
+
     private function createQmhPermissions(): void
     {
         $createPermission = Permission::query()->updateOrCreate(
