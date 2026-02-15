@@ -7,6 +7,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent Alpine x-cloak flash on refresh */
+[x-cloak] {
+    display: none !important;
+}
+
 /* Medical Design System for Pusdokkes */
 @layer base {
     body {
