@@ -1,22 +1,26 @@
 <x-app-layout>
     <x-slot name="header">
-        <x-page-header
-            title="Template QMH"
-            :breadcrumbs="[
-                ['label' => 'Dashboard QMH', 'route' => 'quality.index'],
-                ['label' => 'Template QMH'],
-            ]"
-        >
-            <x-slot name="actions">
-                <a href="#upload-template"
-                   class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
-                    Upload Template
-                </a>
-            </x-slot>
-        </x-page-header>
+        <div class="space-y-3">
+            <x-page-header
+                title="Template QMH"
+                :breadcrumbs="[
+                    ['label' => 'Dashboard QMH', 'route' => 'quality.index'],
+                    ['label' => 'Template QMH'],
+                ]"
+            >
+                <x-slot name="actions">
+                    <a href="#upload-template"
+                       class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700">
+                        Buat / Upload
+                    </a>
+                </x-slot>
+            </x-page-header>
+
+            <x-qmh-subnav active="templates" />
+        </div>
     </x-slot>
 
-    <div class="space-y-6 sm:px-6 lg:px-8">
+    <div class="space-y-6">
         @if(session('success'))
             <div class="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
                 {{ session('success') }}
@@ -49,12 +53,32 @@
             </form>
         </div>
 
-        <div id="upload-template" class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <h2 class="text-lg font-semibold text-gray-900">Upload Template</h2>
-            <p class="mt-1 text-sm text-gray-600">Upload file DOCX per jenis dokumen (SOP/IK/FR). Upload baru otomatis menjadi template aktif untuk jenis dokumen tersebut.</p>
+        @php
+            $shouldOpenUpload = $errors->any();
+        @endphp
 
-            <form method="POST" action="{{ route('quality.templates.store') }}" enctype="multipart/form-data" class="mt-4 grid gap-4 md:grid-cols-2">
-                @csrf
+        <details
+            id="upload-template"
+            class="rounded-xl border border-gray-200 bg-white shadow-sm"
+            x-data
+            x-init="if (window.location.hash === '#upload-template') $el.open = true"
+            @if($shouldOpenUpload) open @endif
+        >
+            <summary class="cursor-pointer list-none px-6 py-4">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-900">Buat / Upload Template</h2>
+                        <p class="mt-1 text-sm text-gray-600">Buat template via editor browser (tanpa DOCX) atau upload DOCX sebagai sumber awal. Bagian ini bisa disembunyikan agar daftar template tetap scannable.</p>
+                    </div>
+                    <div class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700">
+                        Buka / Tutup
+                    </div>
+                </div>
+            </summary>
+
+            <div class="px-6 pb-6">
+                <form method="POST" action="{{ route('quality.templates.store') }}" enctype="multipart/form-data" class="mt-2 grid gap-4 md:grid-cols-2">
+                    @csrf
                 <div>
                     <label class="mb-1 block text-sm font-medium text-gray-700" for="name">Nama Template</label>
                     <input id="name" name="name" type="text" value="{{ old('name') }}"
@@ -64,10 +88,11 @@
                 </div>
 
                 <div>
-                    <label class="mb-1 block text-sm font-medium text-gray-700" for="file">File DOCX</label>
+                    <label class="mb-1 block text-sm font-medium text-gray-700" for="file">File DOCX (opsional)</label>
                     <input id="file" name="file" type="file" accept=".docx"
                            class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('file') border-red-400 @else border-gray-300 @enderror"
-                           required>
+                    >
+                    <p class="mt-1 text-xs text-gray-500">Jika DOCX diupload dan editor kosong, konten awal akan diambil dari DOCX.</p>
                     @error('file')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
 
@@ -84,17 +109,60 @@
                 <div class="md:col-span-2">
                     <label class="mb-1 block text-sm font-medium text-gray-700" for="version_notes">Catatan Versi (opsional)</label>
                     <textarea id="version_notes" name="version_notes" rows="3"
-                              class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('version_notes') border-red-400 @else border-gray-300 @enderror">{{ old('version_notes') }}</textarea>
+                               class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('version_notes') border-red-400 @else border-gray-300 @enderror">{{ old('version_notes') }}</textarea>
                     @error('version_notes')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
 
+                <div class="md:col-span-2">
+                    <label class="mb-1 block text-sm font-medium text-gray-700">Konten Template (Editor Browser)</label>
+                    <p class="mb-2 text-xs text-gray-500">Konten ini akan digunakan saat user memilih template pada form Buat Dokumen.</p>
+
+                    <div
+                        class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                        x-data="qmhEditor({ initialContent: @js(old('content_html', '<p></p>')), editorId: 'qmh-template-create-editor' })"
+                        x-init="init()"
+                        @qmh-editor-change="$refs.contentHtml.value = $event.detail.html"
+                    >
+                        <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
+                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bold') }" @click="toggleBold()">B</button>
+                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('italic') }" @click="toggleItalic()">I</button>
+                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('underline') }" @click="toggleUnderline()">U</button>
+                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 1 }) }" @click="setHeading(1)">H1</button>
+                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 2 }) }" @click="setHeading(2)">H2</button>
+                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 3 }) }" @click="setHeading(3)">H3</button>
+                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
+                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
+                            <button type="button" class="qmh-editor-btn" @click="setAlign('left')">Kiri</button>
+                            <button type="button" class="qmh-editor-btn" @click="setAlign('center')">Tengah</button>
+                            <button type="button" class="qmh-editor-btn" @click="setAlign('right')">Kanan</button>
+                            <button type="button" class="qmh-editor-btn" @click="insertTable()">Tabel</button>
+                            <button type="button" class="qmh-editor-btn" @click="addTableRowBefore()">+Baris Atas</button>
+                            <button type="button" class="qmh-editor-btn" @click="addTableRowAfter()">+Baris Bawah</button>
+                            <button type="button" class="qmh-editor-btn" @click="deleteTableRow()">-Baris</button>
+                            <button type="button" class="qmh-editor-btn" @click="addTableColumnBefore()">+Kolom Kiri</button>
+                            <button type="button" class="qmh-editor-btn" @click="addTableColumnAfter()">+Kolom Kanan</button>
+                            <button type="button" class="qmh-editor-btn" @click="deleteTableColumn()">-Kolom</button>
+                            <button type="button" class="qmh-editor-btn" @click="mergeTableCells()">Merge Sel</button>
+                            <button type="button" class="qmh-editor-btn" @click="splitTableCell()">Split Sel</button>
+                            <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderRow()">Header Baris</button>
+                            <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderColumn()">Header Kolom</button>
+                            <button type="button" class="qmh-editor-btn" @click="deleteTable()">Hapus Tabel</button>
+                        </div>
+
+                        <div class="qmh-editor-surface" x-ref="editor"></div>
+                        <input type="hidden" x-ref="contentHtml" name="content_html" value="{{ old('content_html', '<p></p>') }}">
+                    </div>
+                    @error('content_html')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+
                 <div class="md:col-span-2 flex justify-end">
-                    <button type="submit" class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                    <button type="submit" class="inline-flex items-center rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700">
                         Simpan & Aktifkan
                     </button>
                 </div>
-            </form>
-        </div>
+                </form>
+            </div>
+        </details>
 
         <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
             <table class="min-w-full divide-y divide-gray-200 text-sm">
@@ -133,7 +201,7 @@
                             <a href="{{ route('quality.templates.preview', $template) }}"
                                target="_blank"
                                rel="noopener"
-                               class="inline-flex items-center rounded-md border border-blue-300 px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50">
+                               class="inline-flex items-center rounded-md border border-primary-300 px-3 py-1.5 text-xs font-medium text-primary-700 hover:bg-primary-50">
                                 Preview
                             </a>
 
@@ -149,7 +217,7 @@
                                 <form method="POST" action="{{ route('quality.templates.activate', $template) }}" class="inline">
                                     @csrf
                                     @method('PATCH')
-                                    <button type="submit" class="inline-flex items-center rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700">
+                                    <button type="submit" class="inline-flex items-center rounded-md bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700">
                                         Aktifkan
                                     </button>
                                 </form>

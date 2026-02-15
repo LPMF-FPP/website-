@@ -1,5 +1,6 @@
 export function qmhCreatePage(config = {}) {
     return {
+        step: 1,
         templatesUrl: config.templatesUrl,
         docCode: config.initialDocCode || "",
         title: config.initialTitle || "",
@@ -43,6 +44,119 @@ export function qmhCreatePage(config = {}) {
             if (this.docType) {
                 this.fetchTemplates();
             }
+
+            this.step = this.initialStep();
+        },
+
+        initialStep() {
+            if (!this.docType) {
+                return 1;
+            }
+
+            if (!this.docCode || !this.title) {
+                return 2;
+            }
+
+            if (!this.templateId) {
+                return 3;
+            }
+
+            return 4;
+        },
+
+        isStep1Complete() {
+            return Boolean(this.docType);
+        },
+
+        isStep2Complete() {
+            if (!this.docCode || !this.title) {
+                return false;
+            }
+
+            if (this.requiresParentSop() && !this.parentSopId) {
+                return false;
+            }
+
+            return true;
+        },
+
+        isStep3Complete() {
+            return Boolean(this.templateId);
+        },
+
+        canGoToStep(next) {
+            const n = Number(next);
+            if (!Number.isFinite(n) || n < 1 || n > 4) {
+                return false;
+            }
+
+            if (n <= 1) return true;
+            if (n === 2) return this.isStep1Complete();
+            if (n === 3)
+                return this.isStep1Complete() && this.isStep2Complete();
+            return (
+                this.isStep1Complete() &&
+                this.isStep2Complete() &&
+                this.isStep3Complete()
+            );
+        },
+
+        goToStep(next) {
+            const n = Number(next);
+            if (!Number.isFinite(n)) {
+                return;
+            }
+
+            if (n <= this.step) {
+                this.stepError = "";
+                this.step = Math.max(1, Math.min(4, n));
+                return;
+            }
+
+            if (this.canGoToStep(n)) {
+                this.stepError = "";
+                this.step = n;
+                return;
+            }
+
+            this.stepError = "Lengkapi langkah sebelumnya sebelum melanjutkan.";
+        },
+
+        nextStep() {
+            this.stepError = "";
+
+            if (this.step === 1) {
+                if (!this.isStep1Complete()) {
+                    this.stepError = "Pilih jenis dokumen terlebih dahulu.";
+                    return;
+                }
+                this.step = 2;
+                return;
+            }
+
+            if (this.step === 2) {
+                if (!this.isStep2Complete()) {
+                    this.stepError =
+                        "Lengkapi metadata dokumen (kode, judul, dan SOP induk jika diperlukan).";
+                    return;
+                }
+                this.step = 3;
+                return;
+            }
+
+            if (this.step === 3) {
+                if (!this.isStep3Complete()) {
+                    this.stepError =
+                        "Pilih template aktif terlebih dahulu sebelum review.";
+                    return;
+                }
+                this.step = 4;
+            }
+        },
+
+        prevStep() {
+            this.stepError = "";
+            this.step = Math.max(1, this.step - 1);
         },
 
         onStructureChanged() {
@@ -53,6 +167,10 @@ export function qmhCreatePage(config = {}) {
             } else {
                 this.templates = [];
                 this.templateId = 0;
+            }
+
+            if (!this.docType) {
+                this.step = 1;
             }
         },
 
@@ -165,17 +283,12 @@ export function qmhCreatePage(config = {}) {
 
         schemaQuestions() {
             const template = this.selectedTemplate();
-            const schema = template?.form_schema || this.schema || null;
+            const schema = this.schema || template?.form_schema || null;
             const questions = schema?.questions;
             return Array.isArray(questions) ? questions : [];
         },
 
-        syncSchemaFromTemplate() {
-            const template = this.selectedTemplate();
-            this.schema = template?.form_schema || null;
-
-            this.fieldErrors = {};
-
+        applySchemaDefaults() {
             const questions = this.schemaQuestions();
             const nextListText = { ...this.listAnswerText };
 
@@ -276,6 +389,31 @@ export function qmhCreatePage(config = {}) {
             });
 
             this.listAnswerText = nextListText;
+        },
+
+        syncSchemaFromTemplate() {
+            const template = this.selectedTemplate();
+            this.schema = template?.form_schema || null;
+
+            this.fieldErrors = {};
+
+            this.applySchemaDefaults();
+
+            if (this.docType === "fr") {
+                window.dispatchEvent(
+                    new CustomEvent("qmh-form-schema-reset", {
+                        detail: { schema: this.schema },
+                    }),
+                );
+            }
+        },
+
+        onFormSchemaChanged(nextSchema) {
+            if (!nextSchema || typeof nextSchema !== "object") return;
+
+            this.schema = nextSchema;
+            this.fieldErrors = {};
+            this.applySchemaDefaults();
         },
 
         syncListAnswer(qid) {
@@ -590,6 +728,24 @@ export function qmhCreatePage(config = {}) {
                 "ul",
                 "ol",
                 "li",
+                "h1",
+                "h2",
+                "h3",
+                "hr",
+                "blockquote",
+                "pre",
+                "code",
+                "sup",
+                "sub",
+                "div",
+                "span",
+                "table",
+                "thead",
+                "tbody",
+                "tfoot",
+                "tr",
+                "th",
+                "td",
             ]);
 
             const doc = document.createElement("div");

@@ -17,6 +17,7 @@ use App\Services\Quality\QmhRevisionDownloadService;
 use App\Services\Quality\QmhRevisionLockService;
 use App\Services\Quality\QmhRevisionTransitionService;
 use App\Support\QmhAnswerSanitizer;
+use App\Support\QmhHtmlSanitizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 
@@ -65,6 +66,9 @@ class QmhRevisionWorkflowController extends Controller
             ], 422);
         }
 
+        $revision->loadMissing('document');
+        $isFormulir = (($revision->document?->doc_type ?? '') === 'formulir');
+
         $lock = $revision->lock;
         if ($lock === null || ! $lock->isActive()) {
             return response()->json([
@@ -80,7 +84,8 @@ class QmhRevisionWorkflowController extends Controller
 
         $updates = [];
         if ($request->has('content_html')) {
-            $updates['content_html'] = $request->string('content_html')->toString();
+            $sanitized = QmhHtmlSanitizer::sanitize($request->string('content_html')->toString());
+            $updates['content_html'] = trim($sanitized) !== '' ? $sanitized : '<p></p>';
         }
 
         if ($request->has('content_css')) {
@@ -93,6 +98,15 @@ class QmhRevisionWorkflowController extends Controller
 
         if ($request->has('answers_json')) {
             $updates['answers_json'] = QmhAnswerSanitizer::sanitizeAnswersJson($request->input('answers_json'));
+        }
+
+        if ($request->has('form_schema_json')) {
+            if (! $isFormulir) {
+                return response()->json([
+                    'message' => 'Schema pertanyaan hanya dapat diubah untuk dokumen Formulir (FR).',
+                ], 422);
+            }
+            $updates['form_schema_json'] = $request->input('form_schema_json');
         }
 
         if ($request->has('effective_date')) {

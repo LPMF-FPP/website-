@@ -1,16 +1,20 @@
 <x-app-layout>
     <x-slot name="header">
-        <x-page-header
-            title="Buat Dokumen"
-            :breadcrumbs="[
-                ['label' => 'Dashboard QMH', 'route' => 'quality.index'],
-                ['label' => 'Buat Dokumen'],
-            ]"
-        />
+        <div class="space-y-3">
+            <x-page-header
+                title="Buat Dokumen QMH"
+                :breadcrumbs="[
+                    ['label' => 'Dashboard QMH', 'route' => 'quality.index'],
+                    ['label' => 'Buat Dokumen'],
+                ]"
+            />
+
+            <x-qmh-subnav active="create" />
+        </div>
     </x-slot>
 
     <div
-        class="mx-auto max-w-7xl space-y-6 sm:px-6 lg:px-8"
+        class="space-y-6"
         x-data="window.qmhCreatePage({
             templatesUrl: @js('/api/quality/templates'),
             initialDocCode: @js(old('doc_code', '')),
@@ -37,6 +41,7 @@
                 'label' => $item->doc_code.' - '.$item->title,
             ])->values()),
         })"
+        @qmh-form-schema-change.window="onFormSchemaChanged($event.detail.schema)"
         x-init="init()"
     >
         <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -53,6 +58,41 @@
                 </div>
             @endif
 
+            <div class="mt-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <p class="text-sm font-semibold text-gray-900">Alur Pembuatan Dokumen</p>
+                        <p class="mt-1 text-xs text-gray-600">Ikuti langkah bertahap untuk menghindari data yang terlewat.</p>
+                    </div>
+                    <div class="text-xs text-gray-600">
+                        <span class="font-medium">Step</span>
+                        <span x-text="step"></span>
+                        <span>/4</span>
+                    </div>
+                </div>
+
+                <div class="mt-3 grid gap-2 sm:grid-cols-4">
+                    <button type="button" @click="goToStep(1)" class="rounded-lg border px-3 py-2 text-left text-xs transition" :class="step === 1 ? 'border-primary-300 bg-white text-primary-900' : (canGoToStep(1) ? 'border-gray-200 bg-white text-gray-700 hover:border-primary-300' : 'border-gray-100 bg-white text-gray-300')">
+                        <div class="font-semibold">1. Struktur</div>
+                        <div class="mt-0.5">Klausul & jenis</div>
+                    </button>
+                    <button type="button" @click="goToStep(2)" class="rounded-lg border px-3 py-2 text-left text-xs transition" :class="step === 2 ? 'border-primary-300 bg-white text-primary-900' : (canGoToStep(2) ? 'border-gray-200 bg-white text-gray-700 hover:border-primary-300' : 'border-gray-100 bg-white text-gray-300')">
+                        <div class="font-semibold">2. Metadata</div>
+                        <div class="mt-0.5">Kode, judul</div>
+                    </button>
+                    <button type="button" @click="goToStep(3)" class="rounded-lg border px-3 py-2 text-left text-xs transition" :class="step === 3 ? 'border-primary-300 bg-white text-primary-900' : (canGoToStep(3) ? 'border-gray-200 bg-white text-gray-700 hover:border-primary-300' : 'border-gray-100 bg-white text-gray-300')">
+                        <div class="font-semibold">3. Template</div>
+                        <div class="mt-0.5">Pertanyaan</div>
+                    </button>
+                    <button type="button" @click="goToStep(4)" class="rounded-lg border px-3 py-2 text-left text-xs transition" :class="step === 4 ? 'border-primary-300 bg-white text-primary-900' : (canGoToStep(4) ? 'border-gray-200 bg-white text-gray-700 hover:border-primary-300' : 'border-gray-100 bg-white text-gray-300')">
+                        <div class="font-semibold">4. Review</div>
+                        <div class="mt-0.5">Preview & simpan</div>
+                    </button>
+                </div>
+
+                <p x-show="stepError" x-cloak class="mt-3 text-sm text-red-600" x-text="stepError"></p>
+            </div>
+
             <form method="POST" action="{{ route('quality.documents.store') }}" class="mt-4 space-y-5" x-ref="draftForm" @submit.prevent="if (onSubmit()) $el.submit()">
                 @csrf
 
@@ -62,53 +102,67 @@
                     <input type="hidden" :name="field.name" :value="field.value">
                 </template>
 
-                <div class="rounded-lg border border-blue-100 bg-blue-50 p-4">
-                    <h3 class="text-sm font-semibold text-blue-900">Pilih Struktur Dokumen</h3>
-                    <p class="mt-1 text-xs text-blue-800">Urutan: pilih klausul, pilih jenis dokumen, pilih template, lalu jawab pertanyaan.</p>
-                </div>
-
-                <div class="grid gap-4 md:grid-cols-2">
-                    <div>
-                        <label class="mb-1 block text-sm font-medium text-gray-700" for="clause">Klausul</label>
-                        <select
-                            id="clause"
-                            name="clause"
-                            x-model.number="clause"
-                            @change="onStructureChanged()"
-                            class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('clause') border-red-400 @else border-gray-300 @enderror"
-                            required
-                        >
-                            @foreach([4, 5, 6, 7, 8] as $clause)
-                                <option value="{{ $clause }}" @selected((string) old('clause', '4') === (string) $clause)>{{ $clause }}</option>
-                            @endforeach
-                        </select>
-                        @error('clause')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
+                <div x-show="step === 1" x-cloak class="space-y-5">
+                    <div class="rounded-lg border border-primary-100 bg-primary-50 p-4">
+                        <h3 class="text-sm font-semibold text-primary-900">Pilih Struktur Dokumen</h3>
+                        <p class="mt-1 text-xs text-primary-800">Pilih klausul dan jenis dokumen terlebih dahulu.</p>
                     </div>
 
-                    <div>
-                        <label class="mb-1 block text-sm font-medium text-gray-700" for="doc_type">Jenis Dokumen</label>
-                        <select
-                            id="doc_type"
-                            name="doc_type"
-                            x-model="docType"
-                            @change="onStructureChanged()"
-                            class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('doc_type') border-red-400 @else border-gray-300 @enderror"
-                            required
-                        >
-                            <option value="">Pilih jenis dokumen</option>
-                            <option value="sop" @selected(old('doc_type') === 'sop')>SOP</option>
-                            <option value="ik" @selected(old('doc_type') === 'ik')>IK</option>
-                            <option value="fr" @selected(old('doc_type') === 'fr')>FR</option>
-                        </select>
-                        @error('doc_type')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div>
+                            <label class="mb-1 block text-sm font-medium text-gray-700" for="clause">Klausul</label>
+                            <select
+                                id="clause"
+                                name="clause"
+                                x-model.number="clause"
+                                @change="onStructureChanged()"
+                                class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('clause') border-red-400 @else border-gray-300 @enderror"
+                                required
+                            >
+                                @foreach([4, 5, 6, 7, 8] as $clause)
+                                    <option value="{{ $clause }}" @selected((string) old('clause', '4') === (string) $clause)>{{ $clause }}</option>
+                                @endforeach
+                            </select>
+                            @error('clause')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div>
+                            <label class="mb-1 block text-sm font-medium text-gray-700" for="doc_type">Jenis Dokumen</label>
+                            <select
+                                id="doc_type"
+                                name="doc_type"
+                                x-model="docType"
+                                @change="onStructureChanged()"
+                                class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('doc_type') border-red-400 @else border-gray-300 @enderror"
+                                required
+                            >
+                                <option value="">Pilih jenis dokumen</option>
+                                <option value="sop" @selected(old('doc_type') === 'sop')>SOP</option>
+                                <option value="ik" @selected(old('doc_type') === 'ik')>Instruksi Kerja (IK)</option>
+                                <option value="fr" @selected(old('doc_type') === 'fr')>Formulir (FR)</option>
+                            </select>
+                            @error('doc_type')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-end">
+                        <button type="button" class="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700" @click="nextStep()">
+                            Lanjut
+                        </button>
                     </div>
                 </div>
 
-                <div class="grid gap-4 md:grid-cols-6">
+                <div x-show="step === 2" x-cloak class="space-y-5">
+                    <div class="rounded-lg border border-gray-200 bg-white p-4">
+                        <h3 class="text-sm font-semibold text-gray-900">Metadata Dokumen</h3>
+                        <p class="mt-1 text-xs text-gray-500">Lengkapi kode, judul, dan relasi (SOP/IK) jika diperlukan.</p>
+                    </div>
+
+                    <div class="grid gap-4 md:grid-cols-6">
                     <div>
                         <label class="mb-1 block text-sm font-medium text-gray-700" for="doc_code">Kode Dokumen (Manual)</label>
                         <input
@@ -156,7 +210,61 @@
                     </div>
                 </div>
 
-                <div x-show="docType" x-cloak>
+                    <div x-show="requiresParentSop()" x-cloak>
+                        <label class="mb-1 block text-sm font-medium text-gray-700" for="parent_sop_id">SOP Induk</label>
+                        <select
+                            id="parent_sop_id"
+                            name="parent_sop_id"
+                            x-model.number="parentSopId"
+                            @change="handleHierarchyDependencies()"
+                            class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('parent_sop_id') border-red-400 @else border-gray-300 @enderror"
+                            :required="requiresParentSop()"
+                        >
+                            <option value="">Pilih SOP induk</option>
+                            <template x-for="item in filteredSopOptions()" :key="item.id">
+                                <option :value="item.id" x-text="item.label"></option>
+                            </template>
+                        </select>
+                        @error('parent_sop_id')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div x-show="requiresPairedIk()" x-cloak>
+                        <label class="mb-1 block text-sm font-medium text-gray-700" for="paired_ik_id">IK Pasangan (Opsional)</label>
+                        <select
+                            id="paired_ik_id"
+                            name="paired_ik_id"
+                            x-model.number="pairedIkId"
+                            class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('paired_ik_id') border-red-400 @else border-gray-300 @enderror"
+                        >
+                            <option value="">Tanpa pasangan IK</option>
+                            <template x-for="item in filteredIkOptions()" :key="item.id">
+                                <option :value="item.id" x-text="item.label"></option>
+                            </template>
+                        </select>
+                        @error('paired_ik_id')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div class="flex items-center justify-between border-t border-gray-200 pt-4">
+                        <button type="button" class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50" @click="prevStep()">
+                            Kembali
+                        </button>
+                        <button type="button" class="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700" @click="nextStep()">
+                            Lanjut
+                        </button>
+                    </div>
+                </div>
+
+                <div x-show="step === 3" x-cloak class="space-y-5">
+                    <div class="rounded-lg border border-gray-200 bg-white p-4">
+                        <h3 class="text-sm font-semibold text-gray-900">Template & Pertanyaan</h3>
+                        <p class="mt-1 text-xs text-gray-500">Pilih template aktif lalu isi/atur pertanyaan sesuai kebutuhan.</p>
+                    </div>
+
+                    <div x-show="docType" x-cloak>
                     <label class="mb-1 block text-sm font-medium text-gray-700">Template Aktif</label>
                     <div class="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
                         <p x-show="templatesLoading">Memuat template...</p>
@@ -181,7 +289,7 @@
                             </template>
                         </select>
                         <div class="mt-2" x-show="selectedTemplatePreviewUrl()" x-cloak>
-                            <a :href="selectedTemplatePreviewUrl()" target="_blank" rel="noopener" class="inline-flex items-center rounded-md border border-blue-300 bg-white px-3 py-1.5 text-xs font-medium text-blue-700 hover:bg-blue-50">
+                            <a :href="selectedTemplatePreviewUrl()" target="_blank" rel="noopener" class="inline-flex items-center rounded-md border border-primary-300 bg-white px-3 py-1.5 text-xs font-medium text-primary-700 hover:bg-primary-50">
                                 Preview Template
                             </a>
                         </div>
@@ -189,45 +297,7 @@
                     @error('template_id')
                         <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                     @enderror
-                </div>
-
-                <div x-show="requiresParentSop()" x-cloak>
-                    <label class="mb-1 block text-sm font-medium text-gray-700" for="parent_sop_id">SOP Induk</label>
-                    <select
-                        id="parent_sop_id"
-                        name="parent_sop_id"
-                        x-model.number="parentSopId"
-                        @change="handleHierarchyDependencies()"
-                        class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('parent_sop_id') border-red-400 @else border-gray-300 @enderror"
-                        :required="requiresParentSop()"
-                    >
-                        <option value="">Pilih SOP induk</option>
-                        <template x-for="item in filteredSopOptions()" :key="item.id">
-                            <option :value="item.id" x-text="item.label"></option>
-                        </template>
-                    </select>
-                    @error('parent_sop_id')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div x-show="requiresPairedIk()" x-cloak>
-                    <label class="mb-1 block text-sm font-medium text-gray-700" for="paired_ik_id">IK Pasangan (Opsional)</label>
-                    <select
-                        id="paired_ik_id"
-                        name="paired_ik_id"
-                        x-model.number="pairedIkId"
-                        class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('paired_ik_id') border-red-400 @else border-gray-300 @enderror"
-                    >
-                        <option value="">Tanpa pasangan IK</option>
-                        <template x-for="item in filteredIkOptions()" :key="item.id">
-                            <option :value="item.id" x-text="item.label"></option>
-                        </template>
-                    </select>
-                    @error('paired_ik_id')
-                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
+                    </div>
 
                 <div x-show="docType" x-cloak class="grid gap-6 lg:grid-cols-12">
                     <div class="lg:col-span-12" data-qmh-question-form>
@@ -248,6 +318,190 @@
                             </div>
 
                             <div class="mt-4" x-show="!templatesLoading" x-cloak>
+                                <div class="mb-4" x-show="docType === 'fr'" x-cloak>
+                                    <div
+                                        class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                                        x-data="qmhFormBuilder({
+                                            docType: docType,
+                                            initialSchema: schema,
+                                            initialJson: '',
+                                        })"
+                                        x-init="init()"
+                                        @qmh-form-schema-reset.window="loadSchema($event.detail.schema); syncJsonNow()"
+                                    >
+                                        <div class="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 pb-3">
+                                            <div class="flex flex-wrap items-center gap-2">
+                                                <button type="button" class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-xs font-medium text-white hover:bg-primary-700" @click="addQuestion('text')">
+                                                    + Pertanyaan
+                                                </button>
+                                                <button type="button" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50" @click="addQuestion('section')">
+                                                    + Section
+                                                </button>
+                                                <button type="button" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50" @click="showRawJson = !showRawJson">
+                                                    <span x-text="showRawJson ? 'Sembunyikan JSON' : 'Tampilkan JSON'"></span>
+                                                </button>
+                                            </div>
+
+                                            <div class="text-xs text-gray-500">
+                                                <span x-text="questions.length"></span> pertanyaan
+                                            </div>
+                                        </div>
+
+                                        <template x-if="jsonError">
+                                            <div class="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800" x-text="jsonError"></div>
+                                        </template>
+
+                                        <div class="space-y-3">
+                                            <template x-for="(q, idx) in questions" :key="idx">
+                                                <div class="rounded-lg border border-gray-200 p-3">
+                                                    <div class="flex flex-wrap items-start justify-between gap-2">
+                                                        <div class="flex-1 min-w-[240px]">
+                                                            <div class="grid gap-2 sm:grid-cols-12">
+                                                                <div class="sm:col-span-5">
+                                                                    <label class="block text-[11px] font-semibold text-gray-600">Label</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                                                                        x-model="q.label"
+                                                                        @input.debounce.150ms="onLabelChanged(idx)"
+                                                                        placeholder="Contoh: Nama Petugas"
+                                                                    />
+                                                                </div>
+
+                                                                <div class="sm:col-span-3">
+                                                                    <label class="block text-[11px] font-semibold text-gray-600">Tipe</label>
+                                                                    <select
+                                                                        class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                                                                        x-model="q.type"
+                                                                        @change="onTypeChanged(idx)"
+                                                                    >
+                                                                        <option value="section">Section</option>
+                                                                        <option value="text">Text</option>
+                                                                        <option value="textarea">Textarea</option>
+                                                                        <option value="list">List</option>
+                                                                        <option value="select">Select</option>
+                                                                        <option value="checkbox">Checkbox</option>
+                                                                        <option value="date">Date</option>
+                                                                        <option value="number">Number</option>
+                                                                    </select>
+                                                                </div>
+
+                                                                <div class="sm:col-span-3">
+                                                                    <label class="block text-[11px] font-semibold text-gray-600">ID</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 font-mono text-xs"
+                                                                        x-model="q.id"
+                                                                        @input.debounce.150ms="q.auto_id = false; syncJson()"
+                                                                        placeholder="field_name"
+                                                                    />
+                                                                    <p class="mt-1 text-[10px] text-gray-500">a-z, 0-9, _ (max 64)</p>
+                                                                </div>
+
+                                                                <div class="sm:col-span-1">
+                                                                    <label class="block text-[11px] font-semibold text-gray-600">Wajib</label>
+                                                                        <input
+                                                                            type="checkbox"
+                                                                            class="mt-3 h-4 w-4 rounded border-gray-300 text-primary-600"
+                                                                            x-model="q.required"
+                                                                            :disabled="q.type === 'section'"
+                                                                            @change="syncJson()"
+                                                                        />
+                                                                </div>
+                                                            </div>
+
+                                                            <div class="mt-2 grid gap-2 sm:grid-cols-12">
+                                                                <div class="sm:col-span-6">
+                                                                    <label class="block text-[11px] font-semibold text-gray-600">Help (opsional)</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                                                                        x-model="q.help"
+                                                                        @input.debounce.150ms="syncJson()"
+                                                                        placeholder="Contoh: isi sesuai format di label"
+                                                                    />
+                                                                </div>
+                                                                <div class="sm:col-span-6">
+                                                                    <label class="block text-[11px] font-semibold text-gray-600">Placeholder (opsional)</label>
+                                                                    <input
+                                                                        type="text"
+                                                                        class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                                                                        x-model="q.placeholder"
+                                                                        @input.debounce.150ms="syncJson()"
+                                                                        placeholder="Contoh: 2026-02-15"
+                                                                    />
+                                                                </div>
+                                                            </div>
+
+                                                            <template x-if="q.type === 'select'">
+                                                                <div class="mt-3 rounded-md border border-gray-200 bg-gray-50 p-3">
+                                                                    <div class="flex items-center justify-between">
+                                                                        <div class="text-xs font-semibold text-gray-700">Options</div>
+                                                                        <button type="button" class="text-xs font-medium text-primary-700 hover:underline" @click="addSelectOption(idx)">
+                                                                            + Tambah option
+                                                                        </button>
+                                                                    </div>
+
+                                                                    <div class="mt-2 space-y-2">
+                                                                        <template x-for="(opt, optIdx) in q.options" :key="optIdx">
+                                                                            <div class="grid grid-cols-12 gap-2 items-center">
+                                                                                <div class="col-span-5">
+                                                                                    <input type="text" class="w-full rounded-md border border-gray-300 px-2 py-1.5 font-mono text-xs" x-model="opt.value" @input.debounce.150ms="syncJson()" placeholder="value" />
+                                                                                </div>
+                                                                                <div class="col-span-6">
+                                                                                    <input type="text" class="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm" x-model="opt.label" @input.debounce.150ms="syncJson()" placeholder="label" />
+                                                                                </div>
+                                                                                <div class="col-span-1 text-right">
+                                                                                    <button type="button" class="text-xs text-red-600 hover:underline" @click="deleteSelectOption(idx, optIdx)">Hapus</button>
+                                                                                </div>
+                                                                            </div>
+                                                                        </template>
+                                                                    </div>
+                                                                </div>
+                                                            </template>
+                                                        </div>
+
+                                                        <div class="flex flex-col items-end gap-2">
+                                                            <div class="flex gap-1">
+                                                                <button type="button" class="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-50" @click="moveUp(idx)" :disabled="idx === 0">Up</button>
+                                                                <button type="button" class="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-50" @click="moveDown(idx)" :disabled="idx === questions.length - 1">Down</button>
+                                                            </div>
+                                                            <button type="button" class="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100" @click="deleteQuestion(idx)">
+                                                                Hapus
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </template>
+
+                                            <template x-if="questions.length === 0">
+                                                <div class="rounded-md border border-dashed border-gray-300 p-4 text-sm text-gray-600">
+                                                    Belum ada pertanyaan. Klik <span class="font-semibold">+ Pertanyaan</span> untuk mulai.
+                                                </div>
+                                            </template>
+                                        </div>
+
+                                        <textarea
+                                            id="form_schema_json"
+                                            name="form_schema_json"
+                                            rows="10"
+                                            class="hidden"
+                                            x-ref="schemaJson"
+                                        >{{ old('form_schema_json', '') }}</textarea>
+
+                                        <template x-if="showRawJson">
+                                            <div class="mt-4">
+                                                <div class="mb-2 text-xs font-semibold text-gray-700">JSON Preview</div>
+                                                <pre class="max-h-80 overflow-auto rounded-lg border border-gray-200 bg-gray-50 p-3 text-[11px] leading-relaxed" x-text="schemaJson()"></pre>
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                    @error('form_schema_json')
+                                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+
                                 <template x-if="schemaQuestions().length === 0">
                                     <div class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                                         Belum ada pertanyaan untuk template ini.
@@ -320,7 +574,7 @@
 
                                                     <template x-if="q.type === 'checkbox'">
                                                         <label class="flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800">
-                                                            <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-blue-600" x-model="answers[q.id]" />
+                                                            <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600" x-model="answers[q.id]" />
                                                             <span x-text="q.placeholder || 'Ya / Tidak'"></span>
                                                         </label>
                                                     </template>
@@ -400,7 +654,23 @@
                     </div>
                 </div>
 
-                <div>
+                    <div class="flex items-center justify-between border-t border-gray-200 pt-4">
+                        <button type="button" class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50" @click="prevStep()">
+                            Kembali
+                        </button>
+                        <button type="button" class="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700" @click="nextStep()">
+                            Review
+                        </button>
+                    </div>
+                </div>
+
+                <div x-show="step === 4" x-cloak class="space-y-5">
+                    <div class="rounded-lg border border-gray-200 bg-white p-4">
+                        <h3 class="text-sm font-semibold text-gray-900">Review & Simpan</h3>
+                        <p class="mt-1 text-xs text-gray-500">Gunakan preview untuk memastikan format sudah benar sebelum menyimpan draft.</p>
+                    </div>
+
+                    <div>
                     <label class="mb-1 block text-sm font-medium text-gray-700" for="change_summary">Ringkasan Perubahan</label>
                     <textarea
                         id="change_summary"
@@ -415,10 +685,15 @@
                 </div>
 
                 <div class="flex items-center justify-between border-t border-gray-200 pt-6">
-                    <a href="{{ route('quality.documents.index') }}"
+                    <div class="flex items-center gap-2">
+                        <button type="button" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50" @click="prevStep()">
+                            Kembali
+                        </button>
+                        <a href="{{ route('quality.documents.index') }}"
                        class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                        Kembali
-                    </a>
+                            Batal
+                        </a>
+                    </div>
 
                     <div class="flex items-center gap-2">
                         <button
@@ -442,7 +717,7 @@
                         <button type="submit"
                                 :disabled="isSubmitting || !canSubmit()"
                                 :class="{ 'cursor-not-allowed opacity-50': isSubmitting || !canSubmit() }"
-                                class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                                class="inline-flex items-center rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700">
                             <template x-if="isSubmitting">
                                 <svg class="-ml-1 mr-2 h-4 w-4 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -453,9 +728,8 @@
                         </button>
                     </div>
                 </div>
-
-                <p x-show="stepError" x-cloak class="text-sm text-red-600" x-text="stepError"></p>
-                <p x-show="pdfPreviewError" x-cloak class="text-sm text-red-600" x-text="pdfPreviewError"></p>
+                    <p x-show="pdfPreviewError" x-cloak class="text-sm text-red-600" x-text="pdfPreviewError"></p>
+                </div>
             </form>
         </div>
 
@@ -504,7 +778,7 @@
                         type="button"
                         @click="confirmSubmitPreview()"
                         x-show="previewMode === 'submit'"
-                        class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+                        class="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
                     >
                         Lanjut Simpan Draft
                     </button>

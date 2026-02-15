@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Quality;
 
 use App\Http\Controllers\Controller;
 use App\Models\QmhTemplate;
+use App\Support\QmhHtmlSanitizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -51,7 +52,7 @@ class QmhTemplateController extends Controller
                 'source_docx_path' => $template->source_docx_path,
                 'updated_at' => $template->updated_at,
                 'preview_url' => route('quality.templates.preview', $template),
-                'content_html' => $metadata['content_html'] ?? null,
+                'content_html' => QmhHtmlSanitizer::sanitize(is_string($metadata['content_html'] ?? null) ? $metadata['content_html'] : ''),
                 'form_schema' => $formSchema,
             ];
         })->values();

@@ -107,6 +107,11 @@ class QmhRevisionDownloadService
         $docType = (string) ($revision->document?->doc_type ?? '');
         $templateMeta = is_array($revision->template?->metadata) ? $revision->template->metadata : [];
 
+        $revisionSchema = $revision->form_schema_json ?? null;
+        if (is_array($revisionSchema)) {
+            return $revisionSchema;
+        }
+
         $schema = $templateMeta['form_schema'] ?? null;
         if (is_array($schema)) {
             return $schema;
@@ -167,7 +172,7 @@ class QmhRevisionDownloadService
         return Pdf::loadHTML($html)
             ->setPaper('a4')
             ->setWarnings(false)
-            ->setOption('isRemoteEnabled', true)
+            ->setOption('isRemoteEnabled', false)
             ->setOption('isHtml5ParserEnabled', true)
             ->output();
     }

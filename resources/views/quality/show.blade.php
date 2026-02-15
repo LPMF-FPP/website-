@@ -46,25 +46,29 @@
 
 <x-app-layout>
     <x-slot name="header">
-        <x-page-header
-            title="Dokumen QMH"
-            :breadcrumbs="[
-                ['label' => 'Dashboard QMH', 'route' => 'quality.index'],
-                ['label' => 'Dokumen'],
-                ['label' => $document->doc_code],
-            ]"
-        >
-            <x-slot name="actions">
-                <a href="{{ route('quality.documents.index') }}"
-                   class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                    Kembali
-                </a>
-            </x-slot>
-        </x-page-header>
+        <div class="space-y-3">
+            <x-page-header
+                title="Dokumen QMH"
+                :breadcrumbs="[
+                    ['label' => 'Dashboard QMH', 'route' => 'quality.index'],
+                    ['label' => 'Dokumen', 'route' => 'quality.documents.index'],
+                    ['label' => $document->doc_code],
+                ]"
+            >
+                <x-slot name="actions">
+                    <a href="{{ route('quality.documents.index') }}"
+                       class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        Kembali
+                    </a>
+                </x-slot>
+            </x-page-header>
+
+            <x-qmh-subnav active="documents" />
+        </div>
     </x-slot>
 
     <div
-        class="space-y-6 sm:px-6 lg:px-8"
+        class="space-y-6"
         x-data="qmhShowPage({
             revisionId: @js($currentRevision?->id),
             documentId: @js($document->id),
@@ -168,7 +172,7 @@
                                     @click="openSubmitModal()"
                                     @disabled(! $canSubmit)
                                     title="{{ $submitReason ?? '' }}"
-                                    class="inline-flex w-full items-center justify-center rounded-md px-3 py-2 text-sm font-medium {{ $canSubmit ? 'bg-blue-600 text-white hover:bg-blue-700' : 'cursor-not-allowed bg-gray-100 text-gray-500' }}"
+                                    class="inline-flex w-full items-center justify-center rounded-md px-3 py-2 text-sm font-medium {{ $canSubmit ? 'bg-primary-600 text-white hover:bg-primary-700' : 'cursor-not-allowed bg-gray-100 text-gray-500' }}"
                                 >
                                     Submit untuk Review
                                 </button>
@@ -186,7 +190,7 @@
                                     @click="openReviewModal()"
                                     @disabled(! $canReview)
                                     title="{{ $reviewReason ?? '' }}"
-                                    class="inline-flex w-full items-center justify-center rounded-md px-3 py-2 text-sm font-medium {{ $canReview ? 'bg-blue-600 text-white hover:bg-blue-700' : 'cursor-not-allowed bg-gray-100 text-gray-500' }}"
+                                    class="inline-flex w-full items-center justify-center rounded-md px-3 py-2 text-sm font-medium {{ $canReview ? 'bg-primary-600 text-white hover:bg-primary-700' : 'cursor-not-allowed bg-gray-100 text-gray-500' }}"
                                 >
                                     Review Dokumen
                                 </button>
@@ -228,7 +232,7 @@
                 <div x-show="activeTab === 'content'" x-cloak>
                     @if($currentRevision?->content_html)
                         <article class="prose prose-sm max-w-none text-gray-700">
-                            {!! $currentRevision->content_html !!}
+                            {!! \App\Support\QmhHtmlSanitizer::sanitize($currentRevision->content_html) !!}
                         </article>
                     @else
                         <p class="text-sm text-gray-500">Konten dokumen belum tersedia.</p>
@@ -348,7 +352,7 @@
 
                     <div class="mt-5 flex justify-end gap-2">
                         <button type="button" class="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700" @click="closeSubmitModal()">Batal</button>
-                        <button type="button" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50" :disabled="submitModal.loading" @click="submitForReview()" x-text="submitModal.loading ? 'Memproses...' : 'Submit'"></button>
+                        <button type="button" class="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50" :disabled="submitModal.loading" @click="submitForReview()" x-text="submitModal.loading ? 'Memproses...' : 'Submit'"></button>
                     </div>
                 </div>
             </div>
@@ -390,7 +394,7 @@
 
                     <div class="mt-5 flex justify-end gap-2">
                         <button type="button" class="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700" @click="closeReviewModal()">Batal</button>
-                        <button type="button" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50" :disabled="reviewModal.loading" @click="submitReview()" x-text="reviewModal.loading ? 'Memproses...' : 'Kirim'"></button>
+                        <button type="button" class="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50" :disabled="reviewModal.loading" @click="submitReview()" x-text="reviewModal.loading ? 'Memproses...' : 'Kirim'"></button>
                     </div>
                 </div>
             </div>
@@ -455,7 +459,7 @@
 
                     <div class="mt-5 flex justify-end gap-2">
                         <button type="button" class="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700" @click="closeDownloadModal()">Batal</button>
-                        <button type="button" class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50" :disabled="downloadModal.loading" @click="submitDownload()" x-text="downloadModal.loading ? 'Memproses...' : 'Unduh'"></button>
+                        <button type="button" class="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50" :disabled="downloadModal.loading" @click="submitDownload()" x-text="downloadModal.loading ? 'Memproses...' : 'Unduh'"></button>
                     </div>
                 </div>
             </div>

@@ -5,6 +5,7 @@ namespace App\Http\Requests\Quality;
 use App\Models\QmhDocument;
 use App\Models\QmhTemplate;
 use App\Support\QmhFormAnswersValidator;
+use App\Support\QmhFormSchemaValidator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -14,6 +15,13 @@ class StoreQmhDocumentRequest extends FormRequest
      * @var array<string, string>
      */
     private array $answersErrors = [];
+
+    /**
+     * @var array<int, string>
+     */
+    private array $schemaErrors = [];
+
+    private bool $schemaJsonDecodeFailed = false;
 
     public function authorize(): bool
     {
@@ -28,15 +36,42 @@ class StoreQmhDocumentRequest extends FormRequest
 
         $template = $this->template();
         $metadata = is_array($template?->metadata) ? $template->metadata : [];
-        $schema = $metadata['form_schema'] ?? null;
-        if (! is_array($schema)) {
+
+        $overrideSchema = $this->input('form_schema_json');
+        if (is_string($overrideSchema) && trim($overrideSchema) !== '') {
+            try {
+                $decoded = json_decode($overrideSchema, true, 512, JSON_THROW_ON_ERROR);
+            } catch (\JsonException) {
+                $this->schemaJsonDecodeFailed = true;
+                $decoded = null;
+            }
+
+            if (is_array($decoded)) {
+                $overrideSchema = $decoded;
+            } else {
+                $this->schemaJsonDecodeFailed = true;
+                $overrideSchema = null;
+            }
+        }
+
+        if (is_array($overrideSchema)) {
+            $this->schemaErrors = QmhFormSchemaValidator::errors($overrideSchema);
+        }
+
+        $templateSchema = $metadata['form_schema'] ?? null;
+        $resolvedSchema = is_array($overrideSchema)
+            ? $overrideSchema
+            : (is_array($templateSchema) ? $templateSchema : null);
+
+        if (! is_array($resolvedSchema)) {
             return;
         }
 
-        $result = QmhFormAnswersValidator::validateAndNormalize($schema, $this->input('answers_json'));
+        $result = QmhFormAnswersValidator::validateAndNormalize($resolvedSchema, $this->input('answers_json'));
         $this->answersErrors = $result['errors'];
 
         $this->merge([
+            'form_schema_json' => $resolvedSchema,
             'answers_json' => $result['normalized'],
         ]);
     }
@@ -63,6 +98,7 @@ class StoreQmhDocumentRequest extends FormRequest
             'effective_date' => ['nullable', 'date'],
             'editor_json' => ['nullable', 'array'],
             'answers_json' => ['nullable', 'array'],
+            'form_schema_json' => ['nullable', 'array'],
             'content_html' => ['nullable', 'string'],
             'content_css' => ['nullable', 'string'],
         ];
@@ -133,6 +169,16 @@ class StoreQmhDocumentRequest extends FormRequest
 
             foreach ($this->answersErrors as $key => $message) {
                 $validator->errors()->add($key, $message);
+            }
+
+            if ($this->schemaJsonDecodeFailed) {
+                $validator->errors()->add('form_schema_json', 'Schema pertanyaan harus berupa JSON valid.');
+
+                return;
+            }
+
+            foreach ($this->schemaErrors as $message) {
+                $validator->errors()->add('form_schema_json', $message);
             }
         });
     }

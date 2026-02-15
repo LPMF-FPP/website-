@@ -5,6 +5,7 @@ namespace App\Http\Requests\Quality;
 use App\Models\QmhDocumentRevision;
 use App\Models\QmhTemplate;
 use App\Support\QmhFormAnswersValidator;
+use App\Support\QmhFormSchemaValidator;
 use Illuminate\Foundation\Http\FormRequest;
 
 class SaveQmhRevisionContentRequest extends FormRequest
@@ -14,6 +15,13 @@ class SaveQmhRevisionContentRequest extends FormRequest
      */
     private array $answersErrors = [];
 
+    /**
+     * @var array<int, string>
+     */
+    private array $schemaErrors = [];
+
+    private bool $schemaJsonDecodeFailed = false;
+
     public function authorize(): bool
     {
         return $this->user()?->hasPermission('qmh.create') ?? false;
@@ -21,7 +29,7 @@ class SaveQmhRevisionContentRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        if (! $this->has('answers_json')) {
+        if (! $this->has('answers_json') && ! $this->has('form_schema_json')) {
             return;
         }
 
@@ -35,23 +43,55 @@ class SaveQmhRevisionContentRequest extends FormRequest
             return;
         }
 
+        $overrideSchema = $this->input('form_schema_json');
+        if (is_string($overrideSchema) && trim($overrideSchema) !== '') {
+            try {
+                $decoded = json_decode($overrideSchema, true, 512, JSON_THROW_ON_ERROR);
+            } catch (\JsonException) {
+                $this->schemaJsonDecodeFailed = true;
+                $decoded = null;
+            }
+
+            if (is_array($decoded)) {
+                $overrideSchema = $decoded;
+            } else {
+                $this->schemaJsonDecodeFailed = true;
+                $overrideSchema = null;
+            }
+        }
+
+        if (is_array($overrideSchema)) {
+            $this->schemaErrors = QmhFormSchemaValidator::errors($overrideSchema);
+        }
+
         $template = null;
         if ((int) ($revision->template_id ?? 0) > 0) {
             $template = QmhTemplate::query()->find((int) $revision->template_id);
         }
 
         $metadata = is_array($template?->metadata) ? $template->metadata : [];
-        $schema = $metadata['form_schema'] ?? null;
-        if (! is_array($schema)) {
-            return;
+
+        $revisionSchema = is_array($revision->form_schema_json ?? null) ? $revision->form_schema_json : null;
+        $templateSchema = $metadata['form_schema'] ?? null;
+        $resolvedSchema = is_array($overrideSchema)
+            ? $overrideSchema
+            : ($revisionSchema ?? (is_array($templateSchema) ? $templateSchema : null));
+
+        if (is_array($overrideSchema)) {
+            // Only persist schema when client explicitly sends it.
+            $this->merge([
+                'form_schema_json' => $overrideSchema,
+            ]);
         }
 
-        $result = QmhFormAnswersValidator::validateAndNormalize($schema, $this->input('answers_json'));
-        $this->answersErrors = $result['errors'];
+        if ($this->has('answers_json') && is_array($resolvedSchema)) {
+            $result = QmhFormAnswersValidator::validateAndNormalize($resolvedSchema, $this->input('answers_json'));
+            $this->answersErrors = $result['errors'];
 
-        $this->merge([
-            'answers_json' => $result['normalized'],
-        ]);
+            $this->merge([
+                'answers_json' => $result['normalized'],
+            ]);
+        }
     }
 
     /**
@@ -64,6 +104,7 @@ class SaveQmhRevisionContentRequest extends FormRequest
             'content_css' => ['nullable', 'string'],
             'editor_json' => ['nullable', 'array'],
             'answers_json' => ['nullable', 'array'],
+            'form_schema_json' => ['nullable', 'array'],
             'effective_date' => ['nullable', 'date'],
         ];
     }
@@ -81,9 +122,10 @@ class SaveQmhRevisionContentRequest extends FormRequest
             $contentHtml = $this->input('content_html');
             $hasHtml = is_string($contentHtml) && trim($contentHtml) !== '';
             $hasAnswers = $this->has('answers_json') && is_array($this->input('answers_json'));
+            $hasSchema = $this->has('form_schema_json') && is_array($this->input('form_schema_json'));
 
             if ($isFormulir) {
-                if (! $hasHtml && ! $hasAnswers) {
+                if (! $hasHtml && ! $hasAnswers && ! $hasSchema) {
                     $validator->errors()->add('answers_json', 'Jawaban formulir wajib diisi.');
 
                     return;
@@ -93,7 +135,21 @@ class SaveQmhRevisionContentRequest extends FormRequest
                     $validator->errors()->add($key, $message);
                 }
 
+                if ($this->schemaJsonDecodeFailed) {
+                    $validator->errors()->add('form_schema_json', 'Schema pertanyaan harus berupa JSON valid.');
+
+                    return;
+                }
+
+                foreach ($this->schemaErrors as $message) {
+                    $validator->errors()->add('form_schema_json', $message);
+                }
+
                 return;
+            }
+
+            if ($this->has('form_schema_json')) {
+                $validator->errors()->add('form_schema_json', 'Schema pertanyaan hanya dapat diubah untuk dokumen Formulir (FR).');
             }
 
             if (! $hasHtml) {

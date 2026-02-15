@@ -106,4 +106,63 @@ class QmhRevisionTransitionServiceTest extends TestCase
 
         $transitionService->submitForReview($document->currentRevision->fresh(), $creator->id, $reviewer->id);
     }
+
+    public function test_submit_rejects_when_formulir_schema_snapshot_has_missing_required_answers(): void
+    {
+        /** @var User $creator */
+        $creator = User::factory()->create(['role' => 'admin']);
+        /** @var User $reviewer */
+        $reviewer = User::factory()->create(['role' => 'admin']);
+
+        $template = QmhTemplate::query()->create([
+            'name' => 'Template FR Base',
+            'clause' => 4,
+            'doc_type' => 'fr',
+            'version' => 1,
+            'storage_disk' => 'local',
+            'source_docx_path' => 'qmh/templates/fr/base.docx',
+            'is_active' => true,
+            'metadata' => [
+                'form_schema' => [
+                    'version' => 1,
+                    'doc_type' => 'fr',
+                    'questions' => [
+                        ['id' => 'field_a', 'label' => 'Kolom A', 'type' => 'text', 'required' => true],
+                    ],
+                ],
+            ],
+        ]);
+
+        $overrideSchema = [
+            'version' => 1,
+            'doc_type' => 'fr',
+            'questions' => [
+                ['id' => 'field_b', 'label' => 'Kolom B', 'type' => 'text', 'required' => true],
+            ],
+        ];
+
+        $documentService = new QmhDocumentService;
+        $document = $documentService->createDraft([
+            'doc_code' => 'QMH-FR-SNAPSHOT-TS',
+            'title' => 'Formulir Snapshot',
+            'clause' => 4,
+            'doc_type' => 'fr',
+            'template_id' => $template->id,
+            'form_schema_json' => $overrideSchema,
+            'answers_json' => [],
+        ], $creator->id);
+
+        $lockService = new QmhRevisionLockService;
+        $lockService->acquire($document->currentRevision, $creator->id);
+
+        $transitionService = new QmhRevisionTransitionService;
+
+        try {
+            $transitionService->submitForReview($document->currentRevision->fresh(), $creator->id, $reviewer->id);
+            $this->fail('Expected ValidationException for missing required answers in schema snapshot.');
+        } catch (ValidationException $e) {
+            $messages = $e->errors();
+            $this->assertArrayHasKey('answers_json.field_b', $messages);
+        }
+    }
 }

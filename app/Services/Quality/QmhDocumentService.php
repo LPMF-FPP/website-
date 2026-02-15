@@ -7,6 +7,7 @@ use App\Models\QmhDocumentRevision;
 use App\Models\QmhTemplate;
 use App\Models\QmhWorkflowEvent;
 use App\Support\QmhAnswerSanitizer;
+use App\Support\QmhHtmlSanitizer;
 use Illuminate\Support\Facades\DB;
 
 class QmhDocumentService
@@ -35,9 +36,21 @@ class QmhDocumentService
                 ? $payloadContentHtml
                 : ($templateContentHtml !== '' ? $templateContentHtml : '<p></p>');
 
+            $resolvedContentHtml = QmhHtmlSanitizer::sanitize($resolvedContentHtml);
+            if (trim($resolvedContentHtml) === '') {
+                $resolvedContentHtml = '<p></p>';
+            }
+
             $answersJson = null;
             if (array_key_exists('answers_json', $payload)) {
                 $answersJson = QmhAnswerSanitizer::sanitizeAnswersJson($payload['answers_json']);
+            }
+
+            $schemaSnapshot = null;
+            if (array_key_exists('form_schema_json', $payload) && is_array($payload['form_schema_json'])) {
+                $schemaSnapshot = $payload['form_schema_json'];
+            } elseif (($payload['doc_type'] ?? null) === 'fr' && is_array($templateMetadata['form_schema'] ?? null)) {
+                $schemaSnapshot = $templateMetadata['form_schema'];
             }
 
             $document = QmhDocument::query()->create([
@@ -64,6 +77,7 @@ class QmhDocumentService
                 'version_bump_mode' => 'auto',
                 'editor_json' => $payload['editor_json'] ?? null,
                 'answers_json' => $answersJson,
+                'form_schema_json' => $schemaSnapshot,
                 'effective_date' => $payload['effective_date'] ?? null,
                 'content_html' => $resolvedContentHtml,
                 'content_css' => $payload['content_css'] ?? null,

@@ -338,3 +338,215 @@ Kemampuan minimum:
 - Dokumen FR create/edit render field sesuai schema.
 - Structured preview dan PDF menampilkan hasil dalam tabel yang konsisten untuk semua tipe v1.
 - Validation server-side menolak submit/save jika required field kosong.
+
+---
+
+## Quality/QMH Templates (HTML-First, DOCX Optional)
+
+### Context
+
+Sebelumnya, pembuatan template QMH bersifat DOCX-centric: admin wajib upload DOCX untuk membuat/aktivasi template. Padahal eksekusi dokumen QMH di aplikasi sudah HTML-first (konten dokumen berasal dari `metadata.content_html`).
+
+### Goals
+
+- Admin bisa membuat & mengaktifkan template SOP/IK/FR tanpa upload DOCX (HTML-only).
+- DOCX tetap didukung sebagai sumber (import awal) dan arsip, tapi tidak wajib.
+- Preview template tetap bisa dilakukan walau template tidak punya DOCX.
+
+### Non-Goals
+
+- Tidak membangun roundtrip DOCX <-> HTML yang lossless.
+- Tidak mengganti mekanisme versioning template (tetap per `doc_type` + `version`).
+
+### Data Model
+
+- `qmh_templates.source_docx_path`: nullable (sudah).
+- `qmh_templates.metadata.content_html`: canonical konten template.
+
+### Create Rules (SOP/IK/FR)
+
+- Minimal salah satu harus ada:
+    - `file` (DOCX), atau
+    - `content_html` (dari editor browser)
+
+Resolusi konten saat create:
+
+1. Jika `content_html` non-blank => gunakan sebagai `metadata.content_html`.
+2. Else jika `file` ada => store DOCX + extract HTML => simpan sebagai `metadata.content_html`.
+3. Else => reject (validasi).
+
+### Preview Rules
+
+- Jika template punya DOCX yang valid di storage:
+    - tetap tampilkan Office viewer + tombol "Buka File Langsung".
+- Jika tidak punya DOCX:
+    - tampilkan preview HTML dari `metadata.content_html`.
+
+### Security Notes
+
+- HTML preview harus memakai sanitasi yang sama dengan editor/rendering dokumen (hindari script injection).
+- Route preview file DOCX (signed URL) tetap 404 untuk template HTML-only.
+
+---
+
+## Quality/QMH Formulir (FR) - Pertanyaan Per Dokumen (Schema Snapshot per Revision)
+
+### Problem
+
+Saat ini schema FR dibaca langsung dari `QmhTemplate.metadata.form_schema` pada saat:
+
+- Create dokumen FR (validasi jawaban)
+- Save konten revisi FR (validasi jawaban)
+- Submit for review (guard validasi)
+- Rendering PDF
+
+Konsekuensinya: jika template schema diubah, dokumen FR lama bisa "berubah" schema-nya (drift) dan berisiko mematahkan validasi/PDF.
+
+### Goal
+
+- FR dapat menambah/mengubah pertanyaan saat pembuatan dokumen (dan opsional saat edit draft).
+- Schema FR yang dipakai harus "menempel" ke revisi (snapshot) agar stabil untuk audit + PDF.
+
+### Scope Rules
+
+- Schema FR hanya boleh diedit saat `revision.status = draft`.
+- Akses edit schema mengikuti aturan lock (hanya lock owner bisa menyimpan perubahan).
+
+### Data Model (Proposed)
+
+Tambahkan kolom baru:
+
+- `qmh_document_revisions.form_schema_json` (jsonb, nullable)
+
+### Schema Resolution Precedence
+
+Semua tempat yang butuh schema (validate/render/PDF) harus resolve schema dengan urutan:
+
+1. Jika `revision.form_schema_json` ada (array) => pakai.
+2. Else jika `revision.template.metadata.form_schema` ada => pakai.
+3. Else fallback:
+    - SOP/IK: default schema (existing behavior)
+    - FR: `questions = []`
+
+### Create FR UX
+
+- Create dokumen FR menampilkan Form Builder inline.
+- Default schema awal berasal dari template aktif (kalau ada), tapi user boleh edit sebelum submit.
+- Payload create menyertakan:
+    - `answers_json` (jawaban)
+    - `form_schema_json` (optional override/snapshot)
+
+Persist:
+
+- `answers_json` => `QmhDocumentRevision.answers_json`
+- `form_schema_json` => `QmhDocumentRevision.form_schema_json`
+
+### Validation
+
+- Jika `form_schema_json` dikirim:
+    - validate schema (gunakan validator schema existing)
+    - validate answers terhadap schema override
+- Jika tidak dikirim:
+    - validate answers terhadap schema template
+
+### PDF & Audit
+
+- PDF harus menggunakan schema hasil resolusi precedence di atas.
+- Ini memastikan print output konsisten untuk revisi yang sudah dibuat.
+
+---
+
+## Quality/QMH UI/UX Redesign (Wireframes + IA)
+
+### Visual Direction
+
+- "Clinical Precision" yang konsisten dengan theme existing: permukaan putih hangat, border slate, aksi primer hijau/teal (hindari dominasi biru).
+- Status jelas (success/warning/danger/info), CTA tidak berlebihan, layout terstruktur dan audit-ready.
+
+### Global Layout Rules (Semua halaman /quality/\*)
+
+- Breadcrumbs wajib tampil (clickable) untuk wayfinding.
+- Subnav QMH tabs selalu tampil: `Overview | Dokumen | Buat Dokumen | Template`.
+- Hindari nested container yang menggandakan padding (gunakan container dari layout utama saja).
+
+### Wireframes (Desktop)
+
+#### QMH Overview (/quality)
+
+```text
+[Header + Breadcrumbs + Tabs]
+
+Title: Mutu (QMH)
+KPI Row: [Kepatuhan] [Dok Aktif] [Perlu Review] [Temuan]
+
+Main (2/3):
+  - Aktivitas terbaru (list)
+  - Dokumen perlu perhatian (table)
+
+Right Rail (1/3):
+  - Tindakan cepat: [Buat Dokumen] [Kelola Template] [Lihat Semua Dokumen]
+  - Kepatuhan per klausul/unit (mini summary)
+```
+
+#### Dokumen (/quality/documents)
+
+```text
+[Header + Breadcrumbs + Tabs]
+
+Title: Dokumen QMH
+Search + Filters + Active filter chips
+
+Table:
+  Kode | Judul | Status | Versi | Updated | Aksi (Buka)
+
+Mobile fallback: kartu list dengan badge status + CTA Buka
+```
+
+#### Buat Dokumen (/quality/create)
+
+```text
+[Header + Breadcrumbs + Tabs]
+
+Title: Buat Dokumen QMH
+Stepper: (1) Pilih Template -> (2) Metadata -> (3) Konten/Pertanyaan -> (4) Review
+
+Step 1:
+  - Kartu template + Preview + Pilih
+
+Step 3 (FR):
+  - Form Builder (pertanyaan) + Form input (jawaban) + Preview ringkas
+```
+
+#### Edit Dokumen (/quality/{doc}/edit)
+
+```text
+[Header + Breadcrumbs + Tabs]
+
+Title + Meta: Status, Versi, Lock state
+
+Main (2/3): Editor
+Right Rail (1/3): Workflow actions + Checklist + Preview PDF
+```
+
+#### Template (/quality/templates)
+
+```text
+[Header + Breadcrumbs + Tabs]
+
+Title: Template QMH
+Default view: scan/manage templates (table)
+Create/upload is collapsible or separate section to avoid pushing the table down
+```
+
+#### Edit Template (/quality/templates/{id}/edit)
+
+```text
+Tabs (internal): Metadata | Content | Form Schema (FR)
+Right Rail: Dampak perubahan + publish rules + validation
+```
+
+### Mobile Notes
+
+- Tabs menjadi segmented/scroll; breadcrumbs jadi "Kembali" + judul singkat.
+- Right rail berubah menjadi bottom sheet (Workflow/Checklist).
+- Stepper menjadi progress bar (Step X/4) dengan CTA sticky bottom.

@@ -7,6 +7,7 @@ use App\Http\Requests\Quality\StoreQmhTemplateRequest;
 use App\Http\Requests\Quality\UpdateQmhTemplateRequest;
 use App\Models\QmhTemplate;
 use App\Support\Audit;
+use App\Support\QmhHtmlSanitizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -49,12 +50,34 @@ class QmhTemplateController extends Controller
     public function store(StoreQmhTemplateRequest $request): RedirectResponse
     {
         $validated = $request->validated();
-        $uploadedFile = $request->file('file');
         $disk = 'local';
-        $folder = sprintf('qmh/templates/%s', $validated['doc_type']);
-        $path = $uploadedFile->store($folder, $disk);
 
-        DB::transaction(function () use ($validated, $request, $path, $disk): void {
+        $path = null;
+        if ($request->hasFile('file')) {
+            $uploadedFile = $request->file('file');
+            $folder = sprintf('qmh/templates/%s', $validated['doc_type']);
+            $path = $uploadedFile->store($folder, $disk);
+        }
+
+        $submittedContentHtml = isset($validated['content_html']) && is_string($validated['content_html'])
+            ? trim($validated['content_html'])
+            : '';
+
+        $contentHtml = $submittedContentHtml;
+        if ($contentHtml === '' && is_string($path)) {
+            $contentHtml = (string) $this->extractContentHtmlFromDocx($disk, $path);
+        }
+
+        if (trim($contentHtml) === '') {
+            $contentHtml = '<p></p>';
+        }
+
+        $contentHtml = QmhHtmlSanitizer::sanitize($contentHtml);
+        if (trim($contentHtml) === '') {
+            $contentHtml = '<p></p>';
+        }
+
+        DB::transaction(function () use ($validated, $request, $path, $disk, $contentHtml): void {
             $nextVersion = (int) QmhTemplate::query()
                 ->where('doc_type', $validated['doc_type'])
                 ->max('version') + 1;
@@ -63,8 +86,6 @@ class QmhTemplateController extends Controller
                 ->where('doc_type', $validated['doc_type'])
                 ->where('is_active', true)
                 ->update(['is_active' => false]);
-
-            $contentHtml = $this->extractContentHtmlFromDocx($disk, $path);
 
             $template = QmhTemplate::query()->create([
                 'name' => $validated['name'],
@@ -92,7 +113,7 @@ class QmhTemplateController extends Controller
 
         return redirect()
             ->route('quality.templates.index')
-            ->with('success', 'Template QMH berhasil diunggah dan diaktifkan.');
+            ->with('success', 'Template QMH berhasil dibuat dan diaktifkan.');
     }
 
     public function edit(Request $request, QmhTemplate $template): View
@@ -132,7 +153,12 @@ class QmhTemplateController extends Controller
             $nextMetadata = is_array($template->metadata) ? $template->metadata : [];
             $nextMetadata['version_notes'] = $validated['version_notes'] ?? null;
             $nextMetadata['updated_by'] = $request->user()?->id;
-            $nextMetadata['content_html'] = $validated['content_html'] ?? ($nextMetadata['content_html'] ?? null);
+            if (array_key_exists('content_html', $validated)) {
+                $sanitized = QmhHtmlSanitizer::sanitize((string) ($validated['content_html'] ?? ''));
+                $nextMetadata['content_html'] = trim($sanitized) !== '' ? $sanitized : '<p></p>';
+            } else {
+                $nextMetadata['content_html'] = $nextMetadata['content_html'] ?? null;
+            }
 
             if (array_key_exists('form_schema', $validated)) {
                 $nextMetadata['form_schema'] = $validated['form_schema'];
@@ -217,18 +243,31 @@ class QmhTemplateController extends Controller
     public function preview(Request $request, QmhTemplate $template): View
     {
         $this->authorizePreviewAccess($request);
-        $this->assertTemplateFileExists($template);
 
-        $previewFileUrl = URL::temporarySignedRoute(
-            'quality.templates.preview.file',
-            now()->addMinutes(10),
-            ['template' => $template->id]
-        );
+        $hasDocx = $template->source_docx_path !== null
+            && Storage::disk($template->storage_disk)->exists($template->source_docx_path);
+
+        $previewFileUrl = null;
+        $officeViewerUrl = null;
+        if ($hasDocx) {
+            $previewFileUrl = URL::temporarySignedRoute(
+                'quality.templates.preview.file',
+                now()->addMinutes(10),
+                ['template' => $template->id]
+            );
+        }
+
+        $metadata = is_array($template->metadata) ? $template->metadata : [];
+        $contentHtml = isset($metadata['content_html']) && is_string($metadata['content_html'])
+            ? $metadata['content_html']
+            : '<p></p>';
 
         return view('quality.templates.preview', [
             'template' => $template,
+            'hasDocx' => $hasDocx,
             'previewFileUrl' => $previewFileUrl,
-            'officeViewerUrl' => 'https://view.officeapps.live.com/op/embed.aspx?src='.rawurlencode($previewFileUrl),
+            'officeViewerUrl' => null,
+            'contentHtml' => $contentHtml,
         ]);
     }
 

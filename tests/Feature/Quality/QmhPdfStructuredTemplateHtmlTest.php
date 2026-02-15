@@ -4,7 +4,9 @@ namespace Tests\Feature\Quality;
 
 use App\Models\QmhDocument;
 use App\Models\QmhDocumentRevision;
+use App\Models\QmhTemplate;
 use App\Models\User;
+use App\Services\Quality\QmhRevisionDownloadService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -161,6 +163,71 @@ class QmhPdfStructuredTemplateHtmlTest extends TestCase
         $this->assertStringContainsString('form-table', $html);
         $this->assertStringContainsString('KOLOM A', $html);
         $this->assertStringContainsString('KOLOM B', $html);
+    }
+
+    public function test_pdf_generation_prefers_revision_schema_snapshot_over_template_schema(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $template = QmhTemplate::query()->create([
+            'name' => 'Template FR Base PDF',
+            'clause' => 4,
+            'doc_type' => 'fr',
+            'version' => 1,
+            'storage_disk' => 'local',
+            'source_docx_path' => null,
+            'is_active' => true,
+            'metadata' => [
+                'form_schema' => [
+                    'version' => 1,
+                    'doc_type' => 'fr',
+                    'questions' => [
+                        ['id' => 'field_a', 'label' => 'Kolom A', 'type' => 'text', 'required' => false],
+                    ],
+                ],
+            ],
+        ]);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-FR-PDF-SNAPSHOT-001',
+            'title' => 'Formulir Snapshot PDF',
+            'clause' => 4,
+            'doc_type' => 'formulir',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $overrideSchema = [
+            'version' => 1,
+            'doc_type' => 'fr',
+            'questions' => [
+                ['id' => 'field_b', 'label' => 'Kolom B', 'type' => 'text', 'required' => false],
+            ],
+        ];
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'draft',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+            'template_id' => $template->id,
+            'template_name' => $template->name,
+            'template_version' => $template->version,
+            'form_schema_json' => $overrideSchema,
+            'answers_json' => [
+                'field_b' => 'OK',
+            ],
+        ]);
+
+        $service = new QmhRevisionDownloadService;
+        $html = $service->buildWatermarkedHtml($revision->fresh(), 'DRAFT');
+
+        $this->assertStringContainsString('KOLOM B', $html);
+        $this->assertStringNotContainsString('KOLOM A', $html);
     }
 
     public function test_pdf_template_renders_fr_doc_type_as_formulir_table(): void

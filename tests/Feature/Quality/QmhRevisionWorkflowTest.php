@@ -224,9 +224,11 @@ class QmhRevisionWorkflowTest extends TestCase
             ])
             ->assertOk();
 
+        $expectedContent = \App\Support\QmhHtmlSanitizer::sanitize('<h1>Konten Baru</h1><p>Dokumen siap review.</p>');
+
         $this->assertDatabaseHas('qmh_document_revisions', [
             'id' => $revision->id,
-            'content_html' => '<h1>Konten Baru</h1><p>Dokumen siap review.</p>',
+            'content_html' => $expectedContent,
             'content_css' => '.doc{font-size:12px;}',
         ]);
 
@@ -258,6 +260,48 @@ class QmhRevisionWorkflowTest extends TestCase
             ])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['answers_json.field_a']);
+    }
+
+    public function test_save_content_allows_formulir_schema_snapshot_update_and_validates_against_snapshot(): void
+    {
+        /** @var User $creator */
+        $creator = User::factory()->create(['role' => 'admin']);
+
+        $revision = $this->createDraftRevisionFormulir($creator);
+
+        $this->actingAs($creator)
+            ->postJson("/api/quality/revisions/{$revision->id}/lock")
+            ->assertOk();
+
+        $overrideSchema = [
+            'version' => 1,
+            'doc_type' => 'fr',
+            'questions' => [
+                ['id' => 'field_b', 'label' => 'Kolom B', 'type' => 'text', 'required' => true],
+            ],
+        ];
+
+        $this->actingAs($creator)
+            ->putJson("/api/quality/revisions/{$revision->id}/content", [
+                'form_schema_json' => $overrideSchema,
+                'answers_json' => [
+                    'field_b' => 'OK',
+                ],
+            ])
+            ->assertOk();
+
+        $revision->refresh();
+        $this->assertEquals($overrideSchema, $revision->form_schema_json);
+
+        $this->actingAs($creator)
+            ->putJson("/api/quality/revisions/{$revision->id}/content", [
+                'form_schema_json' => $overrideSchema,
+                'answers_json' => [
+                    'field_b' => '',
+                ],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['answers_json.field_b']);
     }
 
     public function test_save_content_rejects_non_formulir_when_only_answers_json_is_sent(): void
@@ -298,6 +342,32 @@ class QmhRevisionWorkflowTest extends TestCase
             ])
             ->assertStatus(422)
             ->assertJsonValidationErrors(['content_html']);
+    }
+
+    public function test_save_content_rejects_non_formulir_schema_snapshot_updates(): void
+    {
+        /** @var User $creator */
+        $creator = User::factory()->create(['role' => 'admin']);
+
+        $revision = $this->createDraftRevision($creator);
+
+        $this->actingAs($creator)
+            ->postJson("/api/quality/revisions/{$revision->id}/lock")
+            ->assertOk();
+
+        $this->actingAs($creator)
+            ->putJson("/api/quality/revisions/{$revision->id}/content", [
+                'content_html' => '<p>Konten SOP</p>',
+                'form_schema_json' => [
+                    'version' => 1,
+                    'doc_type' => 'fr',
+                    'questions' => [
+                        ['id' => 'x', 'label' => 'X', 'type' => 'text', 'required' => false],
+                    ],
+                ],
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['form_schema_json']);
     }
 
     private function createDraftRevision(User $creator): QmhDocumentRevision

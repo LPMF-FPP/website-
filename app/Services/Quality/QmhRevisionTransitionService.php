@@ -37,13 +37,18 @@ class QmhRevisionTransitionService
             }
 
             if (($revision->document?->doc_type ?? '') === 'formulir') {
+                $schema = is_array($revision->form_schema_json ?? null) ? $revision->form_schema_json : null;
+
                 $template = null;
                 if ((int) ($revision->template_id ?? 0) > 0) {
                     $template = QmhTemplate::query()->find((int) $revision->template_id);
                 }
 
                 $metadata = is_array($template?->metadata) ? $template->metadata : [];
-                $schema = $metadata['form_schema'] ?? null;
+                if (! is_array($schema)) {
+                    $schema = $metadata['form_schema'] ?? null;
+                }
+
                 if (is_array($schema)) {
                     $result = QmhFormAnswersValidator::validateAndNormalize($schema, $revision->answers_json ?? []);
                     if (count($result['errors']) > 0) {
@@ -51,6 +56,10 @@ class QmhRevisionTransitionService
                     }
 
                     $revision->answers_json = $result['normalized'];
+
+                    if (! is_array($revision->form_schema_json ?? null)) {
+                        $revision->form_schema_json = $schema;
+                    }
                 }
             }
 
