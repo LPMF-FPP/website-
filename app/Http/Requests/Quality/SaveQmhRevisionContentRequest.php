@@ -29,6 +29,13 @@ class SaveQmhRevisionContentRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $rawSchema = $this->input('form_schema_json');
+        if (is_string($rawSchema) && trim($rawSchema) === '') {
+            $this->merge([
+                'form_schema_json' => null,
+            ]);
+        }
+
         if (! $this->has('answers_json') && ! $this->has('form_schema_json')) {
             return;
         }

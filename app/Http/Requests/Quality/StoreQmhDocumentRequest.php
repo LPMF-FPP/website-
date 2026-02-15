@@ -42,7 +42,18 @@ class StoreQmhDocumentRequest extends FormRequest
             }
         }
 
+        $rawSchema = $this->input('form_schema_json');
+        if (is_string($rawSchema) && trim($rawSchema) === '') {
+            $this->merge([
+                'form_schema_json' => null,
+            ]);
+        }
+
         if ($this->normalizedTemplateDocType() !== 'fr') {
+            $this->merge([
+                'form_schema_json' => null,
+            ]);
+
             return;
         }
 
