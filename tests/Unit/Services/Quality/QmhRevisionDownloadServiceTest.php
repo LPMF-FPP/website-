@@ -58,6 +58,9 @@ class QmhRevisionDownloadServiceTest extends TestCase
         $this->assertStringContainsString('Dibuat Oleh', $html);
         $this->assertStringContainsString('Diperiksa Oleh', $html);
         $this->assertStringContainsString('Disahkan Oleh', $html);
-        $this->assertStringContainsString('Penata TK I / NRP 12345678 / NIP 19876543210001', $html);
+        $this->assertStringContainsString('Pangkat/NRP/NIPR', $html);
+        $this->assertStringContainsString('Penata TK I/12345678', $html);
+        $this->assertStringNotContainsString('NRP 12345678', $html);
+        $this->assertStringNotContainsString('NIP 19876543210001', $html);
     }
 }

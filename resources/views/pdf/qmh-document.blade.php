@@ -68,10 +68,9 @@
         $nip = trim((string) ($user->nip ?? ''));
 
         $rankPart = $rank !== '' ? $rank : '-';
-        $nrpPart = $nrp !== '' ? $nrp : '-';
-        $nipPart = $nip !== '' ? $nip : '-';
+        $idPart = $nrp !== '' ? $nrp : ($nip !== '' ? $nip : '-');
 
-        return sprintf('%s / NRP %s / NIP %s', $rankPart, $nrpPart, $nipPart);
+        return sprintf('%s/%s', $rankPart, $idPart);
     };
 
     $createdIdentity = $signerIdentity($createdBy);
@@ -89,7 +88,7 @@
     <title>{{ $document?->doc_code ?? 'QMH' }} - {{ $versionLabel }}</title>
     <style>
         @page {
-            margin: 172px 36px 210px 36px;
+            margin: 168px 36px 194px 36px;
         }
 
         body {
@@ -115,18 +114,18 @@
 
         header {
             position: fixed;
-            top: -156px;
+            top: -152px;
             left: 0;
             right: 0;
-            height: 148px;
+            height: 144px;
         }
 
         footer {
             position: fixed;
-            bottom: -188px;
+            bottom: -172px;
             left: 0;
             right: 0;
-            height: 180px;
+            height: 164px;
             font-size: 9px;
             color: #111827;
         }
@@ -215,7 +214,7 @@
         }
 
         .footer-page {
-            margin-top: 4px;
+            margin-top: 2px;
             text-align: right;
             color: #374151;
         }
@@ -312,13 +311,13 @@
         .signoff {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
 
         .signoff th,
         .signoff td {
             border: 1px solid #111827;
-            padding: 4px 5px;
+            padding: 3px 5px;
             vertical-align: top;
             font-size: 8.5px;
         }
@@ -334,7 +333,7 @@
         }
 
         .notice {
-            margin-top: 4px;
+            margin-top: 2px;
             text-align: center;
             color: #b91c1c;
             font-style: italic;
@@ -398,12 +397,12 @@
         </tr>
         <tr>
             <td class="row-label">Tanda Tangan</td>
-            <td style="height: 22px">&nbsp;</td>
-            <td style="height: 22px">&nbsp;</td>
-            <td style="height: 22px">&nbsp;</td>
+            <td style="height: 18px">&nbsp;</td>
+            <td style="height: 18px">&nbsp;</td>
+            <td style="height: 18px">&nbsp;</td>
         </tr>
         <tr>
-            <td class="row-label">Jabatan</td>
+            <td class="row-label">Pangkat/NRP/NIPR</td>
             <td>{{ $createdIdentity }}</td>
             <td>{{ $reviewedIdentity }}</td>
             <td>{{ $approvedIdentity }}</td>
