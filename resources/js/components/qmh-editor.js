@@ -7,7 +7,6 @@ import TableHeader from "@tiptap/extension-table-header";
 import TableRow from "@tiptap/extension-table-row";
 import TextAlign from "@tiptap/extension-text-align";
 import { TextStyle } from "@tiptap/extension-text-style";
-import Underline from "@tiptap/extension-underline";
 import StarterKit from "@tiptap/starter-kit";
 
 export function qmhEditor(config = {}) {
@@ -61,7 +60,6 @@ export function qmhEditor(config = {}) {
                         TableHeader,
                         TableCell,
                         TextStyle,
-                        Underline,
                         Color.configure({
                             types: ["textStyle"],
                         }),
