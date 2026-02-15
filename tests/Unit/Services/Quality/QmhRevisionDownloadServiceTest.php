@@ -17,6 +17,7 @@ class QmhRevisionDownloadServiceTest extends TestCase
     {
         /** @var User $actor */
         $actor = User::factory()->create([
+            'name' => 'Gifari',
             'role' => 'admin',
             'rank' => 'Penata TK I',
             'nrp' => '12345678',
@@ -58,9 +59,9 @@ class QmhRevisionDownloadServiceTest extends TestCase
         $this->assertStringContainsString('Dibuat Oleh', $html);
         $this->assertStringContainsString('Diperiksa Oleh', $html);
         $this->assertStringContainsString('Disahkan Oleh', $html);
-        $this->assertStringContainsString('Pangkat/NRP/NIPR', $html);
-        $this->assertStringContainsString('Penata TK I/12345678', $html);
-        $this->assertStringNotContainsString('NRP 12345678', $html);
-        $this->assertStringNotContainsString('NIP 19876543210001', $html);
+        $this->assertStringContainsString('Nama/Pangkat', $html);
+        $this->assertStringContainsString('Gifari/Penata TK I', $html);
+        $this->assertStringContainsString('Jabatan', $html);
+        $this->assertStringContainsString('Admin', $html);
     }
 }
