@@ -104,10 +104,10 @@
                         Editor menggunakan schema pertanyaan revisi (snapshot) dan disimpan sebagai answers_json.
                     </div>
 
-                    <div class="mt-4 rounded-lg border border-gray-200 bg-white p-4" x-show="isFormulir" x-cloak>
+                    <div class="mt-4 rounded-lg border border-gray-200 bg-white p-4" x-show="isFormulir || schemaQuestions().length > 0" x-cloak>
                         <div class="flex flex-wrap items-center justify-between gap-3">
                             <div>
-                                <p class="text-sm font-semibold text-gray-900">Isi Formulir</p>
+                                <p class="text-sm font-semibold text-gray-900" x-text="isFormulir ? 'Isi Formulir' : 'Isi Dokumen Terstruktur'"></p>
                                 <p class="mt-1 text-xs text-gray-500">
                                     <span x-show="revisionStatus === 'draft' && hasLock">Bisa diedit hanya saat draft dan pemilik lock.</span>
                                     <span x-show="!(revisionStatus === 'draft' && hasLock)">Read-only (bukan draft atau tidak memegang lock).</span>
@@ -117,7 +117,7 @@
 
                         <div class="mt-4" x-show="schemaQuestions().length === 0" x-cloak>
                             <div class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                                Form schema belum diatur untuk template dokumen ini. Gunakan editor di bawah sebagai fallback.
+                                Schema pertanyaan belum diatur untuk template dokumen ini. Gunakan editor di bawah sebagai fallback.
                             </div>
                         </div>
 
@@ -382,7 +382,6 @@
                 </div>
             </div>
         </div>
-    </div>
 
     <div x-show="submitModal.open" x-cloak x-trap.noscroll.inert="submitModal.open" class="fixed inset-0 z-pd-modal overflow-y-auto" role="dialog" aria-modal="true">
         <div class="flex min-h-dvh items-center justify-center px-4 py-8">
@@ -451,6 +450,8 @@
         </div>
     </div>
 
+    </div>
+
     @push('scripts')
     <script>
         function qmhEditPage(config) {
@@ -506,10 +507,19 @@
                         return;
                     }
 
+                    if (!this.schema || typeof this.schema !== 'object') {
+                        this.schema = null;
+                    }
+
+                    this.ensureSchemaFromAnswers();
+
                     if (this.isFormulir) {
                         if (!this.schema || typeof this.schema !== 'object') {
                             this.schema = { version: 1, doc_type: 'fr', questions: [] };
                         }
+                    }
+
+                    if (this.schemaQuestions().length > 0) {
                         this.syncSchemaDefaults();
                     }
 
@@ -533,6 +543,86 @@
                     this.editorJson = detail.editor_json || null;
                     this.dirty = true;
                     this.saveState = 'dirty';
+                },
+
+                hasStructuredAnswers() {
+                    if (!this.answers || typeof this.answers !== 'object') {
+                        return false;
+                    }
+
+                    return Object.values(this.answers).some((value) => {
+                        if (typeof value === 'string') {
+                            return this.htmlToPlainText(value) !== '';
+                        }
+
+                        if (Array.isArray(value)) {
+                            return value.some((item) => typeof item === 'string' && this.htmlToPlainText(item) !== '');
+                        }
+
+                        if (typeof value === 'number') {
+                            return Number.isFinite(value);
+                        }
+
+                        if (typeof value === 'boolean') {
+                            return value;
+                        }
+
+                        return false;
+                    });
+                },
+
+                defaultSchemaForDocType() {
+                    if (this.docType === 'ik') {
+                        return {
+                            version: 1,
+                            doc_type: 'ik',
+                            questions: [
+                                { id: 'purpose', label: 'Tujuan', type: 'textarea', required: true },
+                                { id: 'scope', label: 'Ruang Lingkup', type: 'textarea', required: true },
+                                { id: 'responsibilities', label: 'Tanggung Jawab', type: 'textarea', required: false },
+                                { id: 'reference', label: 'Acuan', type: 'textarea', required: false },
+                                { id: 'instructions', label: 'Instruksi Kerja', type: 'textarea', required: true },
+                                { id: 'required_docs', label: 'Dokumentasi Yang Diperlukan', type: 'list', required: false },
+                                { id: 'closing', label: 'Penutup', type: 'textarea', required: false },
+                            ],
+                        };
+                    }
+
+                    if (this.docType !== 'sop') {
+                        return null;
+                    }
+
+                    return {
+                        version: 1,
+                        doc_type: 'sop',
+                        questions: [
+                            { id: 'purpose', label: 'Tujuan', type: 'textarea', required: true },
+                            { id: 'scope', label: 'Ruang Lingkup', type: 'textarea', required: true },
+                            { id: 'definitions', label: 'Definisi', type: 'list', required: false },
+                            { id: 'references', label: 'Referensi', type: 'list', required: false },
+                            { id: 'procedure', label: 'Prosedur', type: 'textarea', required: true },
+                            { id: 'records', label: 'Rekaman / Form Terkait', type: 'list', required: false },
+                            { id: 'responsibilities', label: 'Tanggung Jawab', type: 'textarea', required: false },
+                            { id: 'attachments', label: 'Lampiran', type: 'list', required: false },
+                        ],
+                    };
+                },
+
+                ensureSchemaFromAnswers() {
+                    if (this.schemaQuestions().length > 0) {
+                        return;
+                    }
+
+                    if (!this.hasStructuredAnswers()) {
+                        return;
+                    }
+
+                    const fallback = this.defaultSchemaForDocType();
+                    if (!fallback) {
+                        return;
+                    }
+
+                    this.schema = fallback;
                 },
 
                 schemaQuestions() {

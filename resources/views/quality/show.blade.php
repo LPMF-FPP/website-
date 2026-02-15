@@ -313,6 +313,164 @@
                                 @endforeach
                             </div>
                         </div>
+                    @elseif(isset($currentRevision) && in_array((string) ($currentRevision->document?->doc_type ?? ''), ['sop', 'ik'], true))
+                        @php
+                            $answers = is_array($currentRevision->answers_json ?? null)
+                                ? \App\Support\QmhAnswerSanitizer::sanitizeAnswersJson($currentRevision->answers_json ?? [])
+                                : [];
+
+                            $hasStructuredAnswers = false;
+                            foreach ($answers as $value) {
+                                if (is_string($value) && \App\Support\QmhAnswerSanitizer::plainText($value) !== '') {
+                                    $hasStructuredAnswers = true;
+                                    break;
+                                }
+
+                                if (! is_array($value)) {
+                                    continue;
+                                }
+
+                                foreach ($value as $item) {
+                                    if (! is_string($item)) {
+                                        continue;
+                                    }
+
+                                    if (\App\Support\QmhAnswerSanitizer::plainText($item) !== '') {
+                                        $hasStructuredAnswers = true;
+                                        break 2;
+                                    }
+                                }
+                            }
+
+                            $schema = $currentRevision->form_schema_json
+                                ?? (is_array(data_get($currentRevision->template?->metadata, 'form_schema'))
+                                    ? data_get($currentRevision->template?->metadata, 'form_schema')
+                                    : null);
+
+                            if (! is_array($schema)) {
+                                $docType = (string) ($currentRevision->document?->doc_type ?? '');
+                                if ($docType === 'ik') {
+                                    $schema = [
+                                        'questions' => [
+                                            ['id' => 'purpose', 'label' => 'Tujuan', 'type' => 'textarea'],
+                                            ['id' => 'scope', 'label' => 'Ruang Lingkup', 'type' => 'textarea'],
+                                            ['id' => 'responsibilities', 'label' => 'Tanggung Jawab', 'type' => 'textarea'],
+                                            ['id' => 'reference', 'label' => 'Acuan', 'type' => 'textarea'],
+                                            ['id' => 'instructions', 'label' => 'Instruksi Kerja', 'type' => 'textarea'],
+                                            ['id' => 'required_docs', 'label' => 'Dokumentasi Yang Diperlukan', 'type' => 'list'],
+                                            ['id' => 'closing', 'label' => 'Penutup', 'type' => 'textarea'],
+                                        ],
+                                    ];
+                                } else {
+                                    $schema = [
+                                        'questions' => [
+                                            ['id' => 'purpose', 'label' => 'Tujuan', 'type' => 'textarea'],
+                                            ['id' => 'scope', 'label' => 'Ruang Lingkup', 'type' => 'textarea'],
+                                            ['id' => 'definitions', 'label' => 'Definisi', 'type' => 'list'],
+                                            ['id' => 'references', 'label' => 'Referensi', 'type' => 'list'],
+                                            ['id' => 'procedure', 'label' => 'Prosedur', 'type' => 'textarea'],
+                                            ['id' => 'records', 'label' => 'Rekaman / Form Terkait', 'type' => 'list'],
+                                            ['id' => 'responsibilities', 'label' => 'Tanggung Jawab', 'type' => 'textarea'],
+                                            ['id' => 'attachments', 'label' => 'Lampiran', 'type' => 'list'],
+                                        ],
+                                    ];
+                                }
+                            }
+
+                            $questions = is_array(data_get($schema, 'questions')) ? data_get($schema, 'questions') : [];
+                        @endphp
+
+                        @if($hasStructuredAnswers)
+                            <div class="space-y-4">
+                                @if(count($questions) > 0)
+                                    @foreach($questions as $idx => $q)
+                                        @php
+                                            $qid = (string) ($q['id'] ?? '');
+                                            if ($qid === '') {
+                                                continue;
+                                            }
+                                            $label = (string) ($q['label'] ?? $qid);
+                                            $type = (string) ($q['type'] ?? 'text');
+                                            $val = $answers[$qid] ?? null;
+                                        @endphp
+
+                                        <div class="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                                            <div class="font-semibold text-gray-900">{{ $idx + 1 }}. {{ $label }}</div>
+                                            <div class="mt-2 text-gray-800">
+                                                @if($type === 'list')
+                                                    @if(is_array($val) && count($val) > 0)
+                                                        <ul class="list-disc pl-5">
+                                                            @foreach($val as $item)
+                                                                @php
+                                                                    $itemText = is_string($item) ? trim($item) : '';
+                                                                @endphp
+                                                                @if($itemText !== '' && \App\Support\QmhAnswerSanitizer::plainText($itemText) !== '')
+                                                                    @if(\App\Support\QmhAnswerSanitizer::looksLikeHtml($itemText))
+                                                                        <li><div class="prose prose-sm max-w-none">{!! \App\Support\QmhHtmlSanitizer::sanitize($itemText) !!}</div></li>
+                                                                    @else
+                                                                        <li>{{ $itemText }}</li>
+                                                                    @endif
+                                                                @endif
+                                                            @endforeach
+                                                        </ul>
+                                                    @elseif(is_string($val) && \App\Support\QmhAnswerSanitizer::plainText($val) !== '')
+                                                        @if(\App\Support\QmhAnswerSanitizer::looksLikeHtml($val))
+                                                            <div class="prose prose-sm max-w-none">{!! \App\Support\QmhHtmlSanitizer::sanitize($val) !!}</div>
+                                                        @else
+                                                            <div class="whitespace-pre-wrap">{{ $val }}</div>
+                                                        @endif
+                                                    @else
+                                                        <div>-</div>
+                                                    @endif
+                                                @elseif(is_bool($val))
+                                                    <div class="font-medium">{{ $val ? 'YA' : 'TIDAK' }}</div>
+                                                @elseif(is_string($val) && \App\Support\QmhAnswerSanitizer::plainText($val) !== '')
+                                                    @if(\App\Support\QmhAnswerSanitizer::looksLikeHtml($val))
+                                                        <div class="prose prose-sm max-w-none">{!! \App\Support\QmhHtmlSanitizer::sanitize($val) !!}</div>
+                                                    @else
+                                                        <div class="whitespace-pre-wrap">{{ $val }}</div>
+                                                    @endif
+                                                @else
+                                                    <div>-</div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                @else
+                                    @foreach($answers as $key => $val)
+                                        @php
+                                            $label = ucwords(str_replace('_', ' ', (string) $key));
+                                        @endphp
+                                        <div class="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                                            <div class="font-semibold text-gray-900">{{ $label }}</div>
+                                            <div class="mt-2 text-gray-800">
+                                                @if(is_string($val) && \App\Support\QmhAnswerSanitizer::plainText($val) !== '')
+                                                    @if(\App\Support\QmhAnswerSanitizer::looksLikeHtml($val))
+                                                        <div class="prose prose-sm max-w-none">{!! \App\Support\QmhHtmlSanitizer::sanitize($val) !!}</div>
+                                                    @else
+                                                        <div class="whitespace-pre-wrap">{{ $val }}</div>
+                                                    @endif
+                                                @elseif(is_array($val) && count($val) > 0)
+                                                    <ul class="list-disc pl-5">
+                                                        @foreach($val as $item)
+                                                            <li>{{ is_string($item) ? $item : '' }}</li>
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    <div>-</div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    @endforeach
+                                @endif
+                            </div>
+                        @elseif($currentRevision?->content_html)
+                            <article class="prose prose-sm max-w-none text-gray-700">
+                                {!! \App\Support\QmhHtmlSanitizer::sanitize($currentRevision->content_html) !!}
+                            </article>
+                        @else
+                            <p class="text-sm text-gray-500">Konten dokumen belum tersedia.</p>
+                        @endif
                     @elseif($currentRevision?->content_html)
                         <article class="prose prose-sm max-w-none text-gray-700">
                             {!! \App\Support\QmhHtmlSanitizer::sanitize($currentRevision->content_html) !!}

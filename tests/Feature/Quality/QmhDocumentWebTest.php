@@ -773,4 +773,45 @@ class QmhDocumentWebTest extends TestCase
             ->assertSee('OK')
             ->assertDontSee('alert("xss")', false);
     }
+
+    public function test_show_page_prefers_structured_answers_for_sop_when_available(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-SOP-STR-001',
+            'title' => 'SOP Structured',
+            'clause' => 4,
+            'doc_type' => 'sop',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'draft',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+            'content_html' => '<p>KONTEN TEMPLATE LAMA</p>',
+            'answers_json' => [
+                'purpose' => '<p>Tujuan Terbaru 4.1</p>',
+                'scope' => '<p>Ruang Lingkup Terbaru 4.1</p>',
+                'procedure' => '<p>Prosedur langkah A</p>',
+            ],
+        ]);
+
+        $document->update(['current_revision_id' => $revision->id]);
+
+        $this->actingAs($user)
+            ->get('/quality/documents/'.$document->id)
+            ->assertOk()
+            ->assertSee('Tujuan Terbaru 4.1')
+            ->assertSee('Ruang Lingkup Terbaru 4.1')
+            ->assertSee('Prosedur langkah A')
+            ->assertDontSee('KONTEN TEMPLATE LAMA');
+    }
 }
