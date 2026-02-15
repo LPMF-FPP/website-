@@ -73,6 +73,24 @@
     outline: none;
 }
 
+.qmh-editor-surface .ProseMirror ul,
+.qmh-editor-surface .ProseMirror ol {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+}
+
+.qmh-editor-surface .ProseMirror ul {
+    list-style: disc;
+}
+
+.qmh-editor-surface .ProseMirror ol {
+    list-style: decimal;
+}
+
+.qmh-editor-surface .ProseMirror li {
+    margin: 0.25rem 0;
+}
+
 .qmh-editor-surface--compact {
     min-height: 10rem;
     padding: 0.75rem;
