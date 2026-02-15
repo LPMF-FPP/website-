@@ -62,7 +62,7 @@
             diperiksaOleh: @js((int) ($revision?->diperiksa_oleh ?? 0)),
             disahkanOleh: @js((int) ($revision?->disahkan_oleh ?? 0)),
             docType: @js($document->doc_type),
-            isFormulir: @js(($document?->doc_type ?? '') === 'formulir'),
+            isFormulir: @js(($document?->doc_type ?? '') === 'formulir' || ($document?->doc_type ?? '') === 'sop' || ($document?->doc_type ?? '') === 'ik'),
             initialSchema: @js($revision?->form_schema_json ?? data_get($revision?->template?->metadata, 'form_schema')),
             initialAnswersJson: @js($revision?->answers_json ?? []),
             initialContent: @js($revision?->content_html ?? '<p></p>'),
@@ -97,68 +97,16 @@
 
         <div class="grid grid-cols-12 gap-6">
             <div class="col-span-12 lg:col-span-8">
-                <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" x-show="revisionStatus === 'draft'" x-cloak>
-                    <h3 class="mb-3 text-sm font-semibold text-gray-900">Penanda Tangan</h3>
-                    <div class="grid gap-4 md:grid-cols-3">
-                        <div>
-                            <label class="mb-1 block text-xs font-medium text-gray-700" for="dibuat_oleh">Dibuat Oleh</label>
-                            <select
-                                id="dibuat_oleh"
-                                x-model.number="dibuatOleh"
-                                @change="dirty = true; saveState = 'dirty'"
-                                :disabled="!hasLock || {{ auth()->user()->role !== 'admin' ? 'true' : 'false' }}"
-                                class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 border-gray-300 disabled:bg-gray-100 disabled:text-gray-500"
-                            >
-                                <template x-for="user in users" :key="user.id">
-                                    <option :value="user.id" x-text="`${user.name} (${user.role})`"></option>
-                                </template>
-                            </select>
+                <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                    @if(true) {{-- Render schema editor for ALL types if schema exists --}}
+                        <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700" x-show="schemaQuestions().length > 0">
+                            Editor menggunakan schema pertanyaan revisi (snapshot) dan disimpan sebagai `answers_json`.
                         </div>
 
-                        <div>
-                            <label class="mb-1 block text-xs font-medium text-gray-700" for="diperiksa_oleh">Diperiksa Oleh</label>
-                            <select
-                                id="diperiksa_oleh"
-                                x-model.number="diperiksaOleh"
-                                @change="dirty = true; saveState = 'dirty'"
-                                :disabled="!hasLock"
-                                class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 border-gray-300 disabled:bg-gray-100 disabled:text-gray-500"
-                            >
-                                <option value="0">Pilih Pemeriksa</option>
-                                <template x-for="user in users" :key="user.id">
-                                    <option :value="user.id" x-text="`${user.name} (${user.role})`" :disabled="user.id === dibuatOleh"></option>
-                                </template>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label class="mb-1 block text-xs font-medium text-gray-700" for="disahkan_oleh">Disahkan Oleh</label>
-                            <select
-                                id="disahkan_oleh"
-                                x-model.number="disahkanOleh"
-                                @change="dirty = true; saveState = 'dirty'"
-                                :disabled="!hasLock"
-                                class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 border-gray-300 disabled:bg-gray-100 disabled:text-gray-500"
-                            >
-                                <option value="0">Pilih Pengesah</option>
-                                <template x-for="user in users" :key="user.id">
-                                    <option :value="user.id" x-text="`${user.name} (${user.role})`" :disabled="user.id === dibuatOleh || user.id === diperiksaOleh"></option>
-                                </template>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mt-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                    @if(($document?->doc_type ?? '') === 'formulir')
-                        <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
-                            Editor Formulir menggunakan schema pertanyaan revisi (snapshot) dan disimpan sebagai `answers_json`.
-                        </div>
-
-                        <div class="mt-4 rounded-lg border border-gray-200 bg-white p-4" x-show="revisionStatus === 'draft'" x-cloak>
+                        <div class="mt-4 rounded-lg border border-gray-200 bg-white p-4" x-show="revisionStatus === 'draft' && isFormulir" x-cloak>
                             <div class="flex flex-wrap items-center justify-between gap-3">
                                 <div>
-                                    <p class="text-sm font-semibold text-gray-900">Pertanyaan Formulir</p>
+                                    <p class="text-sm font-semibold text-gray-900">Pertanyaan Template</p>
                                     <p class="mt-1 text-xs text-gray-500">Bisa diedit hanya saat draft dan pemilik lock.</p>
                                 </div>
                                 <button
@@ -175,7 +123,7 @@
                                     <div
                                         class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
                                         x-data="qmhFormBuilder({
-                                            docType: 'fr',
+                                            docType: docType === 'formulir' ? 'fr' : docType,
                                             initialSchema: schema,
                                             initialJson: '',
                                         })"
@@ -348,7 +296,7 @@
 
                         <div class="mt-4" x-show="schemaQuestions().length === 0" x-cloak>
                             <div class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                                Form schema belum diatur untuk template formulir ini.
+                                Form schema belum diatur untuk template dokumen ini. Gunakan editor di bawah sebagai fallback.
                             </div>
                         </div>
 
@@ -376,6 +324,7 @@
                                                 :id="`q-${q.id}`"
                                                 type="text"
                                                 x-model.trim="answers[q.id]"
+                                                @input="dirty = true; saveState = 'dirty'"
                                                 :placeholder="q.placeholder || ''"
                                                 class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary-600 focus:ring-primary-600"
                                             />
@@ -386,26 +335,64 @@
                                                 :id="`q-${q.id}`"
                                                 rows="4"
                                                 x-model="answers[q.id]"
+                                                @input="dirty = true; saveState = 'dirty'"
                                                 :placeholder="q.placeholder || ''"
                                                 class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary-600 focus:ring-primary-600"
                                             ></textarea>
                                         </template>
 
-                                        <template x-if="q.type === 'list'">
+                                        <template x-if="q.type === 'list' && isFormulir">
                                             <textarea
                                                 :id="`q-${q.id}`"
                                                 rows="4"
                                                 x-model="listAnswerText[q.id]"
-                                                @input="syncListAnswer(q.id)"
+                                                @input="syncListAnswer(q.id); dirty = true; saveState = 'dirty'"
                                                 :placeholder="q.placeholder || 'Satu item per baris'"
                                                 class="w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-xs leading-relaxed focus:border-primary-600 focus:ring-primary-600"
                                             ></textarea>
+                                        </template>
+
+                                        <template x-if="q.type === 'list' && !isFormulir">
+                                            <div
+                                                class="rounded-xl border border-gray-200 bg-white p-3"
+                                                x-data="qmhEditor({ initialContent: answerEditorInitialValue(q.id), editorId: `qmh-list-${q.id}` })"
+                                                x-init="init()"
+                                                @qmh-editor-change="onRichTextListAnswerChange(q.id, $event.detail.html); dirty = true; saveState = 'dirty'"
+                                            >
+                                                <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
+                                                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
+                                                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
+                                                </div>
+
+                                                <div class="qmh-editor-surface qmh-editor-surface--compact" x-ref="editor"></div>
+                                            </div>
+                                        </template>
+
+                                        <template x-if="q.type !== 'list' && q.type !== 'text' && q.type !== 'textarea' && q.type !== 'section' && q.type !== 'select' && q.type !== 'checkbox' && q.type !== 'date' && q.type !== 'number' && !isFormulir">
+                                            {{-- Fallback Rich Text for unknown types in non-formulir --}}
+                                            <div
+                                                class="rounded-xl border border-gray-200 bg-white p-3"
+                                                x-data="qmhEditor({ initialContent: answerEditorInitialValue(q.id), editorId: `qmh-answer-${q.id}` })"
+                                                x-init="init()"
+                                                @qmh-editor-change="onRichTextAnswerChange(q.id, $event.detail.html); dirty = true; saveState = 'dirty'"
+                                            >
+                                                <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
+                                                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bold') }" @click="toggleBold()">B</button>
+                                                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('italic') }" @click="toggleItalic()">I</button>
+                                                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('underline') }" @click="toggleUnderline()">U</button>
+                                                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
+                                                    <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
+                                                </div>
+
+                                                <div class="qmh-editor-surface qmh-editor-surface--compact" x-ref="editor"></div>
+                                            </div>
                                         </template>
 
                                         <template x-if="q.type === 'select'">
                                             <select
                                                 :id="`q-${q.id}`"
                                                 x-model="answers[q.id]"
+                                                @change="dirty = true; saveState = 'dirty'"
                                                 class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary-600 focus:ring-primary-600"
                                             >
                                                 <option value="">Pilih...</option>
@@ -417,7 +404,7 @@
 
                                         <template x-if="q.type === 'checkbox'">
                                             <label class="flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800">
-                                                <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600" x-model="answers[q.id]" />
+                                                <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600" x-model="answers[q.id]" @change="dirty = true; saveState = 'dirty'" />
                                                 <span x-text="q.placeholder || 'Ya / Tidak'"></span>
                                             </label>
                                         </template>
@@ -427,6 +414,7 @@
                                                 :id="`q-${q.id}`"
                                                 type="date"
                                                 x-model="answers[q.id]"
+                                                @input="dirty = true; saveState = 'dirty'"
                                                 class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary-600 focus:ring-primary-600"
                                             />
                                         </template>
@@ -437,6 +425,7 @@
                                                 type="number"
                                                 inputmode="numeric"
                                                 x-model="answers[q.id]"
+                                                @input="dirty = true; saveState = 'dirty'"
                                                 :placeholder="q.placeholder || ''"
                                                 class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary-600 focus:ring-primary-600"
                                             />
@@ -451,7 +440,9 @@
                                 </div>
                             </template>
                         </div>
-                    @else
+                    @endif
+
+                    <div x-show="schemaQuestions().length === 0" x-cloak>
                         <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" x-data="qmhEditor({ initialContent: @js($revision?->content_html ?? '<p></p>') })" x-init="init()" @qmh-editor-change="onEditorChange($event.detail)">
                             <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
                                 <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bold') }" @click="toggleBold()">B</button>
@@ -482,7 +473,7 @@
                             <div class="qmh-editor-surface" x-ref="editor"></div>
                             <input type="hidden" x-ref="hiddenInput" name="content_html">
                         </div>
-                    @endif
+                    </div>
                 </div>
             </div>
 
@@ -605,66 +596,29 @@
     <div x-show="previewModalOpen" x-cloak x-trap.noscroll.inert="previewModalOpen" class="fixed inset-0 z-pd-modal overflow-y-auto" role="dialog" aria-modal="true">
         <div class="flex min-h-dvh items-center justify-center px-4 py-8">
             <div class="fixed inset-0 bg-gray-900/50" @click="closePreviewModal()"></div>
-            <div class="relative w-full max-w-4xl rounded-xl bg-white p-5 shadow-xl" x-transition>
-                <div class="flex items-start justify-between gap-3">
+            <div class="relative w-full max-w-5xl rounded-xl bg-white p-5 shadow-xl h-[85vh] flex flex-col" x-transition>
+                <div class="flex items-start justify-between gap-3 border-b border-gray-200 pb-3">
                     <div>
-                        <h3 class="text-lg font-semibold text-gray-900">Preview Dokumen</h3>
-                        <p class="mt-1 text-sm text-gray-600">Ringkasan konten saat ini (belum tentu tersimpan).</p>
+                        <h3 class="text-lg font-semibold text-gray-900">Preview PDF</h3>
+                        <p class="mt-1 text-sm text-gray-600">Preview lengkap dengan header, footer, dan signatories. (Effective Date akan muncul setelah dipublish)</p>
                     </div>
                     <button type="button" class="rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50" @click="closePreviewModal()">Tutup</button>
                 </div>
 
-                <div class="mt-4 max-h-[70vh] overflow-auto rounded-xl border border-gray-200 bg-white p-4">
-                    <template x-if="isFormulir">
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200 text-sm">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-3 py-2 text-left font-semibold text-gray-700">No</th>
-                                        <th class="px-3 py-2 text-left font-semibold text-gray-700">Label</th>
-                                        <th class="px-3 py-2 text-left font-semibold text-gray-700">Isi</th>
-                                    </tr>
-                                </thead>
-                                <tbody class="divide-y divide-gray-100">
-                                    <template x-for="(q, idx) in schemaQuestions()" :key="`preview-${q.id || idx}`">
-                                        <tr>
-                                            <td class="px-3 py-2 text-gray-600" x-text="idx + 1"></td>
-                                            <td class="px-3 py-2 font-medium text-gray-900">
-                                                <span x-text="q.label || q.id"></span>
-                                                <span class="ml-1 text-xs font-semibold text-red-600" x-show="q.required">*</span>
-                                            </td>
-                                            <td class="px-3 py-2">
-                                                <template x-if="q.type === 'section'">
-                                                    <div class="text-xs font-semibold uppercase tracking-wide text-gray-600" x-text="q.label || q.id"></div>
-                                                </template>
-
-                                                <template x-if="q.type !== 'section' && q.type !== 'list'">
-                                                    <div class="whitespace-pre-wrap text-gray-800" x-text="formatPreviewAnswer(q)"></div>
-                                                </template>
-
-                                                <template x-if="q.type === 'list'">
-                                                    <ul class="list-disc space-y-1 pl-5 text-gray-800">
-                                                        <template x-for="(item, itemIdx) in (Array.isArray(answers[q.id]) ? answers[q.id] : [])" :key="itemIdx">
-                                                            <li x-text="item"></li>
-                                                        </template>
-                                                    </ul>
-                                                </template>
-                                            </td>
-                                        </tr>
-                                    </template>
-                                </tbody>
-                            </table>
+                <div class="mt-4 flex-1 overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+                    <template x-if="pdfPreviewUrl">
+                        <iframe :src="pdfPreviewUrl" class="h-full w-full border-0" title="PDF Preview"></iframe>
+                    </template>
+                    <template x-if="!pdfPreviewUrl && pdfPreviewLoading">
+                        <div class="flex h-full items-center justify-center">
+                            <p class="text-gray-500">Memuat preview PDF...</p>
                         </div>
                     </template>
-
-                    <template x-if="!isFormulir">
-                        <article class="prose prose-sm max-w-none text-gray-800" x-html="contentHtml"></article>
+                    <template x-if="!pdfPreviewUrl && !pdfPreviewLoading">
+                        <div class="flex h-full items-center justify-center">
+                            <p class="text-gray-500">Gagal memuat preview.</p>
+                        </div>
                     </template>
-                </div>
-
-                <div class="mt-4 flex items-center justify-between">
-                    <p class="text-xs text-gray-500">Tip: gunakan <strong>Simpan Draft</strong> untuk memastikan preview sesuai versi tersimpan.</p>
-                    <button type="button" class="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700" @click="closePreviewModal()">Selesai</button>
                 </div>
             </div>
         </div>
@@ -700,6 +654,8 @@
                     ready_submit: false,
                 },
                 previewModalOpen: false,
+                pdfPreviewUrl: null,
+                pdfPreviewLoading: false,
                 submitModal: { open: false, reviewerId: '', loading: false, error: '' },
                 initialContent: typeof config.initialContent === 'string' ? config.initialContent : '<p></p>',
                 showUrl: config.showUrl,
@@ -982,10 +938,57 @@
 
                 openPreviewModal() {
                     this.previewModalOpen = true;
+                    this.pdfPreviewUrl = null;
+                    this.pdfPreviewLoading = true;
+                    this.loadPdfPreview();
                 },
 
                 closePreviewModal() {
                     this.previewModalOpen = false;
+                    this.pdfPreviewUrl = null;
+                },
+
+                async loadPdfPreview() {
+                    this.pdfPreviewLoading = true;
+                    try {
+                        // Prepare payload with current draft state
+                        const payload = {
+                            change_summary: null,
+                            answers_json: { ...this.answers },
+                            // content_html is sent implicitly for non-formulir via existing content logic if needed,
+                            // but preview endpoint might fetch from revision unless we override.
+                            // The task spec says "Update edit preview modal to use PDF preview... using the revision preview endpoint".
+                            // If we want WYSIWYG of *unsaved* changes, we must post them.
+                            // But qmhEditPage logic already autosaves or has save state.
+                            // Let's assume we post current state to preview endpoint.
+                        };
+
+                        // Actually, the endpoint is POST /api/quality/revisions/{revision}/preview/pdf
+                        // We should send the current editor state.
+                        
+                        const response = await fetch(`/api/quality/revisions/${this.revisionId}/preview/pdf`, {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: {
+                                'Accept': 'application/pdf',
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': this.csrfToken,
+                            },
+                            body: JSON.stringify(payload),
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Gagal memuat preview');
+                        }
+
+                        const blob = await response.blob();
+                        this.pdfPreviewUrl = URL.createObjectURL(blob);
+                    } catch (error) {
+                        console.error(error);
+                        this.pdfPreviewUrl = null; // Error state handled in template
+                    } finally {
+                        this.pdfPreviewLoading = false;
+                    }
                 },
 
                 formatPreviewAnswer(q) {

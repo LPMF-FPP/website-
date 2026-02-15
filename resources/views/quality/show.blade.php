@@ -230,7 +230,49 @@
 
             <div class="p-4">
                 <div x-show="activeTab === 'content'" x-cloak>
-                    @if($currentRevision?->content_html)
+                    @if(isset($currentRevision) && ($currentRevision->document?->doc_type === 'formulir' || ($currentRevision->form_schema_json && !empty($currentRevision->form_schema_json['questions']))))
+                        <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                            <h3 class="mb-4 text-center font-bold uppercase">{{ $currentRevision->document?->title }}</h3>
+                            
+                            @php
+                                $schema = $currentRevision->form_schema_json ?? [];
+                                $questions = $schema['questions'] ?? [];
+                                $answers = $currentRevision->answers_json ?? [];
+                            @endphp
+
+                            <div class="space-y-4">
+                                @foreach($questions as $idx => $q)
+                                    <div class="rounded-lg border border-gray-100 bg-gray-50 p-4">
+                                        <div class="flex items-start justify-between">
+                                            <div class="font-semibold text-gray-900">{{ $idx + 1 }}. {{ $q['label'] ?? $q['id'] }}</div>
+                                        </div>
+                                        <div class="mt-2 text-gray-800">
+                                            @php
+                                                $val = $answers[$q['id']] ?? null;
+                                                $type = $q['type'] ?? 'text';
+                                            @endphp
+
+                                            @if($type === 'section')
+                                                <div class="font-bold uppercase text-gray-600">SECTION</div>
+                                            @elseif($type === 'checkbox')
+                                                <div class="font-medium">{{ $val ? 'YA' : 'TIDAK' }}</div>
+                                            @elseif($type === 'list' && is_array($val))
+                                                <ul class="list-disc pl-5">
+                                                    @foreach($val as $item)
+                                                        <li>{{ $item }}</li>
+                                                    @endforeach
+                                                </ul>
+                                            @elseif(is_string($val) && \App\Support\QmhAnswerSanitizer::looksLikeHtml($val))
+                                                <div class="prose prose-sm max-w-none">{!! \App\Support\QmhHtmlSanitizer::sanitize($val) !!}</div>
+                                            @else
+                                                <div class="whitespace-pre-wrap">{{ $val ?? '-' }}</div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @elseif($currentRevision?->content_html)
                         <article class="prose prose-sm max-w-none text-gray-700">
                             {!! \App\Support\QmhHtmlSanitizer::sanitize($currentRevision->content_html) !!}
                         </article>

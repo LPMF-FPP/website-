@@ -94,6 +94,7 @@ Route::middleware(['throttle:120,1'])->group(function () {
             Route::post('/review', [QmhRevisionWorkflowController::class, 'review']);
             Route::post('/approve', [QmhRevisionWorkflowController::class, 'approve']);
             Route::post('/download', [QmhRevisionWorkflowController::class, 'download']);
+            Route::post('/preview/pdf', [QmhRevisionWorkflowController::class, 'previewPdf']); // Task 7
         });
     });
 
