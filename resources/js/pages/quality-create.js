@@ -21,6 +21,8 @@ export function qmhCreatePage(config = {}) {
         isSubmitting: false,
         previewBeforeSubmitOpen: false,
         previewMode: null,
+        pdfPreviewLoading: false,
+        pdfPreviewError: "",
         submitConfirmed: false,
         schema: null,
         answers: {},
@@ -911,6 +913,82 @@ export function qmhCreatePage(config = {}) {
             this.previewMode = "manual";
             this.submitConfirmed = false;
             this.previewBeforeSubmitOpen = true;
+        },
+
+        previewPdfPayload() {
+            const answers = {};
+            const questions = this.schemaQuestions();
+            questions.forEach((q) => {
+                const qid = typeof q?.id === "string" ? q.id : "";
+                if (!qid) return;
+                if (!Object.prototype.hasOwnProperty.call(this.answers, qid)) {
+                    return;
+                }
+
+                answers[qid] = this.answers[qid];
+            });
+
+            return {
+                doc_type: this.docType,
+                clause: this.clause,
+                doc_code: this.docCode,
+                title: this.title,
+                template_id: this.templateId || null,
+                parent_sop_id: this.parentSopId || null,
+                paired_ik_id: this.pairedIkId || null,
+                effective_date: this.effectiveDate || null,
+                change_summary: this.changeSummary || null,
+                answers_json: answers,
+            };
+        },
+
+        async openPdfPreview() {
+            this.pdfPreviewError = "";
+            if (!this.docType) {
+                this.pdfPreviewError =
+                    "Pilih jenis dokumen terlebih dahulu sebelum preview PDF.";
+                return;
+            }
+
+            const previewWindow = window.open("about:blank", "_blank");
+            if (!previewWindow) {
+                this.pdfPreviewError =
+                    "Preview PDF diblokir browser. Izinkan pop-up untuk membuka preview.";
+                return;
+            }
+
+            this.pdfPreviewLoading = true;
+            try {
+                const response = await fetch("/api/quality/preview/pdf", {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        Accept: "application/pdf",
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify(this.previewPdfPayload()),
+                });
+
+                if (!response.ok) {
+                    const message = await response.text();
+                    previewWindow.close();
+                    this.pdfPreviewError =
+                        message?.trim() ||
+                        "Gagal membuat preview PDF. Silakan coba lagi.";
+                    return;
+                }
+
+                const blob = await response.blob();
+                const url = URL.createObjectURL(blob);
+                previewWindow.location.href = url;
+                setTimeout(() => URL.revokeObjectURL(url), 60000);
+            } catch {
+                previewWindow.close();
+                this.pdfPreviewError =
+                    "Terjadi gangguan jaringan saat membuat preview PDF.";
+            } finally {
+                this.pdfPreviewLoading = false;
+            }
         },
 
         previewDocTypeLabel() {

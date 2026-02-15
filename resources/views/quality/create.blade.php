@@ -346,6 +346,16 @@
                             Preview
                         </button>
 
+                        <button
+                            type="button"
+                            @click="openPdfPreview()"
+                            :disabled="pdfPreviewLoading"
+                            :class="{ 'cursor-not-allowed opacity-50': pdfPreviewLoading }"
+                            class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        >
+                            <span x-text="pdfPreviewLoading ? 'Membuka PDF...' : 'Preview PDF'"></span>
+                        </button>
+
                         <button type="submit"
                                 :disabled="isSubmitting || !canSubmit()"
                                 :class="{ 'cursor-not-allowed opacity-50': isSubmitting || !canSubmit() }"
@@ -362,6 +372,7 @@
                 </div>
 
                 <p x-show="stepError" x-cloak class="text-sm text-red-600" x-text="stepError"></p>
+                <p x-show="pdfPreviewError" x-cloak class="text-sm text-red-600" x-text="pdfPreviewError"></p>
             </form>
         </div>
 

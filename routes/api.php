@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\JobStatusController;
 use App\Http\Controllers\Api\PeopleController;
 use App\Http\Controllers\Api\Quality\QmhDashboardController;
 use App\Http\Controllers\Api\Quality\QmhDocumentController;
+use App\Http\Controllers\Api\Quality\QmhPreviewController;
 use App\Http\Controllers\Api\Quality\QmhReportingController;
 use App\Http\Controllers\Api\Quality\QmhRevisionWorkflowController;
 use App\Http\Controllers\Api\Quality\QmhTemplateController;
@@ -62,6 +63,9 @@ Route::middleware(['throttle:120,1'])->group(function () {
 
         Route::get('/templates', [QmhTemplateController::class, 'index'])
             ->middleware('permission:qmh.create');
+
+        Route::post('/preview/pdf', [QmhPreviewController::class, 'pdf'])
+            ->middleware(['permission:qmh.create', 'throttle:30,1']);
 
         Route::get('/dashboard/stats', [QmhDashboardController::class, 'stats'])
             ->middleware('permission:qmh.view');
