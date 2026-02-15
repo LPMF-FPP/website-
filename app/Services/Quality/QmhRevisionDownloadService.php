@@ -86,7 +86,7 @@ class QmhRevisionDownloadService
 
     public function buildWatermarkedHtml(QmhDocumentRevision $revision, string $watermarkText): string
     {
-        $revision->loadMissing(['document', 'template', 'createdBy', 'reviewedBy', 'approvedBy']);
+        $revision->loadMissing(['document.parentSop', 'document.pairedIk', 'template', 'createdBy', 'reviewedBy', 'approvedBy']);
 
         $schema = $this->resolveFormSchema($revision);
         $answers = QmhAnswerSanitizer::sanitizeAnswersJson($revision->answers_json);
@@ -120,6 +120,22 @@ class QmhRevisionDownloadService
      */
     private function defaultFormSchema(string $docType): array
     {
+        if ($docType === 'ik') {
+            return [
+                'version' => 1,
+                'doc_type' => 'ik',
+                'questions' => [
+                    ['id' => 'purpose', 'label' => 'Tujuan', 'type' => 'textarea', 'required' => true],
+                    ['id' => 'scope', 'label' => 'Ruang Lingkup', 'type' => 'textarea', 'required' => true],
+                    ['id' => 'responsibilities', 'label' => 'Tanggung Jawab', 'type' => 'textarea', 'required' => false],
+                    ['id' => 'reference', 'label' => 'Acuan', 'type' => 'textarea', 'required' => false],
+                    ['id' => 'instructions', 'label' => 'Instruksi Kerja', 'type' => 'textarea', 'required' => true],
+                    ['id' => 'required_docs', 'label' => 'Dokumentasi Yang Diperlukan', 'type' => 'list', 'required' => false],
+                    ['id' => 'closing', 'label' => 'Penutup', 'type' => 'textarea', 'required' => false],
+                ],
+            ];
+        }
+
         if ($docType !== 'sop') {
             return [
                 'version' => 1,
