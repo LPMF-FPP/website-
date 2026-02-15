@@ -341,7 +341,133 @@
 </footer>
 
 <main>
-    @if(count($questions) > 0 && $hasStructuredAnswers)
+    @if(($document?->doc_type ?? '') === 'ik')
+        @php
+            $parentSop = $document?->parentSop;
+            $parentSopLabel = $parentSop ? trim(($parentSop->doc_code ?? '').' - '.($parentSop->title ?? '')) : '';
+
+            $getAnswer = function (string $key) use ($answers): string {
+                $val = $answers[$key] ?? '';
+                if (! is_string($val)) {
+                    return '';
+                }
+
+                return trim($val);
+            };
+
+            $renderAnswer = function (string $key) use ($getAnswer): string {
+                $raw = $getAnswer($key);
+                if ($raw === '' || \App\Support\QmhAnswerSanitizer::plainText($raw) === '') {
+                    return '<p class="qmh-answer">-</p>';
+                }
+
+                if (\App\Support\QmhAnswerSanitizer::looksLikeHtml($raw)) {
+                    return '<div class="qmh-answer">'.$raw.'</div>';
+                }
+
+                return '<p class="qmh-answer">'.nl2br(e($raw)).'</p>';
+            };
+
+            $referenceValue = $getAnswer('reference');
+            if ($referenceValue === '' && $parentSopLabel !== '') {
+                $referenceValue = sprintf(
+                    'PROSEDUR %s [%s]',
+                    (string) ($parentSop->doc_code ?? ''),
+                    (string) ($parentSop->title ?? '')
+                );
+            }
+
+            $closingDefault = 'Instruksi kerja ini harus ditinjau dan diperbaharui setiap tahun untuk memastikan kesesuaiannya dengan kebutuhan operasional dan standar yang berlaku. Semua perubahan atau pembaruan harus disetujui oleh manajemen dan didokumentasikan dengan baik.';
+            $closingValue = $getAnswer('closing');
+        @endphp
+
+        <table class="doc-header" style="margin-top: 6px">
+            <tr>
+                <td style="width: 35%; font-weight: 700; text-align: center;">1. TUJUAN</td>
+                <td style="width: 65%;">{!! $renderAnswer('purpose') !!}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 700; text-align: center;">2. RUANG LINGKUP</td>
+                <td>{!! $renderAnswer('scope') !!}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 700; text-align: center;">3. TANGGUNG JAWAB</td>
+                <td>
+                    @php
+                        $responsibility = $getAnswer('responsibilities');
+                    @endphp
+                    @if($responsibility === '' || \App\Support\QmhAnswerSanitizer::plainText($responsibility) === '')
+                        <p class="qmh-answer">JABATAN LABORATORIUM</p>
+                    @else
+                        {!! $renderAnswer('responsibilities') !!}
+                    @endif
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight: 700; text-align: center;">4. ACUAN</td>
+                <td>
+                    @if(trim($referenceValue) === '')
+                        <p class="qmh-answer">-</p>
+                    @else
+                        @php $refIsHtml = \App\Support\QmhAnswerSanitizer::looksLikeHtml($referenceValue); @endphp
+                        @if($refIsHtml)
+                            <div class="qmh-answer">{!! $referenceValue !!}</div>
+                        @else
+                            <p class="qmh-answer">{!! nl2br(e($referenceValue)) !!}</p>
+                        @endif
+                    @endif
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight: 700; text-align: center;">5. INSTRUKSI KERJA</td>
+                <td>{!! $renderAnswer('instructions') !!}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 700; text-align: center;">6. DOKUMENTASI YANG DIPERLUKAN</td>
+                <td>
+                    @php
+                        $docs = $answers['required_docs'] ?? null;
+                    @endphp
+                    @if(is_string($docs))
+                        @if(trim($docs) === '' || \App\Support\QmhAnswerSanitizer::plainText($docs) === '')
+                            <p class="qmh-answer">-</p>
+                        @else
+                            <div class="qmh-answer">{!! $docs !!}</div>
+                        @endif
+                    @elseif(is_array($docs) && count($docs) > 0)
+                        <ul class="qmh-list">
+                            @foreach($docs as $item)
+                                @php $itemText = is_string($item) ? trim($item) : ''; @endphp
+                                @if($itemText !== '' && \App\Support\QmhAnswerSanitizer::plainText($itemText) !== '')
+                                    <li>
+                                        @if(\App\Support\QmhAnswerSanitizer::looksLikeHtml($itemText))
+                                            <div class="qmh-answer">{!! $itemText !!}</div>
+                                        @else
+                                            {{ $itemText }}
+                                        @endif
+                                    </li>
+                                @endif
+                            @endforeach
+                        </ul>
+                    @else
+                        <p class="qmh-answer">-</p>
+                    @endif
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight: 700; text-align: center;">7. PENUTUP</td>
+                <td>
+                    @if($closingValue === '' || \App\Support\QmhAnswerSanitizer::plainText($closingValue) === '')
+                        <p class="qmh-answer"><strong>{{ $closingDefault }}</strong></p>
+                    @elseif(\App\Support\QmhAnswerSanitizer::looksLikeHtml($closingValue))
+                        <div class="qmh-answer"><strong>{!! $closingValue !!}</strong></div>
+                    @else
+                        <p class="qmh-answer"><strong>{!! nl2br(e($closingValue)) !!}</strong></p>
+                    @endif
+                </td>
+            </tr>
+        </table>
+    @elseif(count($questions) > 0 && $hasStructuredAnswers)
         @foreach($questions as $idx => $q)
             @php
                 $qid = (string) ($q['id'] ?? '');
