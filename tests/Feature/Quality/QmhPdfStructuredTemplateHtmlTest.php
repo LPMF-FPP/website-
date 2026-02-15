@@ -162,4 +162,116 @@ class QmhPdfStructuredTemplateHtmlTest extends TestCase
         $this->assertStringContainsString('KOLOM A', $html);
         $this->assertStringContainsString('KOLOM B', $html);
     }
+
+    public function test_pdf_template_renders_fr_doc_type_as_formulir_table(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        // Note: DB constraint for qmh_documents.doc_type may not allow 'fr'.
+        // Preview PDF flow can still pass doc_type='fr' without persisting document.
+        $document = new QmhDocument([
+            'doc_code' => 'QMH-FR-PDF-DT-001',
+            'title' => 'FR Doc Type',
+            'clause' => 4,
+            'doc_type' => 'fr',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $revision = new QmhDocumentRevision([
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'draft',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+            'effective_date' => '2026-02-15',
+            'answers_json' => [
+                'agree' => true,
+            ],
+        ]);
+
+        $revision->setRelation('document', $document);
+        $revision->setRelation('createdBy', $user);
+        $revision->setRelation('reviewedBy', null);
+        $revision->setRelation('approvedBy', null);
+
+        $schema = [
+            'version' => 1,
+            'doc_type' => 'fr',
+            'questions' => [
+                ['id' => 'agree', 'label' => 'Konfirmasi', 'type' => 'checkbox', 'required' => false],
+            ],
+        ];
+
+        $html = view('pdf.qmh-document', [
+            'revision' => $revision,
+            'schema' => $schema,
+            'answers' => $revision->answers_json,
+            'watermarkText' => 'DRAFT',
+        ])->render();
+
+        $this->assertStringContainsString('form-table', $html);
+        $this->assertStringContainsString('YA', $html);
+    }
+
+    public function test_pdf_template_renders_formulir_v1_field_types_readably(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-FR-PDF-V1-001',
+            'title' => 'Formulir V1',
+            'clause' => 4,
+            'doc_type' => 'formulir',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'draft',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+            'answers_json' => [
+                'agree' => true,
+                'status' => 'ok',
+                'test_date' => '2026-02-15',
+                'qty' => '1.50',
+            ],
+        ]);
+
+        $schema = [
+            'version' => 1,
+            'doc_type' => 'fr',
+            'questions' => [
+                ['id' => 'sec_general', 'label' => 'Umum', 'type' => 'section', 'required' => false],
+                ['id' => 'agree', 'label' => 'Konfirmasi', 'type' => 'checkbox', 'required' => false],
+                ['id' => 'status', 'label' => 'Status', 'type' => 'select', 'required' => false, 'options' => [
+                    ['value' => 'ok', 'label' => 'Sesuai'],
+                    ['value' => 'nok', 'label' => 'Tidak Sesuai'],
+                ]],
+                ['id' => 'test_date', 'label' => 'Tanggal Uji', 'type' => 'date', 'required' => false],
+                ['id' => 'qty', 'label' => 'Jumlah', 'type' => 'number', 'required' => false],
+            ],
+        ];
+
+        $html = view('pdf.qmh-document', [
+            'revision' => $revision->load(['document', 'createdBy', 'reviewedBy', 'approvedBy']),
+            'schema' => $schema,
+            'answers' => $revision->answers_json,
+            'watermarkText' => 'DRAFT',
+        ])->render();
+
+        $this->assertStringContainsString('UMUM', $html);
+        $this->assertStringContainsString('YA', $html);
+        $this->assertStringContainsString('Sesuai', $html);
+        $this->assertStringContainsString('2026-02-15', $html);
+        $this->assertStringContainsString('1.50', $html);
+    }
 }

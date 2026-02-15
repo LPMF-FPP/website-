@@ -21,6 +21,10 @@
         class="space-y-4 sm:px-6 lg:px-8"
         x-data="qmhEditPage({
             revisionId: @js($revision?->id),
+            docType: @js($document->doc_type),
+            isFormulir: @js(($document?->doc_type ?? '') === 'formulir'),
+            initialSchema: @js(data_get($revision?->template?->metadata, 'form_schema')),
+            initialAnswersJson: @js($revision?->answers_json ?? []),
             initialContent: @js($revision?->content_html ?? '<p></p>'),
             showUrl: @js(route('quality.documents.show', $document)),
             saveUrl: @js($revision ? '/api/quality/revisions/'.$revision->id.'/content' : null),
@@ -53,36 +57,148 @@
         <div class="grid grid-cols-12 gap-6">
             <div class="col-span-12 lg:col-span-8">
                 <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" x-data="qmhEditor({ initialContent: @js($revision?->content_html ?? '<p></p>') })" x-init="init()" @qmh-editor-change="onEditorChange($event.detail)">
-                        <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bold') }" @click="toggleBold()">B</button>
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('italic') }" @click="toggleItalic()">I</button>
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('underline') }" @click="toggleUnderline()">U</button>
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 1 }) }" @click="setHeading(1)">H1</button>
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 2 }) }" @click="setHeading(2)">H2</button>
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 3 }) }" @click="setHeading(3)">H3</button>
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
-                            <button type="button" class="qmh-editor-btn" @click="setAlign('left')">Kiri</button>
-                            <button type="button" class="qmh-editor-btn" @click="setAlign('center')">Tengah</button>
-                            <button type="button" class="qmh-editor-btn" @click="setAlign('right')">Kanan</button>
-                            <button type="button" class="qmh-editor-btn" @click="insertTable()">Tabel</button>
-                            <button type="button" class="qmh-editor-btn" @click="addTableRowBefore()">+Baris Atas</button>
-                            <button type="button" class="qmh-editor-btn" @click="addTableRowAfter()">+Baris Bawah</button>
-                            <button type="button" class="qmh-editor-btn" @click="deleteTableRow()">-Baris</button>
-                            <button type="button" class="qmh-editor-btn" @click="addTableColumnBefore()">+Kolom Kiri</button>
-                            <button type="button" class="qmh-editor-btn" @click="addTableColumnAfter()">+Kolom Kanan</button>
-                            <button type="button" class="qmh-editor-btn" @click="deleteTableColumn()">-Kolom</button>
-                            <button type="button" class="qmh-editor-btn" @click="mergeTableCells()">Merge Sel</button>
-                            <button type="button" class="qmh-editor-btn" @click="splitTableCell()">Split Sel</button>
-                            <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderRow()">Header Baris</button>
-                            <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderColumn()">Header Kolom</button>
-                            <button type="button" class="qmh-editor-btn" @click="deleteTable()">Hapus Tabel</button>
+                    @if(($document?->doc_type ?? '') === 'formulir')
+                        <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700">
+                            Editor Formulir menggunakan schema pertanyaan template dan disimpan sebagai `answers_json`.
                         </div>
 
-                        <div class="qmh-editor-surface" x-ref="editor"></div>
-                        <input type="hidden" x-ref="hiddenInput" name="content_html">
-                    </div>
+                        <div class="mt-4" x-show="schemaQuestions().length === 0" x-cloak>
+                            <div class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                                Form schema belum diatur untuk template formulir ini.
+                            </div>
+                        </div>
+
+                        <div class="mt-4 space-y-4" x-show="schemaQuestions().length > 0" x-cloak>
+                            <template x-for="(q, idx) in schemaQuestions()" :key="`fr-${q.id || idx}`">
+                                <div class="rounded-lg border border-gray-200 bg-white p-4">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div>
+                                            <p class="text-xs font-semibold text-gray-500" x-text="`Q${idx + 1}`"></p>
+                                            <label class="mt-1 block text-sm font-semibold text-gray-900" :for="`q-${q.id}`">
+                                                <span x-text="q.label || q.id"></span>
+                                                <span class="ml-1 text-xs font-semibold text-red-600" x-show="q.required">*</span>
+                                            </label>
+                                        </div>
+                                        <p class="text-[11px] text-gray-500" x-text="questionTypeLabel(q.type)"></p>
+                                    </div>
+
+                                    <div class="mt-3">
+                                        <template x-if="q.type === 'section'">
+                                            <div class="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-900" x-text="(q.label || q.id).toUpperCase()"></div>
+                                        </template>
+
+                                        <template x-if="q.type === 'text'">
+                                            <input
+                                                :id="`q-${q.id}`"
+                                                type="text"
+                                                x-model.trim="answers[q.id]"
+                                                :placeholder="q.placeholder || ''"
+                                                class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary-600 focus:ring-primary-600"
+                                            />
+                                        </template>
+
+                                        <template x-if="q.type === 'textarea'">
+                                            <textarea
+                                                :id="`q-${q.id}`"
+                                                rows="4"
+                                                x-model="answers[q.id]"
+                                                :placeholder="q.placeholder || ''"
+                                                class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary-600 focus:ring-primary-600"
+                                            ></textarea>
+                                        </template>
+
+                                        <template x-if="q.type === 'list'">
+                                            <textarea
+                                                :id="`q-${q.id}`"
+                                                rows="4"
+                                                x-model="listAnswerText[q.id]"
+                                                @input="syncListAnswer(q.id)"
+                                                :placeholder="q.placeholder || 'Satu item per baris'"
+                                                class="w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-xs leading-relaxed focus:border-primary-600 focus:ring-primary-600"
+                                            ></textarea>
+                                        </template>
+
+                                        <template x-if="q.type === 'select'">
+                                            <select
+                                                :id="`q-${q.id}`"
+                                                x-model="answers[q.id]"
+                                                class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary-600 focus:ring-primary-600"
+                                            >
+                                                <option value="">Pilih...</option>
+                                                <template x-for="(opt, optIdx) in (Array.isArray(q.options) ? q.options : [])" :key="optIdx">
+                                                    <option :value="opt.value" x-text="opt.label || opt.value"></option>
+                                                </template>
+                                            </select>
+                                        </template>
+
+                                        <template x-if="q.type === 'checkbox'">
+                                            <label class="flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800">
+                                                <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-blue-600" x-model="answers[q.id]" />
+                                                <span x-text="q.placeholder || 'Ya / Tidak'"></span>
+                                            </label>
+                                        </template>
+
+                                        <template x-if="q.type === 'date'">
+                                            <input
+                                                :id="`q-${q.id}`"
+                                                type="date"
+                                                x-model="answers[q.id]"
+                                                class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary-600 focus:ring-primary-600"
+                                            />
+                                        </template>
+
+                                        <template x-if="q.type === 'number'">
+                                            <input
+                                                :id="`q-${q.id}`"
+                                                type="number"
+                                                inputmode="numeric"
+                                                x-model="answers[q.id]"
+                                                :placeholder="q.placeholder || ''"
+                                                class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary-600 focus:ring-primary-600"
+                                            />
+                                        </template>
+
+                                        <template x-if="q.help">
+                                            <p class="mt-1 text-xs text-gray-500" x-text="q.help"></p>
+                                        </template>
+                                    </div>
+
+                                    <p class="mt-2 text-sm text-red-600" x-show="fieldErrors[q.id]" x-text="fieldErrors[q.id]"></p>
+                                </div>
+                            </template>
+                        </div>
+                    @else
+                        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm" x-data="qmhEditor({ initialContent: @js($revision?->content_html ?? '<p></p>') })" x-init="init()" @qmh-editor-change="onEditorChange($event.detail)">
+                            <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
+                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bold') }" @click="toggleBold()">B</button>
+                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('italic') }" @click="toggleItalic()">I</button>
+                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('underline') }" @click="toggleUnderline()">U</button>
+                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 1 }) }" @click="setHeading(1)">H1</button>
+                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 2 }) }" @click="setHeading(2)">H2</button>
+                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 3 }) }" @click="setHeading(3)">H3</button>
+                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
+                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
+                                <button type="button" class="qmh-editor-btn" @click="setAlign('left')">Kiri</button>
+                                <button type="button" class="qmh-editor-btn" @click="setAlign('center')">Tengah</button>
+                                <button type="button" class="qmh-editor-btn" @click="setAlign('right')">Kanan</button>
+                                <button type="button" class="qmh-editor-btn" @click="insertTable()">Tabel</button>
+                                <button type="button" class="qmh-editor-btn" @click="addTableRowBefore()">+Baris Atas</button>
+                                <button type="button" class="qmh-editor-btn" @click="addTableRowAfter()">+Baris Bawah</button>
+                                <button type="button" class="qmh-editor-btn" @click="deleteTableRow()">-Baris</button>
+                                <button type="button" class="qmh-editor-btn" @click="addTableColumnBefore()">+Kolom Kiri</button>
+                                <button type="button" class="qmh-editor-btn" @click="addTableColumnAfter()">+Kolom Kanan</button>
+                                <button type="button" class="qmh-editor-btn" @click="deleteTableColumn()">-Kolom</button>
+                                <button type="button" class="qmh-editor-btn" @click="mergeTableCells()">Merge Sel</button>
+                                <button type="button" class="qmh-editor-btn" @click="splitTableCell()">Split Sel</button>
+                                <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderRow()">Header Baris</button>
+                                <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderColumn()">Header Kolom</button>
+                                <button type="button" class="qmh-editor-btn" @click="deleteTable()">Hapus Tabel</button>
+                            </div>
+
+                            <div class="qmh-editor-surface" x-ref="editor"></div>
+                            <input type="hidden" x-ref="hiddenInput" name="content_html">
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -147,6 +263,12 @@
         function qmhEditPage(config) {
             return {
                 revisionId: config.revisionId,
+                docType: typeof config.docType === 'string' ? config.docType : '',
+                isFormulir: Boolean(config.isFormulir),
+                schema: config.initialSchema && typeof config.initialSchema === 'object' ? config.initialSchema : null,
+                answers: config.initialAnswersJson && typeof config.initialAnswersJson === 'object' ? { ...config.initialAnswersJson } : {},
+                listAnswerText: {},
+                fieldErrors: {},
                 initialContent: typeof config.initialContent === 'string' ? config.initialContent : '<p></p>',
                 showUrl: config.showUrl,
                 saveUrl: config.saveUrl,
@@ -169,6 +291,13 @@
                         return;
                     }
 
+                    if (this.isFormulir) {
+                        if (!this.schema || typeof this.schema !== 'object') {
+                            this.schema = { version: 1, doc_type: 'fr', questions: [] };
+                        }
+                        this.syncSchemaDefaults();
+                    }
+
                     this.acquireLock();
                     this.registerBeforeUnload();
                 },
@@ -178,6 +307,179 @@
                     this.editorJson = detail.editor_json || null;
                     this.dirty = true;
                     this.saveState = 'dirty';
+                },
+
+                schemaQuestions() {
+                    const questions = this.schema?.questions;
+                    return Array.isArray(questions) ? questions : [];
+                },
+
+                questionTypeLabel(type) {
+                    const t = String(type || 'text');
+                    if (t === 'section') return 'Section';
+                    if (t === 'text') return 'Teks';
+                    if (t === 'textarea') return 'Paragraf';
+                    if (t === 'list') return 'Daftar';
+                    if (t === 'select') return 'Pilihan';
+                    if (t === 'checkbox') return 'Centang';
+                    if (t === 'date') return 'Tanggal';
+                    if (t === 'number') return 'Angka';
+                    return 'Isian';
+                },
+
+                coerceBoolean(value) {
+                    if (typeof value === 'boolean') return value;
+                    if (typeof value === 'number') return value === 1;
+                    if (typeof value === 'string') {
+                        const v = value.trim().toLowerCase();
+                        if (['1', 'true', 'on', 'yes', 'y'].includes(v)) return true;
+                        if (['0', 'false', 'off', 'no', 'n', ''].includes(v)) return false;
+                    }
+                    return false;
+                },
+
+                htmlToPlainText(html) {
+                    if (typeof html !== 'string') return '';
+                    const div = document.createElement('div');
+                    div.innerHTML = html;
+                    const txt = div.textContent || '';
+                    return txt.replace(/\u00a0/g, ' ').trim();
+                },
+
+                extractListItemsFromHtml(html) {
+                    if (typeof html !== 'string' || !html.trim()) return [];
+                    const div = document.createElement('div');
+                    div.innerHTML = html;
+                    const lis = Array.from(div.querySelectorAll('li'));
+                    if (lis.length > 0) {
+                        return lis
+                            .map((li) => (li.textContent || '').trim())
+                            .filter((v) => v !== '');
+                    }
+                    const txt = (div.textContent || '').trim();
+                    if (!txt) return [];
+                    return txt
+                        .split('\n')
+                        .map((line) => line.trim())
+                        .filter((line) => line !== '');
+                },
+
+                syncSchemaDefaults() {
+                    const questions = this.schemaQuestions();
+                    const nextListText = { ...this.listAnswerText };
+
+                    questions.forEach((q) => {
+                        const qid = typeof q?.id === 'string' ? q.id : '';
+                        if (!qid) return;
+
+                        if (q.type === 'section') {
+                            delete this.answers[qid];
+                            delete nextListText[qid];
+                            return;
+                        }
+
+                        if (q.type === 'checkbox') {
+                            this.answers[qid] = this.coerceBoolean(this.answers[qid]);
+                            return;
+                        }
+
+                        if (q.type === 'list') {
+                            const existing = this.answers[qid];
+                            if (typeof existing === 'string') {
+                                const items = this.extractListItemsFromHtml(existing);
+                                this.answers[qid] = items;
+                                nextListText[qid] = items.join('\n');
+                                return;
+                            }
+
+                            const items = Array.isArray(existing)
+                                ? existing
+                                      .filter((v) => typeof v === 'string')
+                                      .map((v) => v.trim())
+                                      .filter((v) => v !== '')
+                                : [];
+                            this.answers[qid] = items;
+                            nextListText[qid] = items.join('\n');
+                            return;
+                        }
+
+                        const existing = this.answers[qid];
+                        if (typeof existing === 'string') {
+                            this.answers[qid] = existing.trim();
+                            return;
+                        }
+                        if (existing == null) {
+                            this.answers[qid] = '';
+                            return;
+                        }
+                        this.answers[qid] = String(existing);
+                    });
+
+                    this.listAnswerText = nextListText;
+                },
+
+                syncListAnswer(qid) {
+                    const raw = typeof this.listAnswerText[qid] === 'string' ? this.listAnswerText[qid] : '';
+                    const items = raw
+                        .split('\n')
+                        .map((line) => line.trim())
+                        .filter((line) => line !== '');
+                    this.answers[qid] = items;
+                    this.dirty = true;
+                    this.saveState = 'dirty';
+                },
+
+                validateFormAnswers() {
+                    this.fieldErrors = {};
+
+                    this.schemaQuestions().forEach((q) => {
+                        const qid = typeof q?.id === 'string' ? q.id : '';
+                        if (!qid) return;
+                        const isRequired = Boolean(q.required);
+
+                        if (q.type === 'section') return;
+
+                        if (q.type === 'checkbox') {
+                            if (isRequired && !this.coerceBoolean(this.answers[qid])) {
+                                this.fieldErrors[qid] = 'Wajib dicentang.';
+                            }
+                            return;
+                        }
+
+                        if (q.type === 'list') {
+                            const items = Array.isArray(this.answers[qid]) ? this.answers[qid] : [];
+                            if (isRequired && items.length === 0) {
+                                this.fieldErrors[qid] = 'Wajib diisi.';
+                            }
+                            return;
+                        }
+
+                        const val = typeof this.answers[qid] === 'string' ? this.answers[qid].trim() : '';
+                        if (isRequired && !val) {
+                            this.fieldErrors[qid] = 'Wajib diisi.';
+                            return;
+                        }
+
+                        if (q.type === 'select') {
+                            const opts = Array.isArray(q?.options) ? q.options : [];
+                            const allowed = opts
+                                .map((opt) => (typeof opt?.value === 'string' ? opt.value : ''))
+                                .filter((v) => v !== '');
+                            if (val && allowed.length > 0 && !allowed.includes(val)) {
+                                this.fieldErrors[qid] = 'Pilihan tidak valid.';
+                            }
+                        }
+
+                        if (q.type === 'date' && val && !/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+                            this.fieldErrors[qid] = 'Tanggal tidak valid.';
+                        }
+
+                        if (q.type === 'number' && val && !/^[+-]?\d+(\.\d+)?$/.test(val)) {
+                            this.fieldErrors[qid] = 'Angka tidak valid.';
+                        }
+                    });
+
+                    return Object.keys(this.fieldErrors).length === 0;
                 },
 
                 saveStatusLabel() {
@@ -234,6 +536,32 @@
                     this.errorMessage = '';
 
                     try {
+                        let payload = {
+                            content_html: this.contentHtml || '<p></p>',
+                            content_css: null,
+                            editor_json: this.editorJson,
+                        };
+
+                        if (this.isFormulir) {
+                            this.errorMessage = '';
+                            if (!this.validateFormAnswers()) {
+                                this.errorMessage = 'Lengkapi jawaban wajib sebelum menyimpan.';
+                                this.saveState = 'dirty';
+                                return;
+                            }
+
+                            // Ensure list answers are synced from textareas.
+                            this.schemaQuestions().forEach((q) => {
+                                if (q?.type === 'list' && typeof q?.id === 'string') {
+                                    this.syncListAnswer(q.id);
+                                }
+                            });
+
+                            payload = {
+                                answers_json: this.answers,
+                            };
+                        }
+
                         const response = await fetch(this.saveUrl, {
                             method: 'PUT',
                             credentials: 'same-origin',
@@ -242,15 +570,15 @@
                                 'Content-Type': 'application/json',
                                 'X-CSRF-TOKEN': this.csrfToken,
                             },
-                            body: JSON.stringify({
-                                content_html: this.contentHtml || '<p></p>',
-                                content_css: null,
-                                editor_json: this.editorJson,
-                            }),
+                            body: JSON.stringify(payload),
                         });
 
                         if (!response.ok) {
-                            this.errorMessage = await this.extractErrorMessage(response, 'Gagal menyimpan konten dokumen.');
+                            const extracted = await this.extractErrorMessage(response, 'Gagal menyimpan konten dokumen.');
+                            this.errorMessage = extracted.message;
+                            if (this.isFormulir && extracted.errors) {
+                                this.fieldErrors = extracted.errors;
+                            }
                             this.saveState = 'dirty';
                             return;
                         }
@@ -333,22 +661,33 @@
                 },
 
                 async extractErrorMessage(response, fallback) {
+                    const out = { message: fallback, errors: null };
                     try {
                         const payload = await response.json();
                         if (payload?.message) {
-                            return payload.message;
+                            out.message = payload.message;
                         }
 
                         if (payload?.errors) {
-                            const firstKey = Object.keys(payload.errors)[0];
-                            if (firstKey && payload.errors[firstKey]?.length) {
-                                return payload.errors[firstKey][0];
+                            const mapped = {};
+                            Object.keys(payload.errors).forEach((key) => {
+                                const arr = payload.errors[key];
+                                if (!Array.isArray(arr) || arr.length === 0) return;
+                                if (key.startsWith('answers_json.')) {
+                                    mapped[key.replace('answers_json.', '')] = arr[0];
+                                }
+                            });
+
+                            if (Object.keys(mapped).length > 0) {
+                                out.errors = mapped;
+                                const firstKey = Object.keys(mapped)[0];
+                                out.message = mapped[firstKey];
                             }
                         }
                     } catch (error) {
                     }
 
-                    return fallback;
+                    return out;
                 },
             };
         }

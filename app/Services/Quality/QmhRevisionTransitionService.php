@@ -3,7 +3,9 @@
 namespace App\Services\Quality;
 
 use App\Models\QmhDocumentRevision;
+use App\Models\QmhTemplate;
 use App\Models\QmhWorkflowEvent;
+use App\Support\QmhFormAnswersValidator;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -14,6 +16,8 @@ class QmhRevisionTransitionService
     {
         return DB::transaction(function () use ($revision, $actorId, $reviewerId) {
             $revision->refresh();
+
+            $revision->loadMissing('document');
 
             if ($revision->status !== 'draft') {
                 throw ValidationException::withMessages([
@@ -30,6 +34,24 @@ class QmhRevisionTransitionService
             $lock = $revision->lock()->lockForUpdate()->first();
             if ($lock === null || ! $lock->isActive() || $lock->locked_by !== $actorId) {
                 throw new AuthorizationException('Submit review hanya bisa dilakukan oleh pemegang lock aktif.');
+            }
+
+            if (($revision->document?->doc_type ?? '') === 'formulir') {
+                $template = null;
+                if ((int) ($revision->template_id ?? 0) > 0) {
+                    $template = QmhTemplate::query()->find((int) $revision->template_id);
+                }
+
+                $metadata = is_array($template?->metadata) ? $template->metadata : [];
+                $schema = $metadata['form_schema'] ?? null;
+                if (is_array($schema)) {
+                    $result = QmhFormAnswersValidator::validateAndNormalize($schema, $revision->answers_json ?? []);
+                    if (count($result['errors']) > 0) {
+                        throw ValidationException::withMessages($result['errors']);
+                    }
+
+                    $revision->answers_json = $result['normalized'];
+                }
             }
 
             $revision->status = 'in_review';

@@ -266,44 +266,127 @@
                                                             <span class="ml-1 text-xs font-semibold text-red-600" x-show="q.required">*</span>
                                                         </label>
                                                     </div>
-                                                    <p class="text-[11px] text-gray-500" x-text="q.type === 'list' ? 'Daftar' : 'Paragraf'"></p>
+                                                    <p class="text-[11px] text-gray-500" x-text="questionTypeLabel(q.type)"></p>
                                                 </div>
 
-                                                <div class="mt-3" x-show="q.type === 'list'">
-                                                    <div
-                                                        class="rounded-xl border border-gray-200 bg-white p-3"
-                                                        x-data="qmhEditor({ initialContent: answerEditorInitialValue(q.id), editorId: `qmh-list-${q.id}` })"
-                                                        x-init="init()"
-                                                        @qmh-editor-change="onRichTextListAnswerChange(q.id, $event.detail.html)"
-                                                    >
-                                                        <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
-                                                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
-                                                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
-                                                        </div>
+                                                <div class="mt-3" x-show="docType === 'fr'" x-cloak>
+                                                    <template x-if="q.type === 'section'">
+                                                        <div class="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-semibold text-gray-900" x-text="(q.label || q.id).toUpperCase()"></div>
+                                                    </template>
 
-                                                        <div class="qmh-editor-surface qmh-editor-surface--compact" x-ref="editor"></div>
-                                                        <input type="hidden" x-ref="hiddenInput">
+                                                    <template x-if="q.type === 'text'">
+                                                        <input
+                                                            :id="`q-${q.id}`"
+                                                            type="text"
+                                                            x-model.trim="answers[q.id]"
+                                                            :placeholder="q.placeholder || ''"
+                                                            class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary-600 focus:ring-primary-600"
+                                                        />
+                                                    </template>
+
+                                                    <template x-if="q.type === 'textarea'">
+                                                        <textarea
+                                                            :id="`q-${q.id}`"
+                                                            rows="4"
+                                                            x-model="answers[q.id]"
+                                                            :placeholder="q.placeholder || ''"
+                                                            class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary-600 focus:ring-primary-600"
+                                                        ></textarea>
+                                                    </template>
+
+                                                    <template x-if="q.type === 'list'">
+                                                        <textarea
+                                                            :id="`q-${q.id}`"
+                                                            rows="4"
+                                                            x-model="listAnswerText[q.id]"
+                                                            @input="syncListAnswer(q.id)"
+                                                            :placeholder="q.placeholder || 'Satu item per baris'"
+                                                            class="w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-xs leading-relaxed focus:border-primary-600 focus:ring-primary-600"
+                                                        ></textarea>
+                                                    </template>
+
+                                                    <template x-if="q.type === 'select'">
+                                                        <select
+                                                            :id="`q-${q.id}`"
+                                                            x-model="answers[q.id]"
+                                                            class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-primary-600 focus:ring-primary-600"
+                                                        >
+                                                            <option value="">Pilih...</option>
+                                                            <template x-for="(opt, optIdx) in (Array.isArray(q.options) ? q.options : [])" :key="optIdx">
+                                                                <option :value="opt.value" x-text="opt.label || opt.value"></option>
+                                                            </template>
+                                                        </select>
+                                                    </template>
+
+                                                    <template x-if="q.type === 'checkbox'">
+                                                        <label class="flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800">
+                                                            <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-blue-600" x-model="answers[q.id]" />
+                                                            <span x-text="q.placeholder || 'Ya / Tidak'"></span>
+                                                        </label>
+                                                    </template>
+
+                                                    <template x-if="q.type === 'date'">
+                                                        <input
+                                                            :id="`q-${q.id}`"
+                                                            type="date"
+                                                            x-model="answers[q.id]"
+                                                            class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary-600 focus:ring-primary-600"
+                                                        />
+                                                    </template>
+
+                                                    <template x-if="q.type === 'number'">
+                                                        <input
+                                                            :id="`q-${q.id}`"
+                                                            type="number"
+                                                            inputmode="numeric"
+                                                            x-model="answers[q.id]"
+                                                            :placeholder="q.placeholder || ''"
+                                                            class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-primary-600 focus:ring-primary-600"
+                                                        />
+                                                    </template>
+
+                                                    <template x-if="q.help">
+                                                        <p class="mt-1 text-xs text-gray-500" x-text="q.help"></p>
+                                                    </template>
+                                                </div>
+
+                                                <div class="mt-3" x-show="docType !== 'fr'" x-cloak>
+                                                    <div x-show="q.type === 'list'">
+                                                        <div
+                                                            class="rounded-xl border border-gray-200 bg-white p-3"
+                                                            x-data="qmhEditor({ initialContent: answerEditorInitialValue(q.id), editorId: `qmh-list-${q.id}` })"
+                                                            x-init="init()"
+                                                            @qmh-editor-change="onRichTextListAnswerChange(q.id, $event.detail.html)"
+                                                        >
+                                                            <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
+                                                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
+                                                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
+                                                            </div>
+
+                                                            <div class="qmh-editor-surface qmh-editor-surface--compact" x-ref="editor"></div>
+                                                            <input type="hidden" x-ref="hiddenInput">
+                                                        </div>
+                                                        <p class="mt-1 text-xs text-gray-500">Tip: satu item per baris. Gunakan Bullets/Number untuk daftar.</p>
                                                     </div>
-                                                    <p class="mt-1 text-xs text-gray-500">Tip: satu item per baris. Gunakan Bullets/Number untuk daftar.</p>
-                                                </div>
 
-                                                <div class="mt-3" x-show="q.type !== 'list'">
-                                                    <div
-                                                        class="rounded-xl border border-gray-200 bg-white p-3"
-                                                        x-data="qmhEditor({ initialContent: answerEditorInitialValue(q.id), editorId: `qmh-answer-${q.id}` })"
-                                                        x-init="init()"
-                                                        @qmh-editor-change="onRichTextAnswerChange(q.id, $event.detail.html)"
-                                                    >
-                                                        <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
-                                                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bold') }" @click="toggleBold()">B</button>
-                                                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('italic') }" @click="toggleItalic()">I</button>
-                                                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('underline') }" @click="toggleUnderline()">U</button>
-                                                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
-                                                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
+                                                    <div x-show="q.type !== 'list'">
+                                                        <div
+                                                            class="rounded-xl border border-gray-200 bg-white p-3"
+                                                            x-data="qmhEditor({ initialContent: answerEditorInitialValue(q.id), editorId: `qmh-answer-${q.id}` })"
+                                                            x-init="init()"
+                                                            @qmh-editor-change="onRichTextAnswerChange(q.id, $event.detail.html)"
+                                                        >
+                                                            <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
+                                                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bold') }" @click="toggleBold()">B</button>
+                                                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('italic') }" @click="toggleItalic()">I</button>
+                                                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('underline') }" @click="toggleUnderline()">U</button>
+                                                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
+                                                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
+                                                            </div>
+
+                                                            <div class="qmh-editor-surface qmh-editor-surface--compact" x-ref="editor"></div>
+                                                            <input type="hidden" x-ref="hiddenInput">
                                                         </div>
-
-                                                        <div class="qmh-editor-surface qmh-editor-surface--compact" x-ref="editor"></div>
-                                                        <input type="hidden" x-ref="hiddenInput">
                                                     </div>
                                                 </div>
 

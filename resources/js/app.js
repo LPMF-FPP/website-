@@ -8,6 +8,7 @@ import { initSearchPage } from "./pages/search";
 import { qmhCreatePage } from "./pages/quality-create";
 import { registerSettingsComponent } from "./pages/settings/alpine-component";
 import { qmhEditor } from "./components/qmh-editor";
+import { qmhFormBuilder } from "./components/qmh-form-builder";
 import toastStore from "./stores/toast";
 
 // Register Alpine plugins
@@ -79,6 +80,7 @@ document.addEventListener("alpine:init", () => {
     Alpine.data("sampleProcessesList", () => createListFetcher());
     Alpine.data("deliveryList", () => createListFetcher());
     Alpine.data("qmhEditor", qmhEditor);
+    Alpine.data("qmhFormBuilder", (config = {}) => qmhFormBuilder(config));
 
     // Register settings page component
     registerSettingsComponent();

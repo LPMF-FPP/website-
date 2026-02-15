@@ -183,6 +183,18 @@ export function qmhCreatePage(config = {}) {
                 const qid = typeof q?.id === "string" ? q.id : "";
                 if (!qid) return;
 
+                if (q.type === "section") {
+                    delete this.answers[qid];
+                    delete nextListText[qid];
+                    return;
+                }
+
+                if (q.type === "checkbox") {
+                    const existing = this.answers[qid];
+                    this.answers[qid] = this.coerceBoolean(existing);
+                    return;
+                }
+
                 if (q.type === "list") {
                     const existing = this.answers[qid];
                     if (typeof existing === "string") {
@@ -235,16 +247,27 @@ export function qmhCreatePage(config = {}) {
                         .map((val) => this.htmlToPlainText(val))
                         .join("\n");
                 } else {
-                    const existing = this.answers[qid];
-                    if (typeof existing !== "string") {
-                        this.answers[qid] = "";
+                    const existingRaw = this.answers[qid];
+                    const existing =
+                        typeof existingRaw === "string"
+                            ? existingRaw
+                            : typeof existingRaw === "number"
+                              ? String(existingRaw)
+                              : "";
+                    this.answers[qid] = existing;
 
+                    if (this.docType === "fr") {
+                        // Formulir is form-first: keep plain text even if legacy HTML exists.
+                        this.answers[qid] = this.normalizePlainText(
+                            this.looksLikeHtml(existing)
+                                ? this.htmlToPlainText(existing)
+                                : existing,
+                        );
                         return;
                     }
 
                     if (this.looksLikeHtml(existing)) {
                         this.answers[qid] = this.normalizeEditorHtml(existing);
-
                         return;
                     }
 
@@ -274,6 +297,24 @@ export function qmhCreatePage(config = {}) {
             questions.forEach((q) => {
                 const qid = typeof q?.id === "string" ? q.id : "";
                 if (!qid) return;
+
+                if (q.type === "section") {
+                    return;
+                }
+
+                if (q.type === "checkbox") {
+                    const checked = this.coerceBoolean(this.answers[qid]);
+                    if (!checked) {
+                        return;
+                    }
+
+                    fields.push({
+                        name: `answers_json[${qid}]`,
+                        value: "1",
+                    });
+
+                    return;
+                }
 
                 if (q.type === "list") {
                     const current = this.answers[qid];
@@ -334,7 +375,9 @@ export function qmhCreatePage(config = {}) {
                 const val =
                     typeof this.answers[qid] === "string"
                         ? this.answers[qid]
-                        : "";
+                        : typeof this.answers[qid] === "number"
+                          ? String(this.answers[qid])
+                          : "";
                 if (this.looksLikeHtml(val)) {
                     const normalizedHtml = this.normalizeEditorHtml(val);
                     if (this.isEditorBlank(normalizedHtml)) {
@@ -783,6 +826,20 @@ export function qmhCreatePage(config = {}) {
 
                     let cell = '<div class="text-gray-400">&nbsp;</div>';
 
+                    if (type === "section") {
+                        const text = label.toUpperCase();
+                        return `<tr><td class="border border-gray-200 bg-gray-50 px-2 py-2 text-xs font-semibold text-gray-600 text-center">${idx + 1}</td><td class="border border-gray-200 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-900" colspan="2">${text}</td></tr>`;
+                    }
+
+                    if (type === "checkbox") {
+                        const checked = this.coerceBoolean(val);
+                        cell = checked
+                            ? '<div class="text-sm font-semibold text-gray-900">YA</div>'
+                            : '<div class="text-sm text-gray-500">TIDAK</div>';
+
+                        return `<tr><td class="border border-gray-200 px-2 py-2 text-xs font-semibold text-gray-700 text-center">${idx + 1}</td><td class="border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-800">${label.toUpperCase()}</td><td class="border border-gray-200 px-3 py-2 text-sm text-gray-700">${cell}</td></tr>`;
+                    }
+
                     if (type === "list") {
                         if (
                             typeof val === "string" &&
@@ -820,6 +877,42 @@ export function qmhCreatePage(config = {}) {
                         }
                     }
 
+                    if (type === "select") {
+                        const opts = Array.isArray(q?.options) ? q.options : [];
+                        const value = typeof val === "string" ? val : "";
+                        const match = opts.find(
+                            (opt) =>
+                                typeof opt?.value === "string" &&
+                                opt.value === value,
+                        );
+                        const labelText =
+                            typeof match?.label === "string" && match.label
+                                ? match.label
+                                : value;
+                        if (labelText) {
+                            cell = `<div class=\"text-sm text-gray-800\">${this.escapeHtml(labelText)}</div>`;
+                        }
+                    }
+
+                    if (type === "date") {
+                        const value = typeof val === "string" ? val.trim() : "";
+                        if (value) {
+                            cell = `<div class=\"text-sm text-gray-800\">${this.escapeHtml(value)}</div>`;
+                        }
+                    }
+
+                    if (type === "number") {
+                        const value =
+                            typeof val === "string"
+                                ? val.trim()
+                                : typeof val === "number"
+                                  ? String(val)
+                                  : "";
+                        if (value) {
+                            cell = `<div class=\"text-sm text-gray-800\">${this.escapeHtml(value)}</div>`;
+                        }
+                    }
+
                     return `<tr><td class=\"border border-gray-200 px-2 py-2 text-xs font-semibold text-gray-700 text-center\">${idx + 1}</td><td class=\"border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-800\">${label.toUpperCase()}</td><td class=\"border border-gray-200 px-3 py-2 text-sm text-gray-700\">${cell}</td></tr>`;
                 })
                 .filter((row) => row !== "")
@@ -854,7 +947,81 @@ export function qmhCreatePage(config = {}) {
                 const qid = typeof q?.id === "string" ? q.id : "";
                 if (!qid) return;
 
-                if (!q.required) return;
+                const isRequired = Boolean(q.required);
+
+                if (q.type === "section") {
+                    return;
+                }
+
+                if (q.type === "checkbox") {
+                    if (isRequired && !this.coerceBoolean(this.answers[qid])) {
+                        this.fieldErrors[qid] = "Wajib dicentang.";
+                    }
+                    return;
+                }
+
+                if (q.type === "select") {
+                    const val =
+                        typeof this.answers[qid] === "string"
+                            ? this.normalizePlainText(this.answers[qid])
+                            : "";
+                    if (isRequired && !val) {
+                        this.fieldErrors[qid] = "Wajib diisi.";
+                        return;
+                    }
+                    if (!val) {
+                        return;
+                    }
+                    const opts = Array.isArray(q?.options) ? q.options : [];
+                    const allowed = opts
+                        .map((opt) =>
+                            typeof opt?.value === "string" ? opt.value : "",
+                        )
+                        .filter((v) => v !== "");
+                    if (allowed.length > 0 && !allowed.includes(val)) {
+                        this.fieldErrors[qid] = "Pilihan tidak valid.";
+                    }
+                    return;
+                }
+
+                if (q.type === "date") {
+                    const val =
+                        typeof this.answers[qid] === "string"
+                            ? this.normalizePlainText(this.answers[qid])
+                            : "";
+                    if (isRequired && !val) {
+                        this.fieldErrors[qid] = "Wajib diisi.";
+                        return;
+                    }
+                    if (!val) {
+                        return;
+                    }
+                    if (!/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+                        this.fieldErrors[qid] = "Tanggal tidak valid.";
+                    }
+                    return;
+                }
+
+                if (q.type === "number") {
+                    const valRaw = this.answers[qid];
+                    const val =
+                        typeof valRaw === "string"
+                            ? this.normalizePlainText(valRaw)
+                            : typeof valRaw === "number"
+                              ? String(valRaw)
+                              : "";
+                    if (isRequired && !val) {
+                        this.fieldErrors[qid] = "Wajib diisi.";
+                        return;
+                    }
+                    if (!val) {
+                        return;
+                    }
+                    if (!/^[+-]?\d+(\.\d+)?$/.test(val)) {
+                        this.fieldErrors[qid] = "Angka tidak valid.";
+                    }
+                    return;
+                }
 
                 if (q.type === "list") {
                     const current = this.answers[qid];
@@ -867,13 +1034,15 @@ export function qmhCreatePage(config = {}) {
                                 this.extractListContainerHtml(normalized) ||
                                 normalized;
                             if (this.isEditorBlank(listHtml)) {
-                                this.fieldErrors[qid] = "Wajib diisi.";
+                                if (isRequired) {
+                                    this.fieldErrors[qid] = "Wajib diisi.";
+                                }
                             }
 
                             return;
                         }
 
-                        if (!this.normalizePlainText(current)) {
+                        if (isRequired && !this.normalizePlainText(current)) {
                             this.fieldErrors[qid] = "Wajib diisi.";
                         }
 
@@ -887,7 +1056,9 @@ export function qmhCreatePage(config = {}) {
                         : [];
 
                     if (items.length === 0) {
-                        this.fieldErrors[qid] = "Wajib diisi.";
+                        if (isRequired) {
+                            this.fieldErrors[qid] = "Wajib diisi.";
+                        }
                     }
 
                     return;
@@ -899,18 +1070,45 @@ export function qmhCreatePage(config = {}) {
                         : "";
                 if (this.looksLikeHtml(val)) {
                     if (this.isEditorBlank(val)) {
-                        this.fieldErrors[qid] = "Wajib diisi.";
+                        if (isRequired) {
+                            this.fieldErrors[qid] = "Wajib diisi.";
+                        }
                     }
 
                     return;
                 }
 
-                if (!this.normalizePlainText(val)) {
+                if (isRequired && !this.normalizePlainText(val)) {
                     this.fieldErrors[qid] = "Wajib diisi.";
                 }
             });
 
             return Object.keys(this.fieldErrors).length === 0;
+        },
+
+        questionTypeLabel(type) {
+            const t = String(type || "text");
+            if (t === "section") return "Section";
+            if (t === "text") return "Teks";
+            if (t === "textarea") return "Paragraf";
+            if (t === "list") return "Daftar";
+            if (t === "select") return "Pilihan";
+            if (t === "checkbox") return "Centang";
+            if (t === "date") return "Tanggal";
+            if (t === "number") return "Angka";
+            return "Isian";
+        },
+
+        coerceBoolean(value) {
+            if (typeof value === "boolean") return value;
+            if (typeof value === "number") return value === 1;
+            if (typeof value === "string") {
+                const v = value.trim().toLowerCase();
+                if (["1", "true", "on", "yes", "y"].includes(v)) return true;
+                if (["0", "false", "off", "no", "n", ""].includes(v))
+                    return false;
+            }
+            return false;
         },
 
         onSubmit() {

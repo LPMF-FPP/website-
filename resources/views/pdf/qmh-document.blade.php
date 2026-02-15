@@ -248,6 +248,13 @@
             width: 66%;
         }
 
+        .form-section {
+            background: #f3f4f6;
+            font-weight: 700;
+            text-transform: uppercase;
+            text-align: center;
+        }
+
         .form-row--sm .qmh-answer {
             min-height: 18px;
         }
@@ -507,11 +514,81 @@
                 </td>
             </tr>
         </table>
-    @elseif(($document?->doc_type ?? '') === 'formulir')
+    @elseif(in_array((string) ($document?->doc_type ?? ''), ['formulir', 'fr'], true))
         @php
             $formQuestions = $questions;
 
-            $renderCell = function (mixed $val, string $type = 'text'): string {
+            $coerceBoolean = function (mixed $value): ?bool {
+                if ($value === null) {
+                    return null;
+                }
+
+                if (is_bool($value)) {
+                    return $value;
+                }
+
+                if (is_int($value)) {
+                    return $value === 1;
+                }
+
+                if (is_string($value)) {
+                    $v = strtolower(trim($value));
+                    if (in_array($v, ['1', 'true', 'on', 'yes', 'y'], true)) {
+                        return true;
+                    }
+                    if (in_array($v, ['0', 'false', 'off', 'no', 'n', ''], true)) {
+                        return false;
+                    }
+                }
+
+                return null;
+            };
+
+            $renderCell = function (mixed $val, string $type = 'text', array $question = []) use ($coerceBoolean): string {
+                if ($type === 'checkbox') {
+                    $bool = $coerceBoolean($val);
+                    if ($bool === null) {
+                        return '<div class="qmh-answer">&nbsp;</div>';
+                    }
+
+                    return $bool
+                        ? '<div class="qmh-answer"><strong>YA</strong></div>'
+                        : '<div class="qmh-answer">TIDAK</div>';
+                }
+
+                if ($type === 'select') {
+                    $value = is_string($val) ? trim($val) : (is_scalar($val) ? trim((string) $val) : '');
+                    if ($value === '') {
+                        return '<div class="qmh-answer">&nbsp;</div>';
+                    }
+
+                    $options = is_array($question['options'] ?? null) ? $question['options'] : [];
+                    $label = $value;
+                    foreach ($options as $opt) {
+                        if (! is_array($opt)) {
+                            continue;
+                        }
+                        $optValue = isset($opt['value']) && is_string($opt['value']) ? trim($opt['value']) : '';
+                        if ($optValue === '' || $optValue !== $value) {
+                            continue;
+                        }
+                        $optLabel = isset($opt['label']) && is_string($opt['label']) ? trim($opt['label']) : '';
+                        $label = $optLabel !== '' ? $optLabel : $value;
+                        break;
+                    }
+
+                    return '<div class="qmh-answer">'.e($label).'</div>';
+                }
+
+                if ($type === 'date' || $type === 'number') {
+                    $value = is_string($val) ? trim($val) : (is_scalar($val) ? trim((string) $val) : '');
+                    if ($value === '') {
+                        return '<div class="qmh-answer">&nbsp;</div>';
+                    }
+
+                    return '<div class="qmh-answer">'.e($value).'</div>';
+                }
+
                 if ($val === null) {
                     return '<div class="qmh-answer">&nbsp;</div>';
                 }
@@ -558,6 +635,7 @@
 
             $rowHeightClass = function (string $type): string {
                 return match ($type) {
+                    'section' => 'form-row--sm',
                     'textarea' => 'form-row--lg',
                     'list' => 'form-row--md',
                     default => 'form-row--sm',
@@ -578,8 +656,12 @@
                     @endphp
                     <tr class="{{ $rowHeightClass($type) }}">
                         <td class="form-no">{{ $idx + 1 }}</td>
-                        <td class="form-label">{{ strtoupper($label) }}</td>
-                        <td class="form-value">{!! $renderCell($val, $type) !!}</td>
+                        @if($type === 'section')
+                            <td class="form-section" colspan="2">{{ strtoupper($label) }}</td>
+                        @else
+                            <td class="form-label">{{ strtoupper($label) }}</td>
+                            <td class="form-value">{!! $renderCell($val, $type, is_array($q) ? $q : []) !!}</td>
+                        @endif
                     </tr>
                 @endforeach
             </table>
