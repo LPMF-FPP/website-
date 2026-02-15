@@ -99,10 +99,12 @@ class QmhDocumentServiceTest extends TestCase
             'content_html' => '',
         ], $user->id);
 
+        $expectedContent = \App\Support\QmhHtmlSanitizer::sanitize('<p>Konten dari template</p>');
+
         $this->assertDatabaseHas('qmh_document_revisions', [
             'document_id' => $document->id,
             'template_id' => $template->id,
-            'content_html' => '<p>Konten dari template</p>',
+            'content_html' => $expectedContent,
         ]);
     }
 }

@@ -1,27 +1,41 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <h2 class="text-xl font-semibold leading-tight text-gray-800">
-                {{ __('Dashboard QMH') }}
-            </h2>
-            <div class="flex items-center gap-2">
-                <a href="{{ route('quality.documents.index') }}" class="text-sm font-medium text-blue-600 hover:text-blue-500">
-                    Lihat Semua Dokumen &rarr;
-                </a>
-            </div>
+        <div class="space-y-3">
+            <x-page-header
+                title="Dashboard QMH"
+                :breadcrumbs="[
+                    ['label' => 'Dashboard QMH'],
+                ]"
+            >
+                <x-slot name="actions">
+                    <a href="{{ route('quality.documents.index') }}" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        Lihat Dokumen
+                    </a>
+                    @if(auth()->user()?->hasPermission('qmh.template.manage'))
+                        <a href="{{ route('quality.templates.index') }}" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            Template
+                        </a>
+                    @endif
+                    <a href="{{ route('quality.documents.create') }}" class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700">
+                        Buat Dokumen
+                    </a>
+                </x-slot>
+            </x-page-header>
+
+            <x-qmh-subnav active="overview" />
         </div>
     </x-slot>
 
-    <div class="py-6" x-data="qmhDashboard()" x-init="init()">
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div x-data="qmhDashboard()" x-init="init()">
+        <div>
             <!-- Action Center Banner -->
-            <div class="mb-8 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white shadow-lg" x-show="userTasks > 0" x-transition>
+            <div class="mb-8 rounded-xl bg-gradient-to-r from-primary-600 to-primary-800 p-6 text-white shadow-lg" x-show="userTasks > 0" x-transition>
                 <div class="flex items-center justify-between">
                     <div>
                         <h3 class="text-lg font-bold">Halo, {{ auth()->user()->name }}! 👋</h3>
-                        <p class="mt-1 text-blue-100">Ada <span class="font-bold" x-text="userTasks"></span> dokumen yang menunggu aksi Anda hari ini.</p>
+                        <p class="mt-1 text-primary-100">Ada <span class="font-bold" x-text="userTasks"></span> dokumen yang menunggu aksi Anda hari ini.</p>
                     </div>
-                    <a href="{{ route('quality.documents.index', ['status' => 'in_review']) }}" class="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-blue-700 shadow hover:bg-blue-50">
+                    <a href="{{ route('quality.documents.index', ['status' => 'in_review']) }}" class="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-primary-800 shadow hover:bg-primary-50">
                         Mulai Review
                     </a>
                 </div>
@@ -84,12 +98,12 @@
                     
                     <!-- PLAN -->
                     <div class="relative rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md">
-                        <div class="absolute -left-3 top-6 rounded-r-lg bg-blue-100 px-2 py-1 text-xs font-bold text-blue-800">PLAN</div>
+                        <div class="absolute -left-3 top-6 rounded-r-lg bg-primary-100 px-2 py-1 text-xs font-bold text-primary-900">PLAN</div>
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <template x-for="c in [4, 5, 6]">
-                                <a :href="`{{ route('quality.documents.index') }}?clause=${c}`" class="group flex flex-col justify-between rounded-xl border border-gray-100 bg-slate-50 p-4 hover:border-blue-300 hover:bg-blue-50">
+                                <a :href="`{{ route('quality.documents.index') }}?clause=${c}`" class="group flex flex-col justify-between rounded-xl border border-gray-100 bg-slate-50 p-4 hover:border-primary-300 hover:bg-primary-50">
                                     <div class="flex items-center justify-between">
-                                        <span class="text-xl font-bold text-gray-400 group-hover:text-blue-600" x-text="`K${c}`"></span>
+                                        <span class="text-xl font-bold text-gray-400 group-hover:text-primary-700" x-text="`K${c}`"></span>
                                         <span class="h-2 w-2 rounded-full" :class="healthColor(stats[c]?.health)"></span>
                                     </div>
                                     <div class="mt-2">
@@ -104,13 +118,13 @@
                     </div>
 
                     <!-- DO (Prominent) -->
-                    <div class="relative rounded-2xl border-2 border-blue-100 bg-white p-6 shadow-md ring-4 ring-blue-50 transition hover:shadow-lg">
-                        <div class="absolute -left-3 top-6 rounded-r-lg bg-indigo-100 px-2 py-1 text-xs font-bold text-indigo-800">DO</div>
+                    <div class="relative rounded-2xl border-2 border-primary-100 bg-white p-6 shadow-md ring-4 ring-primary-50 transition hover:shadow-lg">
+                        <div class="absolute -left-3 top-6 rounded-r-lg bg-primary-100 px-2 py-1 text-xs font-bold text-primary-900">DO</div>
                         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                             <div class="flex-1">
                                 <div class="flex items-center gap-3">
                                     <h4 class="text-2xl font-bold text-gray-900">Klausul 7</h4>
-                                    <span class="rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-800">Operasional</span>
+                                    <span class="rounded-full bg-primary-100 px-2.5 py-0.5 text-xs font-medium text-primary-900">Operasional</span>
                                 </div>
                                 <p class="mt-1 text-sm text-gray-500">Persyaratan Proses (Review Kontrak s.d Pelaporan)</p>
                                 
@@ -129,7 +143,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <a href="{{ route('quality.documents.index', ['clause' => 7]) }}" class="flex items-center justify-center rounded-xl bg-indigo-50 px-6 py-4 text-indigo-700 transition hover:bg-indigo-100 hover:text-indigo-900">
+                            <a href="{{ route('quality.documents.index', ['clause' => 7]) }}" class="flex items-center justify-center rounded-xl bg-primary-50 px-6 py-4 text-primary-800 transition hover:bg-primary-100 hover:text-primary-900">
                                 <span class="text-sm font-semibold">Buka Workspace &rarr;</span>
                             </a>
                         </div>
@@ -189,12 +203,12 @@
                     <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                         <h3 class="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500">Pintas</h3>
                         <div class="grid grid-cols-2 gap-3">
-                            <a href="{{ route('quality.documents.create') }}" class="flex flex-col items-center rounded-lg bg-gray-50 p-3 text-center transition hover:bg-blue-50 hover:text-blue-700">
-                                <svg class="h-6 w-6 text-gray-400 group-hover:text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            <a href="{{ route('quality.documents.create') }}" class="group flex flex-col items-center rounded-lg bg-gray-50 p-3 text-center transition hover:bg-primary-50 hover:text-primary-800">
+                                <svg class="h-6 w-6 text-gray-400 group-hover:text-primary-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                                 <span class="mt-2 text-xs font-medium">Buat Dokumen</span>
                             </a>
-                            <a href="{{ route('quality.documents.index') }}" class="flex flex-col items-center rounded-lg bg-gray-50 p-3 text-center transition hover:bg-blue-50 hover:text-blue-700">
-                                <svg class="h-6 w-6 text-gray-400 group-hover:text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                            <a href="{{ route('quality.documents.index') }}" class="group flex flex-col items-center rounded-lg bg-gray-50 p-3 text-center transition hover:bg-primary-50 hover:text-primary-800">
+                                <svg class="h-6 w-6 text-gray-400 group-hover:text-primary-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                                 <span class="mt-2 text-xs font-medium">Cari Dokumen</span>
                             </a>
                         </div>
@@ -238,7 +252,7 @@
                     switch (health) {
                         case 'critical': return 'bg-red-500';
                         case 'warning': return 'bg-amber-500';
-                        case 'active': return 'bg-blue-500';
+                        case 'active': return 'bg-primary-500';
                         default: return 'bg-green-500';
                     }
                 },
@@ -262,7 +276,7 @@
                     switch (this.globalPulse) {
                         case 'critical': return 'bg-red-100 text-red-600';
                         case 'warning': return 'bg-amber-100 text-amber-600';
-                        case 'active': return 'bg-blue-100 text-blue-600';
+                        case 'active': return 'bg-primary-100 text-primary-700';
                         default: return 'bg-green-100 text-green-600';
                     }
                 },

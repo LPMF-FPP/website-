@@ -1,15 +1,19 @@
 <x-app-layout>
     <x-slot name="header">
-        <x-page-header
-            title="Laporan QMH"
-            :breadcrumbs="[
-                ['label' => 'Dashboard QMH', 'route' => 'quality.index'],
-                ['label' => 'Laporan QMH'],
-            ]"
-        />
+        <div class="space-y-3">
+            <x-page-header
+                title="Laporan QMH"
+                :breadcrumbs="[
+                    ['label' => 'Dashboard QMH', 'route' => 'quality.index'],
+                    ['label' => 'Laporan QMH'],
+                ]"
+            />
+
+            <x-qmh-subnav active="reports" />
+        </div>
     </x-slot>
 
-    <div class="space-y-6 sm:px-6 lg:px-8" x-data="qmhReports({ csrfToken: @js(csrf_token()) })" x-init="init()">
+    <div class="space-y-6" x-data="qmhReports({ csrfToken: @js(csrf_token()) })" x-init="init()">
         <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <form class="grid gap-3 md:grid-cols-2 lg:grid-cols-4" @submit.prevent="applyFilters()">
                 <input type="text" x-model="filters.search" class="rounded-md border-gray-300 text-sm focus:border-primary-600 focus:ring-primary-600" placeholder="Cari kode/judul dokumen">

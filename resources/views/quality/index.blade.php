@@ -1,27 +1,32 @@
 <x-app-layout>
     <x-slot name="header">
-        <x-page-header
-            title="Dashboard QMH"
-            :breadcrumbs="[
-                ['label' => 'Dashboard QMH'],
-            ]"
-        >
-            <x-slot name="actions">
-                @if(auth()->user()?->hasPermission('qmh.template.manage'))
-                    <a href="{{ route('quality.templates.index') }}"
-                       class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                        Kelola Template
+        <div class="space-y-3">
+            <x-page-header
+                title="Dokumen QMH"
+                :breadcrumbs="[
+                    ['label' => 'Dashboard QMH', 'route' => 'quality.index'],
+                    ['label' => 'Dokumen'],
+                ]"
+            >
+                <x-slot name="actions">
+                    @if(auth()->user()?->hasPermission('qmh.template.manage'))
+                        <a href="{{ route('quality.templates.index') }}"
+                           class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                            Template
+                        </a>
+                    @endif
+                    <a href="{{ route('quality.documents.create') }}"
+                       class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700">
+                        Buat Dokumen
                     </a>
-                @endif
-                <a href="{{ route('quality.documents.create') }}"
-                   class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
-                    Buat Dokumen
-                </a>
-            </x-slot>
-        </x-page-header>
+                </x-slot>
+            </x-page-header>
+
+            <x-qmh-subnav active="documents" />
+        </div>
     </x-slot>
 
-    <div class="space-y-6 sm:px-6 lg:px-8">
+    <div class="space-y-6">
         <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <form method="GET" action="{{ route('quality.documents.index') }}" class="grid gap-3 md:grid-cols-4 lg:grid-cols-5">
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari kode atau judul"

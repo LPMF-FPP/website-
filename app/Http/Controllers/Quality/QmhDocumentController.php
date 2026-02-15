@@ -125,9 +125,15 @@ class QmhDocumentController extends Controller
             'currentRevision.template',
         ]);
 
+        $users = User::query()
+            ->select('id', 'name', 'role')
+            ->orderBy('name')
+            ->get();
+
         return view('quality.edit', [
             'document' => $document,
             'revision' => $document->currentRevision,
+            'users' => $users,
         ]);
     }
 

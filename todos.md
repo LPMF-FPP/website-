@@ -73,3 +73,26 @@ Bangun Form Builder UI untuk schema formulir (FR) dan perluas tipe field v1, den
 - [ ] `npm run audit:critical`
 - [ ] `./vendor/bin/pint`
 - [ ] UAT: edit template FR -> buat dokumen -> preview -> PDF
+
+---
+
+# Next Task: QMH Epic 3 (Templates + FR Questions + Quality UX)
+
+## Objective
+
+1. Template QMH SOP/IK/FR bisa HTML-only (DOCX optional) untuk create/activate/preview.
+2. Formulir (FR) bisa menambah pertanyaan per dokumen (schema snapshot per revision), editable hanya saat draft.
+3. Halaman Quality (QMH) dirombak UI/UX agar konsisten (breadcrumbs, tabs, clinical theme, create stepper, edit workspace).
+
+## Stories
+
+- [ ] 3.2 QMH Templates - HTML-first (DOCX optional)
+- [ ] 3.3 FR per-document questions (schema snapshot per revision)
+- [ ] 3.4 QMH Quality UI/UX overhaul
+
+## Verification Checklist
+
+- [ ] `npm run build`
+- [ ] `npm run audit:critical`
+- [ ] `./vendor/bin/pint`
+- [ ] Pest: minimal suite untuk QMH (templates + fr + pdf)

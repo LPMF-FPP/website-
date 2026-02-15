@@ -33,7 +33,9 @@ class QmhTemplateManagementWebTest extends TestCase
             ->get('/quality/templates')
             ->assertOk()
             ->assertSee('Template QMH')
-            ->assertSee('Upload Template');
+            ->assertSee('Buat / Upload Template')
+            ->assertSee('id="upload-template"', false)
+            ->assertSee('<details', false);
     }
 
     public function test_admin_can_access_template_edit_page(): void
@@ -101,6 +103,29 @@ class QmhTemplateManagementWebTest extends TestCase
         $this->assertNotNull($template->source_docx_path);
     }
 
+    public function test_can_create_new_qmh_template_without_docx_and_activate_it(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($user)
+            ->post('/quality/templates', [
+                'name' => 'Template SOP HTML-only',
+                'doc_type' => 'sop',
+                'version_notes' => 'tanpa docx',
+                'content_html' => '<h1>Judul</h1><p>Isi</p>',
+            ])
+            ->assertRedirect(route('quality.templates.index'));
+
+        $template = QmhTemplate::query()->firstOrFail();
+
+        $this->assertSame('Template SOP HTML-only', $template->name);
+        $this->assertSame('sop', $template->doc_type);
+        $this->assertTrue($template->is_active);
+        $this->assertNull($template->source_docx_path);
+        $this->assertSame('<h1>Judul</h1><p>Isi</p>', data_get($template->metadata, 'content_html'));
+    }
+
     public function test_upload_template_extracts_initial_browser_content_from_docx(): void
     {
         Storage::fake('local');
@@ -166,8 +191,8 @@ class QmhTemplateManagementWebTest extends TestCase
 
         $this->assertStringContainsString('<p>1. TUJUAN</p>', $contentHtml);
         $this->assertStringContainsString('<p>2. RUANG LINGKUP</p>', $contentHtml);
-        $this->assertStringContainsString('<p>• IK X</p>', $contentHtml);
-        $this->assertStringContainsString('<p>• FR X</p>', $contentHtml);
+        $this->assertMatchesRegularExpression('/<p>(?:&bull;|\x{2022})\s*IK X<\/p>/u', $contentHtml);
+        $this->assertMatchesRegularExpression('/<p>(?:&bull;|\x{2022})\s*FR X<\/p>/u', $contentHtml);
         $this->assertStringContainsString('Isi Dokumen ini tidak diperkenankan', $contentHtml);
         $this->assertStringContainsString('<p>1/1</p>', $contentHtml);
     }
@@ -191,9 +216,9 @@ class QmhTemplateManagementWebTest extends TestCase
         $template = QmhTemplate::query()->firstOrFail();
         $contentHtml = (string) data_get($template->metadata, 'content_html', '');
 
-        $this->assertMatchesRegularExpression('/<p style="text-align: right;">.*1\/1.*<\/p>/', $contentHtml);
-        $this->assertStringContainsString('<p style="text-align: center;">', $contentHtml);
-        $this->assertStringContainsString('style="color:#FF0000"', $contentHtml);
+        $this->assertMatchesRegularExpression('/<p style="text-align:\s*right;?">.*1\/1.*<\/p>/', $contentHtml);
+        $this->assertMatchesRegularExpression('/<p style="text-align:\s*center;?">/', $contentHtml);
+        $this->assertMatchesRegularExpression('/style="color:\s*#FF0000"/i', $contentHtml);
         $this->assertStringContainsString('<em>', $contentHtml);
         $this->assertStringContainsString('Isi Dokumen ini tidak diperkenankan', $contentHtml);
     }
@@ -404,8 +429,61 @@ class QmhTemplateManagementWebTest extends TestCase
         $this->actingAs($user)
             ->get(route('quality.templates.preview', $template))
             ->assertOk()
-            ->assertSee('Preview Template DOCX')
-            ->assertSee('view.officeapps.live.com');
+            ->assertSee('Preview Template QMH')
+            ->assertSee('Buka File Langsung')
+            ->assertDontSee('view.officeapps.live.com');
+    }
+
+    public function test_template_preview_sanitizes_html_content_to_prevent_xss(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $template = QmhTemplate::query()->create([
+            'name' => 'Template XSS',
+            'clause' => 4,
+            'doc_type' => 'sop',
+            'version' => 1,
+            'storage_disk' => 'local',
+            'source_docx_path' => null,
+            'is_active' => true,
+            'metadata' => [
+                'content_html' => '<p>OK</p><script>alert("xss")</script><img src="https://evil.example/x">',
+            ],
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('quality.templates.preview', $template))
+            ->assertOk()
+            ->assertSee('OK')
+            ->assertDontSee('alert("xss")', false)
+            ->assertDontSee('evil.example', false);
+    }
+
+    public function test_template_preview_renders_html_preview_when_no_docx(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $template = QmhTemplate::query()->create([
+            'name' => 'Template Preview HTML-only',
+            'clause' => 4,
+            'doc_type' => 'sop',
+            'version' => 1,
+            'storage_disk' => 'local',
+            'source_docx_path' => null,
+            'is_active' => true,
+            'metadata' => [
+                'content_html' => '<p>Halo Preview</p>',
+            ],
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('quality.templates.preview', $template))
+            ->assertOk()
+            ->assertSee('Preview Template QMH')
+            ->assertSee('Halo Preview', false)
+            ->assertDontSee('view.officeapps.live.com');
     }
 
     public function test_signed_preview_file_endpoint_returns_docx_stream(): void

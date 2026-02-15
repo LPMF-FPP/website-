@@ -54,6 +54,6 @@
     <div class="meta">Versi {{ $versionLabel }}</div>
 </div>
 
-{!! $contentHtml !!}
+{!! \App\Support\QmhHtmlSanitizer::sanitize($contentHtml) !!}
 </body>
 </html>

@@ -743,7 +743,7 @@
             </div>
         @endforeach
     @else
-        {!! $contentHtml ?? ($revision->content_html ?: '<p>Konten dokumen belum tersedia.</p>') !!}
+        {!! \App\Support\QmhHtmlSanitizer::sanitize($contentHtml ?? ($revision->content_html ?: '<p>Konten dokumen belum tersedia.</p>')) !!}
     @endif
 </main>
 

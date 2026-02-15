@@ -53,6 +53,111 @@ class QmhDocumentWebTest extends TestCase
             ->assertSee('Kembali');
     }
 
+    public function test_quality_pages_render_breadcrumbs_and_qmh_subnav_with_active_state(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $landing = $this->actingAs($user)->get('/quality');
+        $landing->assertOk();
+        $this->assertBreadcrumbLabels($landing->getContent(), ['Dashboard QMH']);
+        $this->assertQmhSubnavActiveLabel($landing->getContent(), 'Ringkasan');
+
+        $documents = $this->actingAs($user)->get('/quality/documents');
+        $documents->assertOk();
+        $this->assertBreadcrumbLabels($documents->getContent(), ['Dashboard QMH', 'Dokumen']);
+        $this->assertQmhSubnavActiveLabel($documents->getContent(), 'Dokumen');
+
+        $create = $this->actingAs($user)->get('/quality/documents/create');
+        $create->assertOk();
+        $this->assertBreadcrumbLabels($create->getContent(), ['Dashboard QMH', 'Buat Dokumen']);
+        $this->assertQmhSubnavActiveLabel($create->getContent(), 'Buat Dokumen');
+
+        $templates = $this->actingAs($user)->get('/quality/templates');
+        $templates->assertOk();
+        $this->assertBreadcrumbLabels($templates->getContent(), ['Dashboard QMH', 'Template QMH']);
+        $this->assertQmhSubnavActiveLabel($templates->getContent(), 'Template');
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-SOP-CR-001',
+            'title' => 'SOP CR',
+            'clause' => 4,
+            'doc_type' => 'sop',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'draft',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+            'content_html' => '<p>Konten</p>',
+        ]);
+        $document->update(['current_revision_id' => $revision->id]);
+
+        $show = $this->actingAs($user)->get('/quality/documents/'.$document->id);
+        $show->assertOk();
+        $this->assertBreadcrumbLabels($show->getContent(), ['Dashboard QMH', 'Dokumen', 'QMH-SOP-CR-001']);
+        $this->assertQmhSubnavActiveLabel($show->getContent(), 'Dokumen');
+
+        $edit = $this->actingAs($user)->get('/quality/documents/'.$document->id.'/edit');
+        $edit->assertOk();
+        $this->assertBreadcrumbLabels($edit->getContent(), ['Dashboard QMH', 'Dokumen', 'Editor']);
+        $this->assertQmhSubnavActiveLabel($edit->getContent(), 'Dokumen');
+    }
+
+    public function test_reports_page_renders_breadcrumbs_and_subnav_when_user_has_permission(): void
+    {
+        $this->grantPermissionToRole('admin', 'qmh.report', 'Laporan Quality Management Hub', 'qmh', 'report');
+
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $reports = $this->actingAs($user)->get('/quality/reports');
+
+        $reports->assertOk();
+        $this->assertBreadcrumbLabels($reports->getContent(), ['Dashboard QMH', 'Laporan QMH']);
+        $this->assertQmhSubnavActiveLabel($reports->getContent(), 'Laporan');
+    }
+
+    public function test_qmh_primary_actions_use_clinical_primary_palette(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $landing = $this->actingAs($user)->get('/quality');
+        $landing->assertOk();
+        $this->assertElementWithTextHasClass($landing->getContent(), 'a', 'Buat Dokumen', 'bg-primary-600');
+
+        $documents = $this->actingAs($user)->get('/quality/documents');
+        $documents->assertOk();
+        $this->assertElementWithTextHasClass($documents->getContent(), 'a', 'Buat Dokumen', 'bg-primary-600');
+
+        $templates = $this->actingAs($user)->get('/quality/templates');
+        $templates->assertOk();
+        $this->assertElementWithTextHasClass($templates->getContent(), 'a', 'Buat / Upload', 'bg-primary-600');
+    }
+
+    public function test_create_page_is_guided_stepper_flow_with_clarified_doc_type_microcopy(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $response = $this->actingAs($user)->get('/quality/documents/create');
+
+        $response->assertOk();
+        $response->assertSee('Alur Pembuatan Dokumen');
+        $response->assertSee('1. Struktur');
+        $response->assertSee('2. Metadata');
+        $response->assertSee('3. Template');
+        $response->assertSee('4. Review');
+        $response->assertSee('Instruksi Kerja (IK)');
+        $response->assertSee('Formulir (FR)');
+    }
+
     public function test_user_without_qmh_permission_is_redirected_from_quality_pages(): void
     {
         /** @var User $user */
@@ -311,6 +416,48 @@ class QmhDocumentWebTest extends TestCase
             ->assertSee('Simpan');
     }
 
+    public function test_edit_page_workspace_exposes_right_rail_actions_and_modal_handlers(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-SOP-402-EDIT',
+            'title' => 'SOP Edit Workspace',
+            'clause' => 6,
+            'doc_type' => 'sop',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'draft',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+            'content_html' => '<p>Konten awal</p>',
+        ]);
+
+        $document->update(['current_revision_id' => $revision->id]);
+
+        $this->actingAs($user)
+            ->get('/quality/documents/'.$document->id.'/edit')
+            ->assertOk()
+            ->assertViewIs('quality.edit')
+            ->assertSee('Aksi')
+            ->assertSee('Checklist')
+            ->assertSee('Preview')
+            ->assertSee('Simpan Draft')
+            ->assertSee('Submit untuk Review')
+            ->assertSee('Buka Preview')
+            ->assertSee('openSubmitModal() {', false)
+            ->assertSee('async submitForReview()', false)
+            ->assertSee('openPreviewModal() {', false);
+    }
+
     public function test_detail_page_shows_disabled_reason_for_submit_when_not_revision_owner(): void
     {
         /** @var User $owner */
@@ -417,6 +564,100 @@ class QmhDocumentWebTest extends TestCase
         ]);
     }
 
+    private function grantPermissionToRole(
+        string $role,
+        string $permissionName,
+        string $displayName,
+        string $module,
+        string $action
+    ): void {
+        $permission = Permission::query()->updateOrCreate(
+            ['name' => $permissionName],
+            [
+                'display_name' => $displayName,
+                'module' => $module,
+                'action' => $action,
+            ]
+        );
+
+        RolePermission::query()->updateOrCreate([
+            'role' => $role,
+            'permission_id' => $permission->id,
+        ]);
+    }
+
+    private function assertBreadcrumbLabels(string $html, array $expectedLabels): void
+    {
+        $xpath = $this->xpathFromHtml($html);
+
+        $nav = $xpath->query("//nav[@aria-label='Breadcrumb']");
+        $this->assertGreaterThan(0, $nav?->length ?? 0, 'Breadcrumb nav is missing.');
+
+        $nodes = $xpath->query("//nav[@aria-label='Breadcrumb']//ol/li");
+        $labels = [];
+
+        if ($nodes) {
+            foreach ($nodes as $li) {
+                $a = $xpath->query('.//a', $li);
+                if ($a && $a->length > 0) {
+                    $labels[] = trim((string) $a->item(0)?->nodeValue);
+
+                    continue;
+                }
+
+                $span = $xpath->query(".//span[@aria-current='page']", $li);
+                if ($span && $span->length > 0) {
+                    $labels[] = trim((string) $span->item(0)?->nodeValue);
+
+                    continue;
+                }
+
+                $labels[] = trim((string) $li->nodeValue);
+            }
+        }
+
+        $this->assertSame($expectedLabels, $labels);
+    }
+
+    private function assertQmhSubnavActiveLabel(string $html, string $expectedActiveLabel): void
+    {
+        $xpath = $this->xpathFromHtml($html);
+
+        $nav = $xpath->query("//nav[@aria-label='Navigasi QMH']");
+        $this->assertGreaterThan(0, $nav?->length ?? 0, 'QMH subnav is missing.');
+
+        $active = $xpath->query("//nav[@aria-label='Navigasi QMH']//a[@aria-current='page']");
+        $this->assertSame(1, $active?->length ?? 0, 'QMH subnav active link not found or not unique.');
+
+        $text = $active?->item(0)?->nodeValue;
+        $this->assertSame($expectedActiveLabel, trim((string) $text));
+    }
+
+    private function xpathFromHtml(string $html): \DOMXPath
+    {
+        $previous = libxml_use_internal_errors(true);
+
+        $dom = new \DOMDocument;
+        $dom->loadHTML($html);
+
+        libxml_clear_errors();
+        libxml_use_internal_errors($previous);
+
+        return new \DOMXPath($dom);
+    }
+
+    private function assertElementWithTextHasClass(string $html, string $tag, string $text, string $expectedClassFragment): void
+    {
+        $xpath = $this->xpathFromHtml($html);
+        $query = sprintf("//%s[normalize-space()='%s']", $tag, str_replace("'", '"', $text));
+        $nodes = $xpath->query($query);
+
+        $this->assertGreaterThan(0, $nodes?->length ?? 0, sprintf('Element <%s> with text "%s" not found.', $tag, $text));
+
+        $class = (string) ($nodes?->item(0)?->attributes?->getNamedItem('class')?->nodeValue ?? '');
+        $this->assertStringContainsString($expectedClassFragment, $class, sprintf('Expected class fragment "%s" missing on <%s> "%s".', $expectedClassFragment, $tag, $text));
+    }
+
     private function createTemplate(int $clause, string $docType): QmhTemplate
     {
         return QmhTemplate::query()->create([
@@ -428,5 +669,39 @@ class QmhDocumentWebTest extends TestCase
             'source_docx_path' => sprintf('templates/qmh/%s-%d.docx', $docType, $clause),
             'is_active' => true,
         ]);
+    }
+
+    public function test_show_page_sanitizes_rich_html_content_to_prevent_xss(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-SOP-XSS-001',
+            'title' => 'SOP XSS',
+            'clause' => 4,
+            'doc_type' => 'sop',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'draft',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+            'content_html' => '<p>OK</p><script>alert("xss")</script>',
+        ]);
+
+        $document->update(['current_revision_id' => $revision->id]);
+
+        $this->actingAs($user)
+            ->get('/quality/documents/'.$document->id)
+            ->assertOk()
+            ->assertSee('OK')
+            ->assertDontSee('alert("xss")', false);
     }
 }

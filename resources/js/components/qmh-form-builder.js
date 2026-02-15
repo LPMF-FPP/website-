@@ -19,17 +19,20 @@ export function qmhFormBuilder(config = {}) {
                     ? initialSchema
                     : this.parseSchemaJson(initialJson);
 
-            this.schemaVersion = Number(schema?.version || 1);
-            this.schemaDocType = String(schema?.doc_type || this.schemaDocType);
+            this.loadSchema(schema);
+            this.syncJsonNow();
+        },
 
-            const questions = Array.isArray(schema?.questions)
-                ? schema.questions
-                : [];
+        loadSchema(schema) {
+            const s = schema && typeof schema === "object" ? schema : null;
+
+            this.schemaVersion = Number(s?.version || 1);
+            this.schemaDocType = String(s?.doc_type || this.schemaDocType);
+
+            const questions = Array.isArray(s?.questions) ? s.questions : [];
             this.questions = questions
                 .map((q) => this.normalizeQuestion(q))
                 .filter((q) => q.id !== "");
-
-            this.syncJsonNow();
         },
 
         parseSchemaJson(raw) {
@@ -228,6 +231,13 @@ export function qmhFormBuilder(config = {}) {
         syncJsonNow() {
             if (!this.$refs?.schemaJson) return;
             this.$refs.schemaJson.value = this.schemaJson();
+
+            if (typeof this.$dispatch === "function") {
+                this.$dispatch("qmh-form-schema-change", {
+                    schema: this.schemaObject(),
+                    json: this.schemaJson(),
+                });
+            }
         },
 
         slugifyId(label) {

@@ -1,16 +1,20 @@
 <x-app-layout>
     <x-slot name="header">
-        <x-page-header
-            title="Edit Template QMH"
-            :breadcrumbs="[
-                ['label' => 'Dashboard QMH', 'route' => 'quality.index'],
-                ['label' => 'Template QMH', 'route' => 'quality.templates.index'],
-                ['label' => 'Edit Template'],
-            ]"
-        />
+        <div class="space-y-3">
+            <x-page-header
+                title="Edit Template QMH"
+                :breadcrumbs="[
+                    ['label' => 'Dashboard QMH', 'route' => 'quality.index'],
+                    ['label' => 'Template QMH', 'route' => 'quality.templates.index'],
+                    ['label' => 'Edit Template'],
+                ]"
+            />
+
+            <x-qmh-subnav active="templates" />
+        </div>
     </x-slot>
 
-    <div class="mx-auto max-w-3xl space-y-6 sm:px-6 lg:px-8">
+    <div class="space-y-6">
         @if($errors->any())
             <div class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 <p class="font-medium">Terjadi kesalahan validasi:</p>
@@ -124,7 +128,7 @@
                         >
                             <div class="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 pb-3">
                                 <div class="flex flex-wrap items-center gap-2">
-                                    <button type="button" class="inline-flex items-center rounded-md bg-blue-600 px-3 py-2 text-xs font-medium text-white hover:bg-blue-700" @click="addQuestion('text')">
+                                    <button type="button" class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-xs font-medium text-white hover:bg-primary-700" @click="addQuestion('text')">
                                         + Pertanyaan
                                     </button>
                                     <button type="button" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50" @click="addQuestion('section')">
@@ -195,7 +199,7 @@
                                                         <label class="block text-[11px] font-semibold text-gray-600">Wajib</label>
                                                         <input
                                                             type="checkbox"
-                                                            class="mt-3 h-4 w-4 rounded border-gray-300 text-blue-600"
+                                                            class="mt-3 h-4 w-4 rounded border-gray-300 text-primary-600"
                                                             x-model="q.required"
                                                             :disabled="q.type === 'section'"
                                                             @change="syncJson()"
@@ -230,7 +234,7 @@
                                                     <div class="mt-3 rounded-md border border-gray-200 bg-gray-50 p-3">
                                                         <div class="flex items-center justify-between">
                                                             <div class="text-xs font-semibold text-gray-700">Options</div>
-                                                            <button type="button" class="text-xs font-medium text-blue-700 hover:underline" @click="addSelectOption(idx)">
+                                                            <button type="button" class="text-xs font-medium text-primary-700 hover:underline" @click="addSelectOption(idx)">
                                                                 + Tambah option
                                                             </button>
                                                         </div>
@@ -310,7 +314,7 @@
                     <a href="{{ route('quality.templates.index') }}" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
                         Batal
                     </a>
-                    <button type="submit" class="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700">
+                    <button type="submit" class="inline-flex items-center rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700">
                         Simpan Perubahan
                     </button>
                 </div>

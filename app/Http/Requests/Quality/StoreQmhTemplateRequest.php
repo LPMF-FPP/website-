@@ -49,7 +49,8 @@ class StoreQmhTemplateRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'doc_type' => ['required', Rule::in(['sop', 'ik', 'fr'])],
-            'file' => ['required', 'file', 'mimes:docx', 'max:10240'],
+            'file' => ['nullable', 'file', 'mimes:docx', 'max:10240'],
+            'content_html' => ['required_without:file', 'nullable', 'string'],
             'version_notes' => ['nullable', 'string', 'max:2000'],
             'form_schema_json' => ['nullable', 'string', 'max:50000'],
             'form_schema' => ['nullable', 'array'],
