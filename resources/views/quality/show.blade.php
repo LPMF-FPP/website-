@@ -42,6 +42,16 @@
         (int) ($currentRevision?->disahkan_oleh ?? 0) !== $currentUserId => 'Hanya pengesah yang ditugaskan yang dapat approve.',
         default => null,
     };
+
+    $canDelete = $status === 'draft' && (
+        (auth()->user()?->role ?? '') === 'admin'
+        || (int) ($currentRevision?->dibuat_oleh ?? 0) === $currentUserId
+    );
+    $deleteReason = match (true) {
+        $status !== 'draft' => 'Hapus hanya tersedia saat status draft.',
+        (auth()->user()?->role ?? '') !== 'admin' && (int) ($currentRevision?->dibuat_oleh ?? 0) !== $currentUserId => 'Hanya admin atau pembuat revisi yang dapat menghapus.',
+        default => null,
+    };
 @endphp
 
 <x-app-layout>
@@ -156,6 +166,26 @@
                         @endif
 
                         @if(auth()->user()?->hasPermission('qmh.create'))
+                            <div class="space-y-1">
+                                <form method="POST" action="{{ route('quality.documents.destroy', $document) }}" onsubmit="return confirm('Yakin hapus dokumen draft ini? Tindakan ini tidak dapat dibatalkan.');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button
+                                        type="submit"
+                                        @disabled(! $canDelete)
+                                        title="{{ $deleteReason ?? '' }}"
+                                        class="inline-flex w-full items-center justify-center rounded-md px-3 py-2 text-sm font-medium {{ $canDelete ? 'bg-red-600 text-white hover:bg-red-700' : 'cursor-not-allowed bg-gray-100 text-gray-500' }}"
+                                    >
+                                        Hapus Dokumen
+                                    </button>
+                                </form>
+                                @if(! $canDelete && $deleteReason)
+                                    <p class="text-xs text-gray-500">{{ $deleteReason }}</p>
+                                @endif
+                            </div>
+                        @endif
+
+                        @if(auth()->user()?->hasPermission('qmh.create'))
                             <button
                                 type="button"
                                 @click="openDownloadModal()"
@@ -230,11 +260,13 @@
 
             <div class="p-4">
                 <div x-show="activeTab === 'content'" x-cloak>
-                    @if(isset($currentRevision) && (
-                        ($currentRevision->document?->doc_type === 'formulir')
-                        || (! empty(data_get($currentRevision->form_schema_json, 'questions')))
-                        || (! empty(data_get($currentRevision->template?->metadata, 'form_schema.questions')))
-                    ))
+                    @if(isset($currentRevision)
+                        && ($currentRevision->document?->doc_type === 'formulir')
+                        && (
+                            (! empty(data_get($currentRevision->form_schema_json, 'questions')))
+                            || (! empty(data_get($currentRevision->template?->metadata, 'form_schema.questions')))
+                        )
+                    )
                         <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
                             <h3 class="mb-4 text-center font-bold uppercase">{{ $currentRevision->document?->title }}</h3>
 

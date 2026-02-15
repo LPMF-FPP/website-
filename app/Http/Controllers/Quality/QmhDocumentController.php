@@ -5,11 +5,18 @@ namespace App\Http\Controllers\Quality;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Quality\StoreQmhDocumentRequest;
 use App\Models\QmhDocument;
+use App\Models\QmhDocumentDownloadLog;
+use App\Models\QmhDocumentLock;
+use App\Models\QmhDocumentRelation;
+use App\Models\QmhDocumentRevision;
+use App\Models\QmhWorkflowEvent;
 use App\Models\User;
 use App\Services\Quality\QmhDashboardSummaryService;
 use App\Services\Quality\QmhDocumentService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
@@ -162,5 +169,78 @@ class QmhDocumentController extends Controller
                 ->withInput()
                 ->withErrors(['general' => 'Gagal membuat dokumen QMH.']);
         }
+    }
+
+    public function destroy(Request $request, QmhDocument $document): RedirectResponse
+    {
+        $document->load(['currentRevision', 'revisions']);
+
+        $revision = $document->currentRevision;
+        if ($revision === null) {
+            return redirect()
+                ->route('quality.documents.index')
+                ->withErrors(['general' => 'Dokumen tidak memiliki revisi aktif.']);
+        }
+
+        $actor = $request->user();
+        $isAdmin = (string) ($actor?->role ?? '') === 'admin';
+        $isOwner = (int) ($revision->dibuat_oleh ?? 0) === (int) ($actor?->id ?? 0);
+
+        if (! $isAdmin && ! $isOwner) {
+            throw new AuthorizationException('Hanya admin atau pembuat revisi yang dapat menghapus dokumen draft.');
+        }
+
+        if ((string) ($revision->status ?? '') !== 'draft') {
+            return back()->withErrors(['general' => 'Hanya dokumen dengan revisi draft yang dapat dihapus.']);
+        }
+
+        $hasHierarchyDependents = QmhDocument::query()
+            ->where('parent_sop_id', $document->id)
+            ->orWhere('paired_ik_id', $document->id)
+            ->exists();
+
+        $hasRelations = QmhDocumentRelation::query()
+            ->where('source_document_id', $document->id)
+            ->orWhere('target_document_id', $document->id)
+            ->exists();
+
+        if ($hasHierarchyDependents || $hasRelations) {
+            return back()->withErrors([
+                'general' => 'Dokumen ini masih punya relasi/hirarki. Lepaskan relasinya terlebih dahulu sebelum menghapus.',
+            ]);
+        }
+
+        DB::transaction(function () use ($document) {
+            $revisionIds = QmhDocumentRevision::query()
+                ->where('document_id', $document->id)
+                ->pluck('id')
+                ->all();
+
+            if (count($revisionIds) > 0) {
+                QmhDocumentLock::query()->whereIn('revision_id', $revisionIds)->delete();
+                QmhWorkflowEvent::query()->whereIn('revision_id', $revisionIds)->delete();
+
+                QmhDocumentDownloadLog::query()
+                    ->where(function ($query) use ($document, $revisionIds) {
+                        $query->where('document_id', $document->id)
+                            ->orWhereIn('revision_id', $revisionIds);
+                    })
+                    ->delete();
+            } else {
+                QmhDocumentDownloadLog::query()->where('document_id', $document->id)->delete();
+            }
+
+            QmhDocumentRelation::query()
+                ->where('source_document_id', $document->id)
+                ->orWhere('target_document_id', $document->id)
+                ->delete();
+
+            QmhDocumentRevision::query()->where('document_id', $document->id)->delete();
+            $document->delete();
+        });
+
+        return redirect()
+            ->route('quality.documents.index')
+            ->with('success', 'Dokumen draft berhasil dihapus.');
     }
 }

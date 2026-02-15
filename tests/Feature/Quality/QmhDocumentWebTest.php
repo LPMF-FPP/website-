@@ -417,6 +417,41 @@ class QmhDocumentWebTest extends TestCase
             ->assertSee('Simpan');
     }
 
+    public function test_admin_can_delete_draft_document_via_destroy_route(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-SOP-DELETE-01',
+            'title' => 'SOP Delete Draft',
+            'clause' => 6,
+            'doc_type' => 'sop',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'draft',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+            'content_html' => '<p>Konten awal</p>',
+        ]);
+
+        $document->update(['current_revision_id' => $revision->id]);
+
+        $this->actingAs($user)
+            ->delete('/quality/documents/'.$document->id)
+            ->assertRedirect('/quality/documents');
+
+        $this->assertDatabaseMissing('qmh_documents', ['id' => $document->id]);
+        $this->assertDatabaseMissing('qmh_document_revisions', ['id' => $revision->id]);
+    }
+
     public function test_edit_page_workspace_exposes_right_rail_actions_and_modal_handlers(): void
     {
         /** @var User $user */

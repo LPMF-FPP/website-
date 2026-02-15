@@ -77,6 +77,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('documents.edit')
             ->middleware('permission:qmh.create');
 
+        Route::delete('/documents/{document}', [QualityQmhDocumentController::class, 'destroy'])
+            ->name('documents.destroy')
+            ->middleware('permission:qmh.create');
+
         Route::get('/reports', [QualityQmhReportController::class, 'index'])
             ->name('reports.index')
             ->middleware('permission:qmh.report');
