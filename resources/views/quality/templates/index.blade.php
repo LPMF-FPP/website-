@@ -172,7 +172,7 @@
                     <th class="px-4 py-3 text-left font-semibold text-gray-700">Jenis</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-700">Versi</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
-                    <th class="px-4 py-3 text-left font-semibold text-gray-700">Source DOCX</th>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-700">Sumber Template</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-700">Updated</th>
                     <th class="px-4 py-3 text-right font-semibold text-gray-700">Aksi</th>
                 </tr>
@@ -190,7 +190,14 @@
                                 <span class="inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">Inactive</span>
                             @endif
                         </td>
-                        <td class="px-4 py-3 text-gray-700 break-all">{{ $template->source_docx_path ?? '-' }}</td>
+                        <td class="px-4 py-3 text-gray-700 break-all">
+                            @if($template->source_docx_path)
+                                <div class="text-xs font-medium text-gray-900">DOCX (arsip)</div>
+                                <div>{{ $template->source_docx_path }}</div>
+                            @else
+                                <span class="text-xs font-medium text-gray-900">HTML-only</span>
+                            @endif
+                        </td>
                         <td class="px-4 py-3 text-gray-700">{{ $template->updated_at?->format('d-m-Y H:i') ?? '-' }}</td>
                         <td class="px-4 py-3 text-right">
                             <a href="{{ route('quality.templates.edit', $template) }}"
@@ -226,7 +233,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-4 py-8 text-center text-sm text-gray-500">Belum ada template QMH. Upload template pertama untuk mulai menggunakan flow Buat Dokumen.</td>
+                        <td colspan="7" class="px-4 py-8 text-center text-sm text-gray-500">Belum ada template QMH. Buat template via editor browser (HTML) atau upload DOCX opsional sebagai sumber awal.</td>
                     </tr>
                 @endforelse
                 </tbody>

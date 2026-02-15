@@ -20,18 +20,10 @@
                 Preview template: <strong>{{ $template->name }}</strong> ({{ strtoupper($template->doc_type) }} v{{ $template->version }})
             </p>
             <p class="mt-1 text-xs text-gray-500">
-                Sumber: {{ $hasDocx ? 'DOCX (arsip) + HTML (preview)' : 'HTML-only' }}
+                Preview ini menggunakan konten HTML template aktif.
             </p>
 
             <div class="mt-3 flex flex-wrap gap-2">
-                @if($hasDocx && is_string($previewFileUrl) && $previewFileUrl !== '')
-                    <a href="{{ $previewFileUrl }}"
-                       target="_blank"
-                       rel="noopener"
-                       class="inline-flex items-center rounded-md border border-primary-300 bg-white px-3 py-2 text-sm font-medium text-primary-700 hover:bg-primary-50">
-                        Buka File Langsung
-                    </a>
-                @endif
                 <a href="{{ route('quality.templates.index') }}"
                    class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
                     Kembali ke Template QMH

@@ -527,6 +527,47 @@ class QmhDocumentWebTest extends TestCase
             ->assertSee('openPreviewModal() {', false);
     }
 
+    public function test_edit_page_registers_structured_rich_text_helpers_for_non_formulir(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-SOP-HELPER-001',
+            'title' => 'SOP Helper Registration',
+            'clause' => 4,
+            'doc_type' => 'sop',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'draft',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+            'answers_json' => [
+                'purpose' => '<?xml encoding="utf-8" ?><p>Tujuan SOP</p>',
+                'scope' => '<?xml encoding="utf-8" ?><p>Ruang Lingkup SOP</p>',
+                'definitions' => '<?xml encoding="utf-8" ?><ul><li><p>Definisi A</p></li></ul>',
+                'procedure' => '<?xml encoding="utf-8" ?><p>Langkah kerja A</p>',
+            ],
+        ]);
+
+        $document->update(['current_revision_id' => $revision->id]);
+
+        $this->actingAs($user)
+            ->get('/quality/documents/'.$document->id.'/edit')
+            ->assertOk()
+            ->assertSee('answerEditorInitialValue(qid) {', false)
+            ->assertSee('onRichTextAnswerChange(qid, html) {', false)
+            ->assertSee('onRichTextListAnswerChange(qid, html) {', false)
+            ->assertSee('stripXmlDeclaration(value) {', false);
+    }
+
     public function test_detail_page_shows_disabled_reason_for_submit_when_not_revision_owner(): void
     {
         /** @var User $owner */

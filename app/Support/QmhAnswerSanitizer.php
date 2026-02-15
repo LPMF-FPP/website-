@@ -118,6 +118,7 @@ final class QmhAnswerSanitizer
 
     public static function sanitizeRichText(string $html): string
     {
+        $html = self::stripXmlDeclaration($html);
         $html = trim($html);
         if ($html === '') {
             return '';
@@ -166,8 +167,14 @@ final class QmhAnswerSanitizer
         libxml_clear_errors();
 
         $result = trim((string) $document->saveHTML());
+        $result = self::stripXmlDeclaration($result);
 
         return self::plainText($result) === '' ? '' : $result;
+    }
+
+    private static function stripXmlDeclaration(string $value): string
+    {
+        return preg_replace('/^<\?xml[^>]*\?>\s*/i', '', $value) ?? $value;
     }
 
     private static function unwrapNode(DOMNode $node): void

@@ -40,7 +40,7 @@ class QmhRevisionDownloadService
 
         $watermark = $copyType === 'controlled' ? 'CONTROLLED COPY' : 'UNCONTROLLED COPY';
 
-        $binary = $this->generatePdfBinary($revision, $watermark);
+        $binary = $this->renderPdfBinary($revision, $watermark);
 
         $fileHash = hash('sha256', $binary);
 
@@ -84,7 +84,7 @@ class QmhRevisionDownloadService
         ];
     }
 
-    public function buildWatermarkedHtml(QmhDocumentRevision $revision, string $watermarkText): string
+    public function buildWatermarkedHtml(QmhDocumentRevision $revision, string $watermarkText, ?int $resolvedPageCount = null): string
     {
         $revision->loadMissing(['document.parentSop', 'document.pairedIk', 'template', 'createdBy', 'reviewedBy', 'approvedBy']);
 
@@ -96,7 +96,43 @@ class QmhRevisionDownloadService
             'schema' => $schema,
             'answers' => $answers,
             'watermarkText' => $watermarkText,
+            'resolvedPageCount' => $resolvedPageCount,
         ])->render();
+    }
+
+    public function renderPdfBinary(QmhDocumentRevision $revision, string $watermarkText, bool $remoteEnabled = false): string
+    {
+        $probeHtml = $this->buildWatermarkedHtml($revision, $watermarkText);
+
+        $probePdf = Pdf::loadHTML($probeHtml)
+            ->setPaper('a4')
+            ->setWarnings(false)
+            ->setOption('isRemoteEnabled', $remoteEnabled)
+            ->setOption('isHtml5ParserEnabled', true);
+
+        $pageCount = 1;
+        try {
+            $probePdf->render();
+
+            $dompdf = $probePdf->getDomPDF();
+            if (is_object($dompdf) && method_exists($dompdf, 'getCanvas')) {
+                $canvas = $dompdf->getCanvas();
+                if (is_object($canvas) && method_exists($canvas, 'get_page_count')) {
+                    $pageCount = max(1, (int) $canvas->get_page_count());
+                }
+            }
+        } catch (\Throwable) {
+            $pageCount = 1;
+        }
+
+        $finalHtml = $this->buildWatermarkedHtml($revision, $watermarkText, $pageCount);
+
+        return Pdf::loadHTML($finalHtml)
+            ->setPaper('a4')
+            ->setWarnings(false)
+            ->setOption('isRemoteEnabled', $remoteEnabled)
+            ->setOption('isHtml5ParserEnabled', true)
+            ->output();
     }
 
     /**
@@ -167,13 +203,6 @@ class QmhRevisionDownloadService
 
     private function generatePdfBinary(QmhDocumentRevision $revision, string $watermarkText): string
     {
-        $html = $this->buildWatermarkedHtml($revision, $watermarkText);
-
-        return Pdf::loadHTML($html)
-            ->setPaper('a4')
-            ->setWarnings(false)
-            ->setOption('isRemoteEnabled', false)
-            ->setOption('isHtml5ParserEnabled', true)
-            ->output();
+        return $this->renderPdfBinary($revision, $watermarkText);
     }
 }

@@ -19,10 +19,18 @@ class QmhPreviewPdfApiTest extends TestCase
 
         $this->createQmhPermissions();
 
+        $mockCanvas = \Mockery::mock();
+        $mockCanvas->shouldReceive('get_page_count')->andReturn(2);
+
+        $mockDompdf = \Mockery::mock();
+        $mockDompdf->shouldReceive('getCanvas')->andReturn($mockCanvas);
+
         $mockPdf = \Mockery::mock(\Barryvdh\DomPDF\PDF::class);
         $mockPdf->shouldReceive('setPaper')->andReturnSelf();
         $mockPdf->shouldReceive('setWarnings')->andReturnSelf();
         $mockPdf->shouldReceive('setOption')->andReturnSelf();
+        $mockPdf->shouldReceive('render')->andReturnNull();
+        $mockPdf->shouldReceive('getDomPDF')->andReturn($mockDompdf);
         $mockPdf->shouldReceive('output')->andReturn('%PDF-1.4 preview');
 
         Pdf::shouldReceive('loadHTML')

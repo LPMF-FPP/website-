@@ -11,7 +11,6 @@ use App\Models\QmhDocumentRevision;
 use App\Models\QmhTemplate;
 use App\Services\Quality\QmhRevisionDownloadService;
 use App\Support\QmhAnswerSanitizer;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
 
 class QmhPreviewController extends Controller
@@ -90,14 +89,7 @@ class QmhPreviewController extends Controller
             $revision->setRelation('template', $template);
         }
 
-        $html = $service->buildWatermarkedHtml($revision, 'DRAFT PREVIEW');
-
-        $binary = Pdf::loadHTML($html)
-            ->setPaper('a4')
-            ->setWarnings(false)
-            ->setOption('isRemoteEnabled', true)
-            ->setOption('isHtml5ParserEnabled', true)
-            ->output();
+        $binary = $service->renderPdfBinary($revision, 'DRAFT PREVIEW', true);
 
         $safeDocCode = preg_replace('/[^A-Za-z0-9._-]+/', '_', (string) $document->doc_code);
         $filename = ($safeDocCode ?: 'qmh-preview').'-preview.pdf';

@@ -3,7 +3,14 @@
     $document = $revision->document;
 
     $logoPath = public_path('images/logo-pusdokkes-polri.png');
-    $logoSrc = file_exists($logoPath) ? $logoPath : '';
+    $logoSrc = '';
+    if (file_exists($logoPath)) {
+        $logoMime = mime_content_type($logoPath) ?: 'image/png';
+        $logoData = base64_encode((string) file_get_contents($logoPath));
+        if ($logoData !== '') {
+            $logoSrc = sprintf('data:%s;base64,%s', $logoMime, $logoData);
+        }
+    }
 
     $docTypeLabel = match ((string) ($document->doc_type ?? '')) {
         'sop' => 'PROSEDUR',
@@ -51,7 +58,28 @@
     $reviewedBy = $revision->reviewedBy;
     $approvedBy = $revision->approvedBy;
 
+    $signerIdentity = static function ($user): string {
+        if (! $user) {
+            return '-';
+        }
+
+        $rank = trim((string) ($user->rank ?? ''));
+        $nrp = trim((string) ($user->nrp ?? ''));
+        $nip = trim((string) ($user->nip ?? ''));
+
+        $rankPart = $rank !== '' ? $rank : '-';
+        $nrpPart = $nrp !== '' ? $nrp : '-';
+        $nipPart = $nip !== '' ? $nip : '-';
+
+        return sprintf('%s / NRP %s / NIP %s', $rankPart, $nrpPart, $nipPart);
+    };
+
+    $createdIdentity = $signerIdentity($createdBy);
+    $reviewedIdentity = $signerIdentity($reviewedBy);
+    $approvedIdentity = $signerIdentity($approvedBy);
+
     $redNotice = (string) ($redNotice ?? 'Isi Dokumen ini tidak diperkenankan untuk disalin atau digandakan tanpa persetujuan dari Kepala Farmasi Kepolisian Pusdokkes Polri');
+    $resolvedPageCount = isset($resolvedPageCount) && is_int($resolvedPageCount) && $resolvedPageCount > 0 ? $resolvedPageCount : null;
 @endphp
 
 <!DOCTYPE html>
@@ -61,7 +89,7 @@
     <title>{{ $document?->doc_code ?? 'QMH' }} - {{ $versionLabel }}</title>
     <style>
         @page {
-            margin: 130px 40px 160px 40px;
+            margin: 172px 36px 210px 36px;
         }
 
         body {
@@ -69,6 +97,8 @@
             font-size: 11px;
             line-height: 1.45;
             color: #111827;
+            margin: 0;
+            padding: 0;
         }
 
         .watermark {
@@ -85,18 +115,18 @@
 
         header {
             position: fixed;
-            top: -110px;
+            top: -156px;
             left: 0;
             right: 0;
-            height: 105px;
+            height: 148px;
         }
 
         footer {
             position: fixed;
-            bottom: -140px;
+            bottom: -188px;
             left: 0;
             right: 0;
-            height: 130px;
+            height: 180px;
             font-size: 9px;
             color: #111827;
         }
@@ -178,6 +208,16 @@
 
         main {
             font-size: 11px;
+        }
+
+        .page-number::before {
+            content: counter(page);
+        }
+
+        .footer-page {
+            margin-top: 4px;
+            text-align: right;
+            color: #374151;
         }
 
         .qmh-section {
@@ -278,9 +318,9 @@
         .signoff th,
         .signoff td {
             border: 1px solid #111827;
-            padding: 5px 6px;
+            padding: 4px 5px;
             vertical-align: top;
-            font-size: 9px;
+            font-size: 8.5px;
         }
 
         .signoff th {
@@ -294,9 +334,11 @@
         }
 
         .notice {
+            margin-top: 4px;
             text-align: center;
             color: #b91c1c;
             font-style: italic;
+            font-size: 8.5px;
         }
     </style>
 </head>
@@ -314,7 +356,7 @@
             </td>
             <td class="header-center">
                 <div class="type">{{ $docTypeLabel }}</div>
-                <div class="title">[{{ strtoupper((string) ($document?->title ?? 'JUDUL PROSEDUR')) }}]</div>
+                <div class="title">{{ strtoupper((string) ($document?->title ?? 'JUDUL PROSEDUR')) }}</div>
             </td>
             <td class="header-right">
                 <table class="meta-table">
@@ -331,10 +373,6 @@
                         <td class="meta-value">{{ $effectiveDate }}</td>
                     </tr>
                     <tr>
-                        <td class="meta-label">Halaman</td>
-                        <td class="meta-value">1 DARI X</td>
-                    </tr>
-                    <tr>
                         <td class="meta-label">Status</td>
                         <td class="meta-value">{{ $statusLabel }}</td>
                     </tr>
@@ -342,13 +380,6 @@
             </td>
         </tr>
     </table>
-    <script type="text/php">
-        if (isset($pdf)) {
-            $font = $fontMetrics->get_font('DejaVu Sans', 'normal');
-            // Header page count (approx. in the Halaman value cell)
-            $pdf->page_text(460, 95, '{PAGE_NUM} DARI {PAGE_COUNT}', $font, 9, [17, 24, 39]);
-        }
-    </script>
 </header>
 
 <footer>
@@ -367,26 +398,22 @@
         </tr>
         <tr>
             <td class="row-label">Tanda Tangan</td>
-            <td style="height: 28px">&nbsp;</td>
-            <td style="height: 28px">&nbsp;</td>
-            <td style="height: 28px">&nbsp;</td>
+            <td style="height: 22px">&nbsp;</td>
+            <td style="height: 22px">&nbsp;</td>
+            <td style="height: 22px">&nbsp;</td>
         </tr>
         <tr>
             <td class="row-label">Jabatan</td>
-            <td>{{ $createdBy?->rank ?? '-' }}</td>
-            <td>{{ $reviewedBy?->rank ?? '-' }}</td>
-            <td>{{ $approvedBy?->rank ?? '-' }}</td>
+            <td>{{ $createdIdentity }}</td>
+            <td>{{ $reviewedIdentity }}</td>
+            <td>{{ $approvedIdentity }}</td>
         </tr>
     </table>
 
     <div class="notice">{{ $redNotice }}</div>
 
-    <script type="text/php">
-        if (isset($pdf)) {
-            $font = $fontMetrics->get_font('DejaVu Sans', 'normal');
-            $pdf->page_text(520, 805, '{PAGE_NUM}/{PAGE_COUNT}', $font, 9, [55, 65, 81]);
-        }
-    </script>
+    <div class="footer-page">Halaman <span class="page-number"></span>/{{ $resolvedPageCount ?? '-' }}</div>
+
 </footer>
 
 <main>

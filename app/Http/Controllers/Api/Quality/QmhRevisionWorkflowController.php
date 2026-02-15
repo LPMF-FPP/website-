@@ -159,15 +159,7 @@ class QmhRevisionWorkflowController extends Controller
         // Ensure relations are loaded
         $revision->loadMissing(['document', 'template', 'createdBy', 'reviewedBy', 'approvedBy']);
 
-        // Generate HTML
-        $html = $service->buildWatermarkedHtml($revision, 'DRAFT PREVIEW');
-
-        $binary = \Barryvdh\DomPDF\Facade\Pdf::loadHTML($html)
-            ->setPaper('a4')
-            ->setWarnings(false)
-            ->setOption('isRemoteEnabled', false)
-            ->setOption('isHtml5ParserEnabled', true)
-            ->output();
+        $binary = $service->renderPdfBinary($revision, 'DRAFT PREVIEW');
 
         return response($binary, 200, [
             'Content-Type' => 'application/pdf',
