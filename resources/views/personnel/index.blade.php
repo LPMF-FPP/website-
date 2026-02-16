@@ -11,10 +11,7 @@
                         Tambah Staff
                     </a>
                 @elseif($activeTab === 'penyidik' && Gate::allows('investigators.edit'))
-                    {{-- Investigator create logic might be different or modal-based, checking routes --}}
-                    {{-- There is no investigators.create route in the route list I saw earlier! Check if it was missed or handled differently. --}}
-                    {{-- InvestigatorManagementController has no create method listed in my analysis. It might be seeded or handled elsewhere? --}}
-                    {{-- Wait, let me check InvestigatorManagementController again. --}}
+                    {{-- Aksi tambahan tab penyidik --}}
                 @endif
             </x-slot>
         </x-page-header>
@@ -46,6 +43,17 @@
                     Penyidik
                 </a>
                 @endcan
+
+                @can('manage-users')
+                <a href="{{ route('personnel.index', ['tab' => 'roles']) }}"
+                   class="{{ $activeTab === 'roles'
+                        ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300' }}
+                        whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 1.567-3 3.5S10.343 15 12 15s3-1.567 3-3.5S13.657 8 12 8zm0 0V4m0 11v5m8-8h-5m-6 0H4m12.95 4.95l-3.536-3.536m-2.828-2.828L7.05 7.05m9.9 0l-3.536 3.536m-2.828 2.828L7.05 16.95" /></svg>
+                    Kelola Role
+                </a>
+                @endcan
             </nav>
         </div>
 
@@ -55,6 +63,8 @@
                 @include('personnel.partials.tab-staff')
             @elseif($activeTab === 'penyidik')
                 @include('personnel.partials.tab-penyidik')
+            @elseif($activeTab === 'roles')
+                @include('personnel.partials.tab-roles')
             @endif
         </div>
 

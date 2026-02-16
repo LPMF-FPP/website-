@@ -27,12 +27,15 @@ class PersonnelController extends Controller
             abort(403);
         }
 
-        $activeTab = $request->query('tab', 'staff');
+        $requestedTab = $request->query('tab', 'staff');
+        $activeTab = in_array($requestedTab, ['staff', 'penyidik', 'roles'], true)
+            ? $requestedTab
+            : 'staff';
 
         // If user only has access to one tab, force that tab
         if (! Gate::allows('manage-users') && Gate::allows('investigators.view')) {
             $activeTab = 'penyidik';
-        } elseif (Gate::allows('manage-users') && ! Gate::allows('investigators.view')) {
+        } elseif (Gate::allows('manage-users') && ! Gate::allows('investigators.view') && $activeTab === 'penyidik') {
             $activeTab = 'staff';
         }
 
@@ -44,8 +47,10 @@ class PersonnelController extends Controller
         // Load data based on active tab to optimize performance
         if ($activeTab === 'staff') {
             $data = array_merge($data, $this->getStaffData($request));
-        } else {
+        } elseif ($activeTab === 'penyidik') {
             $data = array_merge($data, $this->getInvestigatorData($request));
+        } else {
+            $data = array_merge($data, $this->getRoleData());
         }
 
         return view('personnel.index', $data);
@@ -180,6 +185,36 @@ class PersonnelController extends Controller
         return [
             'investigators' => $investigators,
             'jurisdictions' => $jurisdictions,
+        ];
+    }
+
+    /**
+     * Get data for Roles tab.
+     */
+    private function getRoleData(): array
+    {
+        if (! Gate::allows('manage-users')) {
+            return [];
+        }
+
+        $manageableRoles = $this->roleCatalog->staffRoles();
+        $counts = User::query()
+            ->select('role', DB::raw('COUNT(*) as total'))
+            ->whereIn('role', $manageableRoles)
+            ->groupBy('role')
+            ->pluck('total', 'role');
+
+        $roleUsage = collect($manageableRoles)
+            ->map(fn (string $role) => [
+                'role' => $role,
+                'total' => (int) ($counts[$role] ?? 0),
+            ])
+            ->values()
+            ->all();
+
+        return [
+            'manageableRoles' => $manageableRoles,
+            'roleUsage' => $roleUsage,
         ];
     }
 
