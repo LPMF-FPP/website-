@@ -389,4 +389,112 @@ class QmhPdfStructuredTemplateHtmlTest extends TestCase
         $this->assertStringContainsString('2026-02-15', $html);
         $this->assertStringContainsString('1.50', $html);
     }
+
+    public function test_pdf_template_renders_declaration_layout_for_fr_profile(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-FR-PDF-DECL-001',
+            'title' => 'Formulir Declaration',
+            'clause' => 4,
+            'doc_type' => 'formulir',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'draft',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+            'answers_json' => [
+                'statement' => 'Kami menjamin ketidakberpihakan.',
+            ],
+        ]);
+
+        $schema = [
+            'version' => 1,
+            'doc_type' => 'fr',
+            'layout_profile' => 'declaration',
+            'declaration_header' => 'Pernyataan Ketidakberpihakan',
+            'questions' => [
+                ['id' => 'statement', 'label' => 'Pernyataan', 'type' => 'textarea', 'required' => true],
+            ],
+        ];
+
+        $html = view('pdf.qmh-document', [
+            'revision' => $revision->load(['document', 'createdBy', 'reviewedBy', 'approvedBy']),
+            'schema' => $schema,
+            'answers' => $revision->answers_json,
+            'watermarkText' => 'DRAFT',
+            'layoutProfile' => 'declaration',
+            'layoutConfig' => [
+                'layout_profile' => 'declaration',
+                'declaration_header' => 'Pernyataan Ketidakberpihakan',
+            ],
+        ])->render();
+
+        $this->assertStringContainsString('fr-declaration', $html);
+        $this->assertStringContainsString('PERNYATAAN KETIDAKBERPIHAKAN', $html);
+        $this->assertStringContainsString('Kami menjamin ketidakberpihakan.', $html);
+    }
+
+    public function test_pdf_template_renders_risk_matrix_layout_for_fr_profile(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-FR-PDF-RISK-001',
+            'title' => 'Formulir Risk Matrix',
+            'clause' => 4,
+            'doc_type' => 'formulir',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'draft',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+            'answers_json' => [
+                'risk_level' => 'Sedang',
+            ],
+        ]);
+
+        $schema = [
+            'version' => 1,
+            'doc_type' => 'fr',
+            'layout_profile' => 'risk_matrix',
+            'risk_matrix_columns' => ['Aspek', 'Nilai', 'Kontrol'],
+            'questions' => [
+                ['id' => 'risk_level', 'label' => 'Level Risiko', 'type' => 'text', 'required' => false, 'help' => 'Gunakan skala 1-5'],
+            ],
+        ];
+
+        $html = view('pdf.qmh-document', [
+            'revision' => $revision->load(['document', 'createdBy', 'reviewedBy', 'approvedBy']),
+            'schema' => $schema,
+            'answers' => $revision->answers_json,
+            'watermarkText' => 'DRAFT',
+            'layoutProfile' => 'risk_matrix',
+            'layoutConfig' => [
+                'layout_profile' => 'risk_matrix',
+                'risk_matrix_columns' => ['Aspek', 'Nilai', 'Kontrol'],
+            ],
+        ])->render();
+
+        $this->assertStringContainsString('risk-matrix-table', $html);
+        $this->assertStringContainsString('<th>ASPEK</th>', $html);
+        $this->assertStringContainsString('<th>KONTROL</th>', $html);
+    }
 }

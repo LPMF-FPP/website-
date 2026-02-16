@@ -367,11 +367,11 @@ class QmhDocumentWebTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Total Dokumen');
-        $response->assertSee('Dokumen Published');
-        $response->assertSee('Dokumen In Review');
-        $response->assertSee('Revisi Obsolete');
-        $response->assertSee('Unduhan Controlled');
-        $response->assertSee('Unduhan Uncontrolled');
+        $response->assertSee('Dokumen Terbit');
+        $response->assertSee('Dokumen Dalam Tinjauan');
+        $response->assertSee('Revisi Kedaluwarsa');
+        $response->assertSee('Unduhan Terkendali');
+        $response->assertSee('Unduhan Tidak Terkendali');
         $response->assertSee('Semua Klausul');
         $response->assertSee('Semua Jenis');
     }

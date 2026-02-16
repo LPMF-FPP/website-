@@ -691,6 +691,28 @@ class TemplatePreviewData
             'revision' => $revision,
             'contentHtml' => $revision->content_html,
             'watermarkText' => 'SALINAN TIDAK TERKENDALI',
+            'schema' => [
+                'version' => 1,
+                'doc_type' => 'fr',
+                'layout_profile' => 'declaration',
+                'logo_source' => 'settings',
+                'questions' => [
+                    [
+                        'id' => 'statement',
+                        'label' => 'Pernyataan',
+                        'type' => 'textarea',
+                        'required' => true,
+                    ],
+                ],
+            ],
+            'layoutProfile' => 'declaration',
+            'layoutConfig' => [
+                'layout_profile' => 'declaration',
+                'logo_source' => 'settings',
+                'logo_path' => null,
+                'declaration_header' => 'Pernyataan Ketidakberpihakan',
+                'risk_matrix_columns' => ['Aspek Risiko', 'Nilai Risiko', 'Keterangan'],
+            ],
         ];
     }
 

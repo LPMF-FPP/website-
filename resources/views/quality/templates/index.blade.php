@@ -77,7 +77,17 @@
             </summary>
 
             <div class="px-6 pb-6">
-                <form method="POST" action="{{ route('quality.templates.store') }}" enctype="multipart/form-data" class="mt-2 grid gap-4 md:grid-cols-2">
+                <form
+                    method="POST"
+                    action="{{ route('quality.templates.store') }}"
+                    enctype="multipart/form-data"
+                    class="mt-2 grid gap-4 md:grid-cols-2"
+                    x-data="{
+                        selectedDocType: @js(old('doc_type', 'sop')),
+                        layoutProfile: @js(old('layout_profile', 'declaration')),
+                        logoSource: @js(old('logo_source', 'settings'))
+                    }"
+                >
                     @csrf
                 <div>
                     <label class="mb-1 block text-sm font-medium text-gray-700" for="name">Nama Template</label>
@@ -98,7 +108,7 @@
 
                 <div>
                     <label class="mb-1 block text-sm font-medium text-gray-700" for="doc_type">Jenis Dokumen</label>
-                    <select id="doc_type" name="doc_type" class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('doc_type') border-red-400 @else border-gray-300 @enderror" required>
+                    <select id="doc_type" name="doc_type" x-model="selectedDocType" class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('doc_type') border-red-400 @else border-gray-300 @enderror" required>
                         <option value="sop" @selected(old('doc_type') === 'sop')>SOP</option>
                         <option value="ik" @selected(old('doc_type') === 'ik')>IK</option>
                         <option value="fr" @selected(old('doc_type') === 'fr')>FR</option>
@@ -112,6 +122,58 @@
                                class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('version_notes') border-red-400 @else border-gray-300 @enderror">{{ old('version_notes') }}</textarea>
                     @error('version_notes')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
+
+                <template x-if="selectedDocType === 'fr'">
+                    <div class="md:col-span-2 rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+                        <p class="text-sm font-semibold text-gray-800">Konfigurasi Layout FR</p>
+
+                        <div class="grid gap-3 md:grid-cols-2">
+                            <div>
+                                <label class="mb-1 block text-sm font-medium text-gray-700" for="layout_profile">Profil Layout</label>
+                                <select id="layout_profile" name="layout_profile" x-model="layoutProfile" class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('layout_profile') border-red-400 @else border-gray-300 @enderror">
+                                    <option value="declaration">Declaration</option>
+                                    <option value="risk_matrix">Risk Matrix</option>
+                                </select>
+                                @error('layout_profile')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                            </div>
+
+                            <div>
+                                <label class="mb-1 block text-sm font-medium text-gray-700" for="logo_source">Sumber Logo</label>
+                                <select id="logo_source" name="logo_source" x-model="logoSource" class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('logo_source') border-red-400 @else border-gray-300 @enderror">
+                                    <option value="settings">Settings Sistem</option>
+                                    <option value="custom">Custom Path</option>
+                                    <option value="default">Default Aset</option>
+                                </select>
+                                @error('logo_source')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                            </div>
+                        </div>
+
+                        <div x-show="logoSource === 'custom'">
+                            <label class="mb-1 block text-sm font-medium text-gray-700" for="logo_path">Path Logo Custom</label>
+                            <input id="logo_path" name="logo_path" type="text" value="{{ old('logo_path') }}"
+                                   class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('logo_path') border-red-400 @else border-gray-300 @enderror"
+                                   placeholder="contoh: images/logo-custom.png atau storage/logo/custom.png">
+                            @error('logo_path')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div>
+                            <label class="mb-1 block text-sm font-medium text-gray-700" for="declaration_header">Header Declaration (opsional)</label>
+                            <input id="declaration_header" name="declaration_header" type="text" value="{{ old('declaration_header') }}"
+                                   class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('declaration_header') border-red-400 @else border-gray-300 @enderror"
+                                   placeholder="contoh: Pernyataan Ketidakberpihakan">
+                            @error('declaration_header')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div x-show="layoutProfile === 'risk_matrix'">
+                            <label class="mb-1 block text-sm font-medium text-gray-700" for="risk_matrix_columns_csv">Kolom Risk Matrix</label>
+                            <input id="risk_matrix_columns_csv" name="risk_matrix_columns_csv" type="text" value="{{ old('risk_matrix_columns_csv', 'Aspek Risiko, Nilai Risiko, Keterangan') }}"
+                                   class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('risk_matrix_columns_csv') border-red-400 @else border-gray-300 @enderror"
+                                   placeholder="Aspek Risiko, Nilai Risiko, Keterangan">
+                            <p class="mt-1 text-xs text-gray-500">Pisahkan dengan koma. Minimal 2 kolom, maksimal 6 kolom.</p>
+                            @error('risk_matrix_columns_csv')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
+                </template>
 
                 <div class="md:col-span-2">
                     <label class="mb-1 block text-sm font-medium text-gray-700">Konten Template (Editor Browser)</label>
@@ -181,7 +243,17 @@
                 @forelse($templates as $template)
                     <tr>
                         <td class="px-4 py-3 text-gray-900">{{ $template->name }}</td>
-                        <td class="px-4 py-3 text-gray-700">{{ strtoupper($template->doc_type) }}</td>
+                        <td class="px-4 py-3 text-gray-700">
+                            <div class="flex items-center gap-2">
+                                <span>{{ strtoupper($template->doc_type) }}</span>
+                                @if($template->doc_type === 'fr')
+                                    @php
+                                        $layoutProfile = \App\Support\QmhFrLayoutProfile::fromMetadata(is_array($template->metadata) ? $template->metadata : [])['layout_profile'];
+                                    @endphp
+                                    <span class="inline-flex rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700">{{ strtoupper(str_replace('_', ' ', $layoutProfile)) }}</span>
+                                @endif
+                            </div>
+                        </td>
                         <td class="px-4 py-3 text-gray-700">v{{ $template->version }}</td>
                         <td class="px-4 py-3">
                             @if($template->is_active)

@@ -2,13 +2,15 @@
     /** @var \App\Models\QmhDocumentRevision $revision */
     $document = $revision->document;
 
-    $logoPath = public_path('images/logo-pusdokkes-polri.png');
-    $logoSrc = '';
-    if (file_exists($logoPath)) {
-        $logoMime = mime_content_type($logoPath) ?: 'image/png';
-        $logoData = base64_encode((string) file_get_contents($logoPath));
-        if ($logoData !== '') {
-            $logoSrc = sprintf('data:%s;base64,%s', $logoMime, $logoData);
+    $logoSrc = is_string($logoSrc ?? null) ? $logoSrc : '';
+    if ($logoSrc === '') {
+        $logoPath = public_path('images/logo-pusdokkes-polri.png');
+        if (file_exists($logoPath)) {
+            $logoMime = mime_content_type($logoPath) ?: 'image/png';
+            $logoData = base64_encode((string) file_get_contents($logoPath));
+            if ($logoData !== '') {
+                $logoSrc = sprintf('data:%s;base64,%s', $logoMime, $logoData);
+            }
         }
     }
 
@@ -31,6 +33,17 @@
     $questions = is_array($schema['questions'] ?? null) ? $schema['questions'] : [];
     $answers = is_array($answers ?? null) ? $answers : (is_array($revision->answers_json ?? null) ? $revision->answers_json : []);
     $answers = \App\Support\QmhAnswerSanitizer::sanitizeAnswersJson($answers);
+
+    $layoutConfig = is_array($layoutConfig ?? null) ? $layoutConfig : [];
+    $layoutProfile = is_string($layoutProfile ?? null) ? $layoutProfile : (string) ($layoutConfig['layout_profile'] ?? 'legacy');
+    if (! in_array($layoutProfile, ['legacy', 'declaration', 'risk_matrix'], true)) {
+        $layoutProfile = 'legacy';
+    }
+
+    $declarationHeader = is_string($layoutConfig['declaration_header'] ?? null)
+        ? trim($layoutConfig['declaration_header'])
+        : '';
+    $riskMatrixColumns = \App\Support\QmhFrLayoutProfile::normalizeRiskMatrixColumns($layoutConfig['risk_matrix_columns'] ?? null);
 
     $hasStructuredAnswers = false;
     if (is_array($answers) && count($answers) > 0) {
@@ -330,6 +343,48 @@
 
         .form-row--lg .qmh-answer {
             min-height: 72px;
+        }
+
+        .fr-declaration {
+            margin-top: 6px;
+        }
+
+        .fr-declaration-title {
+            margin: 0 0 8px 0;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            text-align: center;
+            letter-spacing: 0.3px;
+        }
+
+        .fr-section-title {
+            margin: 10px 0 4px 0;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            border-bottom: 1px solid #111827;
+            padding-bottom: 2px;
+        }
+
+        .risk-matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+
+        .risk-matrix-table th,
+        .risk-matrix-table td {
+            border: 1px solid #111827;
+            padding: 6px 8px;
+            vertical-align: top;
+        }
+
+        .risk-matrix-table th {
+            background: #f3f4f6;
+            text-transform: uppercase;
+            font-size: 10px;
+            text-align: center;
         }
 
         .signoff {
@@ -693,10 +748,70 @@
                     default => 'form-row--sm',
                 };
             };
+
+            $matrixColumnCount = count($riskMatrixColumns);
         @endphp
 
         @if(count($formQuestions) === 0)
             <div class="qmh-answer">Form schema belum diatur untuk formulir ini.</div>
+        @elseif($layoutProfile === 'risk_matrix')
+            <table class="risk-matrix-table">
+                <thead>
+                <tr>
+                    @foreach($riskMatrixColumns as $column)
+                        <th>{{ strtoupper($column) }}</th>
+                    @endforeach
+                </tr>
+                </thead>
+                <tbody>
+                @foreach($formQuestions as $q)
+                    @php
+                        $qid = (string) ($q['id'] ?? '');
+                        $label = (string) ($q['label'] ?? $qid);
+                        $type = (string) ($q['type'] ?? 'text');
+                        $val = $qid !== '' ? ($answers[$qid] ?? null) : null;
+                        $hint = trim((string) ($q['help'] ?? $q['placeholder'] ?? ''));
+                    @endphp
+                    @if($type === 'section')
+                        <tr>
+                            <td class="form-section" colspan="{{ $matrixColumnCount }}">{{ strtoupper($label) }}</td>
+                        </tr>
+                    @else
+                        <tr>
+                            <td class="form-label">{{ strtoupper($label) }}</td>
+                            <td class="form-value">{!! $renderCell($val, $type, is_array($q) ? $q : []) !!}</td>
+                            @for($colIndex = 2; $colIndex < $matrixColumnCount; $colIndex++)
+                                <td class="form-value">{!! $colIndex === 2 && $hint !== '' ? e($hint) : '&nbsp;' !!}</td>
+                            @endfor
+                        </tr>
+                    @endif
+                @endforeach
+                </tbody>
+            </table>
+        @elseif($layoutProfile === 'declaration')
+            <div class="fr-declaration">
+                @if($declarationHeader !== '')
+                    <p class="fr-declaration-title">{{ strtoupper($declarationHeader) }}</p>
+                @endif
+
+                @foreach($formQuestions as $idx => $q)
+                    @php
+                        $qid = (string) ($q['id'] ?? '');
+                        $label = (string) ($q['label'] ?? $qid);
+                        $type = (string) ($q['type'] ?? 'text');
+                        $val = $qid !== '' ? ($answers[$qid] ?? null) : null;
+                    @endphp
+
+                    @if($type === 'section')
+                        <div class="fr-section-title">{{ strtoupper($label) }}</div>
+                    @else
+                        <div class="qmh-section {{ $rowHeightClass($type) }}">
+                            <div class="qmh-question">{{ ($idx + 1).'. '.strtoupper($label) }}</div>
+                            {!! $renderCell($val, $type, is_array($q) ? $q : []) !!}
+                        </div>
+                    @endif
+                @endforeach
+            </div>
         @else
             <table class="form-table">
                 @foreach($formQuestions as $idx => $q)

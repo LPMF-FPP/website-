@@ -2,12 +2,16 @@
 
 namespace App\Http\Requests\Quality;
 
+use App\Http\Requests\Quality\Concerns\HandlesQmhTemplateLayoutConfig;
 use App\Support\QmhFormSchemaValidator;
+use App\Support\QmhFrLayoutProfile;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class UpdateQmhTemplateRequest extends FormRequest
 {
+    use HandlesQmhTemplateLayoutConfig;
+
     private bool $schemaJsonDecodeFailed = false;
 
     public function authorize(): bool
@@ -17,6 +21,8 @@ class UpdateQmhTemplateRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $this->mergeRiskMatrixColumnsFromCsv();
+
         $raw = $this->input('form_schema_json');
         if (! is_string($raw) || trim($raw) === '') {
             return;
@@ -54,6 +60,13 @@ class UpdateQmhTemplateRequest extends FormRequest
             'version_notes' => ['nullable', 'string', 'max:2000'],
             'form_schema_json' => ['nullable', 'string', 'max:50000'],
             'form_schema' => ['nullable', 'array'],
+            'layout_profile' => ['nullable', Rule::in(QmhFrLayoutProfile::allowedProfiles())],
+            'logo_source' => ['nullable', Rule::in(QmhFrLayoutProfile::allowedLogoSources())],
+            'logo_path' => ['nullable', 'string', 'max:255'],
+            'declaration_header' => ['nullable', 'string', 'max:255'],
+            'risk_matrix_columns_csv' => ['nullable', 'string', 'max:400'],
+            'risk_matrix_columns' => ['nullable', 'array', 'min:2', 'max:6'],
+            'risk_matrix_columns.*' => ['string', 'min:1', 'max:80'],
         ];
     }
 
@@ -67,6 +80,8 @@ class UpdateQmhTemplateRequest extends FormRequest
                         $validator->errors()->add('form_schema_json', $message);
                     }
                 }
+
+                $this->validateLayoutConfig($validator);
 
                 return;
             }

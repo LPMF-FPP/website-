@@ -6,6 +6,7 @@ use App\Models\QmhDocumentRevision;
 use App\Models\QmhTemplate;
 use App\Models\QmhWorkflowEvent;
 use App\Support\QmhFormAnswersValidator;
+use App\Support\QmhFrLayoutProfile;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -50,16 +51,15 @@ class QmhRevisionTransitionService
                 }
 
                 if (is_array($schema)) {
+                    $schema = $this->mergeMissingLayoutConfig($schema, $metadata);
+
                     $result = QmhFormAnswersValidator::validateAndNormalize($schema, $revision->answers_json ?? []);
                     if (count($result['errors']) > 0) {
                         throw ValidationException::withMessages($result['errors']);
                     }
 
                     $revision->answers_json = $result['normalized'];
-
-                    if (! is_array($revision->form_schema_json ?? null)) {
-                        $revision->form_schema_json = $schema;
-                    }
+                    $revision->form_schema_json = $schema;
                 }
             }
 
@@ -148,5 +148,26 @@ class QmhRevisionTransitionService
             'actor_id' => $actorId,
             'payload_json' => $payload,
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $schema
+     * @param  array<string, mixed>  $templateMetadata
+     * @return array<string, mixed>
+     */
+    private function mergeMissingLayoutConfig(array $schema, array $templateMetadata): array
+    {
+        $merged = $schema;
+        $profileFromTemplate = QmhFrLayoutProfile::fromSchema($templateMetadata);
+
+        foreach (['layout_profile', 'logo_source', 'logo_path', 'declaration_header', 'risk_matrix_columns'] as $key) {
+            if (array_key_exists($key, $merged) && $merged[$key] !== null && $merged[$key] !== '') {
+                continue;
+            }
+
+            $merged[$key] = $profileFromTemplate[$key] ?? null;
+        }
+
+        return $merged;
     }
 }

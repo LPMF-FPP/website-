@@ -70,6 +70,26 @@ class QmhPreviewController extends Controller
 
         $answers = QmhAnswerSanitizer::sanitizeAnswersJson($validated['answers_json'] ?? []);
 
+        $templateMetadata = is_array($template?->metadata) ? $template->metadata : [];
+        $schemaSnapshot = null;
+        if ($template && is_array($templateMetadata['form_schema'] ?? null)) {
+            $schemaSnapshot = $templateMetadata['form_schema'];
+        }
+
+        if (in_array($docType, ['formulir', 'fr'], true) && is_array($schemaSnapshot)) {
+            foreach (['layout_profile', 'logo_source', 'logo_path', 'declaration_header', 'risk_matrix_columns'] as $key) {
+                if (array_key_exists($key, $schemaSnapshot)) {
+                    continue;
+                }
+
+                if (! array_key_exists($key, $templateMetadata)) {
+                    continue;
+                }
+
+                $schemaSnapshot[$key] = $templateMetadata[$key];
+            }
+        }
+
         $revision = new QmhDocumentRevision([
             'edition_number' => 1,
             'revision_number' => 0,
@@ -80,6 +100,7 @@ class QmhPreviewController extends Controller
             'template_version' => $template?->version,
             'change_summary' => $validated['change_summary'] ?? null,
             'answers_json' => $answers,
+            'form_schema_json' => $schemaSnapshot,
             'effective_date' => null, // Auto-set on publish
             'content_html' => '<p></p>',
         ]);

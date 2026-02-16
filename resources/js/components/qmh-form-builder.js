@@ -6,6 +6,7 @@ export function qmhFormBuilder(config = {}) {
         showRawJson: false,
         jsonError: "",
         _syncQueued: false,
+        passthrough: {},
 
         init() {
             const initialSchema = config?.initialSchema;
@@ -33,6 +34,21 @@ export function qmhFormBuilder(config = {}) {
             this.questions = questions
                 .map((q) => this.normalizeQuestion(q))
                 .filter((q) => q.id !== "");
+
+            const passthrough = {};
+            if (s && typeof s === "object") {
+                for (const [key, value] of Object.entries(s)) {
+                    if (
+                        key === "version" ||
+                        key === "doc_type" ||
+                        key === "questions"
+                    ) {
+                        continue;
+                    }
+                    passthrough[key] = value;
+                }
+            }
+            this.passthrough = passthrough;
         },
 
         parseSchemaJson(raw) {
@@ -182,6 +198,7 @@ export function qmhFormBuilder(config = {}) {
 
         schemaObject() {
             return {
+                ...this.passthrough,
                 version: this.schemaVersion,
                 doc_type: this.schemaDocType,
                 questions: this.questions.map((q) => {

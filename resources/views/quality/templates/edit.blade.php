@@ -27,7 +27,22 @@
         @endif
 
         <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <form method="POST" action="{{ route('quality.templates.update', $template) }}" enctype="multipart/form-data" class="space-y-4" x-data="{ selectedDocType: @js(old('doc_type', $template->doc_type)) }">
+            @php
+                $layoutMeta = \App\Support\QmhFrLayoutProfile::fromMetadata(is_array($template->metadata) ? $template->metadata : []);
+                $riskMatrixColumnsCsv = implode(', ', is_array($layoutMeta['risk_matrix_columns'] ?? null) ? $layoutMeta['risk_matrix_columns'] : []);
+            @endphp
+
+            <form
+                method="POST"
+                action="{{ route('quality.templates.update', $template) }}"
+                enctype="multipart/form-data"
+                class="space-y-4"
+                x-data="{
+                    selectedDocType: @js(old('doc_type', $template->doc_type)),
+                    layoutProfile: @js(old('layout_profile', $layoutMeta['layout_profile'])),
+                    logoSource: @js(old('logo_source', $layoutMeta['logo_source']))
+                }"
+            >
                 @csrf
                 @method('PATCH')
 
@@ -55,6 +70,58 @@
                               class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('version_notes') border-red-400 @else border-gray-300 @enderror">{{ old('version_notes', data_get($template->metadata, 'version_notes')) }}</textarea>
                     @error('version_notes')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
+
+                <template x-if="selectedDocType === 'fr'">
+                    <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+                        <p class="text-sm font-semibold text-gray-800">Konfigurasi Layout FR</p>
+
+                        <div class="grid gap-3 md:grid-cols-2">
+                            <div>
+                                <label class="mb-1 block text-sm font-medium text-gray-700" for="layout_profile">Profil Layout</label>
+                                <select id="layout_profile" name="layout_profile" x-model="layoutProfile" class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('layout_profile') border-red-400 @else border-gray-300 @enderror">
+                                    <option value="declaration">Declaration</option>
+                                    <option value="risk_matrix">Risk Matrix</option>
+                                </select>
+                                @error('layout_profile')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                            </div>
+
+                            <div>
+                                <label class="mb-1 block text-sm font-medium text-gray-700" for="logo_source">Sumber Logo</label>
+                                <select id="logo_source" name="logo_source" x-model="logoSource" class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('logo_source') border-red-400 @else border-gray-300 @enderror">
+                                    <option value="settings">Settings Sistem</option>
+                                    <option value="custom">Custom Path</option>
+                                    <option value="default">Default Aset</option>
+                                </select>
+                                @error('logo_source')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                            </div>
+                        </div>
+
+                        <div x-show="logoSource === 'custom'">
+                            <label class="mb-1 block text-sm font-medium text-gray-700" for="logo_path">Path Logo Custom</label>
+                            <input id="logo_path" name="logo_path" type="text" value="{{ old('logo_path', $layoutMeta['logo_path']) }}"
+                                   class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('logo_path') border-red-400 @else border-gray-300 @enderror"
+                                   placeholder="contoh: images/logo-custom.png atau storage/logo/custom.png">
+                            @error('logo_path')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div>
+                            <label class="mb-1 block text-sm font-medium text-gray-700" for="declaration_header">Header Declaration (opsional)</label>
+                            <input id="declaration_header" name="declaration_header" type="text" value="{{ old('declaration_header', $layoutMeta['declaration_header']) }}"
+                                   class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('declaration_header') border-red-400 @else border-gray-300 @enderror"
+                                   placeholder="contoh: Pernyataan Ketidakberpihakan">
+                            @error('declaration_header')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                        </div>
+
+                        <div x-show="layoutProfile === 'risk_matrix'">
+                            <label class="mb-1 block text-sm font-medium text-gray-700" for="risk_matrix_columns_csv">Kolom Risk Matrix</label>
+                            <input id="risk_matrix_columns_csv" name="risk_matrix_columns_csv" type="text" value="{{ old('risk_matrix_columns_csv', $riskMatrixColumnsCsv) }}"
+                                   class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('risk_matrix_columns_csv') border-red-400 @else border-gray-300 @enderror"
+                                   placeholder="Aspek Risiko, Nilai Risiko, Keterangan">
+                            <p class="mt-1 text-xs text-gray-500">Pisahkan dengan koma. Minimal 2 kolom, maksimal 6 kolom.</p>
+                            @error('risk_matrix_columns_csv')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                        </div>
+                    </div>
+                </template>
 
                 <div>
                     <label class="mb-1 block text-sm font-medium text-gray-700">Edit Template di Browser</label>
