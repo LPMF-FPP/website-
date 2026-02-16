@@ -201,16 +201,12 @@
                                     type="button"
                                     @click="openSubmitModal()"
                                     @disabled(! $canSubmit)
-                                    title="{{ $submitReason ?? '' }}"
                                     class="inline-flex w-full items-center justify-center rounded-md px-3 py-2 text-sm font-medium {{ $canSubmit ? 'bg-primary-600 text-white hover:bg-primary-700' : 'cursor-not-allowed bg-gray-100 text-gray-500' }}"
                                 >
                                     Submit untuk Review
                                 </button>
                                 @if(! $canSubmit && $submitReason)
                                     <p class="text-xs text-gray-500">{{ $submitReason }}</p>
-                                @endif
-                                @if($status === 'draft' && (int) ($currentRevision?->dibuat_oleh ?? 0) !== $currentUserId)
-                                    <p class="text-xs text-gray-500">Hanya pembuat revisi yang dapat submit.</p>
                                 @endif
                             </div>
 

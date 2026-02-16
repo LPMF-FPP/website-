@@ -597,11 +597,13 @@ class QmhDocumentWebTest extends TestCase
 
         $document->update(['current_revision_id' => $revision->id]);
 
-        $this->actingAs($other)
+        $response = $this->actingAs($other)
             ->get('/quality/documents/'.$document->id)
             ->assertOk()
             ->assertSee('Submit untuk Review')
             ->assertSee('Hanya pembuat revisi yang dapat submit.');
+
+        $this->assertSame(1, substr_count($response->getContent(), 'Hanya pembuat revisi yang dapat submit.'));
     }
 
     public function test_create_page_shows_template_management_link_when_no_template_available(): void
