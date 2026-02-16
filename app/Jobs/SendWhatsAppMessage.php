@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\WhatsAppMessageBatch;
 use App\Models\WhatsAppMessageLog;
 use App\Services\WhatsApp\GowaClient;
 use Illuminate\Bus\Queueable;
@@ -14,6 +15,8 @@ use Illuminate\Support\Facades\Log;
 class SendWhatsAppMessage implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public int $tries = 1;
 
     /**
      * Create a new job instance.
@@ -29,29 +32,112 @@ class SendWhatsAppMessage implements ShouldQueue
      */
     public function handle(GowaClient $client): void
     {
-        // Normalize phone (strip + or 0, ensure 62 prefix if needed)
-        // This is a basic normalization, can be improved
-        $phone = $this->phone;
-        if (str_starts_with($phone, '0')) {
-            $phone = '62'.substr($phone, 1);
-        }
-        $phone = preg_replace('/[^0-9]/', '', $phone);
-
+        $phone = $this->normalizePhone($this->phone);
         $jid = $phone.'@s.whatsapp.net';
 
-        Log::info("Job sending WA to {$this->phone}");
+        Log::info("Job sending WA to {$phone}");
 
-        $result = $client->sendMessage($jid, $this->message);
-
-        // Log result
+        $log = null;
         if ($this->batchId) {
-            WhatsAppMessageLog::create([
-                'batch_id' => $this->batchId,
-                'recipient' => $this->phone,
-                'status' => $result['success'] ? 'sent' : 'failed',
-                'message_id' => $result['message_id'] ?? null,
-                'error_message' => $result['error'] ?? null,
-            ]);
+            $log = WhatsAppMessageLog::query()
+                ->where('batch_id', $this->batchId)
+                ->where('recipient_jid', $jid)
+                ->latest('id')
+                ->first();
+
+            if ($log?->status === 'sent') {
+                $this->syncBatchStats($this->batchId);
+
+                return;
+            }
+
+            if (! $log) {
+                $log = WhatsAppMessageLog::create([
+                    'batch_id' => $this->batchId,
+                    'recipient_jid' => $jid,
+                    'recipient_name' => $phone,
+                    'recipient_type' => 'individual',
+                    'status' => 'pending',
+                ]);
+            }
+
+            $claimed = WhatsAppMessageLog::query()
+                ->whereKey($log->id)
+                ->whereIn('status', ['pending', 'failed'])
+                ->update([
+                    'status' => 'processing',
+                    'error_message' => null,
+                ]);
+
+            if ($claimed === 0) {
+                return;
+            }
+
+            $log->refresh();
         }
+
+        try {
+            $result = $client->sendMessage($jid, $this->message);
+            $isSent = (bool) ($result['success'] ?? false);
+
+            if ($log) {
+                $log->update([
+                    'status' => $isSent ? 'sent' : 'failed',
+                    'message_id' => $result['message_id'] ?? null,
+                    'error_message' => $isSent ? null : ($result['error'] ?? 'Unknown error'),
+                    'sent_at' => $isSent ? now() : null,
+                ]);
+            }
+        } catch (\Throwable $e) {
+            Log::error('SendWhatsAppMessage failed', [
+                'phone' => $phone,
+                'batch_id' => $this->batchId,
+                'error' => $e->getMessage(),
+            ]);
+
+            if ($log) {
+                $log->update([
+                    'status' => 'failed',
+                    'error_message' => $e->getMessage(),
+                ]);
+            }
+        }
+
+        if ($this->batchId) {
+            $this->syncBatchStats($this->batchId);
+        }
+    }
+
+    private function normalizePhone(string $phone): string
+    {
+        $phone = preg_replace('/[^0-9]/', '', $phone) ?? '';
+        if ($phone !== '' && str_starts_with($phone, '0')) {
+            return '62'.substr($phone, 1);
+        }
+
+        return $phone;
+    }
+
+    private function syncBatchStats(int $batchId): void
+    {
+        $batch = WhatsAppMessageBatch::find($batchId);
+        if (! $batch) {
+            return;
+        }
+
+        $sentCount = WhatsAppMessageLog::query()
+            ->where('batch_id', $batchId)
+            ->where('status', 'sent')
+            ->count();
+        $failedCount = WhatsAppMessageLog::query()
+            ->where('batch_id', $batchId)
+            ->where('status', 'failed')
+            ->count();
+
+        $batch->update([
+            'sent_count' => $sentCount,
+            'failed_count' => $failedCount,
+            'completed_at' => ($sentCount + $failedCount) >= (int) $batch->total_recipients ? now() : $batch->completed_at,
+        ]);
     }
 }

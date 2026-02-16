@@ -52,6 +52,9 @@ class TemplateService
             'TEMPERATURE_ALERT' => "🚨 *PERINGATAN SUHU*\n\n📍 Lokasi: {location}\n🌡️ Suhu: *{temperature}°C*\n⚠️ Batas: {threshold}°C\n\nSegera periksa kondisi ruangan!\n\n_Waktu: {timestamp}_",
             'STOCK_LOW' => "⚠️ *STOK MENIPIS*\n\n📦 Item: {item}\n📊 Stok: *{qty} {unit}*\n📍 Lokasi: {location}\n\nSegera lakukan pengadaan!\n\n_Update: {timestamp}_",
             'STOCK_EXPIRING' => "⏰ *STOK KADALUARSA*\n\n📦 Item: {item}\n📅 Kadaluarsa: *{expiry_date}*\n📊 Qty: {qty} {unit}\n📍 Lokasi: {location}\n\nSegera gunakan atau buang!\n\n_Update: {timestamp}_",
+            'CONSOLIDATED_BIWEEKLY' => "📊 *LAPORAN BI-WEEKLY*\n\nLaporan periode *{period_label}* telah di-generate.\n\n📅 Periode: {period_start} - {period_end}\n⏰ Waktu Generate: {generated_at}\n📈 Total Permintaan: {total_requests}\n🧪 Total Sampel: {total_samples}\n\nSilakan akses laporan di:\n{report_url}\n\n—\nStaff Laboratorium Farmapol Pusdokkes Polri",
+            'CONSOLIDATED_MONTHLY' => "📊 *LAPORAN BULANAN*\n\nLaporan periode *{period_label}* telah di-generate.\n\n📅 Periode: {period_start} - {period_end}\n⏰ Waktu Generate: {generated_at}\n📈 Total Permintaan: {total_requests}\n🧪 Total Sampel: {total_samples}\n\nSilakan akses laporan di:\n{report_url}\n\n—\nStaff Laboratorium Farmapol Pusdokkes Polri",
+            'CONSOLIDATED_QUARTERLY' => "📊 *LAPORAN TRIWULAN*\n\nLaporan periode *{period_label}* telah di-generate.\n\n📅 Periode: {period_start} - {period_end}\n⏰ Waktu Generate: {generated_at}\n📈 Total Permintaan: {total_requests}\n🧪 Total Sampel: {total_samples}\n\nSilakan akses laporan di:\n{report_url}\n\n—\nStaff Laboratorium Farmapol Pusdokkes Polri",
         ],
         'task' => [
             'TASK_ASSIGNED' => "📋 *TUGAS BARU*\n\n{greetings} {assignee_name},\n\nAnda mendapat tugas baru dari {assigner_name}:\n\n📝 *{title}*\n📄 {description}\n\n⚡ Prioritas: *{priority}*\n⏰ Deadline: *{due_at}*\n📦 Terkait: {request_number}\n\n─────────────────\n_Laboratorium Farmapol Pusdokkes Polri_",
@@ -94,6 +97,9 @@ class TemplateService
             'TEMPERATURE_ALERT' => ['location', 'temperature', 'threshold', 'timestamp'],
             'STOCK_LOW' => ['item', 'qty', 'unit', 'location', 'timestamp'],
             'STOCK_EXPIRING' => ['item', 'expiry_date', 'qty', 'unit', 'location', 'timestamp'],
+            'CONSOLIDATED_BIWEEKLY' => ['period_label', 'period_start', 'period_end', 'generated_at', 'total_requests', 'total_samples', 'report_url'],
+            'CONSOLIDATED_MONTHLY' => ['period_label', 'period_start', 'period_end', 'generated_at', 'total_requests', 'total_samples', 'report_url'],
+            'CONSOLIDATED_QUARTERLY' => ['period_label', 'period_start', 'period_end', 'generated_at', 'total_requests', 'total_samples', 'report_url'],
         ],
         'task' => [
             'TASK_ASSIGNED' => ['greetings', 'assignee_name', 'assigner_name', 'title', 'description', 'priority', 'due_at', 'request_number'],
@@ -301,6 +307,15 @@ class TemplateService
                 'ready',
                 'completed',
             ],
+            'Laporan Periodik' => [
+                'period_label',
+                'period_start',
+                'period_end',
+                'generated_at',
+                'total_requests',
+                'total_samples',
+                'report_url',
+            ],
         ];
     }
 
@@ -355,6 +370,9 @@ class TemplateService
                 'TEMPERATURE_ALERT' => 'Peringatan Suhu',
                 'STOCK_LOW' => 'Stok Menipis',
                 'STOCK_EXPIRING' => 'Stok Kadaluarsa',
+                'CONSOLIDATED_BIWEEKLY' => 'Laporan Bi-Weekly',
+                'CONSOLIDATED_MONTHLY' => 'Laporan Monthly',
+                'CONSOLIDATED_QUARTERLY' => 'Laporan Quarterly',
             ],
             'task' => [
                 'TASK_ASSIGNED' => 'Tugas Baru Diberikan',
@@ -399,6 +417,13 @@ class TemplateService
             'ready' => '5',
             'completed' => '135',
             'timestamp' => now()->format('d M Y H:i'),
+            'period_label' => 'Bi-weekly 01-15 Februari 2026',
+            'period_start' => '01/02/2026',
+            'period_end' => '15/02/2026',
+            'generated_at' => now()->format('d/m/Y H:i'),
+            'total_requests' => '42',
+            'total_samples' => '87',
+            'report_url' => rtrim((string) config('app.url'), '/').'/statistics?tab=reports',
             'location' => 'Ruang Lab 1',
             'temperature' => '28.5',
             'threshold' => '25.0',

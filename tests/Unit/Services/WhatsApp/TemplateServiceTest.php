@@ -80,4 +80,21 @@ class TemplateServiceTest extends TestCase
             );
         }
     }
+
+    public function test_template_labels_include_consolidated_report_templates(): void
+    {
+        $labels = $this->service->getTemplateLabels();
+
+        $this->assertArrayHasKey('CONSOLIDATED_BIWEEKLY', $labels['system']);
+        $this->assertArrayHasKey('CONSOLIDATED_MONTHLY', $labels['system']);
+        $this->assertArrayHasKey('CONSOLIDATED_QUARTERLY', $labels['system']);
+    }
+
+    public function test_consolidated_template_placeholders_include_report_url(): void
+    {
+        $placeholders = $this->service->getPlaceholders('system', 'CONSOLIDATED_BIWEEKLY');
+
+        $this->assertContains('period_label', $placeholders);
+        $this->assertContains('report_url', $placeholders);
+    }
 }

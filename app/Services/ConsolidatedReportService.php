@@ -10,7 +10,9 @@ use App\Models\CustomerSurvey;
 use App\Models\Sample;
 use App\Models\TestRequest;
 use App\Models\WhatsAppMessageBatch;
+use App\Models\WhatsAppMessageLog;
 use App\Repositories\SettingsRepository;
+use App\Services\WhatsApp\TemplateService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -28,7 +30,8 @@ class ConsolidatedReportService
     public function __construct(
         private readonly ActiveSubstanceService $activeSubstanceService,
         private readonly IkuService $ikuService,
-        private readonly SettingsRepository $settings
+        private readonly SettingsRepository $settings,
+        private readonly TemplateService $templateService
     ) {}
 
     /**
@@ -550,20 +553,34 @@ class ConsolidatedReportService
             $targetPhone = '+6285956592404'; // Default fallback
         }
 
+        $normalizedPhone = $this->normalizePhone((string) $targetPhone);
+        $normalizedJid = $normalizedPhone.'@s.whatsapp.net';
+
+        if ($this->hasNotificationQueuedOrSent($report, $normalizedJid)) {
+            Log::info("Consolidated report notification already queued/sent for report {$report->id} to {$normalizedJid}");
+
+            return 0;
+        }
+
         // Format message
-        $appUrl = config('app.url');
+        $appUrl = rtrim((string) config('app.url'), '/');
         $generatedAt = $report->generated_at ? $report->generated_at->format('d/m/Y H:i') : now()->format('d/m/Y H:i');
 
-        $message = "📊 *LAPORAN GABUNGAN PERIODIK*\n\n";
-        $message .= "Laporan {$report->period_type} periode {$report->period_label} telah di-generate.\n\n";
-        $message .= "📅 Periode: {$report->period_start->format('d/m/Y')} - {$report->period_end->format('d/m/Y')}\n";
-        $message .= "⏰ Waktu Generate: {$generatedAt}\n";
-        $message .= '📈 Total Permintaan: '.($report->report_data['statistics']['total_requests_received'] ?? 0)."\n";
-        $message .= '🧪 Total Sampel: '.($report->report_data['statistics']['total_samples_received'] ?? 0)."\n\n";
-        $message .= "Silakan akses laporan di:\n";
-        $message .= "{$appUrl}/statistics?tab=reports\n\n";
-        $message .= "—\n";
-        $message .= 'Staff Laboratorium Farmapol Pusdokkes Polri';
+        $templateKey = $this->resolveConsolidatedTemplateKey((string) $report->period_type);
+        $message = $this->templateService->render('system', $templateKey, [
+            'period_type' => (string) $report->period_type,
+            'period_label' => (string) $report->period_label,
+            'period_start' => $report->period_start->format('d/m/Y'),
+            'period_end' => $report->period_end->format('d/m/Y'),
+            'generated_at' => $generatedAt,
+            'total_requests' => (string) ($report->report_data['statistics']['total_requests_received'] ?? 0),
+            'total_samples' => (string) ($report->report_data['statistics']['total_samples_received'] ?? 0),
+            'report_url' => "{$appUrl}/statistics?tab=reports",
+        ]);
+
+        if (trim($message) === '') {
+            $message = $this->buildFallbackConsolidatedMessage($report, $generatedAt, (string) $appUrl);
+        }
 
         try {
             // Create batch record
@@ -581,10 +598,18 @@ class ConsolidatedReportService
                 'created_by' => $report->generated_by,
             ]);
 
-            // Dispatch job
-            SendWhatsAppMessage::dispatch($targetPhone, $message, $batch->id);
+            WhatsAppMessageLog::create([
+                'batch_id' => $batch->id,
+                'recipient_jid' => $normalizedJid,
+                'recipient_name' => $normalizedPhone,
+                'recipient_type' => 'individual',
+                'status' => 'pending',
+            ]);
 
-            Log::info("Consolidated report notification queued for {$targetPhone}");
+            // Dispatch job
+            SendWhatsAppMessage::dispatch($normalizedPhone, $message, $batch->id);
+
+            Log::info("Consolidated report notification queued for {$normalizedPhone}");
 
             return 1;
         } catch (\Exception $e) {
@@ -592,6 +617,65 @@ class ConsolidatedReportService
 
             return 0;
         }
+    }
+
+    private function hasNotificationQueuedOrSent(ConsolidatedReport $report, string $recipientJid): bool
+    {
+        $reportIds = ConsolidatedReport::query()
+            ->where('period_type', (string) $report->period_type)
+            ->whereDate('period_start', $report->period_start->toDateString())
+            ->whereDate('period_end', $report->period_end->toDateString())
+            ->pluck('id');
+
+        if ($reportIds->isEmpty()) {
+            return false;
+        }
+
+        return WhatsAppMessageBatch::query()
+            ->where('type', 'consolidated_report_notification')
+            ->where('source_type', ConsolidatedReport::class)
+            ->whereIn('source_id', $reportIds->all())
+            ->whereHas('logs', function ($query) use ($recipientJid) {
+                $query->where('recipient_jid', $recipientJid)
+                    ->whereIn('status', ['pending', 'processing', 'sent']);
+            })
+            ->exists();
+    }
+
+    private function resolveConsolidatedTemplateKey(string $periodType): string
+    {
+        return match ($periodType) {
+            'biweekly' => 'CONSOLIDATED_BIWEEKLY',
+            'monthly' => 'CONSOLIDATED_MONTHLY',
+            'quarterly' => 'CONSOLIDATED_QUARTERLY',
+            default => 'CONSOLIDATED_BIWEEKLY',
+        };
+    }
+
+    private function buildFallbackConsolidatedMessage(ConsolidatedReport $report, string $generatedAt, string $appUrl): string
+    {
+        $message = "📊 *LAPORAN GABUNGAN PERIODIK*\n\n";
+        $message .= "Laporan {$report->period_type} periode {$report->period_label} telah di-generate.\n\n";
+        $message .= "📅 Periode: {$report->period_start->format('d/m/Y')} - {$report->period_end->format('d/m/Y')}\n";
+        $message .= "⏰ Waktu Generate: {$generatedAt}\n";
+        $message .= '📈 Total Permintaan: '.($report->report_data['statistics']['total_requests_received'] ?? 0)."\n";
+        $message .= '🧪 Total Sampel: '.($report->report_data['statistics']['total_samples_received'] ?? 0)."\n\n";
+        $message .= "Silakan akses laporan di:\n";
+        $message .= "{$appUrl}/statistics?tab=reports\n\n";
+        $message .= "—\n";
+        $message .= 'Staff Laboratorium Farmapol Pusdokkes Polri';
+
+        return $message;
+    }
+
+    private function normalizePhone(string $phone): string
+    {
+        $phone = preg_replace('/[^0-9]/', '', $phone) ?? '';
+        if ($phone !== '' && str_starts_with($phone, '0')) {
+            $phone = '62'.substr($phone, 1);
+        }
+
+        return $phone;
     }
 
     /**
