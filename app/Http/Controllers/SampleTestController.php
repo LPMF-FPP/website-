@@ -88,15 +88,17 @@ class SampleTestController extends Controller
             'samples.*.quantity' => ['required', 'numeric', 'min:0.01'],
             // quantity_unit is now optional - server will use sample.unit from database
             'samples.*.quantity_unit' => ['nullable', 'string', 'max:50'],
-            'samples.*.batch_number' => ['nullable', 'string', 'max:100'],
+            'samples.*.batch_number' => ['required', 'string', 'max:100'],
             'samples.*.expiry_date' => ['nullable', 'date'],
-            'samples.*.test_type' => ['nullable', 'string', 'max:100'],
+            'samples.*.test_type' => ['required', 'string', 'max:100'],
             'samples.*.notes' => ['nullable', 'string'],
             'samples.*.other_sample_category' => ['nullable', 'string', Rule::in(array_keys(Sample::OTHER_SAMPLE_CATEGORIES))],
         ], [
             'samples.*.test_methods.required' => 'Metode pengujian wajib dipilih.',
             'samples.*.test_methods.*.in' => 'Metode pengujian tidak valid.',
             'samples.*.quantity.min' => 'Jumlah sampel harus lebih dari 0.',
+            'samples.*.batch_number.required' => 'Nomor batch wajib diisi.',
+            'samples.*.test_type.required' => 'Jenis atau fokus pengujian wajib dipilih.',
         ]);
 
         $firstSampleId = $validated['samples'][0]['id'] ?? null;
