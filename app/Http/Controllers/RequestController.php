@@ -1179,6 +1179,14 @@ class RequestController extends Controller
             $templateService = app(\App\Services\DocumentTemplateService::class);
             $pdfRenderService = app(\App\Services\PdfRenderService::class);
 
+            $currentSignerId = auth()->id();
+            if ($currentSignerId !== null) {
+                if ((int) $testRequest->user_id !== (int) $currentSignerId) {
+                    $testRequest->forceFill(['user_id' => $currentSignerId])->save();
+                }
+                $testRequest->setRelation('user', auth()->user());
+            }
+
             // Ambil relasi lengkap
             $testRequest->loadMissing(['investigator', 'samples', 'user']);
             $inv = $testRequest->investigator;

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ActivityLog;
 use App\Models\Investigator;
 use App\Models\User;
+use App\Support\RoleCatalog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -12,6 +13,10 @@ use Illuminate\View\View;
 
 class PersonnelController extends Controller
 {
+    public function __construct(
+        private readonly RoleCatalog $roleCatalog
+    ) {}
+
     /**
      * Display the unified personnel management page.
      */
@@ -96,7 +101,7 @@ class PersonnelController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $manageableRoles = ['analis', 'penyelia', 'manajer_teknis', 'admin'];
+        $manageableRoles = $this->roleCatalog->staffRoles();
         $availableRoles = User::query()
             ->select('role')
             ->whereNotNull('role')
@@ -105,6 +110,8 @@ class PersonnelController extends Controller
             ->pluck('role')
             ->values()
             ->merge($manageableRoles)
+            ->map(fn ($role) => is_string($role) ? $this->roleCatalog->normalize($role) : '')
+            ->filter()
             ->unique()
             ->values()
             ->all();

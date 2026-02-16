@@ -46,9 +46,11 @@ class SampleTestController extends Controller
             $selectedRequest = $this->loadRequestWithSamples($selectedRequestId);
         }
 
+        $staffRoles = app(\App\Support\RoleCatalog::class)->staffRoles();
+
         $analysts = User::query()
             ->where('is_active', true)
-            ->whereIn('role', ['analis', 'penyelia', 'manajer_teknis'])
+            ->whereIn('role', $staffRoles)
             ->orderBy('name')
             ->get();
 

@@ -251,6 +251,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('analysts/{analyst}/permissions/reset', [AnalystController::class, 'resetPermissions'])->name('analysts.permissions.reset');
     Route::post('analysts/{analyst}/disable', [AnalystController::class, 'disable'])->name('analysts.disable');
     Route::post('analysts/{analyst}/enable', [AnalystController::class, 'enable'])->name('analysts.enable');
+    Route::post('analysts/roles', [AnalystController::class, 'storeRole'])->name('analysts.roles.store');
 
     // Unified Personnel Management
     Route::get('/personel', [App\Http\Controllers\PersonnelController::class, 'index'])->name('personnel.index');

@@ -17,6 +17,46 @@
         </div>
     @endif
 
+    <x-page-section title="Kelola Jenis Role">
+        <form method="POST" action="{{ route('analysts.roles.store') }}" class="grid grid-cols-1 gap-4 md:grid-cols-4">
+            @csrf
+            <div class="md:col-span-2">
+                <label class="block text-sm font-medium text-gray-700">Nama role baru</label>
+                <input
+                    type="text"
+                    name="role_name"
+                    value="{{ old('role_name') }}"
+                    placeholder="Contoh: Auditor Mutu"
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                >
+                <p class="mt-1 text-xs text-gray-500">Role akan otomatis disimpan sebagai slug, contoh <code>auditor_mutu</code>.</p>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Salin permission dari</label>
+                <select name="clone_from" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                    @foreach($manageableRoles as $roleOption)
+                        <option value="{{ $roleOption }}" @selected(old('clone_from', 'analis') === $roleOption)>
+                            {{ Str::of($roleOption)->replace('_', ' ')->title() }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="flex items-end">
+                <button type="submit" class="inline-flex w-full items-center justify-center rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700">
+                    Tambah Role
+                </button>
+            </div>
+        </form>
+
+        <div class="mt-4 flex flex-wrap gap-2">
+            @foreach($manageableRoles as $roleOption)
+                <span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700">
+                    {{ Str::of($roleOption)->replace('_', ' ')->title() }}
+                </span>
+            @endforeach
+        </div>
+    </x-page-section>
+
     <x-page-section title="Filter Pengguna">
         <form method="GET" action="{{ route('personnel.index') }}" class="grid grid-cols-1 gap-4 md:grid-cols-4">
             <input type="hidden" name="tab" value="staff">
