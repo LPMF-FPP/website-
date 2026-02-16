@@ -70,23 +70,23 @@
                     <p class="mt-1 text-2xl font-semibold text-gray-900">{{ $summary['total_documents'] ?? 0 }}</p>
                 </div>
                 <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <p class="text-xs uppercase tracking-wide text-gray-500">Dokumen Published</p>
+                    <p class="text-xs uppercase tracking-wide text-gray-500">Dokumen Terbit</p>
                     <p class="mt-1 text-2xl font-semibold text-gray-900">{{ $summary['published_documents'] ?? 0 }}</p>
                 </div>
                 <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <p class="text-xs uppercase tracking-wide text-gray-500">Dokumen In Review</p>
+                    <p class="text-xs uppercase tracking-wide text-gray-500">Dokumen Dalam Tinjauan</p>
                     <p class="mt-1 text-2xl font-semibold text-gray-900">{{ $summary['in_review_documents'] ?? 0 }}</p>
                 </div>
                 <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <p class="text-xs uppercase tracking-wide text-gray-500">Revisi Obsolete</p>
+                    <p class="text-xs uppercase tracking-wide text-gray-500">Revisi Kedaluwarsa</p>
                     <p class="mt-1 text-2xl font-semibold text-gray-900">{{ $summary['obsolete_revisions'] ?? 0 }}</p>
                 </div>
                 <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <p class="text-xs uppercase tracking-wide text-gray-500">Unduhan Controlled</p>
+                    <p class="text-xs uppercase tracking-wide text-gray-500">Unduhan Terkendali</p>
                     <p class="mt-1 text-2xl font-semibold text-gray-900">{{ $summary['controlled_downloads'] ?? 0 }}</p>
                 </div>
                 <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <p class="text-xs uppercase tracking-wide text-gray-500">Unduhan Uncontrolled</p>
+                    <p class="text-xs uppercase tracking-wide text-gray-500">Unduhan Tidak Terkendali</p>
                     <p class="mt-1 text-2xl font-semibold text-gray-900">{{ $summary['uncontrolled_downloads'] ?? 0 }}</p>
                 </div>
             </div>
@@ -152,7 +152,7 @@
                     <!-- CHECK & ACT -->
                     <div class="relative rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition hover:shadow-md">
                         <div class="absolute -left-3 top-6 rounded-r-lg bg-green-100 px-2 py-1 text-xs font-bold text-green-800">CHECK</div>
-                        <a href="{{ route('quality.documents.index', ['clause' => 8]) }}" class="group flex items-center justify-between">
+                        <a href="{{ route('quality.documents.index', ['clause' => 8]) }}" class="group flex items-center justify-between pl-12">
                             <div>
                                 <h4 class="text-lg font-bold text-gray-900 group-hover:text-green-700">Klausul 8: Sistem Manajemen</h4>
                                 <p class="text-sm text-gray-500">Audit, Kaji Ulang, Risiko, & Improvement</p>
