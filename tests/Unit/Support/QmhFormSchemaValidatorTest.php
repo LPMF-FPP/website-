@@ -12,6 +12,9 @@ class QmhFormSchemaValidatorTest extends TestCase
         $schema = [
             'version' => 1,
             'doc_type' => 'fr',
+            'layout_profile' => 'risk_matrix',
+            'logo_source' => 'settings',
+            'risk_matrix_columns' => ['Aspek', 'Nilai', 'Kontrol'],
             'questions' => [
                 ['id' => 'section_a', 'label' => 'Bagian A', 'type' => 'section', 'required' => false],
                 ['id' => 'field_a', 'label' => 'Kolom A', 'type' => 'text', 'required' => true],
@@ -51,5 +54,26 @@ class QmhFormSchemaValidatorTest extends TestCase
         $errors = QmhFormSchemaValidator::errors($schema);
 
         $this->assertNotEmpty($errors);
+    }
+
+    public function test_it_rejects_invalid_layout_profile_extension_keys(): void
+    {
+        $schema = [
+            'version' => 1,
+            'doc_type' => 'fr',
+            'layout_profile' => 'matrix_v2',
+            'logo_source' => 'filesystem',
+            'risk_matrix_columns' => ['Satu'],
+            'questions' => [
+                ['id' => 'field_a', 'label' => 'A', 'type' => 'text', 'required' => false],
+            ],
+        ];
+
+        $errors = QmhFormSchemaValidator::errors($schema);
+
+        $this->assertNotEmpty($errors);
+        $this->assertTrue(collect($errors)->contains(fn (string $message): bool => str_contains($message, 'layout_profile')));
+        $this->assertTrue(collect($errors)->contains(fn (string $message): bool => str_contains($message, 'logo_source')));
+        $this->assertTrue(collect($errors)->contains(fn (string $message): bool => str_contains($message, 'risk_matrix_columns')));
     }
 }

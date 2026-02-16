@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Quality;
 
 use App\Http\Controllers\Controller;
 use App\Models\QmhTemplate;
+use App\Support\QmhFrLayoutProfile;
 use App\Support\QmhHtmlSanitizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -39,8 +40,18 @@ class QmhTemplateController extends Controller
 
         $templates = $templates->map(function (QmhTemplate $template): array {
             $metadata = is_array($template->metadata) ? $template->metadata : [];
+            $isFr = ((string) $template->doc_type) === 'fr';
 
             $formSchema = $metadata['form_schema'] ?? $this->defaultFormSchema((string) $template->doc_type);
+            $layoutConfig = $isFr
+                ? QmhFrLayoutProfile::fromMetadata($metadata)
+                : [
+                    'layout_profile' => null,
+                    'logo_source' => null,
+                    'logo_path' => null,
+                    'declaration_header' => null,
+                    'risk_matrix_columns' => null,
+                ];
 
             return [
                 'id' => $template->id,
@@ -54,6 +65,11 @@ class QmhTemplateController extends Controller
                 'preview_url' => route('quality.templates.preview', $template),
                 'content_html' => QmhHtmlSanitizer::sanitize(is_string($metadata['content_html'] ?? null) ? $metadata['content_html'] : ''),
                 'form_schema' => $formSchema,
+                'layout_profile' => $layoutConfig['layout_profile'],
+                'logo_source' => $layoutConfig['logo_source'],
+                'logo_path' => $layoutConfig['logo_path'],
+                'declaration_header' => $layoutConfig['declaration_header'],
+                'risk_matrix_columns' => $layoutConfig['risk_matrix_columns'],
             ];
         })->values();
 

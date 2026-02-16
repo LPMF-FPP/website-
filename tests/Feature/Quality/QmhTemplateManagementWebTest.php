@@ -126,6 +126,32 @@ class QmhTemplateManagementWebTest extends TestCase
         $this->assertSame('<h1>Judul</h1><p>Isi</p>', data_get($template->metadata, 'content_html'));
     }
 
+    public function test_can_create_fr_template_with_layout_profile_and_logo_configuration(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($user)
+            ->post('/quality/templates', [
+                'name' => 'Template FR Risk Matrix',
+                'doc_type' => 'fr',
+                'content_html' => '<p>Form FR</p>',
+                'layout_profile' => 'risk_matrix',
+                'logo_source' => 'custom',
+                'logo_path' => 'images/logo-pusdokkes-polri.png',
+                'declaration_header' => 'Header Pernyataan',
+                'risk_matrix_columns_csv' => 'Aspek, Nilai, Kontrol',
+            ])
+            ->assertRedirect(route('quality.templates.index'));
+
+        $template = QmhTemplate::query()->firstOrFail();
+        $this->assertSame('risk_matrix', data_get($template->metadata, 'layout_profile'));
+        $this->assertSame('custom', data_get($template->metadata, 'logo_source'));
+        $this->assertSame('images/logo-pusdokkes-polri.png', data_get($template->metadata, 'logo_path'));
+        $this->assertSame('Header Pernyataan', data_get($template->metadata, 'declaration_header'));
+        $this->assertSame('Kontrol', data_get($template->metadata, 'risk_matrix_columns.2'));
+    }
+
     public function test_upload_template_extracts_initial_browser_content_from_docx(): void
     {
         Storage::fake('local');
@@ -371,6 +397,35 @@ class QmhTemplateManagementWebTest extends TestCase
 
         $this->assertTrue(session()->has('errors'));
         $this->assertNotEmpty(session('errors')->get('form_schema_json'));
+    }
+
+    public function test_update_fr_template_rejects_custom_logo_without_logo_path(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $template = QmhTemplate::query()->create([
+            'name' => 'Template FR Invalid Logo',
+            'clause' => 4,
+            'doc_type' => 'fr',
+            'version' => 1,
+            'storage_disk' => 'local',
+            'source_docx_path' => null,
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->from(route('quality.templates.edit', $template))
+            ->patch(route('quality.templates.update', $template), [
+                'name' => 'Template FR Invalid Logo',
+                'doc_type' => 'fr',
+                'logo_source' => 'custom',
+                'logo_path' => '',
+            ])
+            ->assertRedirect(route('quality.templates.edit', $template));
+
+        $this->assertTrue(session()->has('errors'));
+        $this->assertNotEmpty(session('errors')->get('logo_path'));
     }
 
     public function test_activating_template_deactivates_other_active_template_in_same_doc_type(): void

@@ -27,6 +27,52 @@ final class QmhFormSchemaValidator
             $errors[] = 'Schema pertanyaan memiliki doc_type yang tidak valid.';
         }
 
+        if (array_key_exists('layout_profile', $schema)) {
+            $layoutProfile = $schema['layout_profile'];
+            if (! is_string($layoutProfile) || ! in_array(trim($layoutProfile), QmhFrLayoutProfile::allowedProfiles(), true)) {
+                $errors[] = 'Schema pertanyaan memiliki layout_profile yang tidak valid.';
+            }
+        }
+
+        if (array_key_exists('logo_source', $schema)) {
+            $logoSource = $schema['logo_source'];
+            if (! is_string($logoSource) || ! in_array(trim($logoSource), QmhFrLayoutProfile::allowedLogoSources(), true)) {
+                $errors[] = 'Schema pertanyaan memiliki logo_source yang tidak valid.';
+            }
+        }
+
+        if (array_key_exists('logo_path', $schema) && $schema['logo_path'] !== null) {
+            if (! is_string($schema['logo_path']) || trim($schema['logo_path']) === '') {
+                $errors[] = 'Schema pertanyaan memiliki logo_path yang tidak valid.';
+            }
+        }
+
+        if (array_key_exists('declaration_header', $schema) && $schema['declaration_header'] !== null) {
+            if (! is_string($schema['declaration_header']) || trim($schema['declaration_header']) === '') {
+                $errors[] = 'Schema pertanyaan memiliki declaration_header yang tidak valid.';
+            }
+        }
+
+        if (array_key_exists('risk_matrix_columns', $schema) && $schema['risk_matrix_columns'] !== null) {
+            if (! is_array($schema['risk_matrix_columns']) || count($schema['risk_matrix_columns']) < 2) {
+                $errors[] = 'Schema pertanyaan memiliki risk_matrix_columns yang tidak valid.';
+            } elseif (count($schema['risk_matrix_columns']) > 6) {
+                $errors[] = 'Schema pertanyaan memiliki risk_matrix_columns lebih dari 6 kolom.';
+            } else {
+                foreach ($schema['risk_matrix_columns'] as $idx => $column) {
+                    if (! is_string($column) || trim($column) === '') {
+                        $errors[] = "Schema pertanyaan risk_matrix_columns #{$idx} tidak valid.";
+
+                        continue;
+                    }
+
+                    if (mb_strlen(trim($column)) > 80) {
+                        $errors[] = "Schema pertanyaan risk_matrix_columns #{$idx} melebihi 80 karakter.";
+                    }
+                }
+            }
+        }
+
         $questions = $schema['questions'] ?? null;
         if (! is_array($questions)) {
             $errors[] = 'Schema pertanyaan wajib memiliki questions (array).';

@@ -3,6 +3,9 @@
 namespace Tests\Feature\Quality;
 
 use App\Models\Permission;
+use App\Models\QmhDocument;
+use App\Models\QmhDocumentRevision;
+use App\Models\QmhTemplate;
 use App\Models\RolePermission;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -12,6 +15,11 @@ use Tests\TestCase;
 class QmhPreviewPdfApiTest extends TestCase
 {
     use RefreshDatabase;
+
+    /**
+     * @var array<int, string>
+     */
+    private array $capturedHtml = [];
 
     protected function setUp(): void
     {
@@ -35,6 +43,7 @@ class QmhPreviewPdfApiTest extends TestCase
 
         Pdf::shouldReceive('loadHTML')
             ->withArgs(function (string $html): bool {
+                $this->capturedHtml[] = $html;
                 $this->assertStringContainsString('No. Dokumen', $html);
 
                 return true;
@@ -83,6 +92,120 @@ class QmhPreviewPdfApiTest extends TestCase
             ]);
 
         $response->assertOk();
+    }
+
+    public function test_preview_pdf_uses_fr_risk_matrix_layout_from_template_metadata(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $template = QmhTemplate::query()->create([
+            'name' => 'Template FR Risk Matrix Preview',
+            'clause' => 4,
+            'doc_type' => 'fr',
+            'version' => 1,
+            'storage_disk' => 'local',
+            'source_docx_path' => null,
+            'is_active' => true,
+            'metadata' => [
+                'layout_profile' => 'risk_matrix',
+                'risk_matrix_columns' => ['Aspek', 'Nilai', 'Kontrol'],
+                'form_schema' => [
+                    'version' => 1,
+                    'doc_type' => 'fr',
+                    'questions' => [
+                        ['id' => 'risk', 'label' => 'Risiko', 'type' => 'text', 'required' => false],
+                    ],
+                ],
+            ],
+        ]);
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/quality/preview/pdf', [
+                'doc_type' => 'formulir',
+                'clause' => 4,
+                'doc_code' => 'QMH-FR-PREVIEW-001',
+                'title' => 'Preview FR Risk Matrix',
+                'template_id' => $template->id,
+                'answers_json' => [
+                    'risk' => 'Sedang',
+                ],
+            ]);
+
+        $response->assertOk();
+        $latestHtml = end($this->capturedHtml);
+        $this->assertIsString($latestHtml);
+        $this->assertStringContainsString('risk-matrix-table', $latestHtml);
+        $this->assertStringContainsString('KONTROL', $latestHtml);
+    }
+
+    public function test_revision_preview_prefers_revision_schema_layout_over_template_metadata(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $template = QmhTemplate::query()->create([
+            'name' => 'Template FR Risk Matrix Existing',
+            'clause' => 4,
+            'doc_type' => 'fr',
+            'version' => 1,
+            'storage_disk' => 'local',
+            'source_docx_path' => null,
+            'is_active' => true,
+            'metadata' => [
+                'layout_profile' => 'risk_matrix',
+                'risk_matrix_columns' => ['Aspek', 'Nilai', 'Kontrol'],
+            ],
+        ]);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-FR-PREVIEW-REV-001',
+            'title' => 'Preview Revision FR',
+            'clause' => 4,
+            'doc_type' => 'formulir',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'draft',
+            'template_id' => $template->id,
+            'template_name' => $template->name,
+            'template_version' => $template->version,
+            'form_schema_json' => [
+                'version' => 1,
+                'doc_type' => 'fr',
+                'layout_profile' => 'declaration',
+                'declaration_header' => 'Pernyataan Final',
+                'questions' => [
+                    ['id' => 'statement', 'label' => 'Pernyataan', 'type' => 'textarea', 'required' => false],
+                ],
+            ],
+            'answers_json' => [
+                'statement' => 'Isi revision snapshot',
+            ],
+        ]);
+
+        $response = $this->actingAs($user)
+            ->postJson("/api/quality/revisions/{$revision->id}/preview/pdf", [
+                'doc_type' => 'formulir',
+                'clause' => 4,
+                'doc_code' => $document->doc_code,
+                'title' => $document->title,
+                'answers_json' => [
+                    'statement' => 'Isi revision snapshot',
+                ],
+            ]);
+
+        $response->assertOk();
+        $latestHtml = end($this->capturedHtml);
+        $this->assertIsString($latestHtml);
+        $this->assertStringContainsString('fr-declaration', $latestHtml);
+        $this->assertStringNotContainsString('<table class="risk-matrix-table">', $latestHtml);
     }
 
     private function createQmhPermissions(): void

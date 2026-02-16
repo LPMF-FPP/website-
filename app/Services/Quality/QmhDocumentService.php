@@ -53,6 +53,10 @@ class QmhDocumentService
                 $schemaSnapshot = $templateMetadata['form_schema'];
             }
 
+            if (($payload['doc_type'] ?? null) === 'fr' && is_array($schemaSnapshot)) {
+                $schemaSnapshot = $this->mergeExplicitLayoutMetadata($schemaSnapshot, $templateMetadata);
+            }
+
             $document = QmhDocument::query()->create([
                 'doc_code' => $payload['doc_code'],
                 'title' => $payload['title'],
@@ -109,5 +113,28 @@ class QmhDocumentService
             'actor_id' => $actorId,
             'payload_json' => $payload,
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $schema
+     * @param  array<string, mixed>  $templateMetadata
+     * @return array<string, mixed>
+     */
+    private function mergeExplicitLayoutMetadata(array $schema, array $templateMetadata): array
+    {
+        $merged = $schema;
+        foreach (['layout_profile', 'logo_source', 'logo_path', 'declaration_header', 'risk_matrix_columns'] as $key) {
+            if (! array_key_exists($key, $templateMetadata)) {
+                continue;
+            }
+
+            if (array_key_exists($key, $merged)) {
+                continue;
+            }
+
+            $merged[$key] = $templateMetadata[$key];
+        }
+
+        return $merged;
     }
 }

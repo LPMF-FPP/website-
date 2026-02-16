@@ -7,6 +7,7 @@ use App\Http\Requests\Quality\StoreQmhTemplateRequest;
 use App\Http\Requests\Quality\UpdateQmhTemplateRequest;
 use App\Models\QmhTemplate;
 use App\Support\Audit;
+use App\Support\QmhFrLayoutProfile;
 use App\Support\QmhHtmlSanitizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -87,6 +88,17 @@ class QmhTemplateController extends Controller
                 ->where('is_active', true)
                 ->update(['is_active' => false]);
 
+            $metadata = [
+                'version_notes' => $validated['version_notes'] ?? null,
+                'uploaded_by' => $request->user()?->id,
+                'content_html' => $contentHtml,
+                'form_schema' => $validated['form_schema'] ?? null,
+            ];
+
+            if (($validated['doc_type'] ?? null) === 'fr') {
+                $metadata = array_merge($metadata, QmhFrLayoutProfile::fromValidatedTemplateInput($validated));
+            }
+
             $template = QmhTemplate::query()->create([
                 'name' => $validated['name'],
                 'clause' => self::DEFAULT_CLAUSE,
@@ -95,12 +107,7 @@ class QmhTemplateController extends Controller
                 'storage_disk' => $disk,
                 'source_docx_path' => $path,
                 'is_active' => true,
-                'metadata' => [
-                    'version_notes' => $validated['version_notes'] ?? null,
-                    'uploaded_by' => $request->user()?->id,
-                    'content_html' => $contentHtml,
-                    'form_schema' => $validated['form_schema'] ?? null,
-                ],
+                'metadata' => $metadata,
             ]);
 
             Audit::log('QMH_TEMPLATE_UPLOAD', (string) $template->id, null, [
@@ -162,6 +169,25 @@ class QmhTemplateController extends Controller
 
             if (array_key_exists('form_schema', $validated)) {
                 $nextMetadata['form_schema'] = $validated['form_schema'];
+            }
+
+            if (($validated['doc_type'] ?? null) === 'fr') {
+                $currentProfile = QmhFrLayoutProfile::fromMetadata($nextMetadata);
+                $nextMetadata = array_merge($nextMetadata, QmhFrLayoutProfile::fromValidatedTemplateInput([
+                    'layout_profile' => $validated['layout_profile'] ?? $currentProfile['layout_profile'],
+                    'logo_source' => $validated['logo_source'] ?? $currentProfile['logo_source'],
+                    'logo_path' => array_key_exists('logo_path', $validated) ? $validated['logo_path'] : $currentProfile['logo_path'],
+                    'declaration_header' => array_key_exists('declaration_header', $validated) ? $validated['declaration_header'] : $currentProfile['declaration_header'],
+                    'risk_matrix_columns' => $validated['risk_matrix_columns'] ?? $currentProfile['risk_matrix_columns'],
+                ]));
+            } else {
+                unset(
+                    $nextMetadata['layout_profile'],
+                    $nextMetadata['logo_source'],
+                    $nextMetadata['logo_path'],
+                    $nextMetadata['declaration_header'],
+                    $nextMetadata['risk_matrix_columns']
+                );
             }
 
             $template->forceFill([

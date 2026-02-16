@@ -72,6 +72,47 @@ class QmhTemplateSchemaApiTest extends TestCase
         $response->assertJsonPath('data.0.form_schema.questions.5.id', 'required_docs');
     }
 
+    public function test_template_list_includes_layout_profile_and_logo_config_for_fr_template(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        DB::table('qmh_templates')->insert([
+            'name' => 'FR Layout Profile',
+            'clause' => 4,
+            'doc_type' => 'fr',
+            'version' => 1,
+            'storage_disk' => 'local',
+            'source_docx_path' => null,
+            'is_active' => true,
+            'metadata' => json_encode([
+                'layout_profile' => 'risk_matrix',
+                'logo_source' => 'custom',
+                'logo_path' => 'images/custom-logo.png',
+                'declaration_header' => 'Pernyataan Uji',
+                'risk_matrix_columns' => ['Aspek', 'Nilai', 'Kontrol'],
+                'form_schema' => [
+                    'version' => 1,
+                    'doc_type' => 'fr',
+                    'questions' => [
+                        ['id' => 'risk', 'label' => 'Risiko', 'type' => 'text', 'required' => false],
+                    ],
+                ],
+            ], JSON_THROW_ON_ERROR),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)
+            ->getJson('/api/quality/templates?doc_type=formulir');
+
+        $response->assertOk();
+        $response->assertJsonPath('data.0.layout_profile', 'risk_matrix');
+        $response->assertJsonPath('data.0.logo_source', 'custom');
+        $response->assertJsonPath('data.0.logo_path', 'images/custom-logo.png');
+        $response->assertJsonPath('data.0.risk_matrix_columns.2', 'Kontrol');
+    }
+
     private function createQmhPermissions(): void
     {
         $createPermission = Permission::query()->updateOrCreate(
