@@ -4,6 +4,12 @@
     $now = isset($generatedAt) ? \Carbon\Carbon::parse($generatedAt) : now();
     $sample = $process->sample ?? null;
     $req    = $sample?->testRequest;
+    $analyst = $process->analyst ?? null;
+
+    $analystSigner = pdf_build_signer(
+        $analyst,
+        fallbackName: $process->analyst_name ?? '-'
+    );
 @endphp
 <!DOCTYPE html>
 <html lang="id">
@@ -26,8 +32,10 @@
   .sig { width: 100%; margin-top: 28px; }
   .sig td { width: 50%; vertical-align: top; }
   .sigcell { padding: 6px 8px; }
-  .sigtitle { font-weight: bold; text-align: center; margin-bottom: 56px; }
+  .sigtitle { font-weight: bold; text-align: center; margin-bottom: 0; }
+  .sigspacer { height: 56px; }
   .signame { text-align: center; text-decoration: underline; font-weight: bold; }
+  .sigidentity { text-align: center; font-size: 9pt; margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -76,7 +84,9 @@
       <td class="sigcell"></td>
       <td class="sigcell">
         <div class="sigtitle">Analis</div>
-        <div class="signame">{{ $process->analyst_name ?? '__________________________' }}</div>
+        <div class="sigspacer"></div>
+        <div class="signame">{{ $analystSigner['name'] }}</div>
+        <div class="sigidentity">{{ $analystSigner['identity'] }}</div>
       </td>
     </tr>
   </table>

@@ -20,8 +20,11 @@ class SampleDisposal extends Model
         'method',
         'witness_name',
         'witness_role',
+        'witness_user_id',
         'notes',
         'executed_by',
+        'executed_by_name',
+        'executed_by_role',
         'created_by',
     ];
 
@@ -43,6 +46,11 @@ class SampleDisposal extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function witnessUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'witness_user_id');
     }
 
     public static function generateBatchNumber(): string

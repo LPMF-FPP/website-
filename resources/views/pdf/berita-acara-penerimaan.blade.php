@@ -86,6 +86,9 @@
     $rightLogoPath = public_path('images/logo-pusdokkes-polri.png');
     $leftLogoSrc = $isPreview ? asset('images/logo-tribrata-polri.png') : $leftLogoPath;
     $rightLogoSrc = $isPreview ? asset('images/logo-pusdokkes-polri.png') : $rightLogoPath;
+
+    $submittedSigner = pdf_build_signer($request->investigator);
+    $receivedSigner = pdf_build_signer($request->user);
 @endphp
 <!DOCTYPE html>
 <html lang="id">
@@ -129,8 +132,10 @@
   .sign-table { width:100%; margin-top:10px; border:0; border-collapse:separate; }
   .sign-table td { width:50%; vertical-align:top; border:0; }
   .sigcell { padding:6px 8px; }
-  .sigtitle { text-align:center; font-weight:700; margin-bottom:75px; }
+  .sigtitle { text-align:center; font-weight:700; margin-bottom:0; }
+  .sigspacer { height:75px; }
   .signame { text-align:center; text-decoration: underline; font-weight:700; }
+  .sigidentity { text-align:center; font-size:9pt; margin-top:4px; }
 
   .footer { margin-top: 16px; font-size:9pt; color:#555; }
 </style>
@@ -198,11 +203,15 @@
     <tr>
       <td class="sigcell">
         <div class="sigtitle">Yang Menyerahkan</div>
-        <div class="signame">{{ trim(($request->investigator->rank ?? '').' '.($request->investigator->name ?? '')) }}</div>
+        <div class="sigspacer"></div>
+        <div class="signame">{{ $submittedSigner['name'] }}</div>
+        <div class="sigidentity">{{ $submittedSigner['identity'] }}</div>
       </td>
       <td class="sigcell">
         <div class="sigtitle">Yang Menerima</div>
-        <div class="signame">Staff Laboratorium Farmapol Pusdokkes Polri</div>
+        <div class="sigspacer"></div>
+        <div class="signame">{{ $receivedSigner['name'] }}</div>
+        <div class="sigidentity">{{ $receivedSigner['identity'] }}</div>
       </td>
     </tr>
   </table>

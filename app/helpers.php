@@ -191,3 +191,53 @@ if (! function_exists('fmt_number')) {
         return number_format((float) $num, $decimals, $decimalSep, $thousandSep);
     }
 }
+
+if (! function_exists('pdf_text_upper')) {
+    function pdf_text_upper(?string $value): string
+    {
+        $text = trim((string) ($value ?? ''));
+        if ($text === '') {
+            return '-';
+        }
+
+        return function_exists('mb_strtoupper') ? mb_strtoupper($text, 'UTF-8') : strtoupper($text);
+    }
+}
+
+if (! function_exists('pdf_build_signer')) {
+    function pdf_build_signer($person = null, ?string $fallbackName = '-', ?string $fallbackIdentity = '-', ?string $fallbackRole = null): array
+    {
+        $name = trim((string) (
+            $person?->display_name_with_title
+            ?? $person?->name
+            ?? $fallbackName
+            ?? '-'
+        ));
+
+        if ($name === '') {
+            $name = '-';
+        }
+
+        $rank = trim((string) ($person?->rank ?? ''));
+        $number = $person?->nrp ?: $person?->nip;
+        $numberLabel = $person?->nrp ? 'NRP.' : ($person?->nip ? 'NIP.' : null);
+
+        $identity = $rank;
+        if ($number) {
+            $identity = trim($identity.' '.trim((string) $numberLabel).' '.$number);
+        }
+
+        if ($identity === '') {
+            $identity = trim((string) ($fallbackRole ?? $fallbackIdentity ?? '-'));
+        }
+
+        if ($identity === '') {
+            $identity = '-';
+        }
+
+        return [
+            'name' => pdf_text_upper($name),
+            'identity' => pdf_text_upper($identity),
+        ];
+    }
+}

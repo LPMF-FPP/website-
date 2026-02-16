@@ -219,7 +219,7 @@ class SampleDisposalTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('Metode Pemusnahan');
-        $response->assertSee('Nama Saksi');
+        $response->assertSee('Saksi (User)');
     }
 
     public function test_can_execute_batch_disposal(): void
@@ -228,13 +228,18 @@ class SampleDisposalTest extends TestCase
         $samples = Sample::factory()->count(3)->create([
             'disposal_status' => SampleDisposalStatus::ELIGIBLE,
         ]);
+        $witness = User::factory()->create([
+            'name' => 'Saksi Pengujian',
+            'rank' => 'AKBP',
+            'nrp' => '99887766',
+            'is_active' => true,
+        ]);
 
         $response = $this->actingAs($this->user)
             ->post(route('inventory.disposal.store'), [
                 'sample_ids' => $samples->pluck('id')->toArray(),
                 'method' => 'bakar',
-                'witness_name' => 'Budi Santoso',
-                'witness_role' => 'Kepala Lab',
+                'witness_user_id' => $witness->id,
                 'notes' => 'Pemusnahan berjalan lancar',
             ]);
 
@@ -243,7 +248,7 @@ class SampleDisposalTest extends TestCase
         // Verify disposal record created
         $this->assertDatabaseHas('sample_disposals', [
             'method' => 'bakar',
-            'witness_name' => 'Budi Santoso',
+            'witness_user_id' => $witness->id,
         ]);
 
         // Verify all samples marked as disposed
@@ -260,13 +265,18 @@ class SampleDisposalTest extends TestCase
         $sample = Sample::factory()->create([
             'disposal_status' => SampleDisposalStatus::ELIGIBLE,
         ]);
+        $witness = User::factory()->create([
+            'name' => 'Test Witness',
+            'rank' => 'KOMPOL',
+            'nrp' => '11223344',
+            'is_active' => true,
+        ]);
 
         $this->actingAs($this->user)
             ->post(route('inventory.disposal.store'), [
                 'sample_ids' => [$sample->id],
                 'method' => 'hancur',
-                'witness_name' => 'Test Witness',
-                'witness_role' => 'Test Role',
+                'witness_user_id' => $witness->id,
             ]);
 
         $disposal = SampleDisposal::latest()->first();
@@ -275,6 +285,100 @@ class SampleDisposalTest extends TestCase
         $this->assertEquals($this->user->id, $disposal->executed_by);
         $this->assertEquals($this->user->id, $disposal->created_by);
         $this->assertNotNull($disposal->executed_at);
+    }
+
+    public function test_disposal_store_requires_witness_input(): void
+    {
+        $sample = Sample::factory()->create([
+            'disposal_status' => SampleDisposalStatus::ELIGIBLE,
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->post(route('inventory.disposal.store'), [
+                'sample_ids' => [$sample->id],
+                'method' => 'bakar',
+            ]);
+
+        $response->assertSessionHasErrors(['witness_name', 'witness_role']);
+    }
+
+    public function test_can_execute_batch_disposal_with_manual_witness_fields(): void
+    {
+        $samples = Sample::factory()->count(2)->create([
+            'disposal_status' => SampleDisposalStatus::ELIGIBLE,
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->post(route('inventory.disposal.store'), [
+                'sample_ids' => $samples->pluck('id')->toArray(),
+                'method' => 'hancur',
+                'witness_name' => 'Saksi Eksternal',
+                'witness_role' => 'Perwakilan Penyidik',
+            ]);
+
+        $response->assertRedirect();
+
+        $this->assertDatabaseHas('sample_disposals', [
+            'method' => 'hancur',
+            'witness_name' => 'Saksi Eksternal',
+            'witness_role' => 'Perwakilan Penyidik',
+            'witness_user_id' => null,
+        ]);
+    }
+
+    public function test_disposal_store_rejects_inactive_witness_user(): void
+    {
+        $sample = Sample::factory()->create([
+            'disposal_status' => SampleDisposalStatus::ELIGIBLE,
+        ]);
+        $inactiveWitness = User::factory()->create([
+            'is_active' => false,
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->post(route('inventory.disposal.store'), [
+                'sample_ids' => [$sample->id],
+                'method' => 'bakar',
+                'witness_user_id' => $inactiveWitness->id,
+            ]);
+
+        $response->assertSessionHasErrors('witness_user_id');
+    }
+
+    public function test_disposal_snapshot_remains_after_witness_profile_changes(): void
+    {
+        $sample = Sample::factory()->create([
+            'disposal_status' => SampleDisposalStatus::ELIGIBLE,
+        ]);
+        $witness = User::factory()->create([
+            'name' => 'Nama Lama',
+            'rank' => 'AKBP',
+            'nrp' => '88776655',
+            'is_active' => true,
+        ]);
+
+        $this->actingAs($this->user)
+            ->post(route('inventory.disposal.store'), [
+                'sample_ids' => [$sample->id],
+                'method' => 'bakar',
+                'witness_user_id' => $witness->id,
+            ]);
+
+        $disposal = SampleDisposal::latest()->first();
+        $this->assertNotNull($disposal);
+        $this->assertStringContainsString('NAMA LAMA', strtoupper($disposal->witness_name));
+
+        $witness->update([
+            'name' => 'Nama Baru',
+            'rank' => 'KOMBES POL.',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->get(route('inventory.disposal.show', $disposal));
+
+        $response->assertStatus(200);
+        $response->assertSee('Nama Lama');
+        $response->assertDontSee('Nama Baru');
     }
 
     public function test_can_download_berita_acara_pdf(): void
@@ -302,6 +406,7 @@ class SampleDisposalTest extends TestCase
     {
         $disposal = SampleDisposal::factory()->create([
             'witness_name' => 'Test Witness',
+            'witness_user_id' => null,
         ]);
 
         $response = $this->actingAs($this->user)

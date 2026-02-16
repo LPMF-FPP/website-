@@ -671,7 +671,7 @@ class DeliveryController extends Controller
      */
     public function handoverGenerate(Delivery $delivery, DocumentService $docs)
     {
-        $delivery->loadMissing(['request.investigator', 'request.samples']);
+        $delivery->loadMissing(['request.investigator', 'request.samples', 'request.user', 'deliveredBy']);
         $req = $delivery->request;
         $inv = $req->investigator;
 
@@ -725,6 +725,7 @@ class DeliveryController extends Controller
         // render blade BA yang sudah kamu buat
         $html = view('pdf.ba-penyerahan', [
             'request' => $req,
+            'delivery' => $delivery,
             'generatedAt' => now(),
         ])->render();
 
@@ -750,7 +751,7 @@ class DeliveryController extends Controller
      */
     public function handoverView(Delivery $delivery, DocumentService $docs)
     {
-        $delivery->loadMissing(['request.investigator', 'request.samples']);
+        $delivery->loadMissing(['request.investigator', 'request.samples', 'request.user', 'deliveredBy']);
         $req = $delivery->request;
         $inv = $req->investigator;
 
@@ -776,6 +777,7 @@ class DeliveryController extends Controller
         // No existing PDF - generate on-the-fly WITHOUT storing (view only)
         $html = view('pdf.ba-penyerahan', [
             'request' => $req,
+            'delivery' => $delivery,
             'generatedAt' => now(),
         ])->render();
 

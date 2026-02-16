@@ -20,12 +20,19 @@ class FormPreparationArchiveTest extends TestCase
 
     protected User $user;
 
+    protected ?string $lastRenderedHtml = null;
+
     protected function setUp(): void
     {
         parent::setUp();
 
         Storage::fake('public');
-        $this->user = User::factory()->create();
+        $this->user = User::factory()->create([
+            'name' => 'Analis Uji',
+            'title_suffix' => 'S.Farm',
+            'rank' => 'IPTU',
+            'nrp' => '12345678',
+        ]);
 
         // Mock PDF generation
         $mockPdf = \Mockery::mock(\Barryvdh\DomPDF\PDF::class);
@@ -36,7 +43,11 @@ class FormPreparationArchiveTest extends TestCase
 
         // Since the controller uses the Facade, we need to mock the Facade root or method
         // But for Facades, shouldReceive on the Facade class works.
-        Pdf::shouldReceive('loadHTML')->andReturn($mockPdf);
+        Pdf::shouldReceive('loadHTML')->andReturnUsing(function ($html) use ($mockPdf) {
+            $this->lastRenderedHtml = $html;
+
+            return $mockPdf;
+        });
     }
 
     public function test_form_preparation_generates_pdf_and_stores_via_document_service(): void
@@ -114,6 +125,17 @@ class FormPreparationArchiveTest extends TestCase
         // Assert: Storage::disk('public')->assertExists($doc->path)
         Storage::disk('public')->assertExists($document->path);
 
+        $expectedSignerName = function_exists('mb_strtoupper')
+            ? mb_strtoupper($this->user->display_name_with_title, 'UTF-8')
+            : strtoupper($this->user->display_name_with_title);
+        $expectedSignerIdentity = function_exists('mb_strtoupper')
+            ? mb_strtoupper(trim(($this->user->rank ?? '').' NRP. '.($this->user->nrp ?? '-')), 'UTF-8')
+            : strtoupper(trim(($this->user->rank ?? '').' NRP. '.($this->user->nrp ?? '-')));
+
+        $this->assertNotNull($this->lastRenderedHtml);
+        $this->assertStringContainsString($expectedSignerName, $this->lastRenderedHtml ?? '');
+        $this->assertStringContainsString($expectedSignerIdentity, $this->lastRenderedHtml ?? '');
+
         // Additional assertions for completeness
         $this->assertEquals($investigator->id, $document->investigator_id);
         $this->assertEquals($testRequest->id, $document->test_request_id);
@@ -182,5 +204,66 @@ class FormPreparationArchiveTest extends TestCase
 
         $this->assertNotNull($document);
         Storage::disk('public')->assertExists($document->path);
+    }
+
+    public function test_form_preparation_renders_identity_fallback_when_analyst_has_no_nrp_or_nip(): void
+    {
+        $noIdUser = User::factory()->create([
+            'name' => 'No Id Analyst',
+            'rank' => null,
+            'nrp' => null,
+            'nip' => null,
+        ]);
+
+        $investigator = Investigator::create([
+            'nrp' => '97010977',
+            'name' => 'Rizki Pratama',
+            'rank' => 'IPTU',
+            'jurisdiction' => 'Polda Metro Jaya',
+            'phone' => '081234567890',
+            'folder_key' => '97010977-rizki',
+        ]);
+
+        $testRequest = TestRequest::create([
+            'investigator_id' => $investigator->id,
+            'user_id' => $this->user->id,
+            'request_number' => 'REQ-2025-0099',
+            'to_office' => 'Pusdokkes Polri',
+            'suspect_name' => 'Test Suspect',
+            'status' => 'submitted',
+            'submitted_at' => now(),
+        ]);
+
+        $sample = Sample::create([
+            'test_request_id' => $testRequest->id,
+            'sample_code' => 'SP-099',
+            'short_description' => 'Sampel Fallback',
+            'sample_form' => 'powder',
+            'test_methods' => json_encode(['uv_vis']),
+            'active_substance' => 'Test',
+            'package_quantity' => 5,
+            'condition' => 'baik',
+            'sample_status' => 'received',
+        ]);
+
+        $sampleProcess = SampleTestProcess::create([
+            'sample_id' => $sample->id,
+            'stage' => TestProcessStage::PREPARATION->value,
+            'performed_by' => $noIdUser->id,
+            'started_at' => now(),
+            'metadata' => json_encode(['method' => 'uv_vis']),
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->get(route('testing.processes.generate-form', [
+                'sample_process' => $sampleProcess->id,
+                'stage' => 'preparation',
+            ]));
+
+        $response->assertSuccessful();
+        $this->assertNotNull($this->lastRenderedHtml);
+        $this->assertStringContainsString('NO ID ANALYST', $this->lastRenderedHtml ?? '');
+        $compactHtml = preg_replace('/\s+/', '', $this->lastRenderedHtml ?? '') ?? '';
+        $this->assertStringContainsString('>-</div>', $compactHtml);
     }
 }

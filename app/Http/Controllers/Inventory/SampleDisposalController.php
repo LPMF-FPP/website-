@@ -9,6 +9,7 @@ use App\Enums\SampleDisposalStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Sample;
 use App\Models\SampleDisposal;
+use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -39,7 +40,7 @@ class SampleDisposalController extends Controller
 
         // Disposal history
         $disposals = SampleDisposal::query()
-            ->with(['samples', 'executedBy'])
+            ->with(['samples', 'executedBy', 'witnessUser'])
             ->latest('executed_at')
             ->paginate(20, ['*'], 'history_page');
 
@@ -68,9 +69,15 @@ class SampleDisposalController extends Controller
             ->with(['testRequest.investigator', 'testProcesses'])
             ->get();
 
+        $witnessUsers = User::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'title_prefix', 'title_suffix', 'role', 'rank', 'nrp', 'nip']);
+
         return view('inventory.disposal.create', [
             'selectedSamples' => $selectedSamples,
             'methods' => SampleDisposalMethod::options(),
+            'witnessUsers' => $witnessUsers,
         ]);
     }
 
@@ -83,10 +90,39 @@ class SampleDisposalController extends Controller
             'sample_ids' => 'required|array|min:1',
             'sample_ids.*' => 'exists:samples,id',
             'method' => 'required|in:bakar,kubur,hancur,lainnya',
-            'witness_name' => 'required|string|max:255',
-            'witness_role' => 'required|string|max:255',
+            'witness_user_id' => 'nullable|exists:users,id',
+            'witness_name' => 'required_without:witness_user_id|string|max:255',
+            'witness_role' => 'required_without:witness_user_id|string|max:255',
             'notes' => 'nullable|string|max:1000',
         ]);
+
+        $witnessUser = null;
+        if (! empty($validated['witness_user_id'])) {
+            $witnessUser = User::query()
+                ->where('id', $validated['witness_user_id'])
+                ->where('is_active', true)
+                ->first();
+
+            if (! $witnessUser) {
+                return back()->withErrors([
+                    'witness_user_id' => 'User saksi tidak valid atau tidak aktif.',
+                ])->withInput();
+            }
+        }
+
+        $witnessName = trim((string) ($validated['witness_name'] ?? ''));
+        $witnessRole = trim((string) ($validated['witness_role'] ?? ''));
+
+        if ($witnessUser && $witnessName === '') {
+            $witnessName = trim((string) ($witnessUser->display_name_with_title ?: $witnessUser->name));
+        }
+        if ($witnessUser && $witnessRole === '') {
+            $witnessRole = trim((string) ($witnessUser->rank ?? $witnessUser->role ?? ''));
+        }
+
+        $executor = Auth::user();
+        $executedByName = trim((string) ($executor?->display_name_with_title ?? $executor?->name ?? ''));
+        $executedByRole = trim((string) ($executor?->rank ?? $executor?->role ?? ''));
 
         // Verify all samples are eligible
         $samples = Sample::query()
@@ -105,10 +141,13 @@ class SampleDisposalController extends Controller
             'batch_number' => SampleDisposal::generateBatchNumber(),
             'executed_at' => now(),
             'method' => SampleDisposalMethod::from($validated['method']),
-            'witness_name' => $validated['witness_name'],
-            'witness_role' => $validated['witness_role'],
+            'witness_name' => $witnessName !== '' ? $witnessName : '-',
+            'witness_role' => $witnessRole !== '' ? $witnessRole : '-',
+            'witness_user_id' => $witnessUser?->id,
             'notes' => $validated['notes'] ?? null,
             'executed_by' => Auth::id(),
+            'executed_by_name' => $executedByName !== '' ? $executedByName : '-',
+            'executed_by_role' => $executedByRole !== '' ? $executedByRole : 'ANALIS',
             'created_by' => Auth::id(),
         ]);
 
@@ -132,6 +171,7 @@ class SampleDisposalController extends Controller
             'samples.testProcesses',
             'executedBy',
             'createdBy',
+            'witnessUser',
         ]);
 
         return view('inventory.disposal.show', [
@@ -148,6 +188,7 @@ class SampleDisposalController extends Controller
             'samples.testRequest.investigator',
             'samples.testProcesses',
             'executedBy',
+            'witnessUser',
         ]);
 
         $pdf = Pdf::loadView('pdf.berita-acara-pemusnahan', [

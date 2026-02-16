@@ -1180,7 +1180,7 @@ class RequestController extends Controller
             $pdfRenderService = app(\App\Services\PdfRenderService::class);
 
             // Ambil relasi lengkap
-            $testRequest->loadMissing(['investigator', 'samples']);
+            $testRequest->loadMissing(['investigator', 'samples', 'user']);
             $inv = $testRequest->investigator;
 
             // Validate investigator exists

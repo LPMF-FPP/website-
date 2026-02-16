@@ -63,15 +63,15 @@
                 </div>
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Nama Saksi</dt>
-                    <dd class="mt-1 text-sm text-gray-900">{{ $disposal->witness_name }}</dd>
+                    <dd class="mt-1 text-sm text-gray-900">{{ $disposal->witness_name ?: ($disposal->witnessUser?->display_name_with_title ?? '-') }}</dd>
                 </div>
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Jabatan Saksi</dt>
-                    <dd class="mt-1 text-sm text-gray-900">{{ $disposal->witness_role }}</dd>
+                    <dd class="mt-1 text-sm text-gray-900">{{ $disposal->witness_role ?: ($disposal->witnessUser?->rank ?? '-') }}</dd>
                 </div>
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Pelaksana</dt>
-                    <dd class="mt-1 text-sm text-gray-900">{{ $disposal->executedBy?->name ?? '-' }}</dd>
+                    <dd class="mt-1 text-sm text-gray-900">{{ $disposal->executed_by_name ?: ($disposal->executedBy?->display_name_with_title ?? $disposal->executedBy?->name ?? '-') }}</dd>
                 </div>
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Dicatat oleh</dt>

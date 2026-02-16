@@ -93,28 +93,59 @@
                             @enderror
                         </div>
 
-                        {{-- Witness Name --}}
+                        {{-- Witness User --}}
+                        <div class="md:col-span-2">
+                            <label for="witness_user_id" class="block text-sm font-medium text-gray-700 mb-1">
+                                Saksi (User)
+                            </label>
+                            <select name="witness_user_id" id="witness_user_id" required
+                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                <option value="">-- Pilih Saksi --</option>
+                                @foreach($witnessUsers as $witnessUser)
+                                    @php
+                                        $identityNumber = $witnessUser->nrp ?: $witnessUser->nip;
+                                        $identityLabel = $witnessUser->nrp ? 'NRP' : ($witnessUser->nip ? 'NIP' : null);
+                                        $identityText = $identityLabel && $identityNumber
+                                            ? "{$identityLabel}: {$identityNumber}"
+                                            : null;
+                                    @endphp
+                                    <option value="{{ $witnessUser->id }}" {{ (string) old('witness_user_id') === (string) $witnessUser->id ? 'selected' : '' }}>
+                                        {{ $witnessUser->display_name_with_title }}
+                                        @if($witnessUser->rank)
+                                            — {{ $witnessUser->rank }}
+                                        @endif
+                                        @if($identityText)
+                                            — {{ $identityText }}
+                                        @endif
+                                    </option>
+                                @endforeach
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Opsional. Jika tidak dipilih, isi nama dan jabatan saksi secara manual.</p>
+                            @error('witness_user_id')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
                         <div>
                             <label for="witness_name" class="block text-sm font-medium text-gray-700 mb-1">
-                                Nama Saksi <span class="text-red-500">*</span>
+                                Nama Saksi (Manual)
                             </label>
-                            <input type="text" name="witness_name" id="witness_name" required
+                            <input type="text" name="witness_name" id="witness_name"
                                 value="{{ old('witness_name') }}"
-                                placeholder="Nama lengkap saksi"
+                                placeholder="Isi jika saksi bukan user sistem"
                                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
                             @error('witness_name')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>
 
-                        {{-- Witness Role --}}
                         <div>
                             <label for="witness_role" class="block text-sm font-medium text-gray-700 mb-1">
-                                Jabatan Saksi <span class="text-red-500">*</span>
+                                Jabatan Saksi (Manual)
                             </label>
-                            <input type="text" name="witness_role" id="witness_role" required
+                            <input type="text" name="witness_role" id="witness_role"
                                 value="{{ old('witness_role') }}"
-                                placeholder="Contoh: Kepala Lab, Koordinator"
+                                placeholder="Contoh: Kepala Lab / Penyidik"
                                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
                             @error('witness_role')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
