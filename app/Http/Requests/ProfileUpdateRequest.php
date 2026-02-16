@@ -25,6 +25,11 @@ class ProfileUpdateRequest extends FormRequest
                 Rule::unique('users', 'email')->ignore($this->user()?->id),
             ],
             'phone' => ['nullable', 'string', 'max:20', 'regex:/^(\+62|62|0)[0-9]{8,15}$/'],
+            'title_prefix' => ['nullable', 'string', 'max:50'],
+            'title_suffix' => ['nullable', 'string', 'max:50'],
+            'rank' => ['nullable', 'string', 'max:100'],
+            'nrp' => ['nullable', 'string', 'max:50'],
+            'nip' => ['nullable', 'string', 'max:50'],
         ];
     }
 }

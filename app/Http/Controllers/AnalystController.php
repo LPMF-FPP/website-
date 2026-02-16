@@ -4,24 +4,28 @@ namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
 use App\Models\Permission;
+use App\Models\RolePermission;
 use App\Models\User;
 use App\Services\PermissionService;
+use App\Services\Settings\SettingsWriter;
 use App\Support\ActivityLogger;
+use App\Support\RoleCatalog;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AnalystController extends Controller
 {
-    protected array $manageableRoles = ['analis', 'penyelia', 'manajer_teknis', 'admin'];
-
     public function __construct(
-        protected PermissionService $permissionService
+        protected PermissionService $permissionService,
+        protected RoleCatalog $roleCatalog,
+        protected SettingsWriter $settingsWriter
     ) {
         $this->middleware(function ($request, $next) {
             Gate::authorize('manage-users');
@@ -74,21 +78,11 @@ class AnalystController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $availableRoles = User::query()
-            ->select('role')
-            ->whereNotNull('role')
-            ->distinct()
-            ->orderBy('role')
-            ->pluck('role')
-            ->values()
-            ->merge($this->manageableRoles)
-            ->unique()
-            ->values()
-            ->all();
+        $availableRoles = $this->roleCatalog->allKnownRoles();
 
         return view('analysts.index', [
             'analysts' => $analysts,
-            'roles' => $this->manageableRoles,
+            'roles' => $this->roleOptions(),
             'availableRoles' => $availableRoles,
             'filters' => [
                 'role' => $role,
@@ -233,6 +227,64 @@ class AnalystController extends Controller
         );
 
         return back()->with('success', 'Peran pengguna berhasil diperbarui. Permission telah direset ke default role baru.');
+    }
+
+    public function storeRole(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'role_name' => ['required', 'string', 'max:100'],
+            'clone_from' => ['required', 'string'],
+        ]);
+
+        $newRole = $this->roleCatalog->normalize($validated['role_name']);
+        if ($newRole === '') {
+            return back()->withErrors([
+                'role_name' => 'Nama role tidak valid. Gunakan huruf/angka, spasi, garis bawah, atau tanda minus.',
+            ]);
+        }
+
+        $existingRoles = $this->roleCatalog->allKnownRoles();
+        if (in_array($newRole, $existingRoles, true)) {
+            return back()->withErrors([
+                'role_name' => 'Role tersebut sudah ada.',
+            ]);
+        }
+
+        $cloneFrom = $this->roleCatalog->normalize($validated['clone_from']);
+        if (! in_array($cloneFrom, $existingRoles, true)) {
+            return back()->withErrors([
+                'clone_from' => 'Role sumber untuk menyalin permission tidak ditemukan.',
+            ]);
+        }
+
+        DB::transaction(function () use ($newRole, $cloneFrom, $request): void {
+            $permissionIds = RolePermission::query()
+                ->where('role', $cloneFrom)
+                ->pluck('permission_id')
+                ->all();
+
+            foreach ($permissionIds as $permissionId) {
+                RolePermission::query()->firstOrCreate([
+                    'role' => $newRole,
+                    'permission_id' => $permissionId,
+                ]);
+            }
+
+            $updatedRoles = collect($this->roleCatalog->staffRoles())
+                ->push($newRole)
+                ->unique()
+                ->sort()
+                ->values()
+                ->all();
+
+            $this->settingsWriter->put([
+                'security' => [
+                    'available_roles' => $updatedRoles,
+                ],
+            ], 'USER_ROLE_TYPE_CREATED', $request->user());
+        });
+
+        return back()->with('success', 'Role baru berhasil ditambahkan: '.Str::of($newRole)->replace('_', ' ')->title());
     }
 
     public function updatePermissions(Request $request, User $analyst): RedirectResponse
@@ -531,13 +583,19 @@ class AnalystController extends Controller
 
     private function roleOptions(?string $currentRole = null): array
     {
-        $roles = $this->manageableRoles;
+        $roles = $this->roleCatalog->staffRoles();
 
-        if ($currentRole && ! in_array($currentRole, $roles, true)) {
-            $roles[] = $currentRole;
+        if ($currentRole) {
+            $normalizedCurrentRole = $this->roleCatalog->normalize($currentRole);
+            if ($normalizedCurrentRole !== '' && ! in_array($normalizedCurrentRole, $roles, true)) {
+                $roles[] = $normalizedCurrentRole;
+            }
         }
 
-        return $roles;
+        return collect($roles)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function likeOperator(): string

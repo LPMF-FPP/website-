@@ -50,7 +50,13 @@ class HandoverPdfSignerFormatTest extends TestCase
     public function test_handover_generate_archives_html_with_user_bound_submitter_signer(): void
     {
         /** @var User $authUser */
-        $authUser = User::factory()->create(['role' => 'admin']);
+        $authUser = User::factory()->create([
+            'role' => 'admin',
+            'name' => 'Dina Pratama',
+            'title_suffix' => 'S.Farm., Apt.',
+            'rank' => 'AKP',
+            'nrp' => '76112233',
+        ]);
         /** @var User $deliveredBy */
         $deliveredBy = User::factory()->create([
             'name' => 'Kuswardani',
@@ -103,15 +109,18 @@ class HandoverPdfSignerFormatTest extends TestCase
         $htmlContent = Storage::disk('public')->get($htmlDocument->path);
 
         $expectedName = function_exists('mb_strtoupper')
-            ? mb_strtoupper($deliveredBy->display_name_with_title, 'UTF-8')
-            : strtoupper($deliveredBy->display_name_with_title);
+            ? mb_strtoupper($authUser->display_name_with_title, 'UTF-8')
+            : strtoupper($authUser->display_name_with_title);
         $expectedIdentity = function_exists('mb_strtoupper')
-            ? mb_strtoupper(trim(($deliveredBy->rank ?? '').' NRP. '.($deliveredBy->nrp ?? '-')), 'UTF-8')
-            : strtoupper(trim(($deliveredBy->rank ?? '').' NRP. '.($deliveredBy->nrp ?? '-')));
+            ? mb_strtoupper(trim(($authUser->rank ?? '').' NRP. '.($authUser->nrp ?? '-')), 'UTF-8')
+            : strtoupper(trim(($authUser->rank ?? '').' NRP. '.($authUser->nrp ?? '-')));
 
         $this->assertStringContainsString('Yang Menyerahkan', $htmlContent);
         $this->assertStringContainsString($expectedName, $htmlContent);
         $this->assertStringContainsString($expectedIdentity, $htmlContent);
         $this->assertStringNotContainsString('Staf Laboratorium Farmapol Pusdokkes Polri', $htmlContent);
+
+        $delivery->refresh();
+        $this->assertSame($authUser->id, $delivery->delivered_by);
     }
 }

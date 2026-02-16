@@ -120,8 +120,10 @@ class SampleTestProcessController extends Controller
 
         $samples = $samplesQuery->get();
 
+        $staffRoles = app(\App\Support\RoleCatalog::class)->staffRoles();
+
         $analysts = \App\Models\User::where('is_active', true)
-            ->whereIn('role', ['analis', 'penyelia', 'manajer_teknis', 'admin'])
+            ->whereIn('role', $staffRoles)
             ->orderBy('name')
             ->get();
 
@@ -283,8 +285,10 @@ class SampleTestProcessController extends Controller
             ->latest()
             ->get();
 
+        $staffRoles = app(\App\Support\RoleCatalog::class)->staffRoles();
+
         $analysts = \App\Models\User::where('is_active', true)
-            ->whereIn('role', ['analis', 'penyelia', 'manajer_teknis', 'admin'])
+            ->whereIn('role', $staffRoles)
             ->orderBy('name')
             ->get();
 

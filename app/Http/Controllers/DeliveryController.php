@@ -671,6 +671,14 @@ class DeliveryController extends Controller
      */
     public function handoverGenerate(Delivery $delivery, DocumentService $docs)
     {
+        $currentSigner = Auth::user();
+        if ($currentSigner !== null) {
+            if ((int) $delivery->delivered_by !== (int) $currentSigner->id) {
+                $delivery->forceFill(['delivered_by' => $currentSigner->id])->save();
+            }
+            $delivery->setRelation('deliveredBy', $currentSigner);
+        }
+
         $delivery->loadMissing(['request.investigator', 'request.samples', 'request.user', 'deliveredBy']);
         $req = $delivery->request;
         $inv = $req->investigator;

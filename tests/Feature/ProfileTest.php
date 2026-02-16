@@ -44,6 +44,42 @@ class ProfileTest extends TestCase
         $this->assertNull($user->email_verified_at);
     }
 
+    public function test_profile_identity_fields_can_be_updated(): void
+    {
+        $user = User::factory()->create([
+            'title_prefix' => null,
+            'title_suffix' => null,
+            'rank' => null,
+            'nrp' => null,
+            'nip' => null,
+        ]);
+
+        $response = $this
+            ->actingAs($user)
+            ->patch('/profile', [
+                'name' => 'Petugas LPMF',
+                'email' => $user->email,
+                'phone' => '081234567890',
+                'title_prefix' => 'Dr.',
+                'title_suffix' => 'S.Farm., Apt.',
+                'rank' => 'AKP',
+                'nrp' => '70040687',
+                'nip' => '198001012006041001',
+            ]);
+
+        $response
+            ->assertSessionHasNoErrors()
+            ->assertRedirect('/profile');
+
+        $user->refresh();
+
+        $this->assertSame('Dr.', $user->title_prefix);
+        $this->assertSame('S.Farm., Apt.', $user->title_suffix);
+        $this->assertSame('AKP', $user->rank);
+        $this->assertSame('70040687', $user->nrp);
+        $this->assertSame('198001012006041001', $user->nip);
+    }
+
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged(): void
     {
         $user = User::factory()->create();

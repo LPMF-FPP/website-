@@ -54,6 +54,40 @@
             <x-input-error class="mt-2" :messages="$errors->get('phone')" />
         </div>
 
+        <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+                <x-input-label for="title_prefix" :value="__('Gelar Depan')" />
+                <x-text-input id="title_prefix" name="title_prefix" type="text" class="mt-1 block w-full" :value="old('title_prefix', $user->title_prefix)" placeholder="Dr." autocomplete="off" />
+                <x-input-error class="mt-2" :messages="$errors->get('title_prefix')" />
+            </div>
+
+            <div>
+                <x-input-label for="title_suffix" :value="__('Gelar Belakang')" />
+                <x-text-input id="title_suffix" name="title_suffix" type="text" class="mt-1 block w-full" :value="old('title_suffix', $user->title_suffix)" placeholder="S.Farm., Apt." autocomplete="off" />
+                <x-input-error class="mt-2" :messages="$errors->get('title_suffix')" />
+            </div>
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-2">
+            <div>
+                <x-input-label for="rank" :value="__('Pangkat')" />
+                <x-text-input id="rank" name="rank" type="text" class="mt-1 block w-full" :value="old('rank', $user->rank)" placeholder="AKP" autocomplete="off" />
+                <x-input-error class="mt-2" :messages="$errors->get('rank')" />
+            </div>
+
+            <div>
+                <x-input-label for="nrp" :value="__('NRP')" />
+                <x-text-input id="nrp" name="nrp" type="text" class="mt-1 block w-full" :value="old('nrp', $user->nrp)" placeholder="70040687" autocomplete="off" />
+                <x-input-error class="mt-2" :messages="$errors->get('nrp')" />
+            </div>
+        </div>
+
+        <div>
+            <x-input-label for="nip" :value="__('NIP')" />
+            <x-text-input id="nip" name="nip" type="text" class="mt-1 block w-full" :value="old('nip', $user->nip)" placeholder="198001012006041001" autocomplete="off" />
+            <x-input-error class="mt-2" :messages="$errors->get('nip')" />
+        </div>
+
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('Save') }}</x-primary-button>
 

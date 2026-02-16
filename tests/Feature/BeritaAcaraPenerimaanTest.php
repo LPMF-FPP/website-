@@ -209,6 +209,46 @@ class BeritaAcaraPenerimaanTest extends TestCase
         }
     }
 
+    public function test_generate_berita_acara_uses_current_generator_as_receiver_signer(): void
+    {
+        /** @var User $generatorUser */
+        $generatorUser = User::factory()->create([
+            'name' => 'Dwi Anugrah',
+            'title_suffix' => 'S.Farm., Apt.',
+            'rank' => 'AKP',
+            'nrp' => '88011234',
+        ]);
+
+        $this->actingAs($generatorUser)
+            ->post("/requests/{$this->testRequest->id}/berita-acara/generate?archive_html=1")
+            ->assertStatus(200);
+
+        $this->testRequest->refresh();
+        $this->assertSame($generatorUser->id, $this->testRequest->user_id);
+
+        $htmlDocument = Document::where('test_request_id', $this->testRequest->id)
+            ->where('document_type', 'ba_penerimaan_html')
+            ->first();
+
+        $htmlContent = ($htmlDocument && Storage::disk('public')->exists($htmlDocument->path))
+            ? Storage::disk('public')->get($htmlDocument->path)
+            : view('pdf.berita-acara-penerimaan', [
+                'request' => $this->testRequest->loadMissing(['investigator', 'samples', 'user']),
+                'generatedAt' => now(),
+                'isPreview' => true,
+            ])->render();
+
+        $expectedSignerName = function_exists('mb_strtoupper')
+            ? mb_strtoupper($generatorUser->display_name_with_title, 'UTF-8')
+            : strtoupper($generatorUser->display_name_with_title);
+        $expectedSignerIdentity = function_exists('mb_strtoupper')
+            ? mb_strtoupper(trim(($generatorUser->rank ?? '').' NRP. '.($generatorUser->nrp ?? '-')), 'UTF-8')
+            : strtoupper(trim(($generatorUser->rank ?? '').' NRP. '.($generatorUser->nrp ?? '-')));
+
+        $this->assertStringContainsString($expectedSignerName, $htmlContent);
+        $this->assertStringContainsString($expectedSignerIdentity, $htmlContent);
+    }
+
     public function test_berita_acara_uses_nip_when_nrp_not_available_for_receiver(): void
     {
         $receiverUser = User::factory()->create([
