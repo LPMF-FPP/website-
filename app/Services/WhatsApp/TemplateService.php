@@ -2,6 +2,7 @@
 
 namespace App\Services\WhatsApp;
 
+use App\Models\SystemSetting;
 use Illuminate\Support\Facades\Cache;
 
 class TemplateService
@@ -187,7 +188,10 @@ class TemplateService
         $existing = settings($settingsKey, []);
         $existing[$key] = $template;
 
-        settings([$settingsKey => $existing]);
+        SystemSetting::updateOrCreate(
+            ['key' => $settingsKey],
+            ['value' => $existing]
+        );
 
         $this->clearCache();
     }
@@ -206,7 +210,10 @@ class TemplateService
         $existing = settings($settingsKey, []);
         $merged = array_merge($existing, $templates);
 
-        settings([$settingsKey => $merged]);
+        SystemSetting::updateOrCreate(
+            ['key' => $settingsKey],
+            ['value' => $merged]
+        );
 
         $this->clearCache();
     }
@@ -223,7 +230,10 @@ class TemplateService
         if ($settingsKey) {
             $existing = settings($settingsKey, []);
             unset($existing[$key]);
-            settings([$settingsKey => $existing]);
+            SystemSetting::updateOrCreate(
+                ['key' => $settingsKey],
+                ['value' => $existing]
+            );
             $this->clearCache();
         }
 
@@ -423,7 +433,7 @@ class TemplateService
             'generated_at' => now()->format('d/m/Y H:i'),
             'total_requests' => '42',
             'total_samples' => '87',
-            'report_url' => rtrim((string) config('app.url'), '/').'/statistics?tab=reports',
+            'report_url' => 'https://lpmf.web.id/statistics?tab=reports',
             'location' => 'Ruang Lab 1',
             'temperature' => '28.5',
             'threshold' => '25.0',
