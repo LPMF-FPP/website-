@@ -38,7 +38,7 @@ class QmhRevisionDownloadService
             ]);
         }
 
-        $watermark = $copyType === 'controlled' ? 'CONTROLLED COPY' : 'UNCONTROLLED COPY';
+        $watermark = $copyType === 'controlled' ? 'SALINAN TERKENDALI' : 'SALINAN TIDAK TERKENDALI';
 
         $binary = $this->renderPdfBinary($revision, $watermark);
 

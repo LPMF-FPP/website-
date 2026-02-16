@@ -29,11 +29,11 @@ it('renders qmh pdf template html with header fields', function () {
     /** @var QmhRevisionDownloadService $service */
     $service = app(QmhRevisionDownloadService::class);
 
-    $html = $service->buildWatermarkedHtml($revision->fresh('document'), 'UNCONTROLLED COPY');
+    $html = $service->buildWatermarkedHtml($revision->fresh('document'), 'SALINAN TIDAK TERKENDALI');
 
     expect($html)->toContain('No. Dokumen');
     expect($html)->toContain('4.1');
     expect($html)->toContain('E1/R0');
     expect($html)->toContain('KETIDAKBERPIHAKAN');
-    expect($html)->toContain('UNCONTROLLED COPY');
+    expect($html)->toContain('SALINAN TIDAK TERKENDALI');
 });

@@ -149,7 +149,7 @@ class QmhRevisionApprovalDownloadTest extends TestCase
             'revision_id' => $revision->id,
             'copy_type' => 'uncontrolled',
             'downloaded_by' => $approver->id,
-            'watermark_text' => 'UNCONTROLLED COPY',
+            'watermark_text' => 'SALINAN TIDAK TERKENDALI',
         ]);
 
         $log = QmhDocumentDownloadLog::query()->where('revision_id', $revision->id)->latest('id')->first();
@@ -184,7 +184,7 @@ class QmhRevisionApprovalDownloadTest extends TestCase
             'revision_id' => $revision->id,
             'copy_type' => 'controlled',
             'downloaded_by' => $approver->id,
-            'watermark_text' => 'CONTROLLED COPY',
+            'watermark_text' => 'SALINAN TERKENDALI',
         ]);
     }
 

@@ -690,7 +690,7 @@ class TemplatePreviewData
         return [
             'revision' => $revision,
             'contentHtml' => $revision->content_html,
-            'watermarkText' => 'UNCONTROLLED COPY',
+            'watermarkText' => 'SALINAN TIDAK TERKENDALI',
         ];
     }
 
