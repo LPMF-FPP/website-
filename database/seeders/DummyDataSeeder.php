@@ -211,7 +211,6 @@ class DummyDataSeeder extends Seeder
             CustomerSurvey::create([
                 'test_request_id' => $request->id,
                 'respondent_name' => $request->investigator?->name ?? 'Responden Survey '.$request->id,
-                'respondent_job_title' => 'Penyidik',
                 'respondent_institution' => $request->investigator?->jurisdiction ?? 'Polri',
                 'respondent_job_category' => $jobCategories[array_rand($jobCategories)],
                 'request_type' => $requestTypes[array_rand($requestTypes)],
