@@ -45,9 +45,9 @@ class QmhRevisionDownloadServiceTest extends TestCase
         ]);
 
         $service = new QmhRevisionDownloadService;
-        $html = $service->buildWatermarkedHtml($revision, 'CONTROLLED COPY');
+        $html = $service->buildWatermarkedHtml($revision, 'SALINAN TERKENDALI');
 
-        $this->assertStringContainsString('CONTROLLED COPY', $html);
+        $this->assertStringContainsString('SALINAN TERKENDALI', $html);
         $this->assertStringContainsString('E2/R4', $html);
         $this->assertStringContainsString('Konten PDF uji watermark.', $html);
 
