@@ -718,7 +718,7 @@ class DeliveryController extends Controller
             $baPenyerahanNumber = $numberingService->issue('ba_penyerahan', $context);
         }
 
-        $baPenyerahanNumber = $this->normalizeBaPenyerahanNumber($baPenyerahanNumber);
+        $baPenyerahanNumber = $this->canonicalizeBaPenyerahanNumber($baPenyerahanNumber);
 
         // Inject number into request metadata for the view to use
         // This ensures the view displays the reused number
@@ -858,13 +858,22 @@ class DeliveryController extends Controller
         return response()->json($status);
     }
 
-    private function normalizeBaPenyerahanNumber(string $number): string
+    private function canonicalizeBaPenyerahanNumber(string $number): string
     {
-        $normalized = strtoupper(trim($number));
-        $normalized = preg_replace('/[\/\s]+/', '-', $normalized) ?? $normalized;
-        $normalized = preg_replace('/-+/', '-', $normalized) ?? $normalized;
+        $value = strtoupper(trim($number));
 
-        return trim($normalized, '-');
+        if (str_contains($value, '/')) {
+            $value = preg_replace('/\s*\/\s*/', '/', $value) ?? $value;
+            $value = preg_replace('/\/{2,}/', '/', $value) ?? $value;
+
+            return trim($value, '/');
+        }
+
+        if (preg_match('/^(BA-ST)-(\d+)-([IVXLCDM]+)-(\d{4})-([A-Z0-9]+)$/', $value, $m)) {
+            return sprintf('%s/%s/%s/%s/%s', $m[1], str_pad($m[2], 3, '0', STR_PAD_LEFT), $m[3], $m[4], $m[5]);
+        }
+
+        return $value;
     }
 
     /**
