@@ -3,6 +3,7 @@
   use Illuminate\Support\Str;
   Carbon::setLocale('id');
   $req = $request;
+  $delivery = $delivery ?? null;
   $inv = $req->investigator;
   $samples = $req->samples ?? collect();
   $today = isset($generatedAt) ? Carbon::parse($generatedAt) : now();
@@ -32,8 +33,8 @@
       return $s->sample_code ?? $s->short_description ?? null;
   })->filter()->unique()->values();
   $allSampleCodesStr = $sampleCodes->isNotEmpty() ? $sampleCodes->join(', ') : $mainSampleCode;
-  $invName = trim(($inv?->rank).' '.($inv?->name));
-  $invNrp = $inv?->nrp ?? null;
+  $handoverStaffSigner = pdf_build_signer($delivery?->deliveredBy ?? $req->user, fallbackRole: 'PETUGAS LABORATORIUM');
+  $receiverSigner = pdf_build_signer($inv);
 
   // Normalize request metadata early (used by BA number and LHU fallbacks)
   $meta = $toArray($req->metadata ?? []);
@@ -311,8 +312,11 @@
   /* ===== Tanda tangan proporsional ===== */
   .signatures{ width:100%; border-collapse:separate; border-spacing:10px 0; margin-top:6px; }
   .sigcell{ width:50%; }
-  .sigbox{ border:1px solid #000; padding:10px; min-height:88px; display:flex; flex-direction:column; justify-content:space-between; }
+  .sigbox{ border:1px solid #000; padding:10px; min-height:88px; }
   .sigtitle{ font-weight:700; margin-bottom:6px; }
+  .sigspacer { height:36px; }
+  .signame { text-align:center; text-decoration: underline; font-weight:700; }
+  .sigidentity { text-align:center; font-size:9pt; margin-top:4px; }
 
   /* Footer rapat */
   .footer{ position:fixed; bottom:8mm; left:12mm; right:12mm; font-size:9pt; display:flex; justify-content:space-between; border-top:1px solid #000; padding-top:4px; }
@@ -340,7 +344,7 @@
 
   <table class="meta-table">
     <tr><td class="label">Nomor Resi</td><td class="sep">:</td><td class="value nowrap"><strong>{{ $req->receipt_number ?? $req->request_number }}</strong></td></tr>
-    <tr><td class="label">Pelanggan</td><td class="sep">:</td><td class="value">{{ $invName ?: '—' }} @if($invNrp) — NRP/NIP: {{ $invNrp }} @endif</td></tr>
+    <tr><td class="label">Pelanggan</td><td class="sep">:</td><td class="value">{{ trim(($inv?->rank).' '.($inv?->name)) ?: '—' }} @if($inv?->nrp ?? $inv?->nip) — NRP/NIP: {{ $inv?->nrp ?? $inv?->nip }} @endif</td></tr>
     <tr><td class="label">Unit/Satuan</td><td class="sep">:</td><td class="value">{{ $inv?->jurisdiction ?? $req->unit ?? '—' }}</td></tr>
     <tr><td class="label">Nama Tersangka</td><td class="sep">:</td><td class="value">{{ $req->suspect_name ?? '—' }}</td></tr>
   <tr><td class="label">Kode Sampel</td><td class="sep">:</td><td class="value">{{ $allSampleCodesStr }}</td></tr>
@@ -398,15 +402,17 @@
       <td class="sigcell">
         <div class="sigbox">
           <div class="sigtitle">Yang Menyerahkan</div>
-          <div>Staf Laboratorium Farmapol Pusdokkes Polri</div>
-          <div style="height:36px;"></div>
+          <div class="sigspacer"></div>
+          <div class="signame">{{ $handoverStaffSigner['name'] }}</div>
+          <div class="sigidentity">{{ $handoverStaffSigner['identity'] }}</div>
         </div>
       </td>
       <td class="sigcell">
         <div class="sigbox">
           <div class="sigtitle">Yang Menerima</div>
-          <div>{{ $invName ?: '—' }}</div>
-          <div class="small muted">NRP {{ $invNrp ?? '—' }}</div>
+          <div class="sigspacer"></div>
+          <div class="signame">{{ $receiverSigner['name'] }}</div>
+          <div class="sigidentity">{{ $receiverSigner['identity'] }}</div>
         </div>
       </td>
     </tr>

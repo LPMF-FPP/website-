@@ -33,7 +33,12 @@ class BeritaAcaraPenerimaanTest extends TestCase
                 ->andReturn('%PDF-1.4 mock pdf content');
         });
 
-        $this->user = User::factory()->create();
+        $this->user = User::factory()->create([
+            'name' => 'Kuswardani',
+            'title_suffix' => 'S.Si., Apt., M.Farm',
+            'rank' => 'Kombes Pol.',
+            'nrp' => '70040687',
+        ]);
 
         $this->investigator = Investigator::factory()->create([
             'nrp' => '87010123',
@@ -167,6 +172,13 @@ class BeritaAcaraPenerimaanTest extends TestCase
 
     public function test_berita_acara_contains_correct_data(): void
     {
+        $expectedSignerName = function_exists('mb_strtoupper')
+            ? mb_strtoupper($this->user->display_name_with_title, 'UTF-8')
+            : strtoupper($this->user->display_name_with_title);
+        $expectedSignerIdentity = function_exists('mb_strtoupper')
+            ? mb_strtoupper(trim(($this->user->rank ?? '').' NRP. '.($this->user->nrp ?? '-')), 'UTF-8')
+            : strtoupper(trim(($this->user->rank ?? '').' NRP. '.($this->user->nrp ?? '-')));
+
         // Generate with ?archive_html=1 to also save HTML version
         $response = $this->actingAs($this->user)
             ->post("/requests/{$this->testRequest->id}/berita-acara/generate?archive_html=1");
@@ -185,6 +197,8 @@ class BeritaAcaraPenerimaanTest extends TestCase
             $this->assertStringContainsString($this->testRequest->request_number, $htmlContent);
             $this->assertStringContainsString($this->investigator->name, $htmlContent);
             $this->assertStringContainsString('Berita Acara Penerimaan Sampel', $htmlContent);
+            $this->assertStringContainsString($expectedSignerName, $htmlContent);
+            $this->assertStringContainsString($expectedSignerIdentity, $htmlContent);
         } else {
             // If HTML not archived, just verify PDF document exists
             $pdfDocument = Document::where('test_request_id', $this->testRequest->id)
@@ -193,5 +207,51 @@ class BeritaAcaraPenerimaanTest extends TestCase
 
             $this->assertNotNull($pdfDocument);
         }
+    }
+
+    public function test_berita_acara_uses_nip_when_nrp_not_available_for_receiver(): void
+    {
+        $receiverUser = User::factory()->create([
+            'name' => 'Penerima NIP',
+            'title_suffix' => 'S.Si',
+            'rank' => 'Penata',
+            'nrp' => null,
+            'nip' => '198001012006041001',
+        ]);
+
+        $requestWithNipReceiver = TestRequest::factory()->create([
+            'investigator_id' => $this->investigator->id,
+            'user_id' => $receiverUser->id,
+            'case_number' => 'BP/009/2025',
+            'to_office' => 'Pusdokkes Polri',
+        ]);
+
+        Sample::factory()->create([
+            'test_request_id' => $requestWithNipReceiver->id,
+            'test_methods' => json_encode(['uv_vis']),
+        ]);
+
+        $this->actingAs($this->user)
+            ->post("/requests/{$requestWithNipReceiver->id}/berita-acara/generate?archive_html=1")
+            ->assertStatus(200);
+
+        $htmlDocument = Document::where('test_request_id', $requestWithNipReceiver->id)
+            ->where('document_type', 'ba_penerimaan_html')
+            ->first();
+
+        $htmlContent = ($htmlDocument && Storage::disk('public')->exists($htmlDocument->path))
+            ? Storage::disk('public')->get($htmlDocument->path)
+            : view('pdf.berita-acara-penerimaan', [
+                'request' => $requestWithNipReceiver->loadMissing(['investigator', 'samples', 'user']),
+                'generatedAt' => now(),
+                'isPreview' => true,
+            ])->render();
+
+        $expectedIdentity = function_exists('mb_strtoupper')
+            ? mb_strtoupper(trim(($receiverUser->rank ?? '').' NIP. '.($receiverUser->nip ?? '-')), 'UTF-8')
+            : strtoupper(trim(($receiverUser->rank ?? '').' NIP. '.($receiverUser->nip ?? '-')));
+
+        $this->assertStringContainsString($expectedIdentity, $htmlContent);
+        $this->assertStringNotContainsString('NRP.', $expectedIdentity);
     }
 }

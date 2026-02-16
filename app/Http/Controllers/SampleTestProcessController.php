@@ -386,7 +386,7 @@ class SampleTestProcessController extends Controller
 
     public function generateForm(SampleTestProcess $sampleProcess, string $stage, \App\Services\DocumentService $docs)
     {
-        $sampleProcess->loadMissing(['sample.testRequest.investigator']);
+        $sampleProcess->loadMissing(['sample.testRequest.investigator', 'analyst']);
 
         $sample = $sampleProcess->sample;
         $request = $sample?->testRequest;

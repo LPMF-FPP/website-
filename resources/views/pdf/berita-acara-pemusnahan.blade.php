@@ -7,6 +7,22 @@
 
     $leftLogoPath = public_path('images/logo-tribrata-polri.png');
     $rightLogoPath = public_path('images/logo-pusdokkes-polri.png');
+
+    $witnessSigner = pdf_build_signer(
+        ($disposal->witness_name || $disposal->witness_role) ? null : $disposal->witnessUser,
+        fallbackName: $disposal->witness_name,
+        fallbackIdentity: $disposal->witness_role
+    );
+    $executorSigner = pdf_build_signer(
+        ($disposal->executed_by_name || $disposal->executed_by_role) ? null : $disposal->executedBy,
+        fallbackName: $disposal->executed_by_name,
+        fallbackIdentity: $disposal->executed_by_role,
+        fallbackRole: 'ANALIS'
+    );
+    $approverSigner = [
+        'name' => pdf_text_upper('-'),
+        'identity' => pdf_text_upper('-'),
+    ];
 @endphp
 <!DOCTYPE html>
 <html lang="id">
@@ -51,9 +67,10 @@
   .sign-table { width:100%; margin-top:10px; border:0; border-collapse:separate; }
   .sign-table td { width:33%; vertical-align:top; border:0; }
   .sigcell { padding:6px 8px; }
-  .sigtitle { text-align:center; font-weight:700; margin-bottom:60px; }
+  .sigtitle { text-align:center; font-weight:700; margin-bottom:0; }
+  .sigspacer { height:60px; }
   .signame { text-align:center; text-decoration: underline; font-weight:700; }
-  .sigrole { text-align:center; font-size:9pt; }
+  .sigidentity { text-align:center; font-size:9pt; margin-top:4px; }
 
   .footer { margin-top: 16px; font-size:9pt; color:#555; }
 </style>
@@ -88,8 +105,8 @@
     <tr><td class="label">Tanggal Pelaksanaan</td><td class="sep">:</td><td class="value">{{ $executedAt->translatedFormat('d F Y, H:i') }} WIB</td></tr>
     <tr><td class="label">Metode Pemusnahan</td><td class="sep">:</td><td class="value">{{ $disposal->method->label() }}</td></tr>
     <tr><td class="label">Jumlah Sampel</td><td class="sep">:</td><td class="value"><strong>{{ $disposal->samples->count() }}</strong> sampel</td></tr>
-    <tr><td class="label">Pelaksana</td><td class="sep">:</td><td class="value">{{ $disposal->executedBy?->name ?? '-' }}</td></tr>
-    <tr><td class="label">Saksi</td><td class="sep">:</td><td class="value">{{ $disposal->witness_name }} ({{ $disposal->witness_role }})</td></tr>
+    <tr><td class="label">Pelaksana</td><td class="sep">:</td><td class="value">{{ $disposal->executed_by_name ?: ($disposal->executedBy?->display_name_with_title ?? $disposal->executedBy?->name ?? '-') }}</td></tr>
+    <tr><td class="label">Saksi</td><td class="sep">:</td><td class="value">{{ $witnessSigner['name'] }} ({{ $witnessSigner['identity'] }})</td></tr>
     @if($disposal->notes)
     <tr><td class="label">Catatan</td><td class="sep">:</td><td class="value">{{ $disposal->notes }}</td></tr>
     @endif
@@ -133,18 +150,21 @@
     <tr>
       <td class="sigcell">
         <div class="sigtitle">Saksi,</div>
-        <div class="signame">{{ $disposal->witness_name }}</div>
-        <div class="sigrole">{{ $disposal->witness_role }}</div>
+        <div class="sigspacer"></div>
+        <div class="signame">{{ $witnessSigner['name'] }}</div>
+        <div class="sigidentity">{{ $witnessSigner['identity'] }}</div>
       </td>
       <td class="sigcell">
         <div class="sigtitle">Pelaksana,</div>
-        <div class="signame">{{ $disposal->executedBy?->name ?? '____________________' }}</div>
-        <div class="sigrole">Analis</div>
+        <div class="sigspacer"></div>
+        <div class="signame">{{ $executorSigner['name'] }}</div>
+        <div class="sigidentity">{{ $executorSigner['identity'] }}</div>
       </td>
       <td class="sigcell">
         <div class="sigtitle">Mengetahui,<br>Ka. Sub Satker Farmapol</div>
-        <div class="signame">____________________</div>
-        <div class="sigrole">&nbsp;</div>
+        <div class="sigspacer"></div>
+        <div class="signame">{{ $approverSigner['name'] }}</div>
+        <div class="sigidentity">{{ $approverSigner['identity'] }}</div>
       </td>
     </tr>
   </table>

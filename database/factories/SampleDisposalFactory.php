@@ -24,10 +24,26 @@ class SampleDisposalFactory extends Factory
             'method' => fake()->randomElement(SampleDisposalMethod::cases()),
             'witness_name' => fake()->name(),
             'witness_role' => fake()->randomElement(['Kepala Lab', 'Wakil Kepala Lab', 'Koordinator', 'Analis Senior']),
+            'witness_user_id' => null,
             'notes' => fake()->optional()->sentence(),
             'executed_by' => User::factory(),
+            'executed_by_name' => fake()->name(),
+            'executed_by_role' => fake()->randomElement(['Analis', 'Koordinator', 'Penyelia']),
             'created_by' => User::factory(),
         ];
+    }
+
+    public function withWitnessUser(?User $user = null): static
+    {
+        return $this->state(function () use ($user) {
+            $witness = $user ?? User::factory()->create();
+
+            return [
+                'witness_user_id' => $witness->id,
+                'witness_name' => trim((string) ($witness->display_name_with_title ?: $witness->name ?: '-')),
+                'witness_role' => trim((string) ($witness->rank ?? $witness->role ?? '-')),
+            ];
+        });
     }
 
     public function bakar(): static
