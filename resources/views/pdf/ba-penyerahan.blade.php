@@ -54,6 +54,12 @@
   } catch (\Throwable $e) {
     $baPenyerahanNumber = '—';
   }
+  if ($baPenyerahanNumber && $baPenyerahanNumber !== '—') {
+    $baPenyerahanNumber = strtoupper((string) $baPenyerahanNumber);
+    $baPenyerahanNumber = preg_replace('/[\/\s]+/', '-', $baPenyerahanNumber) ?? $baPenyerahanNumber;
+    $baPenyerahanNumber = preg_replace('/-+/', '-', $baPenyerahanNumber) ?? $baPenyerahanNumber;
+    $baPenyerahanNumber = trim($baPenyerahanNumber, '-');
+  }
   // Robust fallbacks from DB relations/fields
   $baNumber = $req->ba_number
     ?? ($req->ba->number ?? null)
@@ -350,7 +356,6 @@
   <tr><td class="label">Kode Sampel</td><td class="sep">:</td><td class="value">{{ $allSampleCodesStr }}</td></tr>
   <tr><td class="label">Nomor LHU</td><td class="sep">:</td><td class="value">{{ $allLhuNumbersStr }}</td></tr>
     <tr><td class="label">Dasar Permohonan</td><td class="sep">:</td><td class="value">{{ $basisText }}</td></tr>
-    <tr><td class="label">Rujukan Dokumen Asal</td><td class="sep">:</td><td class="value"><strong>Lihat FR/LPMF/7.8.1, FR/LPMF/7.8.2, dan Tanda Terima terkait</strong></td></tr>
   </table>
 
   <div class="section">
