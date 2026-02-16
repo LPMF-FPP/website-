@@ -56,9 +56,13 @@
   }
   if ($baPenyerahanNumber && $baPenyerahanNumber !== '—') {
     $baPenyerahanNumber = strtoupper((string) $baPenyerahanNumber);
-    $baPenyerahanNumber = preg_replace('/[\/\s]+/', '-', $baPenyerahanNumber) ?? $baPenyerahanNumber;
-    $baPenyerahanNumber = preg_replace('/-+/', '-', $baPenyerahanNumber) ?? $baPenyerahanNumber;
-    $baPenyerahanNumber = trim($baPenyerahanNumber, '-');
+    if (str_contains($baPenyerahanNumber, '/')) {
+      $baPenyerahanNumber = preg_replace('/\s*\/\s*/', '/', $baPenyerahanNumber) ?? $baPenyerahanNumber;
+      $baPenyerahanNumber = preg_replace('/\/{2,}/', '/', $baPenyerahanNumber) ?? $baPenyerahanNumber;
+      $baPenyerahanNumber = trim($baPenyerahanNumber, '/');
+    } elseif (preg_match('/^(BA-ST)-(\d+)-([IVXLCDM]+)-(\d{4})-([A-Z0-9]+)$/', $baPenyerahanNumber, $m)) {
+      $baPenyerahanNumber = sprintf('%s/%s/%s/%s/%s', $m[1], str_pad($m[2], 3, '0', STR_PAD_LEFT), $m[3], $m[4], $m[5]);
+    }
   }
   // Robust fallbacks from DB relations/fields
   $baNumber = $req->ba_number
