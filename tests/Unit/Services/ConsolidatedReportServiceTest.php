@@ -6,6 +6,7 @@ use App\Repositories\SettingsRepository;
 use App\Services\ActiveSubstanceService;
 use App\Services\ConsolidatedReportService;
 use App\Services\IkuService;
+use App\Services\WhatsApp\TemplateService;
 use Mockery;
 use Tests\TestCase;
 
@@ -40,7 +41,8 @@ class ConsolidatedReportServiceTest extends TestCase
         $service = new ConsolidatedReportService(
             Mockery::mock(ActiveSubstanceService::class),
             Mockery::mock(IkuService::class),
-            $mockSettings
+            $mockSettings,
+            Mockery::mock(TemplateService::class)
         );
 
         $this->assertEquals(ConsolidatedReportService::DEFAULT_SIGNERS_STRUCTURE, $service->getDefaultSigners());
@@ -56,7 +58,8 @@ class ConsolidatedReportServiceTest extends TestCase
         $service = new ConsolidatedReportService(
             Mockery::mock(ActiveSubstanceService::class),
             Mockery::mock(IkuService::class),
-            $mockSettings
+            $mockSettings,
+            Mockery::mock(TemplateService::class)
         );
 
         $this->assertEquals(ConsolidatedReportService::DEFAULT_SIGNERS_STRUCTURE, $service->getDefaultSigners());
@@ -78,7 +81,8 @@ class ConsolidatedReportServiceTest extends TestCase
         $service = new ConsolidatedReportService(
             Mockery::mock(ActiveSubstanceService::class),
             Mockery::mock(IkuService::class),
-            $mockSettings
+            $mockSettings,
+            Mockery::mock(TemplateService::class)
         );
 
         $signers = $service->getDefaultSigners();
