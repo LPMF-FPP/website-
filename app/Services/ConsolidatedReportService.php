@@ -21,6 +21,8 @@ use Illuminate\Support\Facades\Storage;
 
 class ConsolidatedReportService
 {
+    private const PUBLIC_REPORT_URL = 'https://lpmf.web.id/statistics?tab=reports';
+
     public const DEFAULT_SIGNERS_STRUCTURE = [
         ['role' => 'Pembuat', 'name' => '', 'position' => '', 'nip' => ''],
         ['role' => 'Pemeriksa', 'name' => '', 'position' => '', 'nip' => ''],
@@ -563,7 +565,7 @@ class ConsolidatedReportService
         }
 
         // Format message
-        $appUrl = rtrim((string) config('app.url'), '/');
+        $reportUrl = self::PUBLIC_REPORT_URL;
         $generatedAt = $report->generated_at ? $report->generated_at->format('d/m/Y H:i') : now()->format('d/m/Y H:i');
 
         $templateKey = $this->resolveConsolidatedTemplateKey((string) $report->period_type);
@@ -575,11 +577,11 @@ class ConsolidatedReportService
             'generated_at' => $generatedAt,
             'total_requests' => (string) ($report->report_data['statistics']['total_requests_received'] ?? 0),
             'total_samples' => (string) ($report->report_data['statistics']['total_samples_received'] ?? 0),
-            'report_url' => "{$appUrl}/statistics?tab=reports",
+            'report_url' => $reportUrl,
         ]);
 
         if (trim($message) === '') {
-            $message = $this->buildFallbackConsolidatedMessage($report, $generatedAt, (string) $appUrl);
+            $message = $this->buildFallbackConsolidatedMessage($report, $generatedAt, $reportUrl);
         }
 
         try {
@@ -652,7 +654,7 @@ class ConsolidatedReportService
         };
     }
 
-    private function buildFallbackConsolidatedMessage(ConsolidatedReport $report, string $generatedAt, string $appUrl): string
+    private function buildFallbackConsolidatedMessage(ConsolidatedReport $report, string $generatedAt, string $reportUrl): string
     {
         $message = "📊 *LAPORAN GABUNGAN PERIODIK*\n\n";
         $message .= "Laporan {$report->period_type} periode {$report->period_label} telah di-generate.\n\n";
@@ -661,7 +663,7 @@ class ConsolidatedReportService
         $message .= '📈 Total Permintaan: '.($report->report_data['statistics']['total_requests_received'] ?? 0)."\n";
         $message .= '🧪 Total Sampel: '.($report->report_data['statistics']['total_samples_received'] ?? 0)."\n\n";
         $message .= "Silakan akses laporan di:\n";
-        $message .= "{$appUrl}/statistics?tab=reports\n\n";
+        $message .= "{$reportUrl}\n\n";
         $message .= "—\n";
         $message .= 'Staff Laboratorium Farmapol Pusdokkes Polri';
 

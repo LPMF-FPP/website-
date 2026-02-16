@@ -97,4 +97,11 @@ class TemplateServiceTest extends TestCase
         $this->assertContains('period_label', $placeholders);
         $this->assertContains('report_url', $placeholders);
     }
+
+    public function test_consolidated_template_preview_uses_public_lpmf_report_url(): void
+    {
+        $preview = $this->service->preview('system', 'CONSOLIDATED_BIWEEKLY');
+
+        $this->assertStringContainsString('https://lpmf.web.id/statistics?tab=reports', $preview);
+    }
 }
