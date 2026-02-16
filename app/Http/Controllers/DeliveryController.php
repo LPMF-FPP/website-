@@ -718,6 +718,8 @@ class DeliveryController extends Controller
             $baPenyerahanNumber = $numberingService->issue('ba_penyerahan', $context);
         }
 
+        $baPenyerahanNumber = $this->normalizeBaPenyerahanNumber($baPenyerahanNumber);
+
         // Inject number into request metadata for the view to use
         // This ensures the view displays the reused number
         $meta = $req->metadata ?? [];
@@ -854,6 +856,15 @@ class DeliveryController extends Controller
         ];
 
         return response()->json($status);
+    }
+
+    private function normalizeBaPenyerahanNumber(string $number): string
+    {
+        $normalized = strtoupper(trim($number));
+        $normalized = preg_replace('/[\/\s]+/', '-', $normalized) ?? $normalized;
+        $normalized = preg_replace('/-+/', '-', $normalized) ?? $normalized;
+
+        return trim($normalized, '-');
     }
 
     /**
