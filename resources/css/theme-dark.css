@@ -57,31 +57,31 @@
 
 /* Status badge subtle variant readability */
 [data-theme="dark"] .bg-primary-100 {
-    background-color: rgb(16 185 129 / 15%) !important;
+    background-color: rgb(16 185 129 / 15%);
 }
 
 [data-theme="dark"] .bg-secondary-100 {
-    background-color: rgb(251 191 36 / 18%) !important;
+    background-color: rgb(251 191 36 / 18%);
 }
 
 [data-theme="dark"] .bg-success-100 {
-    background-color: rgb(16 185 129 / 18%) !important;
+    background-color: rgb(16 185 129 / 18%);
 }
 
 [data-theme="dark"] .bg-warning-100 {
-    background-color: rgb(245 158 11 / 18%) !important;
+    background-color: rgb(245 158 11 / 18%);
 }
 
 [data-theme="dark"] .bg-danger-100 {
-    background-color: rgb(239 68 68 / 18%) !important;
+    background-color: rgb(239 68 68 / 18%);
 }
 
 [data-theme="dark"] .bg-info-100 {
-    background-color: rgb(59 130 246 / 18%) !important;
+    background-color: rgb(59 130 246 / 18%);
 }
 
 [data-theme="dark"] .bg-accent-100 {
-    background-color: rgb(148 163 184 / 15%) !important;
+    background-color: rgb(148 163 184 / 15%);
 }
 
 /* Scrollbar (webkit) */

@@ -28,19 +28,22 @@
 
         <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             @php
-                $layoutMeta = \App\Support\QmhFrLayoutProfile::fromMetadata(is_array($template->metadata) ? $template->metadata : []);
+                $rawLayoutMetadata = is_array($template->metadata) ? $template->metadata : [];
+                $layoutMeta = \App\Support\QmhFrLayoutProfile::fromMetadata($rawLayoutMetadata);
+                $hasExplicitLayoutProfile = array_key_exists('layout_profile', $rawLayoutMetadata);
+                $layoutProfileInput = old('layout_profile', $hasExplicitLayoutProfile ? $layoutMeta['layout_profile'] : '');
                 $riskMatrixColumnsCsv = implode(', ', is_array($layoutMeta['risk_matrix_columns'] ?? null) ? $layoutMeta['risk_matrix_columns'] : []);
             @endphp
 
             <form
                 method="POST"
                 action="{{ route('quality.templates.update', $template) }}"
-                enctype="multipart/form-data"
                 class="space-y-4"
                 x-data="{
                     selectedDocType: @js(old('doc_type', $template->doc_type)),
-                    layoutProfile: @js(old('layout_profile', $layoutMeta['layout_profile'])),
-                    logoSource: @js(old('logo_source', $layoutMeta['logo_source']))
+                    layoutProfile: @js($layoutProfileInput),
+                    logoSource: @js(old('logo_source', $layoutMeta['logo_source'])),
+                    advancedSchemaMode: false
                 }"
             >
                 @csrf
@@ -65,6 +68,16 @@
                 </div>
 
                 <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700" for="clause">Klausul</label>
+                    <select id="clause" name="clause" class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('clause') border-red-400 @else border-gray-300 @enderror" required>
+                        @foreach([4, 5, 6, 7, 8] as $clause)
+                            <option value="{{ $clause }}" @selected((string) old('clause', (string) $template->clause) === (string) $clause)>{{ $clause }}</option>
+                        @endforeach
+                    </select>
+                    @error('clause')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+
+                <div>
                     <label class="mb-1 block text-sm font-medium text-gray-700" for="version_notes">Catatan</label>
                     <textarea id="version_notes" name="version_notes" rows="3"
                               class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('version_notes') border-red-400 @else border-gray-300 @enderror">{{ old('version_notes', data_get($template->metadata, 'version_notes')) }}</textarea>
@@ -79,9 +92,17 @@
                             <div>
                                 <label class="mb-1 block text-sm font-medium text-gray-700" for="layout_profile">Profil Layout</label>
                                 <select id="layout_profile" name="layout_profile" x-model="layoutProfile" class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('layout_profile') border-red-400 @else border-gray-300 @enderror">
-                                    <option value="declaration">Declaration</option>
+                                    @if(! $hasExplicitLayoutProfile)
+                                        <option value="">Legacy (tanpa profile eksplisit)</option>
+                                    @endif
+                                    <option value="structured_form">Structured Form</option>
                                     <option value="risk_matrix">Risk Matrix</option>
+                                    <option value="declaration">Declaration</option>
                                 </select>
+                                <p class="mt-1 text-xs text-gray-500">Declaration = body-only (tanpa header/footer FR). Structured Form dan Risk Matrix memakai shell FR standar.</p>
+                                @if(! $hasExplicitLayoutProfile)
+                                    <p class="mt-1 text-xs text-amber-700">Template ini masih mode legacy. Pilih profile untuk mengonversi secara eksplisit.</p>
+                                @endif
                                 @error('layout_profile')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                             </div>
 
@@ -111,6 +132,12 @@
                                    placeholder="contoh: Pernyataan Ketidakberpihakan">
                             @error('declaration_header')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                         </div>
+
+                        @if(! $hasExplicitLayoutProfile)
+                            <div class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                Status saat ini: <strong>LEGACY</strong>. Header/footer tetap mengikuti policy legacy sampai profile dipilih.
+                            </div>
+                        @endif
 
                         <div x-show="layoutProfile === 'risk_matrix'">
                             <label class="mb-1 block text-sm font-medium text-gray-700" for="risk_matrix_columns_csv">Kolom Risk Matrix</label>
@@ -165,8 +192,15 @@
                 </div>
 
                 <div>
-                    <label class="mb-1 block text-sm font-medium text-gray-700" for="form_schema_json">Schema Pertanyaan (JSON)</label>
-                    <p class="mb-2 text-xs text-gray-500">Gunakan Form Builder untuk mengatur schema pertanyaan. JSON tetap disimpan sebagai output untuk kompatibilitas.</p>
+                    <label class="mb-1 block text-sm font-medium text-gray-700" for="form_schema_json">Struktur Pertanyaan Formulir</label>
+                    <p class="mb-2 text-xs text-gray-500">Mode standar disederhanakan agar mudah dipakai user non-teknis. Opsi lanjutan hanya untuk admin teknis.</p>
+
+                    <div class="mb-3 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700">
+                        <label class="inline-flex items-center gap-2">
+                            <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600" x-model="advancedSchemaMode">
+                            <span>Tampilkan mode lanjutan (ID field, JSON, dan pengaturan teknis)</span>
+                        </label>
+                    </div>
 
                     @php
                         $initialSchema = data_get($template->metadata, 'form_schema');
@@ -193,7 +227,7 @@
                                     <button type="button" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50" @click="addQuestion('section')">
                                         + Section
                                     </button>
-                                    <button type="button" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50" @click="showRawJson = !showRawJson">
+                                    <button type="button" x-show="advancedSchemaMode" x-cloak class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50" @click="showRawJson = !showRawJson">
                                         <span x-text="showRawJson ? 'Sembunyikan JSON' : 'Tampilkan JSON'"></span>
                                     </button>
                                 </div>
@@ -225,7 +259,7 @@
                                                     </div>
 
                                                     <div class="sm:col-span-3">
-                                                        <label class="block text-[11px] font-semibold text-gray-600">Tipe</label>
+                                                        <label class="block text-[11px] font-semibold text-gray-600">Format Jawaban</label>
                                                         <select
                                                             class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
                                                             x-model="q.type"
@@ -242,7 +276,7 @@
                                                         </select>
                                                     </div>
 
-                                                    <div class="sm:col-span-3">
+                                                    <div class="sm:col-span-3" x-show="advancedSchemaMode" x-cloak>
                                                         <label class="block text-[11px] font-semibold text-gray-600">ID</label>
                                                         <input
                                                             type="text"
@@ -266,7 +300,7 @@
                                                     </div>
                                                 </div>
 
-                                                <div class="mt-2 grid gap-2 sm:grid-cols-12">
+                                                <div class="mt-2 grid gap-2 sm:grid-cols-12" x-show="advancedSchemaMode" x-cloak>
                                                     <div class="sm:col-span-6">
                                                         <label class="block text-[11px] font-semibold text-gray-600">Help (opsional)</label>
                                                         <input
@@ -345,7 +379,7 @@
                                 x-ref="schemaJson"
                             >{{ $initialJson }}</textarea>
 
-                            <template x-if="showRawJson">
+                            <template x-if="advancedSchemaMode && showRawJson">
                                 <div class="mt-4">
                                     <div class="mb-2 text-xs font-semibold text-gray-700">JSON Preview</div>
                                     <pre class="max-h-80 overflow-auto rounded-lg border border-gray-200 bg-gray-50 p-3 text-[11px] leading-relaxed" x-text="schemaJson()"></pre>
@@ -374,7 +408,7 @@
                         Batal
                     </a>
                     <button type="submit" class="inline-flex items-center rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700">
-                        Simpan Perubahan
+                        Publish Versi Baru
                     </button>
                 </div>
             </form>

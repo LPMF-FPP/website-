@@ -8,7 +8,19 @@ class UnlockQmhRevisionRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->hasPermission('qmh.create') ?? false;
+        $user = $this->user();
+        if ($user === null) {
+            return false;
+        }
+
+        if (! $this->boolean('force')) {
+            return $user->hasPermission('qmh.create');
+        }
+
+        return $user->hasPermission('qmh.unlock.force')
+            || $user->hasPermission('qmh.force_unlock')
+            || $user->hasPermission('qmh.template.manage')
+            || (string) ($user->role ?? '') === 'admin';
     }
 
     public function rules(): array

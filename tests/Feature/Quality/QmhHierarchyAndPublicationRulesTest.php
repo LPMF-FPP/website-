@@ -20,6 +20,9 @@ class QmhHierarchyAndPublicationRulesTest extends TestCase
     {
         parent::setUp();
 
+        config()->set('quality.fr_v2.enabled', true);
+        config()->set('quality.fr_v2.create_enabled', false);
+
         $this->createQmhPermissions();
     }
 
@@ -119,15 +122,21 @@ class QmhHierarchyAndPublicationRulesTest extends TestCase
 
     private function createTemplate(int $clause, string $docType): QmhTemplate
     {
-        return QmhTemplate::query()->create([
-            'name' => sprintf('Template %s klausul %d', strtoupper($docType), $clause),
-            'clause' => $clause,
-            'doc_type' => $docType,
-            'version' => 1,
-            'storage_disk' => 'local',
-            'source_docx_path' => sprintf('templates/qmh/%s-%d.docx', $docType, $clause),
-            'is_active' => true,
-        ]);
+        return QmhTemplate::query()->firstOrCreate(
+            [
+                'clause' => $clause,
+                'doc_type' => $docType,
+                'shell_mode' => 'full',
+                'orientation_policy' => 'portrait',
+                'show_signoff_footer' => true,
+                'is_active' => true,
+            ],
+            [
+                'name' => sprintf('Template %s klausul %d', strtoupper($docType), $clause),
+                'version' => 1,
+                'storage_disk' => 'local',
+            ]
+        );
     }
 
     private function createSopDocument(User $creator, string $docCode, string $title): QmhDocument

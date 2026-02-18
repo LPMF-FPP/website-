@@ -81,6 +81,8 @@ class PermissionSeeder extends Seeder
         ['name' => 'qmh.create', 'display_name' => 'Buat Dokumen Quality Management Hub', 'module' => 'qmh', 'action' => 'create'],
         ['name' => 'qmh.report', 'display_name' => 'Lihat Laporan Quality Management Hub', 'module' => 'qmh', 'action' => 'report'],
         ['name' => 'qmh.template.manage', 'display_name' => 'Kelola Template Quality Management Hub', 'module' => 'qmh', 'action' => 'template-manage'],
+        ['name' => 'qmh.unlock.force', 'display_name' => 'Paksa Buka Kunci Dokumen Quality Management Hub', 'module' => 'qmh', 'action' => 'unlock-force'],
+        ['name' => 'qmh.approve.attest', 'display_name' => 'Attestation Fallback Approve Quality Management Hub', 'module' => 'qmh', 'action' => 'approve-attest'],
 
         // Reminders
         ['name' => 'reminders.view', 'display_name' => 'Lihat Reminders', 'module' => 'reminders', 'action' => 'view'],
@@ -146,7 +148,7 @@ class PermissionSeeder extends Seeder
             'analysts.view', 'analysts.create', 'analysts.edit',
             'settings.view', 'settings.edit',
             'reminders.view', 'reminders.edit',
-            'qmh.view', 'qmh.create', 'qmh.report', 'qmh.template.manage',
+            'qmh.view', 'qmh.create', 'qmh.report', 'qmh.template.manage', 'qmh.unlock.force', 'qmh.approve.attest',
         ],
         'admin' => [
             // Admin mendapat semua permission
@@ -165,7 +167,7 @@ class PermissionSeeder extends Seeder
             'investigators.view', 'investigators.edit', 'investigators.delete',
             'settings.view', 'settings.edit',
             'reminders.view', 'reminders.edit',
-            'qmh.view', 'qmh.create', 'qmh.report', 'qmh.template.manage',
+            'qmh.view', 'qmh.create', 'qmh.report', 'qmh.template.manage', 'qmh.unlock.force', 'qmh.approve.attest',
         ],
         'supervisor' => [
             // Supervisor sama dengan admin
@@ -183,7 +185,7 @@ class PermissionSeeder extends Seeder
             'analysts.view', 'analysts.create', 'analysts.edit', 'analysts.delete',
             'settings.view', 'settings.edit',
             'reminders.view', 'reminders.edit',
-            'qmh.view', 'qmh.create', 'qmh.report', 'qmh.template.manage',
+            'qmh.view', 'qmh.create', 'qmh.report', 'qmh.template.manage', 'qmh.unlock.force', 'qmh.approve.attest',
         ],
         'analyst' => [
             // analyst sama dengan analis

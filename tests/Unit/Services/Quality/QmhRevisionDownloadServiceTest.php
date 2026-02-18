@@ -207,7 +207,8 @@ class QmhRevisionDownloadServiceTest extends TestCase
         $service = new QmhRevisionDownloadService;
         $html = $service->buildWatermarkedHtml($revision, 'SALINAN TERKENDALI');
 
-        $this->assertStringContainsString('No. Dokumen', $html);
+        $this->assertStringContainsString('fr-declaration', $html);
+        $this->assertStringNotContainsString('No. Dokumen', $html);
         $this->assertStringNotContainsString('data:text/plain', $html);
     }
 }

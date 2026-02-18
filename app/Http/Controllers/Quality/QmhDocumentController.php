@@ -13,6 +13,7 @@ use App\Models\QmhWorkflowEvent;
 use App\Models\User;
 use App\Services\Quality\QmhDashboardSummaryService;
 use App\Services\Quality\QmhDocumentService;
+use App\Support\QmhFrV2Gate;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -155,11 +156,22 @@ class QmhDocumentController extends Controller
     public function store(StoreQmhDocumentRequest $request, QmhDocumentService $service): RedirectResponse
     {
         try {
-            $document = $service->createDraft($request->validated(), (int) $request->user()->id);
+            $validated = $request->validated();
+            $docType = (string) ($validated['doc_type'] ?? '');
+
+            if (QmhFrV2Gate::isFrType($docType) && QmhFrV2Gate::isEnabled() && ! QmhFrV2Gate::isCreateEnabled($docType)) {
+                return back()
+                    ->withInput()
+                    ->withErrors([
+                        'source_pdf_file' => 'Pembuatan FR-v2 baru sedang ditutup sementara. Silakan hubungi admin QMH untuk jadwal cutover.',
+                    ]);
+            }
+
+            $document = $service->createDraft($validated, (int) $request->user()->id);
 
             return redirect()
-                ->route('quality.documents.show', $document)
-                ->with('success', 'Dokumen QMH berhasil dibuat. Lanjutkan dengan Edit Dokumen lalu Submit untuk Review.');
+                ->route('quality.documents.edit', $document)
+                ->with('success', 'Draft berhasil dibuat. Silakan lanjut tulis isi dokumen.');
         } catch (\Throwable $exception) {
             Log::error('Gagal membuat dokumen QMH dari web form', [
                 'error' => $exception->getMessage(),

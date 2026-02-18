@@ -2,6 +2,7 @@
     $revisionStatus = (string) ($revision?->status ?? '');
     $currentUserId = (int) auth()->id();
     $createdById = (int) ($revision?->dibuat_oleh ?? 0);
+    $canManageTemplate = auth()->user()?->hasPermission('qmh.template.manage') ?? false;
 
     $canSubmitForReview = $revisionStatus === 'draft' && $createdById === $currentUserId;
     $submitReason = match (true) {
@@ -58,6 +59,7 @@
             submitReason: @js($submitReason),
             reviewerOptions: @js($reviewerOptions),
             users: @js($users ?? []),
+            canManageTemplate: @js($canManageTemplate),
             dibuatOleh: @js((int) ($revision?->dibuat_oleh ?? 0)),
              diperiksaOleh: @js((int) ($revision?->diperiksa_oleh ?? 0)),
              disahkanOleh: @js((int) ($revision?->disahkan_oleh ?? 0)),
@@ -68,6 +70,7 @@
                 : null),
              initialAnswersJson: @js($revision?->answers_json ?? []),
              initialContent: @js($revision?->content_html ?? '<p></p>'),
+             initialContentVersion: @js((int) ($revision?->content_version ?? 1)),
              showUrl: @js(route('quality.documents.show', $document)),
              saveUrl: @js($revision ? '/api/quality/revisions/'.$revision->id.'/content' : null),
             lockUrl: @js($revision ? '/api/quality/revisions/'.$revision->id.'/lock' : null),
@@ -84,9 +87,23 @@
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <div>
                     <h3 class="text-sm font-semibold text-gray-900">{{ $document->doc_code }} - {{ $revision?->version_label ?? '-' }}</h3>
-                    <p class="text-xs text-gray-500">Status simpan: <span x-text="saveStatusLabel()"></span></p>
+                    <p class="text-xs text-gray-500" aria-live="polite">Status simpan: <span x-text="saveStatusLabel()"></span></p>
+                    <p
+                        class="mt-1 text-xs text-amber-700"
+                        aria-live="polite"
+                        x-show="saveGuidanceMessage()"
+                        x-cloak
+                        x-text="saveGuidanceMessage()"
+                    ></p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2">
+                    <button
+                        type="button"
+                        class="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                        @click="toggleFocusMode()"
+                    >
+                        <span x-text="focusMode ? 'Tampilkan Panel Aksi' : 'Mode Fokus Menulis'"></span>
+                    </button>
                     <span class="inline-flex items-center rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-xs font-medium text-gray-700">
                         Status: <span class="ml-1" x-text="revisionStatus || '-'">-</span>
                     </span>
@@ -98,9 +115,9 @@
         </div>
 
         <div class="grid grid-cols-12 gap-6">
-            <div class="col-span-12 lg:col-span-8">
+            <div class="col-span-12 transition-all" :class="focusMode ? 'lg:col-span-12' : 'lg:col-span-8'">
                 <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                    <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700" x-show="schemaQuestions().length > 0">
+                    <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700" x-show="schemaQuestions().length > 0" x-cloak>
                         Editor menggunakan schema pertanyaan revisi (snapshot) dan disimpan sebagai answers_json.
                     </div>
 
@@ -109,8 +126,8 @@
                             <div>
                                 <p class="text-sm font-semibold text-gray-900" x-text="isFormulir ? 'Isi Formulir' : 'Isi Dokumen Terstruktur'"></p>
                                 <p class="mt-1 text-xs text-gray-500">
-                                    <span x-show="revisionStatus === 'draft' && hasLock">Bisa diedit hanya saat draft dan pemilik lock.</span>
-                                    <span x-show="!(revisionStatus === 'draft' && hasLock)">Read-only (bukan draft atau tidak memegang lock).</span>
+                                    <span x-show="revisionStatus === 'draft' && hasLock" x-cloak>Bisa diedit hanya saat draft dan pemilik lock.</span>
+                                    <span x-show="!(revisionStatus === 'draft' && hasLock)" x-cloak>Read-only (bukan draft atau tidak memegang lock).</span>
                                 </p>
                             </div>
                         </div>
@@ -123,13 +140,13 @@
 
                         <div class="mt-4 space-y-4" x-show="schemaQuestions().length > 0" x-cloak>
                             <template x-for="(q, idx) in schemaQuestions()" :key="`fr-${q.id || idx}`">
-                                <div class="rounded-lg border border-gray-200 bg-white p-4">
+                                <div class="rounded-lg border border-gray-200 bg-white p-4" :id="`q-wrap-${q.id}`">
                                     <div class="flex items-start justify-between gap-3">
                                         <div>
                                             <p class="text-xs font-semibold text-gray-500" x-text="`Q${idx + 1}`"></p>
                                             <label class="mt-1 block text-sm font-semibold text-gray-900" :for="`q-${q.id}`">
                                                 <span x-text="q.label || q.id"></span>
-                                                <span class="ml-1 text-xs font-semibold text-red-600" x-show="q.required">*</span>
+                                                <span class="ml-1 text-xs font-semibold text-red-600" x-show="q.required" x-cloak>*</span>
                                             </label>
                                         </div>
                                         <p class="text-[11px] text-gray-500" x-text="questionTypeLabel(q.type)"></p>
@@ -301,7 +318,7 @@
                                         </template>
                                     </div>
 
-                                    <p class="mt-2 text-sm text-red-600" x-show="fieldErrors[q.id]" x-text="fieldErrors[q.id]"></p>
+                                    <p class="mt-2 text-sm text-red-600" x-show="fieldErrors[q.id]" x-cloak x-text="fieldErrors[q.id]"></p>
                                 </div>
                             </template>
                         </div>
@@ -313,6 +330,7 @@
                                 <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bold') }" @click="toggleBold()">B</button>
                                 <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('italic') }" @click="toggleItalic()">I</button>
                                 <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('underline') }" @click="toggleUnderline()">U</button>
+                                @if($canManageTemplate)
                                 <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 1 }) }" @click="setHeading(1)">H1</button>
                                 <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 2 }) }" @click="setHeading(2)">H2</button>
                                 <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 3 }) }" @click="setHeading(3)">H3</button>
@@ -333,6 +351,10 @@
                                 <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderRow()">Header Baris</button>
                                 <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderColumn()">Header Kolom</button>
                                 <button type="button" class="qmh-editor-btn" @click="deleteTable()">Hapus Tabel</button>
+                                @else
+                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
+                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
+                                @endif
                             </div>
 
                             <div class="qmh-editor-surface" x-ref="editor"></div>
@@ -342,7 +364,7 @@
                 </div>
             </div>
 
-            <div class="col-span-12 lg:col-span-4">
+            <div class="col-span-12 lg:col-span-4" x-show="!focusMode" x-cloak>
                 <div class="sticky top-6 space-y-4">
                     <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                         <div class="flex items-start justify-between gap-3">
@@ -367,15 +389,15 @@
 
                             <button
                                 type="button"
-                                @click="openSubmitModal()"
-                                :disabled="!canSubmitForReview || !hasLock"
-                                :title="submitReason || ''"
+                                @click="safeOpenSubmitModal()"
+                                :disabled="!readyToSubmitStatus()"
+                                :title="readyToSubmitStatus() ? '' : readyToSubmitDisabledReason()"
                                 class="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 Submit untuk Review
                             </button>
 
-                            <p x-show="(!canSubmitForReview && submitReason)" x-cloak class="text-xs text-gray-500" x-text="submitReason"></p>
+                            <p x-show="!readyToSubmitStatus()" x-cloak class="text-xs text-gray-500" x-text="readyToSubmitDisabledReason()"></p>
 
                             <button
                                 type="button"
@@ -389,21 +411,25 @@
 
                     <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                         <p class="text-sm font-semibold text-gray-900">Checklist</p>
-                        <p class="mt-1 text-xs text-gray-500">Bantu memastikan dokumen audit-ready.</p>
+                        <p class="mt-1 text-xs text-gray-500">Gunakan ini sebagai panduan cepat sebelum submit.</p>
 
-                        <div class="mt-3 space-y-2 text-sm text-gray-700">
-                            <label class="flex items-start gap-2">
-                                <input type="checkbox" class="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600" x-model="checklist.complete_required" />
-                                <span>Jawaban wajib sudah terisi (khusus Formulir).</span>
-                            </label>
-                            <label class="flex items-start gap-2">
-                                <input type="checkbox" class="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600" x-model="checklist.review_content" />
-                                <span>Konten sudah dicek via preview.</span>
-                            </label>
-                            <label class="flex items-start gap-2">
-                                <input type="checkbox" class="mt-1 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600" x-model="checklist.ready_submit" />
-                                <span>Siap disubmit (penomoran/metadata final).</span>
-                            </label>
+                        <div class="mt-3 space-y-3 text-sm text-gray-700">
+                            <div class="rounded-lg border px-3 py-2" :class="requiredAnswersMissingCount() === 0 ? 'border-green-200 bg-green-50' : 'border-amber-200 bg-amber-50'">
+                                <p class="text-xs font-semibold">Jawaban wajib</p>
+                                <p class="mt-1 text-xs" aria-live="polite" x-text="requiredAnswersStatusText()"></p>
+                                <button type="button" class="mt-2 text-xs font-medium text-primary-700 underline" x-show="requiredAnswersMissingCount() > 0" x-cloak @click="safeJumpToFirstRequiredIssue()">Perbaiki sekarang</button>
+                            </div>
+
+                            <div class="rounded-lg border px-3 py-2" :class="previewChecked ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'">
+                                <p class="text-xs font-semibold">Review konten</p>
+                                <p class="mt-1 text-xs" aria-live="polite" x-text="previewChecked ? 'Sudah cek preview dokumen.' : 'Belum cek preview. Buka preview sebelum submit.'"></p>
+                                <button type="button" class="mt-2 text-xs font-medium text-primary-700 underline" x-show="!previewChecked" x-cloak @click="safeOpenPreviewModal()">Buka preview sekarang</button>
+                            </div>
+
+                            <div class="rounded-lg border px-3 py-2" :class="readyToSubmitStatus() ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-gray-50'">
+                                <p class="text-xs font-semibold">Kesiapan submit</p>
+                                <p class="mt-1 text-xs" aria-live="polite" x-text="readyToSubmitStatusText()"></p>
+                            </div>
                         </div>
                     </div>
 
@@ -412,7 +438,7 @@
                         <p class="mt-1 text-xs text-gray-500">Lihat ringkasan sebelum submit.</p>
 
                         <div class="mt-3">
-                            <button type="button" class="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50" @click="openPreviewModal()">
+                            <button type="button" class="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50" @click="safeOpenPreviewModal()">
                                 Buka Preview
                             </button>
                         </div>
@@ -440,7 +466,7 @@
                         <p class="mt-1 text-xs text-gray-500" x-show="!hasLock" x-cloak>Anda harus memegang lock untuk submit.</p>
                     </div>
 
-                    <div x-show="submitModal.error" class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" x-text="submitModal.error"></div>
+                    <div x-show="submitModal.error" x-cloak class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" x-text="submitModal.error"></div>
                 </div>
 
                 <div class="mt-5 flex justify-end gap-2">
@@ -504,6 +530,7 @@
                 submitReason: typeof config.submitReason === 'string' ? config.submitReason : '',
                 reviewerOptions: Array.isArray(config.reviewerOptions) ? config.reviewerOptions : [],
                 users: Array.isArray(config.users) ? config.users : [],
+                canManageTemplate: Boolean(config.canManageTemplate),
                 dibuatOleh: config.dibuatOleh,
                 diperiksaOleh: config.diperiksaOleh,
                 disahkanOleh: config.disahkanOleh,
@@ -513,18 +540,17 @@
                 answers: config.initialAnswersJson && typeof config.initialAnswersJson === 'object' ? { ...config.initialAnswersJson } : {},
                 listAnswerText: {},
                 fieldErrors: {},
+                firstInvalidQuestionId: '',
                 showSchemaEditor: false,
-                checklist: {
-                    complete_required: false,
-                    review_content: false,
-                    ready_submit: false,
-                },
+                previewChecked: false,
                 previewModalOpen: false,
                 pdfPreviewUrl: null,
                 pdfPreviewLoading: false,
                 submitModal: { open: false, reviewerId: '', loading: false, error: '' },
                 lastFocusedElement: null,
+                focusMode: false,
                 initialContent: typeof config.initialContent === 'string' ? config.initialContent : '<p></p>',
+                contentVersion: Number.isFinite(Number(config.initialContentVersion)) ? Number(config.initialContentVersion) : 1,
                 showUrl: config.showUrl,
                 saveUrl: config.saveUrl,
                 lockUrl: config.lockUrl,
@@ -533,12 +559,14 @@
                 csrfToken: config.csrfToken,
                 hasLock: false,
                 heartbeatTimer: null,
+                autoSaveTimer: null,
                 saving: false,
                 dirty: false,
                 contentHtml: typeof config.initialContent === 'string' && config.initialContent.trim() !== '' ? config.initialContent : '<p></p>',
                 editorJson: null,
                 errorMessage: '',
                 saveState: 'idle',
+                lastSavedAt: '',
 
                 init() {
                     if (!this.revisionId) {
@@ -563,8 +591,13 @@
                         this.syncSchemaDefaults();
                     }
 
+                    this.focusMode = false;
                     this.acquireLock();
                     this.registerBeforeUnload();
+                },
+
+                toggleFocusMode() {
+                    this.focusMode = !this.focusMode;
                 },
 
                 onFormSchemaChanged(nextSchema) {
@@ -1030,18 +1063,136 @@
                         }
                     });
 
+                    this.firstInvalidQuestionId = Object.keys(this.fieldErrors)[0] || '';
+
                     return Object.keys(this.fieldErrors).length === 0;
+                },
+
+                requiredAnswersMissingCount() {
+                    this.validateFormAnswers();
+                    return Object.keys(this.fieldErrors).length;
+                },
+
+                requiredAnswersStatusText() {
+                    const missing = this.requiredAnswersMissingCount();
+                    if (missing === 0) {
+                        return 'Semua jawaban wajib sudah lengkap.';
+                    }
+
+                    return `${missing} jawaban wajib masih perlu dilengkapi.`;
+                },
+
+                jumpToFirstRequiredIssue() {
+                    this.validateFormAnswers();
+
+                    if (!this.firstInvalidQuestionId) {
+                        return;
+                    }
+
+                    const directInput = document.getElementById(`q-${this.firstInvalidQuestionId}`);
+                    const wrapper = document.getElementById(`q-wrap-${this.firstInvalidQuestionId}`);
+                    const target = directInput || wrapper;
+
+                    if (!target) {
+                        return;
+                    }
+
+                    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                    if (directInput && typeof directInput.focus === 'function') {
+                        directInput.focus({ preventScroll: true });
+                    }
+                },
+
+                safeJumpToFirstRequiredIssue() {
+                    if (typeof this.jumpToFirstRequiredIssue === 'function') {
+                        this.jumpToFirstRequiredIssue();
+                    }
+                },
+
+                readyToSubmitStatus() {
+                    return this.canSubmitForReview
+                        && this.hasLock
+                        && this.requiredAnswersMissingCount() === 0
+                        && this.previewChecked;
+                },
+
+                readyToSubmitDisabledReason() {
+                    if (!this.canSubmitForReview) {
+                        return this.submitReason || 'Submit belum tersedia.';
+                    }
+
+                    if (!this.hasLock) {
+                        return 'Ambil lock terlebih dahulu untuk submit.';
+                    }
+
+                    if (this.requiredAnswersMissingCount() > 0) {
+                        return 'Lengkapi jawaban wajib terlebih dahulu.';
+                    }
+
+                    if (!this.previewChecked) {
+                        return 'Buka preview dokumen sebelum submit.';
+                    }
+
+                    return '';
+                },
+
+                readyToSubmitStatusText() {
+                    if (!this.canSubmitForReview) {
+                        return this.submitReason || 'Submit belum tersedia.';
+                    }
+
+                    if (!this.hasLock) {
+                        return 'Ambil lock terlebih dahulu untuk submit.';
+                    }
+
+                    if (this.requiredAnswersMissingCount() > 0) {
+                        return 'Lengkapi jawaban wajib terlebih dahulu.';
+                    }
+
+                    if (!this.previewChecked) {
+                        return 'Lakukan review preview dokumen sebelum submit.';
+                    }
+
+                    return 'Dokumen siap diajukan untuk review.';
                 },
 
                 saveStatusLabel() {
                     if (this.saveState === 'saving') return 'Menyimpan...';
+                    if (this.saveState === 'saved' && this.lastSavedAt) return `Tersimpan ${this.lastSavedAt}`;
                     if (this.saveState === 'saved') return 'Tersimpan';
                     if (this.saveState === 'dirty') return 'Belum tersimpan';
                     return 'Siap';
                 },
 
+                saveGuidanceMessage() {
+                    if (this.saveState !== 'saved') {
+                        return '';
+                    }
+
+                    const missing = this.requiredAnswersMissingCount();
+                    if (missing > 0) {
+                        return `Draft tersimpan. ${missing} jawaban wajib masih perlu dilengkapi sebelum submit.`;
+                    }
+
+                    if (!this.previewChecked) {
+                        return 'Draft tersimpan. Buka preview dokumen sebelum submit.';
+                    }
+
+                    if (!this.readyToSubmitStatus()) {
+                        return 'Draft tersimpan. Lengkapi syarat submit yang tersisa.';
+                    }
+
+                    return 'Draft tersimpan. Dokumen siap diajukan untuk review.';
+                },
+
                 openSubmitModal() {
-                    if (!this.canSubmitForReview) {
+                    if (!this.readyToSubmitStatus()) {
+                        this.errorMessage = this.readyToSubmitDisabledReason();
+                        if (this.requiredAnswersMissingCount() > 0) {
+                            this.jumpToFirstRequiredIssue();
+                        }
+
                         return;
                     }
 
@@ -1053,6 +1204,12 @@
                     this.$nextTick(() => {
                         this.$refs.submitModalCloseBtn?.focus();
                     });
+                },
+
+                safeOpenSubmitModal() {
+                    if (typeof this.openSubmitModal === 'function') {
+                        this.openSubmitModal();
+                    }
                 },
 
                 closeSubmitModal() {
@@ -1072,6 +1229,20 @@
                 },
 
                 async submitForReview() {
+                    if (!this.readyToSubmitStatus()) {
+                        this.submitModal.error = this.readyToSubmitDisabledReason() || 'Dokumen belum siap diajukan.';
+                        if (this.requiredAnswersMissingCount() > 0) {
+                            this.jumpToFirstRequiredIssue();
+                        }
+                        return;
+                    }
+
+                    if (!this.validateFormAnswers()) {
+                        this.submitModal.error = 'Masih ada jawaban wajib yang belum lengkap.';
+                        this.jumpToFirstRequiredIssue();
+                        return;
+                    }
+
                     if (!this.hasLock) {
                         this.submitModal.error = 'Anda harus memegang lock untuk submit.';
                         return;
@@ -1102,12 +1273,19 @@
                 openPreviewModal() {
                     this.lastFocusedElement = document.activeElement;
                     this.previewModalOpen = true;
+                    this.previewChecked = true;
                     this.pdfPreviewUrl = null;
                     this.pdfPreviewLoading = true;
                     this.$nextTick(() => {
                         this.$refs.previewModalCloseBtn?.focus();
                     });
                     this.loadPdfPreview();
+                },
+
+                safeOpenPreviewModal() {
+                    if (typeof this.openPreviewModal === 'function') {
+                        this.openPreviewModal();
+                    }
                 },
 
                 closePreviewModal() {
@@ -1197,12 +1375,34 @@
                             }, 1500);
                         }
                     }, 30000);
+
+                    this.startAutoSave();
                 },
 
                 stopHeartbeat() {
                     if (this.heartbeatTimer) {
                         window.clearInterval(this.heartbeatTimer);
                         this.heartbeatTimer = null;
+                    }
+
+                    this.stopAutoSave();
+                },
+
+                startAutoSave() {
+                    this.stopAutoSave();
+                    this.autoSaveTimer = window.setInterval(() => {
+                        if (!this.hasLock || this.saving || !this.dirty) {
+                            return;
+                        }
+
+                        this.saveNow();
+                    }, 8000);
+                },
+
+                stopAutoSave() {
+                    if (this.autoSaveTimer) {
+                        window.clearInterval(this.autoSaveTimer);
+                        this.autoSaveTimer = null;
                     }
                 },
 
@@ -1231,6 +1431,7 @@
 
                         if (hasSchema) {
                             payload = {
+                                content_version: this.contentVersion,
                                 answers_json: { ...this.answers },
                                 dibuat_oleh: this.dibuatOleh,
                                 diperiksa_oleh: this.diperiksaOleh,
@@ -1238,6 +1439,7 @@
                             };
                         } else {
                             payload = {
+                                content_version: this.contentVersion,
                                 content_html: this.contentHtml || '<p></p>',
                                 content_css: null,
                                 editor_json: this.editorJson,
@@ -1261,6 +1463,9 @@
                         if (!response.ok) {
                             const extracted = await this.extractErrorMessage(response, 'Gagal menyimpan konten dokumen.');
                             this.errorMessage = extracted.message;
+                            if (extracted.conflict && Number.isFinite(Number(extracted.conflict.current_content_version))) {
+                                this.contentVersion = Number(extracted.conflict.current_content_version);
+                            }
                             if (this.isFormulir && extracted.errors) {
                                 this.fieldErrors = extracted.errors;
                             }
@@ -1268,8 +1473,18 @@
                             return;
                         }
 
+                        const responseData = await response.json();
+
                         this.dirty = false;
                         this.saveState = 'saved';
+                        const nextVersion = Number(responseData?.data?.content_version);
+                        if (Number.isFinite(nextVersion) && nextVersion > 0) {
+                            this.contentVersion = nextVersion;
+                        }
+                        this.lastSavedAt = new Intl.DateTimeFormat('id-ID', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                        }).format(new Date());
                     } catch (error) {
                         this.errorMessage = 'Terjadi gangguan jaringan saat menyimpan.';
                         this.saveState = 'dirty';
@@ -1347,11 +1562,15 @@
                 },
 
                 async extractErrorMessage(response, fallback) {
-                    const out = { message: fallback, errors: null };
+                    const out = { message: fallback, errors: null, conflict: null };
                     try {
                         const payload = await response.json();
                         if (payload?.message) {
                             out.message = payload.message;
+                        }
+
+                        if (payload?.conflict) {
+                            out.conflict = payload.conflict;
                         }
 
                         if (payload?.errors) {

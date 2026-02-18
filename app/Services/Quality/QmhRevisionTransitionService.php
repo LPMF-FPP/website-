@@ -13,6 +13,174 @@ use Illuminate\Validation\ValidationException;
 
 class QmhRevisionTransitionService
 {
+    /**
+     * @param  array<string, mixed>|null  $context
+     * @return array<string, mixed>
+     */
+    public function closeLegacyAndDuplicateToV2(
+        QmhDocumentRevision $revision,
+        int $actorId,
+        string $idempotencyKey,
+        string $reason,
+        ?array $context = null
+    ): array {
+        return DB::transaction(function () use ($revision, $actorId, $idempotencyKey, $reason, $context): array {
+            $scope = sprintf('close_legacy_and_duplicate_to_v2:revision:%d', (int) $revision->id);
+            $requestHash = hash('sha256', json_encode([
+                'revision_id' => (int) $revision->id,
+                'reason' => trim($reason),
+                'context' => $context ?? [],
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+
+            $idempotencyRecord = DB::table('qmh_workflow_idempotency_keys')
+                ->where('scope', $scope)
+                ->where('idempotency_key', $idempotencyKey)
+                ->lockForUpdate()
+                ->first();
+
+            if ($idempotencyRecord !== null) {
+                if (is_string($idempotencyRecord->request_hash) && $idempotencyRecord->request_hash !== '' && $idempotencyRecord->request_hash !== $requestHash) {
+                    throw ValidationException::withMessages([
+                        'idempotency_key' => 'Idempotency key sudah digunakan untuk payload yang berbeda.',
+                    ]);
+                }
+
+                $payload = is_string($idempotencyRecord->payload_json)
+                    ? json_decode($idempotencyRecord->payload_json, true)
+                    : null;
+                $payload = is_array($payload) ? $payload : [];
+
+                $this->persistWorkflowEvent((int) $revision->id, $actorId, 'cutover_idempotent_replay', [
+                    'idempotency_key' => $idempotencyKey,
+                    'result_ref' => $idempotencyRecord->result_ref,
+                ]);
+
+                return [
+                    'idempotent_replay' => true,
+                    'legacy_revision_id' => (int) $revision->id,
+                    'new_document_id' => isset($payload['new_document_id']) ? (int) $payload['new_document_id'] : null,
+                    'new_revision_id' => isset($payload['new_revision_id']) ? (int) $payload['new_revision_id'] : null,
+                ];
+            }
+
+            $legacyRevision = QmhDocumentRevision::query()
+                ->whereKey($revision->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $legacyRevision->loadMissing('document');
+
+            $legacyDocument = $legacyRevision->document;
+            if ($legacyDocument === null) {
+                throw ValidationException::withMessages([
+                    'revision' => 'Dokumen legacy tidak ditemukan.',
+                ]);
+            }
+
+            if (! in_array((string) $legacyDocument->doc_type, ['formulir', 'fr'], true)) {
+                throw ValidationException::withMessages([
+                    'doc_type' => 'Cutover legacy ke FR-v2 hanya berlaku untuk dokumen Formulir.',
+                ]);
+            }
+
+            if (! in_array((string) $legacyRevision->status, ['published', 'obsolete', 'closed_legacy'], true)) {
+                throw ValidationException::withMessages([
+                    'status' => 'Hanya revisi formulir published/obsolete yang dapat dicutover.',
+                ]);
+            }
+
+            $legacyRevision->status = 'closed_legacy';
+            $legacyRevision->obsolete_at = now();
+            $legacyRevision->save();
+
+            $newDocCode = $this->generateDuplicateDocCode((string) $legacyDocument->doc_code);
+            $newDocument = $legacyDocument->replicate([
+                'doc_code',
+                'current_revision_id',
+                'created_at',
+                'updated_at',
+            ]);
+            $newDocument->doc_code = $newDocCode;
+            $newDocument->title = trim((string) $legacyDocument->title).' (FR-v2)';
+            $newDocument->doc_type = 'formulir';
+            $newDocument->is_active = true;
+            $newDocument->current_revision_id = null;
+            $newDocument->save();
+
+            $newRevision = $legacyRevision->replicate([
+                'document_id',
+                'edition_number',
+                'revision_number',
+                'version_label',
+                'status',
+                'created_at',
+                'updated_at',
+                'submitted_at',
+                'reviewed_at',
+                'approved_at',
+                'effective_date',
+                'obsolete_at',
+                'layout_checker_status',
+                'layout_checker_payload',
+                'layout_checker_checked_at',
+                'attestation_actor',
+                'attestation_reason',
+                'attestation_incident_ref',
+                'attestation_recorded_at',
+            ]);
+
+            $newRevision->document_id = $newDocument->id;
+            $newRevision->edition_number = 1;
+            $newRevision->revision_number = 0;
+            $newRevision->version_label = 'E1-R0';
+            $newRevision->status = 'draft';
+            $newRevision->version_bump_mode = 'manual';
+            $newRevision->change_summary = trim($reason);
+            $newRevision->submitted_at = null;
+            $newRevision->reviewed_at = null;
+            $newRevision->approved_at = null;
+            $newRevision->effective_date = null;
+            $newRevision->obsolete_at = null;
+            $newRevision->save();
+
+            $newDocument->current_revision_id = $newRevision->id;
+            $newDocument->save();
+
+            $this->persistWorkflowEvent((int) $legacyRevision->id, $actorId, 'close_legacy', [
+                'reason' => trim($reason),
+                'idempotency_key' => $idempotencyKey,
+            ]);
+
+            $this->persistWorkflowEvent((int) $legacyRevision->id, $actorId, 'duplicate_to_v2', [
+                'new_document_id' => (int) $newDocument->id,
+                'new_revision_id' => (int) $newRevision->id,
+                'idempotency_key' => $idempotencyKey,
+                'context' => $context,
+            ]);
+
+            DB::table('qmh_workflow_idempotency_keys')->insert([
+                'scope' => $scope,
+                'idempotency_key' => $idempotencyKey,
+                'request_hash' => $requestHash,
+                'result_ref' => sprintf('revision:%d', (int) $newRevision->id),
+                'payload_json' => json_encode([
+                    'new_document_id' => (int) $newDocument->id,
+                    'new_revision_id' => (int) $newRevision->id,
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'expires_at' => now()->addDays(30),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return [
+                'idempotent_replay' => false,
+                'legacy_revision_id' => (int) $legacyRevision->id,
+                'new_document_id' => (int) $newDocument->id,
+                'new_revision_id' => (int) $newRevision->id,
+            ];
+        });
+    }
+
     public function submitForReview(QmhDocumentRevision $revision, int $actorId, int $reviewerId): QmhDocumentRevision
     {
         return DB::transaction(function () use ($revision, $actorId, $reviewerId) {
@@ -39,6 +207,7 @@ class QmhRevisionTransitionService
 
             if (($revision->document?->doc_type ?? '') === 'formulir') {
                 $schema = is_array($revision->form_schema_json ?? null) ? $revision->form_schema_json : null;
+                $hasSchemaSnapshot = is_array($schema);
 
                 $template = null;
                 if ((int) ($revision->template_id ?? 0) > 0) {
@@ -51,9 +220,15 @@ class QmhRevisionTransitionService
                 }
 
                 if (is_array($schema)) {
-                    $schema = $this->mergeMissingLayoutConfig($schema, $metadata);
+                    if (! $hasSchemaSnapshot) {
+                        $schema = $this->mergeMissingLayoutConfig($schema, $metadata);
+                    }
 
-                    $result = QmhFormAnswersValidator::validateAndNormalize($schema, $revision->answers_json ?? []);
+                    $result = QmhFormAnswersValidator::validateAndNormalize(
+                        $schema,
+                        $revision->answers_json ?? [],
+                        QmhFormAnswersValidator::REQUIRED_POLICY_ENFORCE
+                    );
                     if (count($result['errors']) > 0) {
                         throw ValidationException::withMessages($result['errors']);
                     }
@@ -158,9 +333,9 @@ class QmhRevisionTransitionService
     private function mergeMissingLayoutConfig(array $schema, array $templateMetadata): array
     {
         $merged = $schema;
-        $profileFromTemplate = QmhFrLayoutProfile::fromSchema($templateMetadata);
+        $profileFromTemplate = QmhFrLayoutProfile::fromExplicitMetadata($templateMetadata);
 
-        foreach (['layout_profile', 'logo_source', 'logo_path', 'declaration_header', 'risk_matrix_columns'] as $key) {
+        foreach (['layout_profile', 'shell_mode', 'orientation_policy', 'show_signoff_footer', 'logo_source', 'logo_path', 'declaration_header', 'risk_matrix_columns'] as $key) {
             if (array_key_exists($key, $merged) && $merged[$key] !== null && $merged[$key] !== '') {
                 continue;
             }
@@ -169,5 +344,27 @@ class QmhRevisionTransitionService
         }
 
         return $merged;
+    }
+
+    private function generateDuplicateDocCode(string $baseDocCode): string
+    {
+        $base = trim($baseDocCode);
+        if ($base === '') {
+            $base = 'QMH-FR-LEGACY';
+        }
+
+        $candidate = $base.'-V2';
+        $suffix = 1;
+
+        while (
+            DB::table('qmh_documents')
+                ->where('doc_code', $candidate)
+                ->exists()
+        ) {
+            $suffix++;
+            $candidate = sprintf('%s-V2-%d', $base, $suffix);
+        }
+
+        return $candidate;
     }
 }

@@ -20,7 +20,7 @@
                 Preview template: <strong>{{ $template->name }}</strong> ({{ strtoupper($template->doc_type) }} v{{ $template->version }})
             </p>
             <p class="mt-1 text-xs text-gray-500">
-                Preview ini menggunakan konten HTML template aktif.
+                Preview ini menggunakan konten HTML template yang dipilih.
             </p>
 
             <div class="mt-3 flex flex-wrap gap-2">

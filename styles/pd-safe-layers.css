@@ -129,10 +129,10 @@
     }
 
     /* Generic buttons (visual only) */
-    html[data-pd-safe]
-        :where(button, [type="button"], [type="submit"], .btn):not(
-            .btn-outline
-        ):not(.btn-secondary):not(.btn-ghost) {
+    :where(html[data-pd-safe])
+        :where(button, [type="button"], [type="submit"], .btn):where(
+            :not(.btn-outline):not(.btn-secondary):not(.btn-ghost)
+        ) {
         color: var(--pd-on-primary);
         background-color: var(--pd-primary);
         border-color: color-mix(in oklab, var(--pd-primary), black 15%);
@@ -143,10 +143,10 @@
             box-shadow var(--pd-dur) var(--pd-ease);
     }
 
-    html[data-pd-safe]
-        :where(button, [type="button"], [type="submit"], .btn):not(
-            .btn-outline
-        ):not(.btn-secondary):not(.btn-ghost):hover {
+    :where(html[data-pd-safe])
+        :where(button, [type="button"], [type="submit"], .btn):where(
+            :not(.btn-outline):not(.btn-secondary):not(.btn-ghost)
+        ):hover {
         background-color: color-mix(in oklab, var(--pd-primary), white 10%);
         box-shadow: var(--pd-shadow-md);
     }

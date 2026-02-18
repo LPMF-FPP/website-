@@ -15,6 +15,14 @@ class QmhRevisionTransitionServiceTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config()->set('quality.fr_v2.enabled', true);
+        config()->set('quality.fr_v2.create_enabled', false);
+    }
+
     public function test_submit_rejects_when_reviewer_is_same_as_creator(): void
     {
         /** @var User $creator */
@@ -72,6 +80,9 @@ class QmhRevisionTransitionServiceTest extends TestCase
             'name' => 'Template FR Required',
             'clause' => 4,
             'doc_type' => 'fr',
+            'shell_mode' => 'full',
+            'orientation_policy' => 'portrait',
+            'show_signoff_footer' => true,
             'version' => 1,
             'storage_disk' => 'local',
             'source_docx_path' => 'qmh/templates/fr/required.docx',
@@ -118,6 +129,9 @@ class QmhRevisionTransitionServiceTest extends TestCase
             'name' => 'Template FR Base',
             'clause' => 4,
             'doc_type' => 'fr',
+            'shell_mode' => 'full',
+            'orientation_policy' => 'portrait',
+            'show_signoff_footer' => true,
             'version' => 1,
             'storage_disk' => 'local',
             'source_docx_path' => 'qmh/templates/fr/base.docx',

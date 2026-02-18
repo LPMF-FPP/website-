@@ -92,7 +92,13 @@ class SaveQmhRevisionContentRequest extends FormRequest
         }
 
         if ($this->has('answers_json') && is_array($resolvedSchema)) {
-            $result = QmhFormAnswersValidator::validateAndNormalize($resolvedSchema, $this->input('answers_json'));
+            $requiredPolicy = $this->resolveRequiredPolicy($revision);
+
+            $result = QmhFormAnswersValidator::validateAndNormalize(
+                $resolvedSchema,
+                $this->input('answers_json'),
+                $requiredPolicy
+            );
             $this->answersErrors = $result['errors'];
 
             $this->merge([
@@ -107,6 +113,7 @@ class SaveQmhRevisionContentRequest extends FormRequest
     public function rules(): array
     {
         return [
+            'content_version' => ['required', 'integer', 'min:1'],
             'content_html' => ['nullable', 'string'],
             'content_css' => ['nullable', 'string'],
             'editor_json' => ['nullable', 'array'],
@@ -190,5 +197,29 @@ class SaveQmhRevisionContentRequest extends FormRequest
                 return;
             }
         });
+    }
+
+    private function resolveRequiredPolicy(QmhDocumentRevision $revision): string
+    {
+        if (($revision->status ?? null) !== 'draft') {
+            return QmhFormAnswersValidator::REQUIRED_POLICY_ENFORCE;
+        }
+
+        $route = $this->route();
+        if ($route === null) {
+            return QmhFormAnswersValidator::REQUIRED_POLICY_ENFORCE;
+        }
+
+        $actionName = (string) $route->getActionName();
+        if ($actionName !== '' && str_ends_with($actionName, 'QmhRevisionWorkflowController@saveContent')) {
+            return QmhFormAnswersValidator::REQUIRED_POLICY_ALLOW_PARTIAL;
+        }
+
+        $uri = (string) $route->uri();
+        if ($this->isMethod('PUT') && str_ends_with($uri, 'quality/revisions/{revision}/content')) {
+            return QmhFormAnswersValidator::REQUIRED_POLICY_ALLOW_PARTIAL;
+        }
+
+        return QmhFormAnswersValidator::REQUIRED_POLICY_ENFORCE;
     }
 }

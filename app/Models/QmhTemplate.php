@@ -14,10 +14,13 @@ class QmhTemplate extends Model
         'name',
         'clause',
         'doc_type',
+        'shell_mode',
+        'orientation_policy',
+        'show_signoff_footer',
         'version',
         'storage_disk',
-        'source_docx_path',
         'is_active',
+        'archived_at',
         'metadata',
     ];
 
@@ -25,6 +28,8 @@ class QmhTemplate extends Model
         'clause' => 'integer',
         'version' => 'integer',
         'is_active' => 'boolean',
+        'show_signoff_footer' => 'boolean',
+        'archived_at' => 'datetime',
         'metadata' => 'array',
     ];
 

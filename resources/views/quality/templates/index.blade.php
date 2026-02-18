@@ -11,7 +11,7 @@
                 <x-slot name="actions">
                     <a href="#upload-template"
                        class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700">
-                        Buat / Upload
+                        Buat Template
                     </a>
                 </x-slot>
             </x-page-header>
@@ -28,7 +28,7 @@
         @endif
 
         <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            <form method="GET" action="{{ route('quality.templates.index') }}" class="grid gap-3 md:grid-cols-3">
+            <form method="GET" action="{{ route('quality.templates.index') }}" class="grid gap-3 md:grid-cols-5">
 
                 <select name="doc_type" class="rounded-md border-gray-300 text-sm focus:border-primary-600 focus:ring-primary-600">
                     <option value="">Semua Jenis</option>
@@ -37,16 +37,31 @@
                     <option value="fr" @selected(request('doc_type') === 'fr')>FR</option>
                 </select>
 
+                <select name="clause" class="rounded-md border-gray-300 text-sm focus:border-primary-600 focus:ring-primary-600">
+                    <option value="">Semua Klausul</option>
+                    @foreach([4, 5, 6, 7, 8] as $clause)
+                        <option value="{{ $clause }}" @selected((string) request('clause') === (string) $clause)>Klausul {{ $clause }}</option>
+                    @endforeach
+                </select>
+
+                <select name="layout_profile" class="rounded-md border-gray-300 text-sm focus:border-primary-600 focus:ring-primary-600">
+                    <option value="">Semua Profile FR</option>
+                    <option value="structured_form" @selected(request('layout_profile') === 'structured_form')>Structured Form</option>
+                    <option value="risk_matrix" @selected(request('layout_profile') === 'risk_matrix')>Risk Matrix</option>
+                    <option value="declaration" @selected(request('layout_profile') === 'declaration')>Declaration</option>
+                </select>
+
                 <select name="status" class="rounded-md border-gray-300 text-sm focus:border-primary-600 focus:ring-primary-600">
                     <option value="">Semua Status</option>
                     <option value="active" @selected(request('status') === 'active')>Active</option>
                     <option value="inactive" @selected(request('status') === 'inactive')>Inactive</option>
+                    <option value="archived" @selected(request('status') === 'archived')>Archived</option>
                 </select>
 
                 <input type="text" name="search" value="{{ request('search') }}" placeholder="Cari nama template"
                        class="rounded-md border-gray-300 text-sm focus:border-primary-600 focus:ring-primary-600">
 
-                <div class="flex gap-2 md:col-span-3">
+                <div class="flex gap-2 md:col-span-5">
                     <button type="submit" class="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700">Filter</button>
                     <a href="{{ route('quality.templates.index') }}" class="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Reset</a>
                 </div>
@@ -60,15 +75,21 @@
         <details
             id="upload-template"
             class="rounded-xl border border-gray-200 bg-white shadow-sm"
-            x-data
-            x-init="if (window.location.hash === '#upload-template') $el.open = true"
+            x-data="{
+                openFromHash() {
+                    if (window.location.hash === '#upload-template') {
+                        this.$el.open = true;
+                    }
+                }
+            }"
+            x-init="openFromHash(); window.addEventListener('hashchange', () => openFromHash())"
             @if($shouldOpenUpload) open @endif
         >
             <summary class="cursor-pointer list-none px-6 py-4">
                 <div class="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                        <h2 class="text-lg font-semibold text-gray-900">Buat / Upload Template</h2>
-                        <p class="mt-1 text-sm text-gray-600">Buat template via editor browser (tanpa DOCX) atau upload DOCX sebagai sumber awal. Bagian ini bisa disembunyikan agar daftar template tetap scannable.</p>
+                        <h2 class="text-lg font-semibold text-gray-900">Buat Template</h2>
+                        <p class="mt-1 text-sm text-gray-600">Kelola template langsung dari editor browser. Bagian ini bisa disembunyikan agar daftar template tetap mudah dibaca.</p>
                     </div>
                     <div class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700">
                         Buka / Tutup
@@ -80,11 +101,10 @@
                 <form
                     method="POST"
                     action="{{ route('quality.templates.store') }}"
-                    enctype="multipart/form-data"
                     class="mt-2 grid gap-4 md:grid-cols-2"
                     x-data="{
                         selectedDocType: @js(old('doc_type', 'sop')),
-                        layoutProfile: @js(old('layout_profile', 'declaration')),
+                        layoutProfile: @js(old('layout_profile', 'structured_form')),
                         logoSource: @js(old('logo_source', 'settings'))
                     }"
                 >
@@ -98,15 +118,6 @@
                 </div>
 
                 <div>
-                    <label class="mb-1 block text-sm font-medium text-gray-700" for="file">File DOCX (opsional)</label>
-                    <input id="file" name="file" type="file" accept=".docx"
-                           class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('file') border-red-400 @else border-gray-300 @enderror"
-                    >
-                    <p class="mt-1 text-xs text-gray-500">Jika DOCX diupload dan editor kosong, konten awal akan diambil dari DOCX.</p>
-                    @error('file')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
-                </div>
-
-                <div>
                     <label class="mb-1 block text-sm font-medium text-gray-700" for="doc_type">Jenis Dokumen</label>
                     <select id="doc_type" name="doc_type" x-model="selectedDocType" class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('doc_type') border-red-400 @else border-gray-300 @enderror" required>
                         <option value="sop" @selected(old('doc_type') === 'sop')>SOP</option>
@@ -114,6 +125,16 @@
                         <option value="fr" @selected(old('doc_type') === 'fr')>FR</option>
                     </select>
                     @error('doc_type')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                </div>
+
+                <div>
+                    <label class="mb-1 block text-sm font-medium text-gray-700" for="clause">Klausul</label>
+                    <select id="clause" name="clause" class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('clause') border-red-400 @else border-gray-300 @enderror" required>
+                        @foreach([4, 5, 6, 7, 8] as $clause)
+                            <option value="{{ $clause }}" @selected((string) old('clause', '4') === (string) $clause)>{{ $clause }}</option>
+                        @endforeach
+                    </select>
+                    @error('clause')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
 
                 <div class="md:col-span-2">
@@ -131,9 +152,11 @@
                             <div>
                                 <label class="mb-1 block text-sm font-medium text-gray-700" for="layout_profile">Profil Layout</label>
                                 <select id="layout_profile" name="layout_profile" x-model="layoutProfile" class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('layout_profile') border-red-400 @else border-gray-300 @enderror">
-                                    <option value="declaration">Declaration</option>
+                                    <option value="structured_form">Structured Form (default)</option>
                                     <option value="risk_matrix">Risk Matrix</option>
+                                    <option value="declaration">Declaration (body-only)</option>
                                 </select>
+                                <p class="mt-1 text-xs text-gray-500">Declaration tidak menampilkan header/footer FR. Structured Form dan Risk Matrix tetap memakai shell FR standar.</p>
                                 @error('layout_profile')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                             </div>
 
@@ -232,9 +255,10 @@
                 <tr>
                     <th class="px-4 py-3 text-left font-semibold text-gray-700">Nama</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-700">Jenis</th>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-700">Klausul</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-700">Versi</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
-                    <th class="px-4 py-3 text-left font-semibold text-gray-700">Sumber Template</th>
+                    <th class="px-4 py-3 text-left font-semibold text-gray-700">Konten</th>
                     <th class="px-4 py-3 text-left font-semibold text-gray-700">Updated</th>
                     <th class="px-4 py-3 text-right font-semibold text-gray-700">Aksi</th>
                 </tr>
@@ -248,27 +272,31 @@
                                 <span>{{ strtoupper($template->doc_type) }}</span>
                                 @if($template->doc_type === 'fr')
                                     @php
-                                        $layoutProfile = \App\Support\QmhFrLayoutProfile::fromMetadata(is_array($template->metadata) ? $template->metadata : [])['layout_profile'];
+                                        $layoutProfile = \App\Support\QmhFrLayoutProfile::runtimeProfileFromMetadata(is_array($template->metadata) ? $template->metadata : []);
+                                        $layoutLabel = match ($layoutProfile) {
+                                            'structured_form' => 'STRUCTURED FORM',
+                                            'risk_matrix' => 'RISK MATRIX',
+                                            'declaration' => 'DECLARATION',
+                                            default => 'LEGACY',
+                                        };
                                     @endphp
-                                    <span class="inline-flex rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700">{{ strtoupper(str_replace('_', ' ', $layoutProfile)) }}</span>
+                                    <span class="inline-flex rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700">{{ $layoutLabel }}</span>
                                 @endif
                             </div>
                         </td>
+                        <td class="px-4 py-3 text-gray-700">{{ $template->clause }}</td>
                         <td class="px-4 py-3 text-gray-700">v{{ $template->version }}</td>
                         <td class="px-4 py-3">
                             @if($template->is_active)
                                 <span class="inline-flex rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">Active</span>
+                            @elseif($template->archived_at)
+                                <span class="inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">Archived</span>
                             @else
                                 <span class="inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">Inactive</span>
                             @endif
                         </td>
                         <td class="px-4 py-3 text-gray-700 break-all">
-                            @if($template->source_docx_path)
-                                <div class="text-xs font-medium text-gray-900">DOCX (arsip)</div>
-                                <div>{{ $template->source_docx_path }}</div>
-                            @else
-                                <span class="text-xs font-medium text-gray-900">HTML-only</span>
-                            @endif
+                            <span class="text-xs font-medium text-gray-900">Editor HTML</span>
                         </td>
                         <td class="px-4 py-3 text-gray-700">{{ $template->updated_at?->format('d-m-Y H:i') ?? '-' }}</td>
                         <td class="px-4 py-3 text-right">
@@ -305,7 +333,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-4 py-8 text-center text-sm text-gray-500">Belum ada template QMH. Buat template via editor browser (HTML) atau upload DOCX opsional sebagai sumber awal.</td>
+                        <td colspan="8" class="px-4 py-8 text-center text-sm text-gray-500">Belum ada template QMH. Buat template pertama dari editor browser.</td>
                     </tr>
                 @endforelse
                 </tbody>

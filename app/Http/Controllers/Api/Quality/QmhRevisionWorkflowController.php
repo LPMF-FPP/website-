@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Api\Quality;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Quality\ApproveQmhRevisionRequest;
+use App\Http\Requests\Quality\CloseLegacyAndDuplicateToV2Request;
 use App\Http\Requests\Quality\DownloadQmhRevisionRequest;
 use App\Http\Requests\Quality\HeartbeatQmhRevisionRequest;
 use App\Http\Requests\Quality\LockQmhRevisionRequest;
 use App\Http\Requests\Quality\QmhPreviewPdfRequest;
+use App\Http\Requests\Quality\RequestQmhTemplateFallbackRequest;
 use App\Http\Requests\Quality\ReviewQmhRevisionRequest;
+use App\Http\Requests\Quality\ReviewQmhTemplateFallbackRequest;
 use App\Http\Requests\Quality\SaveQmhRevisionContentRequest;
 use App\Http\Requests\Quality\SubmitQmhRevisionRequest;
 use App\Http\Requests\Quality\UnlockQmhRevisionRequest;
@@ -17,10 +20,12 @@ use App\Services\Quality\QmhRevisionApprovalService;
 use App\Services\Quality\QmhRevisionDownloadService;
 use App\Services\Quality\QmhRevisionLockService;
 use App\Services\Quality\QmhRevisionTransitionService;
+use App\Services\Quality\QmhTemplateFallbackService;
 use App\Support\QmhAnswerSanitizer;
 use App\Support\QmhHtmlSanitizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 
 class QmhRevisionWorkflowController extends Controller
 {
@@ -61,71 +66,112 @@ class QmhRevisionWorkflowController extends Controller
 
     public function saveContent(SaveQmhRevisionContentRequest $request, QmhDocumentRevision $revision): JsonResponse
     {
-        if ($revision->status !== 'draft') {
-            return response()->json([
-                'message' => 'Konten hanya dapat diubah saat status draft.',
-            ], 422);
-        }
+        $result = DB::transaction(function () use ($request, $revision): array {
+            $lockedRevision = QmhDocumentRevision::query()
+                ->whereKey($revision->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        $revision->loadMissing('document');
-        $isFormulir = (($revision->document?->doc_type ?? '') === 'formulir');
-
-        $lock = $revision->lock;
-        if ($lock === null || ! $lock->isActive()) {
-            return response()->json([
-                'message' => 'Tidak ada lock aktif untuk revisi ini.',
-            ], 409);
-        }
-
-        if ((int) $lock->locked_by !== (int) $request->user()->id) {
-            return response()->json([
-                'message' => 'Hanya pemilik lock aktif yang dapat menyimpan konten.',
-            ], 403);
-        }
-
-        $updates = [];
-        if ($request->has('content_html')) {
-            $sanitized = QmhHtmlSanitizer::sanitize($request->string('content_html')->toString());
-            $updates['content_html'] = trim($sanitized) !== '' ? $sanitized : '<p></p>';
-        }
-
-        if ($request->has('content_css')) {
-            $updates['content_css'] = $request->input('content_css');
-        }
-
-        if ($request->has('editor_json')) {
-            $updates['editor_json'] = $request->input('editor_json');
-        }
-
-        if ($request->has('answers_json')) {
-            $updates['answers_json'] = QmhAnswerSanitizer::sanitizeAnswersJson($request->input('answers_json'));
-        }
-
-        if ($request->has('form_schema_json')) {
-            if (! $isFormulir) {
-                return response()->json([
-                    'message' => 'Schema pertanyaan hanya dapat diubah untuk dokumen Formulir (FR).',
-                ], 422);
+            if ($lockedRevision->status !== 'draft') {
+                return [
+                    'status' => 'invalid_status',
+                    'response' => response()->json([
+                        'message' => 'Konten hanya dapat diubah saat status draft.',
+                    ], 422),
+                ];
             }
-            $updates['form_schema_json'] = $request->input('form_schema_json');
-        }
 
-        if ($request->has('dibuat_oleh') && (string) ($request->user()?->role ?? '') === 'admin') {
-            $updates['dibuat_oleh'] = $request->input('dibuat_oleh');
-        }
-        if ($request->has('diperiksa_oleh')) {
-            $updates['diperiksa_oleh'] = $request->input('diperiksa_oleh');
-        }
-        if ($request->has('disahkan_oleh')) {
-            $updates['disahkan_oleh'] = $request->input('disahkan_oleh');
-        }
+            $lockedRevision->loadMissing('document', 'lock');
+            $isFormulir = (($lockedRevision->document?->doc_type ?? '') === 'formulir');
 
-        $revision->update($updates);
+            $lock = $lockedRevision->lock;
+            if ($lock === null || ! $lock->isActive()) {
+                return [
+                    'status' => 'lock_missing',
+                    'response' => response()->json([
+                        'message' => 'Tidak ada lock aktif untuk revisi ini.',
+                    ], 409),
+                ];
+            }
 
-        return response()->json([
-            'message' => 'Konten revisi berhasil disimpan.',
-            'data' => $revision->fresh(),
-        ]);
+            if ((int) $lock->locked_by !== (int) $request->user()->id) {
+                return [
+                    'status' => 'lock_forbidden',
+                    'response' => response()->json([
+                        'message' => 'Hanya pemilik lock aktif yang dapat menyimpan konten.',
+                    ], 403),
+                ];
+            }
+
+            $clientVersion = (int) $request->integer('content_version');
+            $currentVersion = (int) ($lockedRevision->content_version ?? 1);
+            if ($clientVersion !== $currentVersion) {
+                return [
+                    'status' => 'conflict',
+                    'response' => response()->json([
+                        'message' => 'Terjadi konflik versi konten. Muat ulang data terbaru sebelum menyimpan lagi.',
+                        'conflict' => [
+                            'received_content_version' => $clientVersion,
+                            'current_content_version' => $currentVersion,
+                        ],
+                    ], 409),
+                ];
+            }
+
+            $updates = [];
+            if ($request->has('content_html')) {
+                $sanitized = QmhHtmlSanitizer::sanitize($request->string('content_html')->toString());
+                $updates['content_html'] = trim($sanitized) !== '' ? $sanitized : '<p></p>';
+            }
+
+            if ($request->has('content_css')) {
+                $updates['content_css'] = $request->input('content_css');
+            }
+
+            if ($request->has('editor_json')) {
+                $updates['editor_json'] = $request->input('editor_json');
+            }
+
+            if ($request->has('answers_json')) {
+                $updates['answers_json'] = QmhAnswerSanitizer::sanitizeAnswersJson($request->input('answers_json'));
+            }
+
+            if ($request->has('form_schema_json')) {
+                if (! $isFormulir) {
+                    return [
+                        'status' => 'invalid_schema_scope',
+                        'response' => response()->json([
+                            'message' => 'Schema pertanyaan hanya dapat diubah untuk dokumen Formulir (FR).',
+                        ], 422),
+                    ];
+                }
+                $updates['form_schema_json'] = $request->input('form_schema_json');
+            }
+
+            if ($request->has('dibuat_oleh') && (string) ($request->user()?->role ?? '') === 'admin') {
+                $updates['dibuat_oleh'] = $request->input('dibuat_oleh');
+            }
+            if ($request->has('diperiksa_oleh')) {
+                $updates['diperiksa_oleh'] = $request->input('diperiksa_oleh');
+            }
+            if ($request->has('disahkan_oleh')) {
+                $updates['disahkan_oleh'] = $request->input('disahkan_oleh');
+            }
+
+            $updates['content_version'] = $currentVersion + 1;
+
+            $lockedRevision->update($updates);
+
+            return [
+                'status' => 'ok',
+                'response' => response()->json([
+                    'message' => 'Konten revisi berhasil disimpan.',
+                    'data' => $lockedRevision->fresh(),
+                ]),
+            ];
+        });
+
+        return $result['response'];
     }
 
     public function previewPdf(QmhPreviewPdfRequest $request, QmhDocumentRevision $revision, QmhRevisionDownloadService $service): Response
@@ -140,6 +186,10 @@ class QmhRevisionWorkflowController extends Controller
                 ? $validated['content_html']
                 : ($revision->content_html ?? '<p></p>'),
         ]);
+
+        if (array_key_exists('form_schema_json', $validated) && is_array($validated['form_schema_json'])) {
+            $revision->form_schema_json = $validated['form_schema_json'];
+        }
 
         if (array_key_exists('dibuat_oleh', $validated)) {
             $revision->dibuat_oleh = $validated['dibuat_oleh'];
@@ -182,6 +232,45 @@ class QmhRevisionWorkflowController extends Controller
         ]);
     }
 
+    public function requestTemplateFallback(
+        RequestQmhTemplateFallbackRequest $request,
+        QmhDocumentRevision $revision,
+        QmhTemplateFallbackService $service
+    ): JsonResponse {
+        $fallback = $service->requestForRevision(
+            $revision,
+            (int) $request->user()->id,
+            $request->input('layout_profile'),
+            $request->input('note')
+        );
+
+        return response()->json([
+            'message' => 'Permintaan fallback template berhasil dibuat.',
+            'data' => $fallback,
+        ]);
+    }
+
+    public function reviewTemplateFallback(
+        ReviewQmhTemplateFallbackRequest $request,
+        QmhDocumentRevision $revision,
+        QmhTemplateFallbackService $service
+    ): JsonResponse {
+        $validated = $request->validated();
+
+        $fallback = $service->reviewLatestRequest(
+            $revision,
+            (int) $request->user()->id,
+            (string) $validated['action'],
+            isset($validated['fallback_template_id']) ? (int) $validated['fallback_template_id'] : null,
+            $validated['note'] ?? null
+        );
+
+        return response()->json([
+            'message' => 'Review fallback template berhasil diproses.',
+            'data' => $fallback,
+        ]);
+    }
+
     public function review(ReviewQmhRevisionRequest $request, QmhDocumentRevision $revision, QmhRevisionTransitionService $service): JsonResponse
     {
         if ($request->string('action')->toString() === 'return') {
@@ -211,16 +300,44 @@ class QmhRevisionWorkflowController extends Controller
 
     public function approve(ApproveQmhRevisionRequest $request, QmhDocumentRevision $revision, QmhRevisionApprovalService $service): JsonResponse
     {
+        $validated = $request->validated();
+
         $updated = $service->approve(
             $revision,
             (int) $request->user()->id,
-            (bool) $request->boolean('promote_to_new_edition'),
-            $request->input('reason')
+            (bool) ($validated['promote_to_new_edition'] ?? false),
+            $validated['reason'] ?? null,
+            isset($validated['checker_status']) ? (string) $validated['checker_status'] : null,
+            is_array($validated['checker_payload'] ?? null) ? $validated['checker_payload'] : null,
+            isset($validated['attestation_actor']) ? (string) $validated['attestation_actor'] : null,
+            isset($validated['attestation_reason']) ? (string) $validated['attestation_reason'] : null,
+            isset($validated['incident_ref']) ? (string) $validated['incident_ref'] : null
         );
 
         return response()->json([
             'message' => 'Revisi berhasil disahkan dan dipublish.',
             'data' => $updated,
+        ]);
+    }
+
+    public function closeLegacyAndDuplicateToV2(
+        CloseLegacyAndDuplicateToV2Request $request,
+        QmhDocumentRevision $revision,
+        QmhRevisionTransitionService $service
+    ): JsonResponse {
+        $validated = $request->validated();
+
+        $result = $service->closeLegacyAndDuplicateToV2(
+            $revision,
+            (int) $request->user()->id,
+            (string) $validated['idempotency_key'],
+            (string) $validated['reason'],
+            is_array($validated['context'] ?? null) ? $validated['context'] : null
+        );
+
+        return response()->json([
+            'message' => 'Cutover legacy ke FR-v2 berhasil diproses.',
+            'data' => $result,
         ]);
     }
 

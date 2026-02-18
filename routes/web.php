@@ -528,10 +528,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 });
 
-Route::get('/quality/templates/{template}/preview-file', [QualityQmhTemplateController::class, 'previewFile'])
-    ->name('quality.templates.preview.file')
-    ->middleware('signed');
-
 // Inventory Module Routes
 Route::prefix('referensi/inventori')->name('inventory.')->middleware(['auth', 'verified'])->group(function () {
     Route::get('/', [App\Http\Controllers\Inventory\DashboardController::class, 'index'])->name('dashboard');

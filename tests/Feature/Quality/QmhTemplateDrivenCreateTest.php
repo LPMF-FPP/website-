@@ -127,7 +127,7 @@ class QmhTemplateDrivenCreateTest extends TestCase
             ->postJson('/api/quality/documents', [
                 'doc_code' => 'QMH-SOP-TEMPLATE-001',
                 'title' => 'SOP dengan Template Office',
-                'clause' => 5,
+                'clause' => 4,
                 'doc_type' => 'sop',
                 'template_id' => $templateId,
                 'change_summary' => 'Draft dari template office',
@@ -145,6 +145,35 @@ class QmhTemplateDrivenCreateTest extends TestCase
 
         $response->assertJsonPath('data.current_revision.template_id', $templateId);
         $response->assertJsonPath('data.current_revision.template_version', 2);
+    }
+
+    public function test_create_document_rejects_template_from_different_clause(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $templateId = DB::table('qmh_templates')->insertGetId([
+            'name' => 'Template SOP Klausul 4',
+            'clause' => 4,
+            'doc_type' => 'sop',
+            'version' => 1,
+            'storage_disk' => 'local',
+            'source_docx_path' => 'templates/qmh/sop-klausul-4.docx',
+            'is_active' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($user)
+            ->postJson('/api/quality/documents', [
+                'doc_code' => 'QMH-SOP-CLAUSE-MISMATCH',
+                'title' => 'SOP Uji Klausul Template',
+                'clause' => 7,
+                'doc_type' => 'sop',
+                'template_id' => $templateId,
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['template_id']);
     }
 
     private function createQmhPermissions(): void
