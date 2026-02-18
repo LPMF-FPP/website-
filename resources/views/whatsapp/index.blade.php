@@ -5,7 +5,7 @@
             :breadcrumbs="[['label' => 'WhatsApp Hub']]"
         >
             <x-slot name="actions">
-                <div class="flex items-center gap-2" x-data="whatsappHeader()">
+                <div class="flex items-center gap-2" x-data="whatsappHeader({ initialConnected: @js($initialConnectionStatus ?? false) })" x-init="start()">
                     <!-- Connection Status Indicator -->
                     <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                         <div class="w-2.5 h-2.5 rounded-full" :class="connected ? 'bg-green-500' : 'bg-red-500'"></div>
@@ -99,21 +99,41 @@
 
     @push('scripts')
     <script>
-        function whatsappHeader() {
+        function whatsappHeader(config = {}) {
             return {
-                connected: false,
-                init() {
+                connected: Boolean(config.initialConnected),
+                failedChecks: 0,
+                start() {
                     this.checkConnection();
                     // Poll connection status every 30s
                     setInterval(() => this.checkConnection(), 30000);
                 },
                 async checkConnection() {
                     try {
-                        const res = await fetch('{{ route("whatsapp.connection") }}');
+                        const res = await fetch('{{ route("whatsapp.connection") }}', {
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        if (!res.ok) {
+                            throw new Error(`Connection status request failed (${res.status})`);
+                        }
+
                         const data = await res.json();
-                        this.connected = data.connected || data.reachable;
+                        const connected = Boolean(data.connected ?? data.is_connected ?? false);
+                        const reachable = Boolean(data.reachable ?? false);
+
+                        this.connected = connected || reachable;
+                        this.failedChecks = 0;
                     } catch (e) {
-                        this.connected = false;
+                        this.failedChecks += 1;
+
+                        if (this.failedChecks >= 2) {
+                            this.connected = false;
+                        }
+
+                        console.warn('Failed to refresh WhatsApp connection status', e);
                     }
                 }
             }

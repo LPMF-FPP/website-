@@ -47,7 +47,12 @@ class WhatsAppHubController extends Controller
     {
         // $this->authorize('whatsapp.view'); // Temporarily disabled for dev/implementation phase
 
-        return view('whatsapp.index');
+        $connectionStatus = $this->gowaClient->checkHealth();
+
+        return view('whatsapp.index', [
+            'initialConnectionStatus' => (bool) ($connectionStatus['connected'] ?? false)
+                || (bool) ($connectionStatus['reachable'] ?? false),
+        ]);
     }
 
     // --- Overview ---
