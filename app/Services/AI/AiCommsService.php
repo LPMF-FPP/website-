@@ -48,15 +48,26 @@ class AiCommsService
             ]);
 
             if ($response->failed()) {
-                Log::error('AI Service Error: '.$response->body());
+                $responseBody = (string) $response->body();
+                Log::error('AI Service Error: '.$responseBody);
+
+                if (str_contains($responseBody, 'ERR_NGROK_3200')) {
+                    throw new RuntimeException('AI endpoint sedang offline (ERR_NGROK_3200).');
+                }
+
                 throw new RuntimeException('AI service request failed: '.$response->status());
             }
 
             $data = $response->json();
 
             return $data['choices'][0]['message']['content'] ?? '';
-        } catch (\Exception $e) {
+        } catch (RuntimeException $e) {
             Log::error('AI Service Exception: '.$e->getMessage());
+
+            throw $e;
+        } catch (\Throwable $e) {
+            Log::error('AI Service Exception: '.$e->getMessage());
+
             throw new RuntimeException('Failed to generate message via AI.');
         }
     }
