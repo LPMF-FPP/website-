@@ -91,14 +91,30 @@ export function qmhCreatePage(config = {}) {
         },
 
         hasMeaningfulInitialInput() {
-            if (this.docType) return true;
-            if (this.docCode) return true;
-            if (this.title) return true;
-            if (this.changeSummary) return true;
-            if (this.parentSopId) return true;
-            if (this.pairedIkId) return true;
-            if (this.templateId) return true;
-            if (this.frPreset) return true;
+            if (this.docType) {
+                return true;
+            }
+            if (this.docCode) {
+                return true;
+            }
+            if (this.title) {
+                return true;
+            }
+            if (this.changeSummary) {
+                return true;
+            }
+            if (this.parentSopId) {
+                return true;
+            }
+            if (this.pairedIkId) {
+                return true;
+            }
+            if (this.templateId) {
+                return true;
+            }
+            if (this.frPreset) {
+                return true;
+            }
 
             return Object.keys(this.answers || {}).length > 0;
         },
@@ -313,10 +329,15 @@ export function qmhCreatePage(config = {}) {
                 return false;
             }
 
-            if (n <= 1) return true;
-            if (n === 2) return this.isStep1Complete();
-            if (n === 3)
+            if (n <= 1) {
+                return true;
+            }
+            if (n === 2) {
+                return this.isStep1Complete();
+            }
+            if (n === 3) {
                 return this.isStep1Complete() && this.isStep2Complete();
+            }
             return (
                 this.isStep1Complete() &&
                 this.isStep2Complete() &&
@@ -768,7 +789,9 @@ export function qmhCreatePage(config = {}) {
 
             questions.forEach((q) => {
                 const qid = typeof q?.id === "string" ? q.id : "";
-                if (!qid) return;
+                if (!qid) {
+                    return;
+                }
 
                 if (q.type === "section") {
                     delete this.answers[qid];
@@ -883,7 +906,9 @@ export function qmhCreatePage(config = {}) {
         },
 
         onFormSchemaChanged(nextSchema) {
-            if (!nextSchema || typeof nextSchema !== "object") return;
+            if (!nextSchema || typeof nextSchema !== "object") {
+                return;
+            }
 
             this.schema = nextSchema;
             this.fieldErrors = {};
@@ -912,7 +937,9 @@ export function qmhCreatePage(config = {}) {
             const questions = this.schemaQuestions();
             questions.forEach((q) => {
                 const qid = typeof q?.id === "string" ? q.id : "";
-                if (!qid) return;
+                if (!qid) {
+                    return;
+                }
 
                 if (q.type === "section") {
                     return;
@@ -1256,11 +1283,13 @@ export function qmhCreatePage(config = {}) {
 
                 if (!allowedTags.has(tag)) {
                     const parent = node.parentNode;
-                    if (!parent) return;
+                    if (!parent) {
+                        return;
+                    }
                     while (node.firstChild) {
                         parent.insertBefore(node.firstChild, node);
                     }
-                    parent.removeChild(node);
+                    node.remove();
                 }
             });
 
@@ -1340,7 +1369,9 @@ export function qmhCreatePage(config = {}) {
             const rows = questions
                 .map((q, idx) => {
                     const qid = typeof q?.id === "string" ? q.id : "";
-                    if (!qid) return "";
+                    if (!qid) {
+                        return "";
+                    }
 
                     const label = this.escapeHtml(q?.label || qid);
 
@@ -1356,15 +1387,15 @@ export function qmhCreatePage(config = {}) {
                                     normalized;
 
                                 const previewHtml = this.isEditorBlank(listHtml)
-                                    ? `<p class=\"text-gray-500\">-</p>`
+                                    ? `<p class="text-gray-500">-</p>`
                                     : this.sanitizePreviewHtml(listHtml);
 
-                                return `<div class=\"space-y-1\"><div class=\"text-xs font-semibold text-gray-900\">${idx + 1}. ${label}</div>${previewHtml}</div>`;
+                                return `<div class="space-y-1"><div class="text-xs font-semibold text-gray-900">${idx + 1}. ${label}</div>${previewHtml}</div>`;
                             }
 
                             const plain = this.normalizePlainText(current);
                             if (!plain) {
-                                return `<div class=\"space-y-1\"><div class=\"text-xs font-semibold text-gray-900\">${idx + 1}. ${label}</div><p class=\"text-gray-500\">-</p></div>`;
+                                return `<div class="space-y-1"><div class="text-xs font-semibold text-gray-900">${idx + 1}. ${label}</div><p class="text-gray-500">-</p></div>`;
                             }
 
                             const lines = plain
@@ -1379,10 +1410,10 @@ export function qmhCreatePage(config = {}) {
                                 .join("");
 
                             const previewHtml = items
-                                ? `<ul class=\"list-disc pl-5\">${items}</ul>`
-                                : `<p class=\"text-gray-500\">-</p>`;
+                                ? `<ul class="list-disc pl-5">${items}</ul>`
+                                : `<p class="text-gray-500">-</p>`;
 
-                            return `<div class=\"space-y-1\"><div class=\"text-xs font-semibold text-gray-900\">${idx + 1}. ${label}</div>${previewHtml}</div>`;
+                            return `<div class="space-y-1"><div class="text-xs font-semibold text-gray-900">${idx + 1}. ${label}</div>${previewHtml}</div>`;
                         }
 
                         const items = Array.isArray(current)
@@ -1413,12 +1444,12 @@ export function qmhCreatePage(config = {}) {
 
                         const listHtml =
                             filledItems.length > 0
-                                ? `<ul class=\"list-disc pl-5\">${filledItems
+                                ? `<ul class="list-disc pl-5">${filledItems
                                       .map((item) => `<li>${item}</li>`)
                                       .join("")}</ul>`
-                                : `<p class=\"text-gray-500\">-</p>`;
+                                : `<p class="text-gray-500">-</p>`;
 
-                        return `<div class=\"space-y-1\"><div class=\"text-xs font-semibold text-gray-900\">${idx + 1}. ${label}</div>${listHtml}</div>`;
+                        return `<div class="space-y-1"><div class="text-xs font-semibold text-gray-900">${idx + 1}. ${label}</div>${listHtml}</div>`;
                     }
 
                     const raw =
@@ -1440,19 +1471,21 @@ export function qmhCreatePage(config = {}) {
                         }
                     }
 
-                    return `<div class=\"space-y-1\"><div class=\"text-xs font-semibold text-gray-900\">${idx + 1}. ${label}</div>${answerHtml}</div>`;
+                    return `<div class="space-y-1"><div class="text-xs font-semibold text-gray-900">${idx + 1}. ${label}</div>${answerHtml}</div>`;
                 })
                 .filter((row) => row !== "")
                 .join("");
 
-            return `<div class=\"space-y-4 text-sm text-gray-700\">${rows}</div>`;
+            return `<div class="space-y-4 text-sm text-gray-700">${rows}</div>`;
         },
 
         structuredFormPreviewHtml(questions) {
             const rows = questions
                 .map((q, idx) => {
                     const qid = typeof q?.id === "string" ? q.id : "";
-                    if (!qid) return "";
+                    if (!qid) {
+                        return "";
+                    }
 
                     const label = this.escapeHtml(q?.label || qid);
                     const type = String(q?.type || "text");
@@ -1490,7 +1523,7 @@ export function qmhCreatePage(config = {}) {
                                 .map((v) => String(v).trim())
                                 .filter((v) => v !== "");
                             if (items.length > 0) {
-                                cell = `<ul class=\"list-disc pl-5\">${items
+                                cell = `<ul class="list-disc pl-5">${items
                                     .map(
                                         (v) => `<li>${this.escapeHtml(v)}</li>`,
                                     )
@@ -1506,7 +1539,7 @@ export function qmhCreatePage(config = {}) {
                         } else {
                             const normalized = this.normalizePlainText(val);
                             if (normalized) {
-                                cell = `<div class=\"whitespace-pre-line\">${this.escapeHtml(normalized).replaceAll("\n", "<br>")}</div>`;
+                                cell = `<div class="whitespace-pre-line">${this.escapeHtml(normalized).replaceAll("\n", "<br>")}</div>`;
                             }
                         }
                     }
@@ -1524,14 +1557,14 @@ export function qmhCreatePage(config = {}) {
                                 ? match.label
                                 : value;
                         if (labelText) {
-                            cell = `<div class=\"text-sm text-gray-800\">${this.escapeHtml(labelText)}</div>`;
+                            cell = `<div class="text-sm text-gray-800">${this.escapeHtml(labelText)}</div>`;
                         }
                     }
 
                     if (type === "date") {
                         const value = typeof val === "string" ? val.trim() : "";
                         if (value) {
-                            cell = `<div class=\"text-sm text-gray-800\">${this.escapeHtml(value)}</div>`;
+                            cell = `<div class="text-sm text-gray-800">${this.escapeHtml(value)}</div>`;
                         }
                     }
 
@@ -1543,16 +1576,16 @@ export function qmhCreatePage(config = {}) {
                                   ? String(val)
                                   : "";
                         if (value) {
-                            cell = `<div class=\"text-sm text-gray-800\">${this.escapeHtml(value)}</div>`;
+                            cell = `<div class="text-sm text-gray-800">${this.escapeHtml(value)}</div>`;
                         }
                     }
 
-                    return `<tr><td class=\"border border-gray-200 px-2 py-2 text-xs font-semibold text-gray-700 text-center\">${idx + 1}</td><td class=\"border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-800\">${label.toUpperCase()}</td><td class=\"border border-gray-200 px-3 py-2 text-sm text-gray-700\">${cell}</td></tr>`;
+                    return `<tr><td class="border border-gray-200 px-2 py-2 text-xs font-semibold text-gray-700 text-center">${idx + 1}</td><td class="border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-800">${label.toUpperCase()}</td><td class="border border-gray-200 px-3 py-2 text-sm text-gray-700">${cell}</td></tr>`;
                 })
                 .filter((row) => row !== "")
                 .join("");
 
-            return `<div class=\"overflow-hidden rounded-lg border border-gray-200\"><table class=\"w-full border-collapse\"><tbody>${rows}</tbody></table></div>`;
+            return `<div class="overflow-hidden rounded-lg border border-gray-200"><table class="w-full border-collapse"><tbody>${rows}</tbody></table></div>`;
         },
 
         canSubmit() {
@@ -1604,7 +1637,9 @@ export function qmhCreatePage(config = {}) {
             const questions = this.schemaQuestions();
             questions.forEach((q) => {
                 const qid = typeof q?.id === "string" ? q.id : "";
-                if (!qid) return;
+                if (!qid) {
+                    return;
+                }
 
                 const isRequired = Boolean(q.required);
 
@@ -1771,25 +1806,48 @@ export function qmhCreatePage(config = {}) {
 
         questionTypeLabel(type) {
             const t = String(type || "text");
-            if (t === "section") return "Section";
-            if (t === "text") return "Teks";
-            if (t === "textarea") return "Paragraf";
-            if (t === "list") return "Daftar";
-            if (t === "select") return "Pilihan";
-            if (t === "checkbox") return "Centang";
-            if (t === "date") return "Tanggal";
-            if (t === "number") return "Angka";
+            if (t === "section") {
+                return "Section";
+            }
+            if (t === "text") {
+                return "Teks";
+            }
+            if (t === "textarea") {
+                return "Paragraf";
+            }
+            if (t === "list") {
+                return "Daftar";
+            }
+            if (t === "select") {
+                return "Pilihan";
+            }
+            if (t === "checkbox") {
+                return "Centang";
+            }
+            if (t === "date") {
+                return "Tanggal";
+            }
+            if (t === "number") {
+                return "Angka";
+            }
             return "Isian";
         },
 
         coerceBoolean(value) {
-            if (typeof value === "boolean") return value;
-            if (typeof value === "number") return value === 1;
+            if (typeof value === "boolean") {
+                return value;
+            }
+            if (typeof value === "number") {
+                return value === 1;
+            }
             if (typeof value === "string") {
                 const v = value.trim().toLowerCase();
-                if (["1", "true", "on", "yes", "y"].includes(v)) return true;
-                if (["0", "false", "off", "no", "n", ""].includes(v))
+                if (["1", "true", "on", "yes", "y"].includes(v)) {
+                    return true;
+                }
+                if (["0", "false", "off", "no", "n", ""].includes(v)) {
                     return false;
+                }
             }
             return false;
         },
@@ -1868,7 +1926,9 @@ export function qmhCreatePage(config = {}) {
             const questions = this.schemaQuestions();
             questions.forEach((q) => {
                 const qid = typeof q?.id === "string" ? q.id : "";
-                if (!qid) return;
+                if (!qid) {
+                    return;
+                }
                 if (!Object.prototype.hasOwnProperty.call(this.answers, qid)) {
                     return;
                 }

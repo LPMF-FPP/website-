@@ -9,6 +9,7 @@
 
 /* Prevent Alpine x-cloak flash on refresh */
 [x-cloak] {
+    /* stylelint-disable-next-line declaration-no-important -- Required to suppress flash before Alpine initializes */
     display: none !important;
 }
 
@@ -41,14 +42,14 @@
 }
 
 .qmh-editor-btn {
+    padding: 0.5rem 0.625rem;
+    color: #374151;
+    background: #fff;
     border: 1px solid #d1d5db;
     border-radius: 0.375rem;
-    background: #fff;
-    color: #374151;
     font-size: 0.75rem;
     font-weight: 600;
     line-height: 1;
-    padding: 0.5rem 0.625rem;
 }
 
 .qmh-editor-btn:hover {
@@ -56,16 +57,16 @@
 }
 
 .qmh-editor-btn.is-active {
-    border-color: #2563eb;
-    background: #dbeafe;
     color: #1e3a8a;
+    background: #dbeafe;
+    border-color: #2563eb;
 }
 
 .qmh-editor-surface {
     min-height: 24rem;
+    padding: 1rem;
     border: 1px solid #d1d5db;
     border-radius: 0.5rem;
-    padding: 1rem;
 }
 
 .qmh-editor-surface .ProseMirror {
@@ -101,15 +102,15 @@
 }
 
 .qmh-editor-surface table {
-    border-collapse: collapse;
-    margin: 0.75rem 0;
     width: 100%;
+    margin: 0.75rem 0;
+    border-collapse: collapse;
 }
 
 .qmh-editor-surface th,
 .qmh-editor-surface td {
-    border: 1px solid #d1d5db;
     padding: 0.5rem;
+    border: 1px solid #d1d5db;
 }
 
 @layer components {
@@ -150,7 +151,6 @@
         padding: 0;
         border: 0;
         clip: rect(0, 0, 0, 0);
-        overflow: hidden;
         white-space: nowrap;
     }
 
@@ -161,7 +161,6 @@
         margin: 0;
         padding: 0;
         clip: auto;
-        overflow: visible;
         white-space: normal;
     }
 

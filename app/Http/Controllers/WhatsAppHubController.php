@@ -85,9 +85,10 @@ class WhatsAppHubController extends Controller
             ->latest()->take(3)->get()
             ->map(fn ($b) => [
                 'id' => $b->id,
+                'key' => 'message-'.$b->id,
                 'type' => 'message',
                 'title' => $b->title,
-                'subtitle' => "{$b->sent_count}/{$b->total_recipients} sent",
+                'details' => "{$b->sent_count}/{$b->total_recipients} terkirim",
                 'status' => $b->failed_count > 0 ? 'warning' : 'success',
                 'time' => $b->created_at->diffForHumans(),
                 'timestamp' => $b->created_at->timestamp,
@@ -97,15 +98,25 @@ class WhatsAppHubController extends Controller
             ->latest()->take(3)->get()
             ->map(fn ($t) => [
                 'id' => $t->id,
+                'key' => 'task-'.$t->id,
                 'type' => 'task',
                 'title' => $t->title,
-                'subtitle' => "Assigned to {$t->assignee->name}",
-                'status' => $t->status,
+                'details' => 'Ditugaskan ke '.($t->assignee?->name ?? 'Belum ditentukan'),
+                'status' => $this->normalizeTaskActivityStatus((string) $t->status),
                 'time' => $t->created_at->diffForHumans(),
                 'timestamp' => $t->created_at->timestamp,
             ]);
 
         return $batches->merge($tasks)->sortByDesc('timestamp')->take(5)->values();
+    }
+
+    private function normalizeTaskActivityStatus(string $status): string
+    {
+        return match ($status) {
+            'completed' => 'success',
+            'pending' => 'warning',
+            default => 'info',
+        };
     }
 
     // --- Tasks ---

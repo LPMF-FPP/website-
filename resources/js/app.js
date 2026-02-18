@@ -3,6 +3,7 @@ import "./bootstrap";
 import Alpine from "alpinejs";
 import collapse from "@alpinejs/collapse";
 import focus from "@alpinejs/focus";
+
 import { createListFetcher } from "./utils/list-fetcher";
 import { initSearchPage } from "./pages/search";
 import { qmhCreatePage } from "./pages/quality-create";
@@ -23,7 +24,7 @@ Alpine.plugin(focus);
     function withTransition() {
         const root = document.documentElement;
         root.classList.add(TRANSITION_CLASS);
-        if (transitionTimeout) clearTimeout(transitionTimeout);
+        if (transitionTimeout) {clearTimeout(transitionTimeout);}
         transitionTimeout = setTimeout(
             () => root.classList.remove(TRANSITION_CLASS),
             400,

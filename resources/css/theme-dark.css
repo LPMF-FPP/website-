@@ -1,4 +1,5 @@
 /* Dark theme overrides using data-theme="dark" or .dark root */
+
 /* Variables now handled in theme-semantic.css for consistency */
 :root.dark,
 [data-theme="dark"] {
@@ -12,8 +13,8 @@
 
 [data-theme="dark"] body,
 :root.dark body {
-    background-color: var(--pd-color-bg);
     color: var(--pd-color-text);
+    background-color: var(--pd-color-bg);
 }
 
 /* Component surface adjustments */
@@ -27,9 +28,9 @@
 
 [data-theme="dark"] .alert,
 :root.dark .alert {
+    color: #e2e8f0;
     background-color: #1f2937; /* slightly lighter than bg for separation */
     border-color: #334155;
-    color: #e2e8f0;
 }
 
 /* Tabs underline variant */

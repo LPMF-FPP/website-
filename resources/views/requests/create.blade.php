@@ -947,7 +947,7 @@ function displayRequestLetterFileName(input) {
         dropzone.classList.remove('border-gray-300');
         dropzone.classList.add('border-green-500', 'bg-green-50');
         
-        console.log('File selected:', file.name, 'Size:', fileSize, 'MB');
+        console.warn('File selected:', file.name, 'Size:', fileSize, 'MB');
     } else {
         filenameDisplay.textContent = 'PDF hingga 10MB';
         dropzone.classList.remove('border-green-500', 'bg-green-50');
@@ -989,7 +989,7 @@ function previewSampleImages(input, sampleIndex) {
             }
         });
         
-        console.log(`Preview ${input.files.length} images for sample ${sampleIndex}`);
+        console.warn(`Preview ${input.files.length} images for sample ${sampleIndex}`);
     } else {
         previewContainer.innerHTML = '<div class="flex items-center justify-center text-gray-400 text-xs col-span-2">Preview foto akan muncul di sini</div>';
     }
@@ -1126,7 +1126,7 @@ document.getElementById('add-sample').addEventListener('click', function() {
     
     sampleIndex++;
     
-    console.log('Added new sample with index:', sampleIndex - 1);
+    console.warn('Added new sample with index:', sampleIndex - 1);
 });
 
 function updateSampleNumbers() {

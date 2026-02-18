@@ -1042,7 +1042,7 @@ function numberingRepair() {
                 
                 // Check if scope changed during request
                 if (this.selectedScope !== scopeToScan) {
-                    console.log('Scope changed during request, discarding result');
+                    console.warn('Scope changed during request, discarding result');
                     return;
                 }
                 
@@ -1062,7 +1062,7 @@ function numberingRepair() {
             } catch (error) {
                 // Ignore abort errors
                 if (error.name === 'AbortError') {
-                    console.log('Request aborted for scope change');
+                    console.warn('Request aborted for scope change');
                     return;
                 }
                 console.error('Scan error:', error);

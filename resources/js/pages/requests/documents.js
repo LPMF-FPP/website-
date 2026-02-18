@@ -101,8 +101,8 @@ export class RequestDocumentsClient {
      * Delete document
      */
     async deleteDocument(doc) {
-        if (!doc?.id) return;
-        if (!confirm('Yakin hapus dokumen ini?')) return;
+        if (!doc?.id) {return;}
+        if (!confirm('Yakin hapus dokumen ini?')) {return;}
 
         this.state.deleting[doc.id] = true;
         this.state.error = '';
@@ -164,7 +164,7 @@ export class RequestDocumentsClient {
      * Check if document is PDF
      */
     documentIsPdf(doc) {
-        if (!doc) return false;
+        if (!doc) {return false;}
         const mime = (doc.mime_type || doc.mime || doc.content_type || '').toLowerCase();
         const name = (doc.name || '').toLowerCase();
         const ext = (doc.extension || '').toLowerCase();
@@ -175,7 +175,7 @@ export class RequestDocumentsClient {
      * Check if document is image
      */
     documentIsImage(doc) {
-        if (!doc) return false;
+        if (!doc) {return false;}
         const mime = (doc.mime_type || doc.mime || doc.content_type || '').toLowerCase();
         const name = (doc.name || '').toLowerCase();
         const ext = (doc.extension || '').toLowerCase();

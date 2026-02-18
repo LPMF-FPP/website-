@@ -265,35 +265,54 @@
                     window.history.pushState({}, '', url);
 
                     try {
-                        let response;
+                        const endpointByTab = {
+                            overview: '{{ route("whatsapp.overview") }}',
+                            tasks: '{{ route("whatsapp.tasks.index") }}',
+                            broadcasts: '{{ route("whatsapp.broadcasts.index") }}',
+                            reminders: '{{ route("whatsapp.reminders.index") }}',
+                            logs: '{{ route("whatsapp.logs") }}',
+                            inventory_alerts: '{{ route("whatsapp.inventory-alerts") }}',
+                            settings: '{{ route("whatsapp.settings.index") }}',
+                        };
+
+                        const endpoint = endpointByTab[tab];
+                        if (!endpoint) {
+                            throw new Error(`Unknown tab: ${tab}`);
+                        }
+
+                        const response = await fetch(endpoint, {
+                            headers: {
+                                'Accept': 'application/json'
+                            }
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`Failed to load tab ${tab} (${response.status})`);
+                        }
+
+                        const payload = await response.json();
+
                         switch(tab) {
                             case 'overview':
-                                response = await fetch('{{ route("whatsapp.overview") }}');
-                                this.overviewData = await response.json();
+                                this.overviewData = payload;
                                 break;
                             case 'tasks':
-                                response = await fetch('{{ route("whatsapp.tasks.index") }}');
-                                this.tasksData = await response.json();
+                                this.tasksData = payload;
                                 break;
                             case 'broadcasts':
-                                response = await fetch('{{ route("whatsapp.broadcasts.index") }}');
-                                this.broadcastsData = await response.json();
+                                this.broadcastsData = payload;
                                 break;
                             case 'reminders':
-                                response = await fetch('{{ route("whatsapp.reminders.index") }}');
-                                this.remindersData = await response.json();
+                                this.remindersData = payload;
                                 break;
                             case 'logs':
-                                response = await fetch('{{ route("whatsapp.logs") }}');
-                                this.logsData = await response.json();
+                                this.logsData = payload;
                                 break;
                             case 'inventory_alerts':
-                                response = await fetch('{{ route("whatsapp.inventory-alerts") }}');
-                                this.inventoryAlertsData = await response.json();
+                                this.inventoryAlertsData = payload;
                                 break;
                             case 'settings':
-                                response = await fetch('{{ route("whatsapp.settings.index") }}');
-                                this.settingsData = await response.json();
+                                this.settingsData = payload;
                                 this.initSettingsTab();
                                 break;
                         }

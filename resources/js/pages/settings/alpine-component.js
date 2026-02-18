@@ -4,6 +4,7 @@
  */
 
 import Alpine from "alpinejs";
+
 import { SettingsClient } from "./index.js";
 
 const DOCUMENT_TYPE_LABELS = {
@@ -33,7 +34,9 @@ const DOCUMENT_TYPE_LABELS = {
 };
 
 const formatDocumentType = (type) => {
-    if (!type) return "Dokumen";
+    if (!type) {
+        return "Dokumen";
+    }
     return (
         DOCUMENT_TYPE_LABELS[type] ||
         type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
@@ -60,7 +63,9 @@ const normalizeDocumentTypes = (list) => {
             }
             if (item && typeof item === "object") {
                 const value = item.value || item.code || "";
-                if (!value) return null;
+                if (!value) {
+                    return null;
+                }
                 return {
                     ...item,
                     code: value,
@@ -235,7 +240,9 @@ export function registerSettingsComponent() {
             },
             detectSmtpPreset() {
                 const smtp = this.client?.state?.form?.smtp;
-                if (!smtp) return;
+                if (!smtp) {
+                    return;
+                }
                 if (smtp.host === "127.0.0.1" && smtp.port === 1025) {
                     this.smtpPreset = "mailpit";
                 } else if (smtp.host === "smtp.gmail.com") {
@@ -379,18 +386,22 @@ export function registerSettingsComponent() {
                 ) {
                     this.client.state.form.locale = {};
                 }
-                if (!this.client.state.form.locale.timezone)
+                if (!this.client.state.form.locale.timezone) {
                     this.client.state.form.locale.timezone =
                         this.timezones[0] ?? "Asia/Jakarta";
-                if (!this.client.state.form.locale.date_format)
+                }
+                if (!this.client.state.form.locale.date_format) {
                     this.client.state.form.locale.date_format =
                         this.dateFormats[0] ?? "DD/MM/YYYY";
-                if (!this.client.state.form.locale.number_format)
+                }
+                if (!this.client.state.form.locale.number_format) {
                     this.client.state.form.locale.number_format =
                         this.numberFormats[0]?.value ?? "1.234,56";
-                if (!this.client.state.form.locale.language)
+                }
+                if (!this.client.state.form.locale.language) {
                     this.client.state.form.locale.language =
                         this.languages[0]?.value ?? "id";
+                }
 
                 this.client.state.form.retention ??= {};
                 const driver = this.client.state.form.retention.storage_driver;
@@ -422,12 +433,15 @@ export function registerSettingsComponent() {
                 }
 
                 this.client.state.form.smtp ??= {};
-                if (!this.client.state.form.smtp.host)
+                if (!this.client.state.form.smtp.host) {
                     this.client.state.form.smtp.host = "127.0.0.1";
-                if (!this.client.state.form.smtp.port)
+                }
+                if (!this.client.state.form.smtp.port) {
                     this.client.state.form.smtp.port = 1025;
-                if (!this.client.state.form.smtp.from_name)
+                }
+                if (!this.client.state.form.smtp.from_name) {
                     this.client.state.form.smtp.from_name = "LPMF LIMS";
+                }
                 this.detectSmtpPreset();
                 this.ensureIkuDefaults();
             },
@@ -510,7 +524,7 @@ export function registerSettingsComponent() {
                         datePart = `${parts.day}/${parts.month}/${parts.year}`;
                     }
                     this.nowPreview = `${datePart} ${parts.hour}:${parts.minute}:${parts.second}`;
-                } catch (e) {
+                } catch {
                     // ignore
                 }
             },
@@ -530,7 +544,7 @@ export function registerSettingsComponent() {
                         this.client.api.localizationTimePreview,
                     );
                     this.timePreview.data = response || null;
-                } catch (error) {
+                } catch {
                     this.timePreview.error = "Preview waktu gagal dimuat.";
                     this.timePreview.data = null;
                 } finally {
@@ -543,7 +557,9 @@ export function registerSettingsComponent() {
             },
 
             async startEmergencyBackup() {
-                if (this.client.state.backupRunning) return;
+                if (this.client.state.backupRunning) {
+                    return;
+                }
 
                 this.client.state.backupRunning = true;
                 this.client.state.backupProgress =
@@ -868,7 +884,9 @@ export function registerSettingsComponent() {
                     `Masukkan kode template untuk ${this.client.state.templateLabels[type] || type}`,
                     this.client.state.activeTemplates[type]?.code || "",
                 );
-                if (!code) return;
+                if (!code) {
+                    return;
+                }
                 const tpl = this.client.state.templates.find(
                     (t) => (t.code || "").toLowerCase() === code.toLowerCase(),
                 );
@@ -918,9 +936,15 @@ export function registerSettingsComponent() {
 
             canPreviewTemplate(type) {
                 const tpl = this.client.state.activeTemplates?.[type];
-                if (!tpl) return false;
-                if (tpl.id) return true;
-                if (!tpl.code) return false;
+                if (!tpl) {
+                    return false;
+                }
+                if (tpl.id) {
+                    return true;
+                }
+                if (!tpl.code) {
+                    return false;
+                }
                 return this.client.state.templates.some(
                     (item) => item.code === tpl.code && item.id,
                 );
@@ -939,8 +963,12 @@ export function registerSettingsComponent() {
                 return this.client.previewPdf();
             },
 
-            previewTemplate(type) {
-                return this.previewActiveTemplate(type);
+            previewTemplate(...args) {
+                if (args.length === 2) {
+                    return this.previewWhatsappTemplate(args[0], args[1]);
+                }
+
+                return this.previewActiveTemplate(args[0]);
             },
 
             // Helper method for displaying preview text with better error handling
@@ -966,7 +994,9 @@ export function registerSettingsComponent() {
             },
 
             formatDocumentTimestamp(value) {
-                if (!value) return "-";
+                if (!value) {
+                    return "-";
+                }
                 try {
                     return new Intl.DateTimeFormat("id-ID", {
                         year: "numeric",
@@ -975,22 +1005,28 @@ export function registerSettingsComponent() {
                         hour: "2-digit",
                         minute: "2-digit",
                     }).format(new Date(value));
-                } catch (e) {
+                } catch {
                     return value;
                 }
             },
 
             formatDocumentSourceLabel(source) {
-                if (!source) return "Tidak diketahui";
+                if (!source) {
+                    return "Tidak diketahui";
+                }
                 const match = this.documentSources.find(
                     (item) => item.value === source,
                 );
-                if (match) return match.label;
+                if (match) {
+                    return match.label;
+                }
                 return source === "generated" ? "Generated" : "Upload Manual";
             },
 
             formatDocumentSizeLabel(bytes, fallback = "-") {
-                if (typeof bytes !== "number" || bytes <= 0) return fallback;
+                if (typeof bytes !== "number" || bytes <= 0) {
+                    return fallback;
+                }
                 const units = ["B", "KB", "MB", "GB", "TB"];
                 const exp = Math.min(
                     Math.floor(Math.log(bytes) / Math.log(1024)),
@@ -1067,8 +1103,12 @@ export function registerSettingsComponent() {
 
                 templates.forEach((tpl) => {
                     const key = (tpl.type || "").toLowerCase();
-                    if (!key) return;
-                    if (!templatesByType[key]) templatesByType[key] = [];
+                    if (!key) {
+                        return;
+                    }
+                    if (!templatesByType[key]) {
+                        templatesByType[key] = [];
+                    }
                     templatesByType[key].push(tpl);
                     if (tpl.is_active && tpl.id) {
                         activeTemplateByType[key] = tpl.id;
@@ -1086,11 +1126,15 @@ export function registerSettingsComponent() {
                     Object.entries(activeFromResponse).forEach(
                         ([type, tpl]) => {
                             const key = (type || "").toLowerCase();
-                            if (!key) return;
+                            if (!key) {
+                                return;
+                            }
                             if (tpl && typeof tpl === "object") {
                                 const id =
                                     tpl.id ?? tpl.template_id ?? tpl.templateId;
-                                if (id) activeTemplateByType[key] = id;
+                                if (id) {
+                                    activeTemplateByType[key] = id;
+                                }
                             } else if (tpl) {
                                 activeTemplateByType[key] = tpl;
                             }
@@ -1327,23 +1371,30 @@ export function registerSettingsComponent() {
                 const selectedId =
                     this.documentTemplateState.selectedTemplateId;
                 return templates.filter((tpl) => {
-                    if (tpl.is_draft) return true;
-                    if (selectedId && String(tpl.id) === String(selectedId))
+                    if (tpl.is_draft) {
                         return true;
-                    if (format && tpl.format && tpl.format !== format)
+                    }
+                    if (selectedId && String(tpl.id) === String(selectedId)) {
+                        return true;
+                    }
+                    if (format && tpl.format && tpl.format !== format) {
                         return false;
+                    }
                     if (
                         engine &&
                         tpl.render_engine &&
                         tpl.render_engine !== engine
-                    )
+                    ) {
                         return false;
+                    }
                     return !!tpl.id;
                 });
             },
 
             findTemplateById(templateId, type = null) {
-                if (!templateId) return null;
+                if (!templateId) {
+                    return null;
+                }
                 const targetType =
                     type ?? this.documentTemplateState.selectedDocumentType;
                 const list = targetType
@@ -1396,7 +1447,9 @@ export function registerSettingsComponent() {
 
             getModalTemplates() {
                 const type = this.templateEditorModal.documentType;
-                if (!type) return [];
+                if (!type) {
+                    return [];
+                }
                 const templates = this.getTemplatesForEditor(type, {
                     ignoreFilters: true,
                 });
@@ -1406,7 +1459,9 @@ export function registerSettingsComponent() {
 
             async onModalTemplateChange() {
                 const templateId = this.templateEditorModal.id;
-                if (!templateId) return;
+                if (!templateId) {
+                    return;
+                }
                 const tpl = this.findTemplateById(
                     templateId,
                     this.templateEditorModal.documentType,
@@ -1460,7 +1515,9 @@ export function registerSettingsComponent() {
                     autoCreateIfEmpty = false,
                 } = options;
                 const type = this.documentTemplateState.selectedDocumentType;
-                if (!type) return;
+                if (!type) {
+                    return;
+                }
 
                 const key = type.toLowerCase();
                 const meta = this.getDocumentTypeMeta(type);
@@ -1516,7 +1573,6 @@ export function registerSettingsComponent() {
                     await this.onTemplateChange();
                 } else if (autoCreateIfEmpty) {
                     await this.createNewTemplate({ addToList: true });
-                } else {
                 }
                 await this.refreshTemplatePreview();
             },
@@ -1545,7 +1601,9 @@ export function registerSettingsComponent() {
             },
 
             loadTemplateIntoEditor({ html = "", css = "" } = {}) {
-                if (!this.templateEditorInstance) return;
+                if (!this.templateEditorInstance) {
+                    return;
+                }
                 import("./template-editor.js")
                     .then(({ isAlive, refreshTemplateEditor }) => {
                         if (!isAlive(this.templateEditorInstance)) {
@@ -1561,7 +1619,9 @@ export function registerSettingsComponent() {
             },
 
             async openTemplateEditorModal(tpl) {
-                if (!tpl) return;
+                if (!tpl) {
+                    return;
+                }
                 this.templateEditorModal.open = true;
                 this.templateEditorModal.mode = "edit";
                 this.templateEditorModal.loading = true;
@@ -1615,10 +1675,9 @@ export function registerSettingsComponent() {
 
                 if (container.offsetParent === null) {
                     this.templateEditorModal.loading = false;
-                    this.templateEditorModal.error =
-                        "Container editor belum visible setelah " +
-                        attempts +
-                        " attempts.";
+                    this.templateEditorModal.error = `Container editor belum visible setelah ${
+                        attempts
+                    } attempts.`;
                     console.error(
                         "Template editor container still not visible after waiting",
                     );
@@ -1792,7 +1851,7 @@ export function registerSettingsComponent() {
                     try {
                         const error = await response.json();
                         errorMessage = error.message || errorMessage;
-                    } catch (e) {
+                    } catch {
                         const text = await response.text().catch(() => "");
                         console.error(
                             "❌ Non-JSON error response:",
@@ -1809,7 +1868,9 @@ export function registerSettingsComponent() {
             },
 
             clearEditor(editor) {
-                if (!editor) return;
+                if (!editor) {
+                    return;
+                }
                 try {
                     editor.DomComponents?.clear();
                 } catch (e) {
@@ -1848,7 +1909,9 @@ export function registerSettingsComponent() {
                 editor = null,
             ) {
                 const targetEditor = editor || this.templateEditorInstance;
-                if (!targetEditor) return;
+                if (!targetEditor) {
+                    return;
+                }
 
                 const { bodyHtml, cssText } = this.parseHtmlDocument(rawHtml);
                 targetEditor.setComponents(bodyHtml || "<div></div>");
@@ -2217,7 +2280,9 @@ export function registerSettingsComponent() {
                 format,
                 templateId = null,
             } = {}) {
-                if (!type || !format) return;
+                if (!type || !format) {
+                    return;
+                }
                 const previousType =
                     this.documentTemplateState.selectedDocumentType;
                 const previousFormat = this.documentTemplateEditor.format;
@@ -2341,8 +2406,7 @@ export function registerSettingsComponent() {
                             "❌ Failed to initialize template editor",
                             error,
                         );
-                        this.documentTemplateEditor.error =
-                            "Gagal memuat editor template: " + error.message;
+                        this.documentTemplateEditor.error = `Gagal memuat editor template: ${error.message}`;
                         return null;
                     })
                     .finally(() => {
@@ -2355,7 +2419,9 @@ export function registerSettingsComponent() {
             },
 
             refreshTemplateEditor() {
-                if (!this.templateEditorInstance) return;
+                if (!this.templateEditorInstance) {
+                    return;
+                }
                 import("./template-editor.js")
                     .then(({ isAlive, refreshTemplateEditor }) => {
                         if (!isAlive(this.templateEditorInstance)) {
@@ -2477,8 +2543,7 @@ export function registerSettingsComponent() {
                     this.setEditorContent("", "");
                 } catch (error) {
                     console.error("❌ Error starting new template:", error);
-                    this.documentTemplateEditor.error =
-                        "Gagal memulai template baru: " + error.message;
+                    this.documentTemplateEditor.error = `Gagal memulai template baru: ${error.message}`;
                 }
             },
 
@@ -2753,7 +2818,9 @@ export function registerSettingsComponent() {
             },
 
             destroyTemplateEditor() {
-                if (!this.templateEditorInstance) return;
+                if (!this.templateEditorInstance) {
+                    return;
+                }
                 import("./template-editor.js")
                     .then(({ destroyTemplateEditor }) => {
                         destroyTemplateEditor("modal");
@@ -2833,7 +2900,9 @@ export function registerSettingsComponent() {
             },
 
             initInstrumentRequirements(data) {
-                if (!data) return;
+                if (!data) {
+                    return;
+                }
                 this.instrumentRequirements = data;
                 this.instrumentRequirementsState = {};
                 const methods = data.available_methods || [
@@ -2885,7 +2954,9 @@ export function registerSettingsComponent() {
             },
 
             removeRequirement(methodCode, index) {
-                if (!this.instrumentRequirementsState[methodCode]) return;
+                if (!this.instrumentRequirementsState[methodCode]) {
+                    return;
+                }
                 this.instrumentRequirementsState[methodCode].splice(index, 1);
                 this.instrumentRequirementsState[methodCode].forEach(
                     (req, i) => {
@@ -2895,7 +2966,9 @@ export function registerSettingsComponent() {
             },
 
             updateRequirementInstrument(methodCode, index, instrumentId) {
-                if (!this.instrumentRequirementsState[methodCode]) return;
+                if (!this.instrumentRequirementsState[methodCode]) {
+                    return;
+                }
                 this.instrumentRequirementsState[methodCode][
                     index
                 ].instrument_id = instrumentId
@@ -3041,8 +3114,10 @@ export function registerSettingsComponent() {
                 }
             },
 
-            async previewTemplate(category, key) {
-                if (!this.client.state.templateEditor) return;
+            async previewWhatsappTemplate(category, key) {
+                if (!this.client.state.templateEditor) {
+                    return;
+                }
 
                 const statusKey = `${category}_${key}`;
                 const template =
@@ -3087,14 +3162,16 @@ export function registerSettingsComponent() {
                         ...this.client.state.templateEditor.status,
                         [statusKey]: {
                             success: false,
-                            message: "Preview gagal: " + error.message,
+                            message: `Preview gagal: ${error.message}`,
                         },
                     };
                 }
             },
 
             async saveTemplate(category, key) {
-                if (!this.client.state.templateEditor) return;
+                if (!this.client.state.templateEditor) {
+                    return;
+                }
 
                 const statusKey = `${category}_${key}`;
                 const template =
@@ -3157,14 +3234,16 @@ export function registerSettingsComponent() {
                         ...this.client.state.templateEditor.status,
                         [statusKey]: {
                             success: false,
-                            message: "Gagal menyimpan: " + error.message,
+                            message: `Gagal menyimpan: ${error.message}`,
                         },
                     };
                 }
             },
 
             async sendTemplateTest(category, key) {
-                if (!this.client.state.templateEditor) return;
+                if (!this.client.state.templateEditor) {
+                    return;
+                }
 
                 const phone =
                     this.client.state.notificationsTest?.whatsapp?.target;
@@ -3243,8 +3322,12 @@ export function registerSettingsComponent() {
             },
 
             async resetTemplate(category, key) {
-                if (!this.client.state.templateEditor) return;
-                if (!confirm("Reset template ke default?")) return;
+                if (!this.client.state.templateEditor) {
+                    return;
+                }
+                if (!confirm("Reset template ke default?")) {
+                    return;
+                }
 
                 const statusKey = `${category}_${key}`;
 
@@ -3314,7 +3397,7 @@ export function registerSettingsComponent() {
                         ...this.client.state.templateEditor.status,
                         [statusKey]: {
                             success: false,
-                            message: "Gagal reset: " + error.message,
+                            message: `Gagal reset: ${error.message}`,
                         },
                     };
                 }

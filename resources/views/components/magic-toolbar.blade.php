@@ -95,7 +95,7 @@ Usage:
     {{-- AI Magic Button --}}
     <button 
         type="button"
-        @click="aiOpen = true"
+        @click="openAiModal()"
         class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors ml-1"
     >
         <svg class="w-3.5 h-3.5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -184,7 +184,7 @@ Usage:
                     x-transition:leave-end="opacity-0"
                     class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
                     aria-hidden="true"
-                    @click="aiOpen = false"
+                    @click="closeAiModal()"
                 ></div>
 
                 <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
@@ -231,6 +231,18 @@ Usage:
                                             class="shadow-sm bg-gray-50 dark:bg-gray-900 block w-full sm:text-sm border-gray-300 dark:border-gray-600 dark:text-gray-300 rounded-md"
                                         ></textarea>
                                     </div>
+
+                                    <div
+                                        x-show="aiError"
+                                        x-cloak
+                                        class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200"
+                                        role="alert"
+                                    >
+                                        <p x-text="aiError"></p>
+                                        <p x-show="aiRequestId" class="mt-1 text-xs opacity-80">
+                                            Ref: <span x-text="aiRequestId"></span>
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -261,7 +273,7 @@ Usage:
                         </button>
                         <button 
                             type="button" 
-                            @click="aiOpen = false" 
+                            @click="closeAiModal()" 
                             class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
                         >
                             Cancel
@@ -287,6 +299,25 @@ function magicToolbar(config) {
         aiPrompt: '',
         aiResult: '',
         aiLoading: false,
+        aiError: '',
+        aiErrorCode: '',
+        aiRequestId: '',
+
+        openAiModal() {
+            this.aiOpen = true;
+            this.clearAiFeedback();
+        },
+
+        closeAiModal() {
+            this.aiOpen = false;
+            this.clearAiFeedback();
+        },
+
+        clearAiFeedback() {
+            this.aiError = '';
+            this.aiErrorCode = '';
+            this.aiRequestId = '';
+        },
 
         getTextarea() {
             return document.getElementById(this.textareaId);
@@ -390,6 +421,7 @@ function magicToolbar(config) {
         async generateAi() {
             this.aiLoading = true;
             this.aiResult = '';
+            this.clearAiFeedback();
             
             try {
                 const response = await fetch("{{ route('whatsapp.ai.compose') }}", {
@@ -405,15 +437,23 @@ function magicToolbar(config) {
                         variables: this.availableVariables
                     })
                 });
-                
-                if (!response.ok) throw new Error('Network response was not ok');
-                
-                const data = await response.json();
+
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok) {
+                    const message = data.error || 'Maaf, layanan AI sedang bermasalah. Silakan coba lagi.';
+                    const error = new Error(message);
+                    error.code = data.code || '';
+                    error.requestId = data.request_id || '';
+                    throw error;
+                }
+
                 this.aiResult = data.text || data.result || data.message || '';
                 
             } catch (error) {
                 console.error('AI Generation Error:', error);
-                alert('Maaf, terjadi kesalahan saat memproses permintaan AI.');
+                this.aiError = error.message || 'Maaf, layanan AI sedang bermasalah. Silakan coba lagi.';
+                this.aiErrorCode = error.code || '';
+                this.aiRequestId = error.requestId || '';
             } finally {
                 this.aiLoading = false;
             }
@@ -426,6 +466,7 @@ function magicToolbar(config) {
             this.aiOpen = false;
             this.aiPrompt = '';
             this.aiResult = '';
+            this.clearAiFeedback();
         }
     };
 }

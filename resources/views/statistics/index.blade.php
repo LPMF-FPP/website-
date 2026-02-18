@@ -948,7 +948,7 @@
             const tab = urlParams.get('tab') || 'dashboard';
             
             if (tab === 'dashboard') {
-                console.log('Refreshing all charts...');
+                console.warn('Refreshing all charts...');
                 loadUserOriginChart();
                 loadActiveSubstancesChart();
                 loadSuspectGenderChart();
