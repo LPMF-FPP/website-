@@ -39,9 +39,9 @@
     --pd-color-primary: var(--pd-sem-color-primary);
     --pd-color-primary-rgb:
         16, 185, 129; /* Manual fallback for RGB usage in plugin */
-    --pd-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --pd-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 5%);
     --pd-shadow-md:
-        0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        0 4px 6px -1px rgb(0 0 0 / 10%), 0 2px 4px -2px rgb(0 0 0 / 10%);
     --pd-radius-sm: 0.125rem;
     --pd-radius-md: 0.375rem;
     --pd-radius-lg: 0.5rem;
@@ -111,18 +111,15 @@
 
 /* Example button layering using aliases */
 .btn-sem-primary {
-    background-color: var(--pd-sem-color-primary);
     color: #fff;
-    transition:
-        background-color 0.25s ease,
-        box-shadow 0.25s ease;
+    background-color: var(--pd-sem-color-primary);
 }
 
 .btn-sem-primary:hover {
     background-color: var(--pd-sem-color-primary-hover);
 }
 
-.btn-sem-primary:focus-visible {
+.btn-sem-primary:focus {
     outline: 2px solid var(--pd-sem-color-focus-ring);
     outline-offset: 2px;
 }
@@ -148,6 +145,7 @@
 }
 
 /* Spacing reset helpers */
+
 /* stylelint-disable-next-line selector-max-universal -- Universal selector used for recursive spacing in stack */
 .stack-tight > * + * {
     margin-top: 0.5rem;
@@ -159,12 +157,10 @@
 }
 
 /* Theme switch animation class */
+
 /* stylelint-disable-next-line selector-max-universal -- Universal selector required to target all elements during theme transition */
 .theme-transition * {
     transition:
-        background-color 0.35s ease,
-        color 0.35s ease,
-        border-color 0.35s ease,
-        fill 0.35s ease,
-        stroke 0.35s ease;
+        opacity 0.2s ease,
+        transform 0.2s ease;
 }

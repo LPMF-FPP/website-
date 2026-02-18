@@ -3,7 +3,7 @@
  * Handles investigator type toggle and dynamic suspect rows
  */
 
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener("DOMContentLoaded", () => {
     initInvestigatorToggle();
     initSuspectRows();
 });
@@ -13,43 +13,53 @@ document.addEventListener('DOMContentLoaded', function () {
  */
 function initInvestigatorToggle() {
     const radios = document.querySelectorAll('input[name="is_investigator"]');
-    const investigatorBlock = document.querySelector('.block-investigator');
-    const externalBlock = document.querySelector('.block-external');
+    const investigatorBlock = document.querySelector(".block-investigator");
+    const externalBlock = document.querySelector(".block-external");
 
     if (!investigatorBlock || !externalBlock || radios.length === 0) {
         return;
     }
 
     function updateVisibility() {
-        const isInvestigator = document.querySelector('input[name="is_investigator"]:checked')?.value === '1';
+        const isInvestigator =
+            document.querySelector('input[name="is_investigator"]:checked')
+                ?.value === "1";
 
         if (isInvestigator) {
-            investigatorBlock.style.display = '';
-            externalBlock.style.display = 'none';
+            investigatorBlock.style.display = "";
+            externalBlock.style.display = "none";
             // Disable external fields to prevent validation
-            externalBlock.querySelectorAll('input, select, textarea').forEach(el => {
-                el.disabled = true;
-            });
+            externalBlock
+                .querySelectorAll("input, select, textarea")
+                .forEach((el) => {
+                    el.disabled = true;
+                });
             // Enable investigator fields
-            investigatorBlock.querySelectorAll('input, select, textarea').forEach(el => {
-                el.disabled = false;
-            });
+            investigatorBlock
+                .querySelectorAll("input, select, textarea")
+                .forEach((el) => {
+                    el.disabled = false;
+                });
         } else {
-            investigatorBlock.style.display = 'none';
-            externalBlock.style.display = '';
+            investigatorBlock.style.display = "none";
+            externalBlock.style.display = "";
             // Disable investigator fields to prevent validation
-            investigatorBlock.querySelectorAll('input, select, textarea').forEach(el => {
-                el.disabled = true;
-            });
+            investigatorBlock
+                .querySelectorAll("input, select, textarea")
+                .forEach((el) => {
+                    el.disabled = true;
+                });
             // Enable external fields
-            externalBlock.querySelectorAll('input, select, textarea').forEach(el => {
-                el.disabled = false;
-            });
+            externalBlock
+                .querySelectorAll("input, select, textarea")
+                .forEach((el) => {
+                    el.disabled = false;
+                });
         }
     }
 
-    radios.forEach(radio => {
-        radio.addEventListener('change', updateVisibility);
+    radios.forEach((radio) => {
+        radio.addEventListener("change", updateVisibility);
     });
 
     // Initial state
@@ -60,33 +70,36 @@ function initInvestigatorToggle() {
  * Handle dynamic suspect rows
  */
 function initSuspectRows() {
-    const container = document.getElementById('suspects-container');
-    const addBtn = document.getElementById('add-suspect');
+    const container = document.getElementById("suspects-container");
+    const addBtn = document.getElementById("add-suspect");
 
     if (!container || !addBtn) {
         return;
     }
 
-    addBtn.addEventListener('click', function () {
+    addBtn.addEventListener("click", () => {
         addSuspectRow();
     });
 
-    container.addEventListener('click', function (e) {
-        if (e.target.classList.contains('remove-suspect') || e.target.closest('.remove-suspect')) {
-            const row = e.target.closest('.suspect-row');
-            if (row && document.querySelectorAll('.suspect-row').length > 1) {
+    container.addEventListener("click", (e) => {
+        if (
+            e.target.classList.contains("remove-suspect") ||
+            e.target.closest(".remove-suspect")
+        ) {
+            const row = e.target.closest(".suspect-row");
+            if (row && document.querySelectorAll(".suspect-row").length > 1) {
                 row.remove();
                 reindexSuspects();
             } else {
-                alert('Minimal harus ada satu tersangka');
+                alert("Minimal harus ada satu tersangka");
             }
         }
     });
 }
 
 function addSuspectRow() {
-    const container = document.getElementById('suspects-container');
-    const rows = container.querySelectorAll('.suspect-row');
+    const container = document.getElementById("suspects-container");
+    const rows = container.querySelectorAll(".suspect-row");
     const newIndex = rows.length;
 
     const template = `
@@ -140,26 +153,26 @@ function addSuspectRow() {
         </div>
     `;
 
-    container.insertAdjacentHTML('beforeend', template);
+    container.insertAdjacentHTML("beforeend", template);
     updateRemoveButtons();
 }
 
 function reindexSuspects() {
-    const container = document.getElementById('suspects-container');
-    const rows = container.querySelectorAll('.suspect-row');
+    const container = document.getElementById("suspects-container");
+    const rows = container.querySelectorAll(".suspect-row");
 
     rows.forEach((row, idx) => {
         row.dataset.index = idx;
 
         // Update header text
-        const header = row.querySelector('h4, h5');
+        const header = row.querySelector("h4, h5");
         if (header) {
             // Check if it has the badge span
-            const badge = header.querySelector('span');
+            const badge = header.querySelector("span");
             if (badge) {
                 badge.textContent = idx + 1;
                 // Update rest of header text
-                header.childNodes.forEach(node => {
+                header.childNodes.forEach((node) => {
                     if (node.nodeType === Node.TEXT_NODE) {
                         node.textContent = ` Tersangka ${idx + 1}`;
                     }
@@ -170,9 +183,12 @@ function reindexSuspects() {
         }
 
         // Update input names
-        row.querySelectorAll('input, select').forEach(input => {
+        row.querySelectorAll("input, select").forEach((input) => {
             if (input.name) {
-                input.name = input.name.replace(/suspects\[\d+\]/, `suspects[${idx}]`);
+                input.name = input.name.replace(
+                    /suspects\[\d+\]/,
+                    `suspects[${idx}]`,
+                );
             }
         });
     });
@@ -181,11 +197,11 @@ function reindexSuspects() {
 }
 
 function updateRemoveButtons() {
-    const rows = document.querySelectorAll('.suspect-row');
-    const removeButtons = document.querySelectorAll('.remove-suspect');
+    const rows = document.querySelectorAll(".suspect-row");
+    const removeButtons = document.querySelectorAll(".remove-suspect");
 
-    removeButtons.forEach(btn => {
-        btn.style.display = rows.length > 1 ? '' : 'none';
+    removeButtons.forEach((btn) => {
+        btn.style.display = rows.length > 1 ? "" : "none";
     });
 }
 
@@ -193,5 +209,5 @@ function updateRemoveButtons() {
 window.RequestsForm = {
     addSuspectRow,
     reindexSuspects,
-    updateRemoveButtons
+    updateRemoveButtons,
 };

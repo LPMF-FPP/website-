@@ -7,6 +7,7 @@ use App\Services\AI\AiCommsService;
 use App\Services\WhatsApp\TemplateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class AiController extends Controller
@@ -68,13 +69,29 @@ class AiController extends Controller
 
             return response()->json(['result' => $result]);
         } catch (RuntimeException $e) {
-            Log::warning('AI Compose Runtime Error: '.$e->getMessage());
+            $requestId = (string) Str::uuid();
+            Log::warning('AI Compose Runtime Error', [
+                'request_id' => $requestId,
+                'message' => $e->getMessage(),
+            ]);
 
-            return response()->json(['error' => $e->getMessage()], 503);
+            return response()->json([
+                'error' => 'Layanan AI sedang tidak tersedia. Silakan coba lagi.',
+                'code' => 'AI_SERVICE_UNAVAILABLE',
+                'request_id' => $requestId,
+            ], 503);
         } catch (\Throwable $e) {
-            Log::error('AI Compose Error: '.$e->getMessage());
+            $requestId = (string) Str::uuid();
+            Log::error('AI Compose Error', [
+                'request_id' => $requestId,
+                'message' => $e->getMessage(),
+            ]);
 
-            return response()->json(['error' => 'Failed to generate message.'], 500);
+            return response()->json([
+                'error' => 'Terjadi gangguan internal. Silakan coba lagi.',
+                'code' => 'AI_INTERNAL_ERROR',
+                'request_id' => $requestId,
+            ], 500);
         }
     }
 }

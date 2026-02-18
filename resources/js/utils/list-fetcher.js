@@ -15,7 +15,7 @@ export function createListFetcher() {
         'click',
         (e) => {
           const anchor = e.target.closest('a');
-          if (!anchor) return;
+          if (!anchor) {return;}
           const url = new URL(anchor.href, window.location.origin);
           if (url.origin === window.location.origin && (url.searchParams.has('page') || url.hash === '#page')) {
             e.preventDefault();
@@ -48,7 +48,7 @@ export function createListFetcher() {
         const newContainer = doc.querySelector('[x-ref="listContainer"]') || doc.querySelector('table')?.closest('div');
         if (newContainer) {
           this.$refs.listContainer.innerHTML = newContainer.innerHTML;
-          if (opts.push) history.pushState({}, '', url);
+          if (opts.push) {history.pushState({}, '', url);}
         } else {
           window.location.href = url;
         }

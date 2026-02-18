@@ -54,11 +54,11 @@ export function qmhFormBuilder(config = {}) {
         parseSchemaJson(raw) {
             const txt = typeof raw === "string" ? raw.trim() : "";
             if (!txt)
-                return {
+                {return {
                     version: 1,
                     doc_type: this.schemaDocType,
                     questions: [],
-                };
+                };}
 
             try {
                 const decoded = JSON.parse(txt);
@@ -129,13 +129,13 @@ export function qmhFormBuilder(config = {}) {
         },
 
         deleteQuestion(idx) {
-            if (idx < 0 || idx >= this.questions.length) return;
+            if (idx < 0 || idx >= this.questions.length) {return;}
             this.questions.splice(idx, 1);
             this.syncJson();
         },
 
         moveUp(idx) {
-            if (idx <= 0 || idx >= this.questions.length) return;
+            if (idx <= 0 || idx >= this.questions.length) {return;}
             const tmp = this.questions[idx - 1];
             this.questions[idx - 1] = this.questions[idx];
             this.questions[idx] = tmp;
@@ -143,7 +143,7 @@ export function qmhFormBuilder(config = {}) {
         },
 
         moveDown(idx) {
-            if (idx < 0 || idx >= this.questions.length - 1) return;
+            if (idx < 0 || idx >= this.questions.length - 1) {return;}
             const tmp = this.questions[idx + 1];
             this.questions[idx + 1] = this.questions[idx];
             this.questions[idx] = tmp;
@@ -152,7 +152,7 @@ export function qmhFormBuilder(config = {}) {
 
         onLabelChanged(idx) {
             const q = this.questions[idx];
-            if (!q) return;
+            if (!q) {return;}
 
             if (!q.auto_id) {
                 this.syncJson();
@@ -170,7 +170,7 @@ export function qmhFormBuilder(config = {}) {
 
         onTypeChanged(idx) {
             const q = this.questions[idx];
-            if (!q) return;
+            if (!q) {return;}
             if (q.type === "section") {
                 q.required = false;
                 q.options = [];
@@ -183,15 +183,15 @@ export function qmhFormBuilder(config = {}) {
 
         addSelectOption(idx) {
             const q = this.questions[idx];
-            if (!q || q.type !== "select") return;
+            if (!q || q.type !== "select") {return;}
             q.options.push({ value: "", label: "" });
             this.syncJson();
         },
 
         deleteSelectOption(qIdx, optIdx) {
             const q = this.questions[qIdx];
-            if (!q || q.type !== "select") return;
-            if (optIdx < 0 || optIdx >= q.options.length) return;
+            if (!q || q.type !== "select") {return;}
+            if (optIdx < 0 || optIdx >= q.options.length) {return;}
             q.options.splice(optIdx, 1);
             this.syncJson();
         },
@@ -209,8 +209,8 @@ export function qmhFormBuilder(config = {}) {
                         required: Boolean(q.required),
                     };
 
-                    if (q.help) base.help = String(q.help);
-                    if (q.placeholder) base.placeholder = String(q.placeholder);
+                    if (q.help) {base.help = String(q.help);}
+                    if (q.placeholder) {base.placeholder = String(q.placeholder);}
 
                     if (base.type === "select") {
                         base.options = Array.isArray(q.options)
@@ -237,7 +237,7 @@ export function qmhFormBuilder(config = {}) {
         },
 
         syncJson() {
-            if (this._syncQueued) return;
+            if (this._syncQueued) {return;}
             this._syncQueued = true;
             queueMicrotask(() => {
                 this._syncQueued = false;
@@ -246,7 +246,7 @@ export function qmhFormBuilder(config = {}) {
         },
 
         syncJsonNow() {
-            if (!this.$refs?.schemaJson) return;
+            if (!this.$refs?.schemaJson) {return;}
             this.$refs.schemaJson.value = this.schemaJson();
 
             if (typeof this.$dispatch === "function") {
@@ -276,11 +276,11 @@ export function qmhFormBuilder(config = {}) {
                     .map((row) => row.id),
             );
 
-            if (!existing.has(clean)) return clean;
+            if (!existing.has(clean)) {return clean;}
 
             for (let i = 2; i < 200; i += 1) {
                 const candidate = `${clean}_${i}`.slice(0, 64);
-                if (!existing.has(candidate)) return candidate;
+                if (!existing.has(candidate)) {return candidate;}
             }
 
             return `${clean}_${Date.now()}`.slice(0, 64);

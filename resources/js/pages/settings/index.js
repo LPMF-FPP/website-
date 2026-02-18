@@ -265,12 +265,15 @@ export class SettingsClient {
             const textBody = await response.text().catch(() => "");
             const snippet =
                 textBody.length > 200
-                    ? textBody.substring(0, 200) + "..."
+                    ? `${textBody.substring(0, 200)}...`
                     : textBody;
             throw new Error(
                 `Server returned ${response.status} with non-JSON response. ` +
-                    `Content-Type: ${contentType}. ` +
-                    (snippet ? `Body snippet: ${snippet}` : "No body content."),
+                    `Content-Type: ${contentType}. ${
+                        snippet
+                            ? `Body snippet: ${snippet}`
+                            : "No body content."
+                    }`,
             );
         }
 
@@ -283,15 +286,16 @@ export class SettingsClient {
             const textBody = await response.text().catch(() => "");
             const snippet =
                 textBody.length > 200
-                    ? textBody.substring(0, 200) + "..."
+                    ? `${textBody.substring(0, 200)}...`
                     : textBody;
             throw new Error(
                 `Failed to parse JSON response from ${url}. ` +
                     `Status: ${response.status}. ` +
-                    `Parse error: ${parseError.message}. ` +
-                    (snippet
-                        ? `Body snippet: ${snippet}`
-                        : "Empty response body."),
+                    `Parse error: ${parseError.message}. ${
+                        snippet
+                            ? `Body snippet: ${snippet}`
+                            : "Empty response body."
+                    }`,
             );
         }
 
@@ -368,7 +372,9 @@ export class SettingsClient {
             // Backend returns objects like { sample_code: { current, next, pattern }, ... }
             // Extract the 'next' value (or 'current' if available) from each scope
             const extractValue = (scopeData) => {
-                if (typeof scopeData === "string") return scopeData;
+                if (typeof scopeData === "string") {
+                    return scopeData;
+                }
                 if (typeof scopeData === "object" && scopeData !== null) {
                     return scopeData.next || scopeData.current || "";
                 }
@@ -574,7 +580,9 @@ export class SettingsClient {
      * Activate template
      */
     async activateTemplate(template) {
-        if (!template?.id) return;
+        if (!template?.id) {
+            return;
+        }
 
         this.state.templateActionLoading[template.id] = true;
         try {
@@ -606,8 +614,12 @@ export class SettingsClient {
      * Delete template
      */
     async deleteTemplate(template) {
-        if (!template?.id) return;
-        if (!confirm(`Yakin hapus template ${template.name}?`)) return;
+        if (!template?.id) {
+            return;
+        }
+        if (!confirm(`Yakin hapus template ${template.name}?`)) {
+            return;
+        }
 
         this.state.templateActionLoading[template.id] = true;
         try {
@@ -682,7 +694,9 @@ export class SettingsClient {
      */
     async testNotification(channel) {
         const controller = this.state.notificationsTest[channel];
-        if (!controller) return;
+        if (!controller) {
+            return;
+        }
 
         if (!controller.target) {
             controller.message = "Isi target test terlebih dahulu.";
@@ -833,7 +847,7 @@ export class SettingsClient {
             milestone.message = data.message || "✅ Test berhasil dikirim!";
         } catch (error) {
             milestone.success = false;
-            milestone.message = "❌ " + (error.message || "Test gagal");
+            milestone.message = `❌ ${error.message || "Test gagal"}`;
         } finally {
             milestone.loading = false;
 
@@ -922,7 +936,9 @@ export class SettingsClient {
      */
     async saveSection(key) {
         const config = this.sectionEndpoint(key);
-        if (!config) return false;
+        if (!config) {
+            return false;
+        }
 
         this.setSectionError(key, "");
         this.setSectionStatus(key, "", "text-primary-600");
@@ -964,7 +980,9 @@ export class SettingsClient {
 
     async saveWhatsAppSettings() {
         const wa = this.state.form.notifications?.whatsapp;
-        if (!wa) return;
+        if (!wa) {
+            return;
+        }
 
         const payload = {
             enabled: !!wa.enabled,
@@ -991,13 +1009,17 @@ export class SettingsClient {
      * Sanitize payload: convert empty strings to null for numeric fields
      */
     sanitizePayload(payload) {
-        if (!payload || typeof payload !== "object") return payload;
+        if (!payload || typeof payload !== "object") {
+            return payload;
+        }
 
         const sanitized = JSON.parse(JSON.stringify(payload));
 
         // Recursively sanitize numeric fields
         const sanitizeObject = (obj) => {
-            if (!obj || typeof obj !== "object") return obj;
+            if (!obj || typeof obj !== "object") {
+                return obj;
+            }
 
             for (const key in obj) {
                 if (typeof obj[key] === "object" && obj[key] !== null) {
@@ -1226,14 +1248,18 @@ export class SettingsClient {
         }
         form.retention ??= {};
         // Only set defaults if field doesn't exist, preserve server values including empty strings
-        if (!("storage_driver" in form.retention))
+        if (!("storage_driver" in form.retention)) {
             form.retention.storage_driver = "public";
-        if (!("storage_folder_path" in form.retention))
+        }
+        if (!("storage_folder_path" in form.retention)) {
             form.retention.storage_folder_path = "";
-        if (!("purge_after_days" in form.retention))
+        }
+        if (!("purge_after_days" in form.retention)) {
             form.retention.purge_after_days = 365;
-        if (!("export_filename_pattern" in form.retention))
+        }
+        if (!("export_filename_pattern" in form.retention)) {
             form.retention.export_filename_pattern = "";
+        }
         form.notifications = this.mergeNotifications(
             form.notifications ?? form.automation ?? {},
         );
@@ -1480,10 +1506,14 @@ export class SettingsClient {
     }
 
     async bulkDeleteDocuments() {
-        if (this.state.selectedDocuments.length === 0) return;
+        if (this.state.selectedDocuments.length === 0) {
+            return;
+        }
 
         const count = this.state.selectedDocuments.length;
-        if (!confirm(`Yakin hapus ${count} dokumen yang dipilih?`)) return;
+        if (!confirm(`Yakin hapus ${count} dokumen yang dipilih?`)) {
+            return;
+        }
 
         this.state.bulkDeleteLoading = true;
         this.setSectionError("documents", "");
@@ -1519,8 +1549,9 @@ export class SettingsClient {
         if (successCount > 0) {
             this.setSectionStatus(
                 "documents",
-                `${successCount} dokumen berhasil dihapus.` +
-                    (failCount > 0 ? ` ${failCount} gagal.` : ""),
+                `${successCount} dokumen berhasil dihapus.${
+                    failCount > 0 ? ` ${failCount} gagal.` : ""
+                }`,
                 failCount > 0 ? "text-amber-600" : "text-emerald-600",
             );
         }
@@ -1535,7 +1566,9 @@ export class SettingsClient {
     }
 
     async deleteDocumentEntry(entry) {
-        if (!entry?.path) return;
+        if (!entry?.path) {
+            return;
+        }
         if (!entry.can_delete) {
             this.setSectionError(
                 "documents",
@@ -1545,7 +1578,9 @@ export class SettingsClient {
         }
 
         const name = entry.name || entry.type_label || entry.path;
-        if (!confirm(`Yakin hapus ${name}?`)) return;
+        if (!confirm(`Yakin hapus ${name}?`)) {
+            return;
+        }
 
         this.state.documentDeleting = {
             ...this.state.documentDeleting,
@@ -1584,7 +1619,9 @@ export class SettingsClient {
         const payload = {};
         Object.entries(this.state.activeTemplates || {}).forEach(
             ([type, tpl]) => {
-                if (!tpl) return;
+                if (!tpl) {
+                    return;
+                }
                 payload[type] = tpl.code || tpl.id || tpl;
             },
         );
@@ -1600,13 +1637,15 @@ export class SettingsClient {
      * Ensures payload is serializable for API requests
      */
     toPlainObject(obj) {
-        if (obj === null || obj === undefined) return {};
+        if (obj === null || obj === undefined) {
+            return {};
+        }
 
         // Use structuredClone if available (modern browsers)
         if (typeof structuredClone === "function") {
             try {
                 return structuredClone(obj);
-            } catch (e) {
+            } catch {
                 // Fallback to JSON method
             }
         }
@@ -1614,7 +1653,7 @@ export class SettingsClient {
         // Fallback: JSON stringify/parse
         try {
             return JSON.parse(JSON.stringify(obj));
-        } catch (e) {
+        } catch {
             return {};
         }
     }
@@ -1626,7 +1665,7 @@ export class SettingsClient {
             this.state.backups = Array.isArray(data?.backups)
                 ? data.backups
                 : [];
-        } catch (error) {
+        } catch {
             this.state.backups = [];
         } finally {
             this.state.backupsLoading = false;
@@ -1668,7 +1707,9 @@ export class SettingsClient {
      */
     async cleanupOrphanedFolders() {
         const count = this.state.cleanupStats?.orphaned_folders?.count || 0;
-        if (count === 0) return;
+        if (count === 0) {
+            return;
+        }
 
         if (
             !confirm(
@@ -1709,7 +1750,9 @@ export class SettingsClient {
      */
     async cleanupDuplicates() {
         const count = this.state.cleanupStats?.duplicate_documents?.count || 0;
-        if (count === 0) return;
+        if (count === 0) {
+            return;
+        }
 
         if (
             !confirm(
@@ -1765,7 +1808,7 @@ export class SettingsClient {
             this.state.form.survey_questions = [];
         }
 
-        const newKey = "q_" + Date.now();
+        const newKey = `q_${Date.now()}`;
         this.state.form.survey_questions.push({
             key: newKey,
             label: "",
@@ -1782,8 +1825,12 @@ export class SettingsClient {
 
     moveSurveyQuestion(index, direction) {
         const newIndex = index + direction;
-        if (newIndex < 0 || newIndex >= this.state.form.survey_questions.length)
+        if (
+            newIndex < 0 ||
+            newIndex >= this.state.form.survey_questions.length
+        ) {
             return;
+        }
 
         const questions = this.state.form.survey_questions;
         const temp = questions[index];

@@ -89,7 +89,11 @@ class AiControllerTest extends TestCase
                 'prompt' => 'Test prompt',
             ]);
 
-        $response->assertStatus(500)
-            ->assertJson(['error' => 'Failed to generate message.']);
+        $response->assertStatus(503)
+            ->assertJson([
+                'error' => 'Layanan AI sedang tidak tersedia. Silakan coba lagi.',
+                'code' => 'AI_SERVICE_UNAVAILABLE',
+            ])
+            ->assertJsonStructure(['request_id']);
     }
 }

@@ -88,7 +88,7 @@
                         No recent activity
                     </li>
                 </template>
-                <template x-for="item in overviewData?.recent_activity || []" :key="item.id">
+                <template x-for="item in overviewData?.recent_activity || []" :key="item.key || `${item.type}-${item.id}`">
                     <li class="px-4 py-4 sm:px-6 hover:bg-gray-50 dark:hover:bg-gray-750 transition duration-150 ease-in-out">
                         <div class="flex items-center justify-between">
                             <div class="flex flex-col">
@@ -98,11 +98,12 @@
                                           :class="{
                                               'bg-green-100 text-green-800': item.status === 'success',
                                               'bg-yellow-100 text-yellow-800': item.status === 'warning',
-                                              'bg-red-100 text-red-800': item.status === 'failed'
+                                              'bg-red-100 text-red-800': item.status === 'failed',
+                                              'bg-blue-100 text-blue-800': item.status === 'info'
                                           }">
                                         <span x-text="item.type"></span>
                                     </span>
-                                    <span class="ml-2 text-sm text-gray-500" x-text="item.details"></span>
+                                    <span class="ml-2 text-sm text-gray-500" x-text="item.details || '-'"></span>
                                 </div>
                             </div>
                             <div class="ml-2 flex-shrink-0 flex flex-col items-end">

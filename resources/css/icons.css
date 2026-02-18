@@ -73,9 +73,7 @@
 
 /* Interactive Icon States */
 .icon-interactive {
-    transition:
-        color 0.2s ease-in-out,
-        transform 0.2s ease-in-out;
+    transition: transform 0.2s ease-in-out;
     cursor: pointer;
 }
 
@@ -85,30 +83,34 @@
 
 .icon-button {
     display: inline-flex;
-    align-items: center;
     justify-content: center;
+    align-items: center;
     padding: 0.5rem;
     border-radius: 0.375rem;
-    transition: background-color 0.2s ease-in-out;
+    transition: opacity 0.2s ease-in-out;
 }
 
 .icon-button:hover {
     background-color: rgb(243 244 246);
+    opacity: 85%;
 }
 
 /* Icon with Text Combinations */
 .icon-text {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
 }
 
-.icon-text-sm {
-    gap: 0.25rem;
+.icon-text > :not(:first-child) {
+    margin-left: 0.5rem;
 }
 
-.icon-text-lg {
-    gap: 0.75rem;
+.icon-text-sm > :not(:first-child) {
+    margin-left: 0.25rem;
+}
+
+.icon-text-lg > :not(:first-child) {
+    margin-left: 0.75rem;
 }
 
 /* Loading and Animation States */
@@ -137,11 +139,11 @@
 @keyframes pulse {
     0%,
     100% {
-        opacity: 1;
+        opacity: 100%;
     }
 
     50% {
-        opacity: 0.5;
+        opacity: 50%;
     }
 }
 
@@ -173,30 +175,30 @@
 
 /* Icon Background Utilities */
 .icon-bg {
-    background-size: contain;
-    background-repeat: no-repeat;
     background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
 }
 
 /* Logo Styles */
 .logo {
-    height: 2rem;
     width: auto;
+    height: 2rem;
 }
 
 .logo-sm {
-    height: 1.5rem;
     width: auto;
+    height: 1.5rem;
 }
 
 .logo-lg {
-    height: 3rem;
     width: auto;
+    height: 3rem;
 }
 
 .logo-xl {
-    height: 4rem;
     width: auto;
+    height: 4rem;
 }
 
 /* Image Optimization Classes */
@@ -251,17 +253,21 @@
         rgb(229 231 235) 75%,
         rgb(229 231 235)
     );
-    background-size: 1rem 1rem;
     animation: placeholder-shimmer 1.5s ease-in-out infinite;
+    background-size: 1rem 1rem;
 }
 
 @keyframes placeholder-shimmer {
     0% {
-        background-position: -1rem 0;
+        opacity: 60%;
+    }
+
+    50% {
+        opacity: 100%;
     }
 
     100% {
-        background-position: 1rem 0;
+        opacity: 60%;
     }
 }
 
@@ -270,7 +276,7 @@
 }
 
 .img-loading {
-    opacity: 0;
+    opacity: 0%;
 }
 
 /* Avatar Styles */
@@ -308,7 +314,10 @@
 .badge-with-icon {
     display: inline-flex;
     align-items: center;
-    gap: 0.25rem;
+}
+
+.badge-with-icon > :not(:first-child) {
+    margin-left: 0.25rem;
 }
 
 /* Notification Badge */
@@ -317,15 +326,15 @@
 }
 
 .notification-badge::after {
-    content: "";
     position: absolute;
     top: -0.125rem;
     right: -0.125rem;
     width: 0.5rem;
     height: 0.5rem;
     background-color: rgb(239 68 68);
-    border-radius: 50%;
     border: 1px solid #fff;
+    border-radius: 50%;
+    content: "";
 }
 
 /* Status Indicators */
@@ -333,8 +342,8 @@
     display: inline-block;
     width: 0.5rem;
     height: 0.5rem;
-    border-radius: 50%;
     margin-right: 0.5rem;
+    border-radius: 50%;
 }
 
 .status-online {
@@ -354,22 +363,22 @@
 }
 
 /* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-    .icon-button:hover {
-        background-color: rgb(55 65 81);
-    }
+[data-theme="dark"] .icon-button:hover,
+:root.dark .icon-button:hover {
+    background-color: rgb(55 65 81);
+}
 
-    .img-placeholder {
-        background-color: rgb(55 65 81);
-        background-image: linear-gradient(
-            45deg,
-            transparent 25%,
-            rgb(75 85 99) 25%,
-            rgb(75 85 99) 50%,
-            transparent 50%,
-            transparent 75%,
-            rgb(75 85 99) 75%,
-            rgb(75 85 99)
-        );
-    }
+[data-theme="dark"] .img-placeholder,
+:root.dark .img-placeholder {
+    background-color: rgb(55 65 81);
+    background-image: linear-gradient(
+        45deg,
+        transparent 25%,
+        rgb(75 85 99) 25%,
+        rgb(75 85 99) 50%,
+        transparent 50%,
+        transparent 75%,
+        rgb(75 85 99) 75%,
+        rgb(75 85 99)
+    );
 }

@@ -94,8 +94,11 @@ class AiComposeTest extends TestCase
                 'prompt' => 'Hello',
             ]);
 
-        // Depending on how the controller handles exceptions, it might return 500
-        // or a specific error response. Assuming 500 for now based on requirements.
-        $response->assertStatus(500);
+        $response->assertStatus(503)
+            ->assertJson([
+                'error' => 'Layanan AI sedang tidak tersedia. Silakan coba lagi.',
+                'code' => 'AI_SERVICE_UNAVAILABLE',
+            ])
+            ->assertJsonStructure(['request_id']);
     }
 }

@@ -147,7 +147,7 @@
 }
 
 /* Media Queries for Responsive Typography */
-@media (width >= 640px) {
+@media (min-width: 640px) {
     .text-responsive-sm {
         font-size: var(--text-base);
     }
@@ -169,7 +169,7 @@
     }
 }
 
-@media (width >= 768px) {
+@media (min-width: 768px) {
     .text-responsive-sm {
         font-size: var(--text-lg);
     }
@@ -191,7 +191,7 @@
     }
 }
 
-@media (width >= 1024px) {
+@media (min-width: 1024px) {
     .text-responsive-sm {
         font-size: var(--text-xl);
     }
@@ -271,22 +271,27 @@
 }
 
 /* Dark Mode Typography */
-@media (prefers-color-scheme: dark) {
-    .typography-hero,
-    .typography-title,
-    .typography-subtitle {
-        color: #f8fafc;
-    }
+[data-theme="dark"] .typography-hero,
+[data-theme="dark"] .typography-title,
+[data-theme="dark"] .typography-subtitle,
+:root.dark .typography-hero,
+:root.dark .typography-title,
+:root.dark .typography-subtitle {
+    color: #f8fafc;
+}
 
-    .typography-body-large,
-    .typography-body {
-        color: #e2e8f0;
-    }
+[data-theme="dark"] .typography-body-large,
+[data-theme="dark"] .typography-body,
+:root.dark .typography-body-large,
+:root.dark .typography-body {
+    color: #e2e8f0;
+}
 
-    .typography-small,
-    .typography-caption {
-        color: #cbd5e0;
-    }
+[data-theme="dark"] .typography-small,
+[data-theme="dark"] .typography-caption,
+:root.dark .typography-small,
+:root.dark .typography-caption {
+    color: #cbd5e0;
 }
 
 /* Print Typography */
