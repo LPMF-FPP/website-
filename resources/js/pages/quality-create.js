@@ -8,10 +8,13 @@ export function qmhCreatePage(config = {}) {
         clause: config.initialClause,
         docType: config.initialDocType || "",
         templateId: config.initialTemplateId,
+        frPreset: config.initialFrPreset || "",
+        frV2StructureMode: config.initialFrV2StructureMode || "non_table",
         parentSopId: config.initialParentSopId,
         pairedIkId: config.initialPairedIkId,
         templateManageUrl: config.templateManageUrl,
         canManageTemplate: Boolean(config.canManageTemplate),
+        frV2CreateEnabled: Boolean(config.frV2CreateEnabled),
         sopOptions: config.sopOptions || [],
         ikOptions: config.ikOptions || [],
         templates: [],
@@ -30,11 +33,18 @@ export function qmhCreatePage(config = {}) {
         previewMode: null,
         pdfPreviewLoading: false,
         pdfPreviewError: "",
+        frV2PreviewToken: "",
+        frV2PreviewTokenExpiresAt: "",
+        frV2SourcePdfError: "",
         submitConfirmed: false,
         schema: null,
         answers: {},
         listAnswerText: {},
         fieldErrors: {},
+        firstInvalidQuestionId: "",
+        localDraftKey: "",
+        localDraftStatus: "",
+        localDraftTimer: null,
 
         init() {
             const initialAnswers = config.initialAnswersJson;
@@ -46,34 +56,235 @@ export function qmhCreatePage(config = {}) {
                 this.answers = { ...initialAnswers };
             }
 
+            this.localDraftKey = this.buildLocalDraftKey();
+
+            if (!this.hasMeaningfulInitialInput()) {
+                this.restoreLocalDraft();
+            }
+
             this.handleHierarchyDependencies();
             if (this.docType) {
-                this.fetchTemplates();
+                if (this.isFrV2MasterFirstActive()) {
+                    this.resetFrV2TemplateState();
+                } else {
+                    this.fetchTemplates();
+                }
             }
 
             if (!this.dibuatOleh) {
                 this.dibuatOleh = this.currentUserId;
             }
+
+            this.registerDraftWatchers();
         },
 
-        initialStep() {
-            if (!this.docType) {
-                return 1;
+        buildLocalDraftKey() {
+            const userId = this.currentUserId || "guest";
+            return `qmh-create-draft:${userId}`;
+        },
+
+        canUseLocalDraft() {
+            return (
+                typeof window !== "undefined" &&
+                typeof window.localStorage !== "undefined"
+            );
+        },
+
+        hasMeaningfulInitialInput() {
+            if (this.docType) return true;
+            if (this.docCode) return true;
+            if (this.title) return true;
+            if (this.changeSummary) return true;
+            if (this.parentSopId) return true;
+            if (this.pairedIkId) return true;
+            if (this.templateId) return true;
+            if (this.frPreset) return true;
+
+            return Object.keys(this.answers || {}).length > 0;
+        },
+
+        registerDraftWatchers() {
+            if (typeof this.$watch !== "function") {
+                return;
             }
 
-            if (!this.docCode || !this.title) {
-                return 2;
+            [
+                "step",
+                "docCode",
+                "title",
+                "changeSummary",
+                "clause",
+                "docType",
+                "templateId",
+                "frPreset",
+                "frV2StructureMode",
+                "parentSopId",
+                "pairedIkId",
+                "dibuatOleh",
+                "diperiksaOleh",
+                "disahkanOleh",
+                "answers",
+                "listAnswerText",
+                "schema",
+            ].forEach((key) => {
+                this.$watch(key, () => this.scheduleLocalDraftSave());
+            });
+        },
+
+        scheduleLocalDraftSave() {
+            if (!this.canUseLocalDraft() || !this.localDraftKey) {
+                return;
             }
 
-            if (!this.templateId) {
-                return 3;
+            this.localDraftStatus = "Menyimpan draft lokal...";
+
+            if (this.localDraftTimer) {
+                window.clearTimeout(this.localDraftTimer);
             }
 
-            return 4;
+            this.localDraftTimer = window.setTimeout(() => {
+                this.persistLocalDraft();
+            }, 500);
+        },
+
+        persistLocalDraft() {
+            if (!this.canUseLocalDraft() || !this.localDraftKey) {
+                return;
+            }
+
+            try {
+                const payload = {
+                    step: this.step,
+                    docCode: this.docCode,
+                    title: this.title,
+                    changeSummary: this.changeSummary,
+                    clause: this.clause,
+                    docType: this.docType,
+                    templateId: this.templateId,
+                    frPreset: this.frPreset,
+                    frV2StructureMode: this.frV2StructureMode,
+                    parentSopId: this.parentSopId,
+                    pairedIkId: this.pairedIkId,
+                    dibuatOleh: this.dibuatOleh,
+                    diperiksaOleh: this.diperiksaOleh,
+                    disahkanOleh: this.disahkanOleh,
+                    answers: this.answers,
+                    listAnswerText: this.listAnswerText,
+                    schema: this.schema,
+                    updatedAt: new Date().toISOString(),
+                };
+
+                window.localStorage.setItem(
+                    this.localDraftKey,
+                    JSON.stringify(payload),
+                );
+                this.localDraftStatus = "Draft lokal tersimpan";
+            } catch {
+                this.localDraftStatus =
+                    "Draft lokal tidak bisa disimpan di browser ini";
+            }
+        },
+
+        restoreLocalDraft() {
+            if (!this.canUseLocalDraft() || !this.localDraftKey) {
+                return;
+            }
+
+            try {
+                const raw = window.localStorage.getItem(this.localDraftKey);
+                if (!raw) {
+                    return;
+                }
+
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== "object") {
+                    return;
+                }
+
+                this.step = Number(parsed.step) || this.step;
+                this.docCode = parsed.docCode || this.docCode;
+                this.title = parsed.title || this.title;
+                this.changeSummary = parsed.changeSummary || this.changeSummary;
+                this.clause = Number(parsed.clause) || this.clause;
+                this.docType = parsed.docType || this.docType;
+                this.templateId = Number(parsed.templateId) || this.templateId;
+                this.frPreset = parsed.frPreset || this.frPreset;
+                if (
+                    parsed.frV2StructureMode === "table" ||
+                    parsed.frV2StructureMode === "non_table"
+                ) {
+                    this.frV2StructureMode = parsed.frV2StructureMode;
+                }
+                this.parentSopId =
+                    Number(parsed.parentSopId) || this.parentSopId;
+                this.pairedIkId = Number(parsed.pairedIkId) || this.pairedIkId;
+                this.dibuatOleh = Number(parsed.dibuatOleh) || this.dibuatOleh;
+                this.diperiksaOleh =
+                    Number(parsed.diperiksaOleh) || this.diperiksaOleh;
+                this.disahkanOleh =
+                    Number(parsed.disahkanOleh) || this.disahkanOleh;
+
+                if (parsed.answers && typeof parsed.answers === "object") {
+                    this.answers = { ...parsed.answers };
+                }
+
+                if (
+                    parsed.listAnswerText &&
+                    typeof parsed.listAnswerText === "object"
+                ) {
+                    this.listAnswerText = { ...parsed.listAnswerText };
+                }
+
+                if (parsed.schema && typeof parsed.schema === "object") {
+                    this.schema = parsed.schema;
+                }
+
+                this.localDraftStatus = "Draft lokal dipulihkan";
+            } catch {
+                this.localDraftStatus = "";
+            }
+        },
+
+        clearLocalDraft() {
+            if (!this.canUseLocalDraft() || !this.localDraftKey) {
+                return;
+            }
+
+            if (this.localDraftTimer) {
+                window.clearTimeout(this.localDraftTimer);
+                this.localDraftTimer = null;
+            }
+
+            window.localStorage.removeItem(this.localDraftKey);
+            this.localDraftStatus = "";
+        },
+
+        localDraftStatusClass() {
+            if (!this.localDraftStatus) {
+                return "text-gray-500";
+            }
+
+            if (this.localDraftStatus.includes("tidak bisa")) {
+                return "text-red-600";
+            }
+
+            if (this.localDraftStatus.includes("Menyimpan")) {
+                return "text-amber-700";
+            }
+
+            return "text-green-700";
         },
 
         isStep1Complete() {
-            return Boolean(this.docType);
+            if (!this.docType) {
+                return false;
+            }
+
+            if (this.docType === "fr" && !this.isFrV2MasterFirstActive()) {
+                return Boolean(this.frPreset);
+            }
+
+            return true;
         },
 
         isStep2Complete() {
@@ -89,6 +300,10 @@ export function qmhCreatePage(config = {}) {
         },
 
         isStep3Complete() {
+            if (this.isFrV2MasterFirstActive()) {
+                return true;
+            }
+
             return Boolean(this.templateId);
         },
 
@@ -135,7 +350,10 @@ export function qmhCreatePage(config = {}) {
 
             if (this.step === 1) {
                 if (!this.isStep1Complete()) {
-                    this.stepError = "Pilih jenis dokumen terlebih dahulu.";
+                    this.stepError =
+                        this.docType === "fr" && !this.isFrV2MasterFirstActive()
+                            ? "Pilih preset formulir terlebih dahulu."
+                            : "Pilih jenis dokumen terlebih dahulu.";
                     return;
                 }
                 this.step = 2;
@@ -154,8 +372,9 @@ export function qmhCreatePage(config = {}) {
 
             if (this.step === 3) {
                 if (!this.isStep3Complete()) {
-                    this.stepError =
-                        "Pilih template aktif terlebih dahulu sebelum review.";
+                    this.stepError = this.isFrV2MasterFirstActive()
+                        ? "Lengkapi penanda tangan sebelum review."
+                        : "Pilih template terlebih dahulu sebelum review.";
                     return;
                 }
 
@@ -171,7 +390,7 @@ export function qmhCreatePage(config = {}) {
                         this.diperiksaOleh === this.disahkanOleh)
                 ) {
                     this.stepError =
-                        "Penanda tangan tidak boleh sama (Segregation of Duties).";
+                        "Penanda tangan tidak boleh sama agar proses review tetap independen.";
                     return;
                 }
 
@@ -187,8 +406,29 @@ export function qmhCreatePage(config = {}) {
         onStructureChanged() {
             this.stepError = "";
             this.handleHierarchyDependencies();
+
+            if (
+                this.docType === "fr" &&
+                this.isFrV2MasterFirstActive() &&
+                this.frV2StructureMode !== "table" &&
+                this.frV2StructureMode !== "non_table"
+            ) {
+                this.frV2StructureMode = "non_table";
+            }
+
+            if (this.docType !== "fr" || this.isFrV2MasterFirstActive()) {
+                this.frPreset = "";
+                this.frV2PreviewToken = "";
+                this.frV2PreviewTokenExpiresAt = "";
+                this.frV2SourcePdfError = "";
+            }
+
             if (this.docType) {
-                this.fetchTemplates();
+                if (this.isFrV2MasterFirstActive()) {
+                    this.resetFrV2TemplateState();
+                } else {
+                    this.fetchTemplates();
+                }
             } else {
                 this.templates = [];
                 this.templateId = 0;
@@ -197,6 +437,31 @@ export function qmhCreatePage(config = {}) {
             if (!this.docType) {
                 this.step = 1;
             }
+        },
+
+        onFrV2StructureModeChanged() {
+            if (!this.isFrV2MasterFirstActive()) {
+                return;
+            }
+
+            if (!this.frV2StructureMode) {
+                this.frV2StructureMode = "non_table";
+            }
+
+            if (!["table", "non_table"].includes(this.frV2StructureMode)) {
+                this.frV2StructureMode = "non_table";
+            }
+
+            this.resetFrV2TemplateState();
+        },
+
+        resetFrV2TemplateState() {
+            this.templatesLoading = false;
+            this.templates = [];
+            this.templateId = 0;
+            this.templatesError = "";
+            this.schema = null;
+            this.syncSchemaFromTemplate();
         },
 
         handleHierarchyDependencies() {
@@ -232,40 +497,103 @@ export function qmhCreatePage(config = {}) {
         },
 
         async fetchTemplates() {
+            if (this.isFrV2MasterFirstActive()) {
+                this.resetFrV2TemplateState();
+
+                return;
+            }
+
             this.templatesLoading = true;
             this.templatesError = "";
 
             try {
-                const params = new URLSearchParams({ doc_type: this.docType });
-                const response = await fetch(
-                    `${this.templatesUrl}?${params.toString()}`,
-                    {
-                        credentials: "same-origin",
-                        headers: { Accept: "application/json" },
-                    },
-                );
+                const baseParams = new URLSearchParams({
+                    doc_type: this.docType,
+                });
 
-                if (!response.ok) {
-                    this.templates = [];
-                    this.templateId = 0;
-                    this.templatesError =
-                        "Gagal memuat template. Silakan coba lagi.";
-
-                    return;
+                if (Number(this.clause) > 0) {
+                    baseParams.set("clause", String(this.clause));
                 }
 
-                const payload = await response.json();
-                this.templates = Array.isArray(payload.data)
-                    ? payload.data
-                    : [];
+                const requestTemplates = async (
+                    includeLayoutProfile = true,
+                ) => {
+                    const params = new URLSearchParams(baseParams.toString());
 
-                const hasCurrent = this.templates.some(
+                    if (includeLayoutProfile && this.docType === "fr") {
+                        const layoutProfile =
+                            this.currentFrLayoutProfileFilter();
+                        if (layoutProfile) {
+                            params.set("layout_profile", layoutProfile);
+                        }
+                    }
+
+                    const response = await fetch(
+                        `${this.templatesUrl}?${params.toString()}`,
+                        {
+                            credentials: "same-origin",
+                            headers: { Accept: "application/json" },
+                        },
+                    );
+
+                    if (!response.ok) {
+                        throw new Error("TEMPLATE_REQUEST_FAILED");
+                    }
+
+                    const payload = await response.json();
+
+                    return {
+                        templates: Array.isArray(payload.data)
+                            ? payload.data
+                            : [],
+                        resolvedFrom:
+                            typeof payload.resolved_from === "string"
+                                ? payload.resolved_from
+                                : "",
+                    };
+                };
+
+                const primaryResult = await requestTemplates(true);
+                const resolvedFrom = primaryResult.resolvedFrom;
+                this.templates = primaryResult.templates;
+
+                if (
+                    this.templates.length === 0 &&
+                    this.docType === "fr" &&
+                    resolvedFrom === "none"
+                ) {
+                    this.templatesError =
+                        "Template FR untuk klausul dan preset ini belum tersedia.";
+                }
+
+                if (this.docType === "fr") {
+                    if (this.isFrV2MasterFirstActive()) {
+                        this.frPreset = "";
+                    } else {
+                        const currentTemplate = this.templates.find(
+                            (item) =>
+                                Number(item.id) === Number(this.templateId),
+                        );
+
+                        if (currentTemplate) {
+                            this.frPreset =
+                                this.templateLayoutProfile(currentTemplate);
+                        }
+
+                        const availablePresets = this.availableFrPresets();
+                        if (!availablePresets.includes(this.frPreset)) {
+                            this.frPreset = availablePresets[0] || "";
+                        }
+                    }
+                }
+
+                const hasCurrent = this.effectiveTemplates().some(
                     (item) => Number(item.id) === Number(this.templateId),
                 );
                 if (!hasCurrent) {
                     this.templateId =
-                        this.templates.length > 0
-                            ? Number(this.templates[0].id)
+                        this.effectiveTemplates().length > 0
+                            ? Number(this.effectiveTemplates()[0].id)
                             : 0;
                 }
 
@@ -273,18 +601,139 @@ export function qmhCreatePage(config = {}) {
             } catch {
                 this.templates = [];
                 this.templateId = 0;
-                this.templatesError =
-                    "Terjadi gangguan jaringan saat memuat template.";
+                this.templatesError = this.isFrV2MasterFirstActive()
+                    ? "Template FR-v2 tidak dapat dimuat saat ini. Coba muat ulang halaman."
+                    : "Gagal memuat template. Silakan coba lagi.";
             } finally {
                 this.templatesLoading = false;
             }
         },
 
         onTemplateChanged() {
+            if (this.docType === "fr" && !this.isFrV2MasterFirstActive()) {
+                const template = this.selectedTemplate();
+                if (template) {
+                    this.frPreset = this.templateLayoutProfile(template);
+                }
+            }
+
             this.syncSchemaFromTemplate();
         },
 
+        onFrPresetChanged() {
+            if (this.docType !== "fr" || this.isFrV2MasterFirstActive()) {
+                return;
+            }
+
+            const availablePresets = this.availableFrPresets();
+            if (!availablePresets.includes(this.frPreset)) {
+                this.frPreset = availablePresets[0] || "";
+            }
+
+            const filteredTemplates = this.effectiveTemplates();
+            const hasCurrent = filteredTemplates.some(
+                (item) => Number(item.id) === Number(this.templateId),
+            );
+
+            if (!hasCurrent) {
+                this.templateId =
+                    filteredTemplates.length > 0
+                        ? Number(filteredTemplates[0].id)
+                        : 0;
+            }
+
+            this.fetchTemplates();
+            this.syncSchemaFromTemplate();
+        },
+
+        templateLayoutProfile(template) {
+            const raw =
+                typeof template?.layout_profile === "string"
+                    ? template.layout_profile.trim().toLowerCase()
+                    : "";
+
+            if (
+                ["structured_form", "risk_matrix", "declaration"].includes(raw)
+            ) {
+                return raw;
+            }
+
+            return "structured_form";
+        },
+
+        availableFrPresets() {
+            if (this.docType !== "fr") {
+                return [];
+            }
+
+            if (this.isFrV2MasterFirstActive()) {
+                return [];
+            }
+
+            return ["structured_form", "risk_matrix", "declaration"];
+        },
+
+        currentFrLayoutProfileFilter() {
+            if (this.docType !== "fr") {
+                return "";
+            }
+
+            if (this.isFrV2MasterFirstActive()) {
+                return this.frV2StructureMode === "table"
+                    ? "risk_matrix"
+                    : "structured_form";
+            }
+
+            return this.frPreset || "";
+        },
+
+        frPresetLabel(preset) {
+            if (preset === "structured_form") {
+                return "Structured Form";
+            }
+
+            if (preset === "risk_matrix") {
+                return "Risk Matrix";
+            }
+
+            if (preset === "declaration") {
+                return "Declaration";
+            }
+
+            return "Preset";
+        },
+
+        frV2StructureModeLabel() {
+            return this.frV2StructureMode === "table" ? "Tabel" : "Non-Tabel";
+        },
+
+        effectiveTemplates() {
+            if (this.docType !== "fr") {
+                return this.templates;
+            }
+
+            if (this.isFrV2MasterFirstActive()) {
+                return this.templates;
+            }
+
+            if (!this.frPreset) {
+                return this.templates;
+            }
+
+            return this.templates.filter(
+                (item) => this.templateLayoutProfile(item) === this.frPreset,
+            );
+        },
+
         selectedTemplate() {
+            const inFiltered = this.effectiveTemplates().find(
+                (item) => Number(item.id) === Number(this.templateId),
+            );
+
+            if (inFiltered) {
+                return inFiltered;
+            }
+
             return (
                 this.templates.find(
                     (item) => Number(item.id) === Number(this.templateId),
@@ -455,6 +904,10 @@ export function qmhCreatePage(config = {}) {
         },
 
         answerFormFields() {
+            if (this.isFrV2MasterFirstActive()) {
+                return [];
+            }
+
             const fields = [];
             const questions = this.schemaQuestions();
             questions.forEach((q) => {
@@ -862,7 +1315,7 @@ export function qmhCreatePage(config = {}) {
                 this.changeSummary || "-",
             ).replaceAll("\n", "<br>");
 
-            return `<div class="space-y-3 text-sm text-gray-700"><div class="rounded-md border border-gray-200 bg-white p-3"><p><strong>Jenis:</strong> ${docType}</p><p><strong>Klausul:</strong> ${clause}</p><p><strong>Kode:</strong> ${docCode}</p><p><strong>Judul:</strong> ${title}</p><p><strong>Ringkasan Perubahan:</strong><br>${changeSummary}</p></div><p class="text-xs text-gray-500">Preview template HTML belum tersedia. Konten akan mengikuti template aktif saat dokumen dibuat.</p></div>`;
+            return `<div class="space-y-3 text-sm text-gray-700"><div class="rounded-md border border-gray-200 bg-white p-3"><p><strong>Jenis:</strong> ${docType}</p><p><strong>Klausul:</strong> ${clause}</p><p><strong>Kode:</strong> ${docCode}</p><p><strong>Judul:</strong> ${title}</p><p><strong>Ringkasan Perubahan:</strong><br>${changeSummary}</p></div><p class="text-xs text-gray-500">Preview template HTML belum tersedia. Konten akan mengikuti template yang dipilih saat dokumen dibuat.</p></div>`;
         },
 
         livePreviewHtml() {
@@ -1103,13 +1556,11 @@ export function qmhCreatePage(config = {}) {
         },
 
         canSubmit() {
-            if (
-                !this.docCode ||
-                !this.title ||
-                !this.clause ||
-                !this.docType ||
-                !this.templateId
-            ) {
+            if (!this.docCode || !this.title || !this.clause || !this.docType) {
+                return false;
+            }
+
+            if (!this.isFrV2MasterFirstActive() && !this.templateId) {
                 return false;
             }
 
@@ -1126,11 +1577,29 @@ export function qmhCreatePage(config = {}) {
                 return false;
             }
 
+            if (this.isFrV2MasterFirstActive()) {
+                const file = this.$refs?.sourcePdfFileInput?.files?.[0] || null;
+                if (!file) {
+                    return false;
+                }
+            }
+
             return true;
+        },
+
+        isFrV2MasterFirstActive() {
+            return this.docType === "fr" && this.frV2CreateEnabled;
+        },
+
+        onSourcePdfFileChanged() {
+            this.frV2PreviewToken = "";
+            this.frV2PreviewTokenExpiresAt = "";
+            this.frV2SourcePdfError = "";
         },
 
         validateAnswers() {
             this.fieldErrors = {};
+            this.firstInvalidQuestionId = "";
 
             const questions = this.schemaQuestions();
             questions.forEach((q) => {
@@ -1273,7 +1742,31 @@ export function qmhCreatePage(config = {}) {
                 }
             });
 
+            const firstInvalid = Object.keys(this.fieldErrors)[0] || "";
+            this.firstInvalidQuestionId = firstInvalid;
+
             return Object.keys(this.fieldErrors).length === 0;
+        },
+
+        focusFirstInvalidQuestion() {
+            if (!this.firstInvalidQuestionId) {
+                return;
+            }
+
+            const targetId = `q-${this.firstInvalidQuestionId}`;
+
+            this.$nextTick(() => {
+                const target = document.getElementById(targetId);
+                if (!target) {
+                    return;
+                }
+
+                target.scrollIntoView({ behavior: "smooth", block: "center" });
+
+                if (typeof target.focus === "function") {
+                    target.focus({ preventScroll: true });
+                }
+            });
         },
 
         questionTypeLabel(type) {
@@ -1304,15 +1797,19 @@ export function qmhCreatePage(config = {}) {
         onSubmit() {
             this.stepError = "";
             if (!this.canSubmit()) {
-                this.stepError =
-                    "Lengkapi struktur dokumen dan pastikan template aktif serta penanda tangan valid sebelum menyimpan.";
+                this.stepError = this.isFrV2MasterFirstActive()
+                    ? "Lengkapi struktur FR-v2, PDF sumber, dan penanda tangan sebelum menyimpan."
+                    : "Lengkapi struktur dokumen dan pastikan template serta penanda tangan valid sebelum menyimpan.";
 
                 return false;
             }
 
-            if (!this.validateAnswers()) {
+            if (!this.isFrV2MasterFirstActive() && !this.validateAnswers()) {
+                this.step = 3;
                 this.stepError =
-                    "Lengkapi jawaban wajib pada bagian pertanyaan sebelum menyimpan.";
+                    "Masih ada jawaban wajib yang belum lengkap. Periksa kolom yang ditandai merah.";
+
+                this.focusFirstInvalidQuestion();
 
                 return false;
             }
@@ -1327,6 +1824,7 @@ export function qmhCreatePage(config = {}) {
             this.isSubmitting = true;
             this.submitConfirmed = false;
             this.previewBeforeSubmitOpen = false;
+            this.clearLocalDraft();
 
             return true;
         },
@@ -1365,6 +1863,7 @@ export function qmhCreatePage(config = {}) {
         },
 
         previewPdfPayload() {
+            const isFrV2 = this.isFrV2MasterFirstActive();
             const answers = {};
             const questions = this.schemaQuestions();
             questions.forEach((q) => {
@@ -1383,18 +1882,95 @@ export function qmhCreatePage(config = {}) {
                 doc_code: this.docCode,
                 title: this.title,
                 template_id: this.templateId || null,
+                fr_v2_structure_mode: isFrV2 ? this.frV2StructureMode : null,
                 parent_sop_id: this.parentSopId || null,
                 paired_ik_id: this.pairedIkId || null,
                 change_summary: this.changeSummary || null,
-                answers_json: answers,
+                answers_json: isFrV2 ? null : answers,
+                form_schema_json:
+                    !isFrV2 &&
+                    this.docType === "fr" &&
+                    this.schema &&
+                    typeof this.schema === "object" &&
+                    !Array.isArray(this.schema)
+                        ? this.schema
+                        : null,
+                source_pdf_token: isFrV2 ? this.frV2PreviewToken || null : null,
                 dibuat_oleh: this.dibuatOleh || null,
                 diperiksa_oleh: this.diperiksaOleh || null,
                 disahkan_oleh: this.disahkanOleh || null,
             };
         },
 
+        async ensureFrV2PreviewToken(csrfToken) {
+            if (!this.isFrV2MasterFirstActive()) {
+                return true;
+            }
+
+            const sourceFile =
+                this.$refs?.sourcePdfFileInput?.files?.[0] || null;
+            if (!sourceFile) {
+                this.frV2SourcePdfError =
+                    "Unggah source PDF terlebih dahulu sebelum preview FR-v2.";
+                return false;
+            }
+
+            if (this.frV2PreviewToken) {
+                return true;
+            }
+
+            const formData = new FormData();
+            formData.append("doc_type", "fr");
+            formData.append("source_pdf_file", sourceFile);
+
+            const artifactResponse = await fetch(
+                "/api/quality/preview/artifacts",
+                {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        Accept: "application/json",
+                        ...(csrfToken ? { "X-CSRF-TOKEN": csrfToken } : {}),
+                    },
+                    body: formData,
+                },
+            );
+
+            if (!artifactResponse.ok) {
+                let message = "Gagal menyiapkan artefak preview FR-v2.";
+                try {
+                    const json = await artifactResponse.json();
+                    const tokenError = json?.errors?.source_pdf_token?.[0];
+                    const fileError = json?.errors?.source_pdf_file?.[0];
+                    message =
+                        tokenError || fileError || json?.message || message;
+                } catch {
+                    // ignore
+                }
+
+                this.frV2SourcePdfError = message;
+                return false;
+            }
+
+            const artifactPayload = await artifactResponse.json();
+            const token = artifactPayload?.data?.source_pdf_token;
+            if (!token || typeof token !== "string") {
+                this.frV2SourcePdfError =
+                    "Token artefak preview FR-v2 tidak valid.";
+                return false;
+            }
+
+            this.frV2PreviewToken = token;
+            this.frV2PreviewTokenExpiresAt =
+                artifactPayload?.data?.expires_at || "";
+            this.frV2SourcePdfError = "";
+
+            return true;
+        },
+
         async openPdfPreview() {
             this.pdfPreviewError = "";
+            this.frV2SourcePdfError = "";
             if (!this.docType) {
                 this.pdfPreviewError =
                     "Pilih jenis dokumen terlebih dahulu sebelum preview PDF.";
@@ -1414,6 +1990,15 @@ export function qmhCreatePage(config = {}) {
 
             this.pdfPreviewLoading = true;
             try {
+                const tokenReady = await this.ensureFrV2PreviewToken(csrfToken);
+                if (!tokenReady) {
+                    previewWindow.close();
+                    this.pdfPreviewError =
+                        this.frV2SourcePdfError ||
+                        "Gagal menyiapkan source PDF untuk preview FR-v2.";
+                    return;
+                }
+
                 const response = await fetch("/api/quality/preview/pdf", {
                     method: "POST",
                     credentials: "same-origin",
@@ -1445,13 +2030,6 @@ export function qmhCreatePage(config = {}) {
             } finally {
                 this.pdfPreviewLoading = false;
             }
-        },
-
-        previewDocTypeLabel() {
-            if (this.docType === "sop") return "PROSEDUR";
-            if (this.docType === "ik") return "INSTRUKSI KERJA";
-            if (this.docType === "fr") return "FORMULIR";
-            return "DOKUMEN";
         },
 
         requiresParentSop() {

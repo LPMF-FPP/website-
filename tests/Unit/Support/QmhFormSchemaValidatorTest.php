@@ -76,4 +76,38 @@ class QmhFormSchemaValidatorTest extends TestCase
         $this->assertTrue(collect($errors)->contains(fn (string $message): bool => str_contains($message, 'logo_source')));
         $this->assertTrue(collect($errors)->contains(fn (string $message): bool => str_contains($message, 'risk_matrix_columns')));
     }
+
+    public function test_it_accepts_structured_form_profile_without_risk_matrix_columns(): void
+    {
+        $schema = [
+            'version' => 1,
+            'doc_type' => 'fr',
+            'layout_profile' => 'structured_form',
+            'questions' => [
+                ['id' => 'field_a', 'label' => 'A', 'type' => 'text', 'required' => false],
+            ],
+        ];
+
+        $errors = QmhFormSchemaValidator::errors($schema);
+
+        $this->assertSame([], $errors);
+    }
+
+    public function test_it_rejects_risk_matrix_columns_for_non_risk_matrix_profile(): void
+    {
+        $schema = [
+            'version' => 1,
+            'doc_type' => 'fr',
+            'layout_profile' => 'declaration',
+            'risk_matrix_columns' => ['Aspek', 'Nilai'],
+            'questions' => [
+                ['id' => 'field_a', 'label' => 'A', 'type' => 'text', 'required' => false],
+            ],
+        ];
+
+        $errors = QmhFormSchemaValidator::errors($schema);
+
+        $this->assertNotEmpty($errors);
+        $this->assertTrue(collect($errors)->contains(fn (string $message): bool => str_contains($message, 'risk_matrix_columns')));
+    }
 }

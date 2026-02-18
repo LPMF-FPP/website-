@@ -67,6 +67,9 @@ Route::middleware(['throttle:120,1'])->group(function () {
         Route::post('/preview/pdf', [QmhPreviewController::class, 'pdf'])
             ->middleware(['permission:qmh.create', 'throttle:30,1']);
 
+        Route::post('/preview/artifacts', [QmhPreviewController::class, 'storeArtifact'])
+            ->middleware(['permission:qmh.create', 'throttle:30,1']);
+
         Route::get('/dashboard/stats', [QmhDashboardController::class, 'stats'])
             ->middleware('permission:qmh.view');
 
@@ -91,11 +94,16 @@ Route::middleware(['throttle:120,1'])->group(function () {
             Route::post('/unlock', [QmhRevisionWorkflowController::class, 'unlock']);
             Route::put('/content', [QmhRevisionWorkflowController::class, 'saveContent']);
             Route::post('/submit', [QmhRevisionWorkflowController::class, 'submit']);
+            Route::post('/template-fallback/request', [QmhRevisionWorkflowController::class, 'requestTemplateFallback']);
             Route::post('/review', [QmhRevisionWorkflowController::class, 'review']);
             Route::post('/approve', [QmhRevisionWorkflowController::class, 'approve']);
+            Route::post('/close-legacy-and-duplicate-to-v2', [QmhRevisionWorkflowController::class, 'closeLegacyAndDuplicateToV2']);
             Route::post('/download', [QmhRevisionWorkflowController::class, 'download']);
             Route::post('/preview/pdf', [QmhRevisionWorkflowController::class, 'previewPdf']); // Task 7
         });
+
+        Route::post('/revisions/{revision}/template-fallback/review', [QmhRevisionWorkflowController::class, 'reviewTemplateFallback'])
+            ->middleware('permission:qmh.template.manage');
     });
 
     Route::middleware(['auth', 'verified'])->prefix('settings')->group(function () {

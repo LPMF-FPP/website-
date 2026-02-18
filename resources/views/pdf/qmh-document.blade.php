@@ -35,10 +35,18 @@
     $answers = \App\Support\QmhAnswerSanitizer::sanitizeAnswersJson($answers);
 
     $layoutConfig = is_array($layoutConfig ?? null) ? $layoutConfig : [];
-    $layoutProfile = is_string($layoutProfile ?? null) ? $layoutProfile : (string) ($layoutConfig['layout_profile'] ?? 'legacy');
-    if (! in_array($layoutProfile, ['legacy', 'declaration', 'risk_matrix'], true)) {
-        $layoutProfile = 'legacy';
-    }
+    $layoutProfile = \App\Support\QmhFrLayoutProfile::normalizeRuntimeProfile(
+        is_string($layoutProfile ?? null) ? $layoutProfile : (string) ($layoutConfig['layout_profile'] ?? 'legacy')
+    );
+    $shellMode = \App\Support\QmhFrLayoutProfile::normalizeShellMode(
+        is_string($layoutConfig['shell_mode'] ?? null) ? $layoutConfig['shell_mode'] : null
+    );
+    $showSignoffFooter = isset($showSignoffFooter)
+        ? (bool) $showSignoffFooter
+        : \App\Support\QmhFrLayoutProfile::normalizeShowSignoffFooter($layoutConfig['show_signoff_footer'] ?? true);
+
+    $isFrDocument = in_array((string) ($document?->doc_type ?? ''), ['formulir', 'fr'], true);
+    $renderFrHeaderFooter = ! $isFrDocument || \App\Support\QmhFrLayoutProfile::shouldRenderFrShellFromPolicy($shellMode);
 
     $declarationHeader = is_string($layoutConfig['declaration_header'] ?? null)
         ? trim($layoutConfig['declaration_header'])
@@ -125,7 +133,7 @@
     <title>{{ $document?->doc_code ?? 'QMH' }} - {{ $versionLabel }}</title>
     <style>
         @page {
-            margin: 168px 36px 194px 36px;
+            margin: {{ $renderFrHeaderFooter ? '168px 36px 194px 36px' : '36px 36px 36px 36px' }};
         }
 
         body {
@@ -423,76 +431,80 @@
 <body>
 <div class="watermark">{{ $watermarkText ?? '' }}</div>
 
-<header>
-    <table class="doc-header">
-        <tr>
-            <td class="header-left">
-                @if($logoSrc)
-                    <img class="logo" src="{{ $logoSrc }}" alt="Logo">
-                @endif
-                <div class="org">LABORATORIUM PENGUJIAN MUTU<br>FARMAPOL PUSDOKKES POLRI</div>
-            </td>
-            <td class="header-center">
-                <div class="type">{{ $docTypeLabel }}</div>
-                <div class="title">{{ strtoupper((string) ($document?->title ?? 'JUDUL PROSEDUR')) }}</div>
-            </td>
-            <td class="header-right">
-                <table class="meta-table">
-                    <tr>
-                        <td class="meta-label">No. Dokumen</td>
-                        <td class="meta-value">{{ $document?->doc_code ?? '-' }}</td>
-                    </tr>
-                    <tr>
-                        <td class="meta-label">Edisi/Revisi</td>
-                        <td class="meta-value">{{ $versionLabel }}</td>
-                    </tr>
-                    <tr>
-                        <td class="meta-label">Tgl. Efektif</td>
-                        <td class="meta-value">{{ $effectiveDate }}</td>
-                    </tr>
-                    <tr>
-                        <td class="meta-label">Status</td>
-                        <td class="meta-value">{{ $statusLabel }}</td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-    </table>
-</header>
+@if($renderFrHeaderFooter)
+    <header>
+        <table class="doc-header">
+            <tr>
+                <td class="header-left">
+                    @if($logoSrc)
+                        <img class="logo" src="{{ $logoSrc }}" alt="Logo">
+                    @endif
+                    <div class="org">LABORATORIUM PENGUJIAN MUTU<br>FARMAPOL PUSDOKKES POLRI</div>
+                </td>
+                <td class="header-center">
+                    <div class="type">{{ $docTypeLabel }}</div>
+                    <div class="title">{{ strtoupper((string) ($document?->title ?? 'JUDUL PROSEDUR')) }}</div>
+                </td>
+                <td class="header-right">
+                    <table class="meta-table">
+                        <tr>
+                            <td class="meta-label">No. Dokumen</td>
+                            <td class="meta-value">{{ $document?->doc_code ?? '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td class="meta-label">Edisi/Revisi</td>
+                            <td class="meta-value">{{ $versionLabel }}</td>
+                        </tr>
+                        <tr>
+                            <td class="meta-label">Tgl. Efektif</td>
+                            <td class="meta-value">{{ $effectiveDate }}</td>
+                        </tr>
+                        <tr>
+                            <td class="meta-label">Status</td>
+                            <td class="meta-value">{{ $statusLabel }}</td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </header>
 
-<footer>
-    <table class="signoff">
-        <tr>
-            <th>&nbsp;</th>
-            <th>Dibuat Oleh:</th>
-            <th>Diperiksa Oleh:</th>
-            <th>Disahkan Oleh:</th>
-        </tr>
-        <tr>
-            <td class="row-label">Nama/Pangkat</td>
-            <td>{{ $createdNameRank }}</td>
-            <td>{{ $reviewedNameRank }}</td>
-            <td>{{ $approvedNameRank }}</td>
-        </tr>
-        <tr>
-            <td class="row-label">Tanda Tangan</td>
-            <td style="height: 18px">&nbsp;</td>
-            <td style="height: 18px">&nbsp;</td>
-            <td style="height: 18px">&nbsp;</td>
-        </tr>
-        <tr>
-            <td class="row-label">Jabatan</td>
-            <td>{{ $createdPosition }}</td>
-            <td>{{ $reviewedPosition }}</td>
-            <td>{{ $approvedPosition }}</td>
-        </tr>
-    </table>
+    <footer>
+        @if($showSignoffFooter)
+            <table class="signoff">
+                <tr>
+                    <th>&nbsp;</th>
+                    <th>Dibuat Oleh:</th>
+                    <th>Diperiksa Oleh:</th>
+                    <th>Disahkan Oleh:</th>
+                </tr>
+                <tr>
+                    <td class="row-label">Nama/Pangkat</td>
+                    <td>{{ $createdNameRank }}</td>
+                    <td>{{ $reviewedNameRank }}</td>
+                    <td>{{ $approvedNameRank }}</td>
+                </tr>
+                <tr>
+                    <td class="row-label">Tanda Tangan</td>
+                    <td style="height: 18px">&nbsp;</td>
+                    <td style="height: 18px">&nbsp;</td>
+                    <td style="height: 18px">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td class="row-label">Jabatan</td>
+                    <td>{{ $createdPosition }}</td>
+                    <td>{{ $reviewedPosition }}</td>
+                    <td>{{ $approvedPosition }}</td>
+                </tr>
+            </table>
+        @endif
 
-    <div class="notice">{{ $redNotice }}</div>
+        <div class="notice">{{ $redNotice }}</div>
 
-    <div class="footer-page">Halaman <span class="page-number"></span>/{{ $resolvedPageCount ?? '-' }}</div>
+        <div class="footer-page">Halaman <span class="page-number"></span>/{{ $resolvedPageCount ?? '-' }}</div>
 
-</footer>
+    </footer>
+@endif
 
 <main>
     @if(($document?->doc_type ?? '') === 'ik')
@@ -812,6 +824,26 @@
                     @endif
                 @endforeach
             </div>
+        @elseif($layoutProfile === 'structured_form')
+            <table class="form-table">
+                @foreach($formQuestions as $idx => $q)
+                    @php
+                        $qid = (string) ($q['id'] ?? '');
+                        $label = (string) ($q['label'] ?? $qid);
+                        $type = (string) ($q['type'] ?? 'text');
+                        $val = $qid !== '' ? ($answers[$qid] ?? null) : null;
+                    @endphp
+                    <tr class="{{ $rowHeightClass($type) }}">
+                        <td class="form-no">{{ $idx + 1 }}</td>
+                        @if($type === 'section')
+                            <td class="form-section" colspan="2">{{ strtoupper($label) }}</td>
+                        @else
+                            <td class="form-label">{{ strtoupper($label) }}</td>
+                            <td class="form-value">{!! $renderCell($val, $type, is_array($q) ? $q : []) !!}</td>
+                        @endif
+                    </tr>
+                @endforeach
+            </table>
         @else
             <table class="form-table">
                 @foreach($formQuestions as $idx => $q)

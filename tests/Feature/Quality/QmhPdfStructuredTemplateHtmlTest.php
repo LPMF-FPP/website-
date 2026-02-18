@@ -435,6 +435,9 @@ class QmhPdfStructuredTemplateHtmlTest extends TestCase
             'layoutProfile' => 'declaration',
             'layoutConfig' => [
                 'layout_profile' => 'declaration',
+                'shell_mode' => 'body_only',
+                'orientation_policy' => 'portrait',
+                'show_signoff_footer' => false,
                 'declaration_header' => 'Pernyataan Ketidakberpihakan',
             ],
         ])->render();
@@ -442,6 +445,8 @@ class QmhPdfStructuredTemplateHtmlTest extends TestCase
         $this->assertStringContainsString('fr-declaration', $html);
         $this->assertStringContainsString('PERNYATAAN KETIDAKBERPIHAKAN', $html);
         $this->assertStringContainsString('Kami menjamin ketidakberpihakan.', $html);
+        $this->assertStringNotContainsString('No. Dokumen', $html);
+        $this->assertStringNotContainsString('Dibuat Oleh:', $html);
     }
 
     public function test_pdf_template_renders_risk_matrix_layout_for_fr_profile(): void
@@ -496,5 +501,59 @@ class QmhPdfStructuredTemplateHtmlTest extends TestCase
         $this->assertStringContainsString('risk-matrix-table', $html);
         $this->assertStringContainsString('<th>ASPEK</th>', $html);
         $this->assertStringContainsString('<th>KONTROL</th>', $html);
+        $this->assertStringContainsString('No. Dokumen', $html);
+        $this->assertStringContainsString('Dibuat Oleh:', $html);
+    }
+
+    public function test_pdf_template_renders_structured_form_with_fr_shell_markers(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-FR-PDF-STRUCT-001',
+            'title' => 'Formulir Structured Form',
+            'clause' => 4,
+            'doc_type' => 'formulir',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'draft',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+            'answers_json' => [
+                'field_a' => 'Nilai A',
+            ],
+        ]);
+
+        $schema = [
+            'version' => 1,
+            'doc_type' => 'fr',
+            'layout_profile' => 'structured_form',
+            'questions' => [
+                ['id' => 'field_a', 'label' => 'Kolom A', 'type' => 'text', 'required' => false],
+            ],
+        ];
+
+        $html = view('pdf.qmh-document', [
+            'revision' => $revision->load(['document', 'createdBy', 'reviewedBy', 'approvedBy']),
+            'schema' => $schema,
+            'answers' => $revision->answers_json,
+            'watermarkText' => 'DRAFT',
+            'layoutProfile' => 'structured_form',
+            'layoutConfig' => [
+                'layout_profile' => 'structured_form',
+            ],
+        ])->render();
+
+        $this->assertStringContainsString('form-table', $html);
+        $this->assertStringContainsString('No. Dokumen', $html);
+        $this->assertStringContainsString('Dibuat Oleh:', $html);
     }
 }

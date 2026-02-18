@@ -13,6 +13,14 @@ class QmhDocumentServiceTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config()->set('quality.fr_v2.enabled', true);
+        config()->set('quality.fr_v2.create_enabled', false);
+    }
+
     public function test_create_draft_creates_document_revision_and_event(): void
     {
         $user = User::factory()->create(['role' => 'admin']);
@@ -81,6 +89,9 @@ class QmhDocumentServiceTest extends TestCase
             'name' => 'Template SOP Uji',
             'clause' => 4,
             'doc_type' => 'sop',
+            'shell_mode' => 'full',
+            'orientation_policy' => 'portrait',
+            'show_signoff_footer' => true,
             'version' => 1,
             'storage_disk' => 'local',
             'source_docx_path' => 'qmh/templates/sop-uji.docx',

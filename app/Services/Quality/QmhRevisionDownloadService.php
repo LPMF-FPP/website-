@@ -10,6 +10,7 @@ use App\Support\QmhFrLayoutProfile;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class QmhRevisionDownloadService
@@ -114,15 +115,27 @@ class QmhRevisionDownloadService
             'layoutProfile' => $renderPayload['layout_profile'],
             'layoutConfig' => $renderPayload['layout_config'],
             'logoSrc' => $renderPayload['logo_src'],
+            'showSignoffFooter' => $renderPayload['show_signoff_footer'],
         ])->render();
     }
 
     public function renderPdfBinary(QmhDocumentRevision $revision, string $watermarkText, bool $remoteEnabled = false): string
     {
+        $renderPayload = $this->buildRenderPayload($revision);
+
+        if ($this->shouldUseSourcePdfPipeline($revision)) {
+            $fpdiBinary = $this->renderFrV2SourcePdfBinary($revision, $watermarkText, $renderPayload);
+            if ($fpdiBinary !== null) {
+                return $fpdiBinary;
+            }
+        }
+
+        $paperOrientation = $this->resolvePaperOrientation($renderPayload);
+
         $probeHtml = $this->buildWatermarkedHtml($revision, $watermarkText);
 
         $probePdf = Pdf::loadHTML($probeHtml)
-            ->setPaper('a4')
+            ->setPaper('a4', $paperOrientation)
             ->setWarnings(false)
             ->setOption('isRemoteEnabled', $remoteEnabled)
             ->setOption('isHtml5ParserEnabled', true);
@@ -145,11 +158,278 @@ class QmhRevisionDownloadService
         $finalHtml = $this->buildWatermarkedHtml($revision, $watermarkText, $pageCount);
 
         return Pdf::loadHTML($finalHtml)
-            ->setPaper('a4')
+            ->setPaper('a4', $paperOrientation)
             ->setWarnings(false)
             ->setOption('isRemoteEnabled', $remoteEnabled)
             ->setOption('isHtml5ParserEnabled', true)
             ->output();
+    }
+
+    /**
+     * @param  array<string, mixed>  $renderPayload
+     */
+    private function renderFrV2SourcePdfBinary(QmhDocumentRevision $revision, string $watermarkText, array $renderPayload): ?string
+    {
+        if (! class_exists('\\setasign\\Fpdi\\Fpdi')) {
+            Log::warning('FPDI belum terpasang, fallback ke jalur render DomPDF.', [
+                'revision_id' => $revision->id,
+            ]);
+
+            return null;
+        }
+
+        $sourceBinary = $this->loadSourcePdfBinary($revision);
+
+        /** @var class-string $streamReaderClass */
+        $streamReaderClass = '\\setasign\\Fpdi\\PdfParser\\StreamReader';
+        /** @var class-string $fpdiClass */
+        $fpdiClass = '\\setasign\\Fpdi\\Fpdi';
+
+        $reader = $streamReaderClass::createByString($sourceBinary);
+        $pdf = new $fpdiClass;
+        $pdf->SetAutoPageBreak(false);
+
+        $pageCount = $pdf->setSourceFile($reader);
+        $layoutConfig = is_array($renderPayload['layout_config'] ?? null) ? $renderPayload['layout_config'] : [];
+        $docCode = (string) ($revision->document?->doc_code ?? '-');
+        $docTitle = strtoupper((string) ($revision->document?->title ?? '-'));
+        $versionLabel = str_replace('-', '/', (string) ($revision->version_label ?? '-'));
+        $statusLabel = strtoupper((string) ($revision->status ?? '-'));
+        $effectiveDate = $revision->effective_date ? $revision->effective_date->format('d-m-Y') : '-';
+
+        $drawShell = QmhFrLayoutProfile::shouldRenderFrShellFromPolicy((string) ($layoutConfig['shell_mode'] ?? null));
+        $showSignoff = (bool) ($renderPayload['show_signoff_footer'] ?? true);
+        $targetOrientation = $this->resolvePaperOrientation($renderPayload);
+
+        for ($page = 1; $page <= $pageCount; $page++) {
+            $sourceTemplate = $pdf->importPage($page);
+            $sourceSize = $pdf->getTemplateSize($sourceTemplate);
+
+            $sourceWidth = (float) ($sourceSize['width'] ?? 210.0);
+            $sourceHeight = (float) ($sourceSize['height'] ?? 297.0);
+
+            [$targetWidth, $targetHeight] = $this->resolveTargetSizeFromPolicy($sourceWidth, $sourceHeight, $targetOrientation);
+            $pageOrientation = $targetWidth >= $targetHeight ? 'L' : 'P';
+
+            $pdf->AddPage($pageOrientation, [$targetWidth, $targetHeight]);
+
+            $scale = min($targetWidth / $sourceWidth, $targetHeight / $sourceHeight);
+            $renderWidth = $sourceWidth * $scale;
+            $renderHeight = $sourceHeight * $scale;
+            $offsetX = ($targetWidth - $renderWidth) / 2;
+            $offsetY = ($targetHeight - $renderHeight) / 2;
+
+            $pdf->useTemplate($sourceTemplate, $offsetX, $offsetY, $renderWidth, $renderHeight, true);
+
+            if ($drawShell) {
+                $this->drawFrV2HeaderShell(
+                    $pdf,
+                    $targetWidth,
+                    $docCode,
+                    $docTitle,
+                    $versionLabel,
+                    $effectiveDate,
+                    $statusLabel
+                );
+            }
+
+            $this->drawFrV2Watermark($pdf, $targetWidth, $targetHeight, $watermarkText);
+
+            if ($drawShell && $showSignoff) {
+                $this->drawFrV2SignoffFooter($pdf, $targetWidth, $targetHeight);
+            }
+
+            $this->drawFrV2FooterMeta($pdf, $targetWidth, $targetHeight, $page, $pageCount);
+        }
+
+        return $pdf->Output('S');
+    }
+
+    private function shouldUseSourcePdfPipeline(QmhDocumentRevision $revision): bool
+    {
+        $docType = (string) ($revision->document?->doc_type ?? '');
+        if (! in_array($docType, ['formulir', 'fr'], true)) {
+            return false;
+        }
+
+        return is_string($revision->source_pdf_disk)
+            && trim($revision->source_pdf_disk) !== ''
+            && is_string($revision->source_pdf_path)
+            && trim($revision->source_pdf_path) !== '';
+    }
+
+    private function loadSourcePdfBinary(QmhDocumentRevision $revision): string
+    {
+        $disk = trim((string) $revision->source_pdf_disk);
+        $path = trim((string) $revision->source_pdf_path);
+
+        if ($disk === '' || $path === '') {
+            throw ValidationException::withMessages([
+                'source_pdf' => 'Metadata source PDF FR-v2 tidak lengkap.',
+            ]);
+        }
+
+        $storage = Storage::disk($disk);
+        if (! $storage->exists($path)) {
+            throw ValidationException::withMessages([
+                'source_pdf' => 'File source PDF FR-v2 tidak ditemukan di storage.',
+            ]);
+        }
+
+        $binary = $storage->get($path);
+        if (! is_string($binary) || $binary === '') {
+            throw ValidationException::withMessages([
+                'source_pdf' => 'File source PDF FR-v2 tidak dapat dibaca.',
+            ]);
+        }
+
+        $expectedSha = strtolower(trim((string) ($revision->source_pdf_sha256 ?? '')));
+        if ($expectedSha !== '' && hash('sha256', $binary) !== $expectedSha) {
+            throw ValidationException::withMessages([
+                'source_pdf' => 'Integritas source PDF FR-v2 tidak valid (checksum mismatch).',
+            ]);
+        }
+
+        return $binary;
+    }
+
+    /**
+     * @return array{0: float, 1: float}
+     */
+    private function resolveTargetSizeFromPolicy(float $sourceWidth, float $sourceHeight, string $targetOrientation): array
+    {
+        if ($targetOrientation === 'landscape') {
+            return [max($sourceWidth, $sourceHeight), min($sourceWidth, $sourceHeight)];
+        }
+
+        return [min($sourceWidth, $sourceHeight), max($sourceWidth, $sourceHeight)];
+    }
+
+    private function drawFrV2HeaderShell(object $pdf, float $pageWidth, string $docCode, string $docTitle, string $versionLabel, string $effectiveDate, string $statusLabel): void
+    {
+        $left = 8.0;
+        $right = $pageWidth - 8.0;
+        $top = 8.0;
+        $height = 24.0;
+
+        $pdf->SetDrawColor(17, 24, 39);
+        $pdf->SetLineWidth(0.2);
+        $pdf->Rect($left, $top, $right - $left, $height);
+
+        $leftColWidth = 44.0;
+        $rightColWidth = 54.0;
+        $middleWidth = ($right - $left) - $leftColWidth - $rightColWidth;
+
+        $pdf->Line($left + $leftColWidth, $top, $left + $leftColWidth, $top + $height);
+        $pdf->Line($right - $rightColWidth, $top, $right - $rightColWidth, $top + $height);
+
+        $pdf->SetFont('Helvetica', 'B', 7);
+        $pdf->SetXY($left + 1.5, $top + 2.5);
+        $pdf->MultiCell($leftColWidth - 3.0, 3.2, 'LABORATORIUM PENGUJIAN MUTU\nFARMAPOL PUSDOKKES POLRI', 0, 'C');
+
+        $pdf->SetFont('Helvetica', 'B', 9);
+        $pdf->SetXY($left + $leftColWidth + 1.5, $top + 4.0);
+        $pdf->Cell($middleWidth - 3.0, 4.2, 'FORMULIR', 0, 2, 'C');
+
+        $pdf->SetFont('Helvetica', 'B', 7);
+        $pdf->SetXY($left + $leftColWidth + 1.5, $top + 9.2);
+        $pdf->MultiCell($middleWidth - 3.0, 3.2, mb_substr($docTitle, 0, 80), 0, 'C');
+
+        $metaLeft = $right - $rightColWidth + 1.2;
+        $metaValueLeft = $metaLeft + 20.0;
+        $metaTop = $top + 2.0;
+
+        $rows = [
+            ['No.', $docCode],
+            ['E/R', $versionLabel],
+            ['Efektif', $effectiveDate],
+            ['Status', $statusLabel],
+        ];
+
+        $pdf->SetFont('Helvetica', '', 6.5);
+        foreach ($rows as $idx => $row) {
+            $y = $metaTop + ($idx * 5.2);
+            $pdf->SetXY($metaLeft, $y);
+            $pdf->Cell(18.0, 4.2, (string) $row[0], 0, 0, 'L');
+            $pdf->SetXY($metaValueLeft, $y);
+            $pdf->Cell($rightColWidth - 23.0, 4.2, mb_substr((string) $row[1], 0, 26), 0, 0, 'L');
+        }
+    }
+
+    private function drawFrV2Watermark(object $pdf, float $pageWidth, float $pageHeight, string $watermarkText): void
+    {
+        $text = trim($watermarkText);
+        if ($text === '') {
+            return;
+        }
+
+        $pdf->SetTextColor(208, 215, 224);
+        $pdf->SetFont('Helvetica', 'B', 24);
+        $textWidth = $pdf->GetStringWidth($text);
+        $x = max(8.0, ($pageWidth - $textWidth) / 2);
+        $y = $pageHeight / 2;
+
+        $pdf->SetXY($x, $y);
+        $pdf->Cell($textWidth, 10.0, $text, 0, 0, 'C');
+        $pdf->SetTextColor(17, 24, 39);
+    }
+
+    private function drawFrV2SignoffFooter(object $pdf, float $pageWidth, float $pageHeight): void
+    {
+        $left = 8.0;
+        $tableWidth = $pageWidth - 16.0;
+        $top = $pageHeight - 38.0;
+        $rowHeight = 4.8;
+
+        $pdf->SetDrawColor(17, 24, 39);
+        $pdf->SetLineWidth(0.2);
+
+        $colWidths = [20.0, ($tableWidth - 20.0) / 3, ($tableWidth - 20.0) / 3, ($tableWidth - 20.0) / 3];
+
+        $x = $left;
+        foreach ($colWidths as $width) {
+            $pdf->Rect($x, $top, $width, $rowHeight);
+            $x += $width;
+        }
+
+        for ($r = 1; $r <= 3; $r++) {
+            $x = $left;
+            $y = $top + ($r * $rowHeight);
+            foreach ($colWidths as $width) {
+                $pdf->Rect($x, $y, $width, $rowHeight);
+                $x += $width;
+            }
+        }
+
+        $pdf->SetFont('Helvetica', 'B', 6.5);
+        $pdf->SetXY($left + $colWidths[0], $top + 0.8);
+        $pdf->Cell($colWidths[1], 3.2, 'Dibuat Oleh', 0, 0, 'C');
+        $pdf->Cell($colWidths[2], 3.2, 'Diperiksa Oleh', 0, 0, 'C');
+        $pdf->Cell($colWidths[3], 3.2, 'Disahkan Oleh', 0, 0, 'C');
+
+        $pdf->SetFont('Helvetica', '', 6.2);
+        $pdf->SetXY($left + 1.2, $top + $rowHeight + 0.8);
+        $pdf->Cell($colWidths[0] - 2.4, 3.0, 'Nama/Pangkat', 0, 0, 'L');
+
+        $pdf->SetXY($left + 1.2, $top + ($rowHeight * 2) + 0.8);
+        $pdf->Cell($colWidths[0] - 2.4, 3.0, 'Tanda Tangan', 0, 0, 'L');
+
+        $pdf->SetXY($left + 1.2, $top + ($rowHeight * 3) + 0.8);
+        $pdf->Cell($colWidths[0] - 2.4, 3.0, 'Jabatan', 0, 0, 'L');
+    }
+
+    private function drawFrV2FooterMeta(object $pdf, float $pageWidth, float $pageHeight, int $pageNumber, int $pageCount): void
+    {
+        $notice = 'Isi Dokumen ini tidak diperkenankan untuk disalin atau digandakan tanpa persetujuan Kepala Farmasi Kepolisian Pusdokkes Polri';
+
+        $pdf->SetFont('Helvetica', '', 6);
+        $pdf->SetTextColor(127, 29, 29);
+        $pdf->SetXY(8.0, $pageHeight - 7.0);
+        $pdf->Cell($pageWidth - 38.0, 3.6, mb_substr($notice, 0, 140), 0, 0, 'L');
+
+        $pdf->SetTextColor(17, 24, 39);
+        $pdf->SetXY($pageWidth - 28.0, $pageHeight - 7.0);
+        $pdf->Cell(20.0, 3.6, sprintf('Halaman %d/%d', $pageNumber, $pageCount), 0, 0, 'R');
     }
 
     /**
@@ -167,6 +447,7 @@ class QmhRevisionDownloadService
             'layout_profile' => (string) $layoutConfig['layout_profile'],
             'layout_config' => $layoutConfig,
             'logo_src' => $this->resolveLogoDataUri($layoutConfig),
+            'show_signoff_footer' => (bool) ($layoutConfig['show_signoff_footer'] ?? true),
         ];
     }
 
@@ -186,7 +467,7 @@ class QmhRevisionDownloadService
         $schema = $templateMeta['form_schema'] ?? null;
         if (is_array($schema)) {
             if (in_array($docType, ['formulir', 'fr'], true)) {
-                $schema = QmhFrLayoutProfile::applyToSchema($schema, $templateMeta);
+                $schema = $this->mergeTemplateLayoutIntoSchema($schema, $templateMeta);
             }
 
             return $schema;
@@ -194,7 +475,7 @@ class QmhRevisionDownloadService
 
         $default = $this->defaultFormSchema($docType);
         if (in_array($docType, ['formulir', 'fr'], true)) {
-            $default = QmhFrLayoutProfile::applyToSchema($default, $templateMeta);
+            $default = $this->mergeTemplateLayoutIntoSchema($default, $templateMeta);
         }
 
         return $default;
@@ -211,24 +492,78 @@ class QmhRevisionDownloadService
             return QmhFrLayoutProfile::defaults();
         }
 
+        $defaults = QmhFrLayoutProfile::defaults();
+        $hasSchemaSnapshot = is_array($revision->form_schema_json ?? null);
         $templateMeta = is_array($revision->template?->metadata) ? $revision->template->metadata : [];
         $templateConfig = QmhFrLayoutProfile::fromMetadata($templateMeta);
-        $schemaConfig = QmhFrLayoutProfile::fromSchema($schema);
+        $schemaConfig = QmhFrLayoutProfile::fromExplicitMetadata($schema);
 
-        $layoutProfile = 'legacy';
-        if (array_key_exists('layout_profile', $schema)) {
-            $layoutProfile = QmhFrLayoutProfile::normalizeRuntimeProfile((string) $schema['layout_profile']);
-        } elseif (array_key_exists('layout_profile', $templateMeta)) {
-            $layoutProfile = QmhFrLayoutProfile::normalizeRuntimeProfile((string) $templateMeta['layout_profile']);
+        if ($hasSchemaSnapshot) {
+            $layoutProfile = array_key_exists('layout_profile', $schema)
+                ? QmhFrLayoutProfile::normalizeRuntimeProfile((string) $schema['layout_profile'])
+                : 'legacy';
+
+            return [
+                'layout_profile' => $layoutProfile,
+                'shell_mode' => $schemaConfig['shell_mode'] ?? $templateConfig['shell_mode'] ?? $defaults['shell_mode'],
+                'orientation_policy' => $schemaConfig['orientation_policy'] ?? $templateConfig['orientation_policy'] ?? $defaults['orientation_policy'],
+                'show_signoff_footer' => $schemaConfig['show_signoff_footer'] ?? $templateConfig['show_signoff_footer'] ?? $defaults['show_signoff_footer'],
+                'logo_source' => $schemaConfig['logo_source'] ?? $defaults['logo_source'],
+                'logo_path' => $schemaConfig['logo_path'] ?? $defaults['logo_path'],
+                'declaration_header' => $schemaConfig['declaration_header'] ?? $defaults['declaration_header'],
+                'risk_matrix_columns' => $schemaConfig['risk_matrix_columns'] ?? $defaults['risk_matrix_columns'],
+            ];
         }
+
+        $layoutProfile = array_key_exists('layout_profile', $schema)
+            ? QmhFrLayoutProfile::normalizeRuntimeProfile((string) $schema['layout_profile'])
+            : QmhFrLayoutProfile::runtimeProfileFromMetadata($templateMeta);
 
         return [
             'layout_profile' => $layoutProfile,
-            'logo_source' => $schemaConfig['logo_source'] ?? $templateConfig['logo_source'],
-            'logo_path' => $schemaConfig['logo_path'] ?? $templateConfig['logo_path'],
-            'declaration_header' => $schemaConfig['declaration_header'] ?? $templateConfig['declaration_header'],
-            'risk_matrix_columns' => $schemaConfig['risk_matrix_columns'] ?? $templateConfig['risk_matrix_columns'],
+            'shell_mode' => $schemaConfig['shell_mode'] ?? $templateConfig['shell_mode'] ?? $defaults['shell_mode'],
+            'orientation_policy' => $schemaConfig['orientation_policy'] ?? $templateConfig['orientation_policy'] ?? $defaults['orientation_policy'],
+            'show_signoff_footer' => $schemaConfig['show_signoff_footer'] ?? $templateConfig['show_signoff_footer'] ?? $defaults['show_signoff_footer'],
+            'logo_source' => $schemaConfig['logo_source'] ?? $templateConfig['logo_source'] ?? $defaults['logo_source'],
+            'logo_path' => $schemaConfig['logo_path'] ?? $templateConfig['logo_path'] ?? $defaults['logo_path'],
+            'declaration_header' => $schemaConfig['declaration_header'] ?? $templateConfig['declaration_header'] ?? $defaults['declaration_header'],
+            'risk_matrix_columns' => $schemaConfig['risk_matrix_columns'] ?? $templateConfig['risk_matrix_columns'] ?? $defaults['risk_matrix_columns'],
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $renderPayload
+     */
+    private function resolvePaperOrientation(array $renderPayload): string
+    {
+        $orientationPolicy = strtolower(trim((string) data_get($renderPayload, 'layout_config.orientation_policy', 'portrait')));
+
+        return $orientationPolicy === 'landscape' ? 'landscape' : 'portrait';
+    }
+
+    /**
+     * @param  array<string, mixed>  $schema
+     * @param  array<string, mixed>  $templateMetadata
+     * @return array<string, mixed>
+     */
+    private function mergeTemplateLayoutIntoSchema(array $schema, array $templateMetadata): array
+    {
+        $merged = $schema;
+        $explicitLayout = QmhFrLayoutProfile::fromExplicitMetadata($templateMetadata);
+
+        foreach (['layout_profile', 'shell_mode', 'orientation_policy', 'show_signoff_footer', 'logo_source', 'logo_path', 'declaration_header', 'risk_matrix_columns'] as $key) {
+            if (! array_key_exists($key, $explicitLayout)) {
+                continue;
+            }
+
+            if (array_key_exists($key, $merged)) {
+                continue;
+            }
+
+            $merged[$key] = $explicitLayout[$key];
+        }
+
+        return $merged;
     }
 
     /**

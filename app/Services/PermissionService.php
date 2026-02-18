@@ -244,7 +244,7 @@ class PermissionService
             'changelogs' => ['view'],
             'analysts' => ['view', 'create', 'edit', 'delete'],
             'settings' => ['view', 'edit'],
-            'qmh' => ['view', 'create'],
+            'qmh' => ['view', 'create', 'report', 'template-manage', 'unlock-force'],
         ];
     }
 
@@ -259,6 +259,9 @@ class PermissionService
             'edit' => 'Edit',
             'delete' => 'Hapus',
             'export' => 'Export',
+            'report' => 'Laporan',
+            'template-manage' => 'Kelola Template',
+            'unlock-force' => 'Paksa Buka Kunci',
         ];
 
         return $names[$action] ?? ucfirst($action);

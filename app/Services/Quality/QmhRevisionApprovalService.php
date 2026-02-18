@@ -11,9 +11,31 @@ use Illuminate\Validation\ValidationException;
 
 class QmhRevisionApprovalService
 {
-    public function approve(QmhDocumentRevision $revision, int $actorId, bool $promoteToNewEdition, ?string $reason): QmhDocumentRevision
-    {
-        return DB::transaction(function () use ($revision, $actorId, $promoteToNewEdition, $reason) {
+    /**
+     * @param  array<string, mixed>|null  $checkerPayload
+     */
+    public function approve(
+        QmhDocumentRevision $revision,
+        int $actorId,
+        bool $promoteToNewEdition,
+        ?string $reason,
+        ?string $checkerStatus = null,
+        ?array $checkerPayload = null,
+        ?string $attestationActor = null,
+        ?string $attestationReason = null,
+        ?string $incidentRef = null
+    ): QmhDocumentRevision {
+        return DB::transaction(function () use (
+            $revision,
+            $actorId,
+            $promoteToNewEdition,
+            $reason,
+            $checkerStatus,
+            $checkerPayload,
+            $attestationActor,
+            $attestationReason,
+            $incidentRef
+        ) {
             $revision->refresh();
 
             if ($revision->status !== 'in_approval') {
@@ -36,6 +58,35 @@ class QmhRevisionApprovalService
                 throw ValidationException::withMessages([
                     'reason' => 'Alasan wajib diisi untuk manual promote to new edition.',
                 ]);
+            }
+
+            $resolvedCheckerStatus = $this->normalizeCheckerStatus($checkerStatus);
+            $requiresAttestation = $resolvedCheckerStatus === 'unavailable';
+
+            if ($resolvedCheckerStatus === 'fail') {
+                throw ValidationException::withMessages([
+                    'checker_status' => 'Approve ditolak karena checker safe-layout mengembalikan status fail.',
+                ]);
+            }
+
+            if ($requiresAttestation) {
+                if ($attestationActor === null || trim($attestationActor) === '') {
+                    throw ValidationException::withMessages([
+                        'attestation_actor' => 'Attestation actor wajib diisi saat checker unavailable.',
+                    ]);
+                }
+
+                if ($attestationReason === null || trim($attestationReason) === '') {
+                    throw ValidationException::withMessages([
+                        'attestation_reason' => 'Attestation reason wajib diisi saat checker unavailable.',
+                    ]);
+                }
+
+                if ($incidentRef === null || trim($incidentRef) === '') {
+                    throw ValidationException::withMessages([
+                        'incident_ref' => 'Incident reference wajib diisi saat checker unavailable.',
+                    ]);
+                }
             }
 
             $document = $revision->document()->lockForUpdate()->first();
@@ -89,6 +140,13 @@ class QmhRevisionApprovalService
             $revision->approved_at = now();
             $revision->effective_date = now()->toDateString();
             $revision->obsolete_at = null;
+            $revision->layout_checker_status = $resolvedCheckerStatus;
+            $revision->layout_checker_payload = $checkerPayload;
+            $revision->layout_checker_checked_at = now();
+            $revision->attestation_actor = $requiresAttestation ? trim((string) $attestationActor) : null;
+            $revision->attestation_reason = $requiresAttestation ? trim((string) $attestationReason) : null;
+            $revision->attestation_incident_ref = $requiresAttestation ? trim((string) $incidentRef) : null;
+            $revision->attestation_recorded_at = $requiresAttestation ? now() : null;
             $revision->save();
 
             $revision->document()->update([
@@ -98,7 +156,30 @@ class QmhRevisionApprovalService
             $this->persistWorkflowEvent($revision->id, $actorId, 'approve', [
                 'promote_to_new_edition' => $promoteToNewEdition,
                 'reason' => $reason,
+                'checker_status' => $resolvedCheckerStatus,
+                'checker_payload' => $checkerPayload,
             ]);
+
+            if ($resolvedCheckerStatus !== null) {
+                $checkerEventType = match ($resolvedCheckerStatus) {
+                    'pass' => 'checker_pass',
+                    'unavailable' => 'checker_unavailable',
+                    default => 'checker_unavailable',
+                };
+
+                $this->persistWorkflowEvent($revision->id, $actorId, $checkerEventType, [
+                    'checker_status' => $resolvedCheckerStatus,
+                    'checker_payload' => $checkerPayload,
+                ]);
+            }
+
+            if ($requiresAttestation) {
+                $this->persistWorkflowEvent($revision->id, $actorId, 'attestation_fallback', [
+                    'attestation_actor' => trim((string) $attestationActor),
+                    'attestation_reason' => trim((string) $attestationReason),
+                    'incident_ref' => trim((string) $incidentRef),
+                ]);
+            }
 
             $this->persistWorkflowEvent($revision->id, $actorId, 'publish', [
                 'edition_number' => $editionNumber,
@@ -145,5 +226,19 @@ class QmhRevisionApprovalService
             'actor_id' => $actorId,
             'payload_json' => $payload,
         ]);
+    }
+
+    private function normalizeCheckerStatus(?string $checkerStatus): ?string
+    {
+        $raw = strtolower(trim((string) $checkerStatus));
+        if ($raw === '') {
+            return null;
+        }
+
+        return match ($raw) {
+            'timeout' => 'unavailable',
+            'pass', 'fail', 'unavailable' => $raw,
+            default => null,
+        };
     }
 }

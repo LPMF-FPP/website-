@@ -22,6 +22,7 @@ class UpdateQmhTemplateRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         $this->mergeRiskMatrixColumnsFromCsv();
+        $this->sanitizeFrLayoutConfigInput();
 
         $raw = $this->input('form_schema_json');
         if (! is_string($raw) || trim($raw) === '') {
@@ -54,13 +55,16 @@ class UpdateQmhTemplateRequest extends FormRequest
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'clause' => ['required', 'integer', Rule::in([4, 5, 6, 7, 8])],
             'doc_type' => ['required', Rule::in(['sop', 'ik', 'fr'])],
-            'file' => ['nullable', 'file', 'mimes:docx', 'max:10240'],
             'content_html' => ['nullable', 'string'],
             'version_notes' => ['nullable', 'string', 'max:2000'],
             'form_schema_json' => ['nullable', 'string', 'max:50000'],
             'form_schema' => ['nullable', 'array'],
             'layout_profile' => ['nullable', Rule::in(QmhFrLayoutProfile::allowedProfiles())],
+            'shell_mode' => ['nullable', Rule::in(QmhFrLayoutProfile::allowedShellModes())],
+            'orientation_policy' => ['nullable', Rule::in(QmhFrLayoutProfile::allowedOrientationPolicies())],
+            'show_signoff_footer' => ['nullable', 'boolean'],
             'logo_source' => ['nullable', Rule::in(QmhFrLayoutProfile::allowedLogoSources())],
             'logo_path' => ['nullable', 'string', 'max:255'],
             'declaration_header' => ['nullable', 'string', 'max:255'],

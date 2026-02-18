@@ -19,6 +19,9 @@ class QmhFormAnswersValidationApiTest extends TestCase
     {
         parent::setUp();
 
+        config()->set('quality.fr_v2.enabled', true);
+        config()->set('quality.fr_v2.create_enabled', false);
+
         $this->createQmhPermissions();
     }
 

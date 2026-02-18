@@ -30,10 +30,13 @@
             initialClause: @js((int) old('clause', 4)),
             initialDocType: @js(old('doc_type', '')),
             initialTemplateId: @js((int) old('template_id', 0)),
+            initialFrPreset: @js(old('fr_preset', '')),
+            initialFrV2StructureMode: @js(old('fr_v2_structure_mode', 'non_table')),
             initialParentSopId: @js((int) old('parent_sop_id', 0)),
             initialPairedIkId: @js((int) old('paired_ik_id', 0)),
             templateManageUrl: @js(route('quality.templates.index')),
             canManageTemplate: @js(auth()->user()?->hasPermission('qmh.template.manage') ?? false),
+            frV2CreateEnabled: @js((bool) config('quality.fr_v2.enabled', false) && (bool) config('quality.fr_v2.create_enabled', false)),
             sopOptions: @js(($sopOptions ?? collect())->map(fn ($item) => [
                 'id' => $item->id,
                 'clause' => $item->clause,
@@ -69,25 +72,28 @@
                         <p class="text-sm font-semibold text-gray-900">Alur Pembuatan Dokumen</p>
                         <p class="mt-1 text-xs text-gray-600">Ikuti langkah bertahap untuk menghindari data yang terlewat.</p>
                     </div>
-                    <div class="text-xs text-gray-600">
-                        <span class="font-medium">Step</span>
-                        <span x-text="step"></span>
-                        <span>/4</span>
+                    <div class="text-right text-xs text-gray-600">
+                        <div>
+                            <span class="font-medium">Step</span>
+                            <span x-text="step"></span>
+                            <span>/4</span>
+                        </div>
+                        <p class="mt-1" x-show="localDraftStatus" x-cloak :class="localDraftStatusClass()" x-text="localDraftStatus"></p>
                     </div>
                 </div>
 
                 <div class="mt-3 grid gap-2 sm:grid-cols-4">
                     <button type="button" @click="goToStep(1)" class="rounded-lg border px-3 py-2 text-left text-xs transition" :class="step === 1 ? 'border-primary-300 bg-white text-primary-900' : (canGoToStep(1) ? 'border-gray-200 bg-white text-gray-700 hover:border-primary-300' : 'border-gray-100 bg-white text-gray-300')">
-                        <div class="font-semibold">1. Struktur</div>
-                        <div class="mt-0.5">Klausul & jenis</div>
+                        <div class="font-semibold">1. Dasar Dokumen</div>
+                        <div class="mt-0.5">Klausul, jenis, struktur</div>
                     </button>
                     <button type="button" @click="goToStep(2)" class="rounded-lg border px-3 py-2 text-left text-xs transition" :class="step === 2 ? 'border-primary-300 bg-white text-primary-900' : (canGoToStep(2) ? 'border-gray-200 bg-white text-gray-700 hover:border-primary-300' : 'border-gray-100 bg-white text-gray-300')">
                         <div class="font-semibold">2. Metadata</div>
-                        <div class="mt-0.5">Kode, judul</div>
+                        <div class="mt-0.5">Kode, judul, relasi</div>
                     </button>
                     <button type="button" @click="goToStep(3)" class="rounded-lg border px-3 py-2 text-left text-xs transition" :class="step === 3 ? 'border-primary-300 bg-white text-primary-900' : (canGoToStep(3) ? 'border-gray-200 bg-white text-gray-700 hover:border-primary-300' : 'border-gray-100 bg-white text-gray-300')">
-                        <div class="font-semibold">3. Template & Signatories</div>
-                        <div class="mt-0.5">Pertanyaan & Penanda Tangan</div>
+                        <div class="font-semibold">3. Isi & Penanda Tangan</div>
+                        <div class="mt-0.5">Template & jawaban</div>
                     </button>
                     <button type="button" @click="goToStep(4)" class="rounded-lg border px-3 py-2 text-left text-xs transition" :class="step === 4 ? 'border-primary-300 bg-white text-primary-900' : (canGoToStep(4) ? 'border-gray-200 bg-white text-gray-700 hover:border-primary-300' : 'border-gray-100 bg-white text-gray-300')">
                         <div class="font-semibold">4. Review</div>
@@ -98,10 +104,12 @@
                 <p x-show="stepError" x-cloak class="mt-3 text-sm text-red-600" x-text="stepError"></p>
             </div>
 
-            <form method="POST" action="{{ route('quality.documents.store') }}" class="mt-4 space-y-5" x-ref="draftForm" @submit.prevent="if (onSubmit()) $el.submit()">
+            <form method="POST" action="{{ route('quality.documents.store') }}" enctype="multipart/form-data" class="mt-4 space-y-5" x-ref="draftForm" novalidate @submit.prevent="if (onSubmit()) $el.submit()">
                 @csrf
 
                 <input type="hidden" name="template_id" :value="templateId">
+                <input type="hidden" name="fr_preset" :value="docType === 'fr' && !frV2CreateEnabled ? frPreset : ''">
+                <input type="hidden" name="fr_v2_structure_mode" :value="docType === 'fr' && frV2CreateEnabled ? frV2StructureMode : ''">
                 <input type="hidden" name="dibuat_oleh" :value="dibuatOleh">
                 <input type="hidden" name="diperiksa_oleh" :value="diperiksaOleh">
                 <input type="hidden" name="disahkan_oleh" :value="disahkanOleh">
@@ -112,8 +120,8 @@
 
                 <div x-show="step === 1" x-cloak class="space-y-5">
                     <div class="rounded-lg border border-primary-100 bg-primary-50 p-4">
-                        <h3 class="text-sm font-semibold text-primary-900">Pilih Struktur Dokumen</h3>
-                        <p class="mt-1 text-xs text-primary-800">Pilih klausul dan jenis dokumen terlebih dahulu.</p>
+                        <h3 class="text-sm font-semibold text-primary-900">Dasar Dokumen</h3>
+                        <p class="mt-1 text-xs text-primary-800">Mulai dari klausul, jenis dokumen, lalu mode struktur untuk FR-v2.</p>
                     </div>
 
                     <div class="grid gap-4 md:grid-cols-2">
@@ -157,6 +165,59 @@
                         </div>
                     </div>
 
+                    <div x-show="docType === 'fr' && !frV2CreateEnabled" x-cloak>
+                        <label class="mb-1 block text-sm font-medium text-gray-700" for="fr_preset_step1">Preset Formulir</label>
+                        <select
+                            id="fr_preset_step1"
+                            x-model="frPreset"
+                            @change="onFrPresetChanged()"
+                            class="w-full rounded-md border border-gray-300 bg-white text-sm focus:border-primary-600 focus:ring-primary-600"
+                        >
+                            <template x-if="availableFrPresets().length === 0">
+                                <option value="">Belum ada preset tersedia</option>
+                            </template>
+                            <template x-for="preset in availableFrPresets()" :key="preset">
+                                <option :value="preset" x-text="frPresetLabel(preset)"></option>
+                            </template>
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500">Preset menentukan struktur formulir. Declaration body-only, preset lain pakai shell FR.</p>
+                    </div>
+
+                    <div x-show="docType === 'fr' && frV2CreateEnabled" x-cloak class="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800">
+                        <p class="font-medium">Mode FR-v2 aktif: preset legacy dinonaktifkan.</p>
+                        <p class="mt-1">Pilih struktur formulir. Template FR akan dipilih otomatis sesuai mode dan klausul, lalu unggah source PDF pada langkah berikutnya.</p>
+
+                        <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                            <label class="flex cursor-pointer items-start gap-2 rounded-md border border-blue-200 bg-white px-3 py-2 text-xs text-blue-900">
+                                <input
+                                    type="radio"
+                                    class="mt-0.5 h-4 w-4 border-blue-300 text-primary-600 focus:ring-primary-600"
+                                    value="non_table"
+                                    x-model="frV2StructureMode"
+                                    @change="onFrV2StructureModeChanged()"
+                                >
+                                <span>
+                                    <span class="font-semibold">Non-Tabel</span><br>
+                                    Struktur formulir naratif / field biasa.
+                                </span>
+                            </label>
+
+                            <label class="flex cursor-pointer items-start gap-2 rounded-md border border-blue-200 bg-white px-3 py-2 text-xs text-blue-900">
+                                <input
+                                    type="radio"
+                                    class="mt-0.5 h-4 w-4 border-blue-300 text-primary-600 focus:ring-primary-600"
+                                    value="table"
+                                    x-model="frV2StructureMode"
+                                    @change="onFrV2StructureModeChanged()"
+                                >
+                                <span>
+                                    <span class="font-semibold">Tabel</span><br>
+                                    Struktur formulir matriks / tabel.
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="flex items-center justify-end">
                         <button type="button" class="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700" @click="nextStep()">
                             Lanjut
@@ -167,10 +228,10 @@
                 <div x-show="step === 2" x-cloak class="space-y-5">
                     <div class="rounded-lg border border-gray-200 bg-white p-4">
                         <h3 class="text-sm font-semibold text-gray-900">Metadata Dokumen</h3>
-                        <p class="mt-1 text-xs text-gray-500">Lengkapi kode, judul, dan relasi (SOP/IK) jika diperlukan.</p>
+                        <p class="mt-1 text-xs text-gray-500">Lengkapi data inti. Untuk FR/IK, pilih SOP induk agar relasi dokumen konsisten.</p>
                     </div>
 
-                    <div class="grid gap-4 md:grid-cols-6">
+                    <div class="grid gap-4 md:grid-cols-2">
                     <div>
                         <label class="mb-1 block text-sm font-medium text-gray-700" for="doc_code">Kode Dokumen (Manual)</label>
                         <input
@@ -179,6 +240,7 @@
                             type="text"
                             value="{{ old('doc_code') }}"
                             x-model.trim="docCode"
+                            placeholder="Contoh: QMH-FR-2026-001"
                             class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('doc_code') border-red-400 @else border-gray-300 @enderror"
                             required
                         >
@@ -187,7 +249,7 @@
                         @enderror
                     </div>
 
-                    <div class="md:col-span-2">
+                    <div>
                         <label class="mb-1 block text-sm font-medium text-gray-700" for="title">Judul</label>
                         <input
                             id="title"
@@ -195,6 +257,7 @@
                             type="text"
                             value="{{ old('title') }}"
                             x-model.trim="title"
+                            placeholder="Contoh: Form Monitoring Suhu Harian"
                             class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('title') border-red-400 @else border-gray-300 @enderror"
                             required
                         >
@@ -203,9 +266,6 @@
                         @enderror
                     </div>
 
-                    <div>
-                        {{-- Effective date is now auto-set on publish --}}
-                    </div>
                 </div>
 
                     <div x-show="requiresParentSop()" x-cloak>
@@ -258,23 +318,34 @@
 
                 <div x-show="step === 3" x-cloak class="space-y-5">
                     <div class="rounded-lg border border-gray-200 bg-white p-4">
-                        <h3 class="text-sm font-semibold text-gray-900">Template & Signatories</h3>
-                        <p class="mt-1 text-xs text-gray-500">Pilih template aktif, isi/atur pertanyaan, dan tentukan penanda tangan.</p>
+                        <h3 class="text-sm font-semibold text-gray-900">Konfigurasi & Penanda Tangan</h3>
+                        <p class="mt-1 text-xs text-gray-500">Atur format dokumen dan tentukan penanda tangan.</p>
                     </div>
 
                     <div x-show="docType" x-cloak>
-                    <label class="mb-1 block text-sm font-medium text-gray-700">Template Aktif</label>
-                    <div class="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
-                        <p x-show="templatesLoading">Memuat template...</p>
-                        <p x-show="!templatesLoading && templateId">Template aktif tersedia. Pilih template untuk memuat schema pertanyaan.</p>
-                        <p x-show="!templatesLoading && !templateId" class="text-amber-700">Belum ada template aktif untuk jenis dokumen ini.</p>
-                        <p x-show="templatesError" class="text-red-600" x-text="templatesError"></p>
-                        <p class="mt-1 text-xs" x-show="!templatesLoading && !templateId && canManageTemplate">
-                            Tambah template di <a :href="templateManageUrl" class="font-medium underline">QMH > Template</a>.
-                        </p>
+                    <div x-show="!isFrV2MasterFirstActive()" x-cloak>
+                        <label class="mb-1 block text-sm font-medium text-gray-700">Template</label>
+                        <div class="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                            <p x-show="templatesLoading">Memuat template...</p>
+                            <p x-show="!templatesLoading && templateId">Template tersedia. Pilih template untuk memuat schema pertanyaan.</p>
+                            <p x-show="!templatesLoading && !templateId && docType !== 'fr'" class="text-amber-700">Belum ada template untuk jenis dokumen ini.</p>
+                            <p x-show="!templatesLoading && !templateId && docType === 'fr'" class="text-amber-700">Belum ada template untuk preset formulir ini.</p>
+                            <p x-show="templatesError" class="text-red-600" x-text="templatesError"></p>
+                            <p class="mt-1 text-xs" x-show="!templatesLoading && !templateId && canManageTemplate">
+                                Tambah template di <a :href="templateManageUrl" class="font-medium underline">QMH > Template</a>.
+                            </p>
+                        </div>
                     </div>
 
-                    <div class="mt-4" x-show="!templatesLoading && templates.length > 0" x-cloak>
+                    <div x-show="isFrV2MasterFirstActive()" x-cloak>
+                        <label class="mb-1 block text-sm font-medium text-gray-700">Layout FR-v2</label>
+                        <div class="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900">
+                            <p class="font-medium">FR-v2 menggunakan layout bawaan sistem (tanpa template manual).</p>
+                            <p class="mt-1 text-xs">Mode struktur aktif: <span class="font-semibold" x-text="frV2StructureModeLabel()"></span>. Header/footer mengikuti standar QMH seperti BA/LHU.</p>
+                        </div>
+                    </div>
+
+                    <div class="mt-4" x-show="isFrV2MasterFirstActive() || (!templatesLoading && effectiveTemplates().length > 0)" x-cloak>
                         <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                             <h3 class="mb-3 text-sm font-semibold text-gray-900">Penanda Tangan</h3>
                             <div class="grid gap-4 md:grid-cols-3">
@@ -336,7 +407,7 @@
                         </div>
                     </div>
 
-                    <div class="mt-2" x-show="!templatesLoading && templates.length > 0" x-cloak>
+                    <div class="mt-2" x-show="!templatesLoading && effectiveTemplates().length > 0 && !isFrV2MasterFirstActive()" x-cloak>
                         <label class="mb-1 block text-xs font-medium text-gray-600" for="template_id">Pilih Template</label>
                         <select
                             id="template_id"
@@ -344,7 +415,7 @@
                             @change="onTemplateChanged()"
                             class="w-full rounded-md border border-gray-300 bg-white text-sm focus:border-primary-600 focus:ring-primary-600"
                         >
-                            <template x-for="template in templates" :key="template.id">
+                            <template x-for="template in effectiveTemplates()" :key="template.id">
                                 <option :value="template.id" x-text="`${template.name} (v${template.version})`"></option>
                             </template>
                         </select>
@@ -359,7 +430,26 @@
                     @enderror
                     </div>
 
-                <div x-show="docType" x-cloak class="grid gap-6 lg:grid-cols-12">
+                    <div x-show="docType === 'fr' && frV2CreateEnabled" x-cloak>
+                        <label class="mb-1 block text-sm font-medium text-gray-700" for="source_pdf_file">Source PDF (FR-v2)</label>
+                        <input
+                            id="source_pdf_file"
+                            name="source_pdf_file"
+                            type="file"
+                            accept="application/pdf"
+                            x-ref="sourcePdfFileInput"
+                            @change="onSourcePdfFileChanged()"
+                            class="w-full rounded-md border border-gray-300 bg-white text-sm file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-gray-700"
+                        >
+                        <p class="mt-1 text-xs text-gray-500">Unggah PDF sumber master untuk FR-v2. Field legacy schema/preset akan ditolak saat mode ini aktif.</p>
+                        <p class="mt-1 text-xs text-green-700" x-show="frV2PreviewToken">Artefak preview siap. Preview berikutnya tidak upload ulang file.</p>
+                        <p class="mt-1 text-xs text-red-600" x-show="frV2SourcePdfError" x-text="frV2SourcePdfError"></p>
+                        @error('source_pdf_file')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                <div x-show="docType && !(docType === 'fr' && frV2CreateEnabled)" x-cloak class="grid gap-6 lg:grid-cols-12">
                     <div class="lg:col-span-12" data-qmh-question-form>
                         <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                             <div class="flex items-start justify-between gap-3">
@@ -369,7 +459,11 @@
                                 </div>
                                 <div class="text-right">
                                     <p class="text-[11px] font-medium text-gray-700">Status</p>
-                                    <p class="text-xs text-gray-500">Draft</p>
+                                    <p
+                                        class="text-xs"
+                                        :class="selectedTemplate() && selectedTemplate().is_active ? 'text-green-700' : 'text-gray-500'"
+                                        x-text="selectedTemplate() ? (selectedTemplate().is_active ? 'Aktif' : 'Draft') : '-'"
+                                    ></p>
                                 </div>
                             </div>
 
@@ -378,188 +472,9 @@
                             </div>
 
                             <div class="mt-4" x-show="!templatesLoading" x-cloak>
-                                <div class="mb-4" x-show="docType === 'fr'" x-cloak>
-                                    <div
-                                        class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-                                        x-data="qmhFormBuilder({
-                                            docType: docType,
-                                            initialSchema: schema,
-                                            initialJson: '',
-                                        })"
-                                        x-init="init()"
-                                        @qmh-form-schema-reset.window="loadSchema($event.detail.schema); syncJsonNow()"
-                                    >
-                                        <div class="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 pb-3">
-                                            <div class="flex flex-wrap items-center gap-2">
-                                                <button type="button" class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-xs font-medium text-white hover:bg-primary-700" @click="addQuestion('text')">
-                                                    + Pertanyaan
-                                                </button>
-                                                <button type="button" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50" @click="addQuestion('section')">
-                                                    + Section
-                                                </button>
-                                                <button type="button" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50" @click="showRawJson = !showRawJson">
-                                                    <span x-text="showRawJson ? 'Sembunyikan JSON' : 'Tampilkan JSON'"></span>
-                                                </button>
-                                            </div>
-
-                                            <div class="text-xs text-gray-500">
-                                                <span x-text="questions.length"></span> pertanyaan
-                                            </div>
-                                        </div>
-
-                                        <template x-if="jsonError">
-                                            <div class="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800" x-text="jsonError"></div>
-                                        </template>
-
-                                        <div class="space-y-3">
-                                            <template x-for="(q, idx) in questions" :key="idx">
-                                                <div class="rounded-lg border border-gray-200 p-3">
-                                                    <div class="flex flex-wrap items-start justify-between gap-2">
-                                                        <div class="flex-1 min-w-[240px]">
-                                                            <div class="grid gap-2 sm:grid-cols-12">
-                                                                <div class="sm:col-span-5">
-                                                                    <label class="block text-[11px] font-semibold text-gray-600">Label</label>
-                                                                    <input
-                                                                        type="text"
-                                                                        class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-                                                                        x-model="q.label"
-                                                                        @input.debounce.150ms="onLabelChanged(idx)"
-                                                                        placeholder="Contoh: Nama Petugas"
-                                                                    />
-                                                                </div>
-
-                                                                <div class="sm:col-span-3">
-                                                                    <label class="block text-[11px] font-semibold text-gray-600">Tipe</label>
-                                                                    <select
-                                                                        class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-                                                                        x-model="q.type"
-                                                                        @change="onTypeChanged(idx)"
-                                                                    >
-                                                                        <option value="section">Section</option>
-                                                                        <option value="text">Text</option>
-                                                                        <option value="textarea">Textarea</option>
-                                                                        <option value="list">List</option>
-                                                                        <option value="select">Select</option>
-                                                                        <option value="checkbox">Checkbox</option>
-                                                                        <option value="date">Date</option>
-                                                                        <option value="number">Number</option>
-                                                                    </select>
-                                                                </div>
-
-                                                                <div class="sm:col-span-3">
-                                                                    <label class="block text-[11px] font-semibold text-gray-600">ID</label>
-                                                                    <input
-                                                                        type="text"
-                                                                        class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 font-mono text-xs"
-                                                                        x-model="q.id"
-                                                                        @input.debounce.150ms="q.auto_id = false; syncJson()"
-                                                                        placeholder="field_name"
-                                                                    />
-                                                                    <p class="mt-1 text-[10px] text-gray-500">a-z, 0-9, _ (max 64)</p>
-                                                                </div>
-
-                                                                <div class="sm:col-span-1">
-                                                                    <label class="block text-[11px] font-semibold text-gray-600">Wajib</label>
-                                                                        <input
-                                                                            type="checkbox"
-                                                                            class="mt-3 h-4 w-4 rounded border-gray-300 text-primary-600"
-                                                                            x-model="q.required"
-                                                                            :disabled="q.type === 'section'"
-                                                                            @change="syncJson()"
-                                                                        />
-                                                                </div>
-                                                            </div>
-
-                                                            <div class="mt-2 grid gap-2 sm:grid-cols-12">
-                                                                <div class="sm:col-span-6">
-                                                                    <label class="block text-[11px] font-semibold text-gray-600">Help (opsional)</label>
-                                                                    <input
-                                                                        type="text"
-                                                                        class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-                                                                        x-model="q.help"
-                                                                        @input.debounce.150ms="syncJson()"
-                                                                        placeholder="Contoh: isi sesuai format di label"
-                                                                    />
-                                                                </div>
-                                                                <div class="sm:col-span-6">
-                                                                    <label class="block text-[11px] font-semibold text-gray-600">Placeholder (opsional)</label>
-                                                                    <input
-                                                                        type="text"
-                                                                        class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-                                                                        x-model="q.placeholder"
-                                                                        @input.debounce.150ms="syncJson()"
-                                                                        placeholder="Contoh: 2026-02-15"
-                                                                    />
-                                                                </div>
-                                                            </div>
-
-                                                            <template x-if="q.type === 'select'">
-                                                                <div class="mt-3 rounded-md border border-gray-200 bg-gray-50 p-3">
-                                                                    <div class="flex items-center justify-between">
-                                                                        <div class="text-xs font-semibold text-gray-700">Options</div>
-                                                                        <button type="button" class="text-xs font-medium text-primary-700 hover:underline" @click="addSelectOption(idx)">
-                                                                            + Tambah option
-                                                                        </button>
-                                                                    </div>
-
-                                                                    <div class="mt-2 space-y-2">
-                                                                        <template x-for="(opt, optIdx) in q.options" :key="optIdx">
-                                                                            <div class="grid grid-cols-12 gap-2 items-center">
-                                                                                <div class="col-span-5">
-                                                                                    <input type="text" class="w-full rounded-md border border-gray-300 px-2 py-1.5 font-mono text-xs" x-model="opt.value" @input.debounce.150ms="syncJson()" placeholder="value" />
-                                                                                </div>
-                                                                                <div class="col-span-6">
-                                                                                    <input type="text" class="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm" x-model="opt.label" @input.debounce.150ms="syncJson()" placeholder="label" />
-                                                                                </div>
-                                                                                <div class="col-span-1 text-right">
-                                                                                    <button type="button" class="text-xs text-red-600 hover:underline" @click="deleteSelectOption(idx, optIdx)">Hapus</button>
-                                                                                </div>
-                                                                            </div>
-                                                                        </template>
-                                                                    </div>
-                                                                </div>
-                                                            </template>
-                                                        </div>
-
-                                                        <div class="flex flex-col items-end gap-2">
-                                                            <div class="flex gap-1">
-                                                                <button type="button" class="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-50" @click="moveUp(idx)" :disabled="idx === 0">Up</button>
-                                                                <button type="button" class="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-50" @click="moveDown(idx)" :disabled="idx === questions.length - 1">Down</button>
-                                                            </div>
-                                                            <button type="button" class="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100" @click="deleteQuestion(idx)">
-                                                                Hapus
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </template>
-
-                                            <template x-if="questions.length === 0">
-                                                <div class="rounded-md border border-dashed border-gray-300 p-4 text-sm text-gray-600">
-                                                    Belum ada pertanyaan. Klik <span class="font-semibold">+ Pertanyaan</span> untuk mulai.
-                                                </div>
-                                            </template>
-                                        </div>
-
-                                        <textarea
-                                            id="form_schema_json"
-                                            name="form_schema_json"
-                                            rows="10"
-                                            class="hidden"
-                                            x-ref="schemaJson"
-                                        >{{ old('form_schema_json', '') }}</textarea>
-
-                                        <template x-if="showRawJson">
-                                            <div class="mt-4">
-                                                <div class="mb-2 text-xs font-semibold text-gray-700">JSON Preview</div>
-                                                <pre class="max-h-80 overflow-auto rounded-lg border border-gray-200 bg-gray-50 p-3 text-[11px] leading-relaxed" x-text="schemaJson()"></pre>
-                                            </div>
-                                        </template>
-                                    </div>
-
-                                    @error('form_schema_json')
-                                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                                    @enderror
+                                <div class="mb-4 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800" x-show="docType === 'fr'" x-cloak>
+                                    Format pertanyaan dikelola dari menu Template agar user tidak perlu mengatur JSON, ID, atau tipe field saat membuat dokumen.
+                                    <a x-show="canManageTemplate" :href="templateManageUrl" class="ml-1 font-medium underline">Buka Pengaturan Template</a>
                                 </div>
 
                                 <template x-if="schemaQuestions().length === 0">
@@ -775,8 +690,8 @@
                         </button>
 
                         <button type="submit"
-                                :disabled="isSubmitting || !canSubmit()"
-                                :class="{ 'cursor-not-allowed opacity-50': isSubmitting || !canSubmit() }"
+                                :disabled="isSubmitting"
+                                :class="{ 'cursor-not-allowed opacity-50': isSubmitting }"
                                 class="inline-flex items-center rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700">
                             <template x-if="isSubmitting">
                                 <svg class="-ml-1 mr-2 h-4 w-4 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">

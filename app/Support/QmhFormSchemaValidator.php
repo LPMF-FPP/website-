@@ -27,16 +27,21 @@ final class QmhFormSchemaValidator
             $errors[] = 'Schema pertanyaan memiliki doc_type yang tidak valid.';
         }
 
+        $resolvedLayoutProfile = null;
         if (array_key_exists('layout_profile', $schema)) {
             $layoutProfile = $schema['layout_profile'];
-            if (! is_string($layoutProfile) || ! in_array(trim($layoutProfile), QmhFrLayoutProfile::allowedProfiles(), true)) {
+            $normalizedLayoutProfile = is_string($layoutProfile) ? strtolower(trim($layoutProfile)) : null;
+            if ($normalizedLayoutProfile === null || ! in_array($normalizedLayoutProfile, QmhFrLayoutProfile::allowedProfiles(), true)) {
                 $errors[] = 'Schema pertanyaan memiliki layout_profile yang tidak valid.';
+            } else {
+                $resolvedLayoutProfile = $normalizedLayoutProfile;
             }
         }
 
         if (array_key_exists('logo_source', $schema)) {
             $logoSource = $schema['logo_source'];
-            if (! is_string($logoSource) || ! in_array(trim($logoSource), QmhFrLayoutProfile::allowedLogoSources(), true)) {
+            $normalizedLogoSource = is_string($logoSource) ? strtolower(trim($logoSource)) : null;
+            if ($normalizedLogoSource === null || ! in_array($normalizedLogoSource, QmhFrLayoutProfile::allowedLogoSources(), true)) {
                 $errors[] = 'Schema pertanyaan memiliki logo_source yang tidak valid.';
             }
         }
@@ -51,9 +56,17 @@ final class QmhFormSchemaValidator
             if (! is_string($schema['declaration_header']) || trim($schema['declaration_header']) === '') {
                 $errors[] = 'Schema pertanyaan memiliki declaration_header yang tidak valid.';
             }
+
+            if ($resolvedLayoutProfile !== null && $resolvedLayoutProfile !== 'declaration') {
+                $errors[] = 'Schema pertanyaan declaration_header hanya boleh digunakan untuk layout_profile declaration.';
+            }
         }
 
         if (array_key_exists('risk_matrix_columns', $schema) && $schema['risk_matrix_columns'] !== null) {
+            if ($resolvedLayoutProfile !== null && $resolvedLayoutProfile !== 'risk_matrix') {
+                $errors[] = 'Schema pertanyaan risk_matrix_columns hanya boleh digunakan untuk layout_profile risk_matrix.';
+            }
+
             if (! is_array($schema['risk_matrix_columns']) || count($schema['risk_matrix_columns']) < 2) {
                 $errors[] = 'Schema pertanyaan memiliki risk_matrix_columns yang tidak valid.';
             } elseif (count($schema['risk_matrix_columns']) > 6) {
@@ -71,6 +84,10 @@ final class QmhFormSchemaValidator
                     }
                 }
             }
+        }
+
+        if ($resolvedLayoutProfile === 'risk_matrix' && (! is_array($schema['risk_matrix_columns'] ?? null) || count($schema['risk_matrix_columns']) < 2)) {
+            $errors[] = 'Schema pertanyaan risk_matrix wajib memiliki minimal 2 kolom risk_matrix_columns.';
         }
 
         $questions = $schema['questions'] ?? null;

@@ -115,6 +115,7 @@ class QmhDocumentAnswersApiTest extends TestCase
 
         $this->actingAs($user)
             ->putJson('/api/quality/revisions/'.$revisionId.'/content', [
+                'content_version' => 1,
                 'content_html' => '<p></p>',
                 'answers_json' => [
                     'purpose' => 'Tujuan revisi',

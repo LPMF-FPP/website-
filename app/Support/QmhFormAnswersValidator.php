@@ -6,12 +6,20 @@ namespace App\Support;
 
 final class QmhFormAnswersValidator
 {
+    public const REQUIRED_POLICY_ENFORCE = 'enforce';
+
+    public const REQUIRED_POLICY_ALLOW_PARTIAL = 'allow_partial';
+
     /**
      * @param  array<string, mixed>  $schema
      * @return array{errors: array<string, string>, normalized: array<string, mixed>}
      */
-    public static function validateAndNormalize(array $schema, mixed $answers): array
-    {
+    public static function validateAndNormalize(
+        array $schema,
+        mixed $answers,
+        string $requiredPolicy = self::REQUIRED_POLICY_ENFORCE
+    ): array {
+        $enforceRequired = self::shouldEnforceRequired($requiredPolicy);
         $errors = [];
         $normalized = [];
 
@@ -58,7 +66,7 @@ final class QmhFormAnswersValidator
             if ($type === 'checkbox') {
                 $bool = self::coerceBoolean($raw);
                 $normalized[$qid] = $bool;
-                if ($required && $bool !== true) {
+                if ($enforceRequired && $required && $bool !== true) {
                     $errors[$keyPath] = 'Wajib dicentang.';
                 }
 
@@ -70,7 +78,7 @@ final class QmhFormAnswersValidator
                     $sanitized = QmhAnswerSanitizer::sanitizeAnswerValue($raw);
                     $normalized[$qid] = $sanitized;
 
-                    if ($required && (! is_string($sanitized) || QmhAnswerSanitizer::plainText($sanitized) === '')) {
+                    if ($enforceRequired && $required && (! is_string($sanitized) || QmhAnswerSanitizer::plainText($sanitized) === '')) {
                         $errors[$keyPath] = 'Wajib diisi.';
                     }
 
@@ -91,7 +99,7 @@ final class QmhFormAnswersValidator
                     }
                     $normalized[$qid] = $items;
 
-                    if ($required && count($items) === 0) {
+                    if ($enforceRequired && $required && count($items) === 0) {
                         $errors[$keyPath] = 'Wajib diisi.';
                     }
 
@@ -99,7 +107,7 @@ final class QmhFormAnswersValidator
                 }
 
                 $normalized[$qid] = [];
-                if ($required) {
+                if ($enforceRequired && $required) {
                     $errors[$keyPath] = 'Wajib diisi.';
                 }
 
@@ -132,7 +140,7 @@ final class QmhFormAnswersValidator
                 $errors[$keyPath] = 'Angka tidak valid.';
             }
 
-            if ($required && $val === '') {
+            if ($enforceRequired && $required && $val === '') {
                 $errors[$keyPath] = 'Wajib diisi.';
             }
 
@@ -143,6 +151,15 @@ final class QmhFormAnswersValidator
             'errors' => $errors,
             'normalized' => $normalized,
         ];
+    }
+
+    private static function shouldEnforceRequired(string $requiredPolicy): bool
+    {
+        return match ($requiredPolicy) {
+            self::REQUIRED_POLICY_ENFORCE => true,
+            self::REQUIRED_POLICY_ALLOW_PARTIAL => false,
+            default => throw new \InvalidArgumentException('Required policy is not supported.'),
+        };
     }
 
     private static function coerceBoolean(mixed $value): bool

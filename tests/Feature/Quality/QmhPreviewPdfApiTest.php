@@ -10,6 +10,7 @@ use App\Models\RolePermission;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class QmhPreviewPdfApiTest extends TestCase
@@ -24,6 +25,9 @@ class QmhPreviewPdfApiTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        config()->set('quality.fr_v2.enabled', true);
+        config()->set('quality.fr_v2.create_enabled', false);
 
         $this->createQmhPermissions();
 
@@ -44,7 +48,7 @@ class QmhPreviewPdfApiTest extends TestCase
         Pdf::shouldReceive('loadHTML')
             ->withArgs(function (string $html): bool {
                 $this->capturedHtml[] = $html;
-                $this->assertStringContainsString('No. Dokumen', $html);
+                $this->assertStringContainsString('<html lang="id">', $html);
 
                 return true;
             })
@@ -103,6 +107,9 @@ class QmhPreviewPdfApiTest extends TestCase
             'name' => 'Template FR Risk Matrix Preview',
             'clause' => 4,
             'doc_type' => 'fr',
+            'shell_mode' => 'full',
+            'orientation_policy' => 'landscape',
+            'show_signoff_footer' => true,
             'version' => 1,
             'storage_disk' => 'local',
             'source_docx_path' => null,
@@ -139,6 +146,222 @@ class QmhPreviewPdfApiTest extends TestCase
         $this->assertStringContainsString('KONTROL', $latestHtml);
     }
 
+    public function test_preview_pdf_rejects_invalid_fr_form_schema_override(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/quality/preview/pdf', [
+                'doc_type' => 'fr',
+                'clause' => 4,
+                'doc_code' => 'QMH-FR-PREVIEW-INVALID',
+                'title' => 'Preview FR Invalid Schema',
+                'form_schema_json' => [
+                    'version' => 1,
+                    'doc_type' => 'fr',
+                    'layout_profile' => 'invalid_profile',
+                    'questions' => [
+                        ['id' => 'field_a', 'label' => 'Field A', 'type' => 'text', 'required' => false],
+                    ],
+                ],
+            ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['form_schema_json']);
+    }
+
+    public function test_preview_pdf_rejects_legacy_schema_payload_in_fr_v2_mode(): void
+    {
+        config()->set('quality.fr_v2.enabled', true);
+        config()->set('quality.fr_v2.create_enabled', true);
+
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $sourcePdf = UploadedFile::fake()->createWithContent('source.pdf', "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n2 0 obj\n<< /Type /Page >>\nendobj\n");
+
+        $response = $this->actingAs($user)
+            ->withHeaders(['Accept' => 'application/json'])
+            ->post('/api/quality/preview/pdf', [
+                'doc_type' => 'fr',
+                'clause' => 4,
+                'doc_code' => 'QMH-FR-V2-PREVIEW-001',
+                'title' => 'Preview FR-v2',
+                'source_pdf_file' => $sourcePdf,
+                'answers_json' => [
+                    'legacy' => 'tidak boleh',
+                ],
+                'form_schema_json' => [
+                    'version' => 1,
+                    'doc_type' => 'fr',
+                    'questions' => [],
+                ],
+            ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['answers_json', 'form_schema_json']);
+    }
+
+    public function test_fr_v2_preview_artifact_token_can_be_reused_for_preview_request(): void
+    {
+        config()->set('quality.fr_v2.enabled', true);
+        config()->set('quality.fr_v2.create_enabled', true);
+
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $sourcePdf = UploadedFile::fake()->createWithContent('source.pdf', "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n2 0 obj\n<< /Type /Page >>\nendobj\n");
+
+        $artifactResponse = $this->actingAs($user)
+            ->post('/api/quality/preview/artifacts', [
+                'doc_type' => 'fr',
+                'source_pdf_file' => $sourcePdf,
+            ]);
+
+        $artifactResponse->assertOk();
+        $token = (string) $artifactResponse->json('data.source_pdf_token');
+        $this->assertNotSame('', $token);
+
+        $previewResponse = $this->actingAs($user)
+            ->postJson('/api/quality/preview/pdf', [
+                'doc_type' => 'fr',
+                'clause' => 4,
+                'doc_code' => 'QMH-FR-V2-PREVIEW-TOKEN-001',
+                'title' => 'Preview FR-v2 by Token',
+                'source_pdf_token' => $token,
+            ]);
+
+        $previewResponse->assertOk();
+        $previewResponse->assertHeader('Content-Type', 'application/pdf');
+    }
+
+    public function test_preview_pdf_accepts_form_schema_json_string_payload_for_backward_compatibility(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/quality/preview/pdf', [
+                'doc_type' => 'fr',
+                'clause' => 4,
+                'doc_code' => 'QMH-FR-PREVIEW-JSON-STRING',
+                'title' => 'Preview FR JSON String',
+                'form_schema_json' => json_encode([
+                    'version' => 1,
+                    'doc_type' => 'fr',
+                    'layout_profile' => 'declaration',
+                    'questions' => [
+                        ['id' => 'field_a', 'label' => 'Field A', 'type' => 'text', 'required' => false],
+                    ],
+                ], JSON_THROW_ON_ERROR),
+            ]);
+
+        $response->assertOk();
+    }
+
+    public function test_preview_pdf_rejects_form_schema_for_non_fr_doc_type(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/quality/preview/pdf', [
+                'doc_type' => 'sop',
+                'clause' => 4,
+                'doc_code' => 'QMH-SOP-PREVIEW-SCHEMA',
+                'title' => 'Preview SOP schema',
+                'form_schema_json' => [
+                    'version' => 1,
+                    'doc_type' => 'sop',
+                    'questions' => [],
+                ],
+            ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['form_schema_json']);
+    }
+
+    public function test_revision_preview_prefers_request_schema_override_for_preview_parity(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $template = QmhTemplate::query()->create([
+            'name' => 'Template FR Structured Existing',
+            'clause' => 4,
+            'doc_type' => 'fr',
+            'shell_mode' => 'full',
+            'orientation_policy' => 'portrait',
+            'show_signoff_footer' => true,
+            'version' => 1,
+            'storage_disk' => 'local',
+            'source_docx_path' => null,
+            'is_active' => true,
+            'metadata' => [
+                'layout_profile' => 'structured_form',
+            ],
+        ]);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-FR-PREVIEW-OVERRIDE-001',
+            'title' => 'Preview Revision FR Override',
+            'clause' => 4,
+            'doc_type' => 'formulir',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'draft',
+            'template_id' => $template->id,
+            'template_name' => $template->name,
+            'template_version' => $template->version,
+            'form_schema_json' => [
+                'version' => 1,
+                'doc_type' => 'fr',
+                'layout_profile' => 'risk_matrix',
+                'risk_matrix_columns' => ['Aspek', 'Nilai', 'Kontrol'],
+                'questions' => [
+                    ['id' => 'statement', 'label' => 'Pernyataan', 'type' => 'textarea', 'required' => false],
+                ],
+            ],
+            'answers_json' => [
+                'statement' => 'Isi revision snapshot',
+            ],
+        ]);
+
+        $response = $this->actingAs($user)
+            ->postJson("/api/quality/revisions/{$revision->id}/preview/pdf", [
+                'doc_type' => 'formulir',
+                'clause' => 4,
+                'doc_code' => $document->doc_code,
+                'title' => $document->title,
+                'answers_json' => [
+                    'statement' => 'Isi revision snapshot',
+                ],
+                'form_schema_json' => [
+                    'version' => 1,
+                    'doc_type' => 'fr',
+                    'layout_profile' => 'declaration',
+                    'declaration_header' => 'Pernyataan Override',
+                    'questions' => [
+                        ['id' => 'statement', 'label' => 'Pernyataan', 'type' => 'textarea', 'required' => false],
+                    ],
+                ],
+            ]);
+
+        $response->assertOk();
+        $latestHtml = end($this->capturedHtml);
+        $this->assertIsString($latestHtml);
+        $this->assertStringContainsString('fr-declaration', $latestHtml);
+        $this->assertStringNotContainsString('<table class="risk-matrix-table">', $latestHtml);
+    }
+
     public function test_revision_preview_prefers_revision_schema_layout_over_template_metadata(): void
     {
         /** @var User $user */
@@ -148,6 +371,9 @@ class QmhPreviewPdfApiTest extends TestCase
             'name' => 'Template FR Risk Matrix Existing',
             'clause' => 4,
             'doc_type' => 'fr',
+            'shell_mode' => 'full',
+            'orientation_policy' => 'landscape',
+            'show_signoff_footer' => true,
             'version' => 1,
             'storage_disk' => 'local',
             'source_docx_path' => null,

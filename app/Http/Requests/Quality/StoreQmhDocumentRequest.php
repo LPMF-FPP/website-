@@ -6,6 +6,8 @@ use App\Models\QmhDocument;
 use App\Models\QmhTemplate;
 use App\Support\QmhFormAnswersValidator;
 use App\Support\QmhFormSchemaValidator;
+use App\Support\QmhFrLayoutProfile;
+use App\Support\QmhFrV2Gate;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -42,6 +44,29 @@ class StoreQmhDocumentRequest extends FormRequest
             }
         }
 
+        $normalizedNullableIntegers = [
+            'template_id',
+            'parent_sop_id',
+            'paired_ik_id',
+            'diperiksa_oleh',
+            'disahkan_oleh',
+        ];
+
+        foreach ($normalizedNullableIntegers as $field) {
+            $raw = $this->input($field);
+
+            if ($raw === null || $raw === '') {
+                $this->merge([$field => null]);
+
+                continue;
+            }
+
+            $value = (int) $raw;
+            $this->merge([
+                $field => $value > 0 ? $value : null,
+            ]);
+        }
+
         $rawSchema = $this->input('form_schema_json');
         if (is_string($rawSchema) && trim($rawSchema) === '') {
             $this->merge([
@@ -52,6 +77,21 @@ class StoreQmhDocumentRequest extends FormRequest
         if ($this->normalizedTemplateDocType() !== 'fr') {
             $this->merge([
                 'form_schema_json' => null,
+            ]);
+
+            return;
+        }
+
+        if ($this->isFrV2CreateMode()) {
+            $mode = is_string($this->input('fr_v2_structure_mode'))
+                ? strtolower(trim((string) $this->input('fr_v2_structure_mode')))
+                : '';
+
+            $this->merge([
+                'template_id' => null,
+                'fr_v2_structure_mode' => in_array($mode, ['table', 'non_table'], true)
+                    ? $mode
+                    : 'non_table',
             ]);
 
             return;
@@ -90,7 +130,11 @@ class StoreQmhDocumentRequest extends FormRequest
             return;
         }
 
-        $result = QmhFormAnswersValidator::validateAndNormalize($resolvedSchema, $this->input('answers_json'));
+        $result = QmhFormAnswersValidator::validateAndNormalize(
+            $resolvedSchema,
+            $this->input('answers_json'),
+            QmhFormAnswersValidator::REQUIRED_POLICY_ENFORCE
+        );
         $this->answersErrors = $result['errors'];
 
         $this->merge([
@@ -107,25 +151,68 @@ class StoreQmhDocumentRequest extends FormRequest
             'clause' => ['required', 'integer', Rule::in([4, 5, 6, 7, 8])],
             'doc_type' => ['required', Rule::in(['sop', 'ik', 'fr', 'formulir'])],
             'template_id' => [
-                'required',
+                Rule::requiredIf(fn (): bool => ! $this->isFrV2CreateMode()),
+                'nullable',
                 'integer',
                 Rule::exists('qmh_templates', 'id')->where(function ($query) {
                     $query
                         ->where('doc_type', $this->normalizedTemplateDocType())
+                        ->where('clause', (int) $this->input('clause'))
                         ->where('is_active', true);
                 }),
+            ],
+            'fr_preset' => [
+                'nullable',
+                'string',
+                Rule::in(QmhFrLayoutProfile::allowedProfiles()),
+                Rule::prohibitedIf(fn (): bool => $this->isFrV2CreateMode()),
+            ],
+            'fr_v2_structure_mode' => [
+                'nullable',
+                'string',
+                Rule::in(['table', 'non_table']),
             ],
             'parent_sop_id' => ['nullable', 'integer', 'exists:qmh_documents,id'],
             'paired_ik_id' => ['nullable', 'integer', 'exists:qmh_documents,id'],
             'change_summary' => ['nullable', 'string'],
             'editor_json' => ['nullable', 'array'],
-            'answers_json' => ['nullable', 'array'],
-            'form_schema_json' => ['nullable', 'array'],
+            'answers_json' => [
+                'nullable',
+                'array',
+                Rule::prohibitedIf(fn (): bool => $this->isFrV2CreateMode()),
+            ],
+            'form_schema_json' => [
+                'nullable',
+                'array',
+                Rule::prohibitedIf(fn (): bool => $this->isFrV2CreateMode()),
+            ],
             'content_html' => ['nullable', 'string'],
             'content_css' => ['nullable', 'string'],
+            'source_pdf_file' => [
+                Rule::requiredIf(fn (): bool => $this->isFrV2CreateMode()),
+                'nullable',
+                'file',
+                'mimetypes:application/pdf',
+                'max:'.$this->maxFrV2PdfSizeKb(),
+            ],
             'dibuat_oleh' => ['required', 'integer', 'exists:users,id'],
             'diperiksa_oleh' => ['nullable', 'integer', 'exists:users,id'],
             'disahkan_oleh' => ['nullable', 'integer', 'exists:users,id'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'source_pdf_file.required' => 'File PDF sumber wajib diunggah untuk Formulir FR-v2.',
+            'source_pdf_file.file' => 'File PDF sumber tidak valid.',
+            'source_pdf_file.mimetypes' => 'File sumber harus berformat PDF.',
+            'source_pdf_file.max' => 'Ukuran file PDF sumber melebihi batas maksimum.',
+            'template_id.required' => 'Template aktif wajib dipilih untuk dokumen non FR-v2.',
+            'template_id.exists' => 'Template aktif tidak valid untuk dokumen/klausul yang dipilih.',
+            'fr_preset.prohibited' => 'Preset FR lama tidak didukung pada mode FR-v2.',
+            'answers_json.prohibited' => 'Jawaban schema-driven legacy tidak didukung pada mode FR-v2.',
+            'form_schema_json.prohibited' => 'Schema pertanyaan legacy tidak didukung pada mode FR-v2.',
         ];
     }
 
@@ -175,6 +262,25 @@ class StoreQmhDocumentRequest extends FormRequest
 
             if ($docType === 'fr' && $parentSopId === null) {
                 $validator->errors()->add('parent_sop_id', 'FR wajib memiliki parent SOP.');
+            }
+
+            if ($docType === 'fr' && ! $this->isFrV2CreateMode()) {
+                $template = $this->template();
+                $metadata = is_array($template?->metadata) ? $template->metadata : [];
+                $layoutConfig = QmhFrLayoutProfile::fromExplicitMetadata($metadata);
+                $templateProfile = isset($layoutConfig['layout_profile'])
+                    ? (string) $layoutConfig['layout_profile']
+                    : QmhFrLayoutProfile::defaultAuthoringProfile();
+                $requestedRawProfile = is_string($this->input('fr_preset'))
+                    ? trim((string) $this->input('fr_preset'))
+                    : '';
+                $requestedProfile = $requestedRawProfile !== ''
+                    ? QmhFrLayoutProfile::normalizeProfile($requestedRawProfile)
+                    : null;
+
+                if ($template !== null && $requestedProfile !== null && $templateProfile !== $requestedProfile) {
+                    $validator->errors()->add('template_id', 'Template FR harus sesuai preset struktur yang dipilih.');
+                }
             }
 
             $parentSop = null;
@@ -236,9 +342,18 @@ class StoreQmhDocumentRequest extends FormRequest
 
     private function normalizedTemplateDocType(): string
     {
-        return match ($this->input('doc_type')) {
-            'formulir', 'fr' => 'fr',
-            default => (string) $this->input('doc_type'),
-        };
+        return QmhFrV2Gate::normalizedDocType((string) $this->input('doc_type'));
+    }
+
+    private function isFrV2CreateMode(): bool
+    {
+        return QmhFrV2Gate::isCreateEnabled((string) $this->input('doc_type'));
+    }
+
+    private function maxFrV2PdfSizeKb(): int
+    {
+        $configured = (int) config('quality.fr_v2.max_pdf_size_kb', 10240);
+
+        return $configured > 0 ? $configured : 10240;
     }
 }

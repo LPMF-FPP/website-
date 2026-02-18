@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Seeders;
 
+use App\Models\Permission;
 use App\Models\RolePermission;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -14,6 +15,18 @@ class PermissionSeederQmhTest extends TestCase
     public function test_permission_seeder_assigns_qmh_permissions_to_expected_roles(): void
     {
         $this->seed(PermissionSeeder::class);
+
+        $this->assertDatabaseHas('permissions', [
+            'name' => 'qmh.unlock.force',
+            'module' => 'qmh',
+        ]);
+
+        $this->assertDatabaseMissing('permissions', [
+            'name' => 'qmh.force_unlock',
+        ]);
+
+        $forceUnlockPermission = Permission::query()->firstWhere('name', 'qmh.unlock.force');
+        $this->assertNotNull($forceUnlockPermission);
 
         $adminQmhCreate = RolePermission::query()
             ->where('role', 'admin')
@@ -75,6 +88,26 @@ class PermissionSeederQmhTest extends TestCase
             ->whereHas('permission', fn ($query) => $query->where('name', 'qmh.template.manage'))
             ->exists();
 
+        $adminQmhForceUnlock = RolePermission::query()
+            ->where('role', 'admin')
+            ->whereHas('permission', fn ($query) => $query->where('name', 'qmh.unlock.force'))
+            ->exists();
+
+        $supervisorQmhForceUnlock = RolePermission::query()
+            ->where('role', 'supervisor')
+            ->whereHas('permission', fn ($query) => $query->where('name', 'qmh.unlock.force'))
+            ->exists();
+
+        $manajerTeknisQmhForceUnlock = RolePermission::query()
+            ->where('role', 'manajer_teknis')
+            ->whereHas('permission', fn ($query) => $query->where('name', 'qmh.unlock.force'))
+            ->exists();
+
+        $investigatorQmhForceUnlock = RolePermission::query()
+            ->where('role', 'investigator')
+            ->whereHas('permission', fn ($query) => $query->where('name', 'qmh.unlock.force'))
+            ->exists();
+
         $this->assertTrue($adminQmhCreate);
         $this->assertTrue($supervisorQmhCreate);
         $this->assertTrue($manajerTeknisQmhCreate);
@@ -89,5 +122,10 @@ class PermissionSeederQmhTest extends TestCase
         $this->assertTrue($supervisorQmhTemplateManage);
         $this->assertTrue($manajerTeknisQmhTemplateManage);
         $this->assertFalse($investigatorQmhTemplateManage);
+
+        $this->assertTrue($adminQmhForceUnlock);
+        $this->assertTrue($supervisorQmhForceUnlock);
+        $this->assertTrue($manajerTeknisQmhForceUnlock);
+        $this->assertFalse($investigatorQmhForceUnlock);
     }
 }

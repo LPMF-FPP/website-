@@ -10,6 +10,7 @@ use App\Models\QmhTemplate;
 use App\Models\RolePermission;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
 class QmhDocumentWebTest extends TestCase
@@ -45,7 +46,7 @@ class QmhDocumentWebTest extends TestCase
             ->assertOk()
             ->assertViewIs('quality.create')
             ->assertSee('Buat Dokumen')
-            ->assertSee('Pilih Struktur Dokumen')
+            ->assertSee('Dasar Dokumen')
             ->assertSee('Pilih Template')
             ->assertDontSee('Editor Konten Awal')
             ->assertDontSee('2. Preview')
@@ -138,7 +139,7 @@ class QmhDocumentWebTest extends TestCase
 
         $templates = $this->actingAs($user)->get('/quality/templates');
         $templates->assertOk();
-        $this->assertElementWithTextHasClass($templates->getContent(), 'a', 'Buat / Upload', 'bg-primary-600');
+        $this->assertElementWithTextHasClass($templates->getContent(), 'a', 'Buat Template', 'bg-primary-600');
     }
 
     public function test_create_page_is_guided_stepper_flow_with_clarified_doc_type_microcopy(): void
@@ -150,9 +151,9 @@ class QmhDocumentWebTest extends TestCase
 
         $response->assertOk();
         $response->assertSee('Alur Pembuatan Dokumen');
-        $response->assertSee('1. Struktur');
+        $response->assertSee('1. Dasar Dokumen');
         $response->assertSee('2. Metadata');
-        $response->assertSee('3. Template');
+        $response->assertSee('3. Isi & Penanda Tangan', false);
         $response->assertSee('4. Review');
         $response->assertSee('Instruksi Kerja (IK)');
         $response->assertSee('Formulir (FR)');
@@ -180,7 +181,7 @@ class QmhDocumentWebTest extends TestCase
             ->assertSee('x-data="window.qmhCreatePage({', false);
     }
 
-    public function test_can_store_document_from_web_form_and_redirects_to_document_detail(): void
+    public function test_can_store_document_from_web_form_and_redirects_to_editor(): void
     {
         /** @var User $user */
         $user = User::factory()->create(['role' => 'admin']);
@@ -201,7 +202,7 @@ class QmhDocumentWebTest extends TestCase
             ->where('doc_code', 'QMH-WEB-001')
             ->firstOrFail();
 
-        $response->assertRedirect(route('quality.documents.show', $createdDocument));
+        $response->assertRedirect(route('quality.documents.edit', $createdDocument));
 
         $this->assertDatabaseHas('qmh_documents', [
             'doc_code' => 'QMH-WEB-001',
@@ -235,13 +236,101 @@ class QmhDocumentWebTest extends TestCase
 
         $response
             ->assertSessionHasNoErrors()
-            ->assertRedirect(route('quality.documents.show', $createdDocument));
+            ->assertRedirect(route('quality.documents.edit', $createdDocument));
 
         $this->assertDatabaseHas('qmh_documents', [
             'doc_code' => 'QMH-WEB-002',
             'title' => 'Dokumen SOP dengan schema kosong',
             'doc_type' => 'sop',
         ]);
+    }
+
+    public function test_store_fr_v2_requires_source_pdf_when_gate_enabled(): void
+    {
+        config()->set('quality.fr_v2.enabled', true);
+        config()->set('quality.fr_v2.create_enabled', true);
+
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $parentSop = QmhDocument::query()->create([
+            'doc_code' => 'QMH-SOP-PARENT-001',
+            'title' => 'SOP Parent FR',
+            'clause' => 5,
+            'doc_type' => 'sop',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->from('/quality/documents/create')
+            ->post('/quality/documents', [
+                'doc_code' => 'QMH-FR-V2-001',
+                'title' => 'Formulir FR-v2 Tanpa PDF',
+                'clause' => 5,
+                'doc_type' => 'fr',
+                'fr_v2_structure_mode' => 'non_table',
+                'parent_sop_id' => $parentSop->id,
+                'dibuat_oleh' => $user->id,
+            ]);
+
+        $response->assertRedirect('/quality/documents/create');
+        $response->assertSessionHasErrors(['source_pdf_file']);
+
+        $this->assertDatabaseMissing('qmh_documents', [
+            'doc_code' => 'QMH-FR-V2-001',
+        ]);
+    }
+
+    public function test_store_fr_v2_uses_builtin_layout_from_structure_mode_without_template_id(): void
+    {
+        config()->set('quality.fr_v2.enabled', true);
+        config()->set('quality.fr_v2.create_enabled', true);
+
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $parentSop = QmhDocument::query()->create([
+            'doc_code' => 'QMH-SOP-PARENT-002',
+            'title' => 'SOP Parent FR Auto',
+            'clause' => 5,
+            'doc_type' => 'sop',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $sourcePdf = UploadedFile::fake()->createWithContent('source.pdf', "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n2 0 obj\n<< /Type /Page >>\nendobj\n");
+
+        $response = $this->actingAs($user)
+            ->post('/quality/documents', [
+                'doc_code' => 'QMH-FR-V2-002',
+                'title' => 'Formulir FR-v2 Auto Template',
+                'clause' => 5,
+                'doc_type' => 'fr',
+                'fr_v2_structure_mode' => 'non_table',
+                'parent_sop_id' => $parentSop->id,
+                'dibuat_oleh' => $user->id,
+                'source_pdf_file' => $sourcePdf,
+            ]);
+
+        $createdDocument = QmhDocument::query()
+            ->where('doc_code', 'QMH-FR-V2-002')
+            ->firstOrFail();
+
+        $response->assertRedirect(route('quality.documents.edit', $createdDocument));
+
+        $revision = QmhDocumentRevision::query()
+            ->where('document_id', $createdDocument->id)
+            ->firstOrFail();
+
+        $this->assertNull($revision->template_id);
+        $this->assertIsArray($revision->form_schema_json);
+        $this->assertSame('structured_form', $revision->form_schema_json['layout_profile'] ?? null);
+        $this->assertSame('full', $revision->form_schema_json['shell_mode'] ?? null);
+        $this->assertSame('portrait', $revision->form_schema_json['orientation_policy'] ?? null);
+        $this->assertSame(true, $revision->form_schema_json['show_signoff_footer'] ?? null);
+        $this->assertNotNull($revision->source_pdf_path);
+        $this->assertNotNull($revision->source_pdf_sha256);
     }
 
     public function test_web_index_supports_search_and_filter_query_params(): void
@@ -527,6 +616,42 @@ class QmhDocumentWebTest extends TestCase
             ->assertSee('openPreviewModal() {', false);
     }
 
+    public function test_edit_page_displays_preview_gate_guidance_before_submit(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-SOP-403-PREVIEW-GATE',
+            'title' => 'SOP Preview Gate',
+            'clause' => 6,
+            'doc_type' => 'sop',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'draft',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+            'content_html' => '<p>Konten awal</p>',
+        ]);
+
+        $document->update(['current_revision_id' => $revision->id]);
+
+        $this->actingAs($user)
+            ->get('/quality/documents/'.$document->id.'/edit')
+            ->assertOk()
+            ->assertViewIs('quality.edit')
+            ->assertSee('Belum cek preview. Buka preview sebelum submit.')
+            ->assertSee('Buka preview dokumen sebelum submit.', false)
+            ->assertSee('Buka preview sekarang');
+    }
+
     public function test_edit_page_registers_structured_rich_text_helpers_for_non_formulir(): void
     {
         /** @var User $user */
@@ -629,6 +754,35 @@ class QmhDocumentWebTest extends TestCase
             ->assertSee('qmh-editor-surface qmh-editor-surface--compact', false)
             ->assertDontSee('editor_hidden_unused', false)
             ->assertSee('@click="toggleBold()"', false);
+    }
+
+    public function test_create_page_hides_schema_builder_for_non_template_manager_role(): void
+    {
+        $this->grantPermissionToRole('qmh_operator', 'qmh.view', 'Lihat Quality Management Hub', 'qmh', 'view');
+        $this->grantPermissionToRole('qmh_operator', 'qmh.create', 'Buat Dokumen Quality Management Hub', 'qmh', 'create');
+
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'qmh_operator']);
+
+        $this->actingAs($user)
+            ->get('/quality/documents/create')
+            ->assertOk()
+            ->assertSee('Format pertanyaan dikelola dari menu Template')
+            ->assertDontSee('qmhFormBuilder({', false)
+            ->assertDontSee('+ Pertanyaan');
+    }
+
+    public function test_create_page_hides_technical_schema_controls_even_for_admin(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($user)
+            ->get('/quality/documents/create')
+            ->assertOk()
+            ->assertSee('Format pertanyaan dikelola dari menu Template')
+            ->assertDontSee('Schema Pertanyaan (JSON)')
+            ->assertDontSee('qmhFormBuilder({', false);
     }
 
     private function createQmhPermissions(): void

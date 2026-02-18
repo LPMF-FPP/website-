@@ -120,6 +120,66 @@ class QmhRevisionApprovalDownloadTest extends TestCase
         $this->assertSame('Perubahan mayor metode validasi', $publishEvent->payload_json['manual_reason'] ?? null);
     }
 
+    public function test_approve_rejects_when_checker_returns_fail(): void
+    {
+        [$revision, $approver] = $this->createRevisionInApproval();
+
+        $this->actingAs($approver)
+            ->postJson("/api/quality/revisions/{$revision->id}/approve", [
+                'checker_status' => 'fail',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['checker_status']);
+
+        $this->assertDatabaseHas('qmh_document_revisions', [
+            'id' => $revision->id,
+            'status' => 'in_approval',
+        ]);
+    }
+
+    public function test_approve_allows_checker_unavailable_with_attestation_permission(): void
+    {
+        $this->grantAttestationPermissionToAdminRole();
+        [$revision, $approver] = $this->createRevisionInApproval();
+
+        $this->actingAs($approver)
+            ->postJson("/api/quality/revisions/{$revision->id}/approve", [
+                'checker_status' => 'unavailable',
+                'attestation_actor' => 'Kepala Lab',
+                'attestation_reason' => 'Checker timeout saat jam sibuk',
+                'incident_ref' => 'INC-2026-0021',
+            ])
+            ->assertOk();
+
+        $this->assertDatabaseHas('qmh_document_revisions', [
+            'id' => $revision->id,
+            'status' => 'published',
+            'layout_checker_status' => 'unavailable',
+            'attestation_actor' => 'Kepala Lab',
+            'attestation_incident_ref' => 'INC-2026-0021',
+        ]);
+
+        $this->assertDatabaseHas('qmh_workflow_events', [
+            'revision_id' => $revision->id,
+            'event_type' => 'attestation_fallback',
+        ]);
+    }
+
+    public function test_approve_rejects_checker_unavailable_without_attestation_permission(): void
+    {
+        [$revision, $approver] = $this->createRevisionInApproval();
+
+        $this->actingAs($approver)
+            ->postJson("/api/quality/revisions/{$revision->id}/approve", [
+                'checker_status' => 'unavailable',
+                'attestation_actor' => 'Kepala Lab',
+                'attestation_reason' => 'Checker timeout saat jam sibuk',
+                'incident_ref' => 'INC-2026-0022',
+            ])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['checker_status']);
+    }
+
     public function test_controlled_download_requires_published_revision(): void
     {
         [$revision, $approver] = $this->createRevisionInApproval();
@@ -267,6 +327,15 @@ class QmhRevisionApprovalDownloadTest extends TestCase
             ]
         );
 
+        Permission::query()->updateOrCreate(
+            ['name' => 'qmh.approve.attest'],
+            [
+                'display_name' => 'Attestation Fallback Approve Quality Management Hub',
+                'module' => 'qmh',
+                'action' => 'approve-attest',
+            ]
+        );
+
         RolePermission::query()->updateOrCreate([
             'role' => 'admin',
             'permission_id' => $viewPermission->id,
@@ -275,6 +344,16 @@ class QmhRevisionApprovalDownloadTest extends TestCase
         RolePermission::query()->updateOrCreate([
             'role' => 'admin',
             'permission_id' => $createPermission->id,
+        ]);
+    }
+
+    private function grantAttestationPermissionToAdminRole(): void
+    {
+        $permission = Permission::query()->where('name', 'qmh.approve.attest')->firstOrFail();
+
+        RolePermission::query()->updateOrCreate([
+            'role' => 'admin',
+            'permission_id' => $permission->id,
         ]);
     }
 }
