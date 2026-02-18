@@ -35,9 +35,33 @@ class ChangelogService
         $changelogs = [];
         $currentVersion = null;
         $isArchived = false;
+        $inRecentChanges = false;
+        $usedIds = [];
 
         foreach ($lines as $line) {
             $line = trim($line);
+
+            if (str_starts_with($line, '## ')) {
+                if (Str::contains($line, 'Recent Changes')) {
+                    $inRecentChanges = true;
+
+                    continue;
+                }
+
+                if ($inRecentChanges && Str::contains($line, 'Changelog Archive')) {
+                    $isArchived = true;
+
+                    continue;
+                }
+
+                if ($inRecentChanges) {
+                    break;
+                }
+            }
+
+            if (! $inRecentChanges) {
+                continue;
+            }
 
             // Stop parsing if we hit the archive section (optional, or we parse it too)
             if (Str::contains($line, 'Changelog Archive')) {
@@ -48,7 +72,7 @@ class ChangelogService
 
             // Parse Version Header: ### v2.4.0 (12 Februari 2026) - Title
             // Relaxed Regex to handle various formats
-            if (preg_match('/^###\s+(v[^\s]+)(?:\s+\((.*?)\))?\s*(?:-|–)?\s*(.*)$/i', $line, $matches)) {
+            if (preg_match('/^###\s+(v\d[0-9a-zA-Z.\-x]*)(?:\s+\((.*?)\))?\s*(?:-|–)?\s*(.*)$/', $line, $matches)) {
 
                 // Save previous version if exists
                 if ($currentVersion) {
@@ -66,8 +90,19 @@ class ChangelogService
                     $date = '';
                 }
 
+                $baseId = Str::slug($version);
+                $id = $baseId;
+                $suffix = 2;
+
+                while (isset($usedIds[$id])) {
+                    $id = $baseId.'-'.$suffix;
+                    $suffix++;
+                }
+
+                $usedIds[$id] = true;
+
                 $currentVersion = [
-                    'id' => Str::slug($version),
+                    'id' => $id,
                     'version' => $version,
                     'date' => $date,
                     'title' => $title ?: 'Update',
