@@ -148,6 +148,13 @@ WhatsApp service berjalan di container Docker terpisah.
 
 ## 📰 Recent Changes (v2.4.x)
 
+### v2.4.1 (18 Februari 2026) - QMH FR-v2 Hardening & Backup Resilience
+
+- **QMH FR-v2:** Hardening alur create/edit/review untuk dokumen FR v2, termasuk guard policy dan fallback governance template aktif.
+- **Workflow Integrity:** Penambahan idempotency key + event workflow FR v2 untuk mencegah transisi ganda pada skenario retry/concurrent request.
+- **Quality Gate:** Penambahan cakupan test QMH (Feature/Unit + Browser workflow create/edit) untuk menurunkan risiko regresi pada modul mutu.
+- **Backup Stability:** Proses archive storage sekarang toleran direktori unreadable (`tar --ignore-failed-read`) dan mengecualikan jalur temporer `private/qmh/tmp`.
+
 ### v2.4.0 (12 Februari 2026) - LHU Security & Stability
 
 - **Critical Security Fix:** Scope LHU document query `by sample_id` untuk mencegah kebocoran data antar sampel.

@@ -10,14 +10,16 @@ class ChangelogService
 {
     public function getChangelogs(): array
     {
+        $path = base_path('WALKTHROUGH.md');
+
+        if (! File::exists($path)) {
+            return [];
+        }
+
+        $cacheKey = 'changelogs_parsed_'.md5((string) File::lastModified($path));
+
         // Cache for 1 hour to avoid file reading on every request
-        return Cache::remember('changelogs_parsed', 3600, function () {
-            $path = base_path('WALKTHROUGH.md');
-
-            if (! File::exists($path)) {
-                return [];
-            }
-
+        return Cache::remember($cacheKey, 3600, function () use ($path) {
             $content = File::get($path);
 
             // Normalize line endings
