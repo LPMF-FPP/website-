@@ -110,10 +110,16 @@ class GowaClient
     public function checkHealth(): array
     {
         try {
-            $http = Http::timeout(10);
+            $http = Http::timeout(15);
 
             if ($this->basicUser && $this->basicPass) {
                 $http = $http->withBasicAuth($this->basicUser, $this->basicPass);
+            }
+
+            if ($this->deviceId) {
+                $http = $http->withHeaders([
+                    'X-Device-Id' => $this->deviceId,
+                ]);
             }
 
             // Use /devices as /health endpoint is not available in current GOWA version

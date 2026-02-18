@@ -8,8 +8,8 @@
                 <div class="flex items-center gap-2" x-data="whatsappHeader({ initialConnected: @js($initialConnectionStatus ?? false) })" x-init="start()">
                     <!-- Connection Status Indicator -->
                     <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                        <div class="w-2.5 h-2.5 rounded-full" :class="connected ? 'bg-green-500' : 'bg-red-500'"></div>
-                        <span class="text-xs font-medium text-gray-600 dark:text-gray-300" x-text="connected ? 'Connected' : 'Disconnected'"></span>
+                        <div class="w-2.5 h-2.5 rounded-full" :class="indicatorClass"></div>
+                        <span class="text-xs font-medium text-gray-600 dark:text-gray-300" x-text="connectionLabel"></span>
                     </div>
                 </div>
             </x-slot>
@@ -102,7 +102,10 @@
         function whatsappHeader(config = {}) {
             return {
                 connected: Boolean(config.initialConnected),
+                connectionLabel: Boolean(config.initialConnected) ? 'Connected' : 'Disconnected',
+                indicatorClass: Boolean(config.initialConnected) ? 'bg-green-500' : 'bg-red-500',
                 failedChecks: 0,
+                lastSuccessAt: Boolean(config.initialConnected) ? Date.now() : null,
                 start() {
                     this.checkConnection();
                     // Poll connection status every 30s
@@ -126,11 +129,37 @@
 
                         this.connected = connected || reachable;
                         this.failedChecks = 0;
+                        this.lastSuccessAt = Date.now();
+
+                        if (this.connected) {
+                            this.connectionLabel = 'Connected';
+                            this.indicatorClass = 'bg-green-500';
+                        } else {
+                            this.connectionLabel = 'Disconnected';
+                            this.indicatorClass = 'bg-red-500';
+                        }
                     } catch (e) {
                         this.failedChecks += 1;
 
-                        if (this.failedChecks >= 2) {
+                        const hasRecentSuccess = this.lastSuccessAt && (Date.now() - this.lastSuccessAt) < 5 * 60 * 1000;
+
+                        if (hasRecentSuccess) {
+                            this.connected = true;
+                            this.connectionLabel = 'Connected (syncing...)';
+                            this.indicatorClass = 'bg-amber-500';
+                            console.warn('WhatsApp connection check failed, preserving recent connected state', e);
+
+                            return;
+                        }
+
+                        if (this.failedChecks >= 6) {
                             this.connected = false;
+                            this.connectionLabel = 'Disconnected';
+                            this.indicatorClass = 'bg-red-500';
+                        } else if (this.failedChecks >= 2) {
+                            this.connected = true;
+                            this.connectionLabel = 'Connected (unstable)';
+                            this.indicatorClass = 'bg-amber-500';
                         }
 
                         console.warn('Failed to refresh WhatsApp connection status', e);
