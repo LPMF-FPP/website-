@@ -148,6 +148,14 @@ WhatsApp service berjalan di container Docker terpisah.
 
 ## 📰 Recent Changes (v2.4.x)
 
+### v2.4.2 (19 Februari 2026) - QMH WhatsApp Workflow Actions & Security Hardening
+
+- **QMH-WhatsApp Workflow:** Otomatisasi task review/approval dari transisi QMH ke `staff_tasks`, termasuk due date 24 jam dan notifikasi WA per tahap.
+- **Command Action `/qmh`:** Reviewer dan approver sekarang bisa `approve/reject` langsung via WhatsApp dengan validasi assignee-bound, action code one-time, expiry, dan rate-limit percobaan.
+- **Webhook Security:** Inbound webhook WA sekarang fail-closed saat secret kosong/tidak valid, plus replay protection dengan dedupe `provider_message_id` dan fingerprint fallback.
+- **Attachment Reliability:** Penambahan `sendFile()` GOWA + fallback text-only, guard MIME/ukuran file, retry backoff+jitter, dan redaksi action code pada log audit.
+- **Operational Hardening:** Endpoint restart queue diproteksi lebih ketat (disable-by-default di production, token wajib, optional IP allowlist).
+
 ### v2.4.1 (18 Februari 2026) - QMH FR-v2 Hardening & Backup Resilience
 
 - **QMH FR-v2:** Hardening alur create/edit/review untuk dokumen FR v2, termasuk guard policy dan fallback governance template aktif.
