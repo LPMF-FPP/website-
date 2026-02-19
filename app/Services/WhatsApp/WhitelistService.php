@@ -3,6 +3,7 @@
 namespace App\Services\WhatsApp;
 
 use App\Models\WhatsappWhitelist;
+use App\Support\PhoneNormalizer;
 use Illuminate\Support\Collection;
 
 class WhitelistService
@@ -125,19 +126,6 @@ class WhitelistService
      */
     public function normalizePhoneNumber(string $jidOrPhone): string
     {
-        // Remove JID suffix if present
-        if (str_contains($jidOrPhone, '@')) {
-            $jidOrPhone = explode('@', $jidOrPhone)[0];
-        }
-
-        // Remove non-numeric characters
-        $phone = preg_replace('/[^0-9]/', '', $jidOrPhone);
-
-        // Ensure proper format (62xxx)
-        if (str_starts_with($phone, '08')) {
-            $phone = '62'.substr($phone, 1);
-        }
-
-        return $phone;
+        return PhoneNormalizer::toCanonicalDigits($jidOrPhone);
     }
 }

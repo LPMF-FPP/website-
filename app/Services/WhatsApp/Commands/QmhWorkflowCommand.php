@@ -1,0 +1,210 @@
+<?php
+
+namespace App\Services\WhatsApp\Commands;
+
+use App\Models\QmhDocumentRevision;
+use App\Models\StaffTask;
+use App\Models\User;
+use App\Services\Quality\QmhRevisionApprovalService;
+use App\Services\Quality\QmhRevisionRejectionService;
+use App\Services\Quality\QmhRevisionTransitionService;
+use App\Support\PhoneNormalizer;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Validation\ValidationException;
+
+class QmhWorkflowCommand
+{
+    public function __construct(
+        private QmhRevisionTransitionService $transitionService,
+        private QmhRevisionApprovalService $approvalService,
+        private QmhRevisionRejectionService $rejectionService
+    ) {}
+
+    public function execute(string $fromJid, array $params): string
+    {
+        if (count($params) < 3) {
+            return 'Format salah. Gunakan: /qmh {task_id} {approve|reject} {action_code} [reason]';
+        }
+
+        $taskId = (int) ($params[0] ?? 0);
+        $action = strtolower((string) ($params[1] ?? ''));
+        $actionCode = trim((string) ($params[2] ?? ''));
+        $reason = trim(implode(' ', array_slice($params, 3)));
+        $senderIdentity = PhoneNormalizer::toCanonicalDigits($fromJid);
+        $rateLimitKey = sprintf('qmh-wa-action:%s:%d', $senderIdentity !== '' ? $senderIdentity : 'unknown', $taskId);
+
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 5)) {
+            return 'Terlalu banyak percobaan command. Coba lagi dalam beberapa menit.';
+        }
+
+        if ($taskId <= 0 || ! in_array($action, ['approve', 'reject'], true) || $actionCode === '') {
+            return 'Format command tidak valid. Cek kembali parameter /qmh Anda.';
+        }
+
+        try {
+            return DB::transaction(function () use ($fromJid, $taskId, $action, $actionCode, $reason, $rateLimitKey): string {
+                $task = StaffTask::query()
+                    ->with('assignee')
+                    ->lockForUpdate()
+                    ->find($taskId);
+
+                if ($task === null) {
+                    RateLimiter::hit($rateLimitKey, 300);
+
+                    return 'Task QMH tidak ditemukan.';
+                }
+
+                if ($task->source_module !== StaffTask::SOURCE_MODULE_QMH || $task->source_ref_type !== StaffTask::SOURCE_REF_TYPE_QMH_REVISION) {
+                    RateLimiter::hit($rateLimitKey, 300);
+
+                    return 'Task ini bukan task workflow QMH.';
+                }
+
+                if (! in_array($task->status, [StaffTask::STATUS_PENDING, StaffTask::STATUS_IN_PROGRESS], true)) {
+                    RateLimiter::hit($rateLimitKey, 300);
+
+                    return 'Task ini sudah tidak aktif.';
+                }
+
+                if ($task->token_consumed_at !== null) {
+                    RateLimiter::hit($rateLimitKey, 300);
+
+                    return 'Action code sudah digunakan. Minta task terbaru dari sistem.';
+                }
+
+                if ($task->action_expires_at === null || $task->action_expires_at->isPast()) {
+                    RateLimiter::hit($rateLimitKey, 300);
+
+                    return 'Action code sudah kedaluwarsa. Minta task terbaru dari sistem.';
+                }
+
+                $expectedHash = (string) ($task->action_token_hash ?? '');
+                $incomingHash = hash('sha256', $actionCode);
+                if ($expectedHash === '' || ! hash_equals($expectedHash, $incomingHash)) {
+                    RateLimiter::hit($rateLimitKey, 300);
+
+                    return 'Action code tidak valid.';
+                }
+
+                $assignee = $task->assignee;
+                if (! $assignee instanceof User || ! $assignee->is_active) {
+                    RateLimiter::hit($rateLimitKey, 300);
+
+                    return 'Assignee task tidak valid atau tidak aktif.';
+                }
+
+                if (! PhoneNormalizer::isSameIdentity($fromJid, (string) $assignee->phone)) {
+                    RateLimiter::hit($rateLimitKey, 300);
+
+                    return 'Nomor pengirim tidak berwenang untuk task ini.';
+                }
+
+                if (! $assignee->hasPermission('qmh.create')) {
+                    RateLimiter::hit($rateLimitKey, 300);
+
+                    return 'Anda tidak memiliki izin workflow QMH.';
+                }
+
+                $revisionId = (int) ($task->source_ref_id ?? 0);
+                $revision = QmhDocumentRevision::query()->lockForUpdate()->find($revisionId);
+                if (! $revision instanceof QmhDocumentRevision) {
+                    RateLimiter::hit($rateLimitKey, 300);
+
+                    return 'Revisi QMH tidak ditemukan.';
+                }
+
+                if ($task->workflow_stage === StaffTask::WORKFLOW_STAGE_REVIEW) {
+                    $message = $this->executeReviewStage($task, $revision, $assignee, $action, $reason);
+                } elseif ($task->workflow_stage === StaffTask::WORKFLOW_STAGE_APPROVAL) {
+                    $message = $this->executeApprovalStage($task, $revision, $assignee, $action, $reason);
+                } else {
+                    return 'Tahap workflow task tidak dikenali.';
+                }
+
+                $task->status = StaffTask::STATUS_COMPLETED;
+                $task->completed_at = now();
+                $task->token_consumed_at = now();
+                $task->notes = trim((string) $task->notes.'\nAksi WA: '.$action.' oleh user #'.$assignee->id.' @ '.now()->toDateTimeString());
+                $task->save();
+
+                RateLimiter::clear($rateLimitKey);
+
+                return $message;
+            });
+        } catch (ValidationException|AuthorizationException) {
+            RateLimiter::hit($rateLimitKey, 300);
+
+            return 'Aksi ditolak. Pastikan status revisi, assignment, dan data command masih valid.';
+        } catch (\Throwable) {
+            RateLimiter::hit($rateLimitKey, 300);
+
+            return 'Terjadi kesalahan internal saat memproses aksi QMH.';
+        }
+    }
+
+    private function executeReviewStage(
+        StaffTask $task,
+        QmhDocumentRevision $revision,
+        User $assignee,
+        string $action,
+        string $reason
+    ): string {
+        if ($action === 'reject') {
+            if ($reason === '') {
+                return 'Alasan reject wajib diisi untuk tahap review.';
+            }
+
+            $this->transitionService->returnToDraft($revision, (int) $assignee->id, $reason);
+
+            return 'Review ditolak. Revisi dikembalikan ke draft.';
+        }
+
+        $context = is_array($task->context_json) ? $task->context_json : [];
+        $approverId = (int) ($context['approver_id'] ?? $revision->disahkan_oleh ?? 0);
+        if ($approverId <= 0) {
+            return 'Approver belum ditetapkan untuk melanjutkan ke tahap approval.';
+        }
+
+        $this->transitionService->passReview($revision, (int) $assignee->id, $approverId);
+
+        return 'Review disetujui. Revisi diteruskan ke tahap approval.';
+    }
+
+    private function executeApprovalStage(
+        StaffTask $task,
+        QmhDocumentRevision $revision,
+        User $assignee,
+        string $action,
+        string $reason
+    ): string {
+        if ($action === 'reject') {
+            if ($reason === '') {
+                return 'Alasan reject wajib diisi untuk tahap approval.';
+            }
+
+            $this->rejectionService->rejectToDraft($revision, (int) $assignee->id, $reason);
+
+            return 'Approval ditolak. Revisi dikembalikan ke draft.';
+        }
+
+        $context = is_array($task->context_json) ? $task->context_json : [];
+        $promoteToNewEdition = (bool) ($context['promote_to_new_edition'] ?? false);
+        $promoteReason = $promoteToNewEdition ? (string) ($context['promote_reason'] ?? 'Promote via WhatsApp action') : null;
+
+        $this->approvalService->approve(
+            $revision,
+            (int) $assignee->id,
+            $promoteToNewEdition,
+            $promoteReason,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
+
+        return 'Approval disetujui. Revisi berhasil dipublish.';
+    }
+}

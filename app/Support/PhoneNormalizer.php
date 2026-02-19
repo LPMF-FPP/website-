@@ -4,55 +4,83 @@ namespace App\Support;
 
 class PhoneNormalizer
 {
-    public static function toE164(string $phone, string $defaultCountryCode = '+62'): string
+    public static function toCanonicalDigits(string $jidOrPhone): string
     {
-        $phone = preg_replace('/[^0-9+]/', '', $phone);
+        $value = trim($jidOrPhone);
 
-        if (str_starts_with($phone, '+')) {
-            return $phone;
+        if (str_contains($value, '@')) {
+            $value = explode('@', $value, 2)[0];
         }
 
-        if (str_starts_with($phone, '0')) {
-            $phone = substr($phone, 1);
+        $digits = preg_replace('/[^0-9]/', '', $value) ?? '';
+
+        if ($digits === '') {
+            return '';
+        }
+
+        if (str_starts_with($digits, '08')) {
+            return '62'.substr($digits, 1);
+        }
+
+        if (str_starts_with($digits, '8')) {
+            return '62'.$digits;
+        }
+
+        if (str_starts_with($digits, '620')) {
+            return '62'.substr($digits, 3);
+        }
+
+        return $digits;
+    }
+
+    public static function toE164(string $phone, string $defaultCountryCode = '+62'): string
+    {
+        $digits = self::toCanonicalDigits($phone);
+
+        if ($digits === '') {
+            return $defaultCountryCode;
         }
 
         $countryCodeDigits = ltrim($defaultCountryCode, '+');
-
-        if (str_starts_with($phone, $countryCodeDigits)) {
-            return '+'.$phone;
+        if (! str_starts_with($digits, $countryCodeDigits)) {
+            $digits = $countryCodeDigits.$digits;
         }
 
-        return $defaultCountryCode.$phone;
+        return '+'.$digits;
     }
 
     public static function toJid(string $e164Phone): string
     {
-        $digits = preg_replace('/[^0-9]/', '', $e164Phone);
+        $digits = self::toCanonicalDigits($e164Phone);
 
         return $digits.'@s.whatsapp.net';
     }
 
     public static function fromJid(string $jid): string
     {
-        // Extract phone number from JID (remove @s.whatsapp.net suffix)
-        $phone = str_replace(['@s.whatsapp.net', '@c.us'], '', $jid);
+        $digits = self::toCanonicalDigits($jid);
 
-        // Add + prefix if it doesn't exist
-        if (! str_starts_with($phone, '+')) {
-            $phone = '+'.$phone;
-        }
-
-        return $phone;
+        return '+'.$digits;
     }
 
     public static function formatForDisplay(string $e164Phone): string
     {
-        if (str_starts_with($e164Phone, '+62')) {
-            $number = substr($e164Phone, 3);
+        $normalized = self::toE164($e164Phone);
+
+        if (str_starts_with($normalized, '+62')) {
+            $number = substr($normalized, 3);
 
             return '0'.$number;
         }
 
-        return $e164Phone;
+        return $normalized;
+    }
+
+    public static function isSameIdentity(string $left, string $right): bool
+    {
+        $leftDigits = self::toCanonicalDigits($left);
+        $rightDigits = self::toCanonicalDigits($right);
+
+        return $leftDigits !== '' && $leftDigits === $rightDigits;
     }
 }

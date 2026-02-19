@@ -3,6 +3,7 @@
 namespace App\Services\WhatsApp;
 
 use App\Services\WhatsApp\Commands\HelpCommand;
+use App\Services\WhatsApp\Commands\QmhWorkflowCommand;
 use App\Services\WhatsApp\Commands\ResiCommand;
 use App\Services\WhatsApp\Commands\RestartWorkerCommand;
 use App\Services\WhatsApp\Commands\StatusRequestCommand;
@@ -20,6 +21,7 @@ class CommandDispatcher
         '/resi',
         '/help',
         '/bantuan',
+        '/qmh',
     ];
 
     public function __construct(
@@ -33,6 +35,7 @@ class CommandDispatcher
         private StatusRequestCommand $statusCommand,
         private RestartWorkerCommand $restartCommand,
         private WhitelistCommand $whitelistCommand,
+        private QmhWorkflowCommand $qmhWorkflowCommand,
     ) {
         // Register commands
         $this->commands = [
@@ -44,6 +47,7 @@ class CommandDispatcher
             '/status' => $this->statusCommand,
             '/restart' => $this->restartCommand,
             '/whitelist' => $this->whitelistCommand,
+            '/qmh' => $this->qmhWorkflowCommand,
         ];
     }
 
@@ -63,6 +67,7 @@ class CommandDispatcher
 
         $command = $parsed['command'];
         $params = $parsed['params'];
+        $safeParams = $this->redactParamsForLogging($command, $params);
 
         // Find handler
         $handler = $this->commands[$command] ?? null;
@@ -75,7 +80,7 @@ class CommandDispatcher
 
             return [
                 'command' => $command,
-                'params' => $params,
+                'params' => $safeParams,
                 'status' => 'unknown_command',
                 'response' => $response,
             ];
@@ -88,7 +93,7 @@ class CommandDispatcher
 
             return [
                 'command' => $command,
-                'params' => $params,
+                'params' => $safeParams,
                 'status' => 'access_denied',
                 'response' => $response,
             ];
@@ -101,7 +106,7 @@ class CommandDispatcher
 
             return [
                 'command' => $command,
-                'params' => $params,
+                'params' => $safeParams,
                 'status' => 'success',
                 'response' => $response,
             ];
@@ -117,7 +122,7 @@ class CommandDispatcher
 
             return [
                 'command' => $command,
-                'params' => $params,
+                'params' => $safeParams,
                 'status' => 'error',
                 'response' => $response,
             ];
@@ -158,6 +163,23 @@ class CommandDispatcher
 
     private function sendReply(string $toJid, string $message): void
     {
+        if (trim($message) === '') {
+            return;
+        }
+
         $this->client->sendMessage($toJid, $message);
+    }
+
+    private function redactParamsForLogging(string $command, array $params): array
+    {
+        if ($command !== '/qmh') {
+            return $params;
+        }
+
+        if (isset($params[2])) {
+            $params[2] = '[REDACTED]';
+        }
+
+        return $params;
     }
 }
