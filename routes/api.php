@@ -97,6 +97,7 @@ Route::middleware(['throttle:120,1'])->group(function () {
             Route::post('/template-fallback/request', [QmhRevisionWorkflowController::class, 'requestTemplateFallback']);
             Route::post('/review', [QmhRevisionWorkflowController::class, 'review']);
             Route::post('/approve', [QmhRevisionWorkflowController::class, 'approve']);
+            Route::post('/reject', [QmhRevisionWorkflowController::class, 'reject']);
             Route::post('/close-legacy-and-duplicate-to-v2', [QmhRevisionWorkflowController::class, 'closeLegacyAndDuplicateToV2']);
             Route::post('/download', [QmhRevisionWorkflowController::class, 'download']);
             Route::post('/preview/pdf', [QmhRevisionWorkflowController::class, 'previewPdf']); // Task 7

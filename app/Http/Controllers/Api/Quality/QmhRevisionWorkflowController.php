@@ -9,6 +9,7 @@ use App\Http\Requests\Quality\DownloadQmhRevisionRequest;
 use App\Http\Requests\Quality\HeartbeatQmhRevisionRequest;
 use App\Http\Requests\Quality\LockQmhRevisionRequest;
 use App\Http\Requests\Quality\QmhPreviewPdfRequest;
+use App\Http\Requests\Quality\RejectQmhRevisionRequest;
 use App\Http\Requests\Quality\RequestQmhTemplateFallbackRequest;
 use App\Http\Requests\Quality\ReviewQmhRevisionRequest;
 use App\Http\Requests\Quality\ReviewQmhTemplateFallbackRequest;
@@ -19,6 +20,7 @@ use App\Models\QmhDocumentRevision;
 use App\Services\Quality\QmhRevisionApprovalService;
 use App\Services\Quality\QmhRevisionDownloadService;
 use App\Services\Quality\QmhRevisionLockService;
+use App\Services\Quality\QmhRevisionRejectionService;
 use App\Services\Quality\QmhRevisionTransitionService;
 use App\Services\Quality\QmhTemplateFallbackService;
 use App\Support\QmhAnswerSanitizer;
@@ -316,6 +318,20 @@ class QmhRevisionWorkflowController extends Controller
 
         return response()->json([
             'message' => 'Revisi berhasil disahkan dan dipublish.',
+            'data' => $updated,
+        ]);
+    }
+
+    public function reject(RejectQmhRevisionRequest $request, QmhDocumentRevision $revision, QmhRevisionRejectionService $service): JsonResponse
+    {
+        $updated = $service->rejectToDraft(
+            $revision,
+            (int) $request->user()->id,
+            $request->string('reason')->toString()
+        );
+
+        return response()->json([
+            'message' => 'Revisi ditolak dan dikembalikan ke draft.',
             'data' => $updated,
         ]);
     }

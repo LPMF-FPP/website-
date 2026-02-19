@@ -5,6 +5,7 @@ namespace App\Services\Quality;
 use App\Models\QmhDocument;
 use App\Models\QmhDocumentRevision;
 use App\Models\QmhWorkflowEvent;
+use App\Models\StaffTask;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -188,6 +189,16 @@ class QmhRevisionApprovalService
                 'version_bump_mode' => $mode,
                 'manual_reason' => $reason,
             ]);
+
+            StaffTask::query()
+                ->forQmhRevision($revision->id)
+                ->where('workflow_stage', StaffTask::WORKFLOW_STAGE_APPROVAL)
+                ->whereIn('status', [StaffTask::STATUS_PENDING, StaffTask::STATUS_IN_PROGRESS])
+                ->update([
+                    'status' => StaffTask::STATUS_COMPLETED,
+                    'completed_at' => now(),
+                    'token_consumed_at' => now(),
+                ]);
 
             return $revision->fresh();
         });

@@ -17,6 +17,14 @@ class StaffTask extends Model
         'assigned_to',
         'assigned_by',
         'test_request_id',
+        'source_module',
+        'source_ref_type',
+        'source_ref_id',
+        'workflow_stage',
+        'action_token_hash',
+        'action_expires_at',
+        'token_consumed_at',
+        'context_json',
         'priority',
         'status',
         'due_at',
@@ -29,9 +37,13 @@ class StaffTask extends Model
     ];
 
     protected $casts = [
+        'source_ref_id' => 'integer',
+        'context_json' => 'array',
         'due_at' => 'datetime',
         'started_at' => 'datetime',
         'completed_at' => 'datetime',
+        'action_expires_at' => 'datetime',
+        'token_consumed_at' => 'datetime',
         'notification_sent_at' => 'datetime',
         'notify_whatsapp' => 'boolean',
         'notification_sent' => 'boolean',
@@ -52,6 +64,14 @@ class StaffTask extends Model
     public const STATUS_COMPLETED = 'completed';
 
     public const STATUS_CANCELLED = 'cancelled';
+
+    public const SOURCE_MODULE_QMH = 'qmh';
+
+    public const SOURCE_REF_TYPE_QMH_REVISION = 'qmh_document_revision';
+
+    public const WORKFLOW_STAGE_REVIEW = 'review';
+
+    public const WORKFLOW_STAGE_APPROVAL = 'approval';
 
     public static function priorities(): array
     {
@@ -182,5 +202,33 @@ class StaffTask extends Model
     public function scopeForRequest($query, int $requestId)
     {
         return $query->where('test_request_id', $requestId);
+    }
+
+    public function scopeQmhWorkflow($query)
+    {
+        return $query->where('source_module', self::SOURCE_MODULE_QMH)
+            ->where('source_ref_type', self::SOURCE_REF_TYPE_QMH_REVISION);
+    }
+
+    public function scopeForQmhRevision($query, int $revisionId)
+    {
+        return $query->qmhWorkflow()->where('source_ref_id', $revisionId);
+    }
+
+    public function hasActiveActionToken(): bool
+    {
+        if ($this->action_token_hash === null || $this->action_token_hash === '') {
+            return false;
+        }
+
+        if ($this->token_consumed_at !== null) {
+            return false;
+        }
+
+        if ($this->action_expires_at !== null && $this->action_expires_at->isPast()) {
+            return false;
+        }
+
+        return true;
     }
 }

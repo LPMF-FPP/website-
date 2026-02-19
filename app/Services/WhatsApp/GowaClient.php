@@ -7,6 +7,19 @@ use Illuminate\Support\Facades\Log;
 
 class GowaClient
 {
+    private const DEFAULT_MAX_FILE_BYTES = 5_242_880; // 5 MB
+
+    /**
+     * @var array<int, string>
+     */
+    private const ALLOWED_FILE_MIME_TYPES = [
+        'application/pdf',
+        'image/png',
+        'image/jpeg',
+        'image/webp',
+        'text/plain',
+    ];
+
     private string $baseUrl;
 
     private ?string $basicUser;
@@ -102,9 +115,150 @@ class GowaClient
         }
     }
 
+    public function sendFile(string $jid, string $filePath, ?string $caption = null, ?string $filename = null): array
+    {
+        if (! is_readable($filePath)) {
+            return [
+                'success' => false,
+                'status' => 0,
+                'error' => 'File tidak dapat dibaca.',
+                'retryable' => false,
+            ];
+        }
+
+        $fileSize = @filesize($filePath);
+        if (is_int($fileSize) && $fileSize > $this->resolveMaxFileBytes()) {
+            return [
+                'success' => false,
+                'status' => 0,
+                'error' => 'Ukuran file melebihi batas maksimum pengiriman.',
+                'retryable' => false,
+            ];
+        }
+
+        $mimeType = $this->resolveMimeType($filePath);
+        if (! in_array($mimeType, self::ALLOWED_FILE_MIME_TYPES, true)) {
+            return [
+                'success' => false,
+                'status' => 0,
+                'error' => 'Tipe file tidak diizinkan untuk pengiriman WhatsApp.',
+                'retryable' => false,
+            ];
+        }
+
+        try {
+            $http = Http::timeout(45)
+                ->retry(3, function (int $attempt): int {
+                    $base = 200 * (2 ** max(0, $attempt - 1));
+
+                    return min(5000, $base + random_int(0, 250));
+                }, throw: false);
+
+            if ($this->basicUser && $this->basicPass) {
+                $http = $http->withBasicAuth($this->basicUser, $this->basicPass);
+            }
+
+            if ($this->deviceId) {
+                $http = $http->withHeaders([
+                    'X-Device-Id' => $this->deviceId,
+                ]);
+            }
+
+            $phone = str_replace('@s.whatsapp.net', '', $jid);
+            $name = $filename ?? basename($filePath);
+            $captionText = trim((string) $caption);
+
+            $resource = fopen($filePath, 'rb');
+            if ($resource === false) {
+                return [
+                    'success' => false,
+                    'status' => 0,
+                    'error' => 'Gagal membuka file attachment.',
+                    'retryable' => false,
+                ];
+            }
+
+            $response = $http
+                ->attach('file', $resource, $name)
+                ->post("{$this->baseUrl}/send/file", [
+                    'phone' => $phone,
+                    'caption' => $captionText,
+                ]);
+
+            if (is_resource($resource)) {
+                fclose($resource);
+            }
+
+            $status = $response->status();
+            $data = $response->json();
+            $messageId = $data['results']['message_id'] ?? $data['message_id'] ?? $data['id'] ?? null;
+
+            if ($response->successful()) {
+                Log::info('WhatsApp file sent successfully', [
+                    'to' => $phone,
+                    'filename' => $name,
+                    'message_id' => $messageId,
+                ]);
+
+                return [
+                    'success' => true,
+                    'status' => $status,
+                    'message_id' => $messageId,
+                    'data' => $data,
+                ];
+            }
+
+            Log::warning('WhatsApp GOWA send file failed', [
+                'to' => $phone,
+                'filename' => $name,
+                'status' => $status,
+                'error' => $response->body(),
+            ]);
+
+            return [
+                'success' => false,
+                'status' => $status,
+                'error' => $response->body(),
+                'message_id' => $messageId,
+                'retryable' => $this->isRetryableStatus($status),
+            ];
+        } catch (\Throwable $e) {
+            Log::error('WhatsApp GOWA send file exception', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'status' => 0,
+                'error' => $e->getMessage(),
+                'retryable' => true,
+            ];
+        }
+    }
+
     private function extractPhoneFromJid(string $jid): string
     {
         return str_replace('@s.whatsapp.net', '', $jid);
+    }
+
+    private function isRetryableStatus(int $status): bool
+    {
+        return in_array($status, [408, 429], true) || $status >= 500;
+    }
+
+    private function resolveMaxFileBytes(): int
+    {
+        $configured = (int) settings('notifications.whatsapp.max_file_bytes', self::DEFAULT_MAX_FILE_BYTES);
+
+        return max(1_024, $configured);
+    }
+
+    private function resolveMimeType(string $filePath): string
+    {
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $detected = $finfo->file($filePath);
+
+        return is_string($detected) ? $detected : 'application/octet-stream';
     }
 
     public function checkHealth(): array

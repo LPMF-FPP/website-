@@ -2,13 +2,17 @@
 
 namespace App\Services\Quality;
 
+use App\Jobs\SendQmhWorkflowTaskNotificationJob;
 use App\Models\QmhDocumentRevision;
 use App\Models\QmhTemplate;
 use App\Models\QmhWorkflowEvent;
+use App\Models\StaffTask;
+use App\Models\User;
 use App\Support\QmhFormAnswersValidator;
 use App\Support\QmhFrLayoutProfile;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class QmhRevisionTransitionService
@@ -250,6 +254,20 @@ class QmhRevisionTransitionService
                 'reviewer_id' => $reviewerId,
             ]);
 
+            [$reviewTask, $actionCode] = $this->upsertQmhWorkflowTask(
+                $revision,
+                $actorId,
+                $reviewerId,
+                StaffTask::WORKFLOW_STAGE_REVIEW,
+                [
+                    'revision_id' => $revision->id,
+                    'doc_code' => (string) ($revision->document?->doc_code ?? ''),
+                    'approver_id' => $revision->disahkan_oleh,
+                ]
+            );
+
+            SendQmhWorkflowTaskNotificationJob::dispatch($reviewTask->id, $actionCode)->afterCommit();
+
             return $revision->fresh();
         });
     }
@@ -276,6 +294,8 @@ class QmhRevisionTransitionService
             $this->persistWorkflowEvent($revision->id, $actorId, 'review_return', [
                 'note' => $note,
             ]);
+
+            $this->completeQmhWorkflowTasks($revision->id, StaffTask::WORKFLOW_STAGE_REVIEW, StaffTask::STATUS_COMPLETED);
 
             return $revision->fresh();
         });
@@ -311,8 +331,109 @@ class QmhRevisionTransitionService
                 'approver_id' => $approverId,
             ]);
 
+            $this->completeQmhWorkflowTasks($revision->id, StaffTask::WORKFLOW_STAGE_REVIEW, StaffTask::STATUS_COMPLETED);
+
+            [$approvalTask, $actionCode] = $this->upsertQmhWorkflowTask(
+                $revision,
+                $actorId,
+                $approverId,
+                StaffTask::WORKFLOW_STAGE_APPROVAL,
+                [
+                    'revision_id' => $revision->id,
+                    'doc_code' => (string) ($revision->document?->doc_code ?? ''),
+                ]
+            );
+
+            SendQmhWorkflowTaskNotificationJob::dispatch($approvalTask->id, $actionCode)->afterCommit();
+
             return $revision->fresh();
         });
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     * @return array{0: StaffTask, 1: string}
+     */
+    private function upsertQmhWorkflowTask(
+        QmhDocumentRevision $revision,
+        int $actorId,
+        int $assignedTo,
+        string $stage,
+        array $context
+    ): array {
+        $assignee = User::query()->find($assignedTo);
+        if (! $assignee || ! $assignee->is_active) {
+            throw ValidationException::withMessages([
+                'assigned_to' => 'Assignee workflow QMH tidak aktif atau tidak ditemukan.',
+            ]);
+        }
+
+        $title = $stage === StaffTask::WORKFLOW_STAGE_REVIEW
+            ? 'QMH Review Diperlukan'
+            : 'QMH Approval Diperlukan';
+
+        $description = sprintf(
+            'Workflow QMH %s untuk revisi #%d (%s).',
+            $stage,
+            $revision->id,
+            (string) ($revision->version_label ?? 'draft')
+        );
+
+        $actionCode = strtoupper(Str::random(10));
+        $tokenHash = hash('sha256', $actionCode);
+
+        $task = StaffTask::query()
+            ->qmhWorkflow()
+            ->where('source_ref_id', $revision->id)
+            ->where('workflow_stage', $stage)
+            ->where('assigned_to', $assignedTo)
+            ->whereIn('status', [StaffTask::STATUS_PENDING, StaffTask::STATUS_IN_PROGRESS])
+            ->lockForUpdate()
+            ->first();
+
+        $payload = [
+            'title' => $title,
+            'description' => $description,
+            'assigned_to' => $assignedTo,
+            'assigned_by' => $actorId,
+            'priority' => StaffTask::PRIORITY_HIGH,
+            'status' => StaffTask::STATUS_PENDING,
+            'due_at' => now()->addDay(),
+            'notify_whatsapp' => true,
+            'notification_sent' => false,
+            'notification_sent_at' => null,
+            'source_module' => StaffTask::SOURCE_MODULE_QMH,
+            'source_ref_type' => StaffTask::SOURCE_REF_TYPE_QMH_REVISION,
+            'source_ref_id' => $revision->id,
+            'workflow_stage' => $stage,
+            'action_token_hash' => $tokenHash,
+            'action_expires_at' => now()->addMinutes(30),
+            'token_consumed_at' => null,
+            'context_json' => $context,
+        ];
+
+        if ($task) {
+            $task->update($payload);
+
+            return [$task->fresh(), $actionCode];
+        }
+
+        return [StaffTask::query()->create($payload), $actionCode];
+    }
+
+    private function completeQmhWorkflowTasks(int $revisionId, string $stage, string $finalStatus): void
+    {
+        $now = now();
+
+        StaffTask::query()
+            ->forQmhRevision($revisionId)
+            ->where('workflow_stage', $stage)
+            ->whereIn('status', [StaffTask::STATUS_PENDING, StaffTask::STATUS_IN_PROGRESS])
+            ->update([
+                'status' => $finalStatus,
+                'completed_at' => $finalStatus === StaffTask::STATUS_COMPLETED ? $now : null,
+                'token_consumed_at' => $now,
+            ]);
     }
 
     protected function persistWorkflowEvent(int $revisionId, int $actorId, string $eventType, array $payload): void
