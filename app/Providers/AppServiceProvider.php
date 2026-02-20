@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Observers\DocumentObserver;
 use App\Observers\SampleObserver;
 use App\Observers\TestRequestObserver;
+use App\Observers\UserObserver;
 use App\Support\ActivityLogger;
 use App\Support\AppTimezone;
 use Illuminate\Auth\Events\Login;
@@ -125,6 +126,7 @@ class AppServiceProvider extends ServiceProvider
         TestRequest::observe(TestRequestObserver::class);
         Sample::observe(SampleObserver::class);
         Document::observe(DocumentObserver::class);
+        User::observe(UserObserver::class);
     }
 
     protected function registerQueryMonitoring(): void
