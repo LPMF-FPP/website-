@@ -13,9 +13,14 @@
         this.loadTasks();
     },
 
-    async updateStatus(taskId, newStatus) {
+    async updateStatus(task, newStatus) {
+        if (task && task.source_module === 'qmh' && task.source_ref_type === 'qmh_document_revision') {
+            alert('Task workflow QMH hanya dapat diproses lewat command WhatsApp /qmh.');
+            return;
+        }
+
         try {
-            const res = await fetch(`/whatsapp/tasks/${taskId}/status`, {
+            const res = await fetch(`/whatsapp/tasks/${task.id}/status`, {
                 method: 'PATCH',
                 headers: { 
                     'X-CSRF-TOKEN': '{{ csrf_token() }}', 
@@ -163,11 +168,15 @@
                             <!-- Status Checkbox -->
                             <div class="flex-shrink-0 pt-1">
                                 <button type="button" 
-                                        @click="updateStatus(task.id, task.status === 'completed' ? 'in_progress' : 'completed')"
+                                        @click="updateStatus(task, task.status === 'completed' ? 'in_progress' : 'completed')"
+                                        :disabled="task.source_module === 'qmh' && task.source_ref_type === 'qmh_document_revision'"
                                         class="w-5 h-5 rounded border flex items-center justify-center transition-colors focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
                                         :class="task.status === 'completed' 
                                             ? 'bg-green-500 border-green-500 text-white' 
-                                            : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-green-500'">
+                                            : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:border-green-500'"
+                                        :title="task.source_module === 'qmh' && task.source_ref_type === 'qmh_document_revision'
+                                            ? 'Gunakan command /qmh untuk memproses task workflow QMH'
+                                            : 'Update status task'">
                                     <svg x-show="task.status === 'completed'" class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
                                     </svg>
