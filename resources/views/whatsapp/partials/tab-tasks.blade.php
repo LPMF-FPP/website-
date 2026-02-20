@@ -1,9 +1,16 @@
 <div x-data="{
     filterOwnership: 'my_tasks',
     filterStatus: 'active',
+
+    loadTasks() {
+        this.loadTabData('tasks', {
+            filter: this.filterOwnership,
+            status: this.filterStatus,
+        });
+    },
     
     refresh() {
-        this.loadTabData('tasks');
+        this.loadTasks();
     },
 
     async updateStatus(taskId, newStatus) {
@@ -106,7 +113,7 @@
             <div class="flex flex-wrap items-center gap-2">
                 <!-- Filter by ownership -->
                 <select x-model="filterOwnership"
-                        @change="loadTabData('tasks')"
+                        @change="loadTasks()"
                         class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm focus:ring-primary-500 focus:border-primary-500">
                     <option value="my_tasks">Tugas Saya</option>
                     <option value="assigned_by_me">Ditugaskan Saya</option>
@@ -115,7 +122,7 @@
 
                 <!-- Filter by status -->
                 <select x-model="filterStatus"
-                        @change="loadTabData('tasks')"
+                        @change="loadTasks()"
                         class="rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 text-sm focus:ring-primary-500 focus:border-primary-500">
                     <option value="active">Aktif</option>
                     <option value="pending">Menunggu</option>
