@@ -205,6 +205,7 @@
                     { id: 'quick-test', label: 'Quick Test', icon: '⚡' },
                     { id: 'templates', label: 'Templates', icon: '📝' },
                     { id: 'gowa', label: 'GOWA', icon: '⚙️' },
+                    { id: 'ai', label: 'AI', icon: '🤖' },
                     { id: 'whitelist', label: 'Whitelist', icon: '👥' },
                     { id: 'alerts', label: 'Alerts', icon: '🔔' },
                 ],
@@ -217,12 +218,23 @@
                     device_id: '',
                     enabled: false,
                     enabled_milestones: [],
-                    inventory_alert_expiry_days: 30
+                    inventory_alert_expiry_days: 30,
+                    ai_provider: 'openai',
+                    ai_base_url: '',
+                    ai_model: '',
+                    ai_api_key: '',
+                    ai_api_key_configured: false
                 },
                 devices: [],
                 testMessage: { phone: '', message: '' },
                 loadingDevices: false,
                 sendingTest: false,
+                sendingAiTest: false,
+                aiTest: {
+                    prompt: 'Buatkan pesan WhatsApp singkat dan profesional untuk notifikasi laporan statistik periodik sudah terbit.',
+                    result: '',
+                    error: ''
+                },
 
                 // Whitelist Manager State
                 whitelistData: { whitelist: [], super_admin: null },
@@ -516,7 +528,11 @@
                             basic_user: this.settingsForm.basic_user,
                             basic_pass: this.settingsForm.basic_pass,
                             device_id: this.settingsForm.device_id,
-                            inventory_alert_expiry_days: this.settingsForm.inventory_alert_expiry_days
+                            inventory_alert_expiry_days: this.settingsForm.inventory_alert_expiry_days,
+                            ai_provider: this.settingsForm.ai_provider,
+                            ai_base_url: this.settingsForm.ai_base_url,
+                            ai_model: this.settingsForm.ai_model,
+                            ai_api_key: this.settingsForm.ai_api_key
                         };
 
                         const res = await fetch('{{ route("whatsapp.settings.save") }}', {
@@ -533,10 +549,52 @@
                         
                         if (res.ok) {
                             alert('Settings saved successfully');
+                            this.settingsForm.ai_api_key = '';
+                            this.settingsForm.ai_api_key_configured = true;
                         } else {
                             alert('Failed to save settings: ' + (data.message || 'Unknown error'));
                         }
                     } catch(e) { console.error(e); alert('Error saving settings'); }
+                },
+
+                async sendAiTest() {
+                    if (!this.aiTest.prompt || this.aiTest.prompt.trim() === '') {
+                        this.aiTest.error = 'Prompt test wajib diisi.';
+                        this.aiTest.result = '';
+                        return;
+                    }
+
+                    this.sendingAiTest = true;
+                    this.aiTest.error = '';
+                    this.aiTest.result = '';
+
+                    try {
+                        const res = await fetch('{{ route("whatsapp.settings.test-ai") }}', {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                prompt: this.aiTest.prompt
+                            })
+                        });
+
+                        const data = await res.json();
+
+                        if (!res.ok || !data.success) {
+                            this.aiTest.error = data.message || data.error || 'AI test gagal dijalankan.';
+                            return;
+                        }
+
+                        this.aiTest.result = data.result || '(Respons kosong)';
+                    } catch (e) {
+                        console.error(e);
+                        this.aiTest.error = 'Error saat menjalankan AI test.';
+                    } finally {
+                        this.sendingAiTest = false;
+                    }
                 },
 
                 async fetchDevices() {

@@ -24,7 +24,9 @@ class SendWhatsAppMessage implements ShouldQueue
     public function __construct(
         public string $phone,
         public string $message,
-        public ?int $batchId = null
+        public ?int $batchId = null,
+        public ?string $attachmentPath = null,
+        public ?string $attachmentFilename = null
     ) {}
 
     /**
@@ -77,7 +79,12 @@ class SendWhatsAppMessage implements ShouldQueue
         }
 
         try {
-            $result = $client->sendMessage($jid, $this->message);
+            if (is_string($this->attachmentPath) && trim($this->attachmentPath) !== '') {
+                $result = $client->sendFile($jid, $this->attachmentPath, $this->message, $this->attachmentFilename);
+            } else {
+                $result = $client->sendMessage($jid, $this->message);
+            }
+
             $isSent = (bool) ($result['success'] ?? false);
 
             if ($log) {
