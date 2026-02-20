@@ -120,26 +120,28 @@ class SendQmhWorkflowTaskNotificationJob implements ShouldQueue
 
     private function buildMessage(StaffTask $task, QmhDocumentRevision $revision): string
     {
-        $stage = $task->workflow_stage === StaffTask::WORKFLOW_STAGE_APPROVAL ? 'approval' : 'review';
+        $stage = $task->workflow_stage === StaffTask::WORKFLOW_STAGE_APPROVAL ? 'Approval' : 'Review';
         $dueAt = $task->due_at?->format('d M Y H:i') ?? '-';
         $docCode = (string) ($revision->document?->doc_code ?? '-');
         $version = (string) ($revision->version_label ?? '-');
 
-        return "📌 *QMH Workflow Task*\n"
+        return "Yth. Tim terkait, berikut pemberitahuan workflow QMH Anda.\n\n"
+            ."📌 *QMH Workflow Task*\n"
             ."Tahap: *{$stage}*\n"
             ."Dokumen: *{$docCode}* ({$version})\n"
-            ."Deadline: *{$dueAt}*\n\n"
-            ."Gunakan command berikut:\n"
-            ."`/qmh {$task->id} approve {$this->actionCode}`\n"
-            ."atau\n"
-            ."`/qmh {$task->id} reject {$this->actionCode} alasan Anda`";
+            ."Deadline respon: *{$dueAt}*\n\n"
+            ."Silakan pilih aksi dengan menyalin salah satu perintah berikut:\n"
+            ."✅ Approve: `/qmh {$task->id} approve {$this->actionCode}`\n"
+            ."🛑 Reject : `/qmh {$task->id} reject {$this->actionCode} alasan Anda`\n\n"
+            ."Jika butuh daftar task/command terbaru, ketik: `/qmh inbox`\n"
+            .'Terima kasih atas kolaborasinya 🙏';
     }
 
     private function buildCaption(StaffTask $task, QmhDocumentRevision $revision): string
     {
         $docCode = (string) ($revision->document?->doc_code ?? '-');
 
-        return "Dokumen QMH {$docCode} - gunakan /qmh {$task->id} ... untuk aksi";
+        return "Dokumen QMH {$docCode} terlampir. Ketik /qmh inbox untuk opsi aksi interaktif.";
     }
 
     private function prepareAttachment(QmhDocumentRevision $revision, QmhRevisionDownloadService $downloadService): ?string
