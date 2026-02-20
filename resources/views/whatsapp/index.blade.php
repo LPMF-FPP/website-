@@ -123,6 +123,11 @@
                             throw new Error(`Connection status request failed (${res.status})`);
                         }
 
+                        const contentType = String(res.headers.get('content-type') || '').toLowerCase();
+                        if (!contentType.includes('application/json')) {
+                            throw new Error(`Connection status returned non-JSON payload (${contentType || 'unknown'})`);
+                        }
+
                         const data = await res.json();
                         const connected = Boolean(data.connected ?? data.is_connected ?? false);
                         const reachable = Boolean(data.reachable ?? false);
@@ -142,25 +147,30 @@
                         this.failedChecks += 1;
 
                         const hasRecentSuccess = this.lastSuccessAt && (Date.now() - this.lastSuccessAt) < 5 * 60 * 1000;
+                        const isWithinSyncGrace = hasRecentSuccess && this.failedChecks <= 2;
 
-                        if (hasRecentSuccess) {
+                        if (isWithinSyncGrace) {
                             this.connected = true;
                             this.connectionLabel = 'Connected (syncing...)';
+                            this.indicatorClass = 'bg-amber-500';
+                            console.warn('WhatsApp connection check failed, temporary syncing state', e);
+
+                            return;
+                        }
+
+                        if (hasRecentSuccess && this.failedChecks <= 6) {
+                            this.connected = true;
+                            this.connectionLabel = 'Connected (unstable)';
                             this.indicatorClass = 'bg-amber-500';
                             console.warn('WhatsApp connection check failed, preserving recent connected state', e);
 
                             return;
                         }
 
-                        if (this.failedChecks >= 6) {
-                            this.connected = false;
-                            this.connectionLabel = 'Disconnected';
-                            this.indicatorClass = 'bg-red-500';
-                        } else if (this.failedChecks >= 2) {
-                            this.connected = true;
-                            this.connectionLabel = 'Connected (unstable)';
-                            this.indicatorClass = 'bg-amber-500';
-                        }
+                        this.connected = false;
+                        this.connectionLabel = 'Disconnected';
+                        this.indicatorClass = 'bg-red-500';
+                        this.lastSuccessAt = null;
 
                         console.warn('Failed to refresh WhatsApp connection status', e);
                     }
