@@ -61,6 +61,7 @@ class AnalystController extends Controller
 
                 $builder->where('name', $like, $pattern)
                     ->orWhere('email', $like, $pattern)
+                    ->orWhere('phone', $like, $pattern)
                     ->orWhere('nrp', $like, $pattern)
                     ->orWhere('nip', $like, $pattern);
             });
@@ -561,6 +562,7 @@ class AnalystController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users')->ignore($analystId)],
+            'phone' => ['nullable', 'string', 'max:20'],
             'role' => ['required', Rule::in($this->roleOptions($currentRole))],
             'title_prefix' => ['nullable', 'string', 'max:50'],
             'title_suffix' => ['nullable', 'string', 'max:50'],

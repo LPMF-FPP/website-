@@ -89,6 +89,7 @@ class PersonnelController extends Controller
                 $pattern = "%{$keyword}%";
                 $builder->where('name', $like, $pattern)
                     ->orWhere('email', $like, $pattern)
+                    ->orWhere('phone', $like, $pattern)
                     ->orWhere('nrp', $like, $pattern)
                     ->orWhere('nip', $like, $pattern);
             });

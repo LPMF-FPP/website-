@@ -69,6 +69,7 @@
                 <div class="rounded-lg bg-white p-6 shadow-sm">
                     <div class="text-lg font-semibold text-pd-text">{{ $analyst->display_name_with_title }}</div>
                     <div class="mt-1 text-sm text-pd-body">{{ $analyst->email }}</div>
+                    <div class="text-sm text-pd-body">Telepon: {{ $analyst->phone ?? '-' }}</div>
                     <div class="mt-2 text-sm text-pd-body">Pangkat: {{ $analyst->rank ?? '-' }}</div>
                     <div class="text-sm text-pd-body">NRP: {{ $analyst->nrp ?? '-' }} | NIP: {{ $analyst->nip ?? '-' }}</div>
                     <div class="mt-4 flex flex-wrap items-center gap-2">

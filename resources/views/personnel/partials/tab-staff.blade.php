@@ -41,7 +41,7 @@
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700">Kata kunci</label>
-                <input type="text" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Nama / Email / NRP"
+                <input type="text" name="q" value="{{ $filters['q'] ?? '' }}" placeholder="Nama / Email / Telepon / NRP"
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
             </div>
             <div class="flex items-end gap-3">
@@ -75,7 +75,8 @@
                                 <div class="text-xs text-gray-500">NRP: {{ $analyst->nrp ?? '-' }} | NIP: {{ $analyst->nip ?? '-' }}</div>
                             </td>
                             <td class="px-4 py-3">
-                                <div class="text-gray-900">{{ $analyst->email }}</div>
+                                <div class="text-gray-900">{{ $analyst->phone ?? '-' }}</div>
+                                <div class="text-xs text-gray-500">{{ $analyst->email }}</div>
                             </td>
                             <td class="px-4 py-3">
                                 <x-status-badge
