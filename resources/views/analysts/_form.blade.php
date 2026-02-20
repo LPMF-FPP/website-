@@ -2,7 +2,7 @@
 @csrf
 
 <div class="space-y-6">
-    <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+    <div class="grid grid-cols-1 gap-6 md:grid-cols-3">
         <div>
             <label class="block text-sm font-medium text-gray-700">Nama Lengkap</label>
             <input type="text" name="name" value="{{ old('name', $analyst->name) }}" required
@@ -16,6 +16,15 @@
             <input type="email" name="email" value="{{ old('email', $analyst->email) }}" required
                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
             @error('email')
+                <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+            @enderror
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Nomor Telepon</label>
+            <input type="text" name="phone" value="{{ old('phone', $analyst->phone) }}"
+                placeholder="contoh: 081234567890"
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+            @error('phone')
                 <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
             @enderror
         </div>
