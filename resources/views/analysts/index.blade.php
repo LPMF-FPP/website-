@@ -122,8 +122,8 @@
                                             <x-dropdown-link :href="route('analysts.show', $analyst)">
                                                 Lihat
                                             </x-dropdown-link>
-                                            <x-dropdown-link :href="route('analysts.show', $analyst)">
-                                                Ubah role
+                                            <x-dropdown-link :href="route('analysts.edit', $analyst)">
+                                                Edit profil
                                             </x-dropdown-link>
                                             <x-dropdown-link :href="route('analysts.logs', $analyst)">
                                                 Log aktivitas
