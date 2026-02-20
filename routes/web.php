@@ -478,6 +478,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/', [\App\Http\Controllers\WhatsAppHubController::class, 'saveSettings'])->name('save');
             Route::get('/devices', [\App\Http\Controllers\WhatsAppHubController::class, 'getDevices'])->name('devices');
             Route::post('/test-message', [\App\Http\Controllers\WhatsAppHubController::class, 'sendTestMessage'])->name('test-message');
+            Route::post('/test-ai', [\App\Http\Controllers\WhatsAppHubController::class, 'sendTestAi'])->name('test-ai');
             Route::post('/check-connection', [\App\Http\Controllers\WhatsAppHubController::class, 'checkConnection'])->name('check-connection');
 
             // Templates

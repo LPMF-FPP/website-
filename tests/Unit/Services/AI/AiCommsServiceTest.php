@@ -141,4 +141,38 @@ class AiCommsServiceTest extends TestCase
         $service = new AiCommsService;
         $service->generateMessage('Draft a message');
     }
+
+    public function test_generate_message_uses_whatsapp_ai_settings_override()
+    {
+        settings_fake([
+            'notifications.whatsapp.ai.provider' => 'openrouter',
+            'notifications.whatsapp.ai.base_url' => 'https://openrouter.ai/api/v1',
+            'notifications.whatsapp.ai.model' => 'openrouter/auto',
+            'notifications.whatsapp.ai.api_key' => encrypt('settings-key'),
+        ], true);
+
+        Http::preventStrayRequests();
+        Http::fake([
+            'https://openrouter.ai/api/v1/chat/completions' => function ($request) {
+                $this->assertSame('https://openrouter.ai/api/v1/chat/completions', $request->url());
+                $this->assertSame('Bearer settings-key', $request->header('Authorization')[0] ?? null);
+                $this->assertSame('openrouter/auto', $request->data()['model'] ?? null);
+
+                return Http::response([
+                    'choices' => [
+                        [
+                            'message' => [
+                                'content' => 'Override OK',
+                            ],
+                        ],
+                    ],
+                ], 200);
+            },
+        ]);
+
+        $service = new AiCommsService;
+        $result = $service->generateMessage('Draft a message');
+
+        $this->assertSame('Override OK', $result);
+    }
 }

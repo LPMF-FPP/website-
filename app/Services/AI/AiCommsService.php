@@ -10,9 +10,9 @@ class AiCommsService
 {
     public function generateMessage(string $prompt, ?string $currentText = null, string $contextType = 'general', array $allowedPlaceholderKeys = []): string
     {
-        $baseUrl = rtrim((string) config('services.ai.base_url'), '/');
-        $apiKey = config('services.ai.key');
-        $model = config('services.ai.model');
+        $baseUrl = rtrim($this->resolveBaseUrl(), '/');
+        $apiKey = $this->resolveApiKey();
+        $model = $this->resolveModel();
 
         if (empty($apiKey)) {
             Log::error('AI API Key is missing.');
@@ -101,5 +101,51 @@ class AiCommsService
         }
 
         return array_keys($unique);
+    }
+
+    private function resolveBaseUrl(): string
+    {
+        $provider = (string) settings('notifications.whatsapp.ai.provider', 'openai');
+        $configured = trim((string) settings('notifications.whatsapp.ai.base_url', ''));
+
+        if ($configured !== '') {
+            return $configured;
+        }
+
+        $byProvider = match ($provider) {
+            'openrouter' => 'https://openrouter.ai/api/v1',
+            'deepseek' => 'https://api.deepseek.com/v1',
+            default => (string) config('services.ai.base_url', 'https://api.openai.com/v1'),
+        };
+
+        return rtrim($byProvider, '/');
+    }
+
+    private function resolveModel(): string
+    {
+        $configured = trim((string) settings('notifications.whatsapp.ai.model', ''));
+
+        if ($configured !== '') {
+            return $configured;
+        }
+
+        return (string) config('services.ai.model', 'gpt-3.5-turbo');
+    }
+
+    private function resolveApiKey(): ?string
+    {
+        $stored = settings('notifications.whatsapp.ai.api_key');
+
+        if (is_string($stored) && trim($stored) !== '') {
+            try {
+                return decrypt($stored);
+            } catch (\Throwable) {
+                return $stored;
+            }
+        }
+
+        $fallback = config('services.ai.key');
+
+        return is_string($fallback) ? $fallback : null;
     }
 }

@@ -266,6 +266,85 @@
                 </div>
             </div>
 
+            <!-- AI -->
+            <div x-show="activeSettingsTab === 'ai'" x-transition.opacity>
+                <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900/30 space-y-5">
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">AI Configuration</h4>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Atur provider/model AI untuk fitur compose pesan WhatsApp, lalu jalankan test respons.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Provider</label>
+                            <select x-model="settingsForm.ai_provider" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                                <option value="openai">OpenAI</option>
+                                <option value="openrouter">OpenRouter</option>
+                                <option value="deepseek">DeepSeek</option>
+                                <option value="custom">Custom</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Model</label>
+                            <input type="text" x-model="settingsForm.ai_model" list="ai-model-options" placeholder="gpt-5.3-codex"
+                                   class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                            <datalist id="ai-model-options">
+                                <option value="gpt-5-codex"></option>
+                                <option value="gpt-5.1"></option>
+                                <option value="gpt-5.2"></option>
+                                <option value="gpt-5.3-codex"></option>
+                                <option value="gpt-5-codex-mini"></option>
+                                <option value="gpt-5.1-codex"></option>
+                                <option value="gpt-5.1-codex-mini"></option>
+                                <option value="gpt-5.1-codex-max"></option>
+                                <option value="gpt-5.2-codex"></option>
+                                <option value="gpt-5.3-codex-spark"></option>
+                            </datalist>
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Bisa pilih dari list atau isi manual sesuai provider AI.</p>
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Base URL API</label>
+                            <input type="url" x-model="settingsForm.ai_base_url" placeholder="https://api.openai.com/v1"
+                                   class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">API Key</label>
+                            <input type="password" x-model="settingsForm.ai_api_key" placeholder="Kosongkan jika tidak ingin mengubah"
+                                   class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400" x-show="settingsForm.ai_api_key_configured">API key sudah tersimpan. Isi field jika ingin ganti.</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <x-button type="button" variant="primary" @click="saveSettings">Simpan Konfigurasi AI</x-button>
+                    </div>
+
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <h5 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">AI Test</h5>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Rekomendasi: simpan dulu konfigurasi AI, lalu jalankan test.</p>
+
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Prompt Test</label>
+                                <textarea x-model="aiTest.prompt" rows="3" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"></textarea>
+                            </div>
+
+                            <x-button type="button" variant="success" @click="sendAiTest" :disabled="sendingAiTest" block>
+                                <span x-show="!sendingAiTest">Jalankan AI Test</span>
+                                <span x-show="sendingAiTest">Menjalankan...</span>
+                            </x-button>
+
+                            <div x-show="aiTest.error" class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" x-text="aiTest.error"></div>
+
+                            <div x-show="aiTest.result" class="rounded-md border border-green-200 bg-green-50 px-3 py-2">
+                                <p class="text-xs font-semibold text-green-700 mb-1">Hasil AI</p>
+                                <pre class="whitespace-pre-wrap text-sm text-green-900" x-text="aiTest.result"></pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Whitelist -->
             <div x-show="activeSettingsTab === 'whitelist'" x-transition.opacity>
                 <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900/30">

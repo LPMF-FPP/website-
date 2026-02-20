@@ -608,8 +608,17 @@ class ConsolidatedReportService
                 'status' => 'pending',
             ]);
 
-            // Dispatch job
-            SendWhatsAppMessage::dispatch($normalizedPhone, $message, $batch->id);
+            $attachmentPath = $this->resolvePdfAbsolutePath($report);
+            $attachmentFilename = $attachmentPath ? basename((string) $report->pdf_path) : null;
+
+            // Dispatch job (dengan attachment PDF jika tersedia)
+            SendWhatsAppMessage::dispatch(
+                $normalizedPhone,
+                $message,
+                $batch->id,
+                $attachmentPath,
+                $attachmentFilename
+            );
 
             Log::info("Consolidated report notification queued for {$normalizedPhone}");
 
@@ -668,6 +677,26 @@ class ConsolidatedReportService
         $message .= 'Staff Laboratorium Farmapol Pusdokkes Polri';
 
         return $message;
+    }
+
+    private function resolvePdfAbsolutePath(ConsolidatedReport $report): ?string
+    {
+        $pdfPath = trim((string) ($report->pdf_path ?? ''));
+        if ($pdfPath === '') {
+            return null;
+        }
+
+        if (! Storage::exists($pdfPath)) {
+            return null;
+        }
+
+        try {
+            $absolutePath = Storage::path($pdfPath);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return is_readable($absolutePath) ? $absolutePath : null;
     }
 
     private function normalizePhone(string $phone): string

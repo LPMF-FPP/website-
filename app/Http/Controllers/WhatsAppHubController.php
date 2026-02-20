@@ -15,6 +15,7 @@ use App\Models\WhatsappBroadcastRecipient;
 use App\Models\WhatsAppMessageBatch;
 use App\Models\WhatsAppMessageLog;
 use App\Models\WhatsappWhitelist;
+use App\Services\AI\AiCommsService;
 use App\Services\WhatsApp\GowaClient;
 use App\Services\WhatsApp\NotificationService;
 use App\Services\WhatsApp\TemplateService;
@@ -24,6 +25,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
+use RuntimeException;
 
 class WhatsAppHubController extends Controller
 {
@@ -824,11 +826,20 @@ class WhatsAppHubController extends Controller
 
     public function getSettings(): JsonResponse
     {
+        $aiProvider = (string) settings('notifications.whatsapp.ai.provider', 'openai');
+        $aiBaseUrl = (string) settings('notifications.whatsapp.ai.base_url', config('services.ai.base_url', 'https://api.openai.com/v1'));
+        $aiModel = (string) settings('notifications.whatsapp.ai.model', config('services.ai.model', 'gpt-4o-mini'));
+        $hasAiApiKey = (bool) settings('notifications.whatsapp.ai.api_key') || ! empty((string) config('services.ai.key'));
+
         return response()->json([
             'base_url' => settings('notifications.whatsapp.base_url'),
             'basic_user' => settings('notifications.whatsapp.basic_user'),
             'device_id' => settings('notifications.whatsapp.device_id'),
             'inventory_alert_expiry_days' => (int) settings('inventory.alert_expiry_days', 30),
+            'ai_provider' => $aiProvider,
+            'ai_base_url' => $aiBaseUrl,
+            'ai_model' => $aiModel,
+            'ai_api_key_configured' => $hasAiApiKey,
             // Don't return password
         ]);
     }
@@ -949,6 +960,10 @@ class WhatsAppHubController extends Controller
             'basic_pass' => 'nullable|string',
             'device_id' => 'required|string',
             'inventory_alert_expiry_days' => 'nullable|integer|min:1|max:365',
+            'ai_provider' => 'nullable|string|in:openai,openrouter,deepseek,custom',
+            'ai_base_url' => 'nullable|url',
+            'ai_model' => 'nullable|string|max:120',
+            'ai_api_key' => 'nullable|string|max:500',
         ]);
 
         SystemSetting::updateOrCreate(
@@ -980,6 +995,34 @@ class WhatsAppHubController extends Controller
             );
         }
 
+        if (array_key_exists('ai_provider', $validated) && ! empty($validated['ai_provider'])) {
+            SystemSetting::updateOrCreate(
+                ['key' => 'notifications.whatsapp.ai.provider'],
+                ['value' => $validated['ai_provider']]
+            );
+        }
+
+        if (array_key_exists('ai_base_url', $validated) && ! empty($validated['ai_base_url'])) {
+            SystemSetting::updateOrCreate(
+                ['key' => 'notifications.whatsapp.ai.base_url'],
+                ['value' => rtrim($validated['ai_base_url'], '/')]
+            );
+        }
+
+        if (array_key_exists('ai_model', $validated) && ! empty($validated['ai_model'])) {
+            SystemSetting::updateOrCreate(
+                ['key' => 'notifications.whatsapp.ai.model'],
+                ['value' => trim($validated['ai_model'])]
+            );
+        }
+
+        if (array_key_exists('ai_api_key', $validated) && ! empty($validated['ai_api_key']) && $validated['ai_api_key'] !== '••••••••') {
+            SystemSetting::updateOrCreate(
+                ['key' => 'notifications.whatsapp.ai.api_key'],
+                ['value' => encrypt($validated['ai_api_key'])]
+            );
+        }
+
         // Clear cache so changes take effect immediately
         if (function_exists('settings_forget_cache')) {
             settings_forget_cache();
@@ -1005,6 +1048,32 @@ class WhatsAppHubController extends Controller
         $result = $this->gowaClient->sendMessage($validated['phone'], $validated['message']);
 
         return response()->json($result, $result['success'] ? 200 : 500);
+    }
+
+    public function sendTestAi(Request $request, AiCommsService $aiService): JsonResponse
+    {
+        $validated = $request->validate([
+            'prompt' => 'required|string|max:1000',
+        ]);
+
+        try {
+            $result = $aiService->generateMessage($validated['prompt']);
+
+            return response()->json([
+                'success' => true,
+                'result' => $result,
+            ]);
+        } catch (RuntimeException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 503);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menjalankan AI test.',
+            ], 500);
+        }
     }
 
     // --- Private Helpers (reused from old controller) ---
