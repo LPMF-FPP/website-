@@ -213,6 +213,13 @@ class WhatsAppHubController extends Controller
 
     public function updateTaskStatus(Request $request, StaffTask $task): JsonResponse
     {
+        if ($task->source_module === StaffTask::SOURCE_MODULE_QMH
+            && $task->source_ref_type === StaffTask::SOURCE_REF_TYPE_QMH_REVISION) {
+            return response()->json([
+                'message' => 'Task workflow QMH hanya dapat diproses melalui command WhatsApp /qmh atau modul QMH.',
+            ], 422);
+        }
+
         $validated = $request->validate([
             'status' => 'required|in:pending,in_progress,completed,cancelled',
             'notes' => 'nullable|string|max:2000',
