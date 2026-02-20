@@ -230,9 +230,10 @@ class QmhWorkflowCommand
             $actionCode = $this->issueActionCode($task);
             $stageLabel = $this->taskStageLabel($task);
             $docCode = $this->taskDocCode($task);
-            $dueAt = $task->due_at?->format('d M H:i') ?? '-';
+            $dueLabel = $this->taskDueLabel($task);
 
-            $lines[] = sprintf('%d) #%d [%s] %s (deadline %s)', $index + 1, $task->id, $stageLabel, $docCode, $dueAt);
+            $lines[] = sprintf('%d) #%d [%s] %s', $index + 1, $task->id, $stageLabel, $docCode);
+            $lines[] = sprintf('   ⏰ Tenggat: %s', $dueLabel);
             $lines[] = sprintf('   ✅ Approve: /qmh %d approve %s', $task->id, $actionCode);
             $lines[] = sprintf('   🛑 Reject : /qmh %d reject %s alasan', $task->id, $actionCode);
         }
@@ -303,6 +304,21 @@ class QmhWorkflowCommand
         $docCode = trim((string) ($context['doc_code'] ?? ''));
 
         return $docCode !== '' ? $docCode : ('REV#'.$task->source_ref_id);
+    }
+
+    private function taskDueLabel(StaffTask $task): string
+    {
+        if (! $task->due_at) {
+            return 'Belum ditetapkan';
+        }
+
+        $formatted = $task->due_at->format('d M Y H:i');
+
+        if ($task->due_at->isPast()) {
+            return "Lewat tenggat ({$formatted} WIB)";
+        }
+
+        return $formatted.' WIB';
     }
 
     private function executeReviewStage(
