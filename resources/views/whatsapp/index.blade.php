@@ -298,7 +298,7 @@
                     this.loadTabData('settings');
                 },
 
-                async loadTabData(tab) {
+                async loadTabData(tab, params = {}) {
                     this.loading = true;
                     // Update URL without reload
                     const url = new URL(window.location);
@@ -321,7 +321,22 @@
                             throw new Error(`Unknown tab: ${tab}`);
                         }
 
-                        const response = await fetch(endpoint, {
+                        const query = new URLSearchParams();
+                        if (tab === 'tasks') {
+                            const filter = typeof params.filter === 'string' && params.filter !== ''
+                                ? params.filter
+                                : 'my_tasks';
+                            const status = typeof params.status === 'string' && params.status !== ''
+                                ? params.status
+                                : 'active';
+
+                            query.set('filter', filter);
+                            query.set('status', status);
+                        }
+
+                        const requestUrl = query.toString() !== '' ? `${endpoint}?${query.toString()}` : endpoint;
+
+                        const response = await fetch(requestUrl, {
                             headers: {
                                 'Accept': 'application/json'
                             }
