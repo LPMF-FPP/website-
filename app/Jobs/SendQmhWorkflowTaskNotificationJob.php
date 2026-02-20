@@ -120,28 +120,32 @@ class SendQmhWorkflowTaskNotificationJob implements ShouldQueue
 
     private function buildMessage(StaffTask $task, QmhDocumentRevision $revision): string
     {
-        $stage = $task->workflow_stage === StaffTask::WORKFLOW_STAGE_APPROVAL ? 'Approval' : 'Review';
+        $stage = $task->workflow_stage === StaffTask::WORKFLOW_STAGE_APPROVAL ? '✅ Approval' : '🔎 Review';
         $dueAt = $task->due_at?->format('d M Y H:i') ?? '-';
         $docCode = (string) ($revision->document?->doc_code ?? '-');
         $version = (string) ($revision->version_label ?? '-');
 
-        return "Yth. Tim terkait, berikut pemberitahuan workflow QMH Anda.\n\n"
-            ."📌 *QMH Workflow Task*\n"
-            ."Tahap: *{$stage}*\n"
-            ."Dokumen: *{$docCode}* ({$version})\n"
-            ."Deadline respon: *{$dueAt}*\n\n"
-            ."Silakan pilih aksi dengan menyalin salah satu perintah berikut:\n"
-            ."✅ Approve: `/qmh {$task->id} approve {$this->actionCode}`\n"
-            ."🛑 Reject : `/qmh {$task->id} reject {$this->actionCode} alasan Anda`\n\n"
-            ."Jika butuh daftar task/command terbaru, ketik: `/qmh inbox`\n"
-            .'Terima kasih atas kolaborasinya 🙏';
+        return "👋 Yth. Bapak/Ibu, berikut notifikasi tugas workflow QMH Anda.\n\n"
+            ."🔔 *QMH Workflow Task*\n"
+            ."📄 *Dokumen* : {$docCode} ({$version})\n"
+            ."🧭 *Tahap*   : {$stage}\n"
+            ."⏰ *Batas respon* : {$dueAt}\n\n"
+            ."Silakan pilih aksi berikut (copy-paste):\n"
+            ."✅ *Setujui*\n"
+            ."`/qmh {$task->id} approve {$this->actionCode}`\n"
+            ."🛑 *Kembalikan / Reject*\n"
+            ."`/qmh {$task->id} reject {$this->actionCode} alasan Anda`\n\n"
+            ."ℹ️ Bantuan cepat:\n"
+            ."• `/qmh inbox` untuk daftar task aktif\n"
+            ."• `/qmh bantuan` untuk panduan command\n\n"
+            .'Terima kasih atas kerja sama profesionalnya. 🙏';
     }
 
     private function buildCaption(StaffTask $task, QmhDocumentRevision $revision): string
     {
         $docCode = (string) ($revision->document?->doc_code ?? '-');
 
-        return "Dokumen QMH {$docCode} terlampir. Ketik /qmh inbox untuk opsi aksi interaktif.";
+        return "📎 Dokumen QMH {$docCode} terlampir. Ketik /qmh inbox untuk aksi cepat approve/reject.";
     }
 
     private function prepareAttachment(QmhDocumentRevision $revision, QmhRevisionDownloadService $downloadService): ?string
