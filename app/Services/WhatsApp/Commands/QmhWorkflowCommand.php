@@ -12,6 +12,7 @@ use App\Support\PhoneNormalizer;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class QmhWorkflowCommand
@@ -24,8 +25,24 @@ class QmhWorkflowCommand
 
     public function execute(string $fromJid, array $params): string
     {
+        $firstParam = strtolower((string) ($params[0] ?? ''));
+
+        if ($firstParam === '' || in_array($firstParam, ['help', 'bantuan'], true)) {
+            return $this->usageMessage();
+        }
+
+        if (in_array($firstParam, ['inbox', 'list', 'daftar'], true)) {
+            return $this->buildInboxResponse($fromJid);
+        }
+
+        if (in_array($firstParam, ['approve', 'reject'], true)) {
+            $reason = trim(implode(' ', array_slice($params, 1)));
+
+            return $this->executeShortcut($fromJid, $firstParam, $reason);
+        }
+
         if (count($params) < 3) {
-            return 'Format salah. Gunakan: /qmh {task_id} {approve|reject} {action_code} [reason]';
+            return 'Format salah. Gunakan: /qmh {task_id} {approve|reject} {action_code} [reason]. Atau ketik /qmh inbox.';
         }
 
         $taskId = (int) ($params[0] ?? 0);
@@ -40,7 +57,7 @@ class QmhWorkflowCommand
         }
 
         if ($taskId <= 0 || ! in_array($action, ['approve', 'reject'], true) || $actionCode === '') {
-            return 'Format command tidak valid. Cek kembali parameter /qmh Anda.';
+            return 'Format command tidak valid. Cek kembali parameter /qmh Anda atau ketik /qmh inbox.';
         }
 
         try {
@@ -142,6 +159,143 @@ class QmhWorkflowCommand
 
             return 'Terjadi kesalahan internal saat memproses aksi QMH.';
         }
+    }
+
+    private function usageMessage(): string
+    {
+        return "Format command QMH:\n"
+            ."1) /qmh inbox\n"
+            ."2) /qmh {task_id} approve {action_code}\n"
+            ."3) /qmh {task_id} reject {action_code} alasan\n\n"
+            ."Shortcut (jika hanya ada 1 task aktif):\n"
+            ."- /qmh approve\n"
+            .'- /qmh reject alasan';
+    }
+
+    private function executeShortcut(string $fromJid, string $action, string $reason): string
+    {
+        if ($action === 'reject' && $reason === '') {
+            return 'Alasan reject wajib diisi. Contoh: /qmh reject perlu revisi format tabel.';
+        }
+
+        $assignee = $this->resolveAssigneeBySender($fromJid);
+        if (! $assignee instanceof User) {
+            return 'Nomor pengirim tidak terdaftar sebagai assignee task QMH aktif.';
+        }
+
+        $activeTasks = $this->getActiveTasksForAssignee((int) $assignee->id);
+        if ($activeTasks->count() === 0) {
+            return 'Tidak ada task QMH aktif untuk nomor Anda.';
+        }
+
+        if ($activeTasks->count() > 1) {
+            return 'Ada lebih dari satu task aktif. Ketik /qmh inbox untuk lihat daftar command siap pakai.';
+        }
+
+        /** @var StaffTask $task */
+        $task = $activeTasks->first();
+        $actionCode = $this->issueActionCode($task);
+        $params = [(string) $task->id, $action, $actionCode];
+
+        if ($action === 'reject') {
+            $params[] = $reason;
+        }
+
+        return $this->execute($fromJid, $params);
+    }
+
+    private function buildInboxResponse(string $fromJid): string
+    {
+        $assignee = $this->resolveAssigneeBySender($fromJid);
+        if (! $assignee instanceof User) {
+            return 'Nomor pengirim tidak terdaftar sebagai assignee workflow QMH aktif.';
+        }
+
+        $activeTasks = $this->getActiveTasksForAssignee((int) $assignee->id);
+        if ($activeTasks->count() === 0) {
+            return 'Tidak ada task QMH aktif untuk nomor Anda.';
+        }
+
+        $lines = [
+            '📋 *Inbox Task QMH*',
+            'Gunakan command berikut untuk aksi cepat:',
+        ];
+
+        foreach ($activeTasks as $index => $task) {
+            $actionCode = $this->issueActionCode($task);
+            $stageLabel = $this->taskStageLabel($task);
+            $docCode = $this->taskDocCode($task);
+            $dueAt = $task->due_at?->format('d M H:i') ?? '-';
+
+            $lines[] = sprintf('%d) #%d [%s] %s (deadline %s)', $index + 1, $task->id, $stageLabel, $docCode, $dueAt);
+            $lines[] = sprintf('   Approve: /qmh %d approve %s', $task->id, $actionCode);
+            $lines[] = sprintf('   Reject : /qmh %d reject %s alasan', $task->id, $actionCode);
+        }
+
+        if ($activeTasks->count() === 1) {
+            $lines[] = 'Shortcut tersedia: /qmh approve atau /qmh reject alasan';
+        }
+
+        return implode("\n", $lines);
+    }
+
+    private function resolveAssigneeBySender(string $fromJid): ?User
+    {
+        /** @var User|null $assignee */
+        $assignee = User::query()
+            ->where('is_active', true)
+            ->whereNotNull('phone')
+            ->get()
+            ->first(fn (User $user) => PhoneNormalizer::isSameIdentity($fromJid, (string) $user->phone));
+
+        if (! $assignee instanceof User) {
+            return null;
+        }
+
+        if (! $assignee->hasPermission('qmh.create')) {
+            return null;
+        }
+
+        return $assignee;
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Collection<int, StaffTask>
+     */
+    private function getActiveTasksForAssignee(int $assigneeId)
+    {
+        return StaffTask::query()
+            ->qmhWorkflow()
+            ->where('assigned_to', $assigneeId)
+            ->whereIn('status', [StaffTask::STATUS_PENDING, StaffTask::STATUS_IN_PROGRESS])
+            ->orderBy('due_at')
+            ->orderBy('created_at')
+            ->get();
+    }
+
+    private function issueActionCode(StaffTask $task): string
+    {
+        $actionCode = strtoupper(Str::random(10));
+
+        $task->action_token_hash = hash('sha256', $actionCode);
+        $task->action_expires_at = now()->addMinutes(30);
+        $task->token_consumed_at = null;
+        $task->save();
+
+        return $actionCode;
+    }
+
+    private function taskStageLabel(StaffTask $task): string
+    {
+        return $task->workflow_stage === StaffTask::WORKFLOW_STAGE_APPROVAL ? 'APPROVAL' : 'REVIEW';
+    }
+
+    private function taskDocCode(StaffTask $task): string
+    {
+        $context = is_array($task->context_json) ? $task->context_json : [];
+        $docCode = trim((string) ($context['doc_code'] ?? ''));
+
+        return $docCode !== '' ? $docCode : ('REV#'.$task->source_ref_id);
     }
 
     private function executeReviewStage(
