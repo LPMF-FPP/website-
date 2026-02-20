@@ -329,7 +329,7 @@
                                 <textarea x-model="aiTest.prompt" rows="3" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"></textarea>
                             </div>
 
-                            <x-button type="button" variant="success" @click="sendAiTest" :disabled="sendingAiTest" block>
+                            <x-button type="button" variant="success" @click="sendAiTest" x-bind:disabled="sendingAiTest" block>
                                 <span x-show="!sendingAiTest">Jalankan AI Test</span>
                                 <span x-show="sendingAiTest">Menjalankan...</span>
                             </x-button>
