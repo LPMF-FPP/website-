@@ -222,8 +222,8 @@ class QmhWorkflowCommand
 
         $lines = [
             '📋 *Inbox Task QMH*',
-            'Terima kasih, berikut daftar task Anda hari ini:',
-            'Silakan copy-paste command berikut untuk aksi cepat:',
+            'Yth. Bapak/Ibu, berikut daftar task aktif Anda saat ini:',
+            'Silakan pilih aksi yang diperlukan:',
         ];
 
         foreach ($activeTasks as $index => $task) {
@@ -232,17 +232,21 @@ class QmhWorkflowCommand
             $docCode = $this->taskDocCode($task);
             $dueLabel = $this->taskDueLabel($task);
 
-            $lines[] = sprintf('%d) #%d [%s] %s', $index + 1, $task->id, $stageLabel, $docCode);
-            $lines[] = sprintf('   ⏰ Tenggat: %s', $dueLabel);
-            $lines[] = sprintf('   ✅ Approve: /qmh %d approve %s', $task->id, $actionCode);
-            $lines[] = sprintf('   🛑 Reject : /qmh %d reject %s alasan', $task->id, $actionCode);
+            $lines[] = '━━━━━━━━━━━━━━';
+            $lines[] = sprintf('*%d) Task #%d*', $index + 1, $task->id);
+            $lines[] = sprintf('📄 Dokumen : %s', $docCode);
+            $lines[] = sprintf('🧭 Tahap   : %s', $stageLabel);
+            $lines[] = sprintf('⏰ Tenggat : %s', $dueLabel);
+            $lines[] = sprintf('✅ Approve: /qmh %d approve %s', $task->id, $actionCode);
+            $lines[] = sprintf('🛑 Reject : /qmh %d reject %s alasan', $task->id, $actionCode);
         }
 
         if ($activeTasks->count() === 1) {
+            $lines[] = '━━━━━━━━━━━━━━';
             $lines[] = '⚡ Shortcut tersedia: /qmh approve atau /qmh reject alasan';
         }
 
-        $lines[] = 'Jika ada kendala, kirim /qmh bantuan.';
+        $lines[] = 'ℹ️ Jika ada kendala, kirim /qmh bantuan.';
 
         return implode("\n", $lines);
     }
@@ -295,7 +299,7 @@ class QmhWorkflowCommand
 
     private function taskStageLabel(StaffTask $task): string
     {
-        return $task->workflow_stage === StaffTask::WORKFLOW_STAGE_APPROVAL ? 'APPROVAL' : 'REVIEW';
+        return $task->workflow_stage === StaffTask::WORKFLOW_STAGE_APPROVAL ? '✅ Approval' : '🔎 Review';
     }
 
     private function taskDocCode(StaffTask $task): string
