@@ -218,7 +218,7 @@
                 globalPulse: 'healthy',
                 userTasks: 0,
                 loading: true,
-                statsEndpoint: "{{ url('/api/quality/dashboard/stats') }}",
+                statsEndpoint: "{{ rtrim((string) config('app.url'), '/') }}/api/quality/dashboard/stats",
 
                 init() {
                     this.fetchStats();
