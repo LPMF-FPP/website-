@@ -590,6 +590,7 @@
                                                             <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
                                                                 <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
                                                                 <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
+                                                                <button type="button" class="qmh-editor-btn" @click="openPendukungPicker({ clause: Number(document.getElementById('clause')?.value || clause || 4) })">Link Pendukung</button>
                                                             </div>
 
                                                             <div class="qmh-editor-surface qmh-editor-surface--compact" x-ref="editor"></div>
@@ -611,6 +612,7 @@
                                                                 <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('underline') }" @click="toggleUnderline()">U</button>
                                                                 <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
                                                                 <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
+                                                                <button type="button" class="qmh-editor-btn" @click="openPendukungPicker({ clause: Number(document.getElementById('clause')?.value || clause || 4) })">Link Pendukung</button>
                                                             </div>
 
                                                             <div class="qmh-editor-surface qmh-editor-surface--compact" x-ref="editor"></div>
@@ -761,4 +763,6 @@
             </div>
         </div>
     </div>
+
+    @include('partials.qmh-pendukung-picker')
 </x-app-layout>

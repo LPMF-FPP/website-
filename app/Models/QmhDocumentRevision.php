@@ -23,6 +23,7 @@ class QmhDocumentRevision extends Model
         'template_version',
         'source_pdf_disk',
         'source_pdf_path',
+        'file_hash',
         'source_pdf_sha256',
         'source_pdf_mime',
         'source_pdf_size',
@@ -127,5 +128,15 @@ class QmhDocumentRevision extends Model
     public function downloadLogs(): HasMany
     {
         return $this->hasMany(QmhDocumentDownloadLog::class, 'revision_id');
+    }
+
+    public function setPendukungVersion(int $version): void
+    {
+        $normalizedVersion = max(1, $version);
+
+        $this->edition_number = 1;
+        $this->revision_number = $normalizedVersion - 1;
+        $this->version_label = 'v'.$normalizedVersion;
+        $this->status = 'published';
     }
 }

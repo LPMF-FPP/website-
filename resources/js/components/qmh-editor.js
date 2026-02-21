@@ -1,6 +1,7 @@
 import { Editor } from "@tiptap/core";
 import Color from "@tiptap/extension-color";
 import Image from "@tiptap/extension-image";
+import Underline from "@tiptap/extension-underline";
 import { Table } from "@tiptap/extension-table";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
@@ -11,7 +12,16 @@ import StarterKit from "@tiptap/starter-kit";
 
 export function qmhEditor(config = {}) {
     let editorInstance = null;
+    let pickerSelectionListener = null;
     const fallbackHtml = "<p></p>";
+
+    const escapeHtml = (value) =>
+        String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#39;");
 
     const normalizeHtml = (value) => {
         if (typeof value !== "string") {
@@ -34,6 +44,10 @@ export function qmhEditor(config = {}) {
     };
 
     return {
+        editorId:
+            typeof config.editorId === "string" && config.editorId.trim() !== ""
+                ? config.editorId.trim()
+                : `qmh-editor-${Math.random().toString(36).slice(2, 10)}`,
         contentHtml: normalizeHtml(config.initialContent),
         readOnly: Boolean(config.readOnly),
 
@@ -63,6 +77,7 @@ export function qmhEditor(config = {}) {
                         Color.configure({
                             types: ["textStyle"],
                         }),
+                        Underline,
                         Image.configure({
                             allowBase64: true,
                         }),
@@ -83,6 +98,38 @@ export function qmhEditor(config = {}) {
                 if (this.$refs.hiddenInput) {
                     this.$refs.hiddenInput.value = editorInstance.getHTML();
                 }
+
+                if (pickerSelectionListener) {
+                    window.removeEventListener(
+                        "qmh-pendukung-picker:selected",
+                        pickerSelectionListener,
+                    );
+                }
+
+                pickerSelectionListener = (event) => {
+                    const detail =
+                        event?.detail && typeof event.detail === "object"
+                            ? event.detail
+                            : {};
+
+                    if (
+                        typeof detail.editorId === "string" &&
+                        detail.editorId !== this.editorId
+                    ) {
+                        return;
+                    }
+
+                    this.insertPendukungLink(
+                        String(detail.url || ""),
+                        String(detail.title || ""),
+                        Boolean(detail.isPdf),
+                    );
+                };
+
+                window.addEventListener(
+                    "qmh-pendukung-picker:selected",
+                    pickerSelectionListener,
+                );
             });
         },
 
@@ -201,6 +248,38 @@ export function qmhEditor(config = {}) {
             editorInstance?.chain().focus().deleteTable().run();
         },
 
+        openPendukungPicker(options = {}) {
+            const clause = Number.isFinite(Number(options?.clause))
+                ? Number(options.clause)
+                : null;
+
+            window.dispatchEvent(
+                new CustomEvent("qmh-pendukung-picker:open", {
+                    detail: {
+                        editorId: this.editorId,
+                        clause,
+                    },
+                }),
+            );
+        },
+
+        insertPendukungLink(url, title, isPdf = false) {
+            const normalizedUrl = typeof url === "string" ? url.trim() : "";
+            if (normalizedUrl === "") {
+                return;
+            }
+
+            const normalizedTitle =
+                typeof title === "string" && title.trim() !== ""
+                    ? title.trim()
+                    : normalizedUrl;
+
+            const label = isPdf ? `${normalizedTitle} (PDF)` : normalizedTitle;
+            const linkHtml = `<a href="${escapeHtml(normalizedUrl)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`;
+
+            editorInstance?.chain().focus().insertContent(linkHtml).run();
+        },
+
         getHTML() {
             return editorInstance ? editorInstance.getHTML() : this.contentHtml;
         },
@@ -210,6 +289,14 @@ export function qmhEditor(config = {}) {
         },
 
         destroy() {
+            if (pickerSelectionListener) {
+                window.removeEventListener(
+                    "qmh-pendukung-picker:selected",
+                    pickerSelectionListener,
+                );
+                pickerSelectionListener = null;
+            }
+
             if (editorInstance) {
                 editorInstance.destroy();
                 editorInstance = null;

@@ -28,5 +28,13 @@ class RouteServiceProvider extends ServiceProvider
 
             return Limit::perMinute($limit)->by($key);
         });
+
+        RateLimiter::for('downloads', function (Request $request) {
+            $key = $request->user()?->getAuthIdentifier()
+                ? 'downloads:user:'.$request->user()->getAuthIdentifier()
+                : 'downloads:ip:'.$request->ip();
+
+            return Limit::perMinute(30)->by($key);
+        });
     }
 }
