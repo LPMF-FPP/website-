@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Schedule;
 Schedule::command('inventory:check-alerts')->dailyAt('08:00');
 Schedule::command('reminders:send')->everyMinute();
 Schedule::command('qmh:fallback:expire')->hourly();
+Schedule::command('qmh:action-items:refresh-overdue')
+    ->everyFifteenMinutes()
+    ->withoutOverlapping();
 Schedule::command('lims:purge-old-files')->dailyAt('02:00');
 
 // Consolidated Reports Auto-Generation

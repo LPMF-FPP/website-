@@ -7,6 +7,11 @@ import focus from "@alpinejs/focus";
 import { createListFetcher } from "./utils/list-fetcher";
 import { initSearchPage } from "./pages/search";
 import { qmhCreatePage } from "./pages/quality-create";
+import { qmhAuditPage } from "./pages/quality-audit";
+import { qmhGovernancePage } from "./pages/quality-governance";
+import { qmhKumPage } from "./pages/quality-kum";
+import { qmhRapatPage } from "./pages/quality-rapat";
+import { qmhReports } from "./pages/quality-reports";
 import { registerSettingsComponent } from "./pages/settings/alpine-component";
 import { qmhEditor } from "./components/qmh-editor";
 import { qmhFormBuilder } from "./components/qmh-form-builder";
@@ -80,6 +85,11 @@ document.addEventListener("alpine:init", () => {
     Alpine.store("toast", toastStore);
     Alpine.data("listFetcher", () => createListFetcher());
     Alpine.data("qmhCreatePage", (config = {}) => qmhCreatePage(config));
+    Alpine.data("qmhAuditPage", () => qmhAuditPage());
+    Alpine.data("qmhGovernancePage", () => qmhGovernancePage());
+    Alpine.data("qmhKumPage", () => qmhKumPage());
+    Alpine.data("qmhRapatPage", () => qmhRapatPage());
+    Alpine.data("qmhReports", (config = {}) => qmhReports(config));
     // For backward compat with earlier usage names, you can alias:
     Alpine.data("sampleProcessesList", () => createListFetcher());
     Alpine.data("deliveryList", () => createListFetcher());

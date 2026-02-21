@@ -1,6 +1,7 @@
 <?php
 
 use App\Console\Commands\PurgeOldFiles;
+use App\Console\Commands\QmhRefreshActionItemOverdue;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -21,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'audit.activity' => \App\Http\Middleware\AuditActivity::class,
             'permission' => \App\Http\Middleware\CheckPermission::class,
+            'action-item.transition' => \App\Http\Middleware\CheckActionItemTransition::class,
         ]);
 
         // Trust all proxies for HTTPS handling
@@ -47,6 +49,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withCommands([
         PurgeOldFiles::class,
+        QmhRefreshActionItemOverdue::class,
     ])
     ->withSchedule(function (): void {
         Schedule::command('lims:purge-old-files')->dailyAt('02:00');

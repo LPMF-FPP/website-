@@ -83,6 +83,27 @@ class PermissionSeeder extends Seeder
         ['name' => 'qmh.template.manage', 'display_name' => 'Kelola Template Quality Management Hub', 'module' => 'qmh', 'action' => 'template-manage'],
         ['name' => 'qmh.unlock.force', 'display_name' => 'Paksa Buka Kunci Dokumen Quality Management Hub', 'module' => 'qmh', 'action' => 'unlock-force'],
         ['name' => 'qmh.approve.attest', 'display_name' => 'Attestation Fallback Approve Quality Management Hub', 'module' => 'qmh', 'action' => 'approve-attest'],
+        ['name' => 'qmh.rapat.view', 'display_name' => 'Lihat Rapat QMH', 'module' => 'qmh-rapat', 'action' => 'view'],
+        ['name' => 'qmh.rapat.view.all', 'display_name' => 'Lihat Semua Rapat QMH', 'module' => 'qmh-rapat', 'action' => 'view-all'],
+        ['name' => 'qmh.rapat.create', 'display_name' => 'Buat Rapat QMH', 'module' => 'qmh-rapat', 'action' => 'create'],
+        ['name' => 'qmh.rapat.create.all', 'display_name' => 'Buat Rapat QMH untuk Semua Unit', 'module' => 'qmh-rapat', 'action' => 'create-all'],
+        ['name' => 'qmh.rapat.edit', 'display_name' => 'Edit Rapat QMH', 'module' => 'qmh-rapat', 'action' => 'edit'],
+        ['name' => 'qmh.rapat.delete', 'display_name' => 'Hapus Rapat QMH', 'module' => 'qmh-rapat', 'action' => 'delete'],
+        ['name' => 'qmh.audit.view', 'display_name' => 'Lihat Audit QMH', 'module' => 'qmh-audit', 'action' => 'view'],
+        ['name' => 'qmh.audit.view.all', 'display_name' => 'Lihat Semua Audit QMH', 'module' => 'qmh-audit', 'action' => 'view-all'],
+        ['name' => 'qmh.audit.create', 'display_name' => 'Buat Audit QMH', 'module' => 'qmh-audit', 'action' => 'create'],
+        ['name' => 'qmh.audit.create.all', 'display_name' => 'Buat Audit QMH untuk Semua Unit', 'module' => 'qmh-audit', 'action' => 'create-all'],
+        ['name' => 'qmh.audit.edit', 'display_name' => 'Edit Audit QMH', 'module' => 'qmh-audit', 'action' => 'edit'],
+        ['name' => 'qmh.audit.delete', 'display_name' => 'Hapus Audit QMH', 'module' => 'qmh-audit', 'action' => 'delete'],
+        ['name' => 'qmh.kum.view', 'display_name' => 'Lihat KUM QMH', 'module' => 'qmh-kum', 'action' => 'view'],
+        ['name' => 'qmh.kum.view.all', 'display_name' => 'Lihat Semua KUM QMH', 'module' => 'qmh-kum', 'action' => 'view-all'],
+        ['name' => 'qmh.kum.create', 'display_name' => 'Buat KUM QMH', 'module' => 'qmh-kum', 'action' => 'create'],
+        ['name' => 'qmh.kum.create.all', 'display_name' => 'Buat KUM QMH untuk Semua Unit', 'module' => 'qmh-kum', 'action' => 'create-all'],
+        ['name' => 'qmh.kum.edit', 'display_name' => 'Edit KUM QMH', 'module' => 'qmh-kum', 'action' => 'edit'],
+        ['name' => 'qmh.kum.delete', 'display_name' => 'Hapus KUM QMH', 'module' => 'qmh-kum', 'action' => 'delete'],
+        ['name' => 'action-item:verify', 'display_name' => 'Verifikasi Action Item Governance', 'module' => 'qmh-governance', 'action' => 'verify'],
+        ['name' => 'action-item:close', 'display_name' => 'Tutup Action Item Governance', 'module' => 'qmh-governance', 'action' => 'close'],
+        ['name' => 'action-item:reopen', 'display_name' => 'Buka Ulang Action Item Governance', 'module' => 'qmh-governance', 'action' => 'reopen'],
 
         // Reminders
         ['name' => 'reminders.view', 'display_name' => 'Lihat Reminders', 'module' => 'reminders', 'action' => 'view'],
@@ -132,6 +153,9 @@ class PermissionSeeder extends Seeder
             'analysts.view',
             'settings.view',
             'qmh.view',
+            'qmh.rapat.view',
+            'qmh.audit.view',
+            'qmh.kum.view',
         ],
         'manajer_teknis' => [
             'dashboard.view',
@@ -149,6 +173,10 @@ class PermissionSeeder extends Seeder
             'settings.view', 'settings.edit',
             'reminders.view', 'reminders.edit',
             'qmh.view', 'qmh.create', 'qmh.report', 'qmh.template.manage', 'qmh.unlock.force', 'qmh.approve.attest',
+            'qmh.rapat.view', 'qmh.rapat.view.all', 'qmh.rapat.create', 'qmh.rapat.create.all', 'qmh.rapat.edit', 'qmh.rapat.delete',
+            'qmh.audit.view', 'qmh.audit.view.all', 'qmh.audit.create', 'qmh.audit.create.all', 'qmh.audit.edit', 'qmh.audit.delete',
+            'qmh.kum.view', 'qmh.kum.view.all', 'qmh.kum.create', 'qmh.kum.create.all', 'qmh.kum.edit', 'qmh.kum.delete',
+            'action-item:verify', 'action-item:close', 'action-item:reopen',
         ],
         'admin' => [
             // Admin mendapat semua permission
@@ -168,6 +196,10 @@ class PermissionSeeder extends Seeder
             'settings.view', 'settings.edit',
             'reminders.view', 'reminders.edit',
             'qmh.view', 'qmh.create', 'qmh.report', 'qmh.template.manage', 'qmh.unlock.force', 'qmh.approve.attest',
+            'qmh.rapat.view', 'qmh.rapat.view.all', 'qmh.rapat.create', 'qmh.rapat.create.all', 'qmh.rapat.edit', 'qmh.rapat.delete',
+            'qmh.audit.view', 'qmh.audit.view.all', 'qmh.audit.create', 'qmh.audit.create.all', 'qmh.audit.edit', 'qmh.audit.delete',
+            'qmh.kum.view', 'qmh.kum.view.all', 'qmh.kum.create', 'qmh.kum.create.all', 'qmh.kum.edit', 'qmh.kum.delete',
+            'action-item:verify', 'action-item:close', 'action-item:reopen',
         ],
         'supervisor' => [
             // Supervisor sama dengan admin
@@ -186,6 +218,10 @@ class PermissionSeeder extends Seeder
             'settings.view', 'settings.edit',
             'reminders.view', 'reminders.edit',
             'qmh.view', 'qmh.create', 'qmh.report', 'qmh.template.manage', 'qmh.unlock.force', 'qmh.approve.attest',
+            'qmh.rapat.view', 'qmh.rapat.view.all', 'qmh.rapat.create', 'qmh.rapat.create.all', 'qmh.rapat.edit', 'qmh.rapat.delete',
+            'qmh.audit.view', 'qmh.audit.view.all', 'qmh.audit.create', 'qmh.audit.create.all', 'qmh.audit.edit', 'qmh.audit.delete',
+            'qmh.kum.view', 'qmh.kum.view.all', 'qmh.kum.create', 'qmh.kum.create.all', 'qmh.kum.edit', 'qmh.kum.delete',
+            'action-item:verify', 'action-item:close', 'action-item:reopen',
         ],
         'analyst' => [
             // analyst sama dengan analis
@@ -232,6 +268,10 @@ class PermissionSeeder extends Seeder
      */
     public function run(): void
     {
+        if (app()->environment('production')) {
+            throw new \RuntimeException('PermissionSeeder tidak boleh dijalankan di production. Gunakan migration sinkronisasi permission.');
+        }
+
         // Buat semua permission
         foreach ($this->permissions as $permission) {
             Permission::updateOrCreate(

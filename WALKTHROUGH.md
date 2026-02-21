@@ -148,6 +148,16 @@ WhatsApp service berjalan di container Docker terpisah.
 
 ## 📰 Recent Changes (v2.4.x)
 
+### v2.4.4 (22 Februari 2026) - QMH Governance Suite v2 (Rapat, Audit, KUM)
+
+- **Governance Workspace:** Halaman baru `/quality/governance` sebagai ringkasan lintas modul (Rapat, Audit, KUM) dengan metrik due-soon/overdue dan quick actions operasional.
+- **Audit Assignment Refactor:** Assignment auditor Audit QMH dimigrasikan dari `auditors_json` ke pivot `qmh_audit_auditors` untuk queryability, visibility rule, dan relasi yang lebih stabil jangka panjang.
+- **Action Item State Machine:** Transisi status action item rapat sekarang divalidasi oleh service state machine + middleware transition guard, termasuk automation overdue terjadwal (`qmh:action-items:refresh-overdue`).
+- **Audit Trail Hardening:** Penambahan `audit_trails` + `AuditTrailService` untuk pencatatan perubahan governance (create/update/state change) dengan metadata actor/source/request.
+- **KUM Follow-Up Generator:** Keputusan KUM sekarang bisa langsung menghasilkan action item terstruktur (web + API) dengan validasi assignee governance dan due date.
+- **API Extensibility:** Endpoint baru untuk summary governance dan action item lifecycle/dependencies (`/api/quality/governance/summary`, `/api/quality/action-items/*`) termasuk validasi circular dependency.
+- **Production Safety:** Permission governance transisi action item disiapkan via migration sinkronisasi production, dan `PermissionSeeder` sekarang fail-closed di environment production.
+
 ### v2.4.3 (21 Februari 2026) - QMH Dokumen Pendukung untuk SOP/IK
 
 - **New Module:** Penambahan modul **Dokumen Pendukung QMH** untuk upload, manajemen versi, dan pengelompokan dokumen pendukung per clause (4-8).
