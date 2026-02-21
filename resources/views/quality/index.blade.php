@@ -42,6 +42,7 @@
                     <option value="sop" @selected(request('doc_type') === 'sop')>SOP</option>
                     <option value="ik" @selected(request('doc_type') === 'ik')>IK</option>
                     <option value="formulir" @selected(request('doc_type') === 'formulir')>Formulir</option>
+                    <option value="pendukung" @selected(request('doc_type') === 'pendukung')>Pendukung</option>
                 </select>
                 <select name="status" class="rounded-md border-gray-300 text-sm focus:border-primary-600 focus:ring-primary-600">
                     <option value="">Semua Status</option>

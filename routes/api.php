@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\JobStatusController;
 use App\Http\Controllers\Api\PeopleController;
 use App\Http\Controllers\Api\Quality\QmhDashboardController;
 use App\Http\Controllers\Api\Quality\QmhDocumentController;
+use App\Http\Controllers\Api\Quality\QmhPendukungController as ApiQmhPendukungController;
 use App\Http\Controllers\Api\Quality\QmhPreviewController;
 use App\Http\Controllers\Api\Quality\QmhReportingController;
 use App\Http\Controllers\Api\Quality\QmhRevisionWorkflowController;
@@ -60,6 +61,31 @@ Route::middleware(['throttle:120,1'])->group(function () {
 
         Route::post('/documents', [QmhDocumentController::class, 'store'])
             ->middleware('permission:qmh.create');
+
+        Route::get('/pendukung', [ApiQmhPendukungController::class, 'index'])
+            ->middleware(['permission:qmh.view', 'throttle:60,1']);
+
+        Route::post('/pendukung', [ApiQmhPendukungController::class, 'store'])
+            ->middleware(['permission:qmh.create', 'throttle:10,1']);
+
+        Route::get('/pendukung/{document}', [ApiQmhPendukungController::class, 'show'])
+            ->middleware(['permission:qmh.view', 'throttle:60,1'])
+            ->whereNumber('document');
+
+        Route::put('/pendukung/{document}', [ApiQmhPendukungController::class, 'update'])
+            ->middleware(['permission:qmh.create', 'throttle:10,1'])
+            ->whereNumber('document');
+
+        Route::delete('/pendukung/{document}', [ApiQmhPendukungController::class, 'destroy'])
+            ->middleware(['permission:qmh.create', 'throttle:30,1'])
+            ->whereNumber('document');
+
+        Route::post('/pendukung/{document}/version', [ApiQmhPendukungController::class, 'createVersion'])
+            ->middleware(['permission:qmh.create', 'throttle:10,1'])
+            ->whereNumber('document');
+
+        Route::get('/pendukung/clause/{clause}', [ApiQmhPendukungController::class, 'byClause'])
+            ->middleware(['permission:qmh.view', 'throttle:60,1']);
 
         Route::get('/templates', [QmhTemplateController::class, 'index'])
             ->middleware('permission:qmh.create');

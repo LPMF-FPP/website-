@@ -1,5 +1,5 @@
 @props([
-    'active' => '', // overview|documents|create|templates|reports
+    'active' => '', // overview|documents|create|pendukung|templates|reports
 ])
 
 @php
@@ -18,6 +18,11 @@
             'key' => 'create',
             'label' => 'Buat Dokumen',
             'href' => route('quality.documents.create'),
+        ],
+        [
+            'key' => 'pendukung',
+            'label' => 'Dokumen Pendukung',
+            'href' => route('quality.pendukung.index'),
         ],
     ];
 

@@ -10,6 +10,7 @@ import { qmhCreatePage } from "./pages/quality-create";
 import { registerSettingsComponent } from "./pages/settings/alpine-component";
 import { qmhEditor } from "./components/qmh-editor";
 import { qmhFormBuilder } from "./components/qmh-form-builder";
+import { qmhPendukungPicker } from "./components/qmh-pendukung-picker";
 import toastStore from "./stores/toast";
 
 // Register Alpine plugins
@@ -24,7 +25,9 @@ Alpine.plugin(focus);
     function withTransition() {
         const root = document.documentElement;
         root.classList.add(TRANSITION_CLASS);
-        if (transitionTimeout) {clearTimeout(transitionTimeout);}
+        if (transitionTimeout) {
+            clearTimeout(transitionTimeout);
+        }
         transitionTimeout = setTimeout(
             () => root.classList.remove(TRANSITION_CLASS),
             400,
@@ -82,6 +85,9 @@ document.addEventListener("alpine:init", () => {
     Alpine.data("deliveryList", () => createListFetcher());
     Alpine.data("qmhEditor", qmhEditor);
     Alpine.data("qmhFormBuilder", (config = {}) => qmhFormBuilder(config));
+    Alpine.data("qmhPendukungPicker", (config = {}) =>
+        qmhPendukungPicker(config),
+    );
 
     // Register settings page component
     registerSettingsComponent();

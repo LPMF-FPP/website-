@@ -11,6 +11,7 @@ use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ProcessController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Quality\QmhDocumentController as QualityQmhDocumentController;
+use App\Http\Controllers\Quality\QmhPendukungController as QualityQmhPendukungController;
 use App\Http\Controllers\Quality\QmhReportController as QualityQmhReportController;
 use App\Http\Controllers\Quality\QmhTemplateController as QualityQmhTemplateController;
 use App\Http\Controllers\Reports\MonthlyLogReportController;
@@ -80,6 +81,35 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/documents/{document}', [QualityQmhDocumentController::class, 'destroy'])
             ->name('documents.destroy')
             ->middleware('permission:qmh.create');
+
+        Route::middleware('permission:qmh.view')->group(function () {
+            Route::get('/pendukung', [QualityQmhPendukungController::class, 'index'])
+                ->name('pendukung.index');
+            Route::get('/pendukung/create', [QualityQmhPendukungController::class, 'create'])
+                ->name('pendukung.create')
+                ->middleware('permission:qmh.create');
+            Route::get('/pendukung/{document}', [QualityQmhPendukungController::class, 'show'])
+                ->name('pendukung.show')
+                ->whereNumber('document');
+            Route::get('/pendukung/{document}/file', [QualityQmhPendukungController::class, 'file'])
+                ->name('pendukung.file')
+                ->middleware('throttle:downloads')
+                ->whereNumber('document');
+        });
+
+        Route::middleware('permission:qmh.create')->group(function () {
+            Route::post('/pendukung', [QualityQmhPendukungController::class, 'store'])
+                ->name('pendukung.store');
+            Route::get('/pendukung/{document}/edit', [QualityQmhPendukungController::class, 'edit'])
+                ->name('pendukung.edit')
+                ->whereNumber('document');
+            Route::patch('/pendukung/{document}', [QualityQmhPendukungController::class, 'update'])
+                ->name('pendukung.update')
+                ->whereNumber('document');
+            Route::delete('/pendukung/{document}', [QualityQmhPendukungController::class, 'destroy'])
+                ->name('pendukung.destroy')
+                ->whereNumber('document');
+        });
 
         Route::get('/reports', [QualityQmhReportController::class, 'index'])
             ->name('reports.index')
