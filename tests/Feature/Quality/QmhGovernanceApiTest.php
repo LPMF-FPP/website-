@@ -40,6 +40,40 @@ class QmhGovernanceApiTest extends TestCase
         $this->actingAs($user)->getJson('/api/quality/kum')->assertForbidden();
     }
 
+    public function test_user_with_audit_module_permission_can_access_audit_endpoint_without_legacy_qmh_view(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'analis']);
+
+        $auditPermission = Permission::query()->firstOrCreate(
+            ['name' => 'qmh.audit.view'],
+            ['display_name' => 'QMH Audit View', 'module' => 'qmh', 'action' => 'view']
+        );
+
+        RolePermission::query()->updateOrCreate([
+            'role' => $user->role,
+            'permission_id' => $auditPermission->id,
+        ]);
+
+        QmhAudit::query()->create([
+            'title' => 'Audit Modular Permission',
+            'audit_type' => 'internal',
+            'status' => 'draft',
+            'migration_phase' => 'pivot_only',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->getJson('/api/quality/audit')
+            ->assertOk()
+            ->assertJsonFragment(['title' => 'Audit Modular Permission']);
+
+        $this->actingAs($user)->getJson('/api/quality/rapat')->assertForbidden();
+        $this->actingAs($user)->getJson('/api/quality/kum')->assertForbidden();
+        $this->actingAs($user)->getJson('/api/quality/governance/summary')->assertOk();
+    }
+
     public function test_admin_can_list_governance_api_data(): void
     {
         /** @var User $user */
@@ -177,6 +211,15 @@ class QmhGovernanceApiTest extends TestCase
             ->assertStatus(201)
             ->json('data.id');
 
+        $third = $this->actingAs($user)
+            ->postJson('/api/quality/action-items', [
+                'rapat_id' => $rapat->id,
+                'title' => 'Item Ketiga',
+                'due_date' => now()->addDays(4)->toDateString(),
+            ])
+            ->assertStatus(201)
+            ->json('data.id');
+
         $this->actingAs($user)
             ->patchJson('/api/quality/action-items/'.$first.'/state', [
                 'status' => QmhRapatActionItem::STATUS_IN_PROGRESS,
@@ -192,6 +235,12 @@ class QmhGovernanceApiTest extends TestCase
 
         $this->actingAs($user)
             ->postJson('/api/quality/action-items/'.$second.'/dependencies', [
+                'depends_on_action_item_id' => $third,
+            ])
+            ->assertStatus(201);
+
+        $this->actingAs($user)
+            ->postJson('/api/quality/action-items/'.$second.'/dependencies', [
                 'depends_on_action_item_id' => $first,
             ])
             ->assertStatus(422);
@@ -199,7 +248,17 @@ class QmhGovernanceApiTest extends TestCase
         $this->actingAs($user)
             ->getJson('/api/quality/action-items/'.$first.'/dependency-graph')
             ->assertOk()
-            ->assertJsonPath('dependencies.0', $second);
+            ->assertJsonPath('dependencies.0', $second)
+            ->assertJsonPath('all_dependencies.0', $second)
+            ->assertJsonPath('all_dependencies.1', $third)
+            ->assertJsonPath('dependency_tree.0.action_item_id', $second)
+            ->assertJsonPath('dependency_tree.0.children.0.action_item_id', $third);
+
+        $this->actingAs($user)
+            ->patchJson('/api/quality/action-items/'.$first.'/state', [
+                'status' => QmhRapatActionItem::STATUS_OVERDUE,
+            ])
+            ->assertStatus(422);
     }
 
     private function createQmhPermissions(): void

@@ -96,20 +96,20 @@ Route::middleware(['throttle:120,1'])->group(function () {
             ->middleware('permission:qmh.create');
 
         Route::get('/rapat', [ApiQmhRapatController::class, 'index'])
-            ->middleware(['permission:qmh.view', 'throttle:60,1']);
+            ->middleware(['any_permission:qmh.rapat.view|qmh.rapat.view.all|qmh.view', 'throttle:60,1']);
 
         Route::get('/audit', [ApiQmhAuditController::class, 'index'])
-            ->middleware(['permission:qmh.view', 'throttle:60,1']);
+            ->middleware(['any_permission:qmh.audit.view|qmh.audit.view.all|qmh.view', 'throttle:60,1']);
 
         Route::get('/kum', [ApiQmhKumController::class, 'index'])
-            ->middleware(['permission:qmh.view', 'throttle:60,1']);
+            ->middleware(['any_permission:qmh.kum.view|qmh.kum.view.all|qmh.view', 'throttle:60,1']);
 
         Route::post('/kum/{kum}/action-items', [ApiQmhKumController::class, 'storeActionItems'])
             ->middleware(['permission:qmh.create', 'throttle:30,1'])
             ->whereNumber('kum');
 
         Route::get('/governance/summary', [ApiQmhGovernanceController::class, 'summary'])
-            ->middleware(['permission:qmh.view', 'throttle:60,1']);
+            ->middleware(['any_permission:qmh.view|qmh.rapat.view|qmh.rapat.view.all|qmh.audit.view|qmh.audit.view.all|qmh.kum.view|qmh.kum.view.all', 'throttle:60,1']);
 
         Route::prefix('action-items')->group(function () {
             Route::get('/', [ApiQmhActionItemController::class, 'index'])

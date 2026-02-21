@@ -22,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'audit.activity' => \App\Http\Middleware\AuditActivity::class,
             'permission' => \App\Http\Middleware\CheckPermission::class,
+            'any_permission' => \App\Http\Middleware\CheckAnyPermission::class,
             'action-item.transition' => \App\Http\Middleware\CheckActionItemTransition::class,
         ]);
 

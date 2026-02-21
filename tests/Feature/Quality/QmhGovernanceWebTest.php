@@ -55,20 +55,24 @@ class QmhGovernanceWebTest extends TestCase
         $user = User::factory()->create(['role' => 'investigator']);
 
         $this->actingAs($user)
+            ->from('/dashboard')
             ->get('/quality/rapat')
-            ->assertForbidden();
+            ->assertRedirect('/dashboard');
 
         $this->actingAs($user)
+            ->from('/dashboard')
             ->get('/quality/audit')
-            ->assertForbidden();
+            ->assertRedirect('/dashboard');
 
         $this->actingAs($user)
+            ->from('/dashboard')
             ->get('/quality/kum')
-            ->assertForbidden();
+            ->assertRedirect('/dashboard');
 
         $this->actingAs($user)
+            ->from('/dashboard')
             ->get('/quality/governance')
-            ->assertForbidden();
+            ->assertRedirect('/dashboard');
     }
 
     public function test_can_create_rapat_and_manage_action_item_workflow(): void
@@ -120,6 +124,17 @@ class QmhGovernanceWebTest extends TestCase
                 'status' => QmhRapatActionItem::STATUS_IN_PROGRESS,
             ])
             ->assertRedirect();
+
+        $this->assertDatabaseHas('qmh_rapat_action_items', [
+            'id' => $actionItem->id,
+            'status' => QmhRapatActionItem::STATUS_IN_PROGRESS,
+        ]);
+
+        $this->actingAs($user)
+            ->patch('/quality/rapat/'.$rapat->id.'/action-items/'.$actionItem->id.'/status', [
+                'status' => QmhRapatActionItem::STATUS_OVERDUE,
+            ])
+            ->assertSessionHasErrors('status');
 
         $this->assertDatabaseHas('qmh_rapat_action_items', [
             'id' => $actionItem->id,

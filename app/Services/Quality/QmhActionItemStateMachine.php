@@ -13,15 +13,12 @@ class QmhActionItemStateMachine
     private const TRANSITIONS = [
         QmhRapatActionItem::STATUS_OPEN => [
             QmhRapatActionItem::STATUS_IN_PROGRESS,
-            QmhRapatActionItem::STATUS_OVERDUE,
         ],
         QmhRapatActionItem::STATUS_IN_PROGRESS => [
             QmhRapatActionItem::STATUS_RESOLVED,
-            QmhRapatActionItem::STATUS_OVERDUE,
         ],
         QmhRapatActionItem::STATUS_RESOLVED => [
             QmhRapatActionItem::STATUS_VERIFIED,
-            QmhRapatActionItem::STATUS_OVERDUE,
         ],
         QmhRapatActionItem::STATUS_VERIFIED => [
             QmhRapatActionItem::STATUS_CLOSED,
