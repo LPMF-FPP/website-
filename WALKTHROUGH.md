@@ -148,6 +148,14 @@ WhatsApp service berjalan di container Docker terpisah.
 
 ## 📰 Recent Changes (v2.4.x)
 
+### v2.4.3 (21 Februari 2026) - QMH Dokumen Pendukung untuk SOP/IK
+
+- **New Module:** Penambahan modul **Dokumen Pendukung QMH** untuk upload, manajemen versi, dan pengelompokan dokumen pendukung per clause (4-8).
+- **Editor Integration:** Tombol **Link Pendukung** kini tersedia di editor SOP/IK (termasuk schema-driven editor) untuk menyisipkan tautan dokumen pendukung langsung ke konten revisi.
+- **Security Hardening:** Upload file diperketat dengan blokir SVG (XSS risk), validasi magic number (anti spoofing), serta verifikasi integritas file berbasis SHA-256.
+- **Storage Compatibility:** Alur akses file menggunakan `Storage::download()`/`Storage::response()` agar storage-agnostic (local/S3/minIO), plus throttle khusus endpoint unduhan.
+- **Backward Compatibility:** Dokumen SOP/IK yang sudah ada tetap berjalan tanpa migrasi data manual; dokumen pendukung dapat langsung di-link ke dokumen lama.
+
 ### v2.4.2 (19 Februari 2026) - QMH WhatsApp Workflow Actions & Security Hardening
 
 - **QMH-WhatsApp Workflow:** Otomatisasi task review/approval dari transisi QMH ke `staff_tasks`, termasuk due date 24 jam dan notifikasi WA per tahap.

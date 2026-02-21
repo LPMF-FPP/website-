@@ -18,4 +18,15 @@ return [
         'preview_temp_ttl_minutes' => (int) env('QMH_FR_V2_PREVIEW_TEMP_TTL_MINUTES', 120),
         'docx_cleanup_enabled' => (bool) env('QMH_FR_V2_DOCX_CLEANUP_ENABLED', false),
     ],
+    'pendukung' => [
+        'storage_disk' => (string) env('QMH_PENDUKUNG_STORAGE_DISK', 'local'),
+        'storage_dir' => (string) env('QMH_PENDUKUNG_STORAGE_DIR', 'qmh-pendukung'),
+        'max_file_size_kb' => (int) env('QMH_PENDUKUNG_MAX_FILE_SIZE_KB', 30720),
+        'allowed_mimes' => [
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+            'application/pdf',
+        ],
+    ],
 ];

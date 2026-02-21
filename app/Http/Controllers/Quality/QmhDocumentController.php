@@ -27,7 +27,7 @@ class QmhDocumentController extends Controller
     {
         $summaryFilters = validator($request->only(['clause', 'doc_type', 'from', 'to']), [
             'clause' => ['nullable', 'integer', 'in:4,5,6,7,8'],
-            'doc_type' => ['nullable', 'in:sop,ik,formulir'],
+            'doc_type' => ['nullable', 'in:sop,ik,formulir,pendukung'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
         ])->validate();
@@ -43,7 +43,7 @@ class QmhDocumentController extends Controller
     {
         $summaryFilters = validator($request->only(['clause', 'doc_type', 'from', 'to']), [
             'clause' => ['nullable', 'integer', 'in:4,5,6,7,8'],
-            'doc_type' => ['nullable', 'in:sop,ik,fr,formulir'],
+            'doc_type' => ['nullable', 'in:sop,ik,fr,formulir,pendukung'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
         ])->validate();

@@ -182,6 +182,7 @@
                                                     <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('underline') }" @click="toggleUnderline()">U</button>
                                                     <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
                                                     <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
+                                                    <button type="button" class="qmh-editor-btn" @click="openPendukungPicker({ clause: {{ (int) $document->clause }} })">Link Pendukung</button>
                                                 </div>
 
                                                 <div class="qmh-editor-surface qmh-editor-surface--compact" x-ref="editor"></div>
@@ -213,6 +214,7 @@
                                                     <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('underline') }" @click="toggleUnderline()">U</button>
                                                     <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
                                                     <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
+                                                    <button type="button" class="qmh-editor-btn" @click="openPendukungPicker({ clause: {{ (int) $document->clause }} })">Link Pendukung</button>
                                                 </div>
 
                                                 <div class="qmh-editor-surface qmh-editor-surface--compact" x-ref="editor"></div>
@@ -241,6 +243,7 @@
                                                 <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
                                                     <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
                                                     <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
+                                                    <button type="button" class="qmh-editor-btn" @click="openPendukungPicker({ clause: {{ (int) $document->clause }} })">Link Pendukung</button>
                                                 </div>
 
                                                 <div class="qmh-editor-surface qmh-editor-surface--compact" x-ref="editor"></div>
@@ -261,6 +264,7 @@
                                                     <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('underline') }" @click="toggleUnderline()">U</button>
                                                     <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
                                                     <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
+                                                    <button type="button" class="qmh-editor-btn" @click="openPendukungPicker({ clause: {{ (int) $document->clause }} })">Link Pendukung</button>
                                                 </div>
 
                                                 <div class="qmh-editor-surface qmh-editor-surface--compact" x-ref="editor"></div>
@@ -348,13 +352,15 @@
                                 <button type="button" class="qmh-editor-btn" @click="deleteTableColumn()">-Kolom</button>
                                 <button type="button" class="qmh-editor-btn" @click="mergeTableCells()">Merge Sel</button>
                                 <button type="button" class="qmh-editor-btn" @click="splitTableCell()">Split Sel</button>
-                                <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderRow()">Header Baris</button>
-                                <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderColumn()">Header Kolom</button>
-                                <button type="button" class="qmh-editor-btn" @click="deleteTable()">Hapus Tabel</button>
-                                @else
-                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
-                                <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
-                                @endif
+                                 <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderRow()">Header Baris</button>
+                                 <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderColumn()">Header Kolom</button>
+                                 <button type="button" class="qmh-editor-btn" @click="deleteTable()">Hapus Tabel</button>
+                                 <button type="button" class="qmh-editor-btn" @click="openPendukungPicker({ clause: {{ (int) $document->clause }} })">Link Pendukung</button>
+                                 @else
+                                 <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
+                                 <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
+                                 <button type="button" class="qmh-editor-btn" @click="openPendukungPicker({ clause: {{ (int) $document->clause }} })">Link Pendukung</button>
+                                 @endif
                             </div>
 
                             <div class="qmh-editor-surface" x-ref="editor"></div>
@@ -515,6 +521,8 @@
     </div>
 
     </div>
+
+    @include('partials.qmh-pendukung-picker')
 
     @push('scripts')
     <script>

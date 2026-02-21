@@ -182,6 +182,7 @@
                             <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderRow()">Header Baris</button>
                             <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderColumn()">Header Kolom</button>
                             <button type="button" class="qmh-editor-btn" @click="deleteTable()">Hapus Tabel</button>
+                            <button type="button" class="qmh-editor-btn" @click="openPendukungPicker({ clause: Number(document.getElementById('clause')?.value || 4) })">Link Pendukung</button>
                         </div>
 
                         <div class="qmh-editor-surface" x-ref="editor"></div>
@@ -414,4 +415,6 @@
             </form>
         </div>
     </div>
+
+    @include('partials.qmh-pendukung-picker')
 </x-app-layout>

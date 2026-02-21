@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Collection;
 
 class QmhDocument extends Model
 {
@@ -21,6 +23,8 @@ class QmhDocument extends Model
         'owner_label',
         'current_revision_id',
         'is_active',
+        'created_by',
+        'updated_by',
     ];
 
     protected $casts = [
@@ -28,6 +32,8 @@ class QmhDocument extends Model
         'parent_sop_id' => 'integer',
         'paired_ik_id' => 'integer',
         'is_active' => 'boolean',
+        'created_by' => 'integer',
+        'updated_by' => 'integer',
     ];
 
     public function revisions(): HasMany
@@ -38,6 +44,11 @@ class QmhDocument extends Model
     public function currentRevision(): BelongsTo
     {
         return $this->belongsTo(QmhDocumentRevision::class, 'current_revision_id');
+    }
+
+    public function latestRevision(): HasOne
+    {
+        return $this->hasOne(QmhDocumentRevision::class, 'document_id')->latestOfMany('id');
     }
 
     public function parentSop(): BelongsTo
@@ -68,6 +79,51 @@ class QmhDocument extends Model
     public function referencedByDocuments(): HasMany
     {
         return $this->hasMany(QmhDocumentRelation::class, 'target_document_id');
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function updater(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    public function scopePendukung($query)
+    {
+        return $query->where('doc_type', 'pendukung');
+    }
+
+    public function isPendukung(): bool
+    {
+        return $this->doc_type === 'pendukung';
+    }
+
+    public function getLatestVersion(): int
+    {
+        $revision = $this->currentRevision ?? $this->latestRevision;
+
+        if (! $revision instanceof QmhDocumentRevision) {
+            return 0;
+        }
+
+        return max(1, ((int) $revision->revision_number) + 1);
+    }
+
+    public function fileUrl(): string
+    {
+        return route('quality.pendukung.file', ['document' => $this]);
+    }
+
+    public function getPendukungUsage(): Collection
+    {
+        return QmhDocumentRelation::query()
+            ->where('target_document_id', $this->id)
+            ->where('relation_type', 'pendukung')
+            ->with('sourceDocument')
+            ->get();
     }
 
     public function scopeSearch($query, ?string $keyword)

@@ -87,17 +87,6 @@ class QmhTemplateController extends Controller
                 $groupIdentity
             );
 
-            $metadata = [
-                'version_notes' => $validated['version_notes'] ?? null,
-                'uploaded_by' => $request->user()?->id,
-                'content_html' => $contentHtml,
-                'form_schema' => $validated['form_schema'] ?? null,
-            ];
-
-            if (($validated['doc_type'] ?? null) === 'fr') {
-                $metadata = array_merge($metadata, QmhFrLayoutProfile::fromValidatedTemplateInput($validated));
-            }
-
             $template = QmhTemplate::query()->create([
                 'name' => $validated['name'],
                 'clause' => (int) $validated['clause'],
