@@ -9,7 +9,7 @@
                 ]"
             />
 
-            <x-qmh-subnav active="create" />
+            <x-qmh-subnav active="documents" />
         </div>
     </x-slot>
 

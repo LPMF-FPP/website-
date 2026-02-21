@@ -8,16 +8,8 @@
                 ]"
             >
                 <x-slot name="actions">
-                    <a href="{{ route('quality.documents.index') }}" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                        Lihat Dokumen
-                    </a>
-                    @if(auth()->user()?->hasPermission('qmh.template.manage'))
-                        <a href="{{ route('quality.templates.index') }}" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                            Template
-                        </a>
-                    @endif
-                    <a href="{{ route('quality.documents.create') }}" class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700">
-                        Buat Dokumen
+                    <a href="{{ route('quality.documents.create') }}" class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1">
+                        + Buat Dokumen
                     </a>
                 </x-slot>
             </x-page-header>
@@ -203,8 +195,8 @@
                     <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                         <h3 class="mb-3 text-sm font-semibold uppercase tracking-wider text-gray-500">Pintas</h3>
                         <div class="grid grid-cols-2 gap-3">
-                            <a href="{{ route('quality.documents.create') }}" class="group flex flex-col items-center rounded-lg bg-gray-50 p-3 text-center transition hover:bg-primary-50 hover:text-primary-800">
-                                <svg class="h-6 w-6 text-gray-400 group-hover:text-primary-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            <a href="{{ route('quality.documents.create') }}" class="group flex flex-col items-center rounded-lg bg-primary-600 p-3 text-center text-white transition hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1">
+                                <svg class="h-6 w-6 text-primary-100" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                                 <span class="mt-2 text-xs font-medium">Buat Dokumen</span>
                             </a>
                             <a href="{{ route('quality.documents.index') }}" class="group flex flex-col items-center rounded-lg bg-gray-50 p-3 text-center transition hover:bg-primary-50 hover:text-primary-800">

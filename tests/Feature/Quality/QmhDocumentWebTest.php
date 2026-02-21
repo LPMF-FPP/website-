@@ -72,7 +72,7 @@ class QmhDocumentWebTest extends TestCase
         $create = $this->actingAs($user)->get('/quality/documents/create');
         $create->assertOk();
         $this->assertBreadcrumbLabels($create->getContent(), ['Dashboard QMH', 'Buat Dokumen']);
-        $this->assertQmhSubnavActiveLabel($create->getContent(), 'Buat Dokumen');
+        $this->assertQmhSubnavActiveLabel($create->getContent(), 'Dokumen');
 
         $templates = $this->actingAs($user)->get('/quality/templates');
         $templates->assertOk();
@@ -131,11 +131,11 @@ class QmhDocumentWebTest extends TestCase
 
         $landing = $this->actingAs($user)->get('/quality');
         $landing->assertOk();
-        $this->assertElementWithTextHasClass($landing->getContent(), 'a', 'Buat Dokumen', 'bg-primary-600');
+        $this->assertElementWithTextHasClass($landing->getContent(), 'a', '+ Buat Dokumen', 'bg-primary-600');
 
         $documents = $this->actingAs($user)->get('/quality/documents');
         $documents->assertOk();
-        $this->assertElementWithTextHasClass($documents->getContent(), 'a', 'Buat Dokumen', 'bg-primary-600');
+        $this->assertElementWithTextHasClass($documents->getContent(), 'a', '+ Buat Dokumen', 'bg-primary-600');
 
         $templates = $this->actingAs($user)->get('/quality/templates');
         $templates->assertOk();

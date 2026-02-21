@@ -18,7 +18,7 @@
                 </x-slot>
             </x-page-header>
 
-            <x-qmh-subnav active="pendukung" />
+            <x-qmh-subnav active="documents" />
         </div>
     </x-slot>
 

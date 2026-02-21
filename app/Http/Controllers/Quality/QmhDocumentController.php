@@ -41,12 +41,15 @@ class QmhDocumentController extends Controller
 
     public function index(Request $request): View
     {
-        $summaryFilters = validator($request->only(['clause', 'doc_type', 'from', 'to']), [
+        $summaryFilters = validator($request->only(['clause', 'doc_type', 'doc_scope', 'from', 'to']), [
             'clause' => ['nullable', 'integer', 'in:4,5,6,7,8'],
             'doc_type' => ['nullable', 'in:sop,ik,fr,formulir,pendukung'],
+            'doc_scope' => ['nullable', 'in:semua,utama,pendukung'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
         ])->validate();
+
+        $docScope = (string) ($summaryFilters['doc_scope'] ?? 'semua');
 
         $documents = QmhDocument::query()
             ->with('currentRevision')
@@ -58,6 +61,8 @@ class QmhDocumentController extends Controller
                 $docType = $request->string('doc_type')->toString();
                 $query->where('doc_type', $docType === 'fr' ? 'formulir' : $docType);
             })
+            ->when($docScope === 'utama', fn ($query) => $query->where('doc_type', '!=', 'pendukung'))
+            ->when($docScope === 'pendukung', fn ($query) => $query->where('doc_type', 'pendukung'))
             ->when($request->filled('status'), function ($query) use ($request) {
                 $query->whereHas('currentRevision', function ($revisionQuery) use ($request) {
                     $revisionQuery->where('status', $request->string('status')->toString());
@@ -82,6 +87,7 @@ class QmhDocumentController extends Controller
         return view('quality.index', [
             'documents' => $documents,
             'summary' => $summary,
+            'docScope' => $docScope,
         ]);
     }
 

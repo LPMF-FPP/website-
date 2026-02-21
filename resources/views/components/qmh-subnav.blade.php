@@ -1,5 +1,5 @@
 @props([
-    'active' => '', // overview|documents|create|pendukung|templates|reports
+    'active' => '', // overview|documents|templates|reports
 ])
 
 @php
@@ -13,16 +13,6 @@
             'key' => 'documents',
             'label' => 'Dokumen',
             'href' => route('quality.documents.index'),
-        ],
-        [
-            'key' => 'create',
-            'label' => 'Buat Dokumen',
-            'href' => route('quality.documents.create'),
-        ],
-        [
-            'key' => 'pendukung',
-            'label' => 'Dokumen Pendukung',
-            'href' => route('quality.pendukung.index'),
         ],
     ];
 
@@ -53,7 +43,7 @@
             @endphp
             <a
                 href="{{ $item['href'] }}"
-                class="rounded-md px-3 py-2 text-sm font-medium transition {{ $isActive ? 'bg-primary-100 text-primary-800' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
+                class="rounded-md px-3 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1 {{ $isActive ? 'bg-primary-100 text-primary-800' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
                 @if($isActive) aria-current="page" @endif
             >
                 {{ $item['label'] }}
