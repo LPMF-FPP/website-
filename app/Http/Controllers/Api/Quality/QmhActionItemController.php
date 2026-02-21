@@ -140,7 +140,7 @@ class QmhActionItemController extends Controller
         abort_unless($user instanceof User && $this->canMutateItem($user, $actionItem), 403);
 
         $validated = validator($request->all(), [
-            'status' => ['required', 'in:in_progress,resolved,verified,closed,overdue'],
+            'status' => ['required', 'in:in_progress,resolved,verified,closed'],
         ])->validate();
 
         abort_unless($this->canTransitionState($user, $actionItem, $validated['status']), 403);
@@ -221,24 +221,22 @@ class QmhActionItemController extends Controller
         $user = $request->user();
         abort_unless($user instanceof User && $this->canAccessItem($user, $actionItem), 403);
 
-        $dependencies = DB::table('qmh_action_item_dependencies')
-            ->where('action_item_id', $actionItem->id)
-            ->pluck('depends_on_action_item_id')
-            ->map(fn ($id) => (int) $id)
-            ->values()
-            ->all();
+        $graph = $this->loadDependencyGraph();
+        $reverseGraph = $this->loadDependencyGraph(reverse: true);
 
-        $dependents = DB::table('qmh_action_item_dependencies')
-            ->where('depends_on_action_item_id', $actionItem->id)
-            ->pluck('action_item_id')
-            ->map(fn ($id) => (int) $id)
-            ->values()
-            ->all();
+        $dependencies = collect($graph[(int) $actionItem->id] ?? [])->values()->all();
+        $dependents = collect($reverseGraph[(int) $actionItem->id] ?? [])->values()->all();
+
+        $allDependencies = $this->collectTransitiveNodes((int) $actionItem->id, $graph);
+        $allDependents = $this->collectTransitiveNodes((int) $actionItem->id, $reverseGraph);
 
         return response()->json([
             'action_item_id' => $actionItem->id,
             'dependencies' => $dependencies,
             'dependents' => $dependents,
+            'all_dependencies' => $allDependencies,
+            'all_dependents' => $allDependents,
+            'dependency_tree' => $this->buildDependencyTree((int) $actionItem->id, $graph),
         ]);
     }
 
@@ -333,5 +331,91 @@ class QmhActionItemController extends Controller
         $stack[$node] = false;
 
         return false;
+    }
+
+    /**
+     * @return array<int, array<int, int>>
+     */
+    private function loadDependencyGraph(bool $reverse = false): array
+    {
+        $graph = [];
+
+        DB::table('qmh_action_item_dependencies')
+            ->select('action_item_id', 'depends_on_action_item_id')
+            ->orderBy('action_item_id')
+            ->chunk(500, function ($rows) use (&$graph, $reverse): void {
+                foreach ($rows as $row) {
+                    $from = $reverse ? (int) $row->depends_on_action_item_id : (int) $row->action_item_id;
+                    $to = $reverse ? (int) $row->action_item_id : (int) $row->depends_on_action_item_id;
+                    $graph[$from][] = $to;
+                }
+            });
+
+        return $graph;
+    }
+
+    /**
+     * @param  array<int, array<int, int>>  $graph
+     * @return array<int, int>
+     */
+    private function collectTransitiveNodes(int $root, array $graph): array
+    {
+        $seen = [];
+        $stack = $graph[$root] ?? [];
+
+        while (! empty($stack)) {
+            $node = array_pop($stack);
+            if ($node === null || isset($seen[$node])) {
+                continue;
+            }
+
+            $seen[$node] = true;
+
+            foreach ($graph[$node] ?? [] as $neighbor) {
+                if (! isset($seen[$neighbor])) {
+                    $stack[] = $neighbor;
+                }
+            }
+        }
+
+        return array_map(static fn (string $id) => (int) $id, array_keys($seen));
+    }
+
+    /**
+     * @param  array<int, array<int, int>>  $graph
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildDependencyTree(int $root, array $graph): array
+    {
+        $seen = [];
+
+        return $this->buildDependencyTreeRecursive($root, $graph, $seen);
+    }
+
+    /**
+     * @param  array<int, array<int, int>>  $graph
+     * @param  array<int, bool>  $seen
+     * @return array<int, array<string, mixed>>
+     */
+    private function buildDependencyTreeRecursive(int $root, array $graph, array &$seen): array
+    {
+        $tree = [];
+
+        foreach ($graph[$root] ?? [] as $child) {
+            if (isset($seen[$child])) {
+                continue;
+            }
+
+            $seen[$child] = true;
+
+            $tree[] = [
+                'action_item_id' => $child,
+                'children' => $this->buildDependencyTreeRecursive($child, $graph, $seen),
+            ];
+
+            unset($seen[$child]);
+        }
+
+        return $tree;
     }
 }

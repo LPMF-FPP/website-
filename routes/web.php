@@ -67,7 +67,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware('permission:qmh.view');
 
         Route::get('/governance', [QualityQmhGovernanceController::class, 'index'])
-            ->name('governance.index');
+            ->name('governance.index')
+            ->middleware('any_permission:qmh.view|qmh.rapat.view|qmh.audit.view|qmh.kum.view');
 
         Route::get('/documents/create', [QualityQmhDocumentController::class, 'create'])
             ->name('documents.create')
@@ -150,7 +151,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->middleware('permission:qmh.template.manage');
 
         Route::get('/rapat', [QualityQmhRapatController::class, 'index'])
-            ->name('rapat.index');
+            ->name('rapat.index')
+            ->middleware('any_permission:qmh.rapat.view|qmh.rapat.view.all|qmh.view');
         Route::get('/rapat/create', [QualityQmhRapatController::class, 'create'])
             ->name('rapat.create')
             ->middleware('permission:qmh.create');
@@ -187,7 +189,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->whereNumber('actionItem');
 
         Route::get('/audit', [QualityQmhAuditController::class, 'index'])
-            ->name('audit.index');
+            ->name('audit.index')
+            ->middleware('any_permission:qmh.audit.view|qmh.audit.view.all|qmh.view');
         Route::get('/audit/create', [QualityQmhAuditController::class, 'create'])
             ->name('audit.create')
             ->middleware('permission:qmh.create');
@@ -216,7 +219,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->whereNumber('temuan');
 
         Route::get('/kum', [QualityQmhKumController::class, 'index'])
-            ->name('kum.index');
+            ->name('kum.index')
+            ->middleware('any_permission:qmh.kum.view|qmh.kum.view.all|qmh.view');
         Route::get('/kum/create', [QualityQmhKumController::class, 'create'])
             ->name('kum.create')
             ->middleware('permission:qmh.create');

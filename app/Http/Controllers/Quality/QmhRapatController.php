@@ -243,7 +243,7 @@ class QmhRapatController extends Controller
         abort_unless((int) $actionItem->rapat_id === (int) $rapat->id, 404);
 
         $validated = validator($request->all(), [
-            'status' => ['required', 'in:in_progress,resolved,verified,closed,overdue'],
+            'status' => ['required', 'in:in_progress,resolved,verified,closed'],
         ])->validate();
 
         abort_unless($this->canTransitionActionItem($user, $rapat, $actionItem, $validated['status']), 403);

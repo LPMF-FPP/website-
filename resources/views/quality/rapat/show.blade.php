@@ -120,7 +120,7 @@
                                         @csrf
                                         @method('PATCH')
                                         <select name="status" class="rounded-md border-gray-300 text-xs focus:border-primary-600 focus:ring-primary-600">
-                                            @foreach(['in_progress', 'resolved', 'verified', 'closed', 'overdue'] as $status)
+                                            @foreach(['in_progress', 'resolved', 'verified', 'closed'] as $status)
                                                 <option value="{{ $status }}" @selected($item->status === $status)>{{ strtoupper($status) }}</option>
                                             @endforeach
                                         </select>

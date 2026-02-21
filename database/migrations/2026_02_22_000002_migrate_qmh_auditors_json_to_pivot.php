@@ -11,10 +11,33 @@ return new class extends Migration
             ->select(['id', 'created_by', 'auditors_json'])
             ->orderBy('id')
             ->chunkById(100, function ($audits): void {
+                $auditorIdsByAudit = [];
+                $candidateUserIds = [];
+
                 foreach ($audits as $audit) {
                     $auditorIds = $this->normalizeAuditorIds($audit->auditors_json);
 
-                    foreach ($auditorIds as $auditorId) {
+                    $auditorIdsByAudit[(int) $audit->id] = $auditorIds;
+                    $candidateUserIds = array_merge($candidateUserIds, $auditorIds);
+                }
+
+                $validUserIdMap = [];
+
+                if (! empty($candidateUserIds)) {
+                    $validUserIdMap = DB::table('users')
+                        ->whereIn('id', array_values(array_unique($candidateUserIds)))
+                        ->pluck('id')
+                        ->mapWithKeys(fn ($id) => [(int) $id => true])
+                        ->all();
+                }
+
+                foreach ($audits as $audit) {
+                    $validAuditorIds = array_values(array_filter(
+                        $auditorIdsByAudit[(int) $audit->id] ?? [],
+                        fn (int $auditorId) => isset($validUserIdMap[$auditorId])
+                    ));
+
+                    foreach ($validAuditorIds as $auditorId) {
                         DB::table('qmh_audit_auditors')->updateOrInsert(
                             [
                                 'audit_id' => (int) $audit->id,
@@ -34,7 +57,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        DB::table('qmh_audit_auditors')->delete();
+        // no-op to avoid deleting assignment data created after backfill
     }
 
     /**
