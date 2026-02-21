@@ -1,7 +1,6 @@
 import { Editor } from "@tiptap/core";
 import Color from "@tiptap/extension-color";
 import Image from "@tiptap/extension-image";
-import Underline from "@tiptap/extension-underline";
 import { Table } from "@tiptap/extension-table";
 import TableCell from "@tiptap/extension-table-cell";
 import TableHeader from "@tiptap/extension-table-header";
@@ -77,7 +76,6 @@ export function qmhEditor(config = {}) {
                         Color.configure({
                             types: ["textStyle"],
                         }),
-                        Underline,
                         Image.configure({
                             allowBase64: true,
                         }),
