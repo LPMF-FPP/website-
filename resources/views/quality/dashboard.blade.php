@@ -218,6 +218,7 @@
                 globalPulse: 'healthy',
                 userTasks: 0,
                 loading: true,
+                statsEndpoint: "{{ url('/api/quality/dashboard/stats') }}",
 
                 init() {
                     this.fetchStats();
@@ -226,7 +227,12 @@
 
                 async fetchStats() {
                     try {
-                        const res = await fetch('/api/quality/dashboard/stats');
+                        const res = await fetch(this.statsEndpoint, {
+                            credentials: 'same-origin',
+                            headers: {
+                                Accept: 'application/json',
+                            },
+                        });
                         if (res.ok) {
                             const data = await res.json();
                             this.stats = data.clauses || {};
