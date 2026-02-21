@@ -100,15 +100,58 @@ export function qmhReports(config = {}) {
             params.set("per_page", this.filters.per_page || "15");
             params.set("page", String(page || this.pagination.current_page));
 
-            const keys = ["search", "clause", "doc_type", "actor_id", "from", "to"];
+            const keys = [
+                "search",
+                "clause",
+                "doc_type",
+                "actor_id",
+                "from",
+                "to",
+            ];
             for (const key of keys) {
                 const value = this.filters[key];
-                if (value !== null && value !== undefined && String(value).trim() !== "") {
+                if (
+                    value !== null &&
+                    value !== undefined &&
+                    String(value).trim() !== ""
+                ) {
                     params.set(key, String(value));
                 }
             }
 
             return params;
+        },
+
+        buildRowKey(row, index) {
+            const primaryId = row.id ?? row.event_id ?? row.log_id ?? row.uuid;
+            if (
+                primaryId !== null &&
+                primaryId !== undefined &&
+                String(primaryId).trim() !== ""
+            ) {
+                return `${this.activeTab}-id-${String(primaryId)}`;
+            }
+
+            const occurredAt = row.occurred_at ?? "na";
+            const documentCode = row.document_code ?? "na";
+            const actorId = row.actor_id ?? "na";
+            const versionLabel = row.version_label ?? "na";
+            const eventMarker = row.status_transition ?? row.copy_type ?? "na";
+
+            return `${this.activeTab}-${occurredAt}-${documentCode}-${actorId}-${versionLabel}-${eventMarker}-${index}`;
+        },
+
+        normalizeRows(rawRows) {
+            if (!Array.isArray(rawRows)) {
+                return [];
+            }
+
+            return rawRows
+                .filter((row) => row !== null && typeof row === "object")
+                .map((row, index) => ({
+                    ...row,
+                    __rowKey: this.buildRowKey(row, index),
+                }));
         },
 
         async fetchRows() {
@@ -119,27 +162,34 @@ export function qmhReports(config = {}) {
             const params = this.buildParams();
 
             try {
-                const response = await fetch(`${endpoint}?${params.toString()}`, {
-                    credentials: "same-origin",
-                    headers: {
-                        Accept: "application/json",
+                const response = await fetch(
+                    `${endpoint}?${params.toString()}`,
+                    {
+                        credentials: "same-origin",
+                        headers: {
+                            Accept: "application/json",
+                        },
                     },
-                });
+                );
 
                 if (!response.ok) {
-                    this.errorMessage = await this.extractErrorMessage(response, "Gagal memuat data laporan.");
+                    this.errorMessage = await this.extractErrorMessage(
+                        response,
+                        "Gagal memuat data laporan.",
+                    );
                     return;
                 }
 
                 const payload = await response.json();
-                this.rows = payload.data || [];
+                this.rows = this.normalizeRows(payload?.data);
                 this.pagination = {
                     current_page: payload.current_page || 1,
                     last_page: payload.last_page || 1,
                     total: payload.total || 0,
                 };
             } catch {
-                this.errorMessage = "Terjadi gangguan jaringan saat memuat laporan.";
+                this.errorMessage =
+                    "Terjadi gangguan jaringan saat memuat laporan.";
             } finally {
                 this.loading = false;
             }
@@ -152,9 +202,16 @@ export function qmhReports(config = {}) {
         },
 
         formatDate(value) {
-            if (!value) return "-";
+            if (!value) {
+                return "-";
+            }
+
             const date = new Date(value);
-            if (Number.isNaN(date.getTime())) return value;
+
+            if (Number.isNaN(date.getTime())) {
+                return value;
+            }
+
             return date.toLocaleString("id-ID", { hour12: false });
         },
 
@@ -171,7 +228,8 @@ export function qmhReports(config = {}) {
                         return payload.errors[firstKey][0];
                     }
                 }
-            } catch {
+            } catch (error) {
+                void error;
             }
 
             return fallback;

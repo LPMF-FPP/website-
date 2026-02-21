@@ -93,7 +93,7 @@
                         </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
-                        <template x-for="row in rows" :key="`${row.occurred_at}-${row.document_code}-${row.actor_id}`">
+                        <template x-for="(row, idx) in rows" :key="row.__rowKey ?? `${activeTab}-${idx}`">
                             <tr>
                                 <td class="px-3 py-2 text-gray-700" x-text="formatDate(row.occurred_at)"></td>
                                 <td class="px-3 py-2 text-gray-700" x-text="row.actor_name || '-'" ></td>
@@ -121,7 +121,7 @@
                         </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100">
-                        <template x-for="row in rows" :key="`${row.occurred_at}-${row.document_code}-${row.actor_id}`">
+                        <template x-for="(row, idx) in rows" :key="row.__rowKey ?? `${activeTab}-${idx}`">
                             <tr>
                                 <td class="px-3 py-2 text-gray-700" x-text="formatDate(row.occurred_at)"></td>
                                 <td class="px-3 py-2 text-gray-700" x-text="row.actor_name || '-'" ></td>
