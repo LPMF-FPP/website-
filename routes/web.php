@@ -10,8 +10,12 @@ use App\Http\Controllers\InvestigatorManagementController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ProcessController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Quality\QmhAuditController as QualityQmhAuditController;
 use App\Http\Controllers\Quality\QmhDocumentController as QualityQmhDocumentController;
+use App\Http\Controllers\Quality\QmhGovernanceController as QualityQmhGovernanceController;
+use App\Http\Controllers\Quality\QmhKumController as QualityQmhKumController;
 use App\Http\Controllers\Quality\QmhPendukungController as QualityQmhPendukungController;
+use App\Http\Controllers\Quality\QmhRapatController as QualityQmhRapatController;
 use App\Http\Controllers\Quality\QmhReportController as QualityQmhReportController;
 use App\Http\Controllers\Quality\QmhTemplateController as QualityQmhTemplateController;
 use App\Http\Controllers\Reports\MonthlyLogReportController;
@@ -61,6 +65,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/documents', [QualityQmhDocumentController::class, 'index'])
             ->name('documents.index')
             ->middleware('permission:qmh.view');
+
+        Route::get('/governance', [QualityQmhGovernanceController::class, 'index'])
+            ->name('governance.index');
 
         Route::get('/documents/create', [QualityQmhDocumentController::class, 'create'])
             ->name('documents.create')
@@ -141,6 +148,96 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('/templates/{template}/deactivate', [QualityQmhTemplateController::class, 'deactivate'])
             ->name('templates.deactivate')
             ->middleware('permission:qmh.template.manage');
+
+        Route::get('/rapat', [QualityQmhRapatController::class, 'index'])
+            ->name('rapat.index');
+        Route::get('/rapat/create', [QualityQmhRapatController::class, 'create'])
+            ->name('rapat.create')
+            ->middleware('permission:qmh.create');
+        Route::post('/rapat', [QualityQmhRapatController::class, 'store'])
+            ->name('rapat.store')
+            ->middleware('permission:qmh.create');
+        Route::get('/rapat/{rapat}', [QualityQmhRapatController::class, 'show'])
+            ->name('rapat.show')
+            ->whereNumber('rapat');
+        Route::patch('/rapat/{rapat}', [QualityQmhRapatController::class, 'update'])
+            ->name('rapat.update')
+            ->middleware('permission:qmh.create')
+            ->whereNumber('rapat');
+        Route::delete('/rapat/{rapat}', [QualityQmhRapatController::class, 'destroy'])
+            ->name('rapat.destroy')
+            ->middleware('permission:qmh.create')
+            ->whereNumber('rapat');
+        Route::post('/rapat/{rapat}/peserta', [QualityQmhRapatController::class, 'storePeserta'])
+            ->name('rapat.peserta.store')
+            ->middleware('permission:qmh.create')
+            ->whereNumber('rapat');
+        Route::post('/rapat/{rapat}/notulensi', [QualityQmhRapatController::class, 'storeNotulensi'])
+            ->name('rapat.notulensi.store')
+            ->middleware('permission:qmh.create')
+            ->whereNumber('rapat');
+        Route::post('/rapat/{rapat}/action-items', [QualityQmhRapatController::class, 'storeActionItem'])
+            ->name('rapat.action-items.store')
+            ->middleware('permission:qmh.create')
+            ->whereNumber('rapat');
+        Route::patch('/rapat/{rapat}/action-items/{actionItem}/status', [QualityQmhRapatController::class, 'updateActionItemStatus'])
+            ->name('rapat.action-items.status')
+            ->middleware('action-item.transition')
+            ->whereNumber('rapat')
+            ->whereNumber('actionItem');
+
+        Route::get('/audit', [QualityQmhAuditController::class, 'index'])
+            ->name('audit.index');
+        Route::get('/audit/create', [QualityQmhAuditController::class, 'create'])
+            ->name('audit.create')
+            ->middleware('permission:qmh.create');
+        Route::post('/audit', [QualityQmhAuditController::class, 'store'])
+            ->name('audit.store')
+            ->middleware('permission:qmh.create');
+        Route::get('/audit/{audit}', [QualityQmhAuditController::class, 'show'])
+            ->name('audit.show')
+            ->whereNumber('audit');
+        Route::patch('/audit/{audit}', [QualityQmhAuditController::class, 'update'])
+            ->name('audit.update')
+            ->middleware('permission:qmh.create')
+            ->whereNumber('audit');
+        Route::delete('/audit/{audit}', [QualityQmhAuditController::class, 'destroy'])
+            ->name('audit.destroy')
+            ->middleware('permission:qmh.create')
+            ->whereNumber('audit');
+        Route::post('/audit/{audit}/temuan', [QualityQmhAuditController::class, 'storeTemuan'])
+            ->name('audit.temuan.store')
+            ->middleware('permission:qmh.create')
+            ->whereNumber('audit');
+        Route::patch('/audit/{audit}/temuan/{temuan}', [QualityQmhAuditController::class, 'updateTemuan'])
+            ->name('audit.temuan.update')
+            ->middleware('permission:qmh.create')
+            ->whereNumber('audit')
+            ->whereNumber('temuan');
+
+        Route::get('/kum', [QualityQmhKumController::class, 'index'])
+            ->name('kum.index');
+        Route::get('/kum/create', [QualityQmhKumController::class, 'create'])
+            ->name('kum.create')
+            ->middleware('permission:qmh.create');
+        Route::post('/kum', [QualityQmhKumController::class, 'store'])
+            ->name('kum.store')
+            ->middleware('permission:qmh.create');
+        Route::get('/kum/{kum}', [QualityQmhKumController::class, 'show'])
+            ->name('kum.show')
+            ->whereNumber('kum');
+        Route::patch('/kum/{kum}', [QualityQmhKumController::class, 'update'])
+            ->name('kum.update')
+            ->middleware('permission:qmh.create')
+            ->whereNumber('kum');
+        Route::delete('/kum/{kum}', [QualityQmhKumController::class, 'destroy'])
+            ->name('kum.destroy')
+            ->middleware('permission:qmh.create')
+            ->whereNumber('kum');
+        Route::post('/kum/{kum}/action-items', [QualityQmhKumController::class, 'storeActionItems'])
+            ->name('kum.action-items.store')
+            ->middleware('permission:qmh.create')
+            ->whereNumber('kum');
     });
 
     // Dashboard

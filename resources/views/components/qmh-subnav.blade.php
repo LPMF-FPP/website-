@@ -1,5 +1,5 @@
 @props([
-    'active' => '', // overview|documents|templates|reports
+    'active' => '', // overview|governance|documents|rapat|audit|kum|templates|reports
 ])
 
 @php
@@ -9,12 +9,45 @@
             'label' => 'Ringkasan',
             'href' => route('quality.index'),
         ],
-        [
-            'key' => 'documents',
-            'label' => 'Dokumen',
-            'href' => route('quality.documents.index'),
-        ],
     ];
+
+    if (auth()->user()?->hasAnyPermission(['qmh.view', 'qmh.rapat.view', 'qmh.audit.view', 'qmh.kum.view'])) {
+        $items[] = [
+            'key' => 'governance',
+            'label' => 'Governance',
+            'href' => route('quality.governance.index'),
+        ];
+    }
+
+    $items[] = [
+        'key' => 'documents',
+        'label' => 'Dokumen',
+        'href' => route('quality.documents.index'),
+    ];
+
+    if (auth()->user()?->hasAnyPermission(['qmh.rapat.view', 'qmh.rapat.view.all', 'qmh.view'])) {
+        $items[] = [
+            'key' => 'rapat',
+            'label' => 'Rapat',
+            'href' => route('quality.rapat.index'),
+        ];
+    }
+
+    if (auth()->user()?->hasAnyPermission(['qmh.audit.view', 'qmh.audit.view.all', 'qmh.view'])) {
+        $items[] = [
+            'key' => 'audit',
+            'label' => 'Audit',
+            'href' => route('quality.audit.index'),
+        ];
+    }
+
+    if (auth()->user()?->hasAnyPermission(['qmh.kum.view', 'qmh.kum.view.all', 'qmh.view'])) {
+        $items[] = [
+            'key' => 'kum',
+            'label' => 'KUM',
+            'href' => route('quality.kum.index'),
+        ];
+    }
 
     if (auth()->user()?->hasPermission('qmh.template.manage')) {
         $items[] = [

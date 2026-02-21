@@ -5,10 +5,15 @@ use App\Http\Controllers\Api\DocumentDeleteController;
 use App\Http\Controllers\Api\DocumentDownloadController;
 use App\Http\Controllers\Api\JobStatusController;
 use App\Http\Controllers\Api\PeopleController;
+use App\Http\Controllers\Api\Quality\QmhActionItemController as ApiQmhActionItemController;
+use App\Http\Controllers\Api\Quality\QmhAuditController as ApiQmhAuditController;
 use App\Http\Controllers\Api\Quality\QmhDashboardController;
 use App\Http\Controllers\Api\Quality\QmhDocumentController;
+use App\Http\Controllers\Api\Quality\QmhGovernanceController as ApiQmhGovernanceController;
+use App\Http\Controllers\Api\Quality\QmhKumController as ApiQmhKumController;
 use App\Http\Controllers\Api\Quality\QmhPendukungController as ApiQmhPendukungController;
 use App\Http\Controllers\Api\Quality\QmhPreviewController;
+use App\Http\Controllers\Api\Quality\QmhRapatController as ApiQmhRapatController;
 use App\Http\Controllers\Api\Quality\QmhReportingController;
 use App\Http\Controllers\Api\Quality\QmhRevisionWorkflowController;
 use App\Http\Controllers\Api\Quality\QmhTemplateController;
@@ -89,6 +94,50 @@ Route::middleware(['throttle:120,1'])->group(function () {
 
         Route::get('/templates', [QmhTemplateController::class, 'index'])
             ->middleware('permission:qmh.create');
+
+        Route::get('/rapat', [ApiQmhRapatController::class, 'index'])
+            ->middleware(['permission:qmh.view', 'throttle:60,1']);
+
+        Route::get('/audit', [ApiQmhAuditController::class, 'index'])
+            ->middleware(['permission:qmh.view', 'throttle:60,1']);
+
+        Route::get('/kum', [ApiQmhKumController::class, 'index'])
+            ->middleware(['permission:qmh.view', 'throttle:60,1']);
+
+        Route::post('/kum/{kum}/action-items', [ApiQmhKumController::class, 'storeActionItems'])
+            ->middleware(['permission:qmh.create', 'throttle:30,1'])
+            ->whereNumber('kum');
+
+        Route::get('/governance/summary', [ApiQmhGovernanceController::class, 'summary'])
+            ->middleware(['permission:qmh.view', 'throttle:60,1']);
+
+        Route::prefix('action-items')->group(function () {
+            Route::get('/', [ApiQmhActionItemController::class, 'index'])
+                ->middleware(['permission:qmh.view', 'throttle:60,1']);
+            Route::get('/{actionItem}', [ApiQmhActionItemController::class, 'show'])
+                ->middleware(['permission:qmh.view', 'throttle:60,1'])
+                ->whereNumber('actionItem');
+
+            Route::post('/', [ApiQmhActionItemController::class, 'store'])
+                ->middleware(['permission:qmh.create', 'throttle:30,1']);
+            Route::put('/{actionItem}', [ApiQmhActionItemController::class, 'update'])
+                ->middleware(['permission:qmh.create', 'throttle:30,1'])
+                ->whereNumber('actionItem');
+            Route::patch('/{actionItem}/state', [ApiQmhActionItemController::class, 'updateState'])
+                ->middleware(['permission:qmh.create', 'throttle:30,1'])
+                ->whereNumber('actionItem');
+
+            Route::post('/{actionItem}/dependencies', [ApiQmhActionItemController::class, 'addDependency'])
+                ->middleware(['permission:qmh.create', 'throttle:30,1'])
+                ->whereNumber('actionItem');
+            Route::delete('/{actionItem}/dependencies/{dependency}', [ApiQmhActionItemController::class, 'removeDependency'])
+                ->middleware(['permission:qmh.create', 'throttle:30,1'])
+                ->whereNumber('actionItem')
+                ->whereNumber('dependency');
+            Route::get('/{actionItem}/dependency-graph', [ApiQmhActionItemController::class, 'dependencyGraph'])
+                ->middleware(['permission:qmh.view', 'throttle:60,1'])
+                ->whereNumber('actionItem');
+        });
 
         Route::post('/preview/pdf', [QmhPreviewController::class, 'pdf'])
             ->middleware(['permission:qmh.create', 'throttle:30,1']);
