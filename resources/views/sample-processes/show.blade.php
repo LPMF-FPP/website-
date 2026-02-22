@@ -5,7 +5,7 @@
     <x-slot name="header">
         <x-page-header
             title="Detail Proses Pengujian"
-            :breadcrumbs="[[ 'label' => 'Pengujian', 'href' => route('testing.index') ], [ 'label' => 'Detail' ]]"
+            :breadcrumbs="[]"
         />
     </x-slot>
 

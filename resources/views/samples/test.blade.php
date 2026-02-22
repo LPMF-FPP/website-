@@ -9,7 +9,7 @@
     <x-slot name="header">
         <x-page-header
             title="Form Kaji Ulang"
-            :breadcrumbs="[[ 'label' => 'Kaji Ulang' ]]"
+            :breadcrumbs="[]"
         />
     </x-slot>
 

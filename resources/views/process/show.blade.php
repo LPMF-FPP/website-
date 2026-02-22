@@ -2,7 +2,7 @@
     <x-slot name="header">
         <x-page-header
             title="Detail Pengujian"
-            :breadcrumbs="[[ 'label' => 'Kaji Ulang', 'href' => route('review.create') ], [ 'label' => 'Pengujian', 'href' => route('testing.index') ], [ 'label' => ($testRequest->receipt_number ?? $testRequest->request_number) ]]"
+            :breadcrumbs="[]"
         />
     </x-slot>
 
