@@ -8,14 +8,18 @@
                     ['label' => 'KUM'],
                 ]"
             >
-                @if($canCreate)
-                    <x-slot name="actions">
+                <x-slot name="actions">
+                    <a href="{{ route('quality.governance.index') }}"
+                       class="inline-flex items-center rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-sm font-medium text-primary-700 transition hover:bg-primary-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1">
+                        ← Kembali ke Tata Kelola
+                    </a>
+                    @if($canCreate)
                         <a href="{{ route('quality.kum.create') }}"
                            class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1">
                             + Buat KUM
                         </a>
-                    </x-slot>
-                @endif
+                    @endif
+                </x-slot>
             </x-page-header>
 
             <x-qmh-subnav active="kum" />

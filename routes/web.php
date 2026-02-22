@@ -68,7 +68,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('/governance', [QualityQmhGovernanceController::class, 'index'])
             ->name('governance.index')
-            ->middleware('any_permission:qmh.view|qmh.rapat.view|qmh.audit.view|qmh.kum.view');
+            ->middleware('any_permission:qmh.view|qmh.rapat.view|qmh.rapat.view.all|qmh.audit.view|qmh.audit.view.all|qmh.kum.view|qmh.kum.view.all');
 
         Route::get('/documents/create', [QualityQmhDocumentController::class, 'create'])
             ->name('documents.create')
