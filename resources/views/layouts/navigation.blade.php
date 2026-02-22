@@ -1,8 +1,8 @@
-<nav x-data="{ mobileOpen: false }" class="surface-sem border-b border-sem relative z-pd-nav">
+<nav x-data="{ mobileOpen: false }" class="surface-sem border-b border-sem sticky top-0 isolate z-pd-modal supports-[backdrop-filter]:bg-white/85 supports-[backdrop-filter]:backdrop-blur dark:supports-[backdrop-filter]:bg-slate-950/80">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
+        <div class="flex justify-between h-[72px] items-center">
             <!-- Logo Section -->
-            <div class="flex items-center gap-4">
+            <div class="flex shrink-0 items-center gap-4">
                 <a href="{{ route('dashboard') }}" class="flex items-center gap-3 group">
                     <img src="/images/logo-pusdokkes-polri.png" alt="Logo Pusdokkes Polri" class="h-10 w-auto group-hover:scale-105 transition-transform duration-200">
                     <div class="hidden lg:block h-8 w-px bg-primary-200 dark:bg-accent-700"></div>
@@ -18,38 +18,38 @@
             </div>
 
             <!-- Desktop Navigation -->
-            <div class="hidden xl:flex items-center space-x-1">
+            <div class="hidden xl:flex items-center gap-1.5 min-w-0">
                 @auth
                     @php
                         $user = Auth::user();
                     @endphp
 
                     @can('dashboard.view')
-                    <x-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')">
+                    <x-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')" icon="dashboard">
                         Dashboard
                     </x-nav-link>
                     @endcan
 
                     @can('permintaan.view')
-                    <x-nav-link href="{{ route('requests.index') }}" :active="request()->routeIs('requests.*')">
+                    <x-nav-link href="{{ route('requests.index') }}" :active="request()->routeIs('requests.*')" icon="document-text">
                         Permintaan
                     </x-nav-link>
                     @endcan
 
                     @can('kaji-ulang.view')
-                    <x-nav-link href="{{ route('review.create') }}" :active="request()->routeIs('review.*')">
-                        Kaji Ulang Permintaan
+                    <x-nav-link href="{{ route('review.create') }}" :active="request()->routeIs('review.*')" icon="shield-check">
+                        Kaji Ulang
                     </x-nav-link>
                     @endcan
 
                     @can('pengujian.view')
-                    <x-nav-link href="{{ route('testing.index') }}" :active="request()->routeIs('testing.*')">
+                    <x-nav-link href="{{ route('testing.index') }}" :active="request()->routeIs('testing.*')" icon="beaker">
                         Pengujian
                     </x-nav-link>
                     @endcan
 
                     @can('penyerahan.view')
-                    <x-nav-link href="{{ route('delivery.index') }}" :active="request()->routeIs('delivery.*')">
+                    <x-nav-link href="{{ route('delivery.index') }}" :active="request()->routeIs('delivery.*')" icon="truck">
                         Penyerahan
                     </x-nav-link>
                     @endcan
@@ -60,15 +60,15 @@
                     </x-nav-link> --}}
 
                     <!-- Referensi Mega Menu -->
-                    <div class="relative ml-1" x-data="{ open: false }" @click.away="open = false">
+                    <div class="relative ml-2 border-l border-primary-100 pl-2 dark:border-white/10" x-data="{ open: false }" @click.away="open = false">
                         <button @click="open = !open" 
                                 type="button"
                                 :aria-expanded="open"
                                 aria-haspopup="menu"
-                                class="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-150
+                                class="inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] text-sm font-medium leading-none whitespace-nowrap rounded-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 xl:px-2.5 xl:text-xs 2xl:px-3 2xl:text-sm
                                 {{ (request()->routeIs('tracking.*') || request()->routeIs('search.*') || request()->routeIs('statistics.*') || request()->routeIs('inventory.*') || request()->routeIs('analysts.*') || request()->routeIs('settings.*') || request()->routeIs('quality.*')) 
-                                   ? 'bg-primary-50 text-primary-700 dark:bg-accent-800 dark:text-primary-400' 
-                                   : 'text-primary-600 hover:bg-primary-50 hover:text-primary-900 dark:text-accent-400 dark:hover:bg-accent-800 dark:hover:text-accent-100' }}">
+                                   ? 'bg-primary-50 text-primary-800 ring-1 ring-primary-200 dark:bg-accent-800 dark:text-primary-400' 
+                                   : 'text-pd-body hover:bg-primary-50 hover:text-primary-900 dark:text-accent-400 dark:hover:bg-accent-800 dark:hover:text-accent-100' }}">
                             <span>Referensi</span>
                             <svg class="w-4 h-4 ml-1.5 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -82,7 +82,7 @@
                              x-transition:leave="transition ease-in duration-150"
                              x-transition:leave-start="opacity-100 translate-y-0"
                              x-transition:leave-end="opacity-0 translate-y-1"
-                             class="absolute left-1/2 transform -translate-x-1/2 mt-3 w-screen max-w-3xl px-4 sm:px-0 z-pd-overlay"
+                             class="absolute left-1/2 transform -translate-x-1/2 mt-3 w-screen max-w-3xl px-4 sm:px-0 z-pd-modal"
                              style="display: none;">
                             <div class="overflow-hidden rounded-2xl shadow-xl ring-1 ring-black/5 dark:ring-white/10 surface-sem p-6">
                                 <div class="grid grid-cols-2 gap-8">
@@ -224,9 +224,9 @@
             </div>
 
             <!-- Right Side Actions -->
-            <div class="flex items-center gap-2">
+            <div class="flex shrink-0 items-center gap-2 xl:gap-2.5">
                  <!-- Theme Toggle -->
-                 <button type="button" onclick="window.__toggleTheme()" aria-label="Toggle theme" class="p-2 rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-accent-800 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors">
+                 <button type="button" onclick="window.__toggleTheme()" aria-label="Toggle theme" class="inline-flex h-11 w-11 items-center justify-center rounded-full text-gray-500 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-accent-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 transition-colors">
                     <span class="sr-only">Toggle theme</span>
                     <svg class="h-5 w-5 dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
                     <svg class="h-5 w-5 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
@@ -236,7 +236,7 @@
                     <!-- User Dropdown -->
                     <x-dropdown align="right" width="48">
                         <x-slot name="trigger">
-                            <div class="inline-flex items-center gap-3 px-3 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-accent-800 transition-colors duration-150 cursor-pointer">
+                            <div class="inline-flex min-h-[44px] items-center gap-3 px-3 py-2 rounded-full hover:bg-gray-50 dark:hover:bg-accent-800 transition-colors duration-150 cursor-pointer">
                                 <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white text-xs font-bold shadow-sm ring-2 ring-white dark:ring-accent-800">
                                     {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
                                 </div>
