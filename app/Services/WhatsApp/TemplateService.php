@@ -23,7 +23,7 @@ class TemplateService
      */
     private const DEFAULTS = [
         'milestone' => [
-            'REQUEST_RECEIVED' => "{greetings} {pangkat} {nama},\n\nKami informasikan bahwa permintaan pengujian dengan nomor surat {nomor surat} a.n. TSK {tersangka} telah kami terima.\n\nNomor Resi: *{resi}*\n\nGunakan nomor resi ini untuk melacak status pengujian.\nKetik: */resi {resi}*\n\nTerima kasih.",
+            'REQUEST_RECEIVED' => "{greetings}, {pangkat} {nama}.\n\nKami informasikan bahwa permintaan Anda dengan:\n📄 Nomor Surat: {nomor surat}\n👤 Tersangka: {tersangka}\n🔖 Kode Resi: {resi}\n\ntelah kami terima dan segera kami tindak lanjuti. ✅\n\nApabila ingin melacak bisa mengetikan /resi {resi}\n\nTerima kasih atas kepercayaan Anda.\n\nSalam Presisi 🙏\nStaff Laboratorium Farmapol Pusdokkes Polri",
             'REQUEST_REJECTED' => "{greetings} {pangkat} {nama},\n\nMohon maaf, permintaan pengujian dengan nomor surat {nomor surat} a.n. TSK {tersangka} tidak dapat kami proses.\n\nAlasan: {reason}\n\nSilakan hubungi kami untuk informasi lebih lanjut.\n\nTerima kasih.",
             'READY_FOR_PICKUP' => "{greetings} {pangkat} {nama},\n\nKami informasikan bahwa hasil pengujian dengan nomor resi *{resi}* a.n. TSK {tersangka} telah selesai dan siap untuk diambil.\n\nSilakan datang ke Laboratorium Farmapol Pusdokkes Polri pada jam kerja (08.00 - 16.00 WIB).\n\nTerima kasih.",
             'HANDOVER_COMPLETED' => "{greetings} {pangkat} {nama},\n\nSerah terima hasil pengujian dengan nomor resi *{resi}* a.n. TSK {tersangka} telah selesai.\n\nTerima kasih telah menggunakan layanan kami.\n\n_Laboratorium Farmapol Pusdokkes Polri_",
