@@ -29,7 +29,7 @@ class QmhDashboardIntegrationTest extends TestCase
         $response->assertOk();
         $response->assertViewIs('quality.dashboard');
         $response->assertSee('Dashboard QMH');
-        $response->assertSee('Siklus Mutu (PDCA)');
+        $response->assertSee('Work Queue Saya');
     }
 
     public function test_api_returns_pulse_stats(): void

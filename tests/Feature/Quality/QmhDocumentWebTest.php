@@ -448,12 +448,10 @@ class QmhDocumentWebTest extends TestCase
         $response = $this->actingAs($user)->get('/quality');
 
         $response->assertOk();
-        $response->assertSee('Total Dokumen');
-        $response->assertSee('Dokumen Terbit');
-        $response->assertSee('Dokumen Dalam Tinjauan');
-        $response->assertSee('Revisi Kedaluwarsa');
-        $response->assertSee('Unduhan Terkendali');
-        $response->assertSee('Unduhan Tidak Terkendali');
+        $response->assertSee('Command Center');
+        $response->assertSee('Work Queue Saya');
+        $response->assertSee('Governance Snapshot');
+        $response->assertSee('Activity Feed');
         $response->assertSee('Semua Klausul');
         $response->assertSee('Semua Jenis');
     }

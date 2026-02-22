@@ -12,6 +12,7 @@ use App\Models\QmhDocumentRevision;
 use App\Models\QmhWorkflowEvent;
 use App\Models\User;
 use App\Services\Quality\QmhDashboardSummaryService;
+use App\Services\Quality\QmhDashboardWorkspaceService;
 use App\Services\Quality\QmhDocumentService;
 use App\Support\QmhFrV2Gate;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -23,19 +24,26 @@ use Illuminate\View\View;
 
 class QmhDocumentController extends Controller
 {
-    public function landing(Request $request): View
+    public function landing(Request $request, QmhDashboardWorkspaceService $workspaceService): View
     {
-        $summaryFilters = validator($request->only(['clause', 'doc_type', 'from', 'to']), [
+        $summaryFilters = validator($request->only(['clause', 'doc_type', 'from', 'to', 'period', 'queue_tab']), [
             'clause' => ['nullable', 'integer', 'in:4,5,6,7,8'],
             'doc_type' => ['nullable', 'in:sop,ik,formulir,pendukung'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'period' => ['nullable', 'integer', 'in:7,14,30,90'],
+            'queue_tab' => ['nullable', 'in:mine,overdue,done'],
         ])->validate();
 
+        $user = $request->user();
+        abort_unless($user instanceof User, 403);
+
         $summary = app(QmhDashboardSummaryService::class)->summarize($summaryFilters);
+        $dashboard = $workspaceService->build($user, $summaryFilters);
 
         return view('quality.dashboard', [
             'summary' => $summary,
+            'dashboard' => $dashboard,
         ]);
     }
 
