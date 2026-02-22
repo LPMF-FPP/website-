@@ -451,7 +451,7 @@ class QmhDocumentWebTest extends TestCase
         $response->assertOk();
         $response->assertSee('Command Center');
         $response->assertSee('Work Queue Saya');
-        $response->assertSee('Governance Snapshot');
+        $response->assertSee('Ringkasan Tata Kelola');
         $response->assertSee('Activity Feed');
         $response->assertSee('Semua Klausul');
         $response->assertSee('Semua Jenis');

@@ -93,7 +93,7 @@
             <h3 class="text-sm font-semibold text-gray-900">Quick Actions</h3>
             <div class="mt-3 flex flex-wrap gap-2 text-sm">
                 <a href="{{ route('quality.kum.index') }}" class="rounded-md border border-gray-300 px-3 py-2 text-gray-700 hover:bg-gray-50">Kembali ke Daftar KUM</a>
-                <a href="{{ route('quality.governance.index') }}" class="rounded-md border border-gray-300 px-3 py-2 text-gray-700 hover:bg-gray-50">Buka Governance Workspace</a>
+                <a href="{{ route('quality.governance.index') }}" class="rounded-md border border-gray-300 px-3 py-2 text-gray-700 hover:bg-gray-50">Buka Ruang Kerja Tata Kelola</a>
             </div>
         </div>
     </div>

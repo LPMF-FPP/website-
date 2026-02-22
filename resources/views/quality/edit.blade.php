@@ -118,7 +118,7 @@
             <div class="col-span-12 transition-all" :class="focusMode ? 'lg:col-span-12' : 'lg:col-span-8'">
                 <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                     <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-700" x-show="schemaQuestions().length > 0" x-cloak>
-                        Editor menggunakan schema pertanyaan revisi (snapshot) dan disimpan sebagai answers_json.
+                        Editor menggunakan schema pertanyaan revisi (cuplikan) dan disimpan sebagai answers_json.
                     </div>
 
                     <div class="mt-4 rounded-lg border border-gray-200 bg-white p-4" x-show="isFormulir || schemaQuestions().length > 0" x-cloak>
