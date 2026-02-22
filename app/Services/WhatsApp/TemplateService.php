@@ -418,7 +418,7 @@ class TemplateService
             'command' => '/unknown',
             'request_number' => 'REQ-2026-0001',
             'investigator' => 'IPDA Budi Santoso',
-            'milestones' => "✅ 1. Permintaan\n   🕒 15 Jan 2026, 10:00\n\n✅ 2. Kaji Ulang Permintaan\n   🕒 16 Jan 2026, 09:00\n\n🟡 3. Pengujian\n   ▪️ 3.1 Preparasi sampel: ✅ Selesai - selesai 17 Jan 2026, 07:40\n   ▪️ 3.2 Pengujian pada instrumen: *🟡 Sedang berjalan* - mulai 17 Jan 2026, 08:00\n   ▪️ 3.3 Interpretasi hasil: ⚪️ Menunggu\n   🕒 Waktu mulai tahap 3: 17 Jan 2026, 08:00\n\n⚪️ 4. Siap Diserahkan\n⚪️ 5. Selesai",
+            'milestones' => "✅ 1. Permintaan\n   🕒 15 Jan 2026, 10:00\n\n✅ 2. Kaji Ulang Permintaan\n   🕒 16 Jan 2026, 09:00\n\n🟡 3. Pengujian\n   ▪️ 3.1 Preparasi sampel\n     Status : ✅ Selesai (3/3 sampel)\n     Selesai : 17 Jan 2026, 07:40\n   ▪️ 3.2 Pengujian pada instrumen\n     Status : *🟡 Sedang berjalan* (1/3 sampel)\n     Mulai : 17 Jan 2026, 08:00\n   ▪️ 3.3 Interpretasi hasil\n     Status : ⚪️ Menunggu\n   🕒 Waktu mulai tahap 3: 17 Jan 2026, 08:00\n\n⚪️ 4. Siap Diserahkan\n⚪️ 5. Selesai",
             'current_status' => '🟡 Tahap 3 dari 5 - Pengujian sedang berjalan',
             'sample_count' => '3',
             'this_month' => '25',

@@ -37,9 +37,12 @@ class ResiCommandTest extends TestCase
         $this->assertStringContainsString('✅ 1. Permintaan', $message);
         $this->assertStringContainsString('✅ 2. Kaji Ulang Permintaan', $message);
         $this->assertStringContainsString('🟡 3. Pengujian', $message);
-        $this->assertStringContainsString('▪️ 3.1 Preparasi sampel: ✅ Selesai', $message);
-        $this->assertStringContainsString('▪️ 3.2 Pengujian pada instrumen: *🟡 Sedang berjalan*', $message);
-        $this->assertStringContainsString('▪️ 3.3 Interpretasi hasil: ⚪️ Menunggu', $message);
+        $this->assertStringContainsString('▪️ 3.1 Preparasi sampel', $message);
+        $this->assertStringContainsString('Status : ✅ Selesai', $message);
+        $this->assertStringContainsString('▪️ 3.2 Pengujian pada instrumen', $message);
+        $this->assertStringContainsString('Status : *🟡 Sedang berjalan*', $message);
+        $this->assertStringContainsString('▪️ 3.3 Interpretasi hasil', $message);
+        $this->assertStringContainsString('Status : ⚪️ Menunggu', $message);
         $this->assertStringContainsString('🕒 Waktu mulai tahap 3:', $message);
         $this->assertStringContainsString('📌 *Status Terkini*', $message);
         $this->assertStringContainsString('🟡 Tahap 3 dari 5 - Pengujian sedang berjalan', $message);

@@ -73,7 +73,7 @@ class ResiCommand
                         continue;
                     }
 
-                    $line .= "\n   ▪️ {$detailLine}";
+                    $line .= "\n   {$detailLine}";
                 }
             }
 
@@ -205,12 +205,12 @@ class ResiCommand
                     ->sortBy(fn ($process) => $process->started_at?->getTimestamp() ?? PHP_INT_MAX)
                     ->first()?->started_at;
 
-                $line = sprintf('%s: *🟡 Sedang berjalan* (%d/%d sampel)', $label, $inProgress->count(), $sampleCount);
-                if ($startedAt !== null) {
-                    $line .= ' - mulai '.$this->formatProcessTimestamp($startedAt, $tz);
-                }
-
-                $lines[] = $line;
+                $lines[] = $this->formatStageThreeDetail(
+                    $label,
+                    sprintf('*🟡 Sedang berjalan* (%d/%d sampel)', $inProgress->count(), $sampleCount),
+                    'Mulai',
+                    $startedAt ? $this->formatProcessTimestamp($startedAt, $tz) : null,
+                );
 
                 continue;
             }
@@ -220,12 +220,12 @@ class ResiCommand
                     ->sortByDesc(fn ($process) => $process->completed_at?->getTimestamp() ?? 0)
                     ->first()?->completed_at;
 
-                $line = sprintf('%s: ✅ Selesai (%d/%d sampel)', $label, $completed->count(), $sampleCount);
-                if ($completedAt !== null) {
-                    $line .= ' - selesai '.$this->formatProcessTimestamp($completedAt, $tz);
-                }
-
-                $lines[] = $line;
+                $lines[] = $this->formatStageThreeDetail(
+                    $label,
+                    sprintf('✅ Selesai (%d/%d sampel)', $completed->count(), $sampleCount),
+                    'Selesai',
+                    $completedAt ? $this->formatProcessTimestamp($completedAt, $tz) : null,
+                );
 
                 continue;
             }
@@ -235,17 +235,20 @@ class ResiCommand
                     ->sortByDesc(fn ($process) => $process->completed_at?->getTimestamp() ?? 0)
                     ->first()?->completed_at;
 
-                $line = sprintf('%s: 🟡 Sebagian selesai (%d/%d sampel)', $label, $completed->count(), $sampleCount);
-                if ($completedAt !== null) {
-                    $line .= ' - update '.$this->formatProcessTimestamp($completedAt, $tz);
-                }
-
-                $lines[] = $line;
+                $lines[] = $this->formatStageThreeDetail(
+                    $label,
+                    sprintf('🟡 Sebagian selesai (%d/%d sampel)', $completed->count(), $sampleCount),
+                    'Update',
+                    $completedAt ? $this->formatProcessTimestamp($completedAt, $tz) : null,
+                );
 
                 continue;
             }
 
-            $lines[] = $label.': ⚪️ Menunggu';
+            $lines[] = $this->formatStageThreeDetail(
+                $label,
+                '⚪️ Menunggu',
+            );
         }
 
         $stageThreeStartAt = $allProcesses
@@ -268,29 +271,29 @@ class ResiCommand
     {
         $mapping = match ($status) {
             'ready_for_test' => [
-                '3.1 Preparasi sampel: *🟡 Sedang berjalan*',
-                '3.2 Pengujian pada instrumen: ⚪️ Menunggu',
-                '3.3 Interpretasi hasil: ⚪️ Menunggu',
+                $this->formatStageThreeDetail('3.1 Preparasi sampel', '*🟡 Sedang berjalan*'),
+                $this->formatStageThreeDetail('3.2 Pengujian pada instrumen', '⚪️ Menunggu'),
+                $this->formatStageThreeDetail('3.3 Interpretasi hasil', '⚪️ Menunggu'),
             ],
             'in_testing', 'processing' => [
-                '3.1 Preparasi sampel: ✅ Selesai',
-                '3.2 Pengujian pada instrumen: *🟡 Sedang berjalan*',
-                '3.3 Interpretasi hasil: ⚪️ Menunggu',
+                $this->formatStageThreeDetail('3.1 Preparasi sampel', '✅ Selesai'),
+                $this->formatStageThreeDetail('3.2 Pengujian pada instrumen', '*🟡 Sedang berjalan*'),
+                $this->formatStageThreeDetail('3.3 Interpretasi hasil', '⚪️ Menunggu'),
             ],
             'analysis', 'quality_check' => [
-                '3.1 Preparasi sampel: ✅ Selesai',
-                '3.2 Pengujian pada instrumen: ✅ Selesai',
-                '3.3 Interpretasi hasil: *🟡 Sedang berjalan*',
+                $this->formatStageThreeDetail('3.1 Preparasi sampel', '✅ Selesai'),
+                $this->formatStageThreeDetail('3.2 Pengujian pada instrumen', '✅ Selesai'),
+                $this->formatStageThreeDetail('3.3 Interpretasi hasil', '*🟡 Sedang berjalan*'),
             ],
             'ready_for_delivery', 'completed', 'delivered' => [
-                '3.1 Preparasi sampel: ✅ Selesai',
-                '3.2 Pengujian pada instrumen: ✅ Selesai',
-                '3.3 Interpretasi hasil: ✅ Selesai',
+                $this->formatStageThreeDetail('3.1 Preparasi sampel', '✅ Selesai'),
+                $this->formatStageThreeDetail('3.2 Pengujian pada instrumen', '✅ Selesai'),
+                $this->formatStageThreeDetail('3.3 Interpretasi hasil', '✅ Selesai'),
             ],
             default => [
-                '3.1 Preparasi sampel: ⚪️ Menunggu',
-                '3.2 Pengujian pada instrumen: ⚪️ Menunggu',
-                '3.3 Interpretasi hasil: ⚪️ Menunggu',
+                $this->formatStageThreeDetail('3.1 Preparasi sampel', '⚪️ Menunggu'),
+                $this->formatStageThreeDetail('3.2 Pengujian pada instrumen', '⚪️ Menunggu'),
+                $this->formatStageThreeDetail('3.3 Interpretasi hasil', '⚪️ Menunggu'),
             ],
         };
 
@@ -307,5 +310,20 @@ class ResiCommand
         string $tz
     ): string {
         return Carbon::parse($timestamp)->timezone($tz)->format('d M Y, H:i');
+    }
+
+    private function formatStageThreeDetail(
+        string $label,
+        string $status,
+        ?string $timeLabel = null,
+        ?string $timeValue = null,
+    ): string {
+        $line = "▪️ {$label}\n     Status : {$status}";
+
+        if ($timeLabel !== null && $timeValue !== null) {
+            $line .= "\n     {$timeLabel} : {$timeValue}";
+        }
+
+        return $line;
     }
 }
