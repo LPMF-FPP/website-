@@ -26,13 +26,14 @@ class QmhDocumentController extends Controller
 {
     public function landing(Request $request, QmhDashboardWorkspaceService $workspaceService): View
     {
-        $summaryFilters = validator($request->only(['clause', 'doc_type', 'from', 'to', 'period', 'queue_tab']), [
+        $summaryFilters = validator($request->only(['clause', 'doc_type', 'from', 'to', 'period', 'queue_tab', 'activity_page']), [
             'clause' => ['nullable', 'integer', 'in:4,5,6,7,8'],
             'doc_type' => ['nullable', 'in:sop,ik,formulir,pendukung'],
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date', 'after_or_equal:from'],
             'period' => ['nullable', 'integer', 'in:7,14,30,90'],
             'queue_tab' => ['nullable', 'in:mine,overdue,done'],
+            'activity_page' => ['nullable', 'integer', 'min:1'],
         ])->validate();
 
         $user = $request->user();

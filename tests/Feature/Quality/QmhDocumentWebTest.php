@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Quality;
 
+use App\Models\AuditTrail;
 use App\Models\Permission;
 use App\Models\QmhDocument;
 use App\Models\QmhDocumentDownloadLog;
@@ -454,6 +455,37 @@ class QmhDocumentWebTest extends TestCase
         $response->assertSee('Activity Feed');
         $response->assertSee('Semua Klausul');
         $response->assertSee('Semua Jenis');
+    }
+
+    public function test_quality_landing_activity_feed_supports_pagination(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        for ($index = 1; $index <= 25; $index++) {
+            AuditTrail::query()->create([
+                'table_name' => 'qmh_rapats',
+                'record_id' => (string) $index,
+                'action' => 'UPDATE',
+                'changed_by' => (string) $user->id,
+                'source' => 'web',
+                'changed_at' => now()->subMinutes($index),
+            ]);
+        }
+
+        $firstPage = $this->actingAs($user)->get('/quality');
+
+        $firstPage->assertOk();
+        $firstPage->assertSee('Hal 1/2');
+        $firstPage->assertSee('Menampilkan 1-20 dari 25 aktivitas');
+        $firstPage->assertSee('Berikutnya');
+
+        $secondPage = $this->actingAs($user)->get('/quality?activity_page=2');
+
+        $secondPage->assertOk();
+        $secondPage->assertSee('Hal 2/2');
+        $secondPage->assertSee('Menampilkan 21-25 dari 25 aktivitas');
+        $secondPage->assertSee('Sebelumnya');
     }
 
     public function test_user_with_qmh_view_permission_can_access_document_show_page(): void

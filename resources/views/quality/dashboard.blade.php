@@ -19,11 +19,33 @@
         $queue = $dashboard['queue'] ?? ['active_tab' => 'mine', 'tabs' => [], 'rows' => []];
         $governance = $dashboard['governance'] ?? [];
         $activities = $dashboard['activities'] ?? [];
+        $activityMeta = $dashboard['activities_meta'] ?? [
+            'current_page' => 1,
+            'last_page' => 1,
+            'total' => count($activities),
+            'from' => count($activities) > 0 ? 1 : 0,
+            'to' => count($activities),
+            'has_prev' => false,
+            'has_next' => false,
+        ];
 
         $activeQueueTab = $queue['active_tab'] ?? 'mine';
         $activeClause = $filters['clause'] ?? null;
         $activeDocType = $filters['doc_type'] ?? null;
         $activePeriod = (int) ($filters['period'] ?? 30);
+        $activityPage = (int) ($activityMeta['current_page'] ?? 1);
+        $activityLastPage = (int) ($activityMeta['last_page'] ?? 1);
+        $activityTotal = (int) ($activityMeta['total'] ?? 0);
+        $activityFrom = (int) ($activityMeta['from'] ?? 0);
+        $activityTo = (int) ($activityMeta['to'] ?? 0);
+        $activityHasPrev = (bool) ($activityMeta['has_prev'] ?? false);
+        $activityHasNext = (bool) ($activityMeta['has_next'] ?? false);
+        $baseDashboardQuery = request()->except('activity_page');
+        $activityPrevQuery = array_merge($baseDashboardQuery, ['activity_page' => max(1, $activityPage - 1)]);
+        $activityNextQuery = array_merge($baseDashboardQuery, ['activity_page' => min($activityLastPage, $activityPage + 1)]);
+        $activityPageStart = max(1, $activityPage - 2);
+        $activityPageEnd = min($activityLastPage, $activityPage + 2);
+        $activityPageLinks = range($activityPageStart, $activityPageEnd);
 
         $periodOptions = [
             ['value' => 7, 'label' => '7 Hari'],
@@ -319,11 +341,14 @@
 
         <section class="rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div class="border-b border-slate-100 px-4 py-3">
-                <div class="flex items-center gap-2">
-                    <svg class="h-4 w-4 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="{{ $iconPath('activity') }}" />
-                    </svg>
-                    <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-800">Activity Feed</h3>
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <svg class="h-4 w-4 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="{{ $iconPath('activity') }}" />
+                        </svg>
+                        <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-800">Activity Feed</h3>
+                    </div>
+                    <p class="text-xs text-slate-500">Hal {{ $activityPage }}/{{ $activityLastPage }}</p>
                 </div>
             </div>
 
@@ -341,6 +366,44 @@
                         Aktivitas terbaru belum tersedia.
                     </div>
                 @endforelse
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-4 py-3">
+                <p class="text-xs text-slate-500">
+                    Menampilkan {{ $activityFrom }}-{{ $activityTo }} dari {{ $activityTotal }} aktivitas
+                </p>
+
+                <div class="inline-flex items-center gap-2">
+                    @if($activityHasPrev)
+                        <a href="{{ route('quality.index', $activityPrevQuery) }}" class="inline-flex min-h-[44px] items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1">
+                            Sebelumnya
+                        </a>
+                    @else
+                        <span class="inline-flex min-h-[44px] items-center rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-medium text-slate-400">
+                            Sebelumnya
+                        </span>
+                    @endif
+
+                    @foreach($activityPageLinks as $pageNumber)
+                        @php
+                            $isCurrentActivityPage = (int) $pageNumber === $activityPage;
+                            $activityPageQuery = array_merge($baseDashboardQuery, ['activity_page' => $pageNumber]);
+                        @endphp
+                        <a href="{{ route('quality.index', $activityPageQuery) }}" aria-current="{{ $isCurrentActivityPage ? 'page' : 'false' }}" class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1 {{ $isCurrentActivityPage ? 'border-primary-300 bg-primary-100 text-primary-900' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50' }}">
+                            {{ $pageNumber }}
+                        </a>
+                    @endforeach
+
+                    @if($activityHasNext)
+                        <a href="{{ route('quality.index', $activityNextQuery) }}" class="inline-flex min-h-[44px] items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1">
+                            Berikutnya
+                        </a>
+                    @else
+                        <span class="inline-flex min-h-[44px] items-center rounded-lg border border-slate-200 bg-slate-100 px-3 py-2 text-xs font-medium text-slate-400">
+                            Berikutnya
+                        </span>
+                    @endif
+                </div>
             </div>
         </section>
     </div>
