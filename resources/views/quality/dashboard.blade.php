@@ -41,8 +41,10 @@
         $activityHasPrev = (bool) ($activityMeta['has_prev'] ?? false);
         $activityHasNext = (bool) ($activityMeta['has_next'] ?? false);
         $baseDashboardQuery = request()->except('activity_page');
-        $activityPrevQuery = array_merge($baseDashboardQuery, ['activity_page' => max(1, $activityPage - 1)]);
-        $activityNextQuery = array_merge($baseDashboardQuery, ['activity_page' => min($activityLastPage, $activityPage + 1)]);
+        $activityPrevPage = max(1, $activityPage - 1);
+        $activityNextPage = min($activityLastPage, $activityPage + 1);
+        $activityPrevQuery = array_merge($baseDashboardQuery, ['activity_page' => $activityPrevPage]);
+        $activityNextQuery = array_merge($baseDashboardQuery, ['activity_page' => $activityNextPage]);
         $activityPageCandidates = $activityLastPage <= 9
             ? range(1, $activityLastPage)
             : array_values(array_unique(array_filter([
@@ -405,7 +407,7 @@
 
                 <div class="inline-flex items-center gap-2">
                     @if($activityHasPrev)
-                        <a href="{{ route('quality.index', $activityPrevQuery) }}" class="inline-flex min-h-[44px] items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1">
+                        <a href="{{ route('quality.index', $activityPrevQuery) }}" title="Buka halaman {{ $activityPrevPage }}" aria-label="Buka halaman {{ $activityPrevPage }}" class="inline-flex min-h-[44px] items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1">
                             Sebelumnya
                         </a>
                     @else
@@ -421,15 +423,18 @@
                             @php
                                 $isCurrentActivityPage = (int) $pageItem === $activityPage;
                                 $activityPageQuery = array_merge($baseDashboardQuery, ['activity_page' => $pageItem]);
+                                $activityPageTitle = $isCurrentActivityPage
+                                    ? sprintf('Halaman %d (aktif)', (int) $pageItem)
+                                    : sprintf('Buka halaman %d', (int) $pageItem);
                             @endphp
-                            <a href="{{ route('quality.index', $activityPageQuery) }}" aria-current="{{ $isCurrentActivityPage ? 'page' : 'false' }}" class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1 {{ $isCurrentActivityPage ? 'border-primary-300 bg-primary-100 text-primary-900' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50' }}">
+                            <a href="{{ route('quality.index', $activityPageQuery) }}" title="{{ $activityPageTitle }}" aria-label="{{ $activityPageTitle }}" aria-current="{{ $isCurrentActivityPage ? 'page' : 'false' }}" class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1 {{ $isCurrentActivityPage ? 'border-primary-300 bg-primary-100 text-primary-900' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50' }}">
                                 {{ $pageItem }}
                             </a>
                         @endif
                     @endforeach
 
                     @if($activityHasNext)
-                        <a href="{{ route('quality.index', $activityNextQuery) }}" class="inline-flex min-h-[44px] items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1">
+                        <a href="{{ route('quality.index', $activityNextQuery) }}" title="Buka halaman {{ $activityNextPage }}" aria-label="Buka halaman {{ $activityNextPage }}" class="inline-flex min-h-[44px] items-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1">
                             Berikutnya
                         </a>
                     @else
