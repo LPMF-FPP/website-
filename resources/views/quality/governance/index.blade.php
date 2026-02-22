@@ -2,10 +2,10 @@
     <x-slot name="header">
         <div class="space-y-3">
             <x-page-header
-                title="Governance Workspace"
+                title="Ruang Tata Kelola"
                 :breadcrumbs="[
                     ['label' => 'Dashboard QMH', 'route' => 'quality.index'],
-                    ['label' => 'Governance Workspace'],
+                    ['label' => 'Ruang Tata Kelola'],
                 ]"
             />
 
@@ -28,7 +28,7 @@
                 <p class="mt-1 text-2xl font-semibold text-gray-900" x-text="summary.kum_count">{{ $summary['kum_count'] }}</p>
             </div>
             <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
-                <p class="text-xs uppercase tracking-wide text-amber-700">Due Soon (7 Hari)</p>
+                <p class="text-xs uppercase tracking-wide text-amber-700">Jatuh Tempo (7 Hari)</p>
                 <p class="mt-1 text-2xl font-semibold text-amber-900" x-text="summary.due_soon_count">{{ $summary['due_soon_count'] }}</p>
             </div>
             <div class="rounded-xl border border-rose-200 bg-rose-50 p-4 shadow-sm">
@@ -40,7 +40,7 @@
         <div class="grid gap-6 lg:grid-cols-3">
             <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm lg:col-span-2">
                 <div class="flex items-center justify-between">
-                    <h3 class="text-sm font-semibold text-gray-900">Action Items Due Soon</h3>
+                    <h3 class="text-sm font-semibold text-gray-900">Action Item Jatuh Tempo Dekat</h3>
                     <button type="button" @click="refreshSummary" class="rounded-md border border-gray-300 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50">Refresh</button>
                 </div>
 
@@ -51,7 +51,7 @@
                             <p class="mt-1 text-xs text-gray-600">Rapat: {{ $item->rapat?->title ?? '-' }}</p>
                             <div class="mt-1 flex items-center gap-2 text-xs">
                                 <span class="rounded-full bg-gray-100 px-2 py-0.5 text-gray-700">{{ strtoupper($item->status) }}</span>
-                                <span class="text-gray-600">Due: {{ optional($item->due_date)->format('d M Y') ?? '-' }}</span>
+                                <span class="text-gray-600">Jatuh tempo: {{ optional($item->due_date)->format('d M Y') ?? '-' }}</span>
                                 <span class="text-gray-600">PIC: {{ $item->assignee?->name ?? '-' }}</span>
                             </div>
                         </div>
@@ -62,11 +62,29 @@
             </div>
 
             <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-                <h3 class="text-sm font-semibold text-gray-900">Quick Actions</h3>
+                <h3 class="text-sm font-semibold text-gray-900">Aksi Cepat</h3>
                 <div class="mt-4 space-y-2">
-                    <a href="{{ route('quality.rapat.index') }}" class="block rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Kelola Rapat</a>
-                    <a href="{{ route('quality.audit.index') }}" class="block rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Kelola Audit</a>
-                    <a href="{{ route('quality.kum.index') }}" class="block rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Kelola KUM</a>
+                    <a href="{{ route('quality.rapat.index') }}" class="group block rounded-lg border border-primary-100 bg-gradient-to-r from-primary-50 to-white px-3 py-2.5 text-sm text-primary-800 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary-300 hover:shadow-sm">
+                        <span class="flex items-center justify-between">
+                            <span class="font-medium">Kelola Rapat</span>
+                            <span class="text-primary-500 transition-transform duration-200 group-hover:translate-x-0.5">→</span>
+                        </span>
+                        <span class="mt-0.5 block text-xs text-primary-600">Notulen, peserta, dan action item rapat</span>
+                    </a>
+                    <a href="{{ route('quality.audit.index') }}" class="group block rounded-lg border border-sky-100 bg-gradient-to-r from-sky-50 to-white px-3 py-2.5 text-sm text-sky-800 transition-all duration-200 hover:-translate-y-0.5 hover:border-sky-300 hover:shadow-sm">
+                        <span class="flex items-center justify-between">
+                            <span class="font-medium">Kelola Audit</span>
+                            <span class="text-sky-500 transition-transform duration-200 group-hover:translate-x-0.5">→</span>
+                        </span>
+                        <span class="mt-0.5 block text-xs text-sky-600">Jadwal audit, auditor, dan temuan</span>
+                    </a>
+                    <a href="{{ route('quality.kum.index') }}" class="group block rounded-lg border border-emerald-100 bg-gradient-to-r from-emerald-50 to-white px-3 py-2.5 text-sm text-emerald-800 transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-sm">
+                        <span class="flex items-center justify-between">
+                            <span class="font-medium">Kelola KUM</span>
+                            <span class="text-emerald-500 transition-transform duration-200 group-hover:translate-x-0.5">→</span>
+                        </span>
+                        <span class="mt-0.5 block text-xs text-emerald-600">Keputusan manajemen dan tindak lanjut</span>
+                    </a>
                 </div>
             </div>
         </div>

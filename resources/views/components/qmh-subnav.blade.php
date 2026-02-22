@@ -14,7 +14,7 @@
         ],
     ];
 
-    if (auth()->user()?->hasAnyPermission(['qmh.view', 'qmh.rapat.view', 'qmh.audit.view', 'qmh.kum.view'])) {
+    if (auth()->user()?->hasAnyPermission(['qmh.view', 'qmh.rapat.view', 'qmh.rapat.view.all', 'qmh.audit.view', 'qmh.audit.view.all', 'qmh.kum.view', 'qmh.kum.view.all'])) {
         $items[] = [
             'key' => 'governance',
             'label' => 'Tata Kelola',
