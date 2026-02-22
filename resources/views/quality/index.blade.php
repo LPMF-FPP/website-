@@ -35,6 +35,16 @@
             || request()->filled('revision_number')
             || request()->filled('from')
             || request()->filled('to');
+        $activeFilterCount = collect([
+            request('search'),
+            request('clause'),
+            request('doc_type'),
+            request('status'),
+            request('edition_number'),
+            request('revision_number'),
+            request('from'),
+            request('to'),
+        ])->filter(fn ($value) => filled($value))->count();
         $documentActionMap = $documents->mapWithKeys(function ($document) {
             return [(string) $document->id => [
                 'show' => route('quality.documents.show', $document),
@@ -44,23 +54,27 @@
     @endphp
 
     <div class="space-y-6" x-data="qmhDocumentTable(@js($documentActionMap))">
-        <section class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm lg:p-5">
+        <section class="relative overflow-hidden rounded-2xl border border-sky-100 bg-gradient-to-r from-white via-white to-sky-50/70 p-4 shadow-sm lg:p-5">
+            <div class="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-sky-200/30 blur-2xl"></div>
             <div class="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Filter Dokumen</p>
-                    <h3 class="mt-0.5 text-lg font-semibold text-gray-900">Pilih area dokumen</h3>
+                    <p class="text-xs font-semibold uppercase tracking-[0.16em] text-sky-700">Filter Dokumen</p>
+                    <h3 class="mt-1 text-lg font-semibold text-slate-900">Pilih area kerja dokumen</h3>
                 </div>
                 @if(auth()->user()?->hasPermission('qmh.template.manage'))
                     <a
                         href="{{ route('quality.templates.index') }}"
-                        class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1"
+                        class="inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-white/90 px-3 py-2 text-sm font-medium text-sky-700 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1"
                     >
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 4h10v4a2 2 0 0 0 2 2h1v10H4V10h1a2 2 0 0 0 2-2V4Zm5 8h.01" />
+                        </svg>
                         Kelola Template
                     </a>
                 @endif
             </div>
 
-            <div class="mt-3 inline-flex flex-wrap gap-2" role="tablist" aria-label="Kategori dokumen">
+            <div class="mt-4 inline-flex flex-wrap gap-2" role="tablist" aria-label="Kategori dokumen">
                 @foreach($scopeOptions as $scope)
                     @php
                         $isScopeActive = $activeScope === $scope['value'];
@@ -69,43 +83,49 @@
                         href="{{ route('quality.documents.index', array_merge(request()->except('page'), ['doc_scope' => $scope['value']])) }}"
                         role="tab"
                         aria-selected="{{ $isScopeActive ? 'true' : 'false' }}"
-                        class="inline-flex items-center rounded-lg border px-3 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1 {{ $isScopeActive ? 'border-primary-200 bg-primary-50 text-primary-800 shadow-sm' : 'border-gray-300 text-gray-700 hover:bg-gray-50' }}"
+                        class="inline-flex items-center rounded-full border px-4 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1 {{ $isScopeActive ? 'border-primary-300 bg-primary-100 text-primary-900 shadow-sm' : 'border-slate-300 bg-white text-slate-700 hover:border-sky-200 hover:bg-sky-50/70' }}"
                     >
+                        <span class="mr-2 h-1.5 w-1.5 rounded-full {{ $isScopeActive ? 'bg-primary-700' : 'bg-slate-400' }}" aria-hidden="true"></span>
                         {{ $scope['label'] }}
                     </a>
                 @endforeach
             </div>
         </section>
 
-        <details class="group rounded-2xl border border-gray-200 bg-white shadow-sm" @if($hasActiveFilter) open @endif>
+        <details class="group rounded-2xl border border-slate-200 bg-white shadow-sm" @if($hasActiveFilter) open @endif>
             <summary class="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
                 <div>
-                    <p class="text-sm font-semibold text-gray-900">Filter Lanjutan</p>
-                    <p class="text-xs text-gray-500">Gunakan kombinasi klausul, status, dan versi untuk hasil yang lebih presisi.</p>
+                    <p class="text-sm font-semibold text-slate-900">Filter Lanjutan</p>
+                    <p class="text-xs text-slate-500">Atur kombinasi klausul, jenis, status, periode, dan versi secara fleksibel.</p>
                 </div>
-                <span class="inline-flex items-center rounded-md border border-gray-300 px-3 py-1 text-xs font-semibold text-gray-600 transition group-open:bg-gray-100">Buka / Tutup</span>
+                <div class="flex items-center gap-2">
+                    @if($hasActiveFilter)
+                        <span class="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">{{ $activeFilterCount }} filter aktif</span>
+                    @endif
+                    <span class="inline-flex items-center rounded-md border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-600 transition group-open:bg-slate-100">Buka / Tutup</span>
+                </div>
             </summary>
 
-            <div class="border-t border-gray-100 px-5 pb-5">
+            <div class="border-t border-slate-100 bg-slate-50/40 px-5 pb-5">
                 <form method="GET" action="{{ route('quality.documents.index') }}" class="mt-4 grid gap-3 md:grid-cols-6">
                     <input type="hidden" name="doc_scope" value="{{ $activeScope }}">
-                    <div class="md:col-span-2">
-                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500" for="doc-search">Cari</label>
+                    <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm md:col-span-2">
+                        <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500" for="doc-search">Cari</label>
                         <input id="doc-search" type="text" name="search" value="{{ request('search') }}" placeholder="Cari kode atau judul"
-                               class="w-full rounded-lg border-gray-300 text-sm focus:border-primary-600 focus:ring-primary-600">
+                               class="w-full rounded-lg border-slate-300 text-sm focus:border-primary-600 focus:ring-primary-600">
                     </div>
-                    <div>
-                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500" for="doc-clause">Klausul</label>
-                        <select id="doc-clause" name="clause" class="w-full rounded-lg border-gray-300 text-sm focus:border-primary-600 focus:ring-primary-600">
+                    <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+                        <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500" for="doc-clause">Klausul</label>
+                        <select id="doc-clause" name="clause" class="w-full rounded-lg border-slate-300 text-sm focus:border-primary-600 focus:ring-primary-600">
                             <option value="">Semua Klausul</option>
                             @foreach([4, 5, 6, 7, 8] as $clause)
                                 <option value="{{ $clause }}" @selected((string) request('clause') === (string) $clause)>Klausul {{ $clause }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div>
-                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500" for="doc-type">Jenis</label>
-                        <select id="doc-type" name="doc_type" class="w-full rounded-lg border-gray-300 text-sm focus:border-primary-600 focus:ring-primary-600">
+                    <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+                        <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500" for="doc-type">Jenis</label>
+                        <select id="doc-type" name="doc_type" class="w-full rounded-lg border-slate-300 text-sm focus:border-primary-600 focus:ring-primary-600">
                             <option value="">Semua Jenis</option>
                             <option value="sop" @selected(request('doc_type') === 'sop')>SOP</option>
                             <option value="ik" @selected(request('doc_type') === 'ik')>IK</option>
@@ -113,9 +133,9 @@
                             <option value="pendukung" @selected(request('doc_type') === 'pendukung')>Pendukung</option>
                         </select>
                     </div>
-                    <div>
-                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500" for="doc-status">Status</label>
-                        <select id="doc-status" name="status" class="w-full rounded-lg border-gray-300 text-sm focus:border-primary-600 focus:ring-primary-600">
+                    <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+                        <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500" for="doc-status">Status</label>
+                        <select id="doc-status" name="status" class="w-full rounded-lg border-slate-300 text-sm focus:border-primary-600 focus:ring-primary-600">
                             <option value="">Semua Status</option>
                             <option value="draft" @selected(request('status') === 'draft')>Draft</option>
                             <option value="in_review" @selected(request('status') === 'in_review')>In Review</option>
@@ -124,31 +144,31 @@
                             <option value="obsolete" @selected(request('status') === 'obsolete')>Obsolete</option>
                         </select>
                     </div>
-                    <div>
-                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500" for="doc-edition">Edisi</label>
+                    <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+                        <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500" for="doc-edition">Edisi</label>
                         <input id="doc-edition" type="number" min="0" name="edition_number" value="{{ request('edition_number') }}" placeholder="Edisi"
-                               class="w-full rounded-lg border-gray-300 text-sm focus:border-primary-600 focus:ring-primary-600">
+                               class="w-full rounded-lg border-slate-300 text-sm focus:border-primary-600 focus:ring-primary-600">
                     </div>
-                    <div>
-                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500" for="doc-revision">Revisi</label>
+                    <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+                        <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500" for="doc-revision">Revisi</label>
                         <input id="doc-revision" type="number" min="0" name="revision_number" value="{{ request('revision_number') }}" placeholder="Revisi"
-                               class="w-full rounded-lg border-gray-300 text-sm focus:border-primary-600 focus:ring-primary-600">
+                               class="w-full rounded-lg border-slate-300 text-sm focus:border-primary-600 focus:ring-primary-600">
                     </div>
-                    <div>
-                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500" for="doc-from">Dari Tanggal</label>
+                    <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+                        <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500" for="doc-from">Dari Tanggal</label>
                         <input id="doc-from" type="date" name="from" value="{{ request('from') }}"
-                               class="w-full rounded-lg border-gray-300 text-sm focus:border-primary-600 focus:ring-primary-600">
+                               class="w-full rounded-lg border-slate-300 text-sm focus:border-primary-600 focus:ring-primary-600">
                     </div>
-                    <div>
-                        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-500" for="doc-to">Sampai</label>
+                    <div class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 shadow-sm">
+                        <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-slate-500" for="doc-to">Sampai</label>
                         <input id="doc-to" type="date" name="to" value="{{ request('to') }}"
-                               class="w-full rounded-lg border-gray-300 text-sm focus:border-primary-600 focus:ring-primary-600">
+                               class="w-full rounded-lg border-slate-300 text-sm focus:border-primary-600 focus:ring-primary-600">
                     </div>
                     <div class="flex items-end gap-2 md:col-span-2">
-                        <button type="submit" class="inline-flex items-center rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700">
+                        <button type="submit" class="inline-flex items-center rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-primary-700 hover:shadow-md">
                             Cari
                         </button>
-                        <a href="{{ route('quality.documents.index') }}" class="inline-flex items-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                        <a href="{{ route('quality.documents.index') }}" class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50">
                             Reset
                         </a>
                     </div>
