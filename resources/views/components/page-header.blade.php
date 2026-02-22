@@ -30,7 +30,7 @@
                     <li class="flex items-center gap-x-2">
                         @if (! $isLast)
                             @if (is_string($href) && $href !== '')
-                                <a href="{{ $href }}" class="hover:text-primary-700 hover:underline">
+                                <a href="{{ $href }}" class="hover:text-primary-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1">
                                     {{ $label }}
                                 </a>
                             @else

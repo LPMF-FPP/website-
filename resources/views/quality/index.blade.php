@@ -1,13 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="space-y-3">
-            <x-page-header
-                title="Dokumen QMH"
-                :breadcrumbs="[
-                    ['label' => 'Dashboard QMH', 'route' => 'quality.index'],
-                    ['label' => 'Dokumen'],
-                ]"
-            >
+            <x-page-header title="Dokumen QMH">
                 <x-slot name="actions">
                     <a href="{{ route('quality.documents.create') }}"
                        class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1">
