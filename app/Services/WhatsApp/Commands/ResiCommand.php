@@ -67,8 +67,14 @@ class ResiCommand
 
             $line = "{$icon} {$milestone['label']}";
 
-            if (! empty($milestone['detail'])) {
-                $line .= "\n   🧩 {$milestone['detail']}";
+            if (! empty($milestone['detail_lines']) && is_array($milestone['detail_lines'])) {
+                foreach ($milestone['detail_lines'] as $detailLine) {
+                    if (! is_string($detailLine) || trim($detailLine) === '') {
+                        continue;
+                    }
+
+                    $line .= "\n   ▪️ {$detailLine}";
+                }
             }
 
             if (! empty($milestone['timestamp'])) {
@@ -110,7 +116,11 @@ class ResiCommand
 
         $milestones[] = [
             'label' => '3. Pengujian',
-            'detail' => 'Preparasi sampel -> Pengujian instrumen -> Interpretasi hasil',
+            'detail_lines' => [
+                '3.1 Preparasi sampel',
+                '3.2 Pengujian pada instrumen',
+                '3.3 Interpretasi hasil',
+            ],
             'completed' => $isTestingDone,
             'current' => $isTestingStarted && ! $isTestingDone,
             'timestamp' => $testRequest->received_at ?
@@ -156,9 +166,9 @@ class ResiCommand
             'pending_verification' => '🟡 Tahap 1 - Menunggu Verifikasi',
             'verified' => '✅ Tahap 2 - Kaji Ulang Permintaan selesai',
             'pending_review' => '🟡 Tahap 2 - Kaji Ulang sedang review',
-            'ready_for_test' => '🟡 Tahap 3 - Pengujian siap dimulai',
-            'in_testing' => '🟡 Tahap 3 - Pengujian sedang berjalan',
-            'processing' => '🟡 Tahap 3 - Pengujian dalam proses',
+            'ready_for_test' => '🟡 Tahap 3 dari 5 - Pengujian siap dimulai',
+            'in_testing' => '🟡 Tahap 3 dari 5 - Pengujian sedang berjalan',
+            'processing' => '🟡 Tahap 3 dari 5 - Pengujian dalam proses',
             'ready_for_delivery' => '🟡 Tahap 4 - Siap Diserahkan',
             'completed' => '✅ Tahap 4 - Siap Diserahkan',
             'delivered' => '✅ Tahap 5 - Selesai',
