@@ -43,9 +43,29 @@
         $baseDashboardQuery = request()->except('activity_page');
         $activityPrevQuery = array_merge($baseDashboardQuery, ['activity_page' => max(1, $activityPage - 1)]);
         $activityNextQuery = array_merge($baseDashboardQuery, ['activity_page' => min($activityLastPage, $activityPage + 1)]);
-        $activityPageStart = max(1, $activityPage - 2);
-        $activityPageEnd = min($activityLastPage, $activityPage + 2);
-        $activityPageLinks = range($activityPageStart, $activityPageEnd);
+        $activityPageCandidates = $activityLastPage <= 7
+            ? range(1, $activityLastPage)
+            : array_values(array_unique(array_filter([
+                1,
+                2,
+                $activityPage - 1,
+                $activityPage,
+                $activityPage + 1,
+                $activityLastPage - 1,
+                $activityLastPage,
+            ], static fn (int $pageNumber): bool => $pageNumber >= 1 && $pageNumber <= $activityLastPage)));
+        sort($activityPageCandidates);
+
+        $activityPageItems = [];
+        $previousPage = null;
+        foreach ($activityPageCandidates as $pageNumber) {
+            if ($previousPage !== null && ($pageNumber - $previousPage) > 1) {
+                $activityPageItems[] = 'ellipsis-'.$previousPage;
+            }
+
+            $activityPageItems[] = $pageNumber;
+            $previousPage = $pageNumber;
+        }
 
         $periodOptions = [
             ['value' => 7, 'label' => '7 Hari'],
@@ -384,14 +404,18 @@
                         </span>
                     @endif
 
-                    @foreach($activityPageLinks as $pageNumber)
-                        @php
-                            $isCurrentActivityPage = (int) $pageNumber === $activityPage;
-                            $activityPageQuery = array_merge($baseDashboardQuery, ['activity_page' => $pageNumber]);
-                        @endphp
-                        <a href="{{ route('quality.index', $activityPageQuery) }}" aria-current="{{ $isCurrentActivityPage ? 'page' : 'false' }}" class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1 {{ $isCurrentActivityPage ? 'border-primary-300 bg-primary-100 text-primary-900' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50' }}">
-                            {{ $pageNumber }}
-                        </a>
+                    @foreach($activityPageItems as $pageItem)
+                        @if(is_string($pageItem))
+                            <span class="inline-flex min-h-[44px] min-w-[24px] items-center justify-center px-1 text-xs font-semibold text-slate-400" aria-hidden="true">...</span>
+                        @else
+                            @php
+                                $isCurrentActivityPage = (int) $pageItem === $activityPage;
+                                $activityPageQuery = array_merge($baseDashboardQuery, ['activity_page' => $pageItem]);
+                            @endphp
+                            <a href="{{ route('quality.index', $activityPageQuery) }}" aria-current="{{ $isCurrentActivityPage ? 'page' : 'false' }}" class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1 {{ $isCurrentActivityPage ? 'border-primary-300 bg-primary-100 text-primary-900' : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50' }}">
+                                {{ $pageItem }}
+                            </a>
+                        @endif
                     @endforeach
 
                     @if($activityHasNext)
