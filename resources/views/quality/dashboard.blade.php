@@ -124,7 +124,7 @@
                         Command Center
                     </div>
                     <h2 class="text-xl font-semibold text-slate-900">Dokumen QMH yang benar-benar bisa ditindaklanjuti</h2>
-                    <p class="max-w-2xl text-sm text-slate-600">Fokus pada antrean kerja, risiko tertunda, dan snapshot tata kelola agar tim bisa mengeksekusi prioritas tanpa konteks yang berisik.</p>
+                    <p class="max-w-2xl text-sm text-slate-600">Fokus pada antrean kerja, risiko tertunda, dan ringkasan tata kelola agar tim bisa mengeksekusi prioritas tanpa konteks yang berisik.</p>
                 </div>
 
                 <form method="GET" action="{{ route('quality.index') }}" class="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
@@ -338,7 +338,7 @@
                     <svg class="h-4 w-4 text-slate-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" d="{{ $iconPath('governance') }}" />
                     </svg>
-                    <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-800">Governance Snapshot</h3>
+                    <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-800">Ringkasan Tata Kelola</h3>
                 </div>
 
                 <div class="space-y-3">
