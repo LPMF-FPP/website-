@@ -59,16 +59,17 @@ class ResiCommand
         foreach ($milestones as $milestone) {
             if ($milestone['completed']) {
                 $icon = '✅';
-                $statusText = '';
             } elseif ($milestone['current'] ?? false) {
-                $icon = '▶️';
-                $statusText = ' (PROSES)';
+                $icon = '🟡';
             } else {
-                $icon = '⚪';
-                $statusText = '';
+                $icon = '⚪️';
             }
 
-            $line = "{$icon} *{$milestone['label']}*{$statusText}";
+            $line = "{$icon} {$milestone['label']}";
+
+            if (! empty($milestone['detail'])) {
+                $line .= "\n   🧩 {$milestone['detail']}";
+            }
 
             if (! empty($milestone['timestamp'])) {
                 $line .= "\n   🕒 {$milestone['timestamp']}";
@@ -107,12 +108,9 @@ class ResiCommand
         $isTestingStarted = $statusLevel >= 3 || $testRequest->received_at !== null;
         $isTestingDone = $statusLevel >= 4 || $testRequest->completed_at !== null || $testRequest->status === 'completed';
 
-        $substeps = $isTestingStarted
-            ? "\n      a. Preparasi sampel\n      b. Pengujian pada instrumen\n      c. Interpretasi hasil"
-            : '';
-
         $milestones[] = [
-            'label' => '3. Pengujian'.$substeps,
+            'label' => '3. Pengujian',
+            'detail' => 'Preparasi sampel -> Pengujian instrumen -> Interpretasi hasil',
             'completed' => $isTestingDone,
             'current' => $isTestingStarted && ! $isTestingDone,
             'timestamp' => $testRequest->received_at ?
@@ -153,18 +151,18 @@ class ResiCommand
     private function getCurrentStatusText(string $status): string
     {
         return match ($status) {
-            'draft' => '1. Permintaan (Draft)',
-            'submitted' => '1. Permintaan (Disubmit)',
-            'pending_verification' => '1. Permintaan (Menunggu Verifikasi)',
-            'verified' => '2. Kaji Ulang Permintaan (Selesai)',
-            'pending_review' => '2. Kaji Ulang Permintaan (Sedang Review)',
-            'ready_for_test' => '3. Pengujian (Siap)',
-            'in_testing' => '3. Pengujian (Sedang Berjalan)',
-            'processing' => '3. Pengujian (Proses)',
-            'ready_for_delivery' => '4. Siap Diserahkan',
-            'completed' => '4. Siap Diserahkan',
-            'delivered' => '5. Selesai',
-            default => 'Status: '.ucfirst(str_replace('_', ' ', $status)),
+            'draft' => '⚪ Tahap 1 - Permintaan (Draft)',
+            'submitted' => '🟡 Tahap 1 - Permintaan (Disubmit)',
+            'pending_verification' => '🟡 Tahap 1 - Menunggu Verifikasi',
+            'verified' => '✅ Tahap 2 - Kaji Ulang Permintaan selesai',
+            'pending_review' => '🟡 Tahap 2 - Kaji Ulang sedang review',
+            'ready_for_test' => '🟡 Tahap 3 - Pengujian siap dimulai',
+            'in_testing' => '🟡 Tahap 3 - Pengujian sedang berjalan',
+            'processing' => '🟡 Tahap 3 - Pengujian dalam proses',
+            'ready_for_delivery' => '🟡 Tahap 4 - Siap Diserahkan',
+            'completed' => '✅ Tahap 4 - Siap Diserahkan',
+            'delivered' => '✅ Tahap 5 - Selesai',
+            default => 'ℹ️ Status: '.ucfirst(str_replace('_', ' ', $status)),
         };
     }
 }
