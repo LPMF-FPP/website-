@@ -37,12 +37,14 @@ class ResiCommandTest extends TestCase
         $this->assertStringContainsString('✅ 1. Permintaan', $message);
         $this->assertStringContainsString('✅ 2. Kaji Ulang Permintaan', $message);
         $this->assertStringContainsString('🟡 3. Pengujian', $message);
-        $this->assertStringContainsString('▪️ 3.1 Preparasi sampel', $message);
-        $this->assertStringContainsString('▪️ 3.2 Pengujian pada instrumen', $message);
-        $this->assertStringContainsString('▪️ 3.3 Interpretasi hasil', $message);
+        $this->assertStringContainsString('▪️ 3.1 Preparasi sampel: ✅ Selesai', $message);
+        $this->assertStringContainsString('▪️ 3.2 Pengujian pada instrumen: *🟡 Sedang berjalan*', $message);
+        $this->assertStringContainsString('▪️ 3.3 Interpretasi hasil: ⚪️ Menunggu', $message);
+        $this->assertStringContainsString('🕒 Waktu mulai tahap 3:', $message);
         $this->assertStringContainsString('📌 *Status Terkini*', $message);
         $this->assertStringContainsString('🟡 Tahap 3 dari 5 - Pengujian sedang berjalan', $message);
         $this->assertStringContainsString('Keterangan: ✅ selesai | 🟡 sedang berjalan | ⚪️ menunggu', $message);
+        $this->assertStringContainsString('🕒 Pada Tahap 3, waktu menunjukkan kapan tahap pengujian dimulai.', $message);
         $this->assertStringContainsString('*/resi LPMF-RESI-2026-0001*', $message);
     }
 }

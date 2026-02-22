@@ -7,7 +7,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $resiTrackingTemplate = "📋 *PELACAKAN RESI PERMINTAAN*\n\n🔖 *Kode Resi:* {resi}\n📄 *Nomor Permintaan:* {request_number}\n👮 *Penyidik:* {investigator}\n📦 *Jumlah Sampel:* {sample_count}\n\n🧭 *Tahapan Proses (1-5)*\n{milestones}\n\n📌 *Status Terkini*\n{current_status}\n\nKeterangan: ✅ selesai | 🟡 sedang berjalan | ⚪️ menunggu\n─────────────────\nℹ️ Cek ulang kapan saja dengan ketik:\n*/resi {resi}*";
+        $resiTrackingTemplate = "📋 *PELACAKAN RESI PERMINTAAN*\n\n🔖 *Kode Resi:* {resi}\n📄 *Nomor Permintaan:* {request_number}\n👮 *Penyidik:* {investigator}\n📦 *Jumlah Sampel:* {sample_count}\n\n🧭 *Tahapan Proses (1-5)*\n{milestones}\n\n📌 *Status Terkini*\n*{current_status}*\n\nKeterangan: ✅ selesai | 🟡 sedang berjalan | ⚪️ menunggu\n🕒 Pada Tahap 3, waktu menunjukkan kapan tahap pengujian dimulai.\n─────────────────\nℹ️ Cek ulang kapan saja dengan ketik:\n*/resi {resi}*";
 
         $setting = SystemSetting::query()
             ->where('key', 'notifications.whatsapp.command_templates')
