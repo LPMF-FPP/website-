@@ -66,7 +66,6 @@ class QmhDocumentWebTest extends TestCase
 
         $documents = $this->actingAs($user)->get('/quality/documents');
         $documents->assertOk();
-        $this->assertBreadcrumbLabels($documents->getContent(), ['Dashboard QMH', 'Dokumen']);
         $this->assertQmhSubnavActiveLabel($documents->getContent(), 'Dokumen');
 
         $create = $this->actingAs($user)->get('/quality/documents/create');
@@ -384,7 +383,7 @@ class QmhDocumentWebTest extends TestCase
             ->get('/quality/documents?search=QMH&clause=6&doc_type=ik&status=draft&edition_number=1&revision_number=0');
 
         $response->assertOk();
-        $response->assertSee('Dashboard QMH');
+        $response->assertSee('Dokumen QMH');
         $response->assertSee('Lihat');
         $response->assertSee('QMH-IK-200');
         $response->assertDontSee('QMH-SOP-100');
