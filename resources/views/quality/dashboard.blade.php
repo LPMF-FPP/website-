@@ -43,14 +43,16 @@
         $baseDashboardQuery = request()->except('activity_page');
         $activityPrevQuery = array_merge($baseDashboardQuery, ['activity_page' => max(1, $activityPage - 1)]);
         $activityNextQuery = array_merge($baseDashboardQuery, ['activity_page' => min($activityLastPage, $activityPage + 1)]);
-        $activityPageCandidates = $activityLastPage <= 7
+        $activityPageCandidates = $activityLastPage <= 9
             ? range(1, $activityLastPage)
             : array_values(array_unique(array_filter([
                 1,
                 2,
+                $activityPage - 2,
                 $activityPage - 1,
                 $activityPage,
                 $activityPage + 1,
+                $activityPage + 2,
                 $activityLastPage - 1,
                 $activityLastPage,
             ], static fn (int $pageNumber): bool => $pageNumber >= 1 && $pageNumber <= $activityLastPage)));
@@ -59,8 +61,16 @@
         $activityPageItems = [];
         $previousPage = null;
         foreach ($activityPageCandidates as $pageNumber) {
-            if ($previousPage !== null && ($pageNumber - $previousPage) > 1) {
-                $activityPageItems[] = 'ellipsis-'.$previousPage;
+            if ($previousPage !== null) {
+                $gap = $pageNumber - $previousPage;
+
+                if ($gap === 2) {
+                    $activityPageItems[] = $previousPage + 1;
+                }
+
+                if ($gap > 2) {
+                    $activityPageItems[] = 'ellipsis-'.$previousPage;
+                }
             }
 
             $activityPageItems[] = $pageNumber;
