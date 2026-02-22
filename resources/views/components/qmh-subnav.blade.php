@@ -3,55 +3,33 @@
 ])
 
 @php
-    $primaryItems = [
+    $activeKey = is_string($active) ? $active : '';
+    $inGovernanceContext = in_array($activeKey, ['governance', 'rapat', 'audit', 'kum'], true);
+
+    $items = [
         [
             'key' => 'overview',
             'label' => 'Ringkasan',
             'href' => route('quality.index'),
         ],
-        [
-            'key' => 'documents',
-            'label' => 'Dokumen',
-            'href' => route('quality.documents.index'),
-        ],
     ];
 
-    $governanceItems = [];
-
     if (auth()->user()?->hasAnyPermission(['qmh.view', 'qmh.rapat.view', 'qmh.audit.view', 'qmh.kum.view'])) {
-        $governanceItems[] = [
+        $items[] = [
             'key' => 'governance',
-            'label' => 'Governance',
+            'label' => 'Tata Kelola',
             'href' => route('quality.governance.index'),
         ];
     }
 
-    if (auth()->user()?->hasAnyPermission(['qmh.rapat.view', 'qmh.rapat.view.all', 'qmh.view'])) {
-        $governanceItems[] = [
-            'key' => 'rapat',
-            'label' => 'Rapat',
-            'href' => route('quality.rapat.index'),
-        ];
-    }
-
-    if (auth()->user()?->hasAnyPermission(['qmh.audit.view', 'qmh.audit.view.all', 'qmh.view'])) {
-        $governanceItems[] = [
-            'key' => 'audit',
-            'label' => 'Audit',
-            'href' => route('quality.audit.index'),
-        ];
-    }
-
-    if (auth()->user()?->hasAnyPermission(['qmh.kum.view', 'qmh.kum.view.all', 'qmh.view'])) {
-        $governanceItems[] = [
-            'key' => 'kum',
-            'label' => 'KUM',
-            'href' => route('quality.kum.index'),
-        ];
-    }
+    $items[] = [
+        'key' => 'documents',
+        'label' => 'Dokumen',
+        'href' => route('quality.documents.index'),
+    ];
 
     if (auth()->user()?->hasPermission('qmh.template.manage')) {
-        $primaryItems[] = [
+        $items[] = [
             'key' => 'templates',
             'label' => 'Template',
             'href' => route('quality.templates.index'),
@@ -59,15 +37,12 @@
     }
 
     if (auth()->user()?->hasPermission('qmh.report')) {
-        $primaryItems[] = [
+        $items[] = [
             'key' => 'reports',
             'label' => 'Laporan',
             'href' => route('quality.reports.index'),
         ];
     }
-
-    $activeKey = is_string($active) ? $active : '';
-    $governanceActive = in_array($activeKey, ['governance', 'rapat', 'audit', 'kum'], true);
 
     $iconPath = static fn (string $key): string => match ($key) {
         'overview' => 'M3 13h8V3H3v10Zm0 8h8v-6H3v6Zm10 0h8V11h-8v10Zm0-18v6h8V3h-8Z',
@@ -82,11 +57,12 @@
     };
 @endphp
 
-<nav aria-label="Navigasi QMH" class="mt-3 space-y-2">
+<nav aria-label="Navigasi QMH" class="mt-3">
     <div class="qmh-subnav-primary inline-flex flex-wrap gap-2 rounded-lg border border-gray-200 bg-white/60 p-1">
-        @foreach ($primaryItems as $item)
+        @foreach ($items as $item)
             @php
-                $isActive = $activeKey === ($item['key'] ?? '');
+                $itemKey = $item['key'] ?? '';
+                $isActive = ($itemKey === 'governance' && $inGovernanceContext) || $activeKey === $itemKey;
             @endphp
             <a
                 href="{{ $item['href'] }}"
@@ -100,31 +76,4 @@
             </a>
         @endforeach
     </div>
-
-    @if (!empty($governanceItems))
-        <div class="rounded-xl border p-1.5 transition-all duration-200 {{ $governanceActive ? 'border-primary-300 bg-gradient-to-r from-primary-50 to-white shadow-sm' : 'border-primary-100 bg-white/80 hover:border-primary-200 hover:shadow-sm' }}">
-            <div class="qmh-subnav-governance flex flex-wrap items-center gap-2">
-                <span class="inline-flex items-center gap-2 rounded-md bg-white px-3 py-2 text-xs font-semibold uppercase tracking-wide text-primary-700 shadow-sm">
-                    <span class="h-1.5 w-1.5 rounded-full bg-primary-500 animate-pulse" aria-hidden="true"></span>
-                    Governance Suite
-                </span>
-
-                @foreach ($governanceItems as $item)
-                    @php
-                        $isActive = $activeKey === ($item['key'] ?? '');
-                    @endphp
-                    <a
-                        href="{{ $item['href'] }}"
-                        class="qmh-subnav-item qmh-subnav-anim group inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1 {{ $isActive ? 'bg-primary-600 text-white shadow-sm' : 'text-primary-700 hover:bg-white hover:text-primary-900' }}"
-                        @if($isActive) aria-current="page" @endif
-                    >
-                        <svg class="h-4 w-4 shrink-0 transition-transform duration-200 {{ $isActive ? 'scale-105' : 'group-hover:translate-x-0.5 group-hover:scale-105' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="{{ $iconPath($item['key'] ?? '') }}" />
-                        </svg>
-                        <span>{{ $item['label'] }}</span>
-                    </a>
-                @endforeach
-            </div>
-        </div>
-    @endif
 </nav>
