@@ -29,4 +29,15 @@ return [
             'application/pdf',
         ],
     ],
+    'rapat_attachments' => [
+        'storage_disk' => (string) env('QMH_RAPAT_ATTACHMENT_DISK', 'local'),
+        'storage_dir' => (string) env('QMH_RAPAT_ATTACHMENT_DIR', 'qmh-rapat-attachments'),
+        'max_file_size_kb' => (int) env('QMH_RAPAT_ATTACHMENT_MAX_FILE_SIZE_KB', 15360),
+        'allowed_mimes' => [
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+            'application/pdf',
+        ],
+    ],
 ];

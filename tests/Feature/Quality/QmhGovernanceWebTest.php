@@ -8,7 +8,10 @@ use App\Models\QmhRapat;
 use App\Models\QmhRapatActionItem;
 use App\Models\RolePermission;
 use App\Models\User;
+use App\Services\WhatsApp\GowaClient;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class QmhGovernanceWebTest extends TestCase
@@ -207,6 +210,94 @@ class QmhGovernanceWebTest extends TestCase
             'year' => 2026,
             'period' => 'annual',
         ]);
+    }
+
+    public function test_can_send_rapat_pdf_to_whatsapp_individual_and_log_batch(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $rapat = QmhRapat::query()->create([
+            'title' => 'Rapat Tinjauan Bulanan',
+            'meeting_type' => 'bulanan',
+            'scheduled_at' => now()->addDay(),
+            'location' => 'Ruang Utama',
+            'agenda' => 'Tinjauan mutu bulanan',
+            'status' => 'scheduled',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $this->mock(GowaClient::class, function ($mock): void {
+            $mock->shouldReceive('sendFile')
+                ->once()
+                ->andReturn([
+                    'success' => true,
+                    'message_id' => 'qmh-test-message-id',
+                ]);
+        });
+
+        $this->actingAs($user)
+            ->post('/quality/rapat/'.$rapat->id.'/whatsapp/send', [
+                'recipient_type' => 'individual',
+                'recipient_value' => '081234567890',
+                'message' => 'Mohon ditinjau.',
+            ])
+            ->assertRedirect('/quality/rapat/'.$rapat->id)
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('whatsapp_message_batches', [
+            'type' => 'qmh_rapat_summary',
+            'source_type' => QmhRapat::class,
+            'source_id' => $rapat->id,
+            'sent_count' => 1,
+            'failed_count' => 0,
+        ]);
+
+        $this->assertDatabaseHas('whatsapp_message_logs', [
+            'recipient_jid' => '6281234567890@s.whatsapp.net',
+            'recipient_type' => 'individual',
+            'status' => 'sent',
+        ]);
+    }
+
+    public function test_can_upload_multiple_rapat_attachments(): void
+    {
+        Storage::fake('local');
+
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $rapat = QmhRapat::query()->create([
+            'title' => 'Rapat Dokumentasi',
+            'meeting_type' => 'ad_hoc',
+            'status' => 'draft',
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $this->actingAs($user)
+            ->post('/quality/rapat/'.$rapat->id.'/attachments', [
+                'files' => [
+                    UploadedFile::fake()->image('foto-rapat-1.jpg'),
+                    UploadedFile::fake()->create('ringkasan-rapat.pdf', 256, 'application/pdf'),
+                ],
+                'notes' => 'Dokumentasi rapat mingguan',
+            ])
+            ->assertRedirect('/quality/rapat/'.$rapat->id)
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseCount('qmh_rapat_attachments', 2);
+
+        $this->assertDatabaseHas('qmh_rapat_attachments', [
+            'rapat_id' => $rapat->id,
+            'notes' => 'Dokumentasi rapat mingguan',
+        ]);
+
+        $paths = \App\Models\QmhRapatAttachment::query()->pluck('file_path')->all();
+        foreach ($paths as $path) {
+            Storage::disk('local')->assertExists($path);
+        }
     }
 
     private function createQmhPermissions(): void

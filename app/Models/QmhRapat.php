@@ -43,6 +43,11 @@ class QmhRapat extends Model
         return $this->hasMany(QmhRapatActionItem::class, 'rapat_id');
     }
 
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(QmhRapatAttachment::class, 'rapat_id')->latest();
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

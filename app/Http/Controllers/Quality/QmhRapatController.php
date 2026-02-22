@@ -5,16 +5,23 @@ namespace App\Http\Controllers\Quality;
 use App\Http\Controllers\Controller;
 use App\Models\QmhRapat;
 use App\Models\QmhRapatActionItem;
+use App\Models\QmhRapatAttachment;
 use App\Models\QmhRapatNotulensi;
 use App\Models\QmhRapatPeserta;
 use App\Models\User;
 use App\Services\Quality\AuditTrailService;
 use App\Services\Quality\QmhActionItemStateMachine;
+use App\Services\Quality\QmhRapatWhatsappService;
+use App\Services\WhatsApp\GowaClient;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 use InvalidArgumentException;
+use Symfony\Component\HttpFoundation\Response;
 
 class QmhRapatController extends Controller
 {
@@ -119,6 +126,7 @@ class QmhRapatController extends Controller
             'pesertas.user',
             'notulensis.creator',
             'actionItems.assignee',
+            'attachments.uploader',
         ]);
 
         return view('quality.rapat.show', [
@@ -126,6 +134,186 @@ class QmhRapatController extends Controller
             'canManage' => $this->canEditRapat($user, $rapat),
             'users' => User::query()->orderBy('name')->get(['id', 'name', 'role']),
         ]);
+    }
+
+    public function pdf(Request $request, QmhRapat $rapat, QmhRapatWhatsappService $service): Response
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User && $this->canViewRapat($user, $rapat), 403);
+
+        $binary = $service->renderSummaryPdf($rapat);
+        $filename = 'hasil-rapat-'.$rapat->id.'.pdf';
+
+        return response($binary, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ]);
+    }
+
+    public function sendWhatsAppSummary(Request $request, QmhRapat $rapat, QmhRapatWhatsappService $service): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User && $this->canEditRapat($user, $rapat), 403);
+
+        $validated = validator($request->all(), [
+            'recipient_type' => ['required', 'in:individual,group'],
+            'recipient_value' => ['required', 'string', 'max:255'],
+            'message' => ['nullable', 'string', 'max:1000'],
+        ])->validate();
+
+        try {
+            $result = $service->sendSummaryPdf($rapat, $user, $validated);
+        } catch (InvalidArgumentException $exception) {
+            return redirect()
+                ->route('quality.rapat.show', $rapat)
+                ->withInput()
+                ->withErrors(['whatsapp' => $exception->getMessage()]);
+        }
+
+        if (! ($result['success'] ?? false)) {
+            return redirect()
+                ->route('quality.rapat.show', $rapat)
+                ->withInput()
+                ->withErrors(['whatsapp' => (string) ($result['error'] ?? 'Gagal mengirim PDF ke WhatsApp.')]);
+        }
+
+        return redirect()
+            ->route('quality.rapat.show', $rapat)
+            ->with('success', 'PDF hasil rapat berhasil dikirim ke WhatsApp.');
+    }
+
+    public function whatsappGroups(Request $request, GowaClient $gowaClient): JsonResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User && $this->canCreate($user), 403);
+
+        $result = $gowaClient->getJoinedGroups();
+
+        if (! ($result['success'] ?? false)) {
+            return response()->json([
+                'groups' => [],
+                'message' => (string) ($result['error'] ?? 'Gagal mengambil daftar grup WhatsApp.'),
+            ], 422);
+        }
+
+        $groups = collect($result['groups'] ?? [])
+            ->filter(fn ($group) => str_ends_with((string) ($group['JID'] ?? $group['jid'] ?? ''), '@g.us'))
+            ->map(fn ($group) => [
+                'jid' => (string) ($group['JID'] ?? $group['jid'] ?? ''),
+                'name' => (string) ($group['Name'] ?? $group['name'] ?? 'Grup Tanpa Nama'),
+            ])
+            ->values();
+
+        return response()->json([
+            'groups' => $groups,
+        ]);
+    }
+
+    public function storeAttachments(Request $request, QmhRapat $rapat): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User && $this->canEditRapat($user, $rapat), 403);
+
+        $validated = validator($request->all(), [
+            'files' => ['required', 'array', 'min:1', 'max:10'],
+            'files.*' => [
+                'required',
+                'file',
+                'mimetypes:'.implode(',', $this->allowedAttachmentMimes()),
+                'max:'.$this->maxAttachmentSizeKb(),
+            ],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ])->validate();
+
+        $disk = $this->attachmentDisk();
+        $baseDir = $this->attachmentDir();
+        $storedRecords = [];
+
+        try {
+            DB::transaction(function () use ($validated, $rapat, $user, $disk, $baseDir, &$storedRecords): void {
+                foreach ($validated['files'] as $file) {
+                    $extension = strtolower((string) $file->getClientOriginalExtension());
+                    $filename = Str::uuid()->toString().($extension !== '' ? '.'.$extension : '');
+                    $directory = trim($baseDir !== '' ? $baseDir.'/'.$rapat->id : (string) $rapat->id, '/');
+                    $storedPath = Storage::disk($disk)->putFileAs($directory, $file, $filename);
+                    if (! is_string($storedPath) || $storedPath === '') {
+                        throw new InvalidArgumentException('Gagal menyimpan salah satu file dokumentasi.');
+                    }
+
+                    $record = QmhRapatAttachment::query()->create([
+                        'rapat_id' => $rapat->id,
+                        'file_disk' => $disk,
+                        'file_path' => $storedPath,
+                        'file_name' => (string) $file->getClientOriginalName(),
+                        'file_mime' => (string) $file->getClientMimeType(),
+                        'file_size' => (int) $file->getSize(),
+                        'notes' => $validated['notes'] ?? null,
+                        'uploaded_by' => $user->id,
+                    ]);
+
+                    $storedRecords[] = $record;
+                }
+            });
+        } catch (\Throwable $exception) {
+            foreach ($storedRecords as $record) {
+                if ($record instanceof QmhRapatAttachment) {
+                    Storage::disk((string) $record->file_disk)->delete((string) $record->file_path);
+                    $record->delete();
+                }
+            }
+
+            return redirect()
+                ->route('quality.rapat.show', $rapat)
+                ->withInput()
+                ->withErrors(['attachments' => 'Gagal mengunggah dokumentasi rapat.']);
+        }
+
+        return redirect()
+            ->route('quality.rapat.show', $rapat)
+            ->with('success', 'Dokumentasi rapat berhasil diunggah.');
+    }
+
+    public function fileAttachment(Request $request, QmhRapat $rapat, QmhRapatAttachment $attachment): Response
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User && $this->canViewRapat($user, $rapat), 403);
+        abort_unless((int) $attachment->rapat_id === (int) $rapat->id, 404);
+
+        $disk = (string) $attachment->file_disk;
+        $path = (string) $attachment->file_path;
+
+        abort_unless($path !== '' && Storage::disk($disk)->exists($path), 404, 'File tidak ditemukan');
+
+        $download = $request->boolean('download');
+        $filename = (string) $attachment->file_name;
+
+        if ($download) {
+            return Storage::disk($disk)->download($path, $filename);
+        }
+
+        return Storage::disk($disk)->response($path, $filename, [
+            'Content-Type' => (string) ($attachment->file_mime ?: 'application/octet-stream'),
+        ]);
+    }
+
+    public function destroyAttachment(Request $request, QmhRapat $rapat, QmhRapatAttachment $attachment): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless($user instanceof User && $this->canEditRapat($user, $rapat), 403);
+        abort_unless((int) $attachment->rapat_id === (int) $rapat->id, 404);
+
+        $disk = (string) $attachment->file_disk;
+        $path = (string) $attachment->file_path;
+
+        if ($path !== '' && Storage::disk($disk)->exists($path)) {
+            Storage::disk($disk)->delete($path);
+        }
+
+        $attachment->delete();
+
+        return redirect()
+            ->route('quality.rapat.show', $rapat)
+            ->with('success', 'Dokumentasi rapat berhasil dihapus.');
     }
 
     public function update(Request $request, QmhRapat $rapat): RedirectResponse
@@ -335,5 +523,36 @@ class QmhRapatController extends Controller
         }
 
         return $rapat->pesertas()->where('user_id', $user->id)->exists();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function allowedAttachmentMimes(): array
+    {
+        $configured = config('quality.rapat_attachments.allowed_mimes', []);
+
+        if (! is_array($configured) || count($configured) === 0) {
+            return ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+        }
+
+        return array_values(array_filter($configured, static fn ($item): bool => is_string($item) && $item !== ''));
+    }
+
+    private function maxAttachmentSizeKb(): int
+    {
+        $configured = (int) config('quality.rapat_attachments.max_file_size_kb', 15360);
+
+        return $configured > 0 ? $configured : 15360;
+    }
+
+    private function attachmentDisk(): string
+    {
+        return (string) config('quality.rapat_attachments.storage_disk', 'local');
+    }
+
+    private function attachmentDir(): string
+    {
+        return trim((string) config('quality.rapat_attachments.storage_dir', 'qmh-rapat-attachments'), '/');
     }
 }
