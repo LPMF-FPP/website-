@@ -2,7 +2,7 @@
     <x-slot name="header">
         <x-page-header
             title="Penyerahan Hasil Pengujian"
-            :breadcrumbs="[[ 'label' => 'Penyerahan' ]]"
+            :breadcrumbs="[]"
         />
     </x-slot>
 

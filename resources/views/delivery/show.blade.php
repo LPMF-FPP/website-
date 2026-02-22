@@ -2,7 +2,7 @@
     <x-slot name="header">
         <x-page-header
             :title="'Detail Penyerahan · ' . $request->receipt_number"
-            :breadcrumbs="[[ 'label' => 'Penyerahan', 'href' => route('delivery.index') ], [ 'label' => 'Detail' ]]"
+            :breadcrumbs="[]"
         />
     </x-slot>
 
