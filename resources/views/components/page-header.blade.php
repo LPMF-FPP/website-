@@ -5,7 +5,16 @@
 ])
 
 <div class="{{ $class }}">
-    @if (is_array($breadcrumbs) && count($breadcrumbs) > 0)
+    @php
+        $showBreadcrumbs = is_array($breadcrumbs) && count($breadcrumbs) > 0;
+        $firstBreadcrumbLabel = data_get($breadcrumbs, '0.label');
+
+        if (is_string($firstBreadcrumbLabel) && $firstBreadcrumbLabel === 'Dashboard QMH') {
+            $showBreadcrumbs = false;
+        }
+    @endphp
+
+    @if ($showBreadcrumbs)
         <nav class="mb-2" aria-label="Breadcrumb">
             <ol class="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-600">
                 @foreach ($breadcrumbs as $i => $crumb)

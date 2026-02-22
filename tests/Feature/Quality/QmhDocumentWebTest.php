@@ -61,7 +61,6 @@ class QmhDocumentWebTest extends TestCase
 
         $landing = $this->actingAs($user)->get('/quality');
         $landing->assertOk();
-        $this->assertBreadcrumbLabels($landing->getContent(), ['Dashboard QMH']);
         $this->assertQmhSubnavActiveLabel($landing->getContent(), 'Ringkasan');
 
         $documents = $this->actingAs($user)->get('/quality/documents');
@@ -70,12 +69,10 @@ class QmhDocumentWebTest extends TestCase
 
         $create = $this->actingAs($user)->get('/quality/documents/create');
         $create->assertOk();
-        $this->assertBreadcrumbLabels($create->getContent(), ['Dashboard QMH', 'Buat Dokumen']);
         $this->assertQmhSubnavActiveLabel($create->getContent(), 'Dokumen');
 
         $templates = $this->actingAs($user)->get('/quality/templates');
         $templates->assertOk();
-        $this->assertBreadcrumbLabels($templates->getContent(), ['Dashboard QMH', 'Template QMH']);
         $this->assertQmhSubnavActiveLabel($templates->getContent(), 'Dokumen');
 
         $document = QmhDocument::query()->create([
@@ -100,12 +97,10 @@ class QmhDocumentWebTest extends TestCase
 
         $show = $this->actingAs($user)->get('/quality/documents/'.$document->id);
         $show->assertOk();
-        $this->assertBreadcrumbLabels($show->getContent(), ['Dashboard QMH', 'Dokumen', 'QMH-SOP-CR-001']);
         $this->assertQmhSubnavActiveLabel($show->getContent(), 'Dokumen');
 
         $edit = $this->actingAs($user)->get('/quality/documents/'.$document->id.'/edit');
         $edit->assertOk();
-        $this->assertBreadcrumbLabels($edit->getContent(), ['Dashboard QMH', 'Dokumen', 'Editor']);
         $this->assertQmhSubnavActiveLabel($edit->getContent(), 'Dokumen');
     }
 
@@ -119,7 +114,6 @@ class QmhDocumentWebTest extends TestCase
         $reports = $this->actingAs($user)->get('/quality/reports');
 
         $reports->assertOk();
-        $this->assertBreadcrumbLabels($reports->getContent(), ['Dashboard QMH', 'Laporan QMH']);
         $this->assertQmhSubnavActiveLabel($reports->getContent(), 'Laporan');
     }
 
