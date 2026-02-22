@@ -5,6 +5,8 @@
 @php
     $activeKey = is_string($active) ? $active : '';
     $inGovernanceContext = in_array($activeKey, ['governance', 'rapat', 'audit', 'kum'], true);
+    $inDocumentContext = in_array($activeKey, ['documents', 'templates'], true);
+    $canManageTemplates = auth()->user()?->hasPermission('qmh.template.manage') ?? false;
 
     $items = [
         [
@@ -28,14 +30,6 @@
         'href' => route('quality.documents.index'),
     ];
 
-    if (auth()->user()?->hasPermission('qmh.template.manage')) {
-        $items[] = [
-            'key' => 'templates',
-            'label' => 'Template',
-            'href' => route('quality.templates.index'),
-        ];
-    }
-
     if (auth()->user()?->hasPermission('qmh.report')) {
         $items[] = [
             'key' => 'reports',
@@ -43,6 +37,24 @@
             'href' => route('quality.reports.index'),
         ];
     }
+
+    $documentItems = [
+        [
+            'key' => 'documents',
+            'label' => 'Dokumen',
+            'href' => route('quality.documents.index'),
+        ],
+    ];
+
+    if ($canManageTemplates) {
+        $documentItems[] = [
+            'key' => 'templates',
+            'label' => 'Template',
+            'href' => route('quality.templates.index'),
+        ];
+    }
+
+    $showDocumentSubnav = $inDocumentContext && count($documentItems) > 1;
 
     $iconPath = static fn (string $key): string => match ($key) {
         'overview' => 'M3 13h8V3H3v10Zm0 8h8v-6H3v6Zm10 0h8V11h-8v10Zm0-18v6h8V3h-8Z',
@@ -62,12 +74,21 @@
         @foreach ($items as $item)
             @php
                 $itemKey = $item['key'] ?? '';
-                $isActive = ($itemKey === 'governance' && $inGovernanceContext) || $activeKey === $itemKey;
+                $isActive = match ($itemKey) {
+                    'governance' => $inGovernanceContext,
+                    'documents' => $inDocumentContext,
+                    default => $activeKey === $itemKey,
+                };
+                $isCurrent = match ($itemKey) {
+                    'documents' => $inDocumentContext && ! $showDocumentSubnav,
+                    'governance' => $inGovernanceContext,
+                    default => $activeKey === $itemKey,
+                };
             @endphp
             <a
                 href="{{ $item['href'] }}"
                 class="qmh-subnav-item qmh-subnav-anim group inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1 {{ $isActive ? 'bg-primary-100 text-primary-800' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900' }}"
-                @if($isActive) aria-current="page" @endif
+                @if($isCurrent) aria-current="page" @endif
             >
                 <svg class="h-4 w-4 shrink-0 transition-transform duration-200 {{ $isActive ? 'scale-105' : 'group-hover:translate-x-0.5 group-hover:scale-105' }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" d="{{ $iconPath($item['key'] ?? '') }}" />
@@ -76,4 +97,25 @@
             </a>
         @endforeach
     </div>
+
+    @if($showDocumentSubnav)
+        <div class="mt-2 inline-flex flex-wrap items-center gap-2 rounded-lg border border-primary-100 bg-primary-50/80 p-1">
+            <span class="px-2 text-[11px] font-semibold uppercase tracking-wide text-primary-700">Dokumen</span>
+            @foreach($documentItems as $subItem)
+                @php
+                    $isSubCurrent = $activeKey === ($subItem['key'] ?? '');
+                @endphp
+                <a
+                    href="{{ $subItem['href'] }}"
+                    class="inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1 {{ $isSubCurrent ? 'bg-white text-primary-800 shadow-sm' : 'text-primary-700/80 hover:bg-white/70 hover:text-primary-900' }}"
+                    @if($isSubCurrent) aria-current="page" @endif
+                >
+                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="{{ $iconPath($subItem['key'] ?? '') }}" />
+                    </svg>
+                    <span>{{ $subItem['label'] }}</span>
+                </a>
+            @endforeach
+        </div>
+    @endif
 </nav>
