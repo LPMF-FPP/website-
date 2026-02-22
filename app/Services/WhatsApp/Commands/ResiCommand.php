@@ -18,12 +18,10 @@ class ResiCommand
             return $this->templateService->get('command', 'RESI_FORMAT_ERROR');
         }
 
-        $receiptNumber = $params[0];
+        $receiptNumber = (string) $params[0];
 
-        // Find test request
-        $testRequest = TestRequest::with(['investigator', 'samples.testProcesses'])
-            ->where('receipt_number', $receiptNumber)
-            ->first();
+        // Find test request (supports flexible input format)
+        $testRequest = $this->findTestRequest($receiptNumber);
 
         if (! $testRequest) {
             return $this->templateService->render('command', 'RESI_NOT_FOUND', [
@@ -33,6 +31,27 @@ class ResiCommand
 
         // Build tracking response
         return $this->buildTrackingResponse($testRequest);
+    }
+
+    private function findTestRequest(string $receiptNumber): ?TestRequest
+    {
+        $exact = TestRequest::with(['investigator', 'samples.testProcesses'])
+            ->where('receipt_number', $receiptNumber)
+            ->first();
+
+        if ($exact instanceof TestRequest) {
+            return $exact;
+        }
+
+        $normalizedInput = preg_replace('/[^A-Z0-9]/', '', strtoupper(trim($receiptNumber)));
+
+        if (! is_string($normalizedInput) || $normalizedInput === '') {
+            return null;
+        }
+
+        return TestRequest::with(['investigator', 'samples.testProcesses'])
+            ->whereRaw("regexp_replace(upper(receipt_number), '[^A-Z0-9]', '', 'g') = ?", [$normalizedInput])
+            ->first();
     }
 
     private function buildTrackingResponse(TestRequest $testRequest): string
