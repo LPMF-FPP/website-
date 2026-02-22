@@ -153,12 +153,32 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/rapat', [QualityQmhRapatController::class, 'index'])
             ->name('rapat.index')
             ->middleware('any_permission:qmh.rapat.view|qmh.rapat.view.all|qmh.view');
+        Route::get('/rapat/whatsapp/groups', [QualityQmhRapatController::class, 'whatsappGroups'])
+            ->name('rapat.whatsapp.groups');
         Route::get('/rapat/create', [QualityQmhRapatController::class, 'create'])
             ->name('rapat.create')
             ->middleware('permission:qmh.create');
         Route::post('/rapat', [QualityQmhRapatController::class, 'store'])
             ->name('rapat.store')
             ->middleware('permission:qmh.create');
+        Route::get('/rapat/{rapat}/pdf', [QualityQmhRapatController::class, 'pdf'])
+            ->name('rapat.pdf')
+            ->middleware('any_permission:qmh.rapat.view|qmh.rapat.view.all|qmh.view')
+            ->whereNumber('rapat');
+        Route::post('/rapat/{rapat}/whatsapp/send', [QualityQmhRapatController::class, 'sendWhatsAppSummary'])
+            ->name('rapat.whatsapp.send')
+            ->whereNumber('rapat');
+        Route::post('/rapat/{rapat}/attachments', [QualityQmhRapatController::class, 'storeAttachments'])
+            ->name('rapat.attachments.store')
+            ->whereNumber('rapat');
+        Route::get('/rapat/{rapat}/attachments/{attachment}/file', [QualityQmhRapatController::class, 'fileAttachment'])
+            ->name('rapat.attachments.file')
+            ->whereNumber('rapat')
+            ->whereNumber('attachment');
+        Route::delete('/rapat/{rapat}/attachments/{attachment}', [QualityQmhRapatController::class, 'destroyAttachment'])
+            ->name('rapat.attachments.destroy')
+            ->whereNumber('rapat')
+            ->whereNumber('attachment');
         Route::get('/rapat/{rapat}', [QualityQmhRapatController::class, 'show'])
             ->name('rapat.show')
             ->whereNumber('rapat');
