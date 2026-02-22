@@ -35,7 +35,7 @@ class NotificationServiceTest extends TestCase
             'resi' => '2026-01-18-0019',
         ]);
 
-        $expected = "Selamat Pagi, AKP Siti Rahayu, S.H..\n\nKami informasikan bahwa permintaan Anda dengan:\n\u{1F4C4} Nomor Surat: 2026-01-18-0017\n\u{1F464} Tersangka: John Doe Test\n\u{1F516} Kode Resi: 2026-01-18-0019\n\ntelah kami terima dan segera kami tindak lanjuti. \u{2705}\n\nTerima kasih atas kepercayaan Anda.\n\nSalam Presisi \u{1F64F}\nStaff Laboratorium Farmapol Pusdokkes Polri";
+        $expected = "Selamat Pagi, AKP Siti Rahayu, S.H..\n\nKami informasikan bahwa permintaan Anda dengan:\n\u{1F4C4} Nomor Surat: 2026-01-18-0017\n\u{1F464} Tersangka: John Doe Test\n\u{1F516} Kode Resi: 2026-01-18-0019\n\ntelah kami terima dan segera kami tindak lanjuti. \u{2705}\n\nApabila ingin melacak bisa mengetikan /resi 2026-01-18-0019\n\nTerima kasih atas kepercayaan Anda.\n\nSalam Presisi \u{1F64F}\nStaff Laboratorium Farmapol Pusdokkes Polri";
 
         $this->assertSame($expected, $message);
     }
