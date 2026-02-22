@@ -28,6 +28,8 @@ class QmhDashboardWorkspaceService
         $queueTab = in_array($requestedQueueTab, ['mine', 'overdue', 'done'], true)
             ? $requestedQueueTab
             : 'mine';
+        $activityPage = max(1, (int) ($filters['activity_page'] ?? 1));
+        $activityFeed = $this->buildActivityFeed($activityPage);
 
         return [
             'filters' => [
@@ -35,11 +37,13 @@ class QmhDashboardWorkspaceService
                 'doc_type' => $docType,
                 'period' => $period,
                 'queue_tab' => $queueTab,
+                'activity_page' => $activityFeed['meta']['current_page'],
             ],
             'alerts' => $this->buildAlerts($clause, $docType, $period),
             'queue' => $this->buildQueue($user, $clause, $docType, $period, $queueTab),
             'governance' => $this->buildGovernanceSnapshot(),
-            'activities' => $this->buildActivityFeed(),
+            'activities' => $activityFeed['items'],
+            'activities_meta' => $activityFeed['meta'],
         ];
     }
 
@@ -211,20 +215,30 @@ class QmhDashboardWorkspaceService
     }
 
     /**
-     * @return array<int, array<string, mixed>>
+     * @return array{items: array<int, array<string, mixed>>, meta: array<string, int|bool>}
      */
-    private function buildActivityFeed(): array
+    private function buildActivityFeed(int $page): array
     {
+        $perPage = 20;
+        $auditTables = ['qmh_rapats', 'qmh_audits', 'qmh_kums', 'qmh_audit_temuans', 'qmh_rapat_action_items'];
+        $workflowTotal = QmhWorkflowEvent::query()->count();
+        $auditTotal = AuditTrail::query()->whereIn('table_name', $auditTables)->count();
+        $total = $workflowTotal + $auditTotal;
+
+        $lastPage = max(1, (int) ceil($total / $perPage));
+        $currentPage = min(max(1, $page), $lastPage);
+        $fetchSize = max($perPage, $currentPage * $perPage);
+
         $workflowEvents = QmhWorkflowEvent::query()
             ->with(['revision.document'])
             ->orderByDesc('created_at')
-            ->limit(15)
+            ->limit($fetchSize)
             ->get();
 
         $auditTrails = AuditTrail::query()
-            ->whereIn('table_name', ['qmh_rapats', 'qmh_audits', 'qmh_kums', 'qmh_audit_temuans', 'qmh_rapat_action_items'])
+            ->whereIn('table_name', $auditTables)
             ->orderByDesc('changed_at')
-            ->limit(15)
+            ->limit($fetchSize)
             ->get();
 
         $actorIds = collect()
@@ -269,10 +283,12 @@ class QmhDashboardWorkspaceService
             ];
         });
 
-        return $workflowItems
+        $offset = ($currentPage - 1) * $perPage;
+
+        $items = $workflowItems
             ->concat($trailItems)
             ->sortByDesc(fn (array $item) => $item['time'] instanceof Carbon ? $item['time']->getTimestamp() : 0)
-            ->take(20)
+            ->slice($offset, $perPage)
             ->map(function (array $item): array {
                 /** @var Carbon|null $timestamp */
                 $timestamp = $item['time'] instanceof Carbon ? $item['time'] : null;
@@ -287,6 +303,20 @@ class QmhDashboardWorkspaceService
             })
             ->values()
             ->all();
+
+        return [
+            'items' => $items,
+            'meta' => [
+                'current_page' => $currentPage,
+                'per_page' => $perPage,
+                'total' => $total,
+                'last_page' => $lastPage,
+                'from' => $total === 0 ? 0 : $offset + 1,
+                'to' => $total === 0 ? 0 : min($offset + $perPage, $total),
+                'has_prev' => $currentPage > 1,
+                'has_next' => $currentPage < $lastPage,
+            ],
+        ];
     }
 
     private function baseDocumentQuery(?int $clause, ?string $docType): Builder
