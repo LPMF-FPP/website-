@@ -176,33 +176,6 @@
             </div>
         </details>
 
-        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                <p class="text-xs uppercase tracking-wide text-gray-500">Total Dokumen</p>
-                <p class="mt-1 text-2xl font-semibold text-gray-900">{{ $summary['total_documents'] ?? 0 }}</p>
-            </div>
-            <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                <p class="text-xs uppercase tracking-wide text-gray-500">Dokumen Published</p>
-                <p class="mt-1 text-2xl font-semibold text-gray-900">{{ $summary['published_documents'] ?? 0 }}</p>
-            </div>
-            <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                <p class="text-xs uppercase tracking-wide text-gray-500">Dokumen In Review</p>
-                <p class="mt-1 text-2xl font-semibold text-gray-900">{{ $summary['in_review_documents'] ?? 0 }}</p>
-            </div>
-            <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                <p class="text-xs uppercase tracking-wide text-gray-500">Revisi Obsolete</p>
-                <p class="mt-1 text-2xl font-semibold text-gray-900">{{ $summary['obsolete_revisions'] ?? 0 }}</p>
-            </div>
-            <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                <p class="text-xs uppercase tracking-wide text-gray-500">Unduhan Controlled</p>
-                <p class="mt-1 text-2xl font-semibold text-gray-900">{{ $summary['controlled_downloads'] ?? 0 }}</p>
-            </div>
-            <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                <p class="text-xs uppercase tracking-wide text-gray-500">Unduhan Uncontrolled</p>
-                <p class="mt-1 text-2xl font-semibold text-gray-900">{{ $summary['uncontrolled_downloads'] ?? 0 }}</p>
-            </div>
-        </div>
-
         <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-4 py-3">
                 <div>
