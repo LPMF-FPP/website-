@@ -248,7 +248,7 @@
                                     $moduleOrder = [
                                         'dashboard' => 'Dashboard',
                                         'permintaan' => 'Permintaan',
-                                        'kaji-ulang' => 'Kaji Ulang Permintaan',
+                                        'kaji-ulang' => 'Kaji Ulang',
                                         'pengujian' => 'Pengujian',
                                         'penyerahan' => 'Penyerahan',
                                         'tracking' => 'Tracking',
