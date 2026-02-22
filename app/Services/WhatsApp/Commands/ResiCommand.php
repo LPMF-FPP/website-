@@ -205,7 +205,7 @@ class ResiCommand
 
         $allProcesses = $testRequest->samples
             ->flatMap(fn ($sample) => $sample->testProcesses)
-            ->filter(fn ($process) => in_array((string) $process->stage, array_keys($stageLabels), true))
+            ->filter(fn ($process) => in_array($this->normalizeStageValue($process->stage), array_keys($stageLabels), true))
             ->values();
 
         if ($allProcesses->isEmpty()) {
@@ -215,7 +215,7 @@ class ResiCommand
         $lines = [];
 
         foreach ($stageLabels as $stageKey => $label) {
-            $stageProcesses = $allProcesses->filter(fn ($process) => (string) $process->stage === $stageKey)->values();
+            $stageProcesses = $allProcesses->filter(fn ($process) => $this->normalizeStageValue($process->stage) === $stageKey)->values();
             $completed = $stageProcesses->filter(fn ($process) => $process->completed_at !== null);
             $inProgress = $stageProcesses->filter(fn ($process) => $process->started_at !== null && $process->completed_at === null);
 
@@ -314,6 +314,15 @@ class ResiCommand
         string $tz
     ): string {
         return Carbon::parse($timestamp)->timezone($tz)->format('d M Y, H:i');
+    }
+
+    private function normalizeStageValue(mixed $stage): string
+    {
+        if ($stage instanceof \BackedEnum) {
+            return (string) $stage->value;
+        }
+
+        return is_string($stage) ? $stage : '';
     }
 
     private function formatStageThreeDetail(
