@@ -117,10 +117,10 @@ class ResiCommand
 
         $milestones[] = [
             'label' => '3. Pengujian',
-            'detail_lines' => $stageThreeDetails['lines'],
+            'detail_lines' => $stageThreeDetails,
             'completed' => $isTestingDone,
             'current' => $isTestingStarted && ! $isTestingDone,
-            'timestamp' => $stageThreeDetails['started_at'],
+            'timestamp' => null,
         ];
 
         // 4. Siap Diserahkan
@@ -173,7 +173,7 @@ class ResiCommand
     }
 
     /**
-     * @return array{lines: array<int, string>, started_at: string|null}
+     * @return array<int, string>
      */
     private function buildStageThreeDetails(TestRequest $testRequest, string $tz): array
     {
@@ -190,7 +190,7 @@ class ResiCommand
             ->values();
 
         if ($allProcesses->isEmpty()) {
-            return $this->buildStageThreeDetailsFromStatus((string) $testRequest->status, $testRequest, $tz);
+            return $this->buildStageThreeDetailsFromStatus((string) $testRequest->status);
         }
 
         $lines = [];
@@ -251,23 +251,13 @@ class ResiCommand
             );
         }
 
-        $stageThreeStartAt = $allProcesses
-            ->filter(fn ($process) => $process->started_at !== null)
-            ->sortBy(fn ($process) => $process->started_at?->getTimestamp() ?? PHP_INT_MAX)
-            ->first()?->started_at;
-
-        return [
-            'lines' => $lines,
-            'started_at' => $stageThreeStartAt
-                ? 'Waktu mulai tahap 3: '.$this->formatProcessTimestamp($stageThreeStartAt, $tz)
-                : null,
-        ];
+        return $lines;
     }
 
     /**
-     * @return array{lines: array<int, string>, started_at: string|null}
+     * @return array<int, string>
      */
-    private function buildStageThreeDetailsFromStatus(string $status, TestRequest $testRequest, string $tz): array
+    private function buildStageThreeDetailsFromStatus(string $status): array
     {
         $mapping = match ($status) {
             'ready_for_test' => [
@@ -297,12 +287,7 @@ class ResiCommand
             ],
         };
 
-        return [
-            'lines' => $mapping,
-            'started_at' => $testRequest->received_at
-                ? 'Waktu mulai tahap 3: '.$this->formatProcessTimestamp($testRequest->received_at, $tz)
-                : null,
-        ];
+        return $mapping;
     }
 
     private function formatProcessTimestamp(
