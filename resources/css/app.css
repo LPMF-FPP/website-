@@ -107,6 +107,73 @@
     border-collapse: collapse;
 }
 
+@keyframes qmh-subnav-in {
+    from {
+        opacity: 0%;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 100%;
+        transform: translateY(0);
+    }
+}
+
+.qmh-subnav-anim {
+    animation: qmh-subnav-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.qmh-subnav-primary .qmh-subnav-item:nth-of-type(1) {
+    animation-delay: 0ms;
+}
+
+.qmh-subnav-primary .qmh-subnav-item:nth-of-type(2) {
+    animation-delay: 50ms;
+}
+
+.qmh-subnav-primary .qmh-subnav-item:nth-of-type(3) {
+    animation-delay: 100ms;
+}
+
+.qmh-subnav-primary .qmh-subnav-item:nth-of-type(4) {
+    animation-delay: 150ms;
+}
+
+.qmh-subnav-primary .qmh-subnav-item:nth-of-type(5) {
+    animation-delay: 200ms;
+}
+
+.qmh-subnav-primary .qmh-subnav-item:nth-of-type(6) {
+    animation-delay: 250ms;
+}
+
+.qmh-subnav-governance .qmh-subnav-item:nth-of-type(1) {
+    animation-delay: 80ms;
+}
+
+.qmh-subnav-governance .qmh-subnav-item:nth-of-type(2) {
+    animation-delay: 130ms;
+}
+
+.qmh-subnav-governance .qmh-subnav-item:nth-of-type(3) {
+    animation-delay: 180ms;
+}
+
+.qmh-subnav-governance .qmh-subnav-item:nth-of-type(4) {
+    animation-delay: 230ms;
+}
+
+.qmh-subnav-governance .qmh-subnav-item:nth-of-type(5) {
+    animation-delay: 280ms;
+}
+
+/* stylelint-disable-next-line plugin/no-unsupported-browser-features -- Required for reduced-motion accessibility fallback */
+@media (prefers-reduced-motion: reduce) {
+    .qmh-subnav-anim {
+        animation: none;
+    }
+}
+
 .qmh-editor-surface th,
 .qmh-editor-surface td {
     padding: 0.5rem;
