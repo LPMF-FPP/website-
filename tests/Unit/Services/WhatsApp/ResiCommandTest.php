@@ -33,13 +33,16 @@ class ResiCommandTest extends TestCase
         $message = $command->execute('6281111111111@s.whatsapp.net', ['LPMF-RESI-2026-0001']);
 
         $this->assertStringContainsString('📋 *PELACAKAN RESI PERMINTAAN*', $message);
-        $this->assertStringContainsString('🧭 *Tahapan Proses*', $message);
+        $this->assertStringContainsString('🧭 *Tahapan Proses (1-5)*', $message);
         $this->assertStringContainsString('✅ 1. Permintaan', $message);
         $this->assertStringContainsString('✅ 2. Kaji Ulang Permintaan', $message);
         $this->assertStringContainsString('🟡 3. Pengujian', $message);
-        $this->assertStringContainsString('🧩 Preparasi sampel -> Pengujian instrumen -> Interpretasi hasil', $message);
+        $this->assertStringContainsString('▪️ 3.1 Preparasi sampel', $message);
+        $this->assertStringContainsString('▪️ 3.2 Pengujian pada instrumen', $message);
+        $this->assertStringContainsString('▪️ 3.3 Interpretasi hasil', $message);
         $this->assertStringContainsString('📌 *Status Terkini*', $message);
-        $this->assertStringContainsString('🟡 Tahap 3 - Pengujian sedang berjalan', $message);
+        $this->assertStringContainsString('🟡 Tahap 3 dari 5 - Pengujian sedang berjalan', $message);
+        $this->assertStringContainsString('Keterangan: ✅ selesai | 🟡 sedang berjalan | ⚪️ menunggu', $message);
         $this->assertStringContainsString('*/resi LPMF-RESI-2026-0001*', $message);
     }
 }
