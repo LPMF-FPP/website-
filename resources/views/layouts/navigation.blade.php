@@ -333,7 +333,7 @@
 
                     @can('kaji-ulang.view')
                     <x-responsive-nav-link href="{{ route('review.create') }}" :active="request()->routeIs('review.*')">
-                        Kaji Ulang Permintaan
+                        Kaji Ulang
                     </x-responsive-nav-link>
                     @endcan
 

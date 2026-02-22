@@ -8,8 +8,8 @@
 
     <x-slot name="header">
         <x-page-header
-            title="Form Kaji Ulang Permintaan"
-            :breadcrumbs="[[ 'label' => 'Permintaan', 'href' => route('requests.index') ], [ 'label' => 'Kaji Ulang Permintaan' ]]"
+            title="Form Kaji Ulang"
+            :breadcrumbs="[[ 'label' => 'Kaji Ulang' ]]"
         />
     </x-slot>
 
