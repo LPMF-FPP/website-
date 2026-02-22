@@ -35,7 +35,6 @@
             || request()->filled('revision_number')
             || request()->filled('from')
             || request()->filled('to');
-        $scopeLabel = collect($scopeOptions)->firstWhere('value', $activeScope)['label'] ?? 'Semua';
         $documentActionMap = $documents->mapWithKeys(function ($document) {
             return [(string) $document->id => [
                 'show' => route('quality.documents.show', $document),
@@ -45,48 +44,6 @@
     @endphp
 
     <div class="space-y-6" x-data="qmhDocumentTable(@js($documentActionMap))">
-        <section class="relative overflow-hidden rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-cyan-50 px-5 py-5 shadow-sm lg:px-6">
-            <div class="pointer-events-none absolute -right-12 -top-16 h-52 w-52 rounded-full bg-cyan-200/40 blur-3xl"></div>
-            <div class="pointer-events-none absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-sky-200/30 blur-3xl"></div>
-
-            <div class="relative grid gap-4 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-center">
-                <div>
-                    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700">Document Control Center</p>
-                    <h2 class="mt-1 text-2xl font-semibold text-slate-900">Ruang Operasional Dokumen QMH</h2>
-                    <p class="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
-                        Pantau status dokumen, fokuskan prioritas revisi, dan jalankan aksi cepat tanpa pindah halaman.
-                        Tata letak ini dioptimalkan untuk monitoring harian di desktop.
-                    </p>
-                    <div class="mt-4 flex flex-wrap items-center gap-2">
-                        <span class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-medium text-sky-800 shadow-sm ring-1 ring-sky-100">Scope aktif: {{ $scopeLabel }}</span>
-                        <span class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-700 shadow-sm ring-1 ring-slate-200">{{ $documents->total() }} dokumen terdata</span>
-                        @if($hasActiveFilter)
-                            <span class="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800 ring-1 ring-amber-200">Filter khusus aktif</span>
-                        @endif
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-3 rounded-xl border border-sky-100 bg-white/85 p-3 shadow-sm">
-                    <div class="rounded-lg bg-slate-900 px-3 py-2.5 text-white">
-                        <p class="text-[11px] uppercase tracking-wide text-slate-300">Total Dokumen</p>
-                        <p class="mt-0.5 text-xl font-semibold">{{ $summary['total_documents'] ?? 0 }}</p>
-                    </div>
-                    <div class="rounded-lg bg-emerald-50 px-3 py-2.5 ring-1 ring-emerald-100">
-                        <p class="text-[11px] uppercase tracking-wide text-emerald-700">Published</p>
-                        <p class="mt-0.5 text-xl font-semibold text-emerald-900">{{ $summary['published_documents'] ?? 0 }}</p>
-                    </div>
-                    <div class="rounded-lg bg-amber-50 px-3 py-2.5 ring-1 ring-amber-100">
-                        <p class="text-[11px] uppercase tracking-wide text-amber-700">In Review</p>
-                        <p class="mt-0.5 text-xl font-semibold text-amber-900">{{ $summary['in_review_documents'] ?? 0 }}</p>
-                    </div>
-                    <div class="rounded-lg bg-rose-50 px-3 py-2.5 ring-1 ring-rose-100">
-                        <p class="text-[11px] uppercase tracking-wide text-rose-700">Obsolete</p>
-                        <p class="mt-0.5 text-xl font-semibold text-rose-900">{{ $summary['obsolete_revisions'] ?? 0 }}</p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
         <section class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm lg:p-5">
             <div class="flex flex-wrap items-center justify-between gap-4">
                 <div>
@@ -200,29 +157,29 @@
         </details>
 
         <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <p class="text-xs uppercase tracking-wide text-slate-500">Total Dokumen</p>
-                <p class="mt-1 text-2xl font-semibold text-slate-900">{{ $summary['total_documents'] ?? 0 }}</p>
+            <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                <p class="text-xs uppercase tracking-wide text-gray-500">Total Dokumen</p>
+                <p class="mt-1 text-2xl font-semibold text-gray-900">{{ $summary['total_documents'] ?? 0 }}</p>
             </div>
-            <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm">
-                <p class="text-xs uppercase tracking-wide text-emerald-700">Dokumen Published</p>
-                <p class="mt-1 text-2xl font-semibold text-emerald-900">{{ $summary['published_documents'] ?? 0 }}</p>
+            <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                <p class="text-xs uppercase tracking-wide text-gray-500">Dokumen Published</p>
+                <p class="mt-1 text-2xl font-semibold text-gray-900">{{ $summary['published_documents'] ?? 0 }}</p>
             </div>
-            <div class="rounded-xl border border-amber-200 bg-amber-50 p-4 shadow-sm">
-                <p class="text-xs uppercase tracking-wide text-amber-700">Dokumen In Review</p>
-                <p class="mt-1 text-2xl font-semibold text-amber-900">{{ $summary['in_review_documents'] ?? 0 }}</p>
+            <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                <p class="text-xs uppercase tracking-wide text-gray-500">Dokumen In Review</p>
+                <p class="mt-1 text-2xl font-semibold text-gray-900">{{ $summary['in_review_documents'] ?? 0 }}</p>
             </div>
-            <div class="rounded-xl border border-rose-200 bg-rose-50 p-4 shadow-sm">
-                <p class="text-xs uppercase tracking-wide text-rose-700">Revisi Obsolete</p>
-                <p class="mt-1 text-2xl font-semibold text-rose-900">{{ $summary['obsolete_revisions'] ?? 0 }}</p>
+            <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                <p class="text-xs uppercase tracking-wide text-gray-500">Revisi Obsolete</p>
+                <p class="mt-1 text-2xl font-semibold text-gray-900">{{ $summary['obsolete_revisions'] ?? 0 }}</p>
             </div>
-            <div class="rounded-xl border border-indigo-200 bg-indigo-50 p-4 shadow-sm">
-                <p class="text-xs uppercase tracking-wide text-indigo-700">Unduhan Controlled</p>
-                <p class="mt-1 text-2xl font-semibold text-indigo-900">{{ $summary['controlled_downloads'] ?? 0 }}</p>
+            <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                <p class="text-xs uppercase tracking-wide text-gray-500">Unduhan Controlled</p>
+                <p class="mt-1 text-2xl font-semibold text-gray-900">{{ $summary['controlled_downloads'] ?? 0 }}</p>
             </div>
-            <div class="rounded-xl border border-cyan-200 bg-cyan-50 p-4 shadow-sm">
-                <p class="text-xs uppercase tracking-wide text-cyan-700">Unduhan Uncontrolled</p>
-                <p class="mt-1 text-2xl font-semibold text-cyan-900">{{ $summary['uncontrolled_downloads'] ?? 0 }}</p>
+            <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                <p class="text-xs uppercase tracking-wide text-gray-500">Unduhan Uncontrolled</p>
+                <p class="mt-1 text-2xl font-semibold text-gray-900">{{ $summary['uncontrolled_downloads'] ?? 0 }}</p>
             </div>
         </div>
 

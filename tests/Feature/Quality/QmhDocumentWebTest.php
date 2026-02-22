@@ -77,7 +77,7 @@ class QmhDocumentWebTest extends TestCase
         $templates = $this->actingAs($user)->get('/quality/templates');
         $templates->assertOk();
         $this->assertBreadcrumbLabels($templates->getContent(), ['Dashboard QMH', 'Template QMH']);
-        $this->assertQmhSubnavActiveLabel($templates->getContent(), 'Template');
+        $this->assertQmhSubnavActiveLabel($templates->getContent(), 'Dokumen');
 
         $document = QmhDocument::query()->create([
             'doc_code' => 'QMH-SOP-CR-001',
