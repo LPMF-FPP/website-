@@ -64,6 +64,7 @@ role
 .ruff_cache/
 .uv-cache/
 .serena/cache/
+dokpol-style/apps/web/.next/
 
 /docs/
 /.worktrees/
