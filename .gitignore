@@ -61,9 +61,10 @@ landing-page-lpmf.html
 role
 
 # Local tool caches
+.intelephense/
 .ruff_cache/
 .uv-cache/
-.serena/cache/
+.serena/
 dokpol-style/apps/web/.next/
 
 /docs/
