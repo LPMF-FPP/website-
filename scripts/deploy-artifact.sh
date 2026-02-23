@@ -3,13 +3,13 @@ set -euo pipefail
 
 if [ "$#" -lt 2 ] || [ "$#" -gt 3 ]; then
     printf 'Usage: %s <ssh-host> <deploy-path> [git-ref]\n' "$0"
-    printf 'Example: %s 192.168.1.25 /var/www/lis origin/main\n' "$0"
+    printf 'Example: %s 192.168.1.25 /var/www/lis origin/release\n' "$0"
     exit 1
 fi
 
 host="$1"
 deploy_path="$2"
-git_ref="${3:-origin/main}"
+git_ref="${3:-origin/release}"
 
 repo_root="$(git rev-parse --show-toplevel)"
 exclude_file="${repo_root}/scripts/deploy-artifact.exclude"
