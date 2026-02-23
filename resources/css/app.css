@@ -13,6 +13,21 @@
     display: none !important;
 }
 
+.nav-wide-only,
+.nav-wide-flex {
+    display: none;
+}
+
+@media (min-width: 1280px) {
+    .nav-wide-only {
+        display: block !important;
+    }
+
+    .nav-wide-flex {
+        display: flex !important;
+    }
+}
+
 /* Medical Design System for Pusdokkes */
 @layer base {
     body {

@@ -1,12 +1,12 @@
 <nav x-data="{ mobileOpen: false }" class="surface-sem border-b border-sem sticky top-0 isolate z-pd-modal supports-[backdrop-filter]:bg-white/85 supports-[backdrop-filter]:backdrop-blur dark:supports-[backdrop-filter]:bg-slate-950/80">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-[72px] items-center">
+    <div class="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid h-[72px] items-center gap-3" style="grid-template-columns: auto minmax(0, 1fr) auto;">
             <!-- Logo Section -->
-            <div class="flex shrink-0 items-center gap-4">
+            <div class="flex min-w-0 items-center gap-4">
                 <a href="{{ route('dashboard') }}" class="flex items-center gap-3 group">
                     <img src="/images/logo-pusdokkes-polri.png" alt="Logo Pusdokkes Polri" class="h-10 w-auto group-hover:scale-105 transition-transform duration-200">
-                    <div class="hidden lg:block h-8 w-px bg-primary-200 dark:bg-accent-700"></div>
-                    <div class="hidden lg:block">
+                    <div class="nav-wide-only h-8 w-px bg-primary-200 dark:bg-accent-700"></div>
+                    <div class="nav-wide-only">
                         <h1 class="text-lg font-bold text-pd-text leading-tight">
                             Farmapol
                         </h1>
@@ -18,14 +18,14 @@
             </div>
 
             <!-- Desktop Navigation -->
-            <div class="hidden xl:flex items-center gap-1.5 min-w-0">
+            <div class="hidden xl:flex items-center justify-center gap-1.5 min-w-0 px-2 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 @auth
                     @php
                         $user = Auth::user();
                     @endphp
 
                     @can('dashboard.view')
-                    <x-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')" icon="dashboard">
+                    <x-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')" icon="home">
                         Dashboard
                     </x-nav-link>
                     @endcan
@@ -65,7 +65,7 @@
                                 type="button"
                                 :aria-expanded="open"
                                 aria-haspopup="menu"
-                                class="inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] text-sm font-medium leading-none whitespace-nowrap rounded-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 xl:px-2.5 xl:text-xs 2xl:px-3 2xl:text-sm
+                                class="inline-flex shrink-0 items-center gap-1.5 px-3 py-2 min-h-[44px] text-sm font-medium leading-none whitespace-nowrap rounded-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 xl:px-2.5 xl:text-xs 2xl:px-3 2xl:text-sm
                                 {{ (request()->routeIs('tracking.*') || request()->routeIs('search.*') || request()->routeIs('statistics.*') || request()->routeIs('inventory.*') || request()->routeIs('analysts.*') || request()->routeIs('settings.*') || request()->routeIs('quality.*')) 
                                    ? 'bg-primary-50 text-primary-800 ring-1 ring-primary-200 dark:bg-accent-800 dark:text-primary-400' 
                                    : 'text-pd-body hover:bg-primary-50 hover:text-primary-900 dark:text-accent-400 dark:hover:bg-accent-800 dark:hover:text-accent-100' }}">
@@ -240,11 +240,11 @@
                                 <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white text-xs font-bold shadow-sm ring-2 ring-white dark:ring-accent-800">
                                     {{ strtoupper(substr(Auth::user()->name, 0, 2)) }}
                                 </div>
-                                <div class="hidden sm:flex flex-col items-start justify-center text-left">
-                                    <span class="text-sm font-bold text-gray-700 dark:text-gray-200 leading-tight">{{ Auth::user()->name }}</span>
+                                <div class="nav-wide-flex flex-col items-start justify-center text-left">
+                                    <span class="max-w-[14rem] truncate text-sm font-bold text-gray-700 dark:text-gray-200 leading-tight">{{ Auth::user()->name }}</span>
                                     <span class="text-xs text-primary-600 dark:text-primary-400 font-medium leading-none mt-0.5">{{ ucfirst(Auth::user()->role) }}</span>
                                 </div>
-                                <svg class="w-4 h-4 text-gray-400 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                <svg class="nav-wide-only w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
                             </div>
                         </x-slot>
 
