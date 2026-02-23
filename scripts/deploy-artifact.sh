@@ -34,7 +34,7 @@ git -C "$repo_root" archive --format=tar "$git_ref" | tar -xf - -C "$tmp_dir"
 
 ssh "$host" "mkdir -p \"$deploy_path\""
 
-rsync -az --delete \
+rsync -rlz --delete \
     --exclude-from="$exclude_file" \
     --exclude='.env' \
     --exclude='.env.*' \
