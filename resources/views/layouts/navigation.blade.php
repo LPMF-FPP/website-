@@ -18,11 +18,13 @@
             </div>
 
             <!-- Desktop Navigation -->
-            <div class="hidden xl:flex items-center justify-center gap-1.5 min-w-0 px-2 max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div class="hidden xl:flex items-center justify-center gap-1.5 min-w-0 px-2 max-w-full">
                 @auth
                     @php
                         $user = Auth::user();
                     @endphp
+
+                    <div class="flex min-w-0 items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
 
                     @can('dashboard.view')
                     <x-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')" icon="home">
@@ -59,8 +61,10 @@
                         Tugas
                     </x-nav-link> --}}
 
+                    </div>
+
                     <!-- Referensi Mega Menu -->
-                    <div class="relative ml-2 border-l border-primary-100 pl-2 dark:border-white/10" x-data="{ open: false }" @click.away="open = false">
+                    <div class="relative ml-2 shrink-0 border-l border-primary-100 pl-2 dark:border-white/10" x-data="{ open: false }" @click.away="open = false">
                         <button @click="open = !open" 
                                 type="button"
                                 :aria-expanded="open"

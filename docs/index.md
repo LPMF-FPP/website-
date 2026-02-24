@@ -11,6 +11,8 @@
 
 ## Quick Reference
 
+- **Deep-Dives:** 1
+- **Last Updated:** 2026-02-22
 - **Codebase Scale:** 5,229 scanned files, 2,296,478 scanned lines
 - **Core Metrics:** 1,001 PHP files, 205 Blade files, 64 models, 87 controllers, 116 migrations
 - **Route Surface:** 359 literal route declarations (`api.php` + `web.php`)
@@ -26,6 +28,12 @@
 - [Component Inventory](./component-inventory.md)
 - [Development Guide](./development-guide.md)
 - [Deployment Guide](./deployment-guide.md)
+
+## Deep-Dive Documentation
+
+Detailed exhaustive analysis of specific areas:
+
+- [Suggested Areas 1-8 Deep-Dive](./deep-dive-suggested-areas-1-8.md) - Comprehensive analysis of gabungan 8 area suggested (192 files, 34689 LOC) - Generated 2026-02-22
 
 ## Existing Documentation (Repository)
 
