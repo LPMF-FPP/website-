@@ -69,4 +69,25 @@ class ResiCommandTest extends TestCase
         $this->assertStringContainsString('🔖 *Kode Resi:* TR-LPMF/011/I/2026', $message);
         $this->assertStringContainsString('📄 *Nomor Permintaan:* REQ-2026-0111', $message);
     }
+
+    public function test_resi_tracking_accepts_lowercase_and_mixed_separator_input(): void
+    {
+        $request = TestRequest::factory()->create([
+            'receipt_number' => 'TR-LPMF/011/I/2026',
+            'request_number' => 'REQ-2026-0112',
+            'status' => 'submitted',
+            'submitted_at' => now()->subDay(),
+        ]);
+
+        Sample::factory()->create([
+            'test_request_id' => $request->id,
+        ]);
+
+        $command = new ResiCommand(app(TemplateService::class));
+
+        $message = $command->execute('6281111111111@s.whatsapp.net', ['tr-lpmf_011.i-2026']);
+
+        $this->assertStringContainsString('🔖 *Kode Resi:* TR-LPMF/011/I/2026', $message);
+        $this->assertStringContainsString('📄 *Nomor Permintaan:* REQ-2026-0112', $message);
+    }
 }
