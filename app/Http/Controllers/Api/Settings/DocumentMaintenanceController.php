@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
@@ -18,6 +19,8 @@ use Illuminate\Validation\Rule;
 
 class DocumentMaintenanceController extends Controller
 {
+    private const SAFE_MAX_ORPHAN_DELETE = 3;
+
     public function __construct(private readonly DocumentService $documents) {}
 
     public function index(Request $request): JsonResponse
@@ -271,27 +274,10 @@ class DocumentMaintenanceController extends Controller
         Gate::authorize('manage-settings');
 
         $disk = Storage::disk('public');
-
-        // Orphaned investigator folders
-        $validFolderKeys = \App\Models\Investigator::pluck('folder_key')->filter()->toArray();
-        $investigatorDirs = $disk->directories('investigators');
-
-        $orphanedFolders = [];
-        $orphanedSize = 0;
-
-        foreach ($investigatorDirs as $dir) {
-            $folderName = basename($dir);
-            if (! in_array($folderName, $validFolderKeys)) {
-                $orphanedFolders[] = $folderName;
-                foreach ($disk->allFiles($dir) as $file) {
-                    try {
-                        $orphanedSize += $disk->size($file);
-                    } catch (\Throwable $e) {
-                        // Ignore
-                    }
-                }
-            }
-        }
+        $orphanedScan = $this->scanOrphanedFolders($disk);
+        $orphanedFolders = collect($orphanedScan['folders']);
+        $orphanedSize = (int) $orphanedScan['total_size'];
+        $uploadProtected = $orphanedFolders->where('has_upload_files', true);
 
         // Duplicate documents - check both database AND filesystem
         $totalDuplicates = 0;
@@ -341,10 +327,14 @@ class DocumentMaintenanceController extends Controller
 
         return response()->json([
             'orphaned_folders' => [
-                'count' => count($orphanedFolders),
+                'count' => $orphanedFolders->count(),
                 'size' => $orphanedSize,
                 'size_label' => $this->formatFileSize($orphanedSize),
-                'samples' => array_slice($orphanedFolders, 0, 5),
+                'samples' => $orphanedFolders->pluck('folder')->take(5)->values()->all(),
+                'total_investigator_folders' => (int) $orphanedScan['total_folders'],
+                'protected_upload_folders' => $uploadProtected->count(),
+                'protected_upload_files' => $uploadProtected->sum('upload_files'),
+                'requires_manual_review' => $uploadProtected->isNotEmpty(),
             ],
             'duplicate_documents' => [
                 'count' => $totalDuplicates,
@@ -445,29 +435,21 @@ class DocumentMaintenanceController extends Controller
         Gate::authorize('manage-settings');
 
         $dryRun = $request->boolean('dry_run', false);
+        $allowUploadDeletion = $request->boolean('allow_upload_deletion', false);
+        $allowLargeCleanup = $request->boolean('allow_large_cleanup', false);
+        $maxDeleteFolders = max(1, min(500, (int) $request->input('max_delete_folders', self::SAFE_MAX_ORPHAN_DELETE)));
         $disk = Storage::disk('public');
 
-        $validFolderKeys = \App\Models\Investigator::pluck('folder_key')->filter()->toArray();
-        $investigatorDirs = $disk->directories('investigators');
+        $orphanedScan = $this->scanOrphanedFolders($disk);
+        $orphanedFolders = collect($orphanedScan['folders']);
+        $totalSize = (int) $orphanedScan['total_size'];
+        $protectedUploadFolders = $orphanedFolders->where('has_upload_files', true)->values();
 
-        $orphanedFolders = [];
-        $totalSize = 0;
+        $deletionCandidates = $allowUploadDeletion
+            ? $orphanedFolders
+            : $orphanedFolders->reject(fn (array $folder) => $folder['has_upload_files'])->values();
 
-        foreach ($investigatorDirs as $dir) {
-            $folderName = basename($dir);
-            if (! in_array($folderName, $validFolderKeys)) {
-                $orphanedFolders[] = $dir;
-                foreach ($disk->allFiles($dir) as $file) {
-                    try {
-                        $totalSize += $disk->size($file);
-                    } catch (\Throwable $e) {
-                        // Ignore
-                    }
-                }
-            }
-        }
-
-        if (empty($orphanedFolders)) {
+        if ($orphanedFolders->isEmpty()) {
             return response()->json([
                 'success' => true,
                 'message' => 'Tidak ada folder orphan yang ditemukan.',
@@ -475,24 +457,56 @@ class DocumentMaintenanceController extends Controller
                 'failed' => 0,
                 'size_reclaimed' => 0,
                 'size_label' => '0 B',
+                'skipped_upload_protected' => 0,
             ]);
         }
 
+        if ($deletionCandidates->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cleanup dibatalkan: seluruh folder orphan mengandung berkas uploads. Gunakan mode manual terkontrol jika benar-benar diperlukan.',
+                'deleted' => 0,
+                'failed' => 0,
+                'size_reclaimed' => 0,
+                'size_label' => '0 B',
+                'skipped_upload_protected' => $protectedUploadFolders->count(),
+                'requires_manual_review' => true,
+            ], 422);
+        }
+
+        if ($deletionCandidates->count() > $maxDeleteFolders && ! $allowLargeCleanup) {
+            return response()->json([
+                'success' => false,
+                'message' => "Cleanup dibatalkan: kandidat penghapusan {$deletionCandidates->count()} folder melebihi batas aman {$maxDeleteFolders}. Jalankan dry-run lalu konfirmasi manual.",
+                'deleted' => 0,
+                'failed' => 0,
+                'size_reclaimed' => 0,
+                'size_label' => '0 B',
+                'skipped_upload_protected' => $protectedUploadFolders->count(),
+            ], 422);
+        }
+
         if ($dryRun) {
+            $candidateSize = (int) $deletionCandidates->sum('size');
+
             return response()->json([
                 'dry_run' => true,
-                'message' => count($orphanedFolders).' folder orphan akan dihapus.',
-                'count' => count($orphanedFolders),
-                'size' => $totalSize,
-                'size_label' => $this->formatFileSize($totalSize),
-                'samples' => array_slice(array_map('basename', $orphanedFolders), 0, 10),
+                'message' => $deletionCandidates->count().' folder orphan kandidat akan dihapus.',
+                'count' => $deletionCandidates->count(),
+                'size' => $candidateSize,
+                'size_label' => $this->formatFileSize($candidateSize),
+                'samples' => $deletionCandidates->pluck('folder')->take(10)->values()->all(),
+                'skipped_upload_protected' => $protectedUploadFolders->count(),
+                'max_delete_folders' => $maxDeleteFolders,
             ]);
         }
 
         $deleted = 0;
         $failed = 0;
+        $sizeReclaimed = 0;
 
-        foreach ($orphanedFolders as $folder) {
+        foreach ($deletionCandidates as $folderData) {
+            $folder = (string) $folderData['path'];
             try {
                 $files = $disk->allFiles($folder);
                 Document::whereIn('path', $files)
@@ -501,6 +515,7 @@ class DocumentMaintenanceController extends Controller
 
                 $disk->deleteDirectory($folder);
                 $deleted++;
+                $sizeReclaimed += (int) ($folderData['size'] ?? 0);
             } catch (\Throwable $e) {
                 $failed++;
             }
@@ -508,12 +523,63 @@ class DocumentMaintenanceController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => "Berhasil menghapus {$deleted} folder orphan.",
+            'message' => "Berhasil menghapus {$deleted} folder orphan. Folder yang berisi uploads dilindungi secara default.",
             'deleted' => $deleted,
             'failed' => $failed,
-            'size_reclaimed' => $totalSize,
-            'size_label' => $this->formatFileSize($totalSize),
+            'size_reclaimed' => $sizeReclaimed,
+            'size_label' => $this->formatFileSize($sizeReclaimed),
+            'skipped_upload_protected' => $protectedUploadFolders->count(),
         ]);
+    }
+
+    /**
+     * @return array{total_folders:int,total_size:int,folders:array<int,array{path:string,folder:string,size:int,has_upload_files:bool,upload_files:int}>}
+     */
+    private function scanOrphanedFolders($disk): array
+    {
+        $validFolderKeys = \App\Models\Investigator::pluck('folder_key')->filter()->toArray();
+        $investigatorDirs = $disk->directories('investigators');
+
+        $orphaned = [];
+        $totalSize = 0;
+
+        foreach ($investigatorDirs as $dir) {
+            $folderName = basename($dir);
+            if (in_array($folderName, $validFolderKeys, true)) {
+                continue;
+            }
+
+            $folderSize = 0;
+            $uploadFiles = 0;
+
+            foreach ($disk->allFiles($dir) as $file) {
+                try {
+                    $folderSize += $disk->size($file);
+                } catch (\Throwable $e) {
+                    // Ignore
+                }
+
+                if (Str::contains('/'.ltrim($file, '/'), '/uploads/')) {
+                    $uploadFiles++;
+                }
+            }
+
+            $orphaned[] = [
+                'path' => $dir,
+                'folder' => $folderName,
+                'size' => $folderSize,
+                'has_upload_files' => $uploadFiles > 0,
+                'upload_files' => $uploadFiles,
+            ];
+
+            $totalSize += $folderSize;
+        }
+
+        return [
+            'total_folders' => count($investigatorDirs),
+            'total_size' => $totalSize,
+            'folders' => $orphaned,
+        ];
     }
 
     /**
