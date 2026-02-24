@@ -5,8 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\CustomerSurvey;
 use App\Models\Delivery;
 use App\Models\Document;
-use App\Models\EvidenceUnit;
-use App\Models\RemainingUnit;
 use App\Models\TestRequest;
 use App\Services\DocumentService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -176,7 +174,7 @@ class DeliveryController extends Controller
                     $diff = (float) $deliveredQty - (float) $testingQty;
                     $leftoverQty = $diff > 0 ? $diff : 0.0;
                 } else {
-                    $leftoverQty = (float) $deliveredQty;
+                    $leftoverQty = null;
                 }
             }
 
@@ -205,10 +203,7 @@ class DeliveryController extends Controller
             ]
         );
 
-        // Auto-generate RemainingUnit labels for samples with leftover > 0
-        $this->autoGenerateRemainingLabels($request);
-
-        // Reload evidenceUnits with remainingUnits after auto-generation
+        // Ensure latest remaining label data is loaded for view rendering
         $request->load('evidenceUnits.remainingUnits');
 
         // Check completion status for stepper
@@ -577,14 +572,14 @@ class DeliveryController extends Controller
                     $deliveredQty = is_numeric($sample->package_quantity) ? (float) $sample->package_quantity : null;
                     $testingQty = is_numeric($sample->quantity) ? (float) $sample->quantity : null;
 
-                    // Rumus: SISA = jumlah yang diserahkan - quantity
+                    // Rumus source-of-truth: SISA = jumlah yang diserahkan - quantity (qty terpakai)
                     $leftoverQty = null;
                     if ($deliveredQty !== null) {
                         if ($testingQty !== null) {
                             $diff = $deliveredQty - $testingQty;
                             $leftoverQty = $diff > 0 ? $diff : 0.0;
                         } else {
-                            $leftoverQty = $deliveredQty;
+                            $leftoverQty = null;
                         }
                     }
 
@@ -874,57 +869,6 @@ class DeliveryController extends Controller
         }
 
         return $value;
-    }
-
-    /**
-     * Auto-generate RemainingUnit labels for samples with leftover quantity > 0.
-     * Skips samples that already have a RemainingUnit via their EvidenceUnit.
-     */
-    private function autoGenerateRemainingLabels(TestRequest $request): void
-    {
-        foreach ($request->samples as $sample) {
-            // Get leftover quantity (already calculated and set as attribute)
-            $leftoverQty = $sample->getAttribute('leftover_quantity_value');
-
-            // Skip if no leftover or leftover <= 0
-            if ($leftoverQty === null || $leftoverQty <= 0) {
-                continue;
-            }
-
-            // Find or create EvidenceUnit for this sample
-            $evidenceUnit = EvidenceUnit::firstOrCreate(
-                ['sample_id' => $sample->id],
-                [
-                    'request_id' => $request->id,
-                    'sample_code' => $sample->sample_code,
-                    'sample_type' => $sample->sample_category ?? $sample->sample_form,
-                    'sample_desc' => $sample->short_description ?? $sample->sample_description,
-                    'investigator_name' => $request->investigator?->name,
-                    'investigator_unit' => $request->investigator?->jurisdiction,
-                    'received_at' => $sample->received_at ?? now(),
-                    'received_by' => Auth::id(),
-                ]
-            );
-
-            // Check if RemainingUnit already exists for this EvidenceUnit
-            $existingRemaining = RemainingUnit::where('evidence_unit_id', $evidenceUnit->id)->exists();
-
-            if ($existingRemaining) {
-                // Skip - label already exists
-                continue;
-            }
-
-            // Create RemainingUnit with leftover data
-            RemainingUnit::create([
-                'evidence_unit_id' => $evidenceUnit->id,
-                'sample_code' => $sample->sample_code,
-                'qty_remaining' => $leftoverQty,
-                'uom' => $sample->unit ?? $sample->quantity_unit,
-                'seal_status_delivered' => 'disegel',
-                'delivered_at' => now(),
-                'delivered_by' => Auth::id(),
-            ]);
-        }
     }
 
     /**

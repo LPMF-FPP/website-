@@ -19,6 +19,25 @@ class LabelController extends Controller
         $this->middleware(['auth']);
     }
 
+    private function authorizeRemainingLabelAccess(Request $request): void
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            abort(403);
+        }
+
+        if (($user->role ?? null) === 'admin') {
+            return;
+        }
+
+        if ($user->can('pengujian.view') || $user->can('penyerahan.view')) {
+            return;
+        }
+
+        abort(403, 'Anda tidak memiliki akses ke label sisa.');
+    }
+
     /**
      * Build explicit label payload from EvidenceUnit for DOMPDF.
      * Returns array with all fields explicitly mapped and QR as base64 PNG.
@@ -159,9 +178,6 @@ class LabelController extends Controller
             ];
         }
 
-        // Debug log first row (remove after verification)
-        logger()->info('Label hybrid row sample', ['row_0' => $rows[0]]);
-
         $pdf = Pdf::loadView('labels.evidence-sheet', [
             'rows' => collect($rows), // Pass as collection to allow ->chunk() in blade
             'request' => $testRequest, // Pass request for checklist
@@ -209,6 +225,8 @@ class LabelController extends Controller
      */
     public function remainingSheet(Request $request, int $requestId)
     {
+        $this->authorizeRemainingLabelAccess($request);
+
         $remainingUnits = $this->labelService->getRemainingUnitsForRequest($requestId);
 
         if ($remainingUnits->isEmpty()) {
@@ -244,6 +262,8 @@ class LabelController extends Controller
      */
     public function remainingForEvidence(Request $request, int $evidenceUnitId)
     {
+        $this->authorizeRemainingLabelAccess($request);
+
         $remainingUnits = $this->labelService->getRemainingUnitsForEvidence($evidenceUnitId);
 
         if ($remainingUnits->isEmpty()) {
@@ -278,6 +298,8 @@ class LabelController extends Controller
      */
     public function remainingSingle(Request $request, int $id)
     {
+        $this->authorizeRemainingLabelAccess($request);
+
         $remainingUnit = RemainingUnit::findOrFail($id);
         $reason = $request->query('reason', 'first_print');
 
@@ -339,6 +361,8 @@ class LabelController extends Controller
      */
     public function createRemainingUnit(Request $request)
     {
+        $this->authorizeRemainingLabelAccess($request);
+
         $validated = $request->validate([
             'evidence_unit_id' => ['required', 'exists:evidence_units,id'],
             'qty_remaining' => ['nullable', 'numeric', 'min:0'],
@@ -376,8 +400,10 @@ class LabelController extends Controller
      * Delete a remaining unit.
      * DELETE /labels/remaining-units/{id}
      */
-    public function destroyRemainingUnit(int $id)
+    public function destroyRemainingUnit(Request $request, int $id)
     {
+        $this->authorizeRemainingLabelAccess($request);
+
         try {
             $unit = RemainingUnit::findOrFail($id);
             $unit->delete();

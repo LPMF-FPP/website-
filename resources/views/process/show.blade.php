@@ -51,6 +51,19 @@
                     <x-icon name="arrow-left" size="sm" :decorative="true" />
                     Kembali ke Daftar
                 </a>
+                @if(($remainingLabelCount ?? 0) > 0)
+                    <a
+                        href="{{ route('labels.remaining.sheet', $testRequest->id) }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="inline-flex items-center gap-2 rounded-md bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700">
+                        <x-icon name="download" size="sm" :decorative="true" />
+                        Cetak Label Sisa
+                        <span class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white/90 px-1.5 text-xs font-bold text-amber-700">
+                            {{ $remainingLabelCount }}
+                        </span>
+                    </a>
+                @endif
                 @if($readyForDelivery)
                     <form action="{{ route('testing.ready-for-delivery', $testRequest) }}" method="POST">
                         @csrf
@@ -151,6 +164,11 @@
                                 :class="{ 'bg-green-100 ring-2 ring-green-400 ring-inset': highlightedSample === {{ $sample->id }} }">
                                 <td class="px-4 py-3 font-semibold text-gray-900">
                                     {{ $sample->sample_code ?? '-' }}
+                                    @if(isset($remainingLabelSampleLookup[(int) $sample->id]))
+                                        <div class="mt-1 inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700 ring-1 ring-emerald-200">
+                                            Label sisa tersedia
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="px-4 py-3">
                                     {{ $sample->short_description ?? '—' }}

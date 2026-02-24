@@ -9,6 +9,7 @@ use App\Models\Sample;
 use App\Models\SampleTestProcess;
 use App\Models\TestRequest;
 use App\Models\User;
+use App\Services\LabelService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -18,6 +19,8 @@ class SampleTestController extends Controller
 {
     public function create(Request $request)
     {
+        $this->authorizeReviewAccess($request, 'view');
+
         // Tampilkan HANYA permintaan yang masih berada pada tahap sebelum pengujian
         // Artinya: sudah diajukan/diverifikasi/diterima, namun BELUM masuk proses pengujian.
         // Dengan ini, ketika data sudah berpindah ke proses berikutnya (in_testing/dst),
@@ -74,8 +77,10 @@ class SampleTestController extends Controller
         ]);
     }
 
-    public function store(Request $request)
+    public function store(Request $request, LabelService $labelService)
     {
+        $this->authorizeReviewAccess($request, 'create');
+
         $validated = $request->validate([
             'request_id' => ['required', 'exists:test_requests,id'],
             'test_date' => ['required', 'date'],
@@ -101,9 +106,14 @@ class SampleTestController extends Controller
             'samples.*.test_type.required' => 'Jenis atau fokus pengujian wajib dipilih.',
         ]);
 
-        $firstSampleId = $validated['samples'][0]['id'] ?? null;
+        $reviewedSampleIds = collect($validated['samples'])
+            ->pluck('id')
+            ->map(static fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
 
-        DB::transaction(function () use ($validated) {
+        DB::transaction(function () use ($validated, $labelService, $request, $reviewedSampleIds) {
             foreach ($validated['samples'] as $index => $sampleData) {
                 $sample = Sample::where('id', $sampleData['id'])
                     ->where('test_request_id', $validated['request_id'])
@@ -189,6 +199,16 @@ class SampleTestController extends Controller
 
             TestRequest::where('id', $validated['request_id'])
                 ->update(['status' => 'in_testing']);
+
+            $testRequest = TestRequest::query()
+                ->with('investigator')
+                ->findOrFail($validated['request_id']);
+
+            $labelService->syncRemainingUnitsForRequest(
+                $testRequest,
+                $request->user()?->id,
+                $reviewedSampleIds
+            );
         });
 
         return redirect()
@@ -198,6 +218,8 @@ class SampleTestController extends Controller
 
     public function reject(Request $request, TestRequest $testRequest)
     {
+        $this->authorizeReviewAccess($request, 'create');
+
         $validated = $request->validate([
             'rejection_reason' => ['required', 'string', 'max:1000'],
         ]);
@@ -248,5 +270,24 @@ class SampleTestController extends Controller
         }
 
         return is_array($value) ? $value : [];
+    }
+
+    private function authorizeReviewAccess(Request $request, string $action): void
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            abort(403);
+        }
+
+        if (($user->role ?? null) === 'admin') {
+            return;
+        }
+
+        if ($user->hasPermission('kaji-ulang.'.$action) || $user->hasPermission('pengujian.'.$action)) {
+            return;
+        }
+
+        abort(403, 'Anda tidak memiliki akses ke kaji ulang permintaan.');
     }
 }

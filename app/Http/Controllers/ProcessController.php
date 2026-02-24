@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\TestProcessStage;
+use App\Models\EvidenceUnit;
 use App\Models\RecentRequest;
 use App\Models\Sample;
 use App\Models\SampleTestProcess;
@@ -160,6 +161,17 @@ class ProcessController extends Controller
             }
         }
 
+        $remainingLabelSampleIds = EvidenceUnit::query()
+            ->where('request_id', $testRequest->id)
+            ->whereHas('remainingUnits')
+            ->pluck('sample_id')
+            ->map(static fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
+        $remainingLabelCount = count($remainingLabelSampleIds);
+        $remainingLabelSampleLookup = array_fill_keys($remainingLabelSampleIds, true);
+
         return view('process.show', [
             'testRequest' => $testRequest,
             'samples' => $paginatedSamples,
@@ -179,6 +191,8 @@ class ProcessController extends Controller
                 'completed' => 'Selesai',
             ],
             'readyForDelivery' => $readyForDelivery,
+            'remainingLabelCount' => $remainingLabelCount,
+            'remainingLabelSampleLookup' => $remainingLabelSampleLookup,
         ]);
     }
 
