@@ -16,6 +16,9 @@ Schedule::command('qmh:action-items:refresh-overdue')
     ->everyFifteenMinutes()
     ->withoutOverlapping();
 Schedule::command('lims:purge-old-files')->dailyAt('02:00');
+Schedule::command('backup:cleanup')
+    ->dailyAt('02:30')
+    ->withoutOverlapping();
 Schedule::command('documents:integrity-check --warn-threshold=1 --ratio-threshold=5 --sample=5')
     ->dailyAt('02:15')
     ->withoutOverlapping();

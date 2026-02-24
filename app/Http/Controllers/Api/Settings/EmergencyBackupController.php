@@ -9,6 +9,7 @@ use App\Models\JobStatus;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -48,6 +49,8 @@ class EmergencyBackupController extends Controller
             ->limit(20)
             ->get()
             ->map(function (BackupRun $backup) {
+                $backup = $this->reconcileArtifactHealth($backup);
+
                 return [
                     'id' => $backup->id,
                     'mode' => $backup->mode,
@@ -70,6 +73,7 @@ class EmergencyBackupController extends Controller
         Gate::authorize('manage-settings');
 
         $backup = BackupRun::with('user:id,name')->findOrFail($id);
+        $backup = $this->reconcileArtifactHealth($backup);
 
         return response()->json([
             'id' => $backup->id,
@@ -98,6 +102,7 @@ class EmergencyBackupController extends Controller
         Gate::authorize('manage-settings');
 
         $backup = BackupRun::findOrFail($id);
+        $backup = $this->reconcileArtifactHealth($backup);
 
         if ($backup->status !== 'success') {
             abort(422, 'Backup not completed successfully');
@@ -117,5 +122,53 @@ class EmergencyBackupController extends Controller
         return response()->streamDownload(function () use ($filePath) {
             readfile($filePath);
         }, basename($filePath));
+    }
+
+    private function reconcileArtifactHealth(BackupRun $backup): BackupRun
+    {
+        if ($backup->status !== 'success') {
+            return $backup;
+        }
+
+        $missing = $this->detectMissingArtifacts($backup);
+        if ($missing === []) {
+            return $backup;
+        }
+
+        $errorMessage = 'Backup artifact missing: '.implode(', ', $missing);
+
+        $backup->update([
+            'status' => 'failed',
+            'error_message' => $errorMessage,
+        ]);
+
+        Log::warning('Emergency backup marked failed due to missing artifacts', [
+            'backup_run_id' => $backup->id,
+            'missing_artifacts' => $missing,
+        ]);
+
+        return $backup->fresh() ?? $backup;
+    }
+
+    /**
+     * @return array<int,string>
+     */
+    private function detectMissingArtifacts(BackupRun $backup): array
+    {
+        $required = [
+            'db_dump_path' => 'db',
+            'storage_archive_path' => 'storage',
+            'manifest_path' => 'manifest',
+        ];
+
+        $missing = [];
+        foreach ($required as $field => $label) {
+            $path = (string) ($backup->{$field} ?? '');
+            if ($path === '' || ! file_exists($path)) {
+                $missing[] = $label;
+            }
+        }
+
+        return $missing;
     }
 }

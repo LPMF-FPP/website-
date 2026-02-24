@@ -8,13 +8,17 @@ use Illuminate\Console\Command;
 
 class BackupCleanupCommand extends Command
 {
-    protected $signature = 'backup:cleanup {--days=14}';
+    protected $signature = 'backup:cleanup {--days=}';
 
     protected $description = 'Clean up old emergency backups based on retention policy';
 
     public function handle(BackupService $service): int
     {
-        $days = (int) $this->option('days');
+        $optionDays = $this->option('days');
+        $days = $optionDays !== null && $optionDays !== ''
+            ? (int) $optionDays
+            : (int) settings('backup.retention_days', 14);
+        $days = max(1, min(3650, $days));
 
         $this->info("Cleaning up backups older than {$days} days...");
 
@@ -26,6 +30,6 @@ class BackupCleanupCommand extends Command
         $this->info("Deleted {$deleted} old backup directory(ies)");
         $this->info('Database records cleaned up');
 
-        return 0;
+        return self::SUCCESS;
     }
 }

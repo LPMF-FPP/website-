@@ -64,6 +64,23 @@ class SettingsApiTest extends TestCase
             ->assertJsonPath('retention.storage_driver', 'public');
     }
 
+    public function test_backup_retention_can_be_updated(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $response = $this->actingAs($user)->putJson('/api/settings/backup', [
+            'backup' => [
+                'retention_days' => 21,
+            ],
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('backup.retention_days', 21);
+
+        settings_forget_cache();
+        $this->assertSame(21, (int) settings('backup.retention_days', 0));
+    }
+
     public function test_branding_update_and_pdf_preview(): void
     {
         $user = User::factory()->create(['role' => 'admin']);

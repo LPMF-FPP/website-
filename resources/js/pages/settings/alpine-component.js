@@ -556,6 +556,13 @@ export function registerSettingsComponent() {
                 await this.client.fetchEmergencyBackups();
             },
 
+            async saveBackupSection() {
+                const ok = await this.client.saveSection("backup");
+                if (ok) {
+                    await this.fetchEmergencyBackups();
+                }
+            },
+
             async startEmergencyBackup() {
                 if (this.client.state.backupRunning) {
                     return;

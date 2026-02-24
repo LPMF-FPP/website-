@@ -18,6 +18,7 @@ export class SettingsClient {
             localizationTimePreview: "/api/settings/localization/time-preview",
             notificationsSecurity: "/api/settings/notifications-security",
             notificationsTest: "/api/settings/notifications/test",
+            backupSettings: "/api/settings/backup",
             documents: "/api/settings/documents",
             cleanupStats: "/api/settings/documents/cleanup-stats",
             cleanupOrphaned: "/api/settings/documents/cleanup-orphaned",
@@ -80,6 +81,7 @@ export class SettingsClient {
                 branding: { message: "", intentClass: "text-primary-600" },
                 localization: { message: "", intentClass: "text-primary-600" },
                 notifications: { message: "", intentClass: "text-primary-600" },
+                backup: { message: "", intentClass: "text-primary-600" },
                 documents: { message: "", intentClass: "text-primary-600" },
                 iku: { message: "", intentClass: "text-primary-600" },
                 survey_questions: {
@@ -97,6 +99,7 @@ export class SettingsClient {
                 branding: "",
                 localization: "",
                 notifications: "",
+                backup: "",
                 documents: "",
                 iku: "",
                 survey_questions: "",
@@ -129,6 +132,7 @@ export class SettingsClient {
                 branding: false,
                 localization: false,
                 notifications: false,
+                backup: false,
                 documents: false,
                 iku: false,
                 survey_questions: false,
@@ -1129,6 +1133,17 @@ export class SettingsClient {
                         monitoring_logging: this.clone(
                             this.state.form.monitoring_logging,
                         ),
+                    },
+                };
+            case "backup":
+                return {
+                    url: this.api.backupSettings,
+                    method: "PUT",
+                    body: {
+                        backup: {
+                            retention_days:
+                                this.state.form.backup.retention_days,
+                        },
                     },
                 };
             default:

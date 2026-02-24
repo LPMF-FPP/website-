@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Process;
+use Illuminate\Support\Str;
 
 class BackupService
 {
@@ -80,13 +81,14 @@ class BackupService
         ));
 
         $command = sprintf(
-            'tar -czf %s -C %s %s .',
+            'tar -czf %s --ignore-failed-read -C %s %s .',
             escapeshellarg($archivePath),
             escapeshellarg($storagePath),
             $excludeArgs
         );
 
         $result = Process::run($command);
+        $warnings = $this->extractTarWarnings($result->output()."\n".$result->errorOutput());
 
         if ($result->failed()) {
             throw new \RuntimeException('Storage archive failed: '.$result->errorOutput());
@@ -95,10 +97,11 @@ class BackupService
         return [
             'path' => $archivePath,
             'size' => filesize($archivePath),
+            'warnings' => $warnings,
         ];
     }
 
-    public function generateManifest(string $outputPath, array $files): array
+    public function generateManifest(string $outputPath, array $files, array $meta = []): array
     {
         $manifest = [
             'created_at' => now()->toIso8601String(),
@@ -106,6 +109,7 @@ class BackupService
             'php_version' => PHP_VERSION,
             'git_commit' => $this->getGitCommit(),
             'files' => [],
+            'meta' => $meta,
         ];
 
         foreach ($files as $label => $filePath) {
@@ -187,5 +191,19 @@ class BackupService
         }
 
         return rmdir($dir);
+    }
+
+    /**
+     * @return array<int,string>
+     */
+    private function extractTarWarnings(string $rawOutput): array
+    {
+        $lines = preg_split('/\r\n|\r|\n/', $rawOutput) ?: [];
+
+        return collect($lines)
+            ->map(fn ($line) => trim((string) $line))
+            ->filter(fn ($line) => $line !== '' && Str::contains($line, ['Cannot open', 'Cannot stat', 'Permission denied']))
+            ->values()
+            ->all();
     }
 }

@@ -49,10 +49,21 @@ class EmergencyBackupJob implements ShouldQueue
                 'storage_size_bytes' => $storageArchive['size'],
             ]);
 
+            $storageWarnings = $storageArchive['warnings'] ?? [];
+            if (! empty($storageWarnings)) {
+                Log::warning('Emergency backup archive completed with unreadable paths', [
+                    'backup_run_id' => $backupRun->id,
+                    'warnings_count' => count($storageWarnings),
+                    'warnings_sample' => array_slice($storageWarnings, 0, 10),
+                ]);
+            }
+
             $jobStatus->updateProgress(4, 5);
             $manifest = $service->generateManifest($outputDir, [
                 'database' => $dbDump['path'],
                 'storage' => $storageArchive['path'],
+            ], [
+                'storage_warnings' => $storageWarnings,
             ]);
 
             $backupRun->update([

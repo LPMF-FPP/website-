@@ -90,17 +90,32 @@
         {{-- Retention Settings --}}
         <div class="border border-gray-200 rounded-lg p-4">
             <h3 class="text-sm font-semibold text-gray-700 mb-3">Kebijakan Retensi</h3>
-            <div class="flex items-center gap-3">
+            <div class="flex flex-wrap items-center gap-3">
                 <label class="text-xs text-gray-600">Simpan backup selama</label>
-                <input 
-                    type="number" 
-                    class="w-20 px-2 py-1 border border-gray-300 rounded text-sm"
+                <input
+                    type="number"
+                    class="w-24 px-2 py-1 border border-gray-300 rounded text-sm"
                     x-model.number="client.state.form.backup.retention_days"
                     min="1"
-                    max="90">
+                    max="3650">
                 <span class="text-xs text-gray-600">hari</span>
+                <button
+                    type="button"
+                    class="px-3 py-1.5 text-xs font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+                    :disabled="client.state.loadingSections['backup']"
+                    @click="saveBackupSection()">
+                    <span x-show="!client.state.loadingSections['backup']">Simpan Retensi</span>
+                    <span x-show="client.state.loadingSections['backup']">Menyimpan...</span>
+                </button>
             </div>
             <p class="text-xs text-gray-500 mt-2">Backup lama akan dihapus otomatis</p>
+            <p class="text-xs mt-2" role="status"
+               :class="client.state.sectionStatus['backup']?.intentClass"
+               x-text="client.state.sectionStatus['backup']?.message"
+               x-show="client.state.sectionStatus['backup']?.message"></p>
+            <p class="text-xs text-red-600 mt-1" role="alert"
+               x-text="client.state.sectionErrors['backup']"
+               x-show="client.state.sectionErrors['backup']"></p>
         </div>
 
     </div>

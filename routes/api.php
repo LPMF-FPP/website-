@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\Quality\QmhTemplateController;
 use App\Http\Controllers\Api\RequestDocumentsController;
 use App\Http\Controllers\Api\SampleProcessController;
 use App\Http\Controllers\Api\SearchController;
+use App\Http\Controllers\Api\Settings\BackupSettingsController;
 use App\Http\Controllers\Api\Settings\BladeTemplateEditorController;
 use App\Http\Controllers\Api\Settings\BrandingController;
 use App\Http\Controllers\Api\Settings\DocumentMaintenanceController;
@@ -252,6 +253,7 @@ Route::middleware(['throttle:120,1'])->group(function () {
         Route::get('/localization/time-preview', [SettingsLocalizationController::class, 'timePreview']);
         Route::put('/notifications-security', [NotificationsController::class, 'update']);
         Route::post('/notifications/test', [NotificationsController::class, 'test']);
+        Route::put('/backup', [BackupSettingsController::class, 'update']);
         Route::get('/documents', [DocumentMaintenanceController::class, 'index']);
         Route::delete('/documents', [DocumentMaintenanceController::class, 'destroy']);
         Route::get('/documents/cleanup-stats', [DocumentMaintenanceController::class, 'cleanupStats']);
