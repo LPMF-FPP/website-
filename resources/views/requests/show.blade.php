@@ -296,6 +296,7 @@
                 loading: true,
                 error: '',
                 deleting: {},
+                imageErrors: {},
                 selectedDocument: null,
                 previewUrl: '',
                 init() {
@@ -319,6 +320,7 @@
                             ? payload.documents
                             : (Array.isArray(payload?.data) ? payload.data : (Array.isArray(payload) ? payload : []));
                         this.documents = list;
+                        this.imageErrors = {};
                     } catch (error) {
                         this.error = error.message || 'Gagal memuat dokumen.';
                     } finally {
@@ -342,6 +344,20 @@
                     const name = (doc.name || '').toLowerCase();
                     const ext = (doc.extension || '').toLowerCase();
                     return mime.startsWith('image/') || ['.png', '.jpg', '.jpeg', '.gif'].some((suffix) => name.endsWith(suffix)) || ['png', 'jpg', 'jpeg', 'gif'].includes(ext);
+                },
+                canRenderImage(doc) {
+                    if (!this.documentIsImage(doc) || !doc?.id) {
+                        return false;
+                    }
+
+                    return !this.imageErrors[doc.id];
+                },
+                imagePreviewUrl(doc) {
+                    return doc?.preview_url || doc?.url || '';
+                },
+                markImageError(doc) {
+                    if (!doc?.id) return;
+                    this.imageErrors = { ...this.imageErrors, [doc.id]: true };
                 },
                 openDocument(doc) {
                     const target = doc?.preview_url || doc?.url || doc?.download_url;
@@ -377,6 +393,11 @@
                                     throw new Error(data.message || 'Gagal menghapus dokumen.');
                                 }
                                 this.documents = this.documents.filter((item) => item.id !== doc.id);
+                                if (doc.id in this.imageErrors) {
+                                    const imageErrors = { ...this.imageErrors };
+                                    delete imageErrors[doc.id];
+                                    this.imageErrors = imageErrors;
+                                }
                                 showNotification('success', 'Dokumen berhasil dihapus');
                                 // Refresh BA status if we deleted BA
                                 checkBeritaAcaraStatus();

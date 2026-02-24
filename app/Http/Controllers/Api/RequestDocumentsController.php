@@ -25,11 +25,20 @@ class RequestDocumentsController extends Controller
 
         Gate::authorize('viewDocuments', $testRequest->investigator);
 
+        /** @var DocumentService $documentService */
+        $documentService = app(DocumentService::class);
+
         $documents = $testRequest->documents()
             ->with('investigator:id,name')
             ->latest()
-            ->get()
+            ->get();
+
+        $visibleDocuments = $documents
             ->filter(fn (Document $document) => Gate::allows('view', $document))
+            ->values();
+
+        $documents = $visibleDocuments
+            ->filter(fn (Document $document) => $documentService->fileExists($document))
             ->map(function (Document $document) {
                 return [
                     'id' => $document->id,
@@ -47,6 +56,17 @@ class RequestDocumentsController extends Controller
                 ];
             })
             ->values();
+
+        $visibleDocumentCount = $visibleDocuments->count();
+
+        $missingFileCount = max(0, $visibleDocumentCount - $documents->count());
+        if ($missingFileCount > 0) {
+            Log::warning('API: Hidden documents with missing files', [
+                'request_id' => $testRequest->id,
+                'hidden_count' => $missingFileCount,
+                'visible_count' => $documents->count(),
+            ]);
+        }
 
         Log::info('API: Documents retrieved', [
             'request_id' => $testRequest->id,

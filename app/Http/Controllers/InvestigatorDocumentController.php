@@ -6,7 +6,9 @@ use App\Models\Document;
 use App\Models\Investigator;
 use App\Services\DocumentService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 
 class InvestigatorDocumentController extends Controller
 {
@@ -106,6 +108,7 @@ class InvestigatorDocumentController extends Controller
         Gate::authorize('download', $document);
 
         if (! $this->documentService->fileExists($document)) {
+            $this->recordMissingFileTelemetry($document, 'download');
             abort(404, 'Document file not found');
         }
 
@@ -133,6 +136,7 @@ class InvestigatorDocumentController extends Controller
         Gate::authorize('view', $document);
 
         if (! $this->documentService->fileExists($document)) {
+            $this->recordMissingFileTelemetry($document, 'show');
             abort(404, 'Document file not found');
         }
 
@@ -183,5 +187,41 @@ class InvestigatorDocumentController extends Controller
             'ba_penerimaan' => 'Berita Acara Penerimaan',
             'other' => 'Lainnya',
         ];
+    }
+
+    private function recordMissingFileTelemetry(Document $document, string $operation): void
+    {
+        $path = $document->file_path ?? $document->path;
+        $disk = $document->storage_disk ?? 'public';
+        $hourBucket = now()->format('YmdH');
+        $counterKey = "documents:missing-file:{$hourBucket}";
+
+        if (! Cache::has($counterKey)) {
+            Cache::put($counterKey, 0, now()->addHours(2));
+        }
+
+        $count = Cache::increment($counterKey);
+        Cache::put($counterKey, $count, now()->addHours(2));
+
+        Log::warning('Document file missing in storage', [
+            'operation' => $operation,
+            'document_id' => $document->id,
+            'request_id' => $document->test_request_id,
+            'investigator_id' => $document->investigator_id,
+            'disk' => $disk,
+            'path' => $path,
+            'hour_bucket' => $hourBucket,
+            'missing_count_hour' => $count,
+            'url' => request()->fullUrl(),
+        ]);
+
+        $alertThreshold = max(1, (int) env('DOCUMENT_MISSING_ALERT_THRESHOLD', 20));
+        if ($count >= $alertThreshold && $count % $alertThreshold === 0) {
+            Log::critical('Document missing-file spike threshold reached', [
+                'hour_bucket' => $hourBucket,
+                'missing_count_hour' => $count,
+                'threshold' => $alertThreshold,
+            ]);
+        }
     }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\DocumentsIntegrityCheckCommand;
 use App\Console\Commands\PurgeOldFiles;
 use App\Console\Commands\QmhRefreshActionItemOverdue;
 use Illuminate\Foundation\Application;
@@ -51,6 +52,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withCommands([
         PurgeOldFiles::class,
         QmhRefreshActionItemOverdue::class,
+        DocumentsIntegrityCheckCommand::class,
     ])
     ->withSchedule(function (): void {
         Schedule::command('lims:purge-old-files')->dailyAt('02:00');

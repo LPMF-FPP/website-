@@ -39,4 +39,40 @@ class RequestDocumentsApiTest extends TestCase
         $response->assertOk()
             ->assertJsonStructure(['data' => [['id', 'name', 'preview_url', 'download_url']]]);
     }
+
+    public function test_request_documents_list_hides_entries_with_missing_files(): void
+    {
+        Storage::fake('public');
+        $user = User::factory()->create(['role' => 'admin']);
+        $investigator = Investigator::factory()->create();
+        $testRequest = TestRequest::factory()->create([
+            'investigator_id' => $investigator->id,
+            'user_id' => $user->id,
+        ]);
+
+        $presentDocument = Document::factory()->create([
+            'investigator_id' => $investigator->id,
+            'test_request_id' => $testRequest->id,
+            'document_type' => 'request_letter',
+            'file_path' => 'investigators/'.$investigator->id.'/present.pdf',
+            'storage_disk' => 'public',
+        ]);
+
+        $missingDocument = Document::factory()->create([
+            'investigator_id' => $investigator->id,
+            'test_request_id' => $testRequest->id,
+            'document_type' => 'sample_photo',
+            'file_path' => 'investigators/'.$investigator->id.'/missing.jpg',
+            'storage_disk' => 'public',
+        ]);
+
+        Storage::disk('public')->put($presentDocument->file_path, 'content');
+
+        $response = $this->actingAs($user)->getJson("/api/requests/{$testRequest->id}/documents");
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.id', $presentDocument->id);
+        $response->assertJsonMissing(['id' => $missingDocument->id]);
+    }
 }

@@ -27,10 +27,15 @@
             <div class="relative group bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden flex flex-col">
                 {{-- File Preview/Icon --}}
                 <div class="h-32 bg-gray-100 flex items-center justify-center border-b border-gray-100 relative overflow-hidden group-hover:bg-gray-50">
-                    <template x-if="documentIsImage(doc)">
-                        <img :src="doc.preview_url || doc.url" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="">
+                    <template x-if="canRenderImage(doc)">
+                        <img
+                            :src="imagePreviewUrl(doc)"
+                            @error="markImageError(doc)"
+                            class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            alt="Preview dokumen"
+                        >
                     </template>
-                    <template x-if="!documentIsImage(doc)">
+                    <template x-if="!canRenderImage(doc)">
                         <div class="text-center">
                             <template x-if="documentIsPdf(doc)">
                                 <svg class="w-12 h-12 text-red-500 mx-auto" fill="currentColor" viewBox="0 0 20 20">
