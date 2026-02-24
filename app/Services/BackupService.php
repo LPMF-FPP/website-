@@ -75,9 +75,21 @@ class BackupService
             '.gitignore',
         ];
 
+        foreach ([
+            'private/qmh',
+            'tmp/qmh/.config',
+            'tmp/qmh/.cache',
+        ] as $candidate) {
+            $absoluteCandidatePath = $storagePath.'/'.str_replace('/', DIRECTORY_SEPARATOR, $candidate);
+
+            if (is_dir($absoluteCandidatePath) && ! is_readable($absoluteCandidatePath)) {
+                $excludes[] = $candidate;
+            }
+        }
+
         $excludeArgs = implode(' ', array_map(
             fn ($ex) => "--exclude='{$ex}'",
-            $excludes
+            array_unique($excludes)
         ));
 
         $command = sprintf(
@@ -90,7 +102,7 @@ class BackupService
         $result = Process::run($command);
         $warnings = $this->extractTarWarnings($result->output()."\n".$result->errorOutput());
 
-        if ($result->failed()) {
+        if ($result->failed() && ! $this->isIgnorableTarFailure($result->errorOutput(), $archivePath)) {
             throw new \RuntimeException('Storage archive failed: '.$result->errorOutput());
         }
 
@@ -205,5 +217,30 @@ class BackupService
             ->filter(fn ($line) => $line !== '' && Str::contains($line, ['Cannot open', 'Cannot stat', 'Permission denied']))
             ->values()
             ->all();
+    }
+
+    private function isIgnorableTarFailure(string $errorOutput, string $archivePath): bool
+    {
+        if (! file_exists($archivePath) || filesize($archivePath) === 0) {
+            return false;
+        }
+
+        $lines = collect(preg_split('/\r\n|\r|\n/', $errorOutput) ?: [])
+            ->map(fn ($line) => trim((string) $line))
+            ->filter()
+            ->values();
+
+        if ($lines->isEmpty()) {
+            return false;
+        }
+
+        return $lines->every(function (string $line): bool {
+            return Str::contains($line, [
+                'Cannot open: Permission denied',
+                'Cannot stat: Permission denied',
+                'Exiting with failure status due to previous errors',
+                'file changed as we read it',
+            ]);
+        });
     }
 }
