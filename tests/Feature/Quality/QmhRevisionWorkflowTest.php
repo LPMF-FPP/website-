@@ -54,6 +54,27 @@ class QmhRevisionWorkflowTest extends TestCase
             ->assertStatus(409);
     }
 
+    public function test_repeated_lock_by_same_user_keeps_single_lock_row(): void
+    {
+        /** @var User $owner */
+        $owner = User::factory()->create(['role' => 'admin']);
+        $revision = $this->createDraftRevision($owner);
+
+        $this->actingAs($owner)
+            ->postJson("/api/quality/revisions/{$revision->id}/lock")
+            ->assertOk();
+
+        $this->actingAs($owner)
+            ->postJson("/api/quality/revisions/{$revision->id}/lock")
+            ->assertOk();
+
+        $this->assertDatabaseCount('qmh_document_locks', 1);
+        $this->assertDatabaseHas('qmh_document_locks', [
+            'revision_id' => $revision->id,
+            'locked_by' => $owner->id,
+        ]);
+    }
+
     public function test_only_lock_owner_can_send_heartbeat(): void
     {
         /** @var User $owner */
