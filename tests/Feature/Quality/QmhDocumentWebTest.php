@@ -206,6 +206,45 @@ class QmhDocumentWebTest extends TestCase
         ]);
     }
 
+    public function test_can_store_document_using_non_archived_template_even_when_not_active(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+        $template = $this->createTemplate(6, 'ik');
+        $template->forceFill([
+            'is_active' => false,
+            'archived_at' => null,
+        ])->save();
+
+        $parentSop = QmhDocument::query()->create([
+            'doc_code' => 'QMH-SOP-PARENT-IK-001',
+            'title' => 'SOP Parent IK',
+            'clause' => 6,
+            'doc_type' => 'sop',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->post('/quality/documents', [
+                'doc_code' => 'QMH-WEB-003',
+                'title' => 'IK dari Template Non-Aktif',
+                'clause' => 6,
+                'doc_type' => 'ik',
+                'template_id' => $template->id,
+                'parent_sop_id' => $parentSop->id,
+                'change_summary' => 'store with non-active template',
+                'dibuat_oleh' => $user->id,
+            ]);
+
+        $createdDocument = QmhDocument::query()
+            ->where('doc_code', 'QMH-WEB-003')
+            ->firstOrFail();
+
+        $response->assertRedirect(route('quality.documents.edit', $createdDocument));
+        $response->assertSessionHasNoErrors();
+    }
+
     public function test_store_non_formulir_ignores_empty_form_schema_json(): void
     {
         /** @var User $user */
