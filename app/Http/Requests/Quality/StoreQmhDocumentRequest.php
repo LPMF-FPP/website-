@@ -155,9 +155,14 @@ class StoreQmhDocumentRequest extends FormRequest
                 'nullable',
                 'integer',
                 Rule::exists('qmh_templates', 'id')->where(function ($query) {
+                    $requestedClause = (int) $this->input('clause');
+                    $allowedClauses = $requestedClause === 4
+                        ? [4]
+                        : array_values(array_unique([$requestedClause, 4]));
+
                     $query
                         ->where('doc_type', $this->normalizedTemplateDocType())
-                        ->where('clause', (int) $this->input('clause'))
+                        ->whereIn('clause', $allowedClauses)
                         ->whereNull('archived_at');
                 }),
             ],

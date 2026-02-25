@@ -245,6 +245,35 @@ class QmhDocumentWebTest extends TestCase
         $response->assertSessionHasNoErrors();
     }
 
+    public function test_can_store_non_clause_4_document_using_clause_4_template_fallback(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+        $template = $this->createTemplate(4, 'sop');
+        $template->forceFill([
+            'is_active' => false,
+            'archived_at' => null,
+        ])->save();
+
+        $response = $this->actingAs($user)
+            ->post('/quality/documents', [
+                'doc_code' => 'QMH-WEB-004',
+                'title' => 'SOP Klausul 6 Pakai Template Klausul 4',
+                'clause' => 6,
+                'doc_type' => 'sop',
+                'template_id' => $template->id,
+                'change_summary' => 'store with clause 4 template fallback',
+                'dibuat_oleh' => $user->id,
+            ]);
+
+        $createdDocument = QmhDocument::query()
+            ->where('doc_code', 'QMH-WEB-004')
+            ->firstOrFail();
+
+        $response->assertRedirect(route('quality.documents.edit', $createdDocument));
+        $response->assertSessionHasNoErrors();
+    }
+
     public function test_store_non_formulir_ignores_empty_form_schema_json(): void
     {
         /** @var User $user */
