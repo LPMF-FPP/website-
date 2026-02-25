@@ -73,7 +73,7 @@ class QmhPreviewController extends Controller
         if (! empty($validated['template_id'])) {
             $template = QmhTemplate::query()
                 ->whereKey((int) $validated['template_id'])
-                ->where('is_active', true)
+                ->whereNull('archived_at')
                 ->where('doc_type', $templateDocType)
                 ->first();
         }

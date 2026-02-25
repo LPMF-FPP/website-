@@ -42,7 +42,7 @@ class QmhTemplateController extends Controller
 
         $templates = QmhTemplate::query()
             ->where('doc_type', $docType)
-            ->where('is_active', true)
+            ->whereNull('archived_at')
             ->when($clause !== null, fn ($query) => $query->where('clause', $clause))
             ->orderByDesc('version')
             ->orderBy('name')
@@ -108,7 +108,7 @@ class QmhTemplateController extends Controller
             if ($approvedFallback !== null) {
                 $fallbackTemplate = QmhTemplate::query()
                     ->whereKey((int) $approvedFallback->fallback_template_id)
-                    ->where('is_active', true)
+                    ->whereNull('archived_at')
                     ->where('doc_type', $docType)
                     ->where('clause', 4)
                     ->first();
