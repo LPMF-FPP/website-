@@ -6,6 +6,7 @@ use App\Models\QmhDocumentLock;
 use App\Models\QmhDocumentRevision;
 use App\Models\QmhWorkflowEvent;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
@@ -15,36 +16,49 @@ class QmhRevisionLockService
     public function acquire(QmhDocumentRevision $revision, int $actorId): QmhDocumentLock
     {
         return DB::transaction(function () use ($revision, $actorId) {
-            $lock = QmhDocumentLock::query()
-                ->where('revision_id', $revision->id)
-                ->lockForUpdate()
-                ->first();
+            for ($attempt = 0; $attempt < 2; $attempt++) {
+                $lock = QmhDocumentLock::query()
+                    ->where('revision_id', $revision->id)
+                    ->lockForUpdate()
+                    ->first();
 
-            if ($lock !== null && $lock->isActive() && $lock->locked_by !== $actorId) {
-                throw new ConflictHttpException('Revisi sedang dikunci oleh pengguna lain.');
+                if ($lock !== null && $lock->isActive() && $lock->locked_by !== $actorId) {
+                    throw new ConflictHttpException('Revisi sedang dikunci oleh pengguna lain.');
+                }
+
+                $now = now();
+                $expiresAt = now()->addMinutes(30);
+
+                if ($lock === null) {
+                    $lock = new QmhDocumentLock;
+                    $lock->revision_id = $revision->id;
+                }
+
+                $lock->locked_by = $actorId;
+                $lock->locked_at = $now;
+                $lock->heartbeat_at = $now;
+                $lock->expires_at = $expiresAt;
+                $lock->force_unlocked_by = null;
+                $lock->force_unlocked_reason = null;
+
+                try {
+                    $lock->save();
+                } catch (QueryException $exception) {
+                    if (! $lock->exists && $this->isUniqueRevisionLockViolation($exception)) {
+                        continue;
+                    }
+
+                    throw $exception;
+                }
+
+                $this->persistWorkflowEvent($revision->id, $actorId, 'lock', [
+                    'expires_at' => $expiresAt->toIso8601String(),
+                ]);
+
+                return $lock->fresh();
             }
 
-            $now = now();
-            $expiresAt = now()->addMinutes(30);
-
-            if ($lock === null) {
-                $lock = new QmhDocumentLock;
-                $lock->revision_id = $revision->id;
-            }
-
-            $lock->locked_by = $actorId;
-            $lock->locked_at = $now;
-            $lock->heartbeat_at = $now;
-            $lock->expires_at = $expiresAt;
-            $lock->force_unlocked_by = null;
-            $lock->force_unlocked_reason = null;
-            $lock->save();
-
-            $this->persistWorkflowEvent($revision->id, $actorId, 'lock', [
-                'expires_at' => $expiresAt->toIso8601String(),
-            ]);
-
-            return $lock->fresh();
+            throw new ConflictHttpException('Revisi sedang diproses. Silakan coba lagi.');
         });
     }
 
@@ -120,5 +134,17 @@ class QmhRevisionLockService
             'actor_id' => $actorId,
             'payload_json' => $payload,
         ]);
+    }
+
+    protected function isUniqueRevisionLockViolation(QueryException $exception): bool
+    {
+        if ((string) $exception->getCode() !== '23505') {
+            return false;
+        }
+
+        return str_contains(
+            strtolower($exception->getMessage()),
+            'qmh_document_locks_revision_id_unique'
+        );
     }
 }
