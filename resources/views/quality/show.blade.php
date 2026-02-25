@@ -672,14 +672,17 @@
                 <div class="relative w-full max-w-lg rounded-xl bg-white p-5 shadow-xl" x-transition>
                     <h3 class="text-lg font-semibold text-gray-900">Unduh PDF</h3>
                     <div class="mt-3 space-y-3 text-sm">
-                        <label class="flex items-center gap-2">
-                            <input type="radio" x-model="downloadModal.copyType" value="controlled" :disabled="currentStatus !== 'published'">
-                            Controlled Copy <span class="text-xs text-gray-500" x-show="currentStatus !== 'published'">(hanya saat published)</span>
-                        </label>
+                        <template x-if="isPublishedStatus()">
+                            <label class="flex items-center gap-2">
+                                <input type="radio" x-model="downloadModal.copyType" value="controlled">
+                                Controlled Copy
+                            </label>
+                        </template>
                         <label class="flex items-center gap-2"><input type="radio" x-model="downloadModal.copyType" value="uncontrolled"> Uncontrolled Copy</label>
+                        <p class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800" x-show="!isPublishedStatus()" x-cloak x-text="downloadStatusNote()"></p>
                     </div>
 
-                    <div class="mt-3 space-y-3" x-show="downloadModal.copyType === 'uncontrolled'">
+                    <div class="mt-3 space-y-3" x-show="effectiveDownloadCopyType() === 'uncontrolled'">
                         <div>
                             <label class="mb-1 block text-sm font-medium text-gray-700" for="download-reason">Alasan</label>
                             <textarea id="download-reason" rows="3" x-model="downloadModal.reason" class="w-full rounded-md border border-gray-300 text-sm focus:border-primary-600 focus:ring-primary-600" placeholder="Wajib diisi untuk uncontrolled copy"></textarea>
@@ -824,6 +827,19 @@
                     return date.toLocaleString('id-ID', { hour12: false });
                 },
 
+                isPublishedStatus() {
+                    return this.currentStatus === 'published';
+                },
+
+                effectiveDownloadCopyType() {
+                    return this.isPublishedStatus() ? this.downloadModal.copyType : 'uncontrolled';
+                },
+
+                downloadStatusNote() {
+                    const status = this.currentStatus || '-';
+                    return `Status ${status} otomatis dikategorikan sebagai salinan tidak terkendali.`;
+                },
+
                 openSubmitModal() {
                     this.submitModal.open = true;
                     this.submitModal.error = '';
@@ -938,6 +954,7 @@
                 openDownloadModal() {
                     this.downloadModal.open = true;
                     this.downloadModal.error = '';
+                    this.downloadModal.copyType = this.isPublishedStatus() ? 'controlled' : 'uncontrolled';
                 },
 
                 closeDownloadModal() {
@@ -960,9 +977,9 @@
                                 'X-CSRF-TOKEN': this.csrfToken,
                             },
                             body: JSON.stringify({
-                                copy_type: this.downloadModal.copyType,
-                                reason: this.downloadModal.copyType === 'uncontrolled' ? this.downloadModal.reason : null,
-                                distribution_target: this.downloadModal.copyType === 'uncontrolled' ? this.downloadModal.distributionTarget : null,
+                                copy_type: this.effectiveDownloadCopyType(),
+                                reason: this.effectiveDownloadCopyType() === 'uncontrolled' ? this.downloadModal.reason : null,
+                                distribution_target: this.effectiveDownloadCopyType() === 'uncontrolled' ? this.downloadModal.distributionTarget : null,
                             }),
                         });
 
