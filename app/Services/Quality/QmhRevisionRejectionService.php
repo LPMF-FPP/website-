@@ -39,6 +39,20 @@ class QmhRevisionRejectionService
             $revision->effective_date = null;
             $revision->save();
 
+            $lock = $revision->lock()->lockForUpdate()->first();
+            if ($lock !== null && $lock->isActive()) {
+                $lock->force_unlocked_by = $actorId;
+                $lock->force_unlocked_reason = 'Workflow approval reject ke draft.';
+                $lock->expires_at = now();
+                $lock->save();
+
+                $this->persistWorkflowEvent($revision->id, $actorId, 'unlock', [
+                    'force' => true,
+                    'reason' => 'Workflow approval reject ke draft.',
+                    'trigger' => 'approval_reject',
+                ]);
+            }
+
             $this->persistWorkflowEvent($revision->id, $actorId, 'reject', [
                 'reason' => $reason,
                 'from_status' => 'in_approval',

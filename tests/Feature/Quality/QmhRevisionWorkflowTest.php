@@ -353,6 +353,10 @@ class QmhRevisionWorkflowTest extends TestCase
         $revision->update(['diperiksa_oleh' => $reviewer->id, 'disahkan_oleh' => $approver->id]);
 
         $this->actingAs($reviewer)
+            ->postJson("/api/quality/revisions/{$revision->id}/lock")
+            ->assertOk();
+
+        $this->actingAs($reviewer)
             ->postJson("/api/quality/revisions/{$revision->id}/review", [
                 'action' => 'return',
                 'note' => 'Perlu perbaikan minor',
@@ -363,6 +367,12 @@ class QmhRevisionWorkflowTest extends TestCase
             'id' => $revision->id,
             'status' => 'draft',
         ]);
+
+        $revision->refresh();
+        $revision->load('lock');
+        $this->assertNotNull($revision->lock);
+        $this->assertFalse($revision->lock->isActive());
+        $this->assertSame($reviewer->id, (int) $revision->lock->force_unlocked_by);
 
         $this->actingAs($creator)->postJson("/api/quality/revisions/{$revision->id}/lock")->assertOk();
         $this->actingAs($creator)->postJson("/api/quality/revisions/{$revision->id}/submit", [
@@ -384,6 +394,49 @@ class QmhRevisionWorkflowTest extends TestCase
             'status' => 'in_approval',
             'disahkan_oleh' => $approver->id,
         ]);
+    }
+
+    public function test_reject_endpoint_releases_active_lock_and_returns_revision_to_draft(): void
+    {
+        /** @var User $creator */
+        $creator = User::factory()->create(['role' => 'admin']);
+        /** @var User $reviewer */
+        $reviewer = User::factory()->create(['role' => 'admin']);
+        /** @var User $approver */
+        $approver = User::factory()->create(['role' => 'admin']);
+        $revision = $this->createDraftRevision($creator);
+
+        $this->actingAs($creator)->postJson("/api/quality/revisions/{$revision->id}/lock")->assertOk();
+        $this->actingAs($creator)->postJson("/api/quality/revisions/{$revision->id}/submit", [
+            'reviewer_id' => $reviewer->id,
+        ])->assertOk();
+
+        $revision->update(['diperiksa_oleh' => $reviewer->id, 'disahkan_oleh' => $approver->id]);
+
+        $this->actingAs($reviewer)
+            ->postJson("/api/quality/revisions/{$revision->id}/review", [
+                'action' => 'pass',
+                'approver_id' => $approver->id,
+            ])
+            ->assertOk();
+
+        $this->actingAs($approver)
+            ->postJson("/api/quality/revisions/{$revision->id}/lock")
+            ->assertOk();
+
+        $this->actingAs($approver)
+            ->postJson("/api/quality/revisions/{$revision->id}/reject", [
+                'reason' => 'Perlu revisi mayor',
+            ])
+            ->assertOk();
+
+        $revision->refresh();
+        $revision->load('lock');
+
+        $this->assertSame('draft', $revision->status);
+        $this->assertNotNull($revision->lock);
+        $this->assertFalse($revision->lock->isActive());
+        $this->assertSame($approver->id, (int) $revision->lock->force_unlocked_by);
     }
 
     public function test_save_content_requires_active_lock_owner_and_draft_status(): void
