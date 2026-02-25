@@ -118,6 +118,41 @@ class QmhTemplateSchemaApiTest extends TestCase
         $response->assertJsonPath('data.0.risk_matrix_columns.2', 'Kontrol');
     }
 
+    public function test_template_list_includes_non_archived_template_even_when_not_marked_active(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        DB::table('qmh_templates')->insert([
+            'name' => 'SOP Inactive Legacy',
+            'clause' => 5,
+            'doc_type' => 'sop',
+            'version' => 3,
+            'storage_disk' => 'local',
+            'source_docx_path' => null,
+            'is_active' => false,
+            'archived_at' => null,
+            'metadata' => json_encode([
+                'form_schema' => [
+                    'version' => 1,
+                    'doc_type' => 'sop',
+                    'questions' => [
+                        ['id' => 'purpose', 'label' => 'Tujuan', 'type' => 'textarea', 'required' => true],
+                    ],
+                ],
+            ], JSON_THROW_ON_ERROR),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)
+            ->getJson('/api/quality/templates?doc_type=sop&clause=5');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('data.0.name', 'SOP Inactive Legacy');
+    }
+
     public function test_template_list_marks_legacy_fr_template_without_explicit_layout_profile(): void
     {
         /** @var User $user */
@@ -242,6 +277,43 @@ class QmhTemplateSchemaApiTest extends TestCase
         $response->assertOk();
         $response->assertJsonCount(0, 'data');
         $response->assertJsonPath('resolved_from', 'none');
+    }
+
+    public function test_template_list_auto_falls_back_to_clause_4_for_create_context(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        DB::table('qmh_templates')->insert([
+            'name' => 'SOP Clause 4 Fallback',
+            'clause' => 4,
+            'doc_type' => 'sop',
+            'version' => 1,
+            'storage_disk' => 'local',
+            'source_docx_path' => null,
+            'is_active' => false,
+            'archived_at' => null,
+            'metadata' => json_encode([
+                'form_schema' => [
+                    'version' => 1,
+                    'doc_type' => 'sop',
+                    'questions' => [
+                        ['id' => 'purpose', 'label' => 'Tujuan', 'type' => 'textarea', 'required' => true],
+                    ],
+                ],
+            ], JSON_THROW_ON_ERROR),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $response = $this->actingAs($user)
+            ->getJson('/api/quality/templates?doc_type=sop&clause=8');
+
+        $response->assertOk();
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('resolved_from', 'fallback_auto');
+        $response->assertJsonPath('data.0.name', 'SOP Clause 4 Fallback');
+        $response->assertJsonPath('data.0.clause', 4);
     }
 
     private function createQmhPermissions(): void

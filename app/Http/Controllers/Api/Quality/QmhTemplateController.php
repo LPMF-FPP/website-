@@ -42,7 +42,7 @@ class QmhTemplateController extends Controller
 
         $templates = QmhTemplate::query()
             ->where('doc_type', $docType)
-            ->where('is_active', true)
+            ->whereNull('archived_at')
             ->when($clause !== null, fn ($query) => $query->where('clause', $clause))
             ->orderByDesc('version')
             ->orderBy('name')
@@ -91,6 +91,63 @@ class QmhTemplateController extends Controller
             $resolvedFrom === 'none'
             && $clause !== null
             && $clause !== 4
+            && ! isset($validated['document_id'])
+        ) {
+            $fallbackTemplates = QmhTemplate::query()
+                ->where('doc_type', $docType)
+                ->whereNull('archived_at')
+                ->where('clause', 4)
+                ->orderByDesc('version')
+                ->orderBy('name')
+                ->get([
+                    'id',
+                    'name',
+                    'clause',
+                    'doc_type',
+                    'version',
+                    'is_active',
+                    'metadata',
+                    'updated_at',
+                ]);
+
+            if ($docType === 'fr' && ($requestedLayoutProfile !== null || $requestedShellMode !== null || $requestedOrientationPolicy !== null || $requestedSignoffFooter !== null)) {
+                $fallbackTemplates = $fallbackTemplates->filter(function (QmhTemplate $template) use ($requestedLayoutProfile, $requestedShellMode, $requestedOrientationPolicy, $requestedSignoffFooter): bool {
+                    $metadata = is_array($template->metadata) ? $template->metadata : [];
+                    $layoutConfig = QmhFrLayoutProfile::fromMetadata($metadata);
+                    $templateLayoutProfile = isset($layoutConfig['layout_profile'])
+                        ? (string) $layoutConfig['layout_profile']
+                        : QmhFrLayoutProfile::defaultAuthoringProfile();
+
+                    if ($requestedLayoutProfile !== null && $templateLayoutProfile !== $requestedLayoutProfile) {
+                        return false;
+                    }
+
+                    if ($requestedShellMode !== null && (string) ($layoutConfig['shell_mode'] ?? '') !== $requestedShellMode) {
+                        return false;
+                    }
+
+                    if ($requestedOrientationPolicy !== null && (string) ($layoutConfig['orientation_policy'] ?? '') !== $requestedOrientationPolicy) {
+                        return false;
+                    }
+
+                    if ($requestedSignoffFooter !== null && (bool) ($layoutConfig['show_signoff_footer'] ?? true) !== $requestedSignoffFooter) {
+                        return false;
+                    }
+
+                    return true;
+                })->values();
+            }
+
+            if ($fallbackTemplates->isNotEmpty()) {
+                $templates = $fallbackTemplates;
+                $resolvedFrom = 'fallback_auto';
+            }
+        }
+
+        if (
+            $resolvedFrom === 'none'
+            && $clause !== null
+            && $clause !== 4
             && isset($validated['document_id'])
         ) {
             $approvedFallback = QmhTemplateFallbackRequest::query()
@@ -108,7 +165,7 @@ class QmhTemplateController extends Controller
             if ($approvedFallback !== null) {
                 $fallbackTemplate = QmhTemplate::query()
                     ->whereKey((int) $approvedFallback->fallback_template_id)
-                    ->where('is_active', true)
+                    ->whereNull('archived_at')
                     ->where('doc_type', $docType)
                     ->where('clause', 4)
                     ->first();

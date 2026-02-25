@@ -155,10 +155,15 @@ class StoreQmhDocumentRequest extends FormRequest
                 'nullable',
                 'integer',
                 Rule::exists('qmh_templates', 'id')->where(function ($query) {
+                    $requestedClause = (int) $this->input('clause');
+                    $allowedClauses = $requestedClause === 4
+                        ? [4]
+                        : array_values(array_unique([$requestedClause, 4]));
+
                     $query
                         ->where('doc_type', $this->normalizedTemplateDocType())
-                        ->where('clause', (int) $this->input('clause'))
-                        ->where('is_active', true);
+                        ->whereIn('clause', $allowedClauses)
+                        ->whereNull('archived_at');
                 }),
             ],
             'fr_preset' => [
@@ -208,8 +213,8 @@ class StoreQmhDocumentRequest extends FormRequest
             'source_pdf_file.file' => 'File PDF sumber tidak valid.',
             'source_pdf_file.mimetypes' => 'File sumber harus berformat PDF.',
             'source_pdf_file.max' => 'Ukuran file PDF sumber melebihi batas maksimum.',
-            'template_id.required' => 'Template aktif wajib dipilih untuk dokumen non FR-v2.',
-            'template_id.exists' => 'Template aktif tidak valid untuk dokumen/klausul yang dipilih.',
+            'template_id.required' => 'Template wajib dipilih untuk dokumen non FR-v2.',
+            'template_id.exists' => 'Template tidak valid untuk dokumen/klausul yang dipilih.',
             'fr_preset.prohibited' => 'Preset FR lama tidak didukung pada mode FR-v2.',
             'answers_json.prohibited' => 'Jawaban schema-driven legacy tidak didukung pada mode FR-v2.',
             'form_schema_json.prohibited' => 'Schema pertanyaan legacy tidak didukung pada mode FR-v2.',
