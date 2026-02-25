@@ -291,6 +291,20 @@ class QmhRevisionTransitionService
             $revision->reviewed_at = now();
             $revision->save();
 
+            $lock = $revision->lock()->lockForUpdate()->first();
+            if ($lock !== null && $lock->isActive()) {
+                $lock->force_unlocked_by = $actorId;
+                $lock->force_unlocked_reason = 'Workflow review return ke draft.';
+                $lock->expires_at = now();
+                $lock->save();
+
+                $this->persistWorkflowEvent($revision->id, $actorId, 'unlock', [
+                    'force' => true,
+                    'reason' => 'Workflow review return ke draft.',
+                    'trigger' => 'review_return',
+                ]);
+            }
+
             $this->persistWorkflowEvent($revision->id, $actorId, 'review_return', [
                 'note' => $note,
             ]);
