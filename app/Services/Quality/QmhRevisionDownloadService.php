@@ -170,10 +170,7 @@ class QmhRevisionDownloadService
      */
     private function renderFrV2SourcePdfBinary(QmhDocumentRevision $revision, string $watermarkText, array $renderPayload): ?string
     {
-        if (! class_exists('\\setasign\\Fpdi\\Fpdi')) {
-            Log::warning('FPDI belum terpasang, fallback ke jalur render DomPDF.', [
-                'revision_id' => $revision->id,
-            ]);
+        if (! $this->canUseFpdiSourcePipeline($revision)) {
 
             return null;
         }
@@ -185,64 +182,100 @@ class QmhRevisionDownloadService
         /** @var class-string $fpdiClass */
         $fpdiClass = '\\setasign\\Fpdi\\Fpdi';
 
-        $reader = $streamReaderClass::createByString($sourceBinary);
-        $pdf = new $fpdiClass;
-        $pdf->SetAutoPageBreak(false);
+        try {
+            $reader = $streamReaderClass::createByString($sourceBinary);
+            $pdf = new $fpdiClass;
+            $pdf->SetAutoPageBreak(false);
 
-        $pageCount = $pdf->setSourceFile($reader);
-        $layoutConfig = is_array($renderPayload['layout_config'] ?? null) ? $renderPayload['layout_config'] : [];
-        $docCode = (string) ($revision->document?->doc_code ?? '-');
-        $docTitle = strtoupper((string) ($revision->document?->title ?? '-'));
-        $versionLabel = str_replace('-', '/', (string) ($revision->version_label ?? '-'));
-        $statusLabel = strtoupper((string) ($revision->status ?? '-'));
-        $effectiveDate = $revision->effective_date ? $revision->effective_date->format('d-m-Y') : '-';
+            $pageCount = $pdf->setSourceFile($reader);
+            $layoutConfig = is_array($renderPayload['layout_config'] ?? null) ? $renderPayload['layout_config'] : [];
+            $docCode = (string) ($revision->document?->doc_code ?? '-');
+            $docTitle = strtoupper((string) ($revision->document?->title ?? '-'));
+            $versionLabel = str_replace('-', '/', (string) ($revision->version_label ?? '-'));
+            $statusLabel = strtoupper((string) ($revision->status ?? '-'));
+            $effectiveDate = $revision->effective_date ? $revision->effective_date->format('d-m-Y') : '-';
 
-        $drawShell = QmhFrLayoutProfile::shouldRenderFrShellFromPolicy((string) ($layoutConfig['shell_mode'] ?? null));
-        $showSignoff = (bool) ($renderPayload['show_signoff_footer'] ?? true);
-        $targetOrientation = $this->resolvePaperOrientation($renderPayload);
+            $drawShell = QmhFrLayoutProfile::shouldRenderFrShellFromPolicy((string) ($layoutConfig['shell_mode'] ?? null));
+            $showSignoff = (bool) ($renderPayload['show_signoff_footer'] ?? true);
+            $targetOrientation = $this->resolvePaperOrientation($renderPayload);
 
-        for ($page = 1; $page <= $pageCount; $page++) {
-            $sourceTemplate = $pdf->importPage($page);
-            $sourceSize = $pdf->getTemplateSize($sourceTemplate);
+            for ($page = 1; $page <= $pageCount; $page++) {
+                $sourceTemplate = $pdf->importPage($page);
+                $sourceSize = $pdf->getTemplateSize($sourceTemplate);
 
-            $sourceWidth = (float) ($sourceSize['width'] ?? 210.0);
-            $sourceHeight = (float) ($sourceSize['height'] ?? 297.0);
+                $sourceWidth = (float) ($sourceSize['width'] ?? 210.0);
+                $sourceHeight = (float) ($sourceSize['height'] ?? 297.0);
 
-            [$targetWidth, $targetHeight] = $this->resolveTargetSizeFromPolicy($sourceWidth, $sourceHeight, $targetOrientation);
-            $pageOrientation = $targetWidth >= $targetHeight ? 'L' : 'P';
+                [$targetWidth, $targetHeight] = $this->resolveTargetSizeFromPolicy($sourceWidth, $sourceHeight, $targetOrientation);
+                $pageOrientation = $targetWidth >= $targetHeight ? 'L' : 'P';
 
-            $pdf->AddPage($pageOrientation, [$targetWidth, $targetHeight]);
+                $pdf->AddPage($pageOrientation, [$targetWidth, $targetHeight]);
 
-            $scale = min($targetWidth / $sourceWidth, $targetHeight / $sourceHeight);
-            $renderWidth = $sourceWidth * $scale;
-            $renderHeight = $sourceHeight * $scale;
-            $offsetX = ($targetWidth - $renderWidth) / 2;
-            $offsetY = ($targetHeight - $renderHeight) / 2;
+                $scale = min($targetWidth / $sourceWidth, $targetHeight / $sourceHeight);
+                $renderWidth = $sourceWidth * $scale;
+                $renderHeight = $sourceHeight * $scale;
+                $offsetX = ($targetWidth - $renderWidth) / 2;
+                $offsetY = ($targetHeight - $renderHeight) / 2;
 
-            $pdf->useTemplate($sourceTemplate, $offsetX, $offsetY, $renderWidth, $renderHeight, true);
+                $pdf->useTemplate($sourceTemplate, $offsetX, $offsetY, $renderWidth, $renderHeight, true);
 
-            if ($drawShell) {
-                $this->drawFrV2HeaderShell(
-                    $pdf,
-                    $targetWidth,
-                    $docCode,
-                    $docTitle,
-                    $versionLabel,
-                    $effectiveDate,
-                    $statusLabel
-                );
+                if ($drawShell) {
+                    $this->drawFrV2HeaderShell(
+                        $pdf,
+                        $targetWidth,
+                        $docCode,
+                        $docTitle,
+                        $versionLabel,
+                        $effectiveDate,
+                        $statusLabel
+                    );
+                }
+
+                $this->drawFrV2Watermark($pdf, $targetWidth, $targetHeight, $watermarkText);
+
+                if ($drawShell && $showSignoff) {
+                    $this->drawFrV2SignoffFooter($pdf, $targetWidth, $targetHeight);
+                }
+
+                $this->drawFrV2FooterMeta($pdf, $targetWidth, $targetHeight, $page, $pageCount);
             }
 
-            $this->drawFrV2Watermark($pdf, $targetWidth, $targetHeight, $watermarkText);
+            return $pdf->Output('S');
+        } catch (\Throwable $exception) {
+            Log::warning('FPDI pipeline gagal dieksekusi, fallback ke jalur render DomPDF.', [
+                'revision_id' => $revision->id,
+                'error' => $exception->getMessage(),
+            ]);
 
-            if ($drawShell && $showSignoff) {
-                $this->drawFrV2SignoffFooter($pdf, $targetWidth, $targetHeight);
-            }
+            return null;
+        }
+    }
 
-            $this->drawFrV2FooterMeta($pdf, $targetWidth, $targetHeight, $page, $pageCount);
+    protected function canUseFpdiSourcePipeline(QmhDocumentRevision $revision): bool
+    {
+        try {
+            $fpdiAvailable = class_exists('\\setasign\\Fpdi\\Fpdi');
+            $fpdfAvailable = class_exists('\\FPDF');
+        } catch (\Throwable $exception) {
+            Log::warning('Deteksi runtime FPDI/FPDF gagal, fallback ke jalur render DomPDF.', [
+                'revision_id' => $revision->id,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return false;
         }
 
-        return $pdf->Output('S');
+        if (! $fpdiAvailable || ! $fpdfAvailable) {
+            Log::warning('Runtime FPDI/FPDF tidak lengkap, fallback ke jalur render DomPDF.', [
+                'revision_id' => $revision->id,
+                'fpdi_available' => $fpdiAvailable,
+                'fpdf_available' => $fpdfAvailable,
+            ]);
+
+            return false;
+        }
+
+        return true;
     }
 
     private function shouldUseSourcePdfPipeline(QmhDocumentRevision $revision): bool
