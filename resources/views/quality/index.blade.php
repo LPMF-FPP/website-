@@ -1,12 +1,29 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="space-y-3">
+            @php
+                $headerScope = request('doc_scope', 'semua');
+                $canCreateDocument = auth()->user()?->hasPermission('qmh.create');
+            @endphp
             <x-page-header title="Dokumen QMH">
                 <x-slot name="actions">
-                    <a href="{{ route('quality.documents.create') }}"
-                       class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1">
-                        + Buat Dokumen
-                    </a>
+                    @if($canCreateDocument)
+                        @if($headerScope === 'pendukung')
+                            <a href="{{ route('quality.pendukung.create') }}"
+                               class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1">
+                                + Upload Pendukung
+                            </a>
+                        @else
+                            <a href="{{ route('quality.documents.create') }}"
+                               class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1">
+                                + Buat Dokumen
+                            </a>
+                        @endif
+                    @else
+                        <span class="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600">
+                            Mode lihat saja
+                        </span>
+                    @endif
                 </x-slot>
             </x-page-header>
 
