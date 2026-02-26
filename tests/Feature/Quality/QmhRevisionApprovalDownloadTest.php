@@ -8,6 +8,7 @@ use App\Models\QmhDocumentDownloadLog;
 use App\Models\QmhDocumentRevision;
 use App\Models\RolePermission;
 use App\Models\User;
+use App\Services\Quality\QmhRevisionDownloadService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -248,6 +249,33 @@ class QmhRevisionApprovalDownloadTest extends TestCase
         ]);
     }
 
+    public function test_fr_source_pdf_download_falls_back_to_dompdf_when_fpdi_runtime_unavailable(): void
+    {
+        [$revision, $approver] = $this->createFrRevisionInApprovalWithSourcePdfMetadata();
+
+        $service = \Mockery::mock(QmhRevisionDownloadService::class)
+            ->makePartial()
+            ->shouldAllowMockingProtectedMethods();
+        $service->shouldReceive('canUseFpdiSourcePipeline')->andReturn(false);
+        app()->instance(QmhRevisionDownloadService::class, $service);
+
+        $response = $this->actingAs($approver)
+            ->postJson("/api/quality/revisions/{$revision->id}/download", [
+                'copy_type' => 'uncontrolled',
+                'reason' => 'Uji fallback runtime FPDI',
+            ]);
+
+        $response->assertOk();
+        $response->assertHeader('Content-Type', 'application/pdf');
+
+        $this->assertDatabaseHas('qmh_document_download_logs', [
+            'revision_id' => $revision->id,
+            'copy_type' => 'uncontrolled',
+            'downloaded_by' => $approver->id,
+            'watermark_text' => 'SALINAN TIDAK TERKENDALI',
+        ]);
+    }
+
     /**
      * @return array{0: QmhDocumentRevision, 1: User, 2: QmhDocumentRevision}
      */
@@ -345,6 +373,50 @@ class QmhRevisionApprovalDownloadTest extends TestCase
             'role' => 'admin',
             'permission_id' => $createPermission->id,
         ]);
+    }
+
+    /**
+     * @return array{0: QmhDocumentRevision, 1: User}
+     */
+    private function createFrRevisionInApprovalWithSourcePdfMetadata(): array
+    {
+        /** @var User $creator */
+        $creator = User::factory()->create(['role' => 'admin']);
+        /** @var User $reviewer */
+        $reviewer = User::factory()->create(['role' => 'admin']);
+        /** @var User $approver */
+        $approver = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-FR-'.str((string) now()->unix())->append((string) random_int(100, 999)),
+            'title' => 'Dokumen Uji FR Runtime Fallback',
+            'clause' => 4,
+            'doc_type' => 'formulir',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'in_approval',
+            'content_html' => '<h1>Dokumen FR</h1><p>Konten fallback.</p>',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $creator->id,
+            'diperiksa_oleh' => $reviewer->id,
+            'disahkan_oleh' => $approver->id,
+            'submitted_at' => now()->subHours(2),
+            'reviewed_at' => now()->subHour(),
+            'source_pdf_disk' => 'local',
+            'source_pdf_path' => 'qmh/source/missing-master.pdf',
+        ]);
+
+        $document->current_revision_id = $revision->id;
+        $document->save();
+
+        return [$revision, $approver];
     }
 
     private function grantAttestationPermissionToAdminRole(): void

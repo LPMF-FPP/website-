@@ -589,7 +589,7 @@
 
                     <div class="mt-5 flex justify-end gap-2">
                         <button type="button" class="rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-700" @click="closeSubmitModal()">Batal</button>
-                        <button type="button" class="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50" :disabled="submitModal.loading" @click="submitForReview()" x-text="submitModal.loading ? 'Memproses...' : 'Submit'"></button>
+                        <button type="button" class="rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:opacity-50" :disabled="submitModal.loading || !submitModal.reviewerId" @click="submitForReview()" x-text="submitModal.loading ? 'Memproses...' : 'Submit'"></button>
                     </div>
                 </div>
             </div>
@@ -852,11 +852,17 @@
                 },
 
                 async submitForReview() {
+                    const reviewerId = Number.parseInt(this.submitModal.reviewerId, 10);
+                    if (!Number.isFinite(reviewerId) || reviewerId <= 0) {
+                        this.submitModal.error = 'Pilih pemeriksa terlebih dahulu.';
+                        return;
+                    }
+
                     this.submitModal.loading = true;
                     this.submitModal.error = '';
 
                     const response = await this.apiPost(`/api/quality/revisions/${this.revisionId}/submit`, {
-                        reviewer_id: this.submitModal.reviewerId,
+                        reviewer_id: reviewerId,
                     });
 
                     if (!response.ok) {
