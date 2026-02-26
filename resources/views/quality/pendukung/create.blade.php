@@ -36,11 +36,11 @@
                         name="doc_code"
                         type="text"
                         value="{{ old('doc_code') }}"
-                        placeholder="DP-4.001"
+                        placeholder="Contoh: DOK-PEND-001"
                         class="w-full rounded-md border border-gray-300 text-sm focus:border-primary-600 focus:ring-primary-600"
                         required
                     >
-                    <p class="mt-1 text-xs text-gray-500">Format: DP-{klausul}.###, contoh DP-4.001</p>
+                    <p class="mt-1 text-xs text-gray-500">Kode dokumen bebas sesuai kebutuhan unit (maks. 100 karakter).</p>
                 </div>
 
                 <div>

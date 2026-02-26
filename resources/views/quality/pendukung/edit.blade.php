@@ -40,6 +40,7 @@
                             value="{{ old('doc_code', $document->doc_code) }}"
                             class="w-full rounded-md border border-gray-300 text-sm focus:border-primary-600 focus:ring-primary-600"
                         >
+                        <p class="mt-1 text-xs text-gray-500">Kode dokumen bebas sesuai kebutuhan unit (maks. 100 karakter).</p>
                     </div>
 
                     <div>
