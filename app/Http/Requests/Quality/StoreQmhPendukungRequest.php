@@ -15,7 +15,7 @@ class StoreQmhPendukungRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'doc_code' => ['required', 'string', 'max:100', 'regex:/^DP-[45678]\.\d{3}$/', 'unique:qmh_documents,doc_code'],
+            'doc_code' => ['required', 'string', 'max:100', 'unique:qmh_documents,doc_code'],
             'title' => ['required', 'string', 'max:255'],
             'clause' => ['required', 'integer', Rule::in([4, 5, 6, 7, 8])],
             'file' => [
@@ -31,7 +31,6 @@ class StoreQmhPendukungRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'doc_code.regex' => 'Format kode dokumen harus DP-{klausul}.###, contoh: DP-4.001',
             'doc_code.unique' => 'Kode dokumen sudah digunakan',
             'file.required' => 'File dokumen pendukung wajib diunggah.',
             'file.file' => 'File dokumen pendukung tidak valid.',

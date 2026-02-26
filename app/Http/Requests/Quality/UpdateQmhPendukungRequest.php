@@ -20,7 +20,6 @@ class UpdateQmhPendukungRequest extends FormRequest
                 'sometimes',
                 'string',
                 'max:100',
-                'regex:/^DP-[45678]\.\d{3}$/',
                 Rule::unique('qmh_documents', 'doc_code')->ignore($this->documentId()),
             ],
             'title' => ['sometimes', 'string', 'max:255'],
@@ -38,7 +37,6 @@ class UpdateQmhPendukungRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'doc_code.regex' => 'Format kode dokumen harus DP-{klausul}.###, contoh: DP-4.001',
             'doc_code.unique' => 'Kode dokumen sudah digunakan',
             'file.mimetypes' => 'Tipe file tidak diizinkan. Gunakan: jpg, png, webp, pdf',
             'file.max' => 'Ukuran file maksimal 30 MB',
