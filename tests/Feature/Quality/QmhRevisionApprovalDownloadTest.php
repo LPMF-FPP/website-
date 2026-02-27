@@ -249,14 +249,14 @@ class QmhRevisionApprovalDownloadTest extends TestCase
         ]);
     }
 
-    public function test_fr_source_pdf_download_falls_back_to_dompdf_when_fpdi_runtime_unavailable(): void
+    public function test_fr_source_pdf_download_falls_back_to_dompdf_when_source_pdf_missing_after_submit(): void
     {
         [$revision, $approver] = $this->createFrRevisionInApprovalWithSourcePdfMetadata();
 
         $service = \Mockery::mock(QmhRevisionDownloadService::class)
             ->makePartial()
             ->shouldAllowMockingProtectedMethods();
-        $service->shouldReceive('canUseFpdiSourcePipeline')->andReturn(false);
+        $service->shouldReceive('canUseFpdiSourcePipeline')->andReturn(true);
         app()->instance(QmhRevisionDownloadService::class, $service);
 
         $response = $this->actingAs($approver)
