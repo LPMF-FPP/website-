@@ -175,14 +175,13 @@ class QmhRevisionDownloadService
             return null;
         }
 
-        $sourceBinary = $this->loadSourcePdfBinary($revision);
-
         /** @var class-string $streamReaderClass */
         $streamReaderClass = '\\setasign\\Fpdi\\PdfParser\\StreamReader';
         /** @var class-string $fpdiClass */
         $fpdiClass = '\\setasign\\Fpdi\\Fpdi';
 
         try {
+            $sourceBinary = $this->loadSourcePdfBinary($revision);
             $reader = $streamReaderClass::createByString($sourceBinary);
             $pdf = new $fpdiClass;
             $pdf->SetAutoPageBreak(false);

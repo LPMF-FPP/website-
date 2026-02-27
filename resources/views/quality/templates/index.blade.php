@@ -20,12 +20,118 @@
         </div>
     </x-slot>
 
-    <div class="space-y-6">
+    <div class="space-y-6"
+         x-data="{
+            templateCards: @js($templates->getCollection()->map(fn ($template) => [
+                'id' => (int) $template->id,
+                'name' => (string) $template->name,
+                'doc_type' => strtoupper((string) $template->doc_type),
+                'clause' => (int) $template->clause,
+                'version' => (int) $template->version,
+                'is_active' => (bool) $template->is_active,
+                'is_archived' => $template->archived_at !== null,
+                'updated_at' => $template->updated_at?->format('d-m-Y H:i') ?? '-',
+                'edit_url' => route('quality.templates.edit', $template),
+                'preview_url' => route('quality.templates.preview', $template),
+                'activate_url' => route('quality.templates.activate', $template),
+                'deactivate_url' => route('quality.templates.deactivate', $template),
+            ])->values()),
+            selectedTemplateId: @js(optional($templates->first())->id),
+            selectedTemplate() {
+                return this.templateCards.find((item) => item.id === this.selectedTemplateId) || null;
+            }
+         }">
         @if(session('success'))
             <div class="rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
                 {{ session('success') }}
             </div>
         @endif
+
+        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div class="mb-4">
+                <h2 class="text-lg font-semibold text-gray-900">Manajemen Template</h2>
+                <p class="mt-1 text-sm text-gray-600">
+                    Pilih template untuk aksi cepat, lalu gunakan filter untuk audit daftar versi.
+                </p>
+            </div>
+
+            <div class="grid gap-4 lg:grid-cols-12">
+                <div class="lg:col-span-8">
+                    <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                        <template x-for="tpl in templateCards" :key="tpl.id">
+                            <button
+                                type="button"
+                                @click="selectedTemplateId = tpl.id"
+                                :class="selectedTemplateId === tpl.id ? 'ring-2 ring-primary-500 border-primary-400' : 'border-gray-200 hover:border-primary-300'"
+                                class="rounded-lg border bg-white px-4 py-3 text-left transition"
+                            >
+                                <div class="flex items-start justify-between gap-2">
+                                    <div>
+                                        <p class="text-sm font-semibold text-gray-900" x-text="tpl.name"></p>
+                                        <p class="mt-1 text-xs text-gray-500">
+                                            <span x-text="tpl.doc_type"></span>
+                                            • Klausul <span x-text="tpl.clause"></span>
+                                            • v<span x-text="tpl.version"></span>
+                                        </p>
+                                    </div>
+                                    <span x-show="selectedTemplateId === tpl.id" class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary-100 text-primary-700">
+                                        ✓
+                                    </span>
+                                </div>
+                                <div class="mt-2">
+                                    <span x-show="tpl.is_active" class="inline-flex rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-700">Active</span>
+                                    <span x-show="!tpl.is_active && tpl.is_archived" class="inline-flex rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">Archived</span>
+                                    <span x-show="!tpl.is_active && !tpl.is_archived" class="inline-flex rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">Inactive</span>
+                                </div>
+                            </button>
+                        </template>
+
+                        <div x-show="templateCards.length === 0" class="sm:col-span-2 xl:col-span-3 rounded-lg border border-dashed border-gray-300 px-4 py-8 text-center text-sm text-gray-500">
+                            Belum ada template pada halaman ini.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-4">
+                    <div class="rounded-lg border border-gray-200 bg-gray-50 p-4" x-show="selectedTemplate()">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Template Terpilih</p>
+                        <h3 class="mt-1 text-base font-semibold text-gray-900" x-text="selectedTemplate()?.name"></h3>
+                        <p class="mt-1 text-xs text-gray-600">
+                            Update terakhir: <span x-text="selectedTemplate()?.updated_at"></span>
+                        </p>
+
+                        <div class="mt-4 grid gap-2">
+                            <a :href="selectedTemplate()?.edit_url"
+                               class="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                Edit
+                            </a>
+                            <a :href="selectedTemplate()?.preview_url"
+                               target="_blank"
+                               rel="noopener"
+                               class="inline-flex items-center justify-center rounded-md border border-primary-300 bg-white px-3 py-2 text-sm font-medium text-primary-700 hover:bg-primary-50">
+                                Preview
+                            </a>
+
+                            <form x-show="selectedTemplate()?.is_active" method="POST" :action="selectedTemplate()?.deactivate_url">
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit" class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                    Nonaktifkan
+                                </button>
+                            </form>
+
+                            <form x-show="selectedTemplate() && !selectedTemplate()?.is_active" method="POST" :action="selectedTemplate()?.activate_url">
+                                @csrf
+                                @method('PATCH')
+                                <button type="submit" class="w-full rounded-md bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700">
+                                    Aktifkan
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <form method="GET" action="{{ route('quality.templates.index') }}" class="grid gap-3 md:grid-cols-5">
