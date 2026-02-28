@@ -2,11 +2,11 @@
     <x-slot name="header">
         <div class="space-y-3">
             <x-page-header
-                title="Preview Template QMH"
+                title="Preview Template (HTML) QMH"
                 :breadcrumbs="[
                     ['label' => 'Dashboard QMH', 'route' => 'quality.index'],
                     ['label' => 'Template QMH', 'route' => 'quality.templates.index'],
-                    ['label' => 'Preview Template'],
+                    ['label' => 'Preview Template (HTML)'],
                 ]"
             />
 
@@ -17,10 +17,10 @@
     <div class="space-y-4">
         <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <p class="text-sm text-gray-700">
-                Preview template: <strong>{{ $template->name }}</strong> ({{ strtoupper($template->doc_type) }} v{{ $template->version }})
+                Preview Template (HTML): <strong>{{ $template->name }}</strong> ({{ strtoupper($template->doc_type) }} v{{ $template->version }})
             </p>
             <p class="mt-1 text-xs text-gray-500">
-                Preview ini menggunakan konten HTML template yang dipilih.
+                Preview ini menggunakan konten HTML template yang dipilih, bukan hasil render PDF final.
             </p>
 
             <div class="mt-3 flex flex-wrap gap-2">

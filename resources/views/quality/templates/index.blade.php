@@ -49,7 +49,7 @@
 
         <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <div class="mb-4">
-                <h2 class="text-lg font-semibold text-gray-900">Manajemen Template</h2>
+                <h2 class="text-lg font-semibold text-gray-900">Daftar Template</h2>
                 <p class="mt-1 text-sm text-gray-600">
                     Pilih template untuk aksi cepat, lalu gunakan filter untuk audit daftar versi.
                 </p>
@@ -94,7 +94,8 @@
 
                 <div class="lg:col-span-4">
                     <div class="rounded-lg border border-gray-200 bg-gray-50 p-4" x-show="selectedTemplate()">
-                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Template Terpilih</p>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Aksi Cepat</p>
+                        <p class="mt-1 text-xs text-gray-500">Memilih aksi di sini tidak akan mengubah versi aktif sampai Anda publish versi baru.</p>
                         <h3 class="mt-1 text-base font-semibold text-gray-900" x-text="selectedTemplate()?.name"></h3>
                         <p class="mt-1 text-xs text-gray-600">
                             Update terakhir: <span x-text="selectedTemplate()?.updated_at"></span>
@@ -109,7 +110,7 @@
                                target="_blank"
                                rel="noopener"
                                class="inline-flex items-center justify-center rounded-md border border-primary-300 bg-white px-3 py-2 text-sm font-medium text-primary-700 hover:bg-primary-50">
-                                Preview
+                                Preview Template (HTML)
                             </a>
 
                             <form x-show="selectedTemplate()?.is_active" method="POST" :action="selectedTemplate()?.deactivate_url">
@@ -130,6 +131,11 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div class="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+                <p class="font-semibold">Catatan Versioning</p>
+                <p class="mt-1">Perubahan pada template tidak menimpa versi lama. Sistem akan menerbitkan versi baru agar riwayat audit tetap terjaga.</p>
             </div>
         </div>
 
@@ -415,7 +421,7 @@
                                target="_blank"
                                rel="noopener"
                                class="inline-flex items-center rounded-md border border-primary-300 px-3 py-1.5 text-xs font-medium text-primary-700 hover:bg-primary-50">
-                                Preview
+                                Preview Template (HTML)
                             </a>
 
                             @if($template->is_active)

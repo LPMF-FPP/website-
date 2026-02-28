@@ -19,6 +19,7 @@
         "maatwebsite/excel": "^3.1",
         "sentry/sentry-laravel": "^4.20",
         "setasign/fpdi": "^2.6",
+        "setasign/fpdf": "^1.8",
         "simplesoftwareio/simple-qrcode": "^4.2",
         "spatie/laravel-permission": "^6.21"
     },

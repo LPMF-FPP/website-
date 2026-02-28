@@ -21,10 +21,15 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Normalizer;
 
 class QmhPreviewController extends Controller
 {
     private const PREVIEW_TOKEN_CACHE_PREFIX = 'qmh:fr_v2:preview_token:';
+
+    private const MAX_CANONICAL_NUMERIC_EXPONENT = 1000;
+
+    private const MAX_CANONICAL_NUMERIC_PAD = 5000;
 
     public function pdf(QmhPreviewPdfRequest $request, QmhRevisionDownloadService $service): Response
     {
@@ -120,23 +125,21 @@ class QmhPreviewController extends Controller
             )
             : [];
 
-        $templateMetadata = is_array($template?->metadata) ? $template->metadata : [];
-        $schemaSnapshot = null;
-        if ($template && is_array($templateMetadata['form_schema'] ?? null)) {
-            $schemaSnapshot = $templateMetadata['form_schema'];
-        }
+        $schemaCanonicalHash = null;
+        if (is_array($schemaSnapshot)) {
+            if (! class_exists(Normalizer::class)) {
+                throw ValidationException::withMessages([
+                    'form_schema_json' => 'Canonical hash membutuhkan ekstensi intl (Normalizer) yang aktif.',
+                ]);
+            }
 
-        if (in_array($docType, ['formulir', 'fr'], true) && is_array($schemaSnapshot)) {
-            foreach (['layout_profile', 'logo_source', 'logo_path', 'declaration_header', 'risk_matrix_columns'] as $key) {
-                if (array_key_exists($key, $schemaSnapshot)) {
-                    continue;
-                }
+            $canonicalJson = json_encode(
+                $this->canonicalizeSchemaForHash($schemaSnapshot),
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+            );
 
-                if (! array_key_exists($key, $templateMetadata)) {
-                    continue;
-                }
-
-                $schemaSnapshot[$key] = $templateMetadata[$key];
+            if (is_string($canonicalJson) && $canonicalJson !== '') {
+                $schemaCanonicalHash = hash('sha256', $canonicalJson);
             }
         }
 
@@ -172,11 +175,20 @@ class QmhPreviewController extends Controller
         $safeDocCode = preg_replace('/[^A-Za-z0-9._-]+/', '_', (string) $document->doc_code);
         $filename = ($safeDocCode ?: 'qmh-preview').'-preview.pdf';
 
-        return response($binary, 200, [
+        $headers = [
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'inline; filename="'.$filename.'"',
             'Cache-Control' => 'private, no-store, max-age=0',
-        ]);
+        ];
+
+        $includeSchemaHashHeader = $request->boolean('include_schema_hash')
+            || strtolower((string) $request->header('X-QMH-Include-Schema-Hash', '')) === '1';
+
+        if ($includeSchemaHashHeader && is_string($schemaCanonicalHash) && $schemaCanonicalHash !== '') {
+            $headers['X-QMH-Schema-Canonical-Hash'] = $schemaCanonicalHash;
+        }
+
+        return response($binary, 200, $headers);
     }
 
     public function storeArtifact(StoreQmhPreviewArtifactRequest $request): JsonResponse
@@ -347,5 +359,173 @@ class QmhPreviewController extends Controller
         $count = preg_match_all('/\/Type\s*\/Page\b/', $binary);
 
         return max(1, is_int($count) ? $count : 1);
+    }
+
+    private function canonicalizeSchemaForHash(mixed $value): mixed
+    {
+        if (is_array($value)) {
+            if (array_is_list($value)) {
+                return array_map(fn (mixed $item): mixed => $this->canonicalizeSchemaForHash($item), $value);
+            }
+
+            $normalized = [];
+            $keys = array_keys($value);
+            sort($keys, SORT_STRING);
+
+            foreach ($keys as $key) {
+                $normalized[(string) $key] = $this->canonicalizeSchemaForHash($value[$key]);
+            }
+
+            return $normalized;
+        }
+
+        if (is_string($value)) {
+            return $this->normalizeStringForHash($value);
+        }
+
+        if (is_int($value)) {
+            return (string) $value;
+        }
+
+        if (is_float($value)) {
+            return $this->normalizeFloatForHash($value);
+        }
+
+        return $value;
+    }
+
+    private function normalizeStringForHash(string $value): string
+    {
+        $normalized = str_replace(["\r\n", "\r"], "\n", $value);
+
+        $normalized = Normalizer::normalize($normalized, Normalizer::FORM_C) ?: $normalized;
+
+        return $normalized;
+    }
+
+    private function normalizeNumericStringForHash(string $numeric): string
+    {
+        $n = strtolower(trim($numeric));
+        $sign = '';
+        if (str_starts_with($n, '+')) {
+            $n = substr($n, 1);
+        } elseif (str_starts_with($n, '-')) {
+            $sign = '-';
+            $n = substr($n, 1);
+        }
+
+        $exp = 0;
+        $mantissaForFallback = $n;
+        if (str_contains($n, 'e')) {
+            [$mantissa, $exponent] = explode('e', $n, 2);
+            $n = $mantissa;
+            $exp = (int) $exponent;
+            $mantissaForFallback = $mantissa;
+        }
+
+        if (abs($exp) > self::MAX_CANONICAL_NUMERIC_EXPONENT) {
+            return $this->normalizeScientificFallbackForHash($sign, $mantissaForFallback, $exp);
+        }
+
+        $parts = explode('.', $n, 2);
+        $intPart = ltrim($parts[0] !== '' ? $parts[0] : '0', '0');
+        $fracPart = $parts[1] ?? '';
+
+        $digits = ($intPart === '' ? '0' : $intPart).$fracPart;
+        $decimalPos = ($intPart === '' ? 1 : strlen($intPart)) + $exp;
+
+        if ($digits === '' || preg_match('/^0+$/', $digits) === 1) {
+            return '0';
+        }
+
+        if ($decimalPos <= 0) {
+            $padLength = abs($decimalPos);
+            if ($padLength > self::MAX_CANONICAL_NUMERIC_PAD) {
+                return $this->normalizeScientificFallbackForHash($sign, $mantissaForFallback, $exp);
+            }
+
+            $digits = str_repeat('0', abs($decimalPos)).$digits;
+            $decimalPos = 0;
+        }
+
+        if ($decimalPos >= strlen($digits)) {
+            $padLength = $decimalPos - strlen($digits);
+            if ($padLength > self::MAX_CANONICAL_NUMERIC_PAD) {
+                return $this->normalizeScientificFallbackForHash($sign, $mantissaForFallback, $exp);
+            }
+
+            $result = $digits.str_repeat('0', $decimalPos - strlen($digits));
+        } else {
+            $result = substr($digits, 0, $decimalPos).'.'.substr($digits, $decimalPos);
+        }
+
+        if (str_contains($result, '.')) {
+            $result = rtrim(rtrim($result, '0'), '.');
+        }
+
+        $result = ltrim($result, '0');
+        if ($result === '' || str_starts_with($result, '.')) {
+            $result = '0'.$result;
+        }
+
+        if ($result === '0') {
+            return '0';
+        }
+
+        return $sign === '-' ? '-'.$result : $result;
+    }
+
+    private function normalizeScientificFallbackForHash(string $sign, string $mantissa, int $exp): string
+    {
+        $normalizedMantissa = trim(strtolower($mantissa));
+        if ($normalizedMantissa === '') {
+            return '0';
+        }
+
+        $parts = explode('.', $normalizedMantissa, 2);
+        $intPart = ltrim($parts[0] !== '' ? $parts[0] : '0', '0');
+        $fracPart = rtrim($parts[1] ?? '', '0');
+
+        if (($intPart === '' || preg_match('/^0+$/', $intPart) === 1) && ($fracPart === '' || preg_match('/^0+$/', $fracPart) === 1)) {
+            return '0';
+        }
+
+        $intPart = $intPart === '' ? '0' : $intPart;
+        $mantissaCanonical = $fracPart === '' ? $intPart : $intPart.'.'.$fracPart;
+
+        if ($exp !== 0) {
+            $mantissaCanonical .= 'e'.$exp;
+        }
+
+        return $sign === '-' ? '-'.$mantissaCanonical : $mantissaCanonical;
+    }
+
+    private function normalizeFloatForHash(float $value): string
+    {
+        if (is_nan($value) || is_infinite($value)) {
+            return (string) $value;
+        }
+
+        $encoded = json_encode($value, JSON_PRESERVE_ZERO_FRACTION);
+        if (! is_string($encoded) || $encoded === '') {
+            $fallback = (string) $value;
+
+            return $fallback === '-0' ? '0' : $fallback;
+        }
+
+        $normalized = strtolower($encoded);
+        if (str_contains($normalized, 'e')) {
+            return $this->normalizeNumericStringForHash($normalized);
+        }
+
+        if (str_contains($normalized, '.')) {
+            $normalized = rtrim(rtrim($normalized, '0'), '.');
+        }
+
+        if ($normalized === '-0') {
+            return '0';
+        }
+
+        return $normalized;
     }
 }

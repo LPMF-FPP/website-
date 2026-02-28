@@ -247,6 +247,7 @@ class QmhPreviewPdfApiTest extends TestCase
                 'clause' => 4,
                 'doc_code' => 'QMH-FR-PREVIEW-JSON-STRING',
                 'title' => 'Preview FR JSON String',
+                'include_schema_hash' => true,
                 'form_schema_json' => json_encode([
                     'version' => 1,
                     'doc_type' => 'fr',
@@ -258,6 +259,211 @@ class QmhPreviewPdfApiTest extends TestCase
             ]);
 
         $response->assertOk();
+        $response->assertHeader('X-QMH-Schema-Canonical-Hash');
+    }
+
+    public function test_preview_pdf_schema_hash_is_stable_for_canonical_equivalent_schema_payloads(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $first = $this->actingAs($user)
+            ->postJson('/api/quality/preview/pdf', [
+                'doc_type' => 'fr',
+                'clause' => 4,
+                'doc_code' => 'QMH-FR-HASH-001',
+                'title' => 'Hash Stabil 1',
+                'form_schema_json' => [
+                    'version' => 1,
+                    'doc_type' => 'fr',
+                    'questions' => [
+                        ['name' => 'should_fail_unknown'],
+                    ],
+                ],
+            ]);
+
+        $first->assertStatus(422);
+
+        $a = $this->actingAs($user)
+            ->postJson('/api/quality/preview/pdf', [
+                'doc_type' => 'fr',
+                'clause' => 4,
+                'doc_code' => 'QMH-FR-HASH-002',
+                'title' => 'Hash Stabil A',
+                'include_schema_hash' => true,
+                'form_schema_json' => [
+                    'version' => 1,
+                    'doc_type' => 'fr',
+                    'questions' => [
+                        [
+                            'id' => 'berat',
+                            'label' => "NaCl\r\nLab",
+                            'type' => 'number',
+                            'required' => false,
+                            'help' => '1.23',
+                        ],
+                    ],
+                ],
+            ]);
+
+        $b = $this->actingAs($user)
+            ->postJson('/api/quality/preview/pdf', [
+                'doc_type' => 'fr',
+                'clause' => 4,
+                'doc_code' => 'QMH-FR-HASH-003',
+                'title' => 'Hash Stabil B',
+                'include_schema_hash' => true,
+                'form_schema_json' => [
+                    'doc_type' => 'fr',
+                    'version' => 1,
+                    'questions' => [
+                        [
+                            'required' => false,
+                            'type' => 'number',
+                            'label' => "NaCl\nLab",
+                            'id' => 'berat',
+                            'help' => '1.23',
+                        ],
+                    ],
+                ],
+            ]);
+
+        $a->assertOk();
+        $b->assertOk();
+
+        $hashA = (string) $a->headers->get('X-QMH-Schema-Canonical-Hash');
+        $hashB = (string) $b->headers->get('X-QMH-Schema-Canonical-Hash');
+
+        $this->assertNotSame('', $hashA);
+        $this->assertSame($hashA, $hashB);
+    }
+
+    public function test_preview_pdf_schema_hash_differs_for_non_equivalent_schema_payloads(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $a = $this->actingAs($user)
+            ->postJson('/api/quality/preview/pdf', [
+                'doc_type' => 'fr',
+                'clause' => 4,
+                'doc_code' => 'QMH-FR-HASH-004',
+                'title' => 'Hash Diff A',
+                'include_schema_hash' => true,
+                'form_schema_json' => [
+                    'version' => 1,
+                    'doc_type' => 'fr',
+                    'questions' => [
+                        ['id' => 'berat', 'label' => '1.23', 'type' => 'text', 'required' => false],
+                    ],
+                ],
+            ]);
+
+        $b = $this->actingAs($user)
+            ->postJson('/api/quality/preview/pdf', [
+                'doc_type' => 'fr',
+                'clause' => 4,
+                'doc_code' => 'QMH-FR-HASH-005',
+                'title' => 'Hash Diff B',
+                'include_schema_hash' => true,
+                'form_schema_json' => [
+                    'version' => 1,
+                    'doc_type' => 'fr',
+                    'questions' => [
+                        ['id' => 'berat', 'label' => '1.24', 'type' => 'text', 'required' => false],
+                    ],
+                ],
+            ]);
+
+        $a->assertOk();
+        $b->assertOk();
+
+        $hashA = (string) $a->headers->get('X-QMH-Schema-Canonical-Hash');
+        $hashB = (string) $b->headers->get('X-QMH-Schema-Canonical-Hash');
+
+        $this->assertNotSame('', $hashA);
+        $this->assertNotSame('', $hashB);
+        $this->assertNotSame($hashA, $hashB);
+    }
+
+    public function test_preview_pdf_schema_hash_handles_extreme_scientific_notation_without_failure(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $response = $this->actingAs($user)
+            ->postJson('/api/quality/preview/pdf', [
+                'doc_type' => 'fr',
+                'clause' => 4,
+                'doc_code' => 'QMH-FR-HASH-EXTREME-001',
+                'title' => 'Hash Extreme Scientific',
+                'include_schema_hash' => true,
+                'form_schema_json' => [
+                    'version' => 1,
+                    'doc_type' => 'fr',
+                    'questions' => [
+                        [
+                            'id' => 'nilai',
+                            'label' => 'Nilai',
+                            'type' => 'number',
+                            'required' => false,
+                            'help' => '1e1000000',
+                        ],
+                    ],
+                ],
+            ]);
+
+        $response->assertOk();
+        $response->assertHeader('Content-Type', 'application/pdf');
+        $response->assertHeader('X-QMH-Schema-Canonical-Hash');
+    }
+
+    public function test_preview_pdf_schema_hash_differs_when_numeric_like_strings_are_semantically_different(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $a = $this->actingAs($user)
+            ->postJson('/api/quality/preview/pdf', [
+                'doc_type' => 'fr',
+                'clause' => 4,
+                'doc_code' => 'QMH-FR-HASH-NUMSTR-001',
+                'title' => 'Hash Numeric String A',
+                'include_schema_hash' => true,
+                'form_schema_json' => [
+                    'version' => 1,
+                    'doc_type' => 'fr',
+                    'questions' => [
+                        ['id' => 'nama', 'label' => 'NaCl', 'type' => 'text', 'required' => false, 'help' => '00123'],
+                    ],
+                ],
+            ]);
+
+        $b = $this->actingAs($user)
+            ->postJson('/api/quality/preview/pdf', [
+                'doc_type' => 'fr',
+                'clause' => 4,
+                'doc_code' => 'QMH-FR-HASH-NUMSTR-002',
+                'title' => 'Hash Numeric String B',
+                'include_schema_hash' => true,
+                'form_schema_json' => [
+                    'version' => 1,
+                    'doc_type' => 'fr',
+                    'questions' => [
+                        ['id' => 'nama', 'label' => 'NaCl', 'type' => 'text', 'required' => false, 'help' => '123'],
+                    ],
+                ],
+            ]);
+
+        $a->assertOk();
+        $b->assertOk();
+
+        $hashA = (string) $a->headers->get('X-QMH-Schema-Canonical-Hash');
+        $hashB = (string) $b->headers->get('X-QMH-Schema-Canonical-Hash');
+
+        $this->assertNotSame('', $hashA);
+        $this->assertNotSame('', $hashB);
+        $this->assertNotSame($hashA, $hashB);
     }
 
     public function test_preview_pdf_rejects_form_schema_for_non_fr_doc_type(): void
