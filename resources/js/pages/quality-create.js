@@ -1936,7 +1936,7 @@ export function qmhCreatePage(config = {}) {
                 answers[qid] = this.answers[qid];
             });
 
-            return {
+            const payload = {
                 doc_type: this.docType,
                 clause: this.clause,
                 doc_code: this.docCode,
@@ -1960,6 +1960,8 @@ export function qmhCreatePage(config = {}) {
                 diperiksa_oleh: this.diperiksaOleh || null,
                 disahkan_oleh: this.disahkanOleh || null,
             };
+
+            return payload;
         },
 
         async ensureFrV2PreviewToken(csrfToken) {

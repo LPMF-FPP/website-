@@ -112,7 +112,7 @@ class QmhTemplateController extends Controller
 
         return redirect()
             ->route('quality.templates.index')
-            ->with('success', 'Template QMH berhasil dipublish sebagai versi baru.');
+            ->with('success', 'Template QMH berhasil dibuat.');
     }
 
     public function edit(Request $request, QmhTemplate $template): View
@@ -201,7 +201,7 @@ class QmhTemplateController extends Controller
 
         return redirect()
             ->route('quality.templates.index')
-            ->with('success', 'Perubahan template dipublish sebagai versi baru.');
+            ->with('success', 'Perubahan diterbitkan sebagai versi baru Template QMH.');
     }
 
     public function activate(QmhTemplate $template): RedirectResponse
@@ -244,7 +244,7 @@ class QmhTemplateController extends Controller
 
         return redirect()
             ->route('quality.templates.index')
-            ->with('success', 'Template berhasil diaktifkan.');
+            ->with('success', 'Template QMH versi ini berhasil diaktifkan.');
     }
 
     public function deactivate(QmhTemplate $template): RedirectResponse
@@ -268,7 +268,7 @@ class QmhTemplateController extends Controller
 
         return redirect()
             ->route('quality.templates.index')
-            ->with('success', 'Template berhasil dinonaktifkan.');
+            ->with('success', 'Template QMH versi ini berhasil dinonaktifkan.');
     }
 
     public function preview(Request $request, QmhTemplate $template): View

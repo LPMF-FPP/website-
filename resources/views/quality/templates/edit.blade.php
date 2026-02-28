@@ -408,9 +408,12 @@
                     <a href="{{ route('quality.templates.index') }}" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
                         Batal
                     </a>
-                    <button type="submit" class="inline-flex items-center rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700">
-                        Publish Versi Baru
-                    </button>
+                    <div class="text-right">
+                        <p class="mb-2 text-xs text-gray-500">Menyimpan perubahan akan menerbitkan versi baru. Versi sebelumnya tetap tersimpan untuk audit.</p>
+                        <button type="submit" class="inline-flex items-center rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700">
+                            Publish Versi Baru
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>

@@ -30,6 +30,8 @@ class QmhTemplateManagementWebTest extends TestCase
             ->assertOk()
             ->assertSee('Template QMH')
             ->assertSee('Buat Template')
+            ->assertSee('Catatan Versioning')
+            ->assertSee('Aksi Cepat')
             ->assertSee('id="upload-template"', false)
             ->assertSee('<details', false);
     }
@@ -82,7 +84,8 @@ class QmhTemplateManagementWebTest extends TestCase
                 'version_notes' => 'editor-first',
                 'content_html' => '<h1>Judul</h1><p>Isi</p>',
             ])
-            ->assertRedirect(route('quality.templates.index'));
+            ->assertRedirect(route('quality.templates.index'))
+            ->assertSessionHas('success', fn (string $message): bool => str_contains($message, 'Template QMH') && str_contains($message, 'berhasil'));
 
         $template = QmhTemplate::query()->firstOrFail();
 
@@ -188,7 +191,8 @@ class QmhTemplateManagementWebTest extends TestCase
                 'version_notes' => 'ubah jenis dokumen',
                 'content_html' => '<p>Baru dari browser</p>',
             ])
-            ->assertRedirect(route('quality.templates.index'));
+            ->assertRedirect(route('quality.templates.index'))
+            ->assertSessionHas('success', fn (string $message): bool => str_contains($message, 'versi baru') && str_contains($message, 'Template QMH'));
 
         $template->refresh();
         $this->assertFalse($template->is_active);
@@ -357,7 +361,8 @@ class QmhTemplateManagementWebTest extends TestCase
 
         $this->actingAs($user)
             ->patch('/quality/templates/'.$second->id.'/activate')
-            ->assertRedirect(route('quality.templates.index'));
+            ->assertRedirect(route('quality.templates.index'))
+            ->assertSessionHas('success', fn (string $message): bool => str_contains($message, 'Template QMH') && str_contains($message, 'diaktifkan'));
 
         $this->assertFalse($first->fresh()->is_active);
         $this->assertTrue($second->fresh()->is_active);
@@ -422,8 +427,8 @@ class QmhTemplateManagementWebTest extends TestCase
         $this->actingAs($user)
             ->get(route('quality.templates.preview', $template))
             ->assertOk()
-            ->assertSee('Preview Template QMH')
-            ->assertSee('Preview ini menggunakan konten HTML template yang dipilih.')
+            ->assertSee('Preview Template (HTML) QMH')
+            ->assertSee('Preview ini menggunakan konten HTML template yang dipilih, bukan hasil render PDF final.')
             ->assertSee('OK')
             ->assertDontSee('alert("xss")', false)
             ->assertDontSee('evil.example', false);
