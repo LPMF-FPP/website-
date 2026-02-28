@@ -90,8 +90,7 @@ class QmhRevisionDownloadService
             ]);
         });
 
-        $safeDocCode = preg_replace('/[^A-Za-z0-9._-]+/', '_', $revision->document->doc_code ?? 'qmh-document');
-        $filename = sprintf('%s-%s-%s.pdf', $safeDocCode, $revision->version_label, $copyType);
+        $filename = $this->buildDownloadFilename($revision, $copyType);
 
         return [
             'binary' => $binary,
@@ -175,6 +174,8 @@ class QmhRevisionDownloadService
             return null;
         }
 
+        $revision->loadMissing(['document', 'createdBy', 'reviewedBy', 'approvedBy']);
+
         /** @var class-string $streamReaderClass */
         $streamReaderClass = '\\setasign\\Fpdi\\PdfParser\\StreamReader';
         /** @var class-string $fpdiClass */
@@ -195,8 +196,18 @@ class QmhRevisionDownloadService
             $effectiveDate = $revision->effective_date ? $revision->effective_date->format('d-m-Y') : '-';
 
             $drawShell = QmhFrLayoutProfile::shouldRenderFrShellFromPolicy((string) ($layoutConfig['shell_mode'] ?? null));
+            $layoutProfile = QmhFrLayoutProfile::normalizeRuntimeProfile((string) ($layoutConfig['layout_profile'] ?? 'legacy'));
+            $isDeclarationMinimal = ! $drawShell && $layoutProfile === 'declaration';
             $showSignoff = (bool) ($renderPayload['show_signoff_footer'] ?? true);
             $targetOrientation = $this->resolvePaperOrientation($renderPayload);
+            $signoffPayload = [
+                'created_name_rank' => $this->resolveSignerNameRank($revision->createdBy),
+                'reviewed_name_rank' => $this->resolveSignerNameRank($revision->reviewedBy),
+                'approved_name_rank' => $this->resolveSignerNameRank($revision->approvedBy),
+                'created_position' => $this->resolveSignerPosition($revision->createdBy),
+                'reviewed_position' => $this->resolveSignerPosition($revision->reviewedBy),
+                'approved_position' => $this->resolveSignerPosition($revision->approvedBy),
+            ];
 
             for ($page = 1; $page <= $pageCount; $page++) {
                 $sourceTemplate = $pdf->importPage($page);
@@ -210,15 +221,34 @@ class QmhRevisionDownloadService
 
                 $pdf->AddPage($pageOrientation, [$targetWidth, $targetHeight]);
 
-                $scale = min($targetWidth / $sourceWidth, $targetHeight / $sourceHeight);
-                $renderWidth = $sourceWidth * $scale;
-                $renderHeight = $sourceHeight * $scale;
-                $offsetX = ($targetWidth - $renderWidth) / 2;
-                $offsetY = ($targetHeight - $renderHeight) / 2;
+                if ($isDeclarationMinimal) {
+                    $topInset = 12.0;
+                    $bottomInset = 10.0;
+                    $usableHeight = max(40.0, $targetHeight - $topInset - $bottomInset);
+                    $scale = min($targetWidth / $sourceWidth, $usableHeight / $sourceHeight);
+                    $renderWidth = $sourceWidth * $scale;
+                    $renderHeight = $sourceHeight * $scale;
+                    $offsetX = ($targetWidth - $renderWidth) / 2;
+                    $offsetY = $topInset + (($usableHeight - $renderHeight) / 2);
+                } else {
+                    $scale = min($targetWidth / $sourceWidth, $targetHeight / $sourceHeight);
+                    $renderWidth = $sourceWidth * $scale;
+                    $renderHeight = $sourceHeight * $scale;
+                    $offsetX = ($targetWidth - $renderWidth) / 2;
+                    $offsetY = ($targetHeight - $renderHeight) / 2;
+                }
 
-                $pdf->useTemplate($sourceTemplate, $offsetX, $offsetY, $renderWidth, $renderHeight, true);
+                $pdf->useTemplate($sourceTemplate, $offsetX, $offsetY, $renderWidth, $renderHeight, false);
 
                 if ($drawShell) {
+                    $this->maskFrV2ShellAreas($pdf, $targetWidth, $targetHeight, $showSignoff);
+                }
+
+                if ($drawShell) {
+                    $logoAbsolutePath = is_string($renderPayload['logo_path'] ?? null)
+                        ? trim((string) $renderPayload['logo_path'])
+                        : '';
+
                     $this->drawFrV2HeaderShell(
                         $pdf,
                         $targetWidth,
@@ -226,17 +256,39 @@ class QmhRevisionDownloadService
                         $docTitle,
                         $versionLabel,
                         $effectiveDate,
-                        $statusLabel
+                        $statusLabel,
+                        $logoAbsolutePath !== '' ? $logoAbsolutePath : null
+                    );
+                }
+
+                if ($isDeclarationMinimal) {
+                    $logoAbsolutePath = is_string($renderPayload['logo_path'] ?? null)
+                        ? trim((string) $renderPayload['logo_path'])
+                        : '';
+
+                    $this->drawFrV2MinimalHeader(
+                        $pdf,
+                        $targetWidth,
+                        $docCode,
+                        $docTitle,
+                        $versionLabel,
+                        $effectiveDate,
+                        $statusLabel,
+                        $logoAbsolutePath !== '' ? $logoAbsolutePath : null
                     );
                 }
 
                 $this->drawFrV2Watermark($pdf, $targetWidth, $targetHeight, $watermarkText);
 
                 if ($drawShell && $showSignoff) {
-                    $this->drawFrV2SignoffFooter($pdf, $targetWidth, $targetHeight);
+                    $this->drawFrV2SignoffFooter($pdf, $targetWidth, $targetHeight, $signoffPayload);
                 }
 
-                $this->drawFrV2FooterMeta($pdf, $targetWidth, $targetHeight, $page, $pageCount);
+                if ($isDeclarationMinimal) {
+                    $this->drawFrV2MinimalFooter($pdf, $targetWidth, $targetHeight, $page, $pageCount);
+                } else {
+                    $this->drawFrV2FooterMeta($pdf, $targetWidth, $targetHeight, $page, $pageCount);
+                }
             }
 
             return $pdf->Output('S');
@@ -337,7 +389,7 @@ class QmhRevisionDownloadService
         return [min($sourceWidth, $sourceHeight), max($sourceWidth, $sourceHeight)];
     }
 
-    private function drawFrV2HeaderShell(object $pdf, float $pageWidth, string $docCode, string $docTitle, string $versionLabel, string $effectiveDate, string $statusLabel): void
+    private function drawFrV2HeaderShell(object $pdf, float $pageWidth, string $docCode, string $docTitle, string $versionLabel, string $effectiveDate, string $statusLabel, ?string $logoAbsolutePath = null): void
     {
         $left = 8.0;
         $right = $pageWidth - 8.0;
@@ -349,15 +401,20 @@ class QmhRevisionDownloadService
         $pdf->Rect($left, $top, $right - $left, $height);
 
         $leftColWidth = 44.0;
-        $rightColWidth = 54.0;
+        $rightColWidth = 58.0;
         $middleWidth = ($right - $left) - $leftColWidth - $rightColWidth;
 
         $pdf->Line($left + $leftColWidth, $top, $left + $leftColWidth, $top + $height);
         $pdf->Line($right - $rightColWidth, $top, $right - $rightColWidth, $top + $height);
 
-        $pdf->SetFont('Helvetica', 'B', 7);
-        $pdf->SetXY($left + 1.5, $top + 2.5);
-        $pdf->MultiCell($leftColWidth - 3.0, 3.2, 'LABORATORIUM PENGUJIAN MUTU\nFARMAPOL PUSDOKKES POLRI', 0, 'C');
+        $logoBottomY = $top + 2.0;
+        if (is_string($logoAbsolutePath) && $logoAbsolutePath !== '') {
+            $logoBottomY = $this->drawFrV2HeaderLogo($pdf, $logoAbsolutePath, $left, $top, $leftColWidth, $logoBottomY);
+        }
+
+        $pdf->SetFont('Helvetica', 'B', 6.4);
+        $pdf->SetXY($left + 1.5, max($top + 2.5, $logoBottomY + 0.4));
+        $pdf->MultiCell($leftColWidth - 3.0, 3.0, "LABORATORIUM PENGUJIAN MUTU\nFARMAPOL PUSDOKKES POLRI", 0, 'C');
 
         $pdf->SetFont('Helvetica', 'B', 9);
         $pdf->SetXY($left + $leftColWidth + 1.5, $top + 4.0);
@@ -372,20 +429,135 @@ class QmhRevisionDownloadService
         $metaTop = $top + 2.0;
 
         $rows = [
-            ['No.', $docCode],
-            ['E/R', $versionLabel],
-            ['Efektif', $effectiveDate],
+            ['No. Dokumen', $docCode],
+            ['Edisi/Revisi', $versionLabel],
+            ['Tgl. Efektif', $effectiveDate],
             ['Status', $statusLabel],
         ];
 
-        $pdf->SetFont('Helvetica', '', 6.5);
+        $pdf->SetFont('Helvetica', '', 5.9);
         foreach ($rows as $idx => $row) {
             $y = $metaTop + ($idx * 5.2);
             $pdf->SetXY($metaLeft, $y);
-            $pdf->Cell(18.0, 4.2, (string) $row[0], 0, 0, 'L');
+            $pdf->Cell(24.0, 4.2, (string) $row[0], 0, 0, 'L');
             $pdf->SetXY($metaValueLeft, $y);
-            $pdf->Cell($rightColWidth - 23.0, 4.2, mb_substr((string) $row[1], 0, 26), 0, 0, 'L');
+            $pdf->Cell($rightColWidth - 25.0, 4.2, mb_substr((string) $row[1], 0, 28), 0, 0, 'L');
         }
+    }
+
+    private function drawFrV2HeaderLogo(object $pdf, string $logoAbsolutePath, float $left, float $top, float $leftColWidth, float $fallbackY): float
+    {
+        if (! is_file($logoAbsolutePath) || ! is_readable($logoAbsolutePath)) {
+            return $fallbackY;
+        }
+
+        $boxWidth = max(8.0, $leftColWidth - 30.0);
+        $boxHeight = 8.5;
+        $logoWidth = $boxWidth;
+        $logoHeight = $boxHeight;
+
+        $imageSize = @getimagesize($logoAbsolutePath);
+        if (is_array($imageSize) && isset($imageSize[0], $imageSize[1]) && (int) $imageSize[0] > 0 && (int) $imageSize[1] > 0) {
+            $ratio = (float) $imageSize[0] / (float) $imageSize[1];
+            if ($ratio > 0.0) {
+                $logoWidth = min($boxWidth, $boxHeight * $ratio);
+                $logoHeight = min($boxHeight, $boxWidth / $ratio);
+            }
+        }
+
+        $logoX = $left + (($leftColWidth - $logoWidth) / 2);
+        $logoY = $top + 1.6;
+
+        try {
+            $pdf->Image($logoAbsolutePath, $logoX, $logoY, $logoWidth, $logoHeight);
+
+            return $logoY + $logoHeight;
+        } catch (\Throwable $exception) {
+            Log::warning('Gagal merender logo pada shell FPDI FR-v2, lanjut tanpa logo.', [
+                'logo_path' => $logoAbsolutePath,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return $fallbackY;
+        }
+    }
+
+    private function drawFrV2MinimalHeader(object $pdf, float $pageWidth, string $docCode, string $docTitle, string $versionLabel, string $effectiveDate, string $statusLabel, ?string $logoAbsolutePath = null): void
+    {
+        $left = 8.0;
+        $right = $pageWidth - 8.0;
+        $y = 5.6;
+        $textLeft = $left;
+
+        if (is_string($logoAbsolutePath) && $logoAbsolutePath !== '' && is_file($logoAbsolutePath) && is_readable($logoAbsolutePath)) {
+            try {
+                $pdf->Image($logoAbsolutePath, $left, 3.4, 5.8, 5.8);
+                $textLeft = $left + 7.2;
+            } catch (\Throwable $exception) {
+                Log::warning('Gagal merender logo pada header minimal FR-v2.', [
+                    'logo_path' => $logoAbsolutePath,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+        }
+
+        $titlePart = mb_substr(trim($docTitle), 0, 46);
+        $statusPart = str_replace('_', ' ', mb_strtoupper(trim($statusLabel)));
+        if ($statusPart === '') {
+            $statusPart = '-';
+        }
+
+        $metaPart = sprintf('%s | %s | %s | %s', $docCode, $versionLabel, $effectiveDate, $statusPart);
+        $headerText = trim(sprintf('%s | %s', $titlePart, $metaPart), ' |');
+
+        $fontSize = 7.0;
+        $availableWidth = max(40.0, $right - $textLeft);
+        $pdf->SetFont('Helvetica', 'B', $fontSize);
+        while ($fontSize > 5.2 && $pdf->GetStringWidth($headerText) > $availableWidth) {
+            $fontSize -= 0.2;
+            $pdf->SetFont('Helvetica', 'B', $fontSize);
+        }
+
+        $pdf->SetTextColor(17, 24, 39);
+        $pdf->SetXY($textLeft, $y);
+        $pdf->Cell($availableWidth, 3.8, $headerText, 0, 0, 'L');
+
+        $pdf->SetDrawColor(17, 24, 39);
+        $pdf->SetLineWidth(0.2);
+        $pdf->Line($left, 10.8, $right, 10.8);
+    }
+
+    private function drawFrV2MinimalFooter(object $pdf, float $pageWidth, float $pageHeight, int $pageNumber, int $pageCount): void
+    {
+        $left = 8.0;
+        $right = $pageWidth - 8.0;
+        $lineY = $pageHeight - 7.6;
+
+        $pdf->SetDrawColor(17, 24, 39);
+        $pdf->SetLineWidth(0.2);
+        $pdf->Line($left, $lineY, $right, $lineY);
+
+        $notice = 'Dokumen internal - reproduksi wajib izin Kepala Farmasi Kepolisian Pusdokkes Polri';
+        $pdf->SetFont('Helvetica', '', 6.0);
+        $pdf->SetTextColor(127, 29, 29);
+        $pdf->SetXY($left, $lineY + 1.1);
+        $pdf->Cell($pageWidth - 42.0, 3.2, mb_substr($notice, 0, 100), 0, 0, 'L');
+
+        $pdf->SetTextColor(17, 24, 39);
+        $pdf->SetXY($pageWidth - 30.0, $lineY + 1.1);
+        $pdf->Cell(22.0, 3.2, sprintf('Halaman %d/%d', $pageNumber, $pageCount), 0, 0, 'R');
+    }
+
+    private function maskFrV2ShellAreas(object $pdf, float $pageWidth, float $pageHeight, bool $showSignoff): void
+    {
+        $topBandHeight = 34.0;
+        $bottomBandHeight = $showSignoff ? 42.0 : 12.0;
+
+        $pdf->SetDrawColor(255, 255, 255);
+        $pdf->SetFillColor(255, 255, 255);
+        $pdf->Rect(0.0, 0.0, $pageWidth, $topBandHeight, 'F');
+        $pdf->Rect(0.0, max(0.0, $pageHeight - $bottomBandHeight), $pageWidth, $bottomBandHeight, 'F');
+        $pdf->SetDrawColor(17, 24, 39);
     }
 
     private function drawFrV2Watermark(object $pdf, float $pageWidth, float $pageHeight, string $watermarkText): void
@@ -406,7 +578,10 @@ class QmhRevisionDownloadService
         $pdf->SetTextColor(17, 24, 39);
     }
 
-    private function drawFrV2SignoffFooter(object $pdf, float $pageWidth, float $pageHeight): void
+    /**
+     * @param  array<string, string>  $signoff
+     */
+    private function drawFrV2SignoffFooter(object $pdf, float $pageWidth, float $pageHeight, array $signoff): void
     {
         $left = 8.0;
         $tableWidth = $pageWidth - 16.0;
@@ -416,7 +591,7 @@ class QmhRevisionDownloadService
         $pdf->SetDrawColor(17, 24, 39);
         $pdf->SetLineWidth(0.2);
 
-        $colWidths = [20.0, ($tableWidth - 20.0) / 3, ($tableWidth - 20.0) / 3, ($tableWidth - 20.0) / 3];
+        $colWidths = [24.0, ($tableWidth - 24.0) / 3, ($tableWidth - 24.0) / 3, ($tableWidth - 24.0) / 3];
 
         $x = $left;
         foreach ($colWidths as $width) {
@@ -433,26 +608,32 @@ class QmhRevisionDownloadService
             }
         }
 
-        $pdf->SetFont('Helvetica', 'B', 6.5);
+        $pdf->SetFont('Helvetica', 'B', 6.2);
         $pdf->SetXY($left + $colWidths[0], $top + 0.8);
-        $pdf->Cell($colWidths[1], 3.2, 'Dibuat Oleh', 0, 0, 'C');
-        $pdf->Cell($colWidths[2], 3.2, 'Diperiksa Oleh', 0, 0, 'C');
-        $pdf->Cell($colWidths[3], 3.2, 'Disahkan Oleh', 0, 0, 'C');
+        $pdf->Cell($colWidths[1], 3.2, 'Dibuat Oleh:', 0, 0, 'C');
+        $pdf->Cell($colWidths[2], 3.2, 'Diperiksa Oleh:', 0, 0, 'C');
+        $pdf->Cell($colWidths[3], 3.2, 'Disahkan Oleh:', 0, 0, 'C');
 
-        $pdf->SetFont('Helvetica', '', 6.2);
+        $pdf->SetFont('Helvetica', '', 6.0);
         $pdf->SetXY($left + 1.2, $top + $rowHeight + 0.8);
         $pdf->Cell($colWidths[0] - 2.4, 3.0, 'Nama/Pangkat', 0, 0, 'L');
+        $pdf->Cell($colWidths[1], 3.0, mb_substr((string) ($signoff['created_name_rank'] ?? '-'), 0, 34), 0, 0, 'L');
+        $pdf->Cell($colWidths[2], 3.0, mb_substr((string) ($signoff['reviewed_name_rank'] ?? '-'), 0, 34), 0, 0, 'L');
+        $pdf->Cell($colWidths[3], 3.0, mb_substr((string) ($signoff['approved_name_rank'] ?? '-'), 0, 34), 0, 0, 'L');
 
         $pdf->SetXY($left + 1.2, $top + ($rowHeight * 2) + 0.8);
         $pdf->Cell($colWidths[0] - 2.4, 3.0, 'Tanda Tangan', 0, 0, 'L');
 
         $pdf->SetXY($left + 1.2, $top + ($rowHeight * 3) + 0.8);
         $pdf->Cell($colWidths[0] - 2.4, 3.0, 'Jabatan', 0, 0, 'L');
+        $pdf->Cell($colWidths[1], 3.0, mb_substr((string) ($signoff['created_position'] ?? '-'), 0, 34), 0, 0, 'L');
+        $pdf->Cell($colWidths[2], 3.0, mb_substr((string) ($signoff['reviewed_position'] ?? '-'), 0, 34), 0, 0, 'L');
+        $pdf->Cell($colWidths[3], 3.0, mb_substr((string) ($signoff['approved_position'] ?? '-'), 0, 34), 0, 0, 'L');
     }
 
     private function drawFrV2FooterMeta(object $pdf, float $pageWidth, float $pageHeight, int $pageNumber, int $pageCount): void
     {
-        $notice = 'Isi Dokumen ini tidak diperkenankan untuk disalin atau digandakan tanpa persetujuan Kepala Farmasi Kepolisian Pusdokkes Polri';
+        $notice = 'Isi Dokumen ini tidak diperkenankan untuk disalin atau digandakan tanpa persetujuan dari Kepala Farmasi Kepolisian Pusdokkes Polri';
 
         $pdf->SetFont('Helvetica', '', 6);
         $pdf->SetTextColor(127, 29, 29);
@@ -464,21 +645,61 @@ class QmhRevisionDownloadService
         $pdf->Cell(20.0, 3.6, sprintf('Halaman %d/%d', $pageNumber, $pageCount), 0, 0, 'R');
     }
 
+    private function resolveSignerNameRank(mixed $user): string
+    {
+        if (! is_object($user)) {
+            return '-';
+        }
+
+        $name = trim((string) data_get($user, 'name', ''));
+        $rank = trim((string) data_get($user, 'rank', ''));
+
+        $namePart = $name !== '' ? $name : '-';
+        $rankPart = $rank !== '' ? $rank : '-';
+
+        return sprintf('%s/%s', $namePart, $rankPart);
+    }
+
+    private function resolveSignerPosition(mixed $user): string
+    {
+        if (! is_object($user)) {
+            return '-';
+        }
+
+        $jabatan = trim((string) data_get($user, 'jabatan', ''));
+        if ($jabatan !== '') {
+            return $jabatan;
+        }
+
+        $role = trim((string) data_get($user, 'role', ''));
+
+        return match ($role) {
+            'manajer_teknis' => 'Manajer Teknis',
+            'penyelia' => 'Penyelia',
+            'analis' => 'Analis',
+            'supervisor' => 'Supervisor',
+            'admin' => 'Admin',
+            default => $role !== '' ? ucwords(str_replace('_', ' ', $role)) : '-',
+        };
+    }
+
     /**
-     * @return array{schema: array<string, mixed>, answers: array<string, mixed>, layout_profile: string, layout_config: array<string, mixed>, logo_src: string}
+     * @return array{schema: array<string, mixed>, answers: array<string, mixed>, layout_profile: string, layout_config: array<string, mixed>, logo_src: string, logo_path: string, show_signoff_footer: bool}
      */
     private function buildRenderPayload(QmhDocumentRevision $revision): array
     {
         $schema = $this->resolveFormSchema($revision);
         $answers = QmhAnswerSanitizer::sanitizeAnswersJson($revision->answers_json);
         $layoutConfig = $this->resolveFrLayoutConfig($revision, $schema);
+        $logoAbsolutePath = $this->resolveLogoAbsolutePath($layoutConfig);
 
         return [
             'schema' => $schema,
             'answers' => $answers,
             'layout_profile' => (string) $layoutConfig['layout_profile'],
             'layout_config' => $layoutConfig,
-            'logo_src' => $this->resolveLogoDataUri($layoutConfig),
+            'logo_src' => $logoAbsolutePath !== '' ? $this->toDataUri($logoAbsolutePath) : '',
+            'logo_path' => $logoAbsolutePath,
             'show_signoff_footer' => (bool) ($layoutConfig['show_signoff_footer'] ?? true),
         ];
     }
@@ -529,6 +750,7 @@ class QmhRevisionDownloadService
         $templateMeta = is_array($revision->template?->metadata) ? $revision->template->metadata : [];
         $templateConfig = QmhFrLayoutProfile::fromMetadata($templateMeta);
         $schemaConfig = QmhFrLayoutProfile::fromExplicitMetadata($schema);
+        $isSourcePdfRevision = $this->shouldUseSourcePdfPipeline($revision);
 
         if ($hasSchemaSnapshot) {
             $layoutProfile = array_key_exists('layout_profile', $schema)
@@ -537,9 +759,9 @@ class QmhRevisionDownloadService
 
             return [
                 'layout_profile' => $layoutProfile,
-                'shell_mode' => $schemaConfig['shell_mode'] ?? $templateConfig['shell_mode'] ?? $defaults['shell_mode'],
-                'orientation_policy' => $schemaConfig['orientation_policy'] ?? $templateConfig['orientation_policy'] ?? $defaults['orientation_policy'],
-                'show_signoff_footer' => $schemaConfig['show_signoff_footer'] ?? $templateConfig['show_signoff_footer'] ?? $defaults['show_signoff_footer'],
+                'shell_mode' => $schemaConfig['shell_mode'] ?? ($isSourcePdfRevision ? $defaults['shell_mode'] : ($templateConfig['shell_mode'] ?? $defaults['shell_mode'])),
+                'orientation_policy' => $schemaConfig['orientation_policy'] ?? ($isSourcePdfRevision ? $defaults['orientation_policy'] : ($templateConfig['orientation_policy'] ?? $defaults['orientation_policy'])),
+                'show_signoff_footer' => $schemaConfig['show_signoff_footer'] ?? ($isSourcePdfRevision ? $defaults['show_signoff_footer'] : ($templateConfig['show_signoff_footer'] ?? $defaults['show_signoff_footer'])),
                 'logo_source' => $schemaConfig['logo_source'] ?? $defaults['logo_source'],
                 'logo_path' => $schemaConfig['logo_path'] ?? $defaults['logo_path'],
                 'declaration_header' => $schemaConfig['declaration_header'] ?? $defaults['declaration_header'],
@@ -601,7 +823,7 @@ class QmhRevisionDownloadService
     /**
      * @param  array<string, mixed>  $layoutConfig
      */
-    private function resolveLogoDataUri(array $layoutConfig): string
+    private function resolveLogoAbsolutePath(array $layoutConfig): string
     {
         $defaults = QmhFrLayoutProfile::defaults();
         $source = (string) ($layoutConfig['logo_source'] ?? $defaults['logo_source']);
@@ -644,7 +866,7 @@ class QmhRevisionDownloadService
                     ]);
                 }
 
-                return $dataUri;
+                return $absolute;
             }
         }
 
@@ -771,5 +993,48 @@ class QmhRevisionDownloadService
     private function generatePdfBinary(QmhDocumentRevision $revision, string $watermarkText): string
     {
         return $this->renderPdfBinary($revision, $watermarkText);
+    }
+
+    private function buildDownloadFilename(QmhDocumentRevision $revision, string $copyType): string
+    {
+        $revision->loadMissing(['document', 'template']);
+
+        $docCode = $this->normalizeFilenameSegment((string) ($revision->document?->doc_code ?? 'QMH Document'));
+        $docTitle = $this->normalizeFilenameSegment((string) ($revision->document?->title ?? 'Dokumen Mutu'));
+        $versionLabel = $this->normalizeFilenameSegment((string) ($revision->version_label ?? sprintf('E%d-R%d', (int) $revision->edition_number, (int) $revision->revision_number)));
+
+        $segments = array_values(array_filter([$docCode, $docTitle], static fn (string $segment): bool => $segment !== ''));
+
+        $docType = (string) ($revision->document?->doc_type ?? '');
+        if (in_array($docType, ['formulir', 'fr'], true)) {
+            $schema = $this->resolveFormSchema($revision);
+            $layoutConfig = $this->resolveFrLayoutConfig($revision, $schema);
+            $layoutProfile = QmhFrLayoutProfile::normalizeRuntimeProfile((string) ($layoutConfig['layout_profile'] ?? 'legacy'));
+            $segments[] = $layoutProfile === 'declaration' ? 'NON TABEL' : 'TABEL';
+        }
+
+        if ($versionLabel !== '') {
+            $segments[] = $versionLabel;
+        }
+
+        $segments[] = $copyType === 'controlled' ? 'TERKENDALI' : 'TIDAK TERKENDALI';
+
+        $filename = trim(implode(' - ', $segments));
+        if ($filename === '') {
+            $filename = 'QMH Document';
+        }
+
+        $filename = mb_substr($filename, 0, 180);
+
+        return $filename.'.pdf';
+    }
+
+    private function normalizeFilenameSegment(string $value): string
+    {
+        $normalized = str_replace('_', ' ', $value);
+        $normalized = preg_replace('~[\\/:*?"<>|]+~', ' ', $normalized) ?? '';
+        $normalized = preg_replace('/\s+/', ' ', $normalized) ?? '';
+
+        return trim($normalized);
     }
 }

@@ -6,11 +6,13 @@ use App\Models\Permission;
 use App\Models\QmhDocument;
 use App\Models\QmhDocumentDownloadLog;
 use App\Models\QmhDocumentRevision;
+use App\Models\QmhTemplate;
 use App\Models\RolePermission;
 use App\Models\User;
 use App\Services\Quality\QmhRevisionDownloadService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class QmhRevisionApprovalDownloadTest extends TestCase
@@ -238,8 +240,17 @@ class QmhRevisionApprovalDownloadTest extends TestCase
                 'copy_type' => 'controlled',
             ]);
 
+        $revision = $revision->fresh('document');
+        $expectedFilename = sprintf(
+            '%s - %s - %s - TERKENDALI.pdf',
+            (string) ($revision?->document?->doc_code ?? '-'),
+            (string) ($revision?->document?->title ?? '-'),
+            (string) ($revision?->version_label ?? '-')
+        );
+
         $response->assertOk();
         $response->assertHeader('Content-Type', 'application/pdf');
+        $response->assertHeader('Content-Disposition', 'attachment; filename="'.$expectedFilename.'"');
 
         $this->assertDatabaseHas('qmh_document_download_logs', [
             'revision_id' => $revision->id,
@@ -247,6 +258,111 @@ class QmhRevisionApprovalDownloadTest extends TestCase
             'downloaded_by' => $approver->id,
             'watermark_text' => 'SALINAN TERKENDALI',
         ]);
+    }
+
+    public function test_fr_table_download_filename_matches_final_format(): void
+    {
+        [$revision, $approver] = $this->createFrRevisionInApprovalWithRealSourcePdf();
+
+        $response = $this->actingAs($approver)
+            ->postJson("/api/quality/revisions/{$revision->id}/download", [
+                'copy_type' => 'uncontrolled',
+                'reason' => 'Validasi format nama file FR tabel',
+            ]);
+
+        $revision = $revision->fresh('document');
+        $expectedFilename = sprintf(
+            '%s - %s - TABEL - %s - TIDAK TERKENDALI.pdf',
+            (string) ($revision?->document?->doc_code ?? '-'),
+            (string) ($revision?->document?->title ?? '-'),
+            (string) ($revision?->version_label ?? '-')
+        );
+
+        $response->assertOk();
+        $response->assertHeader('Content-Disposition', 'attachment; filename="'.$expectedFilename.'"');
+    }
+
+    public function test_fr_non_table_download_filename_matches_final_format(): void
+    {
+        [$revision, $approver] = $this->createFrRevisionInApprovalWithRealSourcePdf();
+
+        $template = QmhTemplate::query()->create([
+            'name' => 'Template FR Non Tabel',
+            'clause' => 4,
+            'version' => 1,
+            'doc_type' => 'fr',
+            'is_active' => true,
+            'metadata' => [
+                'layout_profile' => 'declaration',
+                'shell_mode' => 'body_only',
+                'orientation_policy' => 'portrait',
+                'show_signoff_footer' => false,
+            ],
+        ]);
+
+        $revision->template_id = $template->id;
+        $revision->save();
+
+        $response = $this->actingAs($approver)
+            ->postJson("/api/quality/revisions/{$revision->id}/download", [
+                'copy_type' => 'uncontrolled',
+                'reason' => 'Validasi format nama file FR non tabel',
+            ]);
+
+        $revision = $revision->fresh('document');
+        $expectedFilename = sprintf(
+            '%s - %s - NON TABEL - %s - TIDAK TERKENDALI.pdf',
+            (string) ($revision?->document?->doc_code ?? '-'),
+            (string) ($revision?->document?->title ?? '-'),
+            (string) ($revision?->version_label ?? '-')
+        );
+
+        $response->assertOk();
+        $response->assertHeader('Content-Disposition', 'attachment; filename="'.$expectedFilename.'"');
+    }
+
+    public function test_sop_download_filename_matches_final_format_without_table_segment(): void
+    {
+        [$revision, $approver] = $this->createRevisionInApproval();
+
+        $response = $this->actingAs($approver)
+            ->postJson("/api/quality/revisions/{$revision->id}/download", [
+                'copy_type' => 'uncontrolled',
+                'reason' => 'Validasi format nama file SOP',
+            ]);
+
+        $revision = $revision->fresh('document');
+        $expectedFilename = sprintf(
+            '%s - %s - %s - TIDAK TERKENDALI.pdf',
+            (string) ($revision?->document?->doc_code ?? '-'),
+            (string) ($revision?->document?->title ?? '-'),
+            (string) ($revision?->version_label ?? '-')
+        );
+
+        $response->assertOk();
+        $response->assertHeader('Content-Disposition', 'attachment; filename="'.$expectedFilename.'"');
+    }
+
+    public function test_ik_download_filename_matches_final_format_without_table_segment(): void
+    {
+        [$revision, $approver] = $this->createIkRevisionInApproval();
+
+        $response = $this->actingAs($approver)
+            ->postJson("/api/quality/revisions/{$revision->id}/download", [
+                'copy_type' => 'uncontrolled',
+                'reason' => 'Validasi format nama file IK',
+            ]);
+
+        $revision = $revision->fresh('document');
+        $expectedFilename = sprintf(
+            '%s - %s - %s - TIDAK TERKENDALI.pdf',
+            (string) ($revision?->document?->doc_code ?? '-'),
+            (string) ($revision?->document?->title ?? '-'),
+            (string) ($revision?->version_label ?? '-')
+        );
+
+        $response->assertOk();
+        $response->assertHeader('Content-Disposition', 'attachment; filename="'.$expectedFilename.'"');
     }
 
     public function test_fr_source_pdf_download_falls_back_to_dompdf_when_source_pdf_missing_after_submit(): void
@@ -274,6 +390,63 @@ class QmhRevisionApprovalDownloadTest extends TestCase
             'downloaded_by' => $approver->id,
             'watermark_text' => 'SALINAN TIDAK TERKENDALI',
         ]);
+    }
+
+    public function test_fr_source_pdf_download_uses_uploaded_pdf_when_source_metadata_is_valid(): void
+    {
+        [$revision, $approver] = $this->createFrRevisionInApprovalWithRealSourcePdf();
+
+        $response = $this->actingAs($approver)
+            ->postJson("/api/quality/revisions/{$revision->id}/download", [
+                'copy_type' => 'uncontrolled',
+                'reason' => 'Validasi render file sumber FR-v2',
+            ]);
+
+        $response->assertOk();
+        $response->assertHeader('Content-Type', 'application/pdf');
+
+        $content = (string) $response->getContent();
+        $this->assertNotSame('fake-pdf-content', $content, 'Download masih fallback ke DomPDF padahal source PDF valid.');
+        $this->assertStringStartsWith('%PDF', $content);
+    }
+
+    public function test_fr_source_pdf_layout_defaults_to_full_shell_when_schema_snapshot_omits_layout_keys(): void
+    {
+        [$revision] = $this->createFrRevisionInApprovalWithRealSourcePdf();
+
+        $template = QmhTemplate::query()->create([
+            'name' => 'Template FR Declaration',
+            'clause' => 4,
+            'version' => 1,
+            'doc_type' => 'fr',
+            'is_active' => true,
+            'metadata' => [
+                'layout_profile' => 'declaration',
+                'shell_mode' => 'body_only',
+                'orientation_policy' => 'portrait',
+                'show_signoff_footer' => false,
+            ],
+        ]);
+
+        $revision->template_id = $template->id;
+        $revision->form_schema_json = [
+            'version' => 1,
+            'doc_type' => 'fr',
+            'questions' => [],
+        ];
+        $revision->save();
+
+        $service = app(QmhRevisionDownloadService::class);
+
+        $method = new \ReflectionMethod($service, 'resolveFrLayoutConfig');
+        $method->setAccessible(true);
+
+        /** @var array{shell_mode: string, orientation_policy: string, show_signoff_footer: bool} $resolved */
+        $resolved = $method->invoke($service, $revision->fresh(['document', 'template']), $revision->form_schema_json ?? []);
+
+        $this->assertSame('full', $resolved['shell_mode']);
+        $this->assertSame('portrait', $resolved['orientation_policy']);
+        $this->assertTrue($resolved['show_signoff_footer']);
     }
 
     /**
@@ -417,6 +590,109 @@ class QmhRevisionApprovalDownloadTest extends TestCase
         $document->save();
 
         return [$revision, $approver];
+    }
+
+    /**
+     * @return array{0: QmhDocumentRevision, 1: User}
+     */
+    private function createFrRevisionInApprovalWithRealSourcePdf(): array
+    {
+        /** @var User $creator */
+        $creator = User::factory()->create(['role' => 'admin']);
+        /** @var User $reviewer */
+        $reviewer = User::factory()->create(['role' => 'admin']);
+        /** @var User $approver */
+        $approver = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-FR-REAL-'.str((string) now()->unix())->append((string) random_int(100, 999)),
+            'title' => 'Dokumen Uji FR Source PDF Valid',
+            'clause' => 4,
+            'doc_type' => 'formulir',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $sourcePdfBinary = $this->minimalPdfBinary();
+        $sourcePdfPath = 'qmh/source/test-real-master.pdf';
+        Storage::disk('local')->put($sourcePdfPath, $sourcePdfBinary);
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'in_approval',
+            'content_html' => '<h1>Dokumen FR</h1><p>Konten fallback.</p>',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $creator->id,
+            'diperiksa_oleh' => $reviewer->id,
+            'disahkan_oleh' => $approver->id,
+            'submitted_at' => now()->subHours(2),
+            'reviewed_at' => now()->subHour(),
+            'source_pdf_disk' => 'local',
+            'source_pdf_path' => $sourcePdfPath,
+            'source_pdf_sha256' => hash('sha256', $sourcePdfBinary),
+        ]);
+
+        $document->current_revision_id = $revision->id;
+        $document->save();
+
+        return [$revision, $approver];
+    }
+
+    /**
+     * @return array{0: QmhDocumentRevision, 1: User}
+     */
+    private function createIkRevisionInApproval(): array
+    {
+        /** @var User $creator */
+        $creator = User::factory()->create(['role' => 'admin']);
+        /** @var User $reviewer */
+        $reviewer = User::factory()->create(['role' => 'admin']);
+        /** @var User $approver */
+        $approver = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-IK-'.str((string) now()->unix())->append((string) random_int(100, 999)),
+            'title' => 'Dokumen Uji IK',
+            'clause' => 7,
+            'doc_type' => 'ik',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'in_approval',
+            'content_html' => '<h1>Dokumen IK</h1><p>Konten instruksi kerja.</p>',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $creator->id,
+            'diperiksa_oleh' => $reviewer->id,
+            'disahkan_oleh' => $approver->id,
+            'submitted_at' => now()->subHours(2),
+            'reviewed_at' => now()->subHour(),
+        ]);
+
+        $document->current_revision_id = $revision->id;
+        $document->save();
+
+        return [$revision, $approver];
+    }
+
+    private function minimalPdfBinary(): string
+    {
+        /** @var class-string $fpdfClass */
+        $fpdfClass = '\\FPDF';
+        $pdf = new $fpdfClass;
+        $pdf->AddPage();
+        $pdf->SetFont('Arial', 'B', 14);
+        $pdf->Cell(0, 10, 'FORM SUMBER FR-V2', 0, 1, 'C');
+
+        return $pdf->Output('S');
     }
 
     private function grantAttestationPermissionToAdminRole(): void
