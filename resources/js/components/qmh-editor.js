@@ -42,6 +42,24 @@ export function qmhEditor(config = {}) {
         return normalized;
     };
 
+    const resolveCursor = (editor) => {
+        const selectionFrom = Number(editor?.state?.selection?.from ?? 0);
+        const textBeforeCursor = editor?.state?.doc?.textBetween(
+            0,
+            selectionFrom,
+            "\n",
+            "\n",
+        );
+        const normalizedText =
+            typeof textBeforeCursor === "string" ? textBeforeCursor : "";
+        const lines = normalizedText.split("\n");
+
+        return {
+            line: Math.max(1, lines.length),
+            column: (lines[lines.length - 1] ?? "").length + 1,
+        };
+    };
+
     return {
         editorId:
             typeof config.editorId === "string" && config.editorId.trim() !== ""
@@ -86,16 +104,32 @@ export function qmhEditor(config = {}) {
                             this.$refs.hiddenInput.value = this.contentHtml;
                         }
 
+                        const cursor = resolveCursor(editor);
+
                         this.$dispatch("qmh-editor-change", {
                             html: this.contentHtml,
                             editor_json: editor.getJSON(),
+                            cursor,
                         });
+
+                        this.$dispatch("qmh-editor-cursor", cursor);
+                    },
+                    onSelectionUpdate: ({ editor }) => {
+                        this.$dispatch(
+                            "qmh-editor-cursor",
+                            resolveCursor(editor),
+                        );
                     },
                 });
 
                 if (this.$refs.hiddenInput) {
                     this.$refs.hiddenInput.value = editorInstance.getHTML();
                 }
+
+                this.$dispatch(
+                    "qmh-editor-cursor",
+                    resolveCursor(editorInstance),
+                );
 
                 if (pickerSelectionListener) {
                     window.removeEventListener(
@@ -284,6 +318,12 @@ export function qmhEditor(config = {}) {
 
         getJSON() {
             return editorInstance ? editorInstance.getJSON() : null;
+        },
+
+        getCursorPosition() {
+            return editorInstance
+                ? resolveCursor(editorInstance)
+                : { line: 1, column: 1 };
         },
 
         destroy() {
