@@ -32,8 +32,52 @@ class QmhTemplateManagementWebTest extends TestCase
             ->assertSee('Buat Template')
             ->assertSee('Catatan Versioning')
             ->assertSee('Aksi Cepat')
+            ->assertSee('FR Non Table')
+            ->assertSee('FR Table')
             ->assertSee('id="upload-template"', false)
             ->assertSee('<details', false);
+    }
+
+    public function test_template_dashboard_separates_fr_non_table_and_table_cards(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        QmhTemplate::query()->create([
+            'name' => 'Template FR Structured',
+            'clause' => 4,
+            'doc_type' => 'fr',
+            'version' => 1,
+            'storage_disk' => 'local',
+            'is_active' => true,
+            'metadata' => [
+                'layout_profile' => 'structured_form',
+                'content_html' => '<p>Structured</p>',
+            ],
+        ]);
+
+        QmhTemplate::query()->create([
+            'name' => 'Template FR Risk Matrix',
+            'clause' => 4,
+            'doc_type' => 'fr',
+            'version' => 2,
+            'storage_disk' => 'local',
+            'is_active' => false,
+            'metadata' => [
+                'layout_profile' => 'risk_matrix',
+                'content_html' => '<p>Risk</p>',
+            ],
+        ]);
+
+        $this->actingAs($user)
+            ->get('/quality/templates')
+            ->assertOk()
+            ->assertSee('FR Non Table')
+            ->assertSee('FR Table')
+            ->assertSee('Structured Form')
+            ->assertSee('Risk Matrix (format tabel)')
+            ->assertSee('Template FR Structured')
+            ->assertSee('Template FR Risk Matrix');
     }
 
     public function test_admin_can_access_template_edit_page(): void
