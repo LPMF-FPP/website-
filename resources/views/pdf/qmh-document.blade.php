@@ -353,19 +353,6 @@
             min-height: 72px;
         }
 
-        .fr-declaration {
-            margin-top: 6px;
-        }
-
-        .fr-declaration-title {
-            margin: 0 0 8px 0;
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            text-align: center;
-            letter-spacing: 0.3px;
-        }
-
         .fr-section-title {
             margin: 10px 0 4px 0;
             font-size: 11px;
@@ -800,31 +787,7 @@
                 @endforeach
                 </tbody>
             </table>
-        @elseif($layoutProfile === 'declaration')
-            <div class="fr-declaration">
-                @if($declarationHeader !== '')
-                    <p class="fr-declaration-title">{{ strtoupper($declarationHeader) }}</p>
-                @endif
-
-                @foreach($formQuestions as $idx => $q)
-                    @php
-                        $qid = (string) ($q['id'] ?? '');
-                        $label = (string) ($q['label'] ?? $qid);
-                        $type = (string) ($q['type'] ?? 'text');
-                        $val = $qid !== '' ? ($answers[$qid] ?? null) : null;
-                    @endphp
-
-                    @if($type === 'section')
-                        <div class="fr-section-title">{{ strtoupper($label) }}</div>
-                    @else
-                        <div class="qmh-section {{ $rowHeightClass($type) }}">
-                            <div class="qmh-question">{{ ($idx + 1).'. '.strtoupper($label) }}</div>
-                            {!! $renderCell($val, $type, is_array($q) ? $q : []) !!}
-                        </div>
-                    @endif
-                @endforeach
-            </div>
-        @elseif($layoutProfile === 'structured_form')
+        @elseif(in_array($layoutProfile, ['structured_form', 'declaration'], true))
             <table class="form-table">
                 @foreach($formQuestions as $idx => $q)
                     @php

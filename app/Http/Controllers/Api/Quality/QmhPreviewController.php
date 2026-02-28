@@ -342,7 +342,7 @@ class QmhPreviewController extends Controller
         return [
             'version' => 1,
             'doc_type' => 'fr',
-            'layout_profile' => $isTable ? 'risk_matrix' : 'structured_form',
+            'layout_profile' => $isTable ? 'risk_matrix' : 'non_table',
             'shell_mode' => 'full',
             'orientation_policy' => $isTable ? 'landscape' : 'portrait',
             'show_signoff_footer' => true,

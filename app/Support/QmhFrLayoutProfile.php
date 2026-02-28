@@ -68,6 +68,14 @@ final class QmhFrLayoutProfile
     {
         $value = strtolower(trim((string) $profile));
 
+        if (in_array($value, ['table', 'risk_matrix'], true)) {
+            return 'risk_matrix';
+        }
+
+        if (in_array($value, ['non_table', 'structured_form', 'declaration'], true)) {
+            return 'structured_form';
+        }
+
         return in_array($value, self::allowedProfiles(), true)
             ? $value
             : self::defaultAuthoringProfile();
@@ -76,6 +84,14 @@ final class QmhFrLayoutProfile
     public static function normalizeRuntimeProfile(?string $profile): string
     {
         $value = strtolower(trim((string) $profile));
+
+        if (in_array($value, ['table', 'risk_matrix'], true)) {
+            return 'risk_matrix';
+        }
+
+        if (in_array($value, ['non_table', 'structured_form', 'declaration'], true)) {
+            return 'structured_form';
+        }
 
         return in_array($value, ['legacy', ...self::allowedProfiles()], true)
             ? $value
@@ -201,33 +217,18 @@ final class QmhFrLayoutProfile
      */
     public static function fromMetadata(array $metadata): array
     {
-        $legacyFinalPolicy = self::legacyFinalPolicyFromProfile(
+        $normalizedProfile = self::normalizeProfile(
             array_key_exists('layout_profile', $metadata) && is_string($metadata['layout_profile'])
                 ? $metadata['layout_profile']
                 : null
         );
+        $finalPolicy = self::legacyFinalPolicyFromProfile($normalizedProfile);
 
         return [
-            'layout_profile' => self::normalizeProfile(
-                array_key_exists('layout_profile', $metadata) && is_string($metadata['layout_profile'])
-                    ? $metadata['layout_profile']
-                    : null
-            ),
-            'shell_mode' => self::normalizeShellMode(
-                array_key_exists('shell_mode', $metadata) && is_string($metadata['shell_mode'])
-                    ? $metadata['shell_mode']
-                    : (string) $legacyFinalPolicy['shell_mode']
-            ),
-            'orientation_policy' => self::normalizeOrientationPolicy(
-                array_key_exists('orientation_policy', $metadata) && is_string($metadata['orientation_policy'])
-                    ? $metadata['orientation_policy']
-                    : (string) $legacyFinalPolicy['orientation_policy']
-            ),
-            'show_signoff_footer' => self::normalizeShowSignoffFooter(
-                array_key_exists('show_signoff_footer', $metadata)
-                    ? $metadata['show_signoff_footer']
-                    : $legacyFinalPolicy['show_signoff_footer']
-            ),
+            'layout_profile' => $normalizedProfile,
+            'shell_mode' => (string) $finalPolicy['shell_mode'],
+            'orientation_policy' => (string) $finalPolicy['orientation_policy'],
+            'show_signoff_footer' => (bool) $finalPolicy['show_signoff_footer'],
             'logo_source' => self::normalizeLogoSource((string) ($metadata['logo_source'] ?? null)),
             'logo_path' => self::normalizeNullableString($metadata['logo_path'] ?? null, 255),
             'declaration_header' => self::normalizeNullableString($metadata['declaration_header'] ?? null, 255),
@@ -318,28 +319,12 @@ final class QmhFrLayoutProfile
 
         $resolved = [
             'layout_profile' => $profile,
-            'shell_mode' => self::normalizeShellMode(
-                is_string($validated['shell_mode'] ?? null)
-                    ? $validated['shell_mode']
-                    : (string) $legacyFinalPolicy['shell_mode']
-            ),
-            'orientation_policy' => self::normalizeOrientationPolicy(
-                is_string($validated['orientation_policy'] ?? null)
-                    ? $validated['orientation_policy']
-                    : (string) $legacyFinalPolicy['orientation_policy']
-            ),
-            'show_signoff_footer' => self::normalizeShowSignoffFooter(
-                array_key_exists('show_signoff_footer', $validated)
-                    ? $validated['show_signoff_footer']
-                    : $legacyFinalPolicy['show_signoff_footer']
-            ),
+            'shell_mode' => (string) $legacyFinalPolicy['shell_mode'],
+            'orientation_policy' => (string) $legacyFinalPolicy['orientation_policy'],
+            'show_signoff_footer' => (bool) $legacyFinalPolicy['show_signoff_footer'],
             'logo_source' => self::normalizeLogoSource(is_string($validated['logo_source'] ?? null) ? $validated['logo_source'] : null),
             'logo_path' => self::normalizeNullableString($validated['logo_path'] ?? null, 255),
         ];
-
-        if ($profile === 'declaration') {
-            $resolved['declaration_header'] = self::normalizeNullableString($validated['declaration_header'] ?? null, 255);
-        }
 
         if ($profile === 'risk_matrix') {
             $resolved['risk_matrix_columns'] = self::normalizeRiskMatrixColumns($validated['risk_matrix_columns'] ?? null);
@@ -370,11 +355,6 @@ final class QmhFrLayoutProfile
         $resolvedProfile = self::normalizeProfile($profile);
 
         return match ($resolvedProfile) {
-            'declaration' => [
-                'shell_mode' => 'body_only',
-                'orientation_policy' => 'portrait',
-                'show_signoff_footer' => false,
-            ],
             'risk_matrix' => [
                 'shell_mode' => 'full',
                 'orientation_policy' => 'landscape',

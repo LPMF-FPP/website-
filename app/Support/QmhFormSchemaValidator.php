@@ -30,11 +30,19 @@ final class QmhFormSchemaValidator
         $resolvedLayoutProfile = null;
         if (array_key_exists('layout_profile', $schema)) {
             $layoutProfile = $schema['layout_profile'];
-            $normalizedLayoutProfile = is_string($layoutProfile) ? strtolower(trim($layoutProfile)) : null;
-            if ($normalizedLayoutProfile === null || ! in_array($normalizedLayoutProfile, QmhFrLayoutProfile::allowedProfiles(), true)) {
+            $rawLayoutProfile = is_string($layoutProfile)
+                ? strtolower(trim($layoutProfile))
+                : null;
+            $allowedLayoutAliases = [
+                ...QmhFrLayoutProfile::allowedProfiles(),
+                'table',
+                'non_table',
+            ];
+
+            if ($rawLayoutProfile === null || ! in_array($rawLayoutProfile, $allowedLayoutAliases, true)) {
                 $errors[] = 'Schema pertanyaan memiliki layout_profile yang tidak valid.';
             } else {
-                $resolvedLayoutProfile = $normalizedLayoutProfile;
+                $resolvedLayoutProfile = QmhFrLayoutProfile::normalizeProfile($rawLayoutProfile);
             }
         }
 
@@ -57,8 +65,8 @@ final class QmhFormSchemaValidator
                 $errors[] = 'Schema pertanyaan memiliki declaration_header yang tidak valid.';
             }
 
-            if ($resolvedLayoutProfile !== null && $resolvedLayoutProfile !== 'declaration') {
-                $errors[] = 'Schema pertanyaan declaration_header hanya boleh digunakan untuk layout_profile declaration.';
+            if ($resolvedLayoutProfile !== null && $resolvedLayoutProfile === 'risk_matrix') {
+                $errors[] = 'Schema pertanyaan declaration_header hanya boleh digunakan untuk layout_profile non-table.';
             }
         }
 

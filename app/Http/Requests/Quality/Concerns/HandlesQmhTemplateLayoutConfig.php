@@ -83,37 +83,22 @@ trait HandlesQmhTemplateLayoutConfig
             $layoutProfile = QmhFrLayoutProfile::defaultAuthoringProfile();
         } else {
             $layoutProfile = strtolower(trim($rawLayoutProfile));
-            if (! in_array($layoutProfile, QmhFrLayoutProfile::allowedProfiles(), true)) {
-                $layoutProfile = QmhFrLayoutProfile::defaultAuthoringProfile();
-            }
+            $layoutProfile = QmhFrLayoutProfile::normalizeProfile($layoutProfile);
         }
 
         $legacyDefaults = match ($layoutProfile) {
-            'declaration' => ['shell_mode' => 'body_only', 'orientation_policy' => 'portrait', 'show_signoff_footer' => false],
             'risk_matrix' => ['shell_mode' => 'full', 'orientation_policy' => 'landscape', 'show_signoff_footer' => true],
             default => ['shell_mode' => 'full', 'orientation_policy' => 'portrait', 'show_signoff_footer' => true],
         };
 
         $payload = [
             'layout_profile' => $layoutProfile,
-            'shell_mode' => QmhFrLayoutProfile::normalizeShellMode(
-                is_string($this->input('shell_mode'))
-                    ? (string) $this->input('shell_mode')
-                    : $legacyDefaults['shell_mode']
-            ),
-            'orientation_policy' => QmhFrLayoutProfile::normalizeOrientationPolicy(
-                is_string($this->input('orientation_policy'))
-                    ? (string) $this->input('orientation_policy')
-                    : $legacyDefaults['orientation_policy']
-            ),
-            'show_signoff_footer' => QmhFrLayoutProfile::normalizeShowSignoffFooter(
-                $this->input('show_signoff_footer', $legacyDefaults['show_signoff_footer'])
-            ),
+            'shell_mode' => $legacyDefaults['shell_mode'],
+            'orientation_policy' => $legacyDefaults['orientation_policy'],
+            'show_signoff_footer' => $legacyDefaults['show_signoff_footer'],
         ];
 
-        if ($layoutProfile !== 'declaration') {
-            $payload['declaration_header'] = null;
-        }
+        $payload['declaration_header'] = null;
 
         if ($layoutProfile !== 'risk_matrix') {
             $payload['risk_matrix_columns_csv'] = null;

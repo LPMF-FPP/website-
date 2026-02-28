@@ -18,7 +18,7 @@ class QmhTemplateController extends Controller
         $validated = validator($request->all(), [
             'clause' => ['nullable', 'integer', Rule::in([4, 5, 6, 7, 8])],
             'doc_type' => ['required', Rule::in(['sop', 'ik', 'fr', 'formulir'])],
-            'layout_profile' => ['nullable', 'string', Rule::in(QmhFrLayoutProfile::allowedProfiles())],
+            'layout_profile' => ['nullable', 'string', Rule::in([...QmhFrLayoutProfile::allowedProfiles(), 'table', 'non_table'])],
             'shell_mode' => ['nullable', 'string', Rule::in(QmhFrLayoutProfile::allowedShellModes())],
             'orientation_policy' => ['nullable', 'string', Rule::in(QmhFrLayoutProfile::allowedOrientationPolicies())],
             'show_signoff_footer' => ['nullable', 'boolean'],
@@ -218,9 +218,9 @@ class QmhTemplateController extends Controller
                 : null;
 
             $compatLayoutProfile = $isFr
-                ? (isset($layoutConfig['layout_profile'])
-                    ? (string) $layoutConfig['layout_profile']
-                    : QmhFrLayoutProfile::defaultAuthoringProfile())
+                ? ((isset($layoutConfig['layout_profile']) && (string) $layoutConfig['layout_profile'] === 'risk_matrix')
+                    ? 'table'
+                    : 'non_table')
                 : null;
 
             return [

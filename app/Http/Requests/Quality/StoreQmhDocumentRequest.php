@@ -169,7 +169,7 @@ class StoreQmhDocumentRequest extends FormRequest
             'fr_preset' => [
                 'nullable',
                 'string',
-                Rule::in(QmhFrLayoutProfile::allowedProfiles()),
+                Rule::in(['table', 'non_table']),
                 Rule::prohibitedIf(fn (): bool => $this->isFrV2CreateMode()),
             ],
             'fr_v2_structure_mode' => [
@@ -215,7 +215,7 @@ class StoreQmhDocumentRequest extends FormRequest
             'source_pdf_file.max' => 'Ukuran file PDF sumber melebihi batas maksimum.',
             'template_id.required' => 'Template wajib dipilih untuk dokumen non FR-v2.',
             'template_id.exists' => 'Template tidak valid untuk dokumen/klausul yang dipilih.',
-            'fr_preset.prohibited' => 'Preset FR lama tidak didukung pada mode FR-v2.',
+            'fr_preset.prohibited' => 'Struktur FR lama tidak didukung pada mode FR-v2.',
             'answers_json.prohibited' => 'Jawaban schema-driven legacy tidak didukung pada mode FR-v2.',
             'form_schema_json.prohibited' => 'Schema pertanyaan legacy tidak didukung pada mode FR-v2.',
         ];
@@ -279,12 +279,14 @@ class StoreQmhDocumentRequest extends FormRequest
                 $requestedRawProfile = is_string($this->input('fr_preset'))
                     ? trim((string) $this->input('fr_preset'))
                     : '';
-                $requestedProfile = $requestedRawProfile !== ''
-                    ? QmhFrLayoutProfile::normalizeProfile($requestedRawProfile)
-                    : null;
+                $requestedProfile = match (strtolower($requestedRawProfile)) {
+                    'table' => 'risk_matrix',
+                    'non_table' => 'structured_form',
+                    default => null,
+                };
 
                 if ($template !== null && $requestedProfile !== null && $templateProfile !== $requestedProfile) {
-                    $validator->errors()->add('template_id', 'Template FR harus sesuai preset struktur yang dipilih.');
+                    $validator->errors()->add('template_id', 'Template FR harus sesuai struktur yang dipilih (Table/Non Table).');
                 }
             }
 

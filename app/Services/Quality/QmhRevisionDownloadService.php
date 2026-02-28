@@ -756,12 +756,13 @@ class QmhRevisionDownloadService
             $layoutProfile = array_key_exists('layout_profile', $schema)
                 ? QmhFrLayoutProfile::normalizeRuntimeProfile((string) $schema['layout_profile'])
                 : 'legacy';
+            $policy = QmhFrLayoutProfile::fromMetadata(['layout_profile' => $layoutProfile]);
 
             return [
                 'layout_profile' => $layoutProfile,
-                'shell_mode' => $schemaConfig['shell_mode'] ?? ($isSourcePdfRevision ? $defaults['shell_mode'] : ($templateConfig['shell_mode'] ?? $defaults['shell_mode'])),
-                'orientation_policy' => $schemaConfig['orientation_policy'] ?? ($isSourcePdfRevision ? $defaults['orientation_policy'] : ($templateConfig['orientation_policy'] ?? $defaults['orientation_policy'])),
-                'show_signoff_footer' => $schemaConfig['show_signoff_footer'] ?? ($isSourcePdfRevision ? $defaults['show_signoff_footer'] : ($templateConfig['show_signoff_footer'] ?? $defaults['show_signoff_footer'])),
+                'shell_mode' => (string) ($policy['shell_mode'] ?? $defaults['shell_mode']),
+                'orientation_policy' => (string) ($policy['orientation_policy'] ?? $defaults['orientation_policy']),
+                'show_signoff_footer' => (bool) ($policy['show_signoff_footer'] ?? $defaults['show_signoff_footer']),
                 'logo_source' => $schemaConfig['logo_source'] ?? $defaults['logo_source'],
                 'logo_path' => $schemaConfig['logo_path'] ?? $defaults['logo_path'],
                 'declaration_header' => $schemaConfig['declaration_header'] ?? $defaults['declaration_header'],
@@ -772,12 +773,13 @@ class QmhRevisionDownloadService
         $layoutProfile = array_key_exists('layout_profile', $schema)
             ? QmhFrLayoutProfile::normalizeRuntimeProfile((string) $schema['layout_profile'])
             : QmhFrLayoutProfile::runtimeProfileFromMetadata($templateMeta);
+        $policy = QmhFrLayoutProfile::fromMetadata(['layout_profile' => $layoutProfile]);
 
         return [
             'layout_profile' => $layoutProfile,
-            'shell_mode' => $schemaConfig['shell_mode'] ?? $templateConfig['shell_mode'] ?? $defaults['shell_mode'],
-            'orientation_policy' => $schemaConfig['orientation_policy'] ?? $templateConfig['orientation_policy'] ?? $defaults['orientation_policy'],
-            'show_signoff_footer' => $schemaConfig['show_signoff_footer'] ?? $templateConfig['show_signoff_footer'] ?? $defaults['show_signoff_footer'],
+            'shell_mode' => (string) ($policy['shell_mode'] ?? $defaults['shell_mode']),
+            'orientation_policy' => (string) ($policy['orientation_policy'] ?? $defaults['orientation_policy']),
+            'show_signoff_footer' => (bool) ($policy['show_signoff_footer'] ?? $defaults['show_signoff_footer']),
             'logo_source' => $schemaConfig['logo_source'] ?? $templateConfig['logo_source'] ?? $defaults['logo_source'],
             'logo_path' => $schemaConfig['logo_path'] ?? $templateConfig['logo_path'] ?? $defaults['logo_path'],
             'declaration_header' => $schemaConfig['declaration_header'] ?? $templateConfig['declaration_header'] ?? $defaults['declaration_header'],
@@ -1010,7 +1012,7 @@ class QmhRevisionDownloadService
             $schema = $this->resolveFormSchema($revision);
             $layoutConfig = $this->resolveFrLayoutConfig($revision, $schema);
             $layoutProfile = QmhFrLayoutProfile::normalizeRuntimeProfile((string) ($layoutConfig['layout_profile'] ?? 'legacy'));
-            $segments[] = $layoutProfile === 'declaration' ? 'NON TABEL' : 'TABEL';
+            $segments[] = $layoutProfile === 'risk_matrix' ? 'TABEL' : 'NON TABEL';
         }
 
         if ($versionLabel !== '') {

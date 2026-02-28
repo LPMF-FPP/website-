@@ -251,7 +251,7 @@ class QmhPreviewPdfApiTest extends TestCase
                 'form_schema_json' => json_encode([
                     'version' => 1,
                     'doc_type' => 'fr',
-                    'layout_profile' => 'declaration',
+                    'layout_profile' => 'non_table',
                     'questions' => [
                         ['id' => 'field_a', 'label' => 'Field A', 'type' => 'text', 'required' => false],
                     ],
@@ -553,8 +553,7 @@ class QmhPreviewPdfApiTest extends TestCase
                 'form_schema_json' => [
                     'version' => 1,
                     'doc_type' => 'fr',
-                    'layout_profile' => 'declaration',
-                    'declaration_header' => 'Pernyataan Override',
+                    'layout_profile' => 'non_table',
                     'questions' => [
                         ['id' => 'statement', 'label' => 'Pernyataan', 'type' => 'textarea', 'required' => false],
                     ],
@@ -564,7 +563,7 @@ class QmhPreviewPdfApiTest extends TestCase
         $response->assertOk();
         $latestHtml = end($this->capturedHtml);
         $this->assertIsString($latestHtml);
-        $this->assertStringContainsString('fr-declaration', $latestHtml);
+        $this->assertStringContainsString('<table class="form-table">', $latestHtml);
         $this->assertStringNotContainsString('<table class="risk-matrix-table">', $latestHtml);
     }
 
@@ -611,8 +610,7 @@ class QmhPreviewPdfApiTest extends TestCase
             'form_schema_json' => [
                 'version' => 1,
                 'doc_type' => 'fr',
-                'layout_profile' => 'declaration',
-                'declaration_header' => 'Pernyataan Final',
+                'layout_profile' => 'non_table',
                 'questions' => [
                     ['id' => 'statement', 'label' => 'Pernyataan', 'type' => 'textarea', 'required' => false],
                 ],
@@ -636,7 +634,7 @@ class QmhPreviewPdfApiTest extends TestCase
         $response->assertOk();
         $latestHtml = end($this->capturedHtml);
         $this->assertIsString($latestHtml);
-        $this->assertStringContainsString('fr-declaration', $latestHtml);
+        $this->assertStringContainsString('<table class="form-table">', $latestHtml);
         $this->assertStringNotContainsString('<table class="risk-matrix-table">', $latestHtml);
     }
 

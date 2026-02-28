@@ -22,7 +22,7 @@ class QmhTemplateController extends Controller
         $filters = validator($request->only(['doc_type', 'clause', 'layout_profile', 'status', 'search']), [
             'doc_type' => ['nullable', 'in:sop,ik,fr'],
             'clause' => ['nullable', 'integer', 'in:4,5,6,7,8'],
-            'layout_profile' => ['nullable', 'in:structured_form,risk_matrix,declaration'],
+            'layout_profile' => ['nullable', 'in:structured_form,risk_matrix,declaration,table,non_table'],
             'status' => ['nullable', 'in:active,inactive,archived'],
             'search' => ['nullable', 'string'],
         ])->validate();
@@ -62,12 +62,12 @@ class QmhTemplateController extends Controller
             [
                 'key' => 'fr_non_table',
                 'label' => 'FR Non Table',
-                'description' => 'Template FR tanpa footer',
+                'description' => 'Template FR format non table',
             ],
             [
                 'key' => 'fr_table',
                 'label' => 'FR Table',
-                'description' => 'Template FR dengan footer',
+                'description' => 'Template FR format table',
             ],
         ])->map(function (array $definition) use ($dashboardSource): array {
             $candidate = $dashboardSource
@@ -129,9 +129,9 @@ class QmhTemplateController extends Controller
 
         $metadata = is_array($template->metadata) ? $template->metadata : [];
         $policy = QmhFrLayoutProfile::fromMetadata($metadata);
-        $hasFooter = (bool) ($policy['show_signoff_footer'] ?? true);
+        $profile = (string) ($policy['layout_profile'] ?? QmhFrLayoutProfile::defaultAuthoringProfile());
 
-        return $hasFooter ? 'fr_table' : 'fr_non_table';
+        return $profile === 'risk_matrix' ? 'fr_table' : 'fr_non_table';
     }
 
     /**
@@ -165,8 +165,8 @@ class QmhTemplateController extends Controller
         return [
             'shell_mode' => $shellMode,
             'show_signoff_footer' => $showFooter,
-            'shell_label' => $shellMode === 'body_only' ? 'Body Only (tanpa header/footer)' : 'Header Aktif',
-            'footer_label' => $showFooter ? 'Dengan Footer' : 'Tanpa Footer',
+            'shell_label' => 'Header + Footer',
+            'footer_label' => 'Dengan Footer',
         ];
     }
 

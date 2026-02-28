@@ -44,22 +44,22 @@ class QmhTemplateManagementWebTest extends TestCase
         $user = User::factory()->create(['role' => 'admin']);
 
         QmhTemplate::query()->create([
-            'name' => 'Template FR Tanpa Footer',
+            'name' => 'Template FR Non Table',
             'clause' => 4,
             'doc_type' => 'fr',
             'version' => 1,
             'storage_disk' => 'local',
             'is_active' => true,
             'metadata' => [
-                'layout_profile' => 'declaration',
-                'shell_mode' => 'body_only',
-                'show_signoff_footer' => false,
-                'content_html' => '<p>Tanpa Footer</p>',
+                'layout_profile' => 'structured_form',
+                'shell_mode' => 'full',
+                'show_signoff_footer' => true,
+                'content_html' => '<p>Non Table</p>',
             ],
         ]);
 
         QmhTemplate::query()->create([
-            'name' => 'Template FR Dengan Footer',
+            'name' => 'Template FR Table',
             'clause' => 4,
             'doc_type' => 'fr',
             'version' => 2,
@@ -78,12 +78,10 @@ class QmhTemplateManagementWebTest extends TestCase
             ->assertOk()
             ->assertSee('FR Non Table')
             ->assertSee('FR Table')
-            ->assertSee('Body Only (tanpa header/footer)')
-            ->assertSee('Header Aktif')
-            ->assertSee('Tanpa Footer')
+            ->assertSee('Header + Footer')
             ->assertSee('Dengan Footer')
-            ->assertSee('Template FR Tanpa Footer')
-            ->assertSee('Template FR Dengan Footer');
+            ->assertSee('Template FR Non Table')
+            ->assertSee('Template FR Table');
     }
 
     public function test_admin_can_access_template_edit_page(): void

@@ -264,6 +264,20 @@ class QmhRevisionApprovalDownloadTest extends TestCase
     {
         [$revision, $approver] = $this->createFrRevisionInApprovalWithRealSourcePdf();
 
+        $template = QmhTemplate::query()->create([
+            'name' => 'Template FR Tabel',
+            'clause' => 4,
+            'version' => 1,
+            'doc_type' => 'fr',
+            'is_active' => true,
+            'metadata' => [
+                'layout_profile' => 'table',
+            ],
+        ]);
+
+        $revision->template_id = $template->id;
+        $revision->save();
+
         $response = $this->actingAs($approver)
             ->postJson("/api/quality/revisions/{$revision->id}/download", [
                 'copy_type' => 'uncontrolled',
@@ -293,10 +307,7 @@ class QmhRevisionApprovalDownloadTest extends TestCase
             'doc_type' => 'fr',
             'is_active' => true,
             'metadata' => [
-                'layout_profile' => 'declaration',
-                'shell_mode' => 'body_only',
-                'orientation_policy' => 'portrait',
-                'show_signoff_footer' => false,
+                'layout_profile' => 'non_table',
             ],
         ]);
 

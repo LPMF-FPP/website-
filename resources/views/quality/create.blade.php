@@ -166,7 +166,7 @@
                     </div>
 
                     <div x-show="docType === 'fr' && !frV2CreateEnabled" x-cloak>
-                        <label class="mb-1 block text-sm font-medium text-gray-700" for="fr_preset_step1">Preset Formulir</label>
+                        <label class="mb-1 block text-sm font-medium text-gray-700" for="fr_preset_step1">Struktur Formulir</label>
                         <select
                             id="fr_preset_step1"
                             x-model="frPreset"
@@ -174,17 +174,17 @@
                             class="w-full rounded-md border border-gray-300 bg-white text-sm focus:border-primary-600 focus:ring-primary-600"
                         >
                             <template x-if="availableFrPresets().length === 0">
-                                <option value="">Belum ada preset tersedia</option>
+                                <option value="">Belum ada struktur tersedia</option>
                             </template>
                             <template x-for="preset in availableFrPresets()" :key="preset">
                                 <option :value="preset" x-text="frPresetLabel(preset)"></option>
                             </template>
                         </select>
-                        <p class="mt-1 text-xs text-gray-500">Preset menentukan struktur formulir. Declaration body-only, preset lain pakai shell FR.</p>
+                        <p class="mt-1 text-xs text-gray-500">Pilih struktur FR: Non Table atau Table. Preview selalu mengikuti flow QMH dengan header dan footer.</p>
                     </div>
 
                     <div x-show="docType === 'fr' && frV2CreateEnabled" x-cloak class="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800">
-                        <p class="font-medium">Mode FR-v2 aktif: preset legacy dinonaktifkan.</p>
+                        <p class="font-medium">Mode FR-v2 aktif: struktur legacy dinonaktifkan.</p>
                         <p class="mt-1">Pilih struktur formulir. Template FR akan dipilih otomatis sesuai mode dan klausul, lalu unggah source PDF pada langkah berikutnya.</p>
 
                         <div class="mt-3 grid gap-2 sm:grid-cols-2">
@@ -329,7 +329,7 @@
                             <p x-show="templatesLoading">Memuat template...</p>
                             <p x-show="!templatesLoading && templateId">Template tersedia. Pilih template untuk memuat schema pertanyaan.</p>
                             <p x-show="!templatesLoading && !templateId && docType !== 'fr'" class="text-amber-700">Belum ada template untuk jenis dokumen ini.</p>
-                            <p x-show="!templatesLoading && !templateId && docType === 'fr'" class="text-amber-700">Belum ada template untuk preset formulir ini.</p>
+                            <p x-show="!templatesLoading && !templateId && docType === 'fr'" class="text-amber-700">Belum ada template untuk struktur formulir ini.</p>
                             <p x-show="templatesError" class="text-red-600" x-text="templatesError"></p>
                             <p class="mt-1 text-xs" x-show="!templatesLoading && !templateId && canManageTemplate">
                                 Tambah template di <a :href="templateManageUrl" class="font-medium underline">QMH > Template</a>.
@@ -441,7 +441,7 @@
                             @change="onSourcePdfFileChanged()"
                             class="w-full rounded-md border border-gray-300 bg-white text-sm file:mr-3 file:rounded-md file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-gray-700"
                         >
-                        <p class="mt-1 text-xs text-gray-500">Unggah PDF sumber master untuk FR-v2. Field legacy schema/preset akan ditolak saat mode ini aktif.</p>
+                        <p class="mt-1 text-xs text-gray-500">Unggah PDF sumber master untuk FR-v2. Field legacy schema/struktur lama akan ditolak saat mode ini aktif.</p>
                         <p class="mt-1 text-xs text-green-700" x-show="frV2PreviewToken">Artefak preview siap. Preview berikutnya tidak upload ulang file.</p>
                         <p class="mt-1 text-xs text-red-600" x-show="frV2SourcePdfError" x-text="frV2SourcePdfError"></p>
                         @error('source_pdf_file')

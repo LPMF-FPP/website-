@@ -390,7 +390,7 @@ class QmhPdfStructuredTemplateHtmlTest extends TestCase
         $this->assertStringContainsString('1.50', $html);
     }
 
-    public function test_pdf_template_renders_declaration_layout_for_fr_profile(): void
+    public function test_pdf_template_renders_non_table_layout_for_fr_profile(): void
     {
         /** @var User $user */
         $user = User::factory()->create(['role' => 'admin']);
@@ -420,7 +420,7 @@ class QmhPdfStructuredTemplateHtmlTest extends TestCase
         $schema = [
             'version' => 1,
             'doc_type' => 'fr',
-            'layout_profile' => 'declaration',
+            'layout_profile' => 'non_table',
             'declaration_header' => 'Pernyataan Ketidakberpihakan',
             'questions' => [
                 ['id' => 'statement', 'label' => 'Pernyataan', 'type' => 'textarea', 'required' => true],
@@ -432,21 +432,21 @@ class QmhPdfStructuredTemplateHtmlTest extends TestCase
             'schema' => $schema,
             'answers' => $revision->answers_json,
             'watermarkText' => 'DRAFT',
-            'layoutProfile' => 'declaration',
+            'layoutProfile' => 'non_table',
             'layoutConfig' => [
-                'layout_profile' => 'declaration',
-                'shell_mode' => 'body_only',
+                'layout_profile' => 'non_table',
+                'shell_mode' => 'full',
                 'orientation_policy' => 'portrait',
-                'show_signoff_footer' => false,
+                'show_signoff_footer' => true,
                 'declaration_header' => 'Pernyataan Ketidakberpihakan',
             ],
         ])->render();
 
-        $this->assertStringContainsString('fr-declaration', $html);
-        $this->assertStringContainsString('PERNYATAAN KETIDAKBERPIHAKAN', $html);
+        $this->assertStringContainsString('form-table', $html);
+        $this->assertStringContainsString('PERNYATAAN', $html);
         $this->assertStringContainsString('Kami menjamin ketidakberpihakan.', $html);
-        $this->assertStringNotContainsString('No. Dokumen', $html);
-        $this->assertStringNotContainsString('Dibuat Oleh:', $html);
+        $this->assertStringContainsString('No. Dokumen', $html);
+        $this->assertStringContainsString('Dibuat Oleh:', $html);
     }
 
     public function test_pdf_template_renders_risk_matrix_layout_for_fr_profile(): void

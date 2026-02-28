@@ -373,7 +373,7 @@ export function qmhCreatePage(config = {}) {
                 if (!this.isStep1Complete()) {
                     this.stepError =
                         this.docType === "fr" && !this.isFrV2MasterFirstActive()
-                            ? "Pilih preset formulir terlebih dahulu."
+                            ? "Pilih struktur formulir terlebih dahulu."
                             : "Pilih jenis dokumen terlebih dahulu.";
                     return;
                 }
@@ -584,7 +584,7 @@ export function qmhCreatePage(config = {}) {
                     resolvedFrom === "none"
                 ) {
                     this.templatesError =
-                        "Template FR untuk klausul dan preset ini belum tersedia.";
+                        "Template FR untuk klausul dan struktur ini belum tersedia.";
                 }
 
                 if (this.docType === "fr") {
@@ -673,13 +673,15 @@ export function qmhCreatePage(config = {}) {
                     ? template.layout_profile.trim().toLowerCase()
                     : "";
 
-            if (
-                ["structured_form", "risk_matrix", "declaration"].includes(raw)
-            ) {
-                return raw;
+            if (["risk_matrix", "table"].includes(raw)) {
+                return "table";
             }
 
-            return "structured_form";
+            if (["structured_form", "declaration", "non_table"].includes(raw)) {
+                return "non_table";
+            }
+
+            return "non_table";
         },
 
         availableFrPresets() {
@@ -691,7 +693,7 @@ export function qmhCreatePage(config = {}) {
                 return [];
             }
 
-            return ["structured_form", "risk_matrix", "declaration"];
+            return ["non_table", "table"];
         },
 
         currentFrLayoutProfileFilter() {
@@ -705,23 +707,27 @@ export function qmhCreatePage(config = {}) {
                     : "structured_form";
             }
 
-            return this.frPreset || "";
+            if (this.frPreset === "table") {
+                return "risk_matrix";
+            }
+
+            if (this.frPreset === "non_table") {
+                return "structured_form";
+            }
+
+            return "";
         },
 
         frPresetLabel(preset) {
-            if (preset === "structured_form") {
-                return "Structured Form";
+            if (preset === "table") {
+                return "Table";
             }
 
-            if (preset === "risk_matrix") {
-                return "Risk Matrix";
+            if (preset === "non_table") {
+                return "Non Table";
             }
 
-            if (preset === "declaration") {
-                return "Declaration";
-            }
-
-            return "Preset";
+            return "Struktur";
         },
 
         frV2StructureModeLabel() {
