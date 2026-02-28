@@ -14,16 +14,30 @@
         </div>
     </x-slot>
 
+    @php
+        $rawLayoutMetadata = is_array($template->metadata) ? $template->metadata : [];
+        $layoutMeta = \App\Support\QmhFrLayoutProfile::fromMetadata($rawLayoutMetadata);
+        $hasExplicitLayoutProfile = array_key_exists('layout_profile', $rawLayoutMetadata);
+        $layoutProfileInput = old('layout_profile', $hasExplicitLayoutProfile ? $layoutMeta['layout_profile'] : '');
+        $riskMatrixColumnsCsv = implode(', ', is_array($layoutMeta['risk_matrix_columns'] ?? null) ? $layoutMeta['risk_matrix_columns'] : []);
+        $initialSchema = data_get($template->metadata, 'form_schema');
+        $initialJson = old('form_schema_json', $initialSchema ? json_encode($initialSchema, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : '');
+    @endphp
+
     <div
         class="space-y-6"
-        x-data="{ showPreviewModal: false, previewHtml: '', previewTitle: '', previewDocType: '', previewVersionLabel: '' }"
-        @qmh-template-preview.window="
-            previewHtml = String($event.detail?.html || '<p></p>');
-            previewTitle = String($event.detail?.name || 'Template QMH');
-            previewDocType = String($event.detail?.docType || '');
-            previewVersionLabel = String($event.detail?.version || '');
-            showPreviewModal = true;
-        "
+        x-data="qmhTemplateEditor({
+            templateId: @js((int) $template->id),
+            templateName: @js((string) $template->name),
+            docType: @js((string) strtoupper($template->doc_type)),
+            versionLabel: @js('v' . (int) $template->version),
+            updateUrl: @js(route('quality.templates.update', $template)),
+            csrfToken: @js(csrf_token()),
+            initialContent: @js(old('content_html', $resolvedContentHtml ?? '<p></p>')),
+            initialVersions: @js($relatedVersions),
+            latestPreviewUrl: @js(route('quality.templates.preview', $template)),
+        })"
+        x-init="init()"
     >
         @if($errors->any())
             <div class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
@@ -36,93 +50,154 @@
             </div>
         @endif
 
-        <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            @php
-                $rawLayoutMetadata = is_array($template->metadata) ? $template->metadata : [];
-                $layoutMeta = \App\Support\QmhFrLayoutProfile::fromMetadata($rawLayoutMetadata);
-                $hasExplicitLayoutProfile = array_key_exists('layout_profile', $rawLayoutMetadata);
-                $layoutProfileInput = old('layout_profile', $hasExplicitLayoutProfile ? $layoutMeta['layout_profile'] : '');
-                $riskMatrixColumnsCsv = implode(', ', is_array($layoutMeta['risk_matrix_columns'] ?? null) ? $layoutMeta['risk_matrix_columns'] : []);
-            @endphp
+        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <template x-for="tpl in versions" :key="tpl.id">
+                    <button
+                        type="button"
+                        @click="goToVersion(tpl.edit_url)"
+                        :class="selectedTemplateId === tpl.id ? 'ring-2 ring-primary-500 border-primary-400' : 'border-gray-200 hover:border-primary-300'"
+                        class="relative rounded-lg border-2 bg-white px-4 py-4 text-left shadow-sm transition-all"
+                    >
+                        <div class="flex items-center justify-between">
+                            <div class="min-w-0 flex-1">
+                                <p class="truncate text-sm font-medium text-gray-900" x-text="tpl.name"></p>
+                                <p class="mt-1 text-xs text-gray-500">
+                                    <span x-text="docType"></span>
+                                    •
+                                    <span x-text="tpl.updated_at_label"></span>
+                                </p>
+                                <p class="mt-1 text-xs text-gray-600">Versi <span x-text="tpl.version"></span></p>
+                            </div>
+                            <div x-show="selectedTemplateId === tpl.id" class="ml-3">
+                                <svg class="h-5 w-5 text-primary-600" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <span
+                            x-show="tpl.is_active"
+                            class="mt-2 inline-flex rounded-full bg-green-100 px-2.5 py-0.5 text-[11px] font-medium text-green-700"
+                        >Active</span>
+                    </button>
+                </template>
+            </div>
+        </div>
 
-            <form
-                method="POST"
-                action="{{ route('quality.templates.update', $template) }}"
-                class="space-y-4"
-                x-data="{
-                    selectedDocType: @js(old('doc_type', $template->doc_type)),
-                    layoutProfile: @js($layoutProfileInput),
-                    logoSource: @js(old('logo_source', $layoutMeta['logo_source'])),
-                    advancedSchemaMode: false,
-                    editorOriginalHtml: @js(old('content_html', $resolvedContentHtml ?? '<p></p>')),
-                    editorCursor: { line: 1, column: 1 },
-                    showPreviewModal: false,
-                    previewHtml: '',
-                    openPreview() {
-                        window.dispatchEvent(new CustomEvent('qmh-template-preview', {
-                            detail: {
-                                html: this.$refs.templateContentHtml?.value || '<p></p>',
-                                name: @js($template->name),
-                                docType: @js(strtoupper($template->doc_type)),
-                                version: @js('v' . $template->version . ' (draft editor saat ini)'),
-                            }
-                        }));
-                    },
-                    normalizeHtmlForCompare(html) {
-                        return String(html || '').replace(/\s+/g, ' ').trim();
-                    },
-                    hasUnsavedChanges() {
-                        const current = this.$refs.templateContentHtml?.value || '<p></p>';
-                        return this.normalizeHtmlForCompare(current) !== this.normalizeHtmlForCompare(this.editorOriginalHtml);
-                    }
-                }"
-            >
-                @csrf
-                @method('PATCH')
+        <form
+            id="qmh-template-edit-form"
+            method="POST"
+            action="{{ route('quality.templates.update', $template) }}"
+            class="space-y-4"
+            x-ref="form"
+            x-data="{
+                selectedDocType: @js(old('doc_type', $template->doc_type)),
+                layoutProfile: @js($layoutProfileInput),
+                logoSource: @js(old('logo_source', $layoutMeta['logo_source'])),
+                advancedSchemaMode: false
+            }"
+        >
+            @csrf
+            @method('PATCH')
 
-                <div>
-                    <label class="mb-1 block text-sm font-medium text-gray-700" for="name">Nama Template</label>
-                    <input id="name" name="name" type="text" value="{{ old('name', $template->name) }}"
-                           class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('name') border-red-400 @else border-gray-300 @enderror"
-                           required>
-                    @error('name')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+            <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div class="mb-4 flex items-center justify-between border-b border-gray-200 pb-4">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <button
+                            type="button"
+                            @click="saveTemplate()"
+                            :disabled="saving || !hasChanges"
+                            class="inline-flex items-center rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <svg x-show="!saving" class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+                            </svg>
+                            <svg x-show="saving" class="mr-2 h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                            </svg>
+                            <span x-text="saving ? 'Menyimpan...' : 'Simpan'"></span>
+                        </button>
+
+                        <button
+                            type="button"
+                            @click="showPreview = true"
+                            class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        >Preview</button>
+
+                        <button
+                            type="button"
+                            @click="showHistory = true"
+                            class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        >Riwayat</button>
+
+                        <button
+                            type="button"
+                            @click="revertChanges()"
+                            :disabled="!hasChanges"
+                            class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        >Batal</button>
+                    </div>
+
+                    <div class="text-xs text-gray-500">
+                        <span x-show="hasChanges" class="font-semibold text-amber-700">• Belum disimpan</span>
+                        <span class="ml-3">Baris: <span x-text="editorInfo.line"></span> | Kolom: <span x-text="editorInfo.column"></span></span>
+                    </div>
                 </div>
 
-                <div>
-                    <label class="mb-1 block text-sm font-medium text-gray-700" for="doc_type">Jenis Dokumen</label>
-                    <select id="doc_type" name="doc_type" x-model="selectedDocType" class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('doc_type') border-red-400 @else border-gray-300 @enderror" required>
-                        <option value="sop" @selected(old('doc_type', $template->doc_type) === 'sop')>SOP</option>
-                        <option value="ik" @selected(old('doc_type', $template->doc_type) === 'ik')>IK</option>
-                        <option value="fr" @selected(old('doc_type', $template->doc_type) === 'fr')>FR</option>
-                    </select>
-                    @error('doc_type')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                <div class="mb-4 grid gap-4 md:grid-cols-3">
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-gray-700" for="name">Nama Template</label>
+                        <input id="name" name="name" type="text" value="{{ old('name', $template->name) }}"
+                               class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('name') border-red-400 @else border-gray-300 @enderror"
+                               @input="onMetaChanged()"
+                               required>
+                        @error('name')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-gray-700" for="doc_type">Jenis Dokumen</label>
+                        <select id="doc_type" name="doc_type" x-model="selectedDocType"
+                                class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('doc_type') border-red-400 @else border-gray-300 @enderror"
+                                @change="onMetaChanged()"
+                                required>
+                            <option value="sop" @selected(old('doc_type', $template->doc_type) === 'sop')>SOP</option>
+                            <option value="ik" @selected(old('doc_type', $template->doc_type) === 'ik')>IK</option>
+                            <option value="fr" @selected(old('doc_type', $template->doc_type) === 'fr')>FR</option>
+                        </select>
+                        @error('doc_type')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                    </div>
+
+                    <div>
+                        <label class="mb-1 block text-sm font-medium text-gray-700" for="clause">Klausul</label>
+                        <select id="clause" name="clause"
+                                class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('clause') border-red-400 @else border-gray-300 @enderror"
+                                @change="onMetaChanged()"
+                                required>
+                            @foreach([4, 5, 6, 7, 8] as $clause)
+                                <option value="{{ $clause }}" @selected((string) old('clause', (string) $template->clause) === (string) $clause)>{{ $clause }}</option>
+                            @endforeach
+                        </select>
+                        @error('clause')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                    </div>
                 </div>
 
-                <div>
-                    <label class="mb-1 block text-sm font-medium text-gray-700" for="clause">Klausul</label>
-                    <select id="clause" name="clause" class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('clause') border-red-400 @else border-gray-300 @enderror" required>
-                        @foreach([4, 5, 6, 7, 8] as $clause)
-                            <option value="{{ $clause }}" @selected((string) old('clause', (string) $template->clause) === (string) $clause)>{{ $clause }}</option>
-                        @endforeach
-                    </select>
-                    @error('clause')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
-                </div>
-
-                <div>
+                <div class="mb-4">
                     <label class="mb-1 block text-sm font-medium text-gray-700" for="version_notes">Catatan</label>
-                    <textarea id="version_notes" name="version_notes" rows="3"
-                              class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('version_notes') border-red-400 @else border-gray-300 @enderror">{{ old('version_notes', data_get($template->metadata, 'version_notes')) }}</textarea>
+                    <textarea id="version_notes" name="version_notes" rows="2"
+                              class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('version_notes') border-red-400 @else border-gray-300 @enderror"
+                              @input="onMetaChanged()">{{ old('version_notes', data_get($template->metadata, 'version_notes')) }}</textarea>
                     @error('version_notes')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
 
                 <template x-if="selectedDocType === 'fr'">
-                    <div class="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+                    <div class="mb-4 rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
                         <p class="text-sm font-semibold text-gray-800">Konfigurasi Layout FR</p>
 
                         <div class="grid gap-3 md:grid-cols-2">
                             <div>
                                 <label class="mb-1 block text-sm font-medium text-gray-700" for="layout_profile">Profil Layout</label>
-                                <select id="layout_profile" name="layout_profile" x-model="layoutProfile" class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('layout_profile') border-red-400 @else border-gray-300 @enderror">
+                                <select id="layout_profile" name="layout_profile" x-model="layoutProfile" class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('layout_profile') border-red-400 @else border-gray-300 @enderror" @change="onMetaChanged()">
                                     @if(! $hasExplicitLayoutProfile)
                                         <option value="">Legacy (tanpa profile eksplisit)</option>
                                     @endif
@@ -130,16 +205,12 @@
                                     <option value="risk_matrix">Risk Matrix</option>
                                     <option value="declaration">Declaration</option>
                                 </select>
-                                <p class="mt-1 text-xs text-gray-500">Declaration = body-only (tanpa header/footer FR). Structured Form dan Risk Matrix memakai shell FR standar.</p>
-                                @if(! $hasExplicitLayoutProfile)
-                                    <p class="mt-1 text-xs text-amber-700">Template ini masih mode legacy. Pilih profile untuk mengonversi secara eksplisit.</p>
-                                @endif
                                 @error('layout_profile')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                             </div>
 
                             <div>
                                 <label class="mb-1 block text-sm font-medium text-gray-700" for="logo_source">Sumber Logo</label>
-                                <select id="logo_source" name="logo_source" x-model="logoSource" class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('logo_source') border-red-400 @else border-gray-300 @enderror">
+                                <select id="logo_source" name="logo_source" x-model="logoSource" class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('logo_source') border-red-400 @else border-gray-300 @enderror" @change="onMetaChanged()">
                                     <option value="settings">Settings Sistem</option>
                                     <option value="custom">Custom Path</option>
                                     <option value="default">Default Aset</option>
@@ -152,6 +223,7 @@
                             <label class="mb-1 block text-sm font-medium text-gray-700" for="logo_path">Path Logo Custom</label>
                             <input id="logo_path" name="logo_path" type="text" value="{{ old('logo_path', $layoutMeta['logo_path']) }}"
                                    class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('logo_path') border-red-400 @else border-gray-300 @enderror"
+                                   @input="onMetaChanged()"
                                    placeholder="contoh: images/logo-custom.png atau storage/logo/custom.png">
                             @error('logo_path')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                         </div>
@@ -160,56 +232,31 @@
                             <label class="mb-1 block text-sm font-medium text-gray-700" for="declaration_header">Header Declaration (opsional)</label>
                             <input id="declaration_header" name="declaration_header" type="text" value="{{ old('declaration_header', $layoutMeta['declaration_header']) }}"
                                    class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('declaration_header') border-red-400 @else border-gray-300 @enderror"
+                                   @input="onMetaChanged()"
                                    placeholder="contoh: Pernyataan Ketidakberpihakan">
                             @error('declaration_header')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                         </div>
-
-                        @if(! $hasExplicitLayoutProfile)
-                            <div class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                                Status saat ini: <strong>LEGACY</strong>. Header/footer tetap mengikuti policy legacy sampai profile dipilih.
-                            </div>
-                        @endif
 
                         <div x-show="layoutProfile === 'risk_matrix'">
                             <label class="mb-1 block text-sm font-medium text-gray-700" for="risk_matrix_columns_csv">Kolom Risk Matrix</label>
                             <input id="risk_matrix_columns_csv" name="risk_matrix_columns_csv" type="text" value="{{ old('risk_matrix_columns_csv', $riskMatrixColumnsCsv) }}"
                                    class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('risk_matrix_columns_csv') border-red-400 @else border-gray-300 @enderror"
+                                   @input="onMetaChanged()"
                                    placeholder="Aspek Risiko, Nilai Risiko, Keterangan">
-                            <p class="mt-1 text-xs text-gray-500">Pisahkan dengan koma. Minimal 2 kolom, maksimal 6 kolom.</p>
                             @error('risk_matrix_columns_csv')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                         </div>
                     </div>
                 </template>
 
-                <div>
-                    <label class="mb-1 block text-sm font-medium text-gray-700">Edit Template di Browser</label>
-                    <p class="mb-2 text-xs text-gray-500">Konten ini akan dimuat otomatis saat user memilih template pada form Buat Dokumen.</p>
-
-                    <div class="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
-                        <div class="flex flex-wrap items-center gap-2">
-                            <button type="submit" class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-xs font-medium text-white hover:bg-primary-700">
-                                Simpan (Publish Versi Baru)
-                            </button>
-                            <button type="button" @click="openPreview()" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50">
-                                Preview Perubahan
-                            </button>
-                            <a href="{{ route('quality.templates.index') }}" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50">
-                                Batal
-                            </a>
-                        </div>
-
-                        <div class="text-xs text-gray-500">
-                            <span x-show="hasUnsavedChanges()" class="font-semibold text-amber-700">• Belum disimpan</span>
-                            <span class="ml-2">Baris: <span x-text="editorCursor.line"></span> | Kolom: <span x-text="editorCursor.column"></span></span>
-                        </div>
-                    </div>
-
-                     <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-                          x-data="qmhEditor({ initialContent: @js(old('content_html', $resolvedContentHtml ?? '<p></p>')), editorId: 'qmh-template-editor' })"
-                          x-init="init()"
-                          @qmh-editor-change="$refs.templateContentHtml.value = $event.detail.html"
-                          @qmh-editor-cursor.window="editorCursor = { line: Number($event.detail?.line || 1), column: Number($event.detail?.column || 1) }">
-                        <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
+                <div
+                    class="rounded-lg border border-gray-200"
+                    x-data="qmhEditor({ initialContent: @js(old('content_html', $resolvedContentHtml ?? '<p></p>')), editorId: 'qmh-template-editor' })"
+                    x-init="init()"
+                    @qmh-editor-change="onEditorChanged($event.detail.html)"
+                    @qmh-editor-cursor.window="editorInfo = { line: Number($event.detail?.line || 1), column: Number($event.detail?.column || 1) }"
+                >
+                    <div class="border-b border-gray-200 bg-gray-50 p-3">
+                        <div class="flex flex-wrap gap-2">
                             <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bold') }" @click="toggleBold()">B</button>
                             <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('italic') }" @click="toggleItalic()">I</button>
                             <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('underline') }" @click="toggleUnderline()">U</button>
@@ -235,29 +282,24 @@
                             <button type="button" class="qmh-editor-btn" @click="deleteTable()">Hapus Tabel</button>
                             <button type="button" class="qmh-editor-btn" @click="openPendukungPicker({ clause: Number(document.getElementById('clause')?.value || 4) })">Link Pendukung</button>
                         </div>
-
-                        <div class="qmh-editor-surface" x-ref="editor"></div>
-                        <input type="hidden" x-ref="hiddenInput" name="unused_template_editor_content">
-                        <input type="hidden" x-ref="templateContentHtml" name="content_html" value="{{ old('content_html', $resolvedContentHtml ?? '<p></p>') }}">
                     </div>
-                    @error('content_html')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
-                </div>
 
-                <div>
+                    <div class="qmh-editor-surface p-4" x-ref="editor"></div>
+                    <input type="hidden" x-ref="hiddenInput" name="unused_template_editor_content">
+                    <input type="hidden" x-ref="templateContentHtml" name="content_html" value="{{ old('content_html', $resolvedContentHtml ?? '<p></p>') }}">
+                </div>
+                @error('content_html')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+
+                <div class="mt-5">
                     <label class="mb-1 block text-sm font-medium text-gray-700" for="form_schema_json">Struktur Pertanyaan Formulir</label>
                     <p class="mb-2 text-xs text-gray-500">Mode standar disederhanakan agar mudah dipakai user non-teknis. Opsi lanjutan hanya untuk admin teknis.</p>
 
                     <div class="mb-3 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700">
                         <label class="inline-flex items-center gap-2">
-                            <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600" x-model="advancedSchemaMode">
+                            <input type="checkbox" class="h-4 w-4 rounded border-gray-300 text-primary-600" x-model="advancedSchemaMode" @change="onMetaChanged()">
                             <span>Tampilkan mode lanjutan (ID field, JSON, dan pengaturan teknis)</span>
                         </label>
                     </div>
-
-                    @php
-                        $initialSchema = data_get($template->metadata, 'form_schema');
-                        $initialJson = old('form_schema_json', $initialSchema ? json_encode($initialSchema, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : '');
-                    @endphp
 
                     <template x-if="selectedDocType === 'fr'">
                         <div
@@ -268,8 +310,8 @@
                                 initialJson: @js($initialJson),
                             })"
                             x-init="init()"
-                            @input.debounce.100ms="syncJson()"
-                            @change.debounce.100ms="syncJson()"
+                            @input.debounce.100ms="syncJson(); $dispatch('qmh-meta-change')"
+                            @change.debounce.100ms="syncJson(); $dispatch('qmh-meta-change')"
                         >
                             <div class="mb-3 flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 pb-3">
                                 <div class="flex flex-wrap items-center gap-2">
@@ -301,22 +343,12 @@
                                                 <div class="grid gap-2 sm:grid-cols-12">
                                                     <div class="sm:col-span-5">
                                                         <label class="block text-[11px] font-semibold text-gray-600">Label</label>
-                                                        <input
-                                                            type="text"
-                                                            class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-                                                            x-model="q.label"
-                                                            @input.debounce.150ms="onLabelChanged(idx)"
-                                                            placeholder="Contoh: Nama Petugas"
-                                                        />
+                                                        <input type="text" class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm" x-model="q.label" @input.debounce.150ms="onLabelChanged(idx)" placeholder="Contoh: Nama Petugas" />
                                                     </div>
 
                                                     <div class="sm:col-span-3">
                                                         <label class="block text-[11px] font-semibold text-gray-600">Format Jawaban</label>
-                                                        <select
-                                                            class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-                                                            x-model="q.type"
-                                                            @change="onTypeChanged(idx)"
-                                                        >
+                                                        <select class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm" x-model="q.type" @change="onTypeChanged(idx)">
                                                             <option value="section">Section</option>
                                                             <option value="text">Text</option>
                                                             <option value="textarea">Textarea</option>
@@ -330,77 +362,14 @@
 
                                                     <div class="sm:col-span-3" x-show="advancedSchemaMode" x-cloak>
                                                         <label class="block text-[11px] font-semibold text-gray-600">ID</label>
-                                                        <input
-                                                            type="text"
-                                                            class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 font-mono text-xs"
-                                                            x-model="q.id"
-                                                            @input.debounce.150ms="q.auto_id = false; syncJson()"
-                                                            placeholder="field_name"
-                                                        />
-                                                        <p class="mt-1 text-[10px] text-gray-500">a-z, 0-9, _ (max 64)</p>
+                                                        <input type="text" class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 font-mono text-xs" x-model="q.id" @input.debounce.150ms="q.auto_id = false; syncJson()" placeholder="field_name" />
                                                     </div>
 
                                                     <div class="sm:col-span-1">
                                                         <label class="block text-[11px] font-semibold text-gray-600">Wajib</label>
-                                                        <input
-                                                            type="checkbox"
-                                                            class="mt-3 h-4 w-4 rounded border-gray-300 text-primary-600"
-                                                            x-model="q.required"
-                                                            :disabled="q.type === 'section'"
-                                                            @change="syncJson()"
-                                                        />
+                                                        <input type="checkbox" class="mt-3 h-4 w-4 rounded border-gray-300 text-primary-600" x-model="q.required" :disabled="q.type === 'section'" @change="syncJson()" />
                                                     </div>
                                                 </div>
-
-                                                <div class="mt-2 grid gap-2 sm:grid-cols-12" x-show="advancedSchemaMode" x-cloak>
-                                                    <div class="sm:col-span-6">
-                                                        <label class="block text-[11px] font-semibold text-gray-600">Help (opsional)</label>
-                                                        <input
-                                                            type="text"
-                                                            class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-                                                            x-model="q.help"
-                                                            @input.debounce.150ms="syncJson()"
-                                                            placeholder="Contoh: isi sesuai format di label"
-                                                        />
-                                                    </div>
-                                                    <div class="sm:col-span-6">
-                                                        <label class="block text-[11px] font-semibold text-gray-600">Placeholder (opsional)</label>
-                                                        <input
-                                                            type="text"
-                                                            class="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-                                                            x-model="q.placeholder"
-                                                            @input.debounce.150ms="syncJson()"
-                                                            placeholder="Contoh: 2026-02-15"
-                                                        />
-                                                    </div>
-                                                </div>
-
-                                                <template x-if="q.type === 'select'">
-                                                    <div class="mt-3 rounded-md border border-gray-200 bg-gray-50 p-3">
-                                                        <div class="flex items-center justify-between">
-                                                            <div class="text-xs font-semibold text-gray-700">Options</div>
-                                                            <button type="button" class="text-xs font-medium text-primary-700 hover:underline" @click="addSelectOption(idx)">
-                                                                + Tambah option
-                                                            </button>
-                                                        </div>
-
-                                                        <div class="mt-2 space-y-2">
-                                                            <template x-for="(opt, optIdx) in q.options" :key="optIdx">
-                                                                <div class="grid grid-cols-12 gap-2 items-center">
-                                                                    <div class="col-span-5">
-                                                                        <input type="text" class="w-full rounded-md border border-gray-300 px-2 py-1.5 font-mono text-xs" x-model="opt.value" @input.debounce.150ms="syncJson()" placeholder="value" />
-                                                                    </div>
-                                                                    <div class="col-span-6">
-                                                                        <input type="text" class="w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm" x-model="opt.label" @input.debounce.150ms="syncJson()" placeholder="label" />
-                                                                    </div>
-                                                                    <div class="col-span-1 text-right">
-                                                                        <button type="button" class="text-xs text-red-600 hover:underline" @click="deleteSelectOption(idx, optIdx)">Hapus</button>
-                                                                    </div>
-                                                                </div>
-                                                            </template>
-                                                        </div>
-                                                    </div>
-                                                </template>
                                             </div>
 
                                             <div class="flex flex-col items-end gap-2">
@@ -408,91 +377,237 @@
                                                     <button type="button" class="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-50" @click="moveUp(idx)" :disabled="idx === 0">Up</button>
                                                     <button type="button" class="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-50" @click="moveDown(idx)" :disabled="idx === questions.length - 1">Down</button>
                                                 </div>
-                                                <button type="button" class="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100" @click="deleteQuestion(idx)">
-                                                    Hapus
-                                                </button>
+                                                <button type="button" class="rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100" @click="deleteQuestion(idx)">Hapus</button>
                                             </div>
                                         </div>
                                     </div>
                                 </template>
-
-                                <template x-if="questions.length === 0">
-                                    <div class="rounded-md border border-dashed border-gray-300 p-4 text-sm text-gray-600">
-                                        Belum ada pertanyaan. Klik <span class="font-semibold">+ Pertanyaan</span> untuk mulai.
-                                    </div>
-                                </template>
                             </div>
 
-                            <textarea
-                                id="form_schema_json"
-                                name="form_schema_json"
-                                rows="10"
-                                class="hidden"
-                                x-ref="schemaJson"
-                            >{{ $initialJson }}</textarea>
-
-                            <template x-if="advancedSchemaMode && showRawJson">
-                                <div class="mt-4">
-                                    <div class="mb-2 text-xs font-semibold text-gray-700">JSON Preview</div>
-                                    <pre class="max-h-80 overflow-auto rounded-lg border border-gray-200 bg-gray-50 p-3 text-[11px] leading-relaxed" x-text="schemaJson()"></pre>
-                                </div>
-                            </template>
+                            <textarea id="form_schema_json" name="form_schema_json" rows="10" class="hidden" x-ref="schemaJson">{{ $initialJson }}</textarea>
                         </div>
                     </template>
 
                     <template x-if="selectedDocType !== 'fr'">
                         <div>
-                            <textarea
-                                id="form_schema_json"
-                                name="form_schema_json"
-                                rows="10"
-                                class="w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-xs leading-relaxed focus:border-primary-600 focus:ring-primary-600"
-                            >{{ $initialJson }}</textarea>
+                            <textarea id="form_schema_json" name="form_schema_json" rows="10" class="w-full rounded-md border border-gray-300 px-3 py-2 font-mono text-xs leading-relaxed focus:border-primary-600 focus:ring-primary-600" @input="onMetaChanged()">{{ $initialJson }}</textarea>
                             <p class="mt-1 text-xs text-gray-500">(Non-FR) Edit JSON langsung.</p>
                         </div>
                     </template>
 
                     @error('form_schema_json')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
+            </div>
+        </form>
 
-                <div class="border-t border-gray-200 pt-4">
-                    <p class="text-xs text-gray-500">
-                        Menyimpan perubahan akan menerbitkan versi baru. Versi sebelumnya tetap tersimpan untuk audit.
-                    </p>
-                </div>
-            </form>
+        <div
+            x-show="showPreview"
+            x-cloak
+            class="fixed inset-0 z-50 overflow-y-auto"
+            @keydown.escape.window="showPreview = false"
+        >
+            <div class="flex min-h-screen items-center justify-center px-4 py-6">
+                <div class="fixed inset-0 bg-gray-900/50" @click="showPreview = false"></div>
 
-            <div
-                x-show="showPreviewModal"
-                x-cloak
-                class="fixed inset-0 z-50 overflow-y-auto"
-                @keydown.escape.window="showPreviewModal = false"
-            >
-                <div class="flex min-h-screen items-center justify-center px-4 py-6">
-                    <div class="fixed inset-0 bg-gray-900/50" @click="showPreviewModal = false"></div>
-
-                    <div class="relative z-10 w-full max-w-5xl overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl">
-                        <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3">
-                            <div>
-                                <h3 class="text-base font-semibold text-gray-900">Preview Perubahan Template</h3>
-                                <p class="text-xs text-gray-500"><span x-text="previewTitle"></span> • <span x-text="previewDocType"></span> • <span x-text="previewVersionLabel"></span></p>
-                            </div>
-                            <button type="button" class="rounded-md border border-gray-300 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50" @click="showPreviewModal = false">Tutup</button>
+                <div class="relative z-10 w-full max-w-6xl overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl">
+                    <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900">Preview Template</h3>
+                            <p class="text-xs text-gray-500"><span x-text="templateName"></span> • <span x-text="docType"></span> • <span x-text="versionLabel"></span> (draft)</p>
                         </div>
+                        <button type="button" class="rounded-md border border-gray-300 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50" @click="showPreview = false">Tutup</button>
+                    </div>
 
-                        <div class="max-h-[75vh] overflow-auto bg-gray-50 p-4">
-                            <iframe
-                                class="h-[65vh] w-full rounded-lg border border-gray-200 bg-white"
-                                sandbox=""
-                                :srcdoc="previewHtml"
-                                title="Preview Template QMH"
-                            ></iframe>
-                        </div>
+                    <div class="max-h-[75vh] overflow-auto bg-gray-50 p-4">
+                        <iframe class="h-[65vh] w-full rounded-lg border border-gray-200 bg-white" sandbox="" :srcdoc="currentContent" title="Preview Template QMH"></iframe>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <div
+            x-show="showHistory"
+            x-cloak
+            class="fixed inset-0 z-50 overflow-y-auto"
+            @keydown.escape.window="showHistory = false"
+        >
+            <div class="flex min-h-screen items-center justify-center px-4 py-6">
+                <div class="fixed inset-0 bg-gray-900/50" @click="showHistory = false"></div>
+
+                <div class="relative z-10 w-full max-w-3xl overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl">
+                    <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+                        <h3 class="text-base font-semibold text-gray-900">Riwayat Versi Template</h3>
+                        <button type="button" class="rounded-md border border-gray-300 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50" @click="showHistory = false">Tutup</button>
+                    </div>
+
+                    <div class="max-h-[70vh] overflow-auto p-4">
+                        <table class="min-w-full divide-y divide-gray-200 text-sm">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-3 py-2 text-left font-semibold text-gray-700">Versi</th>
+                                    <th class="px-3 py-2 text-left font-semibold text-gray-700">Updated</th>
+                                    <th class="px-3 py-2 text-left font-semibold text-gray-700">Status</th>
+                                    <th class="px-3 py-2 text-right font-semibold text-gray-700">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                <template x-for="tpl in versions" :key="tpl.id">
+                                    <tr>
+                                        <td class="px-3 py-2 text-gray-900">v<span x-text="tpl.version"></span></td>
+                                        <td class="px-3 py-2 text-gray-700" x-text="tpl.updated_at_label"></td>
+                                        <td class="px-3 py-2 text-gray-700">
+                                            <span x-show="tpl.is_active" class="inline-flex rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">Active</span>
+                                            <span x-show="!tpl.is_active" class="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">Inactive</span>
+                                        </td>
+                                        <td class="px-3 py-2 text-right">
+                                            <button type="button" class="rounded-md border border-gray-300 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50" @click="goToVersion(tpl.edit_url)">Buka</button>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div x-show="notification.show" x-transition class="fixed bottom-4 right-4 z-50 max-w-sm" @click="notification.show = false">
+            <div
+                class="rounded-lg border p-4 shadow-lg"
+                :class="notification.type === 'success' ? 'border-green-200 bg-green-50 text-green-800' : 'border-red-200 bg-red-50 text-red-800'"
+            >
+                <p class="text-sm font-medium" x-text="notification.message"></p>
             </div>
         </div>
     </div>
 
     @include('partials.qmh-pendukung-picker')
+
+    @push('scripts')
+    <script>
+        function qmhTemplateEditor(config) {
+            return {
+                selectedTemplateId: Number(config.templateId || 0),
+                templateName: String(config.templateName || ''),
+                docType: String(config.docType || ''),
+                versionLabel: String(config.versionLabel || ''),
+                updateUrl: String(config.updateUrl || ''),
+                csrfToken: String(config.csrfToken || ''),
+                versions: Array.isArray(config.initialVersions) ? config.initialVersions : [],
+                latestPreviewUrl: String(config.latestPreviewUrl || ''),
+                currentContent: String(config.initialContent || '<p></p>'),
+                originalContent: String(config.initialContent || '<p></p>'),
+                hasChanges: false,
+                saving: false,
+                showPreview: false,
+                showHistory: false,
+                editorInfo: { line: 1, column: 1 },
+                notification: { show: false, type: 'success', message: '' },
+
+                init() {
+                    window.addEventListener('qmh-meta-change', () => {
+                        this.hasChanges = true;
+                    });
+                },
+
+                onEditorChanged(html) {
+                    this.currentContent = String(html || '<p></p>');
+                    this.hasChanges = this.normalizeHtml(this.currentContent) !== this.normalizeHtml(this.originalContent);
+                },
+
+                onMetaChanged() {
+                    this.hasChanges = true;
+                },
+
+                normalizeHtml(value) {
+                    return String(value || '').replace(/\s+/g, ' ').trim();
+                },
+
+                async saveTemplate() {
+                    if (this.saving) return;
+
+                    const form = document.getElementById('qmh-template-edit-form');
+                    if (!form) return;
+
+                    this.saving = true;
+
+                    try {
+                        const formData = new FormData(form);
+                        formData.set('_method', 'PATCH');
+
+                        const response = await fetch(this.updateUrl, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': this.csrfToken,
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json, text/html',
+                            },
+                            body: formData,
+                        });
+
+                        const contentType = response.headers.get('content-type') || '';
+                        if (response.ok) {
+                            this.showNotification('success', 'Template berhasil disimpan sebagai versi baru. Membuka versi terbaru...');
+                            if (contentType.includes('application/json')) {
+                                const data = await response.json().catch(() => null);
+                                const nextUrl = data?.redirect_url || data?.redirect || this.latestPreviewUrl;
+                                if (typeof nextUrl === 'string' && nextUrl.length > 0) {
+                                    window.location.assign(nextUrl.replace('/preview', '/edit'));
+                                    return;
+                                }
+                            }
+
+                            const redirectedTo = response.url || '';
+                            if (redirectedTo) {
+                                window.location.assign(redirectedTo);
+                                return;
+                            }
+
+                            form.submit();
+                            return;
+                        }
+
+                        if (contentType.includes('application/json')) {
+                            const payload = await response.json().catch(() => null);
+                            const message = payload?.message || 'Gagal menyimpan template.';
+                            this.showNotification('error', message);
+                        } else {
+                            this.showNotification('error', 'Gagal menyimpan template. Silakan cek form lalu coba lagi.');
+                        }
+                    } catch (error) {
+                        this.showNotification('error', 'Gagal menyimpan template: ' + (error?.message || 'unknown error'));
+                    } finally {
+                        this.saving = false;
+                    }
+                },
+
+                revertChanges() {
+                    window.location.reload();
+                },
+
+                goToVersion(url) {
+                    if (this.hasChanges) {
+                        if (!window.confirm('Ada perubahan yang belum disimpan. Tetap pindah versi?')) {
+                            return;
+                        }
+                    }
+
+                    window.location.assign(url);
+                },
+
+                showNotification(type, message) {
+                    this.notification = {
+                        show: true,
+                        type,
+                        message,
+                    };
+
+                    window.setTimeout(() => {
+                        this.notification.show = false;
+                    }, 5000);
+                },
+            };
+        }
+    </script>
+    @endpush
 </x-app-layout>
