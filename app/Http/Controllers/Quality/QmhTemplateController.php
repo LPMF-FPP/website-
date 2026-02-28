@@ -124,9 +124,23 @@ class QmhTemplateController extends Controller
             ? $metadata['content_html']
             : '<p></p>';
 
+        $groupIdentity = $this->resolveTemplateGroupIdentity((string) $template->doc_type, $metadata);
+        $relatedVersions = $this->templatesInGroup((string) $template->doc_type, (int) $template->clause, $groupIdentity)
+            ->map(fn (QmhTemplate $item): array => [
+                'id' => (int) $item->id,
+                'version' => (int) $item->version,
+                'name' => (string) $item->name,
+                'is_active' => (bool) $item->is_active,
+                'updated_at' => $item->updated_at?->toIso8601String(),
+                'updated_at_label' => $item->updated_at?->format('d M Y H:i') ?? '-',
+                'edit_url' => route('quality.templates.edit', $item),
+            ])
+            ->values();
+
         return view('quality.templates.edit', [
             'template' => $template,
             'resolvedContentHtml' => $this->normalizeTemplateContentHtml($contentHtml),
+            'relatedVersions' => $relatedVersions,
         ]);
     }
 
