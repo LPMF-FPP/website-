@@ -62,12 +62,12 @@ class QmhTemplateController extends Controller
             [
                 'key' => 'fr_non_table',
                 'label' => 'FR Non Table',
-                'description' => 'Structured Form / Declaration',
+                'description' => 'Template FR tanpa footer',
             ],
             [
                 'key' => 'fr_table',
                 'label' => 'FR Table',
-                'description' => 'Risk Matrix (format tabel)',
+                'description' => 'Template FR dengan footer',
             ],
         ])->map(function (array $definition) use ($dashboardSource): array {
             $candidate = $dashboardSource
@@ -76,6 +76,8 @@ class QmhTemplateController extends Controller
                 ->sortByDesc(fn (QmhTemplate $template): int => (int) $template->version)
                 ->sortByDesc(fn (QmhTemplate $template): int => $template->updated_at?->getTimestamp() ?? 0)
                 ->first();
+
+            $displayPolicy = $this->resolveTemplateDisplayPolicy($candidate);
 
             return [
                 'key' => $definition['key'],
@@ -93,6 +95,10 @@ class QmhTemplateController extends Controller
                 'preview_url' => $candidate ? route('quality.templates.preview', $candidate) : null,
                 'activate_url' => $candidate ? route('quality.templates.activate', $candidate) : null,
                 'deactivate_url' => $candidate ? route('quality.templates.deactivate', $candidate) : null,
+                'shell_mode' => $displayPolicy['shell_mode'],
+                'show_signoff_footer' => $displayPolicy['show_signoff_footer'],
+                'shell_label' => $displayPolicy['shell_label'],
+                'footer_label' => $displayPolicy['footer_label'],
             ];
         })->values();
 
@@ -122,9 +128,46 @@ class QmhTemplateController extends Controller
         }
 
         $metadata = is_array($template->metadata) ? $template->metadata : [];
-        $profile = $this->resolveTemplateGroupProfile((string) $template->doc_type, $metadata);
+        $policy = QmhFrLayoutProfile::fromMetadata($metadata);
+        $hasFooter = (bool) ($policy['show_signoff_footer'] ?? true);
 
-        return $profile === 'risk_matrix' ? 'fr_table' : 'fr_non_table';
+        return $hasFooter ? 'fr_table' : 'fr_non_table';
+    }
+
+    /**
+     * @return array{shell_mode: string, show_signoff_footer: bool, shell_label: string, footer_label: string}
+     */
+    private function resolveTemplateDisplayPolicy(?QmhTemplate $template): array
+    {
+        if (! $template) {
+            return [
+                'shell_mode' => 'full',
+                'show_signoff_footer' => true,
+                'shell_label' => 'Header + Footer',
+                'footer_label' => 'Dengan Footer',
+            ];
+        }
+
+        if ($template->doc_type !== 'fr') {
+            return [
+                'shell_mode' => 'full',
+                'show_signoff_footer' => true,
+                'shell_label' => 'Header + Footer',
+                'footer_label' => 'Dengan Footer',
+            ];
+        }
+
+        $metadata = is_array($template->metadata) ? $template->metadata : [];
+        $policy = QmhFrLayoutProfile::fromMetadata($metadata);
+        $shellMode = (string) ($policy['shell_mode'] ?? 'full');
+        $showFooter = (bool) ($policy['show_signoff_footer'] ?? true);
+
+        return [
+            'shell_mode' => $shellMode,
+            'show_signoff_footer' => $showFooter,
+            'shell_label' => $shellMode === 'body_only' ? 'Body Only (tanpa header/footer)' : 'Header Aktif',
+            'footer_label' => $showFooter ? 'Dengan Footer' : 'Tanpa Footer',
+        ];
     }
 
     public function store(StoreQmhTemplateRequest $request): RedirectResponse
