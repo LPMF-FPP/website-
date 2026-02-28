@@ -44,20 +44,22 @@ class QmhTemplateManagementWebTest extends TestCase
         $user = User::factory()->create(['role' => 'admin']);
 
         QmhTemplate::query()->create([
-            'name' => 'Template FR Structured',
+            'name' => 'Template FR Tanpa Footer',
             'clause' => 4,
             'doc_type' => 'fr',
             'version' => 1,
             'storage_disk' => 'local',
             'is_active' => true,
             'metadata' => [
-                'layout_profile' => 'structured_form',
-                'content_html' => '<p>Structured</p>',
+                'layout_profile' => 'declaration',
+                'shell_mode' => 'body_only',
+                'show_signoff_footer' => false,
+                'content_html' => '<p>Tanpa Footer</p>',
             ],
         ]);
 
         QmhTemplate::query()->create([
-            'name' => 'Template FR Risk Matrix',
+            'name' => 'Template FR Dengan Footer',
             'clause' => 4,
             'doc_type' => 'fr',
             'version' => 2,
@@ -65,7 +67,9 @@ class QmhTemplateManagementWebTest extends TestCase
             'is_active' => false,
             'metadata' => [
                 'layout_profile' => 'risk_matrix',
-                'content_html' => '<p>Risk</p>',
+                'shell_mode' => 'full',
+                'show_signoff_footer' => true,
+                'content_html' => '<p>Dengan Footer</p>',
             ],
         ]);
 
@@ -74,10 +78,12 @@ class QmhTemplateManagementWebTest extends TestCase
             ->assertOk()
             ->assertSee('FR Non Table')
             ->assertSee('FR Table')
-            ->assertSee('Structured Form')
-            ->assertSee('Risk Matrix (format tabel)')
-            ->assertSee('Template FR Structured')
-            ->assertSee('Template FR Risk Matrix');
+            ->assertSee('Body Only (tanpa header/footer)')
+            ->assertSee('Header Aktif')
+            ->assertSee('Tanpa Footer')
+            ->assertSee('Dengan Footer')
+            ->assertSee('Template FR Tanpa Footer')
+            ->assertSee('Template FR Dengan Footer');
     }
 
     public function test_admin_can_access_template_edit_page(): void

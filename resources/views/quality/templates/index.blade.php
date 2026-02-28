@@ -74,6 +74,13 @@
                                         </p>
                                     </template>
 
+                                    <template x-if="tpl.has_template">
+                                        <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                                            <span x-text="tpl.shell_label"></span>
+                                            • <span x-text="tpl.footer_label"></span>
+                                        </p>
+                                    </template>
+
                                     <template x-if="!tpl.has_template">
                                         <p class="mt-1 text-xs text-gray-400">Belum ada template</p>
                                     </template>
