@@ -42,6 +42,60 @@ class QmhTemplateController extends Controller
             ->paginate(20)
             ->appends($request->query());
 
+        $dashboardSource = QmhTemplate::query()
+            ->orderByDesc('is_active')
+            ->orderByDesc('version')
+            ->orderByDesc('updated_at')
+            ->get();
+
+        $dashboardCards = collect([
+            [
+                'key' => 'sop',
+                'label' => 'SOP',
+                'description' => 'Template SOP aktif/terbaru',
+            ],
+            [
+                'key' => 'ik',
+                'label' => 'IK',
+                'description' => 'Template IK aktif/terbaru',
+            ],
+            [
+                'key' => 'fr_non_table',
+                'label' => 'FR Non Table',
+                'description' => 'Structured Form / Declaration',
+            ],
+            [
+                'key' => 'fr_table',
+                'label' => 'FR Table',
+                'description' => 'Risk Matrix (format tabel)',
+            ],
+        ])->map(function (array $definition) use ($dashboardSource): array {
+            $candidate = $dashboardSource
+                ->filter(fn (QmhTemplate $template): bool => $this->dashboardGroupKeyForTemplate($template) === $definition['key'])
+                ->sortByDesc(fn (QmhTemplate $template): int => (int) $template->is_active)
+                ->sortByDesc(fn (QmhTemplate $template): int => (int) $template->version)
+                ->sortByDesc(fn (QmhTemplate $template): int => $template->updated_at?->getTimestamp() ?? 0)
+                ->first();
+
+            return [
+                'key' => $definition['key'],
+                'label' => $definition['label'],
+                'description' => $definition['description'],
+                'has_template' => $candidate !== null,
+                'id' => $candidate?->id,
+                'name' => $candidate?->name,
+                'doc_type' => strtoupper((string) ($candidate?->doc_type ?? '')),
+                'clause' => $candidate?->clause,
+                'version' => $candidate?->version,
+                'is_active' => (bool) ($candidate?->is_active ?? false),
+                'updated_at' => $candidate?->updated_at?->format('d-m-Y H:i') ?? '-',
+                'edit_url' => $candidate ? route('quality.templates.edit', $candidate) : null,
+                'preview_url' => $candidate ? route('quality.templates.preview', $candidate) : null,
+                'activate_url' => $candidate ? route('quality.templates.activate', $candidate) : null,
+                'deactivate_url' => $candidate ? route('quality.templates.deactivate', $candidate) : null,
+            ];
+        })->values();
+
         if (($filters['doc_type'] ?? null) === 'fr' && isset($filters['layout_profile'])) {
             $requestedProfile = QmhFrLayoutProfile::normalizeProfile((string) $filters['layout_profile']);
 
@@ -57,7 +111,20 @@ class QmhTemplateController extends Controller
 
         return view('quality.templates.index', [
             'templates' => $templates,
+            'dashboardCards' => $dashboardCards,
         ]);
+    }
+
+    private function dashboardGroupKeyForTemplate(QmhTemplate $template): string
+    {
+        if ($template->doc_type !== 'fr') {
+            return (string) $template->doc_type;
+        }
+
+        $metadata = is_array($template->metadata) ? $template->metadata : [];
+        $profile = $this->resolveTemplateGroupProfile((string) $template->doc_type, $metadata);
+
+        return $profile === 'risk_matrix' ? 'fr_table' : 'fr_non_table';
     }
 
     public function store(StoreQmhTemplateRequest $request): RedirectResponse
