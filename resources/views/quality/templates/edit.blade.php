@@ -14,7 +14,17 @@
         </div>
     </x-slot>
 
-    <div class="space-y-6">
+    <div
+        class="space-y-6"
+        x-data="{ showPreviewModal: false, previewHtml: '', previewTitle: '', previewDocType: '', previewVersionLabel: '' }"
+        @qmh-template-preview.window="
+            previewHtml = String($event.detail?.html || '<p></p>');
+            previewTitle = String($event.detail?.name || 'Template QMH');
+            previewDocType = String($event.detail?.docType || '');
+            previewVersionLabel = String($event.detail?.version || '');
+            showPreviewModal = true;
+        "
+    >
         @if($errors->any())
             <div class="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 <p class="font-medium">Terjadi kesalahan validasi:</p>
@@ -43,7 +53,28 @@
                     selectedDocType: @js(old('doc_type', $template->doc_type)),
                     layoutProfile: @js($layoutProfileInput),
                     logoSource: @js(old('logo_source', $layoutMeta['logo_source'])),
-                    advancedSchemaMode: false
+                    advancedSchemaMode: false,
+                    editorOriginalHtml: @js(old('content_html', $resolvedContentHtml ?? '<p></p>')),
+                    editorCursor: { line: 1, column: 1 },
+                    showPreviewModal: false,
+                    previewHtml: '',
+                    openPreview() {
+                        window.dispatchEvent(new CustomEvent('qmh-template-preview', {
+                            detail: {
+                                html: this.$refs.templateContentHtml?.value || '<p></p>',
+                                name: @js($template->name),
+                                docType: @js(strtoupper($template->doc_type)),
+                                version: @js('v' . $template->version . ' (draft editor saat ini)'),
+                            }
+                        }));
+                    },
+                    normalizeHtmlForCompare(html) {
+                        return String(html || '').replace(/\s+/g, ' ').trim();
+                    },
+                    hasUnsavedChanges() {
+                        const current = this.$refs.templateContentHtml?.value || '<p></p>';
+                        return this.normalizeHtmlForCompare(current) !== this.normalizeHtmlForCompare(this.editorOriginalHtml);
+                    }
                 }"
             >
                 @csrf
@@ -154,10 +185,30 @@
                     <label class="mb-1 block text-sm font-medium text-gray-700">Edit Template di Browser</label>
                     <p class="mb-2 text-xs text-gray-500">Konten ini akan dimuat otomatis saat user memilih template pada form Buat Dokumen.</p>
 
-                    <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
-                         x-data="qmhEditor({ initialContent: @js(old('content_html', data_get($template->metadata, 'content_html', '<p></p>'))), editorId: 'qmh-template-editor' })"
-                         x-init="init()"
-                         @qmh-editor-change="$refs.templateContentHtml.value = $event.detail.html">
+                    <div class="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button type="submit" class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-xs font-medium text-white hover:bg-primary-700">
+                                Simpan (Publish Versi Baru)
+                            </button>
+                            <button type="button" @click="openPreview()" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50">
+                                Preview Perubahan
+                            </button>
+                            <a href="{{ route('quality.templates.index') }}" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50">
+                                Batal
+                            </a>
+                        </div>
+
+                        <div class="text-xs text-gray-500">
+                            <span x-show="hasUnsavedChanges()" class="font-semibold text-amber-700">• Belum disimpan</span>
+                            <span class="ml-2">Baris: <span x-text="editorCursor.line"></span> | Kolom: <span x-text="editorCursor.column"></span></span>
+                        </div>
+                    </div>
+
+                     <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                          x-data="qmhEditor({ initialContent: @js(old('content_html', $resolvedContentHtml ?? '<p></p>')), editorId: 'qmh-template-editor' })"
+                          x-init="init()"
+                          @qmh-editor-change="$refs.templateContentHtml.value = $event.detail.html"
+                          @qmh-editor-cursor.window="editorCursor = { line: Number($event.detail?.line || 1), column: Number($event.detail?.column || 1) }">
                         <div class="mb-3 flex flex-wrap gap-2 border-b border-gray-200 pb-3">
                             <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bold') }" @click="toggleBold()">B</button>
                             <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('italic') }" @click="toggleItalic()">I</button>
@@ -187,7 +238,7 @@
 
                         <div class="qmh-editor-surface" x-ref="editor"></div>
                         <input type="hidden" x-ref="hiddenInput" name="unused_template_editor_content">
-                        <input type="hidden" x-ref="templateContentHtml" name="content_html" value="{{ old('content_html', data_get($template->metadata, 'content_html', '<p></p>')) }}">
+                        <input type="hidden" x-ref="templateContentHtml" name="content_html" value="{{ old('content_html', $resolvedContentHtml ?? '<p></p>') }}">
                     </div>
                     @error('content_html')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
@@ -404,18 +455,42 @@
                     @error('form_schema_json')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
 
-                <div class="flex items-center justify-between border-t border-gray-200 pt-4">
-                    <a href="{{ route('quality.templates.index') }}" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                        Batal
-                    </a>
-                    <div class="text-right">
-                        <p class="mb-2 text-xs text-gray-500">Menyimpan perubahan akan menerbitkan versi baru. Versi sebelumnya tetap tersimpan untuk audit.</p>
-                        <button type="submit" class="inline-flex items-center rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700">
-                            Publish Versi Baru
-                        </button>
-                    </div>
+                <div class="border-t border-gray-200 pt-4">
+                    <p class="text-xs text-gray-500">
+                        Menyimpan perubahan akan menerbitkan versi baru. Versi sebelumnya tetap tersimpan untuk audit.
+                    </p>
                 </div>
             </form>
+
+            <div
+                x-show="showPreviewModal"
+                x-cloak
+                class="fixed inset-0 z-50 overflow-y-auto"
+                @keydown.escape.window="showPreviewModal = false"
+            >
+                <div class="flex min-h-screen items-center justify-center px-4 py-6">
+                    <div class="fixed inset-0 bg-gray-900/50" @click="showPreviewModal = false"></div>
+
+                    <div class="relative z-10 w-full max-w-5xl overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl">
+                        <div class="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+                            <div>
+                                <h3 class="text-base font-semibold text-gray-900">Preview Perubahan Template</h3>
+                                <p class="text-xs text-gray-500"><span x-text="previewTitle"></span> • <span x-text="previewDocType"></span> • <span x-text="previewVersionLabel"></span></p>
+                            </div>
+                            <button type="button" class="rounded-md border border-gray-300 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50" @click="showPreviewModal = false">Tutup</button>
+                        </div>
+
+                        <div class="max-h-[75vh] overflow-auto bg-gray-50 p-4">
+                            <iframe
+                                class="h-[65vh] w-full rounded-lg border border-gray-200 bg-white"
+                                sandbox=""
+                                :srcdoc="previewHtml"
+                                title="Preview Template QMH"
+                            ></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

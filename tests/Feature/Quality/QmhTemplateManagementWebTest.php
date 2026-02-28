@@ -434,6 +434,31 @@ class QmhTemplateManagementWebTest extends TestCase
             ->assertDontSee('evil.example', false);
     }
 
+    public function test_template_preview_decodes_legacy_escaped_html_content(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $template = QmhTemplate::query()->create([
+            'name' => 'Template Escaped Legacy',
+            'clause' => 4,
+            'doc_type' => 'sop',
+            'version' => 1,
+            'storage_disk' => 'local',
+            'is_active' => true,
+            'metadata' => [
+                'content_html' => '<p>&lt;h1&gt;Judul Legacy&lt;/h1&gt;&lt;p&gt;Isi Legacy&lt;/p&gt;</p>',
+            ],
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('quality.templates.preview', $template))
+            ->assertOk()
+            ->assertSee('Judul Legacy')
+            ->assertSee('Isi Legacy')
+            ->assertDontSee('&lt;h1&gt;Judul Legacy&lt;/h1&gt;', false);
+    }
+
     private function createQmhPermissions(): void
     {
         $viewPermission = Permission::query()->updateOrCreate(

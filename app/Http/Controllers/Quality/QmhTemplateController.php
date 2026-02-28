@@ -119,8 +119,14 @@ class QmhTemplateController extends Controller
     {
         $this->authorizeTemplateManage($request);
 
+        $metadata = is_array($template->metadata) ? $template->metadata : [];
+        $contentHtml = isset($metadata['content_html']) && is_string($metadata['content_html'])
+            ? $metadata['content_html']
+            : '<p></p>';
+
         return view('quality.templates.edit', [
             'template' => $template,
+            'resolvedContentHtml' => $this->normalizeTemplateContentHtml($contentHtml),
         ]);
     }
 
@@ -279,6 +285,7 @@ class QmhTemplateController extends Controller
         $contentHtml = isset($metadata['content_html']) && is_string($metadata['content_html'])
             ? $metadata['content_html']
             : '<p></p>';
+        $contentHtml = $this->normalizeTemplateContentHtml($contentHtml);
 
         return view('quality.templates.preview', [
             'template' => $template,
@@ -301,10 +308,7 @@ class QmhTemplateController extends Controller
             ? trim($validated['content_html'])
             : '';
         $contentHtml = $submittedContentHtml !== '' ? $submittedContentHtml : '<p></p>';
-        $contentHtml = QmhHtmlSanitizer::sanitize($contentHtml);
-        if (trim($contentHtml) === '') {
-            $contentHtml = '<p></p>';
-        }
+        $contentHtml = $this->normalizeTemplateContentHtml($contentHtml);
 
         $metadata = $baseMetadata;
         $metadata['version_notes'] = $validated['version_notes'] ?? null;
@@ -487,6 +491,28 @@ class QmhTemplateController extends Controller
             'before_count' => count($beforeQuestions),
             'after_count' => count($afterQuestions),
         ];
+    }
+
+    private function normalizeTemplateContentHtml(string $contentHtml): string
+    {
+        $candidate = trim($contentHtml);
+        if ($candidate === '') {
+            return '<p></p>';
+        }
+
+        $decoded = html_entity_decode($candidate, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        if ($decoded !== $candidate) {
+            $decodedHasRealTags = preg_match('/<\s*\/?\s*[a-z][^>]*>/i', $decoded) === 1;
+            $hasEncodedAngleBrackets = str_contains($candidate, '&lt;') || str_contains($candidate, '&gt;');
+
+            if ($decodedHasRealTags && $hasEncodedAngleBrackets) {
+                $candidate = $decoded;
+            }
+        }
+
+        $sanitized = QmhHtmlSanitizer::sanitize($candidate);
+
+        return trim($sanitized) === '' ? '<p></p>' : $sanitized;
     }
 
     private function authorizePreviewAccess(Request $request): void
