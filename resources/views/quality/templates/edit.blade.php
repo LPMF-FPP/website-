@@ -248,47 +248,30 @@
                     </div>
                 </template>
 
-                <div
-                    class="rounded-lg border border-gray-200"
-                    x-data="qmhEditor({ initialContent: @js(old('content_html', $resolvedContentHtml ?? '<p></p>')), editorId: 'qmh-template-editor' })"
-                    x-init="init()"
-                    @qmh-editor-change="onEditorChanged($event.detail.html)"
-                    @qmh-editor-cursor.window="editorInfo = { line: Number($event.detail?.line || 1), column: Number($event.detail?.column || 1) }"
-                >
-                    <div class="border-b border-gray-200 bg-gray-50 p-3">
-                        <div class="flex flex-wrap gap-2">
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bold') }" @click="toggleBold()">B</button>
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('italic') }" @click="toggleItalic()">I</button>
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('underline') }" @click="toggleUnderline()">U</button>
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 1 }) }" @click="setHeading(1)">H1</button>
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 2 }) }" @click="setHeading(2)">H2</button>
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('heading', { level: 3 }) }" @click="setHeading(3)">H3</button>
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('bulletList') }" @click="toggleBulletList()">Bullets</button>
-                            <button type="button" class="qmh-editor-btn" :class="{ 'is-active': isActive('orderedList') }" @click="toggleOrderedList()">Number</button>
-                            <button type="button" class="qmh-editor-btn" @click="setAlign('left')">Kiri</button>
-                            <button type="button" class="qmh-editor-btn" @click="setAlign('center')">Tengah</button>
-                            <button type="button" class="qmh-editor-btn" @click="setAlign('right')">Kanan</button>
-                            <button type="button" class="qmh-editor-btn" @click="insertTable()">Tabel</button>
-                            <button type="button" class="qmh-editor-btn" @click="addTableRowBefore()">+Baris Atas</button>
-                            <button type="button" class="qmh-editor-btn" @click="addTableRowAfter()">+Baris Bawah</button>
-                            <button type="button" class="qmh-editor-btn" @click="deleteTableRow()">-Baris</button>
-                            <button type="button" class="qmh-editor-btn" @click="addTableColumnBefore()">+Kolom Kiri</button>
-                            <button type="button" class="qmh-editor-btn" @click="addTableColumnAfter()">+Kolom Kanan</button>
-                            <button type="button" class="qmh-editor-btn" @click="deleteTableColumn()">-Kolom</button>
-                            <button type="button" class="qmh-editor-btn" @click="mergeTableCells()">Merge Sel</button>
-                            <button type="button" class="qmh-editor-btn" @click="splitTableCell()">Split Sel</button>
-                            <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderRow()">Header Baris</button>
-                            <button type="button" class="qmh-editor-btn" @click="toggleTableHeaderColumn()">Header Kolom</button>
-                            <button type="button" class="qmh-editor-btn" @click="deleteTable()">Hapus Tabel</button>
-                            <button type="button" class="qmh-editor-btn" @click="openPendukungPicker({ clause: Number(document.getElementById('clause')?.value || 4) })">Link Pendukung</button>
-                        </div>
-                    </div>
-
-                    <div class="qmh-editor-surface p-4" x-ref="editor"></div>
-                    <input type="hidden" x-ref="hiddenInput" name="unused_template_editor_content">
-                    <input type="hidden" x-ref="templateContentHtml" name="content_html" value="{{ old('content_html', $resolvedContentHtml ?? '<p></p>') }}">
+                <div class="rounded-lg border border-gray-200 bg-white p-4">
+                    <textarea
+                        id="content_html"
+                        name="content_html"
+                        x-ref="editor"
+                        x-model="currentContent"
+                        @input="handleEditorInput($event)"
+                        @click="updateEditorInfo()"
+                        @keyup="updateEditorInfo()"
+                        class="h-96 w-full rounded-md border border-gray-300 bg-gray-50 p-4 font-mono text-sm text-gray-900 focus:border-primary-600 focus:ring-primary-600"
+                        style="tab-size: 4; font-family: 'Courier New', Courier, monospace; line-height: 1.5;"
+                        spellcheck="false"
+                    >{{ old('content_html', $resolvedContentHtml ?? '<p></p>') }}</textarea>
                 </div>
                 @error('content_html')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+
+                <div class="mt-4 rounded-md border border-blue-200 bg-blue-50 p-4">
+                    <h3 class="mb-2 text-sm font-medium text-blue-900">Tips:</h3>
+                    <ul class="space-y-1 text-xs text-blue-800">
+                        <li>• Edit template HTML secara langsung di editor.</li>
+                        <li>• Gunakan tombol Preview untuk cek hasil render draft sebelum simpan.</li>
+                        <li>• Gunakan Riwayat untuk membuka versi template lain.</li>
+                    </ul>
+                </div>
 
                 <div class="mt-5">
                     <label class="mb-1 block text-sm font-medium text-gray-700" for="form_schema_json">Struktur Pertanyaan Formulir</label>
@@ -508,11 +491,34 @@
                     window.addEventListener('qmh-meta-change', () => {
                         this.hasChanges = true;
                     });
+
+                    this.$nextTick(() => {
+                        this.updateEditorInfo();
+                    });
                 },
 
-                onEditorChanged(html) {
-                    this.currentContent = String(html || '<p></p>');
+                handleEditorInput(event) {
+                    this.currentContent = String(event?.target?.value || '');
                     this.hasChanges = this.normalizeHtml(this.currentContent) !== this.normalizeHtml(this.originalContent);
+                    this.updateEditorInfo();
+                },
+
+                updateEditorInfo() {
+                    const textarea = this.$refs.editor;
+                    if (!textarea) {
+                        this.editorInfo = { line: 1, column: 1 };
+                        return;
+                    }
+
+                    const value = String(textarea.value || '');
+                    const cursorPosition = Number(textarea.selectionStart || 0);
+                    const before = value.slice(0, cursorPosition);
+                    const lines = before.split('\n');
+
+                    this.editorInfo = {
+                        line: Math.max(1, lines.length),
+                        column: (lines[lines.length - 1] || '').length + 1,
+                    };
                 },
 
                 onMetaChanged() {
