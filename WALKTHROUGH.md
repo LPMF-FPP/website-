@@ -148,6 +148,13 @@ WhatsApp service berjalan di container Docker terpisah.
 
 ## 📰 Recent Changes (v2.4.x)
 
+### v2.4.5 (28 Februari 2026) - QMH Download Finalization & FR-v2 PDF Consistency
+
+- **QMH Download Naming Final:** Format nama file unduhan QMH diseragamkan untuk semua tipe dokumen. FR kini eksplisit menyertakan varian `TABEL`/`NON TABEL`, versi, dan label distribusi `TERKENDALI`/`TIDAK TERKENDALI`; SOP/IK mengikuti format final tanpa suffix varian FR.
+- **FR-v2 Declaration Render Stability:** Pipeline PDF FR-v2 (FPDI) diperketat agar declaration versi minimal tetap konsisten menampilkan elemen header/footer penting, termasuk konteks status dokumen pada area header yang relevan.
+- **Branding Path Hardening:** Resolusi logo pada layout utama/guest dinormalisasi menggunakan helper aset agar path branding lebih stabil lintas environment.
+- **Regression Safety Net:** Cakupan uji unduhan QMH diperluas (FR tabel, FR non-tabel, SOP, IK) untuk memastikan kontrak filename dan output PDF tetap konsisten setelah perubahan.
+
 ### v2.4.4 (22 Februari 2026) - QMH Governance Suite v2 (Rapat, Audit, KUM)
 
 - **Governance Workspace:** Halaman baru `/quality/governance` sebagai ringkasan lintas modul (Rapat, Audit, KUM) dengan metrik due-soon/overdue dan quick actions operasional.
