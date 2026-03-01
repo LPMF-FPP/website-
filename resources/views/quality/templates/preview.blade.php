@@ -5,12 +5,11 @@
                 title="Preview Template (HTML) QMH"
                 :breadcrumbs="[
                     ['label' => 'Dashboard QMH', 'route' => 'quality.index'],
-                    ['label' => 'Template QMH', 'route' => 'quality.templates.index'],
                     ['label' => 'Preview Template (HTML)'],
                 ]"
             />
 
-            <x-qmh-subnav active="templates" />
+            <x-qmh-subnav active="documents" />
         </div>
     </x-slot>
 
@@ -23,12 +22,6 @@
                 Preview ini menggunakan konten HTML template yang dipilih, bukan hasil render PDF final.
             </p>
 
-            <div class="mt-3 flex flex-wrap gap-2">
-                <a href="{{ route('quality.templates.index') }}"
-                   class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                    Kembali ke Template QMH
-                </a>
-            </div>
         </div>
 
         <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">

@@ -72,17 +72,6 @@
                     <p class="text-xs font-semibold uppercase tracking-[0.16em] text-sky-700">Filter Dokumen</p>
                     <h3 class="mt-1 text-lg font-semibold text-slate-900">Pilih area kerja dokumen</h3>
                 </div>
-                @if(auth()->user()?->hasPermission('qmh.template.manage'))
-                    <a
-                        href="{{ route('quality.templates.index') }}"
-                        class="inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-white/90 px-3 py-2 text-sm font-medium text-sky-700 transition hover:-translate-y-0.5 hover:bg-white hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1"
-                    >
-                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 4h10v4a2 2 0 0 0 2 2h1v10H4V10h1a2 2 0 0 0 2-2V4Zm5 8h.01" />
-                        </svg>
-                        Kelola Template
-                    </a>
-                @endif
             </div>
 
             <div class="mt-4 inline-flex flex-wrap gap-2" role="tablist" aria-label="Kategori dokumen">

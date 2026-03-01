@@ -34,8 +34,6 @@
             initialFrV2StructureMode: @js(old('fr_v2_structure_mode', 'non_table')),
             initialParentSopId: @js((int) old('parent_sop_id', 0)),
             initialPairedIkId: @js((int) old('paired_ik_id', 0)),
-            templateManageUrl: @js(route('quality.templates.index')),
-            canManageTemplate: @js(auth()->user()?->hasPermission('qmh.template.manage') ?? false),
             frV2CreateEnabled: @js((bool) config('quality.fr_v2.enabled', false) && (bool) config('quality.fr_v2.create_enabled', false)),
             sopOptions: @js(($sopOptions ?? collect())->map(fn ($item) => [
                 'id' => $item->id,
@@ -331,9 +329,6 @@
                             <p x-show="!templatesLoading && !templateId && docType !== 'fr'" class="text-amber-700">Belum ada template untuk jenis dokumen ini.</p>
                             <p x-show="!templatesLoading && !templateId && docType === 'fr'" class="text-amber-700">Belum ada template untuk struktur formulir ini.</p>
                             <p x-show="templatesError" class="text-red-600" x-text="templatesError"></p>
-                            <p class="mt-1 text-xs" x-show="!templatesLoading && !templateId && canManageTemplate">
-                                Tambah template di <a :href="templateManageUrl" class="font-medium underline">QMH > Template</a>.
-                            </p>
                         </div>
                     </div>
 
@@ -474,7 +469,6 @@
                             <div class="mt-4" x-show="!templatesLoading" x-cloak>
                                 <div class="mb-4 rounded-md border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800" x-show="docType === 'fr'" x-cloak>
                                     Format pertanyaan dikelola dari menu Template agar user tidak perlu mengatur JSON, ID, atau tipe field saat membuat dokumen.
-                                    <a x-show="canManageTemplate" :href="templateManageUrl" class="ml-1 font-medium underline">Buka Pengaturan Template</a>
                                 </div>
 
                                 <template x-if="schemaQuestions().length === 0">

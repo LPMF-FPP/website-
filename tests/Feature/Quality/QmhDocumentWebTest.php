@@ -72,9 +72,9 @@ class QmhDocumentWebTest extends TestCase
         $create->assertOk();
         $this->assertQmhSubnavActiveLabel($create->getContent(), 'Dokumen');
 
-        $templates = $this->actingAs($user)->get('/quality/templates');
-        $templates->assertOk();
-        $this->assertQmhSubnavActiveLabel($templates->getContent(), 'Dokumen');
+        $this->actingAs($user)
+            ->get('/quality/templates')
+            ->assertNotFound();
 
         $document = QmhDocument::query()->create([
             'doc_code' => 'QMH-SOP-CR-001',
@@ -131,9 +131,9 @@ class QmhDocumentWebTest extends TestCase
         $documents->assertOk();
         $this->assertElementWithTextHasClass($documents->getContent(), 'a', '+ Buat Dokumen', 'bg-primary-600');
 
-        $templates = $this->actingAs($user)->get('/quality/templates');
-        $templates->assertOk();
-        $this->assertElementWithTextHasClass($templates->getContent(), 'a', 'Buat Template', 'bg-primary-600');
+        $this->actingAs($user)
+            ->get('/quality/templates')
+            ->assertNotFound();
     }
 
     public function test_create_page_is_guided_stepper_flow_with_clarified_doc_type_microcopy(): void
@@ -822,7 +822,7 @@ class QmhDocumentWebTest extends TestCase
         $this->assertSame(1, substr_count($response->getContent(), 'Hanya pembuat revisi yang dapat submit.'));
     }
 
-    public function test_create_page_shows_template_management_link_when_no_template_available(): void
+    public function test_create_page_does_not_show_template_management_link_when_no_template_available(): void
     {
         /** @var User $user */
         $user = User::factory()->create(['role' => 'admin']);
@@ -830,8 +830,8 @@ class QmhDocumentWebTest extends TestCase
         $this->actingAs($user)
             ->get('/quality/documents/create')
             ->assertOk()
-            ->assertSee('templateManageUrl')
-            ->assertSee('Tambah template di');
+            ->assertDontSee('templateManageUrl')
+            ->assertDontSee('Tambah template di');
     }
 
     public function test_create_page_uses_tiptap_for_question_editor_windows(): void

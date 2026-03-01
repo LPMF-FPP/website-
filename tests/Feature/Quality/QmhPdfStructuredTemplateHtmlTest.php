@@ -445,8 +445,10 @@ class QmhPdfStructuredTemplateHtmlTest extends TestCase
         $this->assertStringContainsString('form-table', $html);
         $this->assertStringContainsString('PERNYATAAN', $html);
         $this->assertStringContainsString('Kami menjamin ketidakberpihakan.', $html);
-        $this->assertStringContainsString('No. Dokumen', $html);
-        $this->assertStringContainsString('Dibuat Oleh:', $html);
+        $this->assertStringContainsString('fr-minimal-header', $html);
+        $this->assertStringContainsString('fr-minimal-footer', $html);
+        $this->assertStringNotContainsString('No. Dokumen', $html);
+        $this->assertStringNotContainsString('Dibuat Oleh:', $html);
     }
 
     public function test_pdf_template_renders_risk_matrix_layout_for_fr_profile(): void
@@ -553,7 +555,106 @@ class QmhPdfStructuredTemplateHtmlTest extends TestCase
         ])->render();
 
         $this->assertStringContainsString('form-table', $html);
-        $this->assertStringContainsString('No. Dokumen', $html);
-        $this->assertStringContainsString('Dibuat Oleh:', $html);
+        $this->assertStringContainsString('fr-minimal-header', $html);
+        $this->assertStringContainsString('fr-minimal-footer', $html);
+        $this->assertStringNotContainsString('No. Dokumen', $html);
+        $this->assertStringNotContainsString('Dibuat Oleh:', $html);
+    }
+
+    public function test_pdf_template_renders_fr_non_table_with_minimal_header_and_footer(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-FR-PDF-MIN-001',
+            'title' => 'Formulir Minimal Shell',
+            'clause' => 4,
+            'doc_type' => 'formulir',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'draft',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+            'answers_json' => [
+                'field_a' => 'Nilai A',
+            ],
+        ]);
+
+        $schema = [
+            'version' => 1,
+            'doc_type' => 'fr',
+            'layout_profile' => 'structured_form',
+            'questions' => [
+                ['id' => 'field_a', 'label' => 'Kolom A', 'type' => 'text', 'required' => false],
+            ],
+        ];
+
+        $html = view('pdf.qmh-document', [
+            'revision' => $revision->load(['document', 'createdBy', 'reviewedBy', 'approvedBy']),
+            'schema' => $schema,
+            'answers' => $revision->answers_json,
+            'watermarkText' => 'DRAFT',
+            'layoutProfile' => 'structured_form',
+            'layoutConfig' => [
+                'layout_profile' => 'structured_form',
+                'shell_mode' => 'full',
+                'orientation_policy' => 'portrait',
+                'show_signoff_footer' => true,
+            ],
+        ])->render();
+
+        $this->assertStringContainsString('fr-minimal-header', $html);
+        $this->assertStringContainsString('fr-minimal-footer', $html);
+        $this->assertStringNotContainsString('No. Dokumen', $html);
+        $this->assertStringNotContainsString('Dibuat Oleh:', $html);
+    }
+
+    public function test_pdf_template_renders_ik_body_without_table_layout(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-IK-PDF-NONTABLE-001',
+            'title' => 'IK Naratif',
+            'clause' => 4,
+            'doc_type' => 'ik',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'E1-R0',
+            'status' => 'draft',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+            'answers_json' => [
+                'purpose' => '<p>Tujuan IK</p>',
+                'scope' => '<p>Ruang lingkup IK</p>',
+                'instructions' => '<p>Langkah kerja IK</p>',
+            ],
+        ]);
+
+        $html = view('pdf.qmh-document', [
+            'revision' => $revision->load(['document', 'createdBy', 'reviewedBy', 'approvedBy']),
+            'schema' => ['version' => 1, 'doc_type' => 'ik', 'questions' => []],
+            'answers' => $revision->answers_json,
+            'watermarkText' => 'DRAFT',
+        ])->render();
+
+        $this->assertStringContainsString('1. TUJUAN', $html);
+        $this->assertStringContainsString('5. INSTRUKSI KERJA', $html);
+        $this->assertStringNotContainsString('<table class="doc-header" style="margin-top: 6px">', $html);
     }
 }

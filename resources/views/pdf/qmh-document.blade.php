@@ -28,6 +28,15 @@
     $statusLabel = strtoupper((string) ($revision->status ?? ''));
     $versionLabelRaw = (string) ($revision->version_label ?? sprintf('E%d-R%d', (int) $revision->edition_number, (int) $revision->revision_number));
     $versionLabel = str_replace('-', '/', $versionLabelRaw);
+    $headerTitle = strtoupper((string) ($document?->title ?? 'JUDUL PROSEDUR'));
+
+    if (in_array((string) ($document?->doc_type ?? ''), ['formulir', 'fr'], true)) {
+        $headerTitle = preg_replace('/\bFR\s*NON\s*TABLE\b/i', '', $headerTitle) ?? $headerTitle;
+        $headerTitle = trim((string) preg_replace('/\s{2,}/', ' ', $headerTitle));
+        if ($headerTitle === '') {
+            $headerTitle = 'FORMULIR';
+        }
+    }
 
     $schema = is_array($schema ?? null) ? $schema : ['questions' => []];
     $questions = is_array($schema['questions'] ?? null) ? $schema['questions'] : [];
@@ -47,6 +56,7 @@
 
     $isFrDocument = in_array((string) ($document?->doc_type ?? ''), ['formulir', 'fr'], true);
     $renderFrHeaderFooter = ! $isFrDocument || \App\Support\QmhFrLayoutProfile::shouldRenderFrShellFromPolicy($shellMode);
+    $useMinimalFrShell = $isFrDocument && $layoutProfile === 'structured_form';
 
     $declarationHeader = is_string($layoutConfig['declaration_header'] ?? null)
         ? trim($layoutConfig['declaration_header'])
@@ -133,7 +143,7 @@
     <title>{{ $document?->doc_code ?? 'QMH' }} - {{ $versionLabel }}</title>
     <style>
         @page {
-            margin: {{ $renderFrHeaderFooter ? '168px 36px 194px 36px' : '36px 36px 36px 36px' }};
+            margin: {{ $renderFrHeaderFooter ? ($useMinimalFrShell ? '78px 36px 64px 36px' : '206px 36px 194px 36px') : '36px 36px 36px 36px' }};
         }
 
         body {
@@ -159,20 +169,73 @@
 
         header {
             position: fixed;
-            top: -152px;
+            top: {{ $useMinimalFrShell ? '-66px' : '-152px' }};
             left: 0;
             right: 0;
-            height: 144px;
+            height: {{ $useMinimalFrShell ? '60px' : '144px' }};
         }
 
         footer {
             position: fixed;
-            bottom: -172px;
+            bottom: {{ $useMinimalFrShell ? '-54px' : '-172px' }};
             left: 0;
             right: 0;
-            height: 164px;
+            height: {{ $useMinimalFrShell ? '48px' : '164px' }};
             font-size: 9px;
             color: #111827;
+        }
+
+        .fr-minimal-header {
+            width: 100%;
+            border-bottom: 1px solid #111827;
+            padding: 2px 0 4px 0;
+            margin-top: 1px;
+        }
+
+        .fr-minimal-header-row {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+            white-space: nowrap;
+        }
+
+        .fr-minimal-logo-cell,
+        .fr-minimal-text-cell {
+            display: table-cell;
+            vertical-align: middle;
+        }
+
+        .fr-minimal-logo-cell {
+            width: 24px;
+            text-align: left;
+            line-height: 1;
+            padding-right: 4px;
+        }
+
+        .fr-minimal-text-cell {
+            width: auto;
+        }
+
+        .fr-minimal-logo {
+            width: 20px;
+            height: auto;
+            display: inline-block;
+        }
+
+        .fr-minimal-text {
+            font-size: 6.1px;
+            font-weight: 700;
+            letter-spacing: 0;
+            text-transform: uppercase;
+            display: block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.2;
+        }
+
+        .sop-body-offset {
+            margin-top: 44px;
         }
 
         .doc-header {
@@ -413,6 +476,16 @@
             font-style: italic;
             font-size: 8.5px;
         }
+
+        .fr-minimal-footer {
+            border-top: 1px solid #111827;
+            padding-top: 4px;
+        }
+
+        .fr-minimal-footer .notice {
+            margin-top: 0;
+            margin-bottom: 2px;
+        }
     </style>
 </head>
 <body>
@@ -420,75 +493,99 @@
 
 @if($renderFrHeaderFooter)
     <header>
-        <table class="doc-header">
-            <tr>
-                <td class="header-left">
-                    @if($logoSrc)
-                        <img class="logo" src="{{ $logoSrc }}" alt="Logo">
-                    @endif
-                    <div class="org">LABORATORIUM PENGUJIAN MUTU<br>FARMAPOL PUSDOKKES POLRI</div>
-                </td>
-                <td class="header-center">
-                    <div class="type">{{ $docTypeLabel }}</div>
-                    <div class="title">{{ strtoupper((string) ($document?->title ?? 'JUDUL PROSEDUR')) }}</div>
-                </td>
-                <td class="header-right">
-                    <table class="meta-table">
-                        <tr>
-                            <td class="meta-label">No. Dokumen</td>
-                            <td class="meta-value">{{ $document?->doc_code ?? '-' }}</td>
-                        </tr>
-                        <tr>
-                            <td class="meta-label">Edisi/Revisi</td>
-                            <td class="meta-value">{{ $versionLabel }}</td>
-                        </tr>
-                        <tr>
-                            <td class="meta-label">Tgl. Efektif</td>
-                            <td class="meta-value">{{ $effectiveDate }}</td>
-                        </tr>
-                        <tr>
-                            <td class="meta-label">Status</td>
-                            <td class="meta-value">{{ $statusLabel }}</td>
-                        </tr>
-                    </table>
-                </td>
-            </tr>
-        </table>
-    </header>
-
-    <footer>
-        @if($showSignoffFooter)
-            <table class="signoff">
+        @if($useMinimalFrShell)
+            <div class="fr-minimal-header">
+                <div class="fr-minimal-header-row">
+                    <div class="fr-minimal-logo-cell">
+                        @if($logoSrc)
+                            <img class="fr-minimal-logo" src="{{ $logoSrc }}" alt="Logo">
+                        @endif
+                    </div>
+                    <div class="fr-minimal-text-cell">
+                        <div class="fr-minimal-text">
+                            {{ strtoupper((string) ($document?->doc_code ?? '-')) }}|{{ $headerTitle }}|{{ $statusLabel }}|{{ $versionLabel }}|{{ $effectiveDate }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @else
+            <table class="doc-header">
                 <tr>
-                    <th>&nbsp;</th>
-                    <th>Dibuat Oleh:</th>
-                    <th>Diperiksa Oleh:</th>
-                    <th>Disahkan Oleh:</th>
-                </tr>
-                <tr>
-                    <td class="row-label">Nama/Pangkat</td>
-                    <td>{{ $createdNameRank }}</td>
-                    <td>{{ $reviewedNameRank }}</td>
-                    <td>{{ $approvedNameRank }}</td>
-                </tr>
-                <tr>
-                    <td class="row-label">Tanda Tangan</td>
-                    <td style="height: 18px">&nbsp;</td>
-                    <td style="height: 18px">&nbsp;</td>
-                    <td style="height: 18px">&nbsp;</td>
-                </tr>
-                <tr>
-                    <td class="row-label">Jabatan</td>
-                    <td>{{ $createdPosition }}</td>
-                    <td>{{ $reviewedPosition }}</td>
-                    <td>{{ $approvedPosition }}</td>
+                    <td class="header-left">
+                        @if($logoSrc)
+                            <img class="logo" src="{{ $logoSrc }}" alt="Logo">
+                        @endif
+                        <div class="org">LABORATORIUM PENGUJIAN MUTU<br>FARMAPOL PUSDOKKES POLRI</div>
+                    </td>
+                    <td class="header-center">
+                        <div class="type">{{ $docTypeLabel }}</div>
+                        <div class="title">{{ $headerTitle }}</div>
+                    </td>
+                    <td class="header-right">
+                        <table class="meta-table">
+                            <tr>
+                                <td class="meta-label">No. Dokumen</td>
+                                <td class="meta-value">{{ $document?->doc_code ?? '-' }}</td>
+                            </tr>
+                            <tr>
+                                <td class="meta-label">Edisi/Revisi</td>
+                                <td class="meta-value">{{ $versionLabel }}</td>
+                            </tr>
+                            <tr>
+                                <td class="meta-label">Tgl. Efektif</td>
+                                <td class="meta-value">{{ $effectiveDate }}</td>
+                            </tr>
+                            <tr>
+                                <td class="meta-label">Status</td>
+                                <td class="meta-value">{{ $statusLabel }}</td>
+                            </tr>
+                        </table>
+                    </td>
                 </tr>
             </table>
         @endif
+    </header>
 
-        <div class="notice">{{ $redNotice }}</div>
+    <footer>
+        @if($useMinimalFrShell)
+            <div class="fr-minimal-footer">
+                <div class="notice">{{ $redNotice }}</div>
+                <div class="footer-page">Halaman <span class="page-number"></span>/{{ $resolvedPageCount ?? '-' }}</div>
+            </div>
+        @else
+            @if($showSignoffFooter)
+                <table class="signoff">
+                    <tr>
+                        <th>&nbsp;</th>
+                        <th>Dibuat Oleh:</th>
+                        <th>Diperiksa Oleh:</th>
+                        <th>Disahkan Oleh:</th>
+                    </tr>
+                    <tr>
+                        <td class="row-label">Nama/Pangkat</td>
+                        <td>{{ $createdNameRank }}</td>
+                        <td>{{ $reviewedNameRank }}</td>
+                        <td>{{ $approvedNameRank }}</td>
+                    </tr>
+                    <tr>
+                        <td class="row-label">Tanda Tangan</td>
+                        <td style="height: 18px">&nbsp;</td>
+                        <td style="height: 18px">&nbsp;</td>
+                        <td style="height: 18px">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td class="row-label">Jabatan</td>
+                        <td>{{ $createdPosition }}</td>
+                        <td>{{ $reviewedPosition }}</td>
+                        <td>{{ $approvedPosition }}</td>
+                    </tr>
+                </table>
+            @endif
 
-        <div class="footer-page">Halaman <span class="page-number"></span>/{{ $resolvedPageCount ?? '-' }}</div>
+            <div class="notice">{{ $redNotice }}</div>
+
+            <div class="footer-page">Halaman <span class="page-number"></span>/{{ $resolvedPageCount ?? '-' }}</div>
+        @endif
 
     </footer>
 @endif
@@ -534,92 +631,88 @@
             $closingValue = $getAnswer('closing');
         @endphp
 
-        <table class="doc-header" style="margin-top: 6px">
-            <tr>
-                <td style="width: 35%; font-weight: 700; text-align: center;">1. TUJUAN</td>
-                <td style="width: 65%;">{!! $renderAnswer('purpose') !!}</td>
-            </tr>
-            <tr>
-                <td style="font-weight: 700; text-align: center;">2. RUANG LINGKUP</td>
-                <td>{!! $renderAnswer('scope') !!}</td>
-            </tr>
-            <tr>
-                <td style="font-weight: 700; text-align: center;">3. TANGGUNG JAWAB</td>
-                <td>
-                    @php
-                        $responsibility = $getAnswer('responsibilities');
-                    @endphp
-                    @if($responsibility === '' || \App\Support\QmhAnswerSanitizer::plainText($responsibility) === '')
-                        <p class="qmh-answer">JABATAN LABORATORIUM</p>
-                    @else
-                        {!! $renderAnswer('responsibilities') !!}
-                    @endif
-                </td>
-            </tr>
-            <tr>
-                <td style="font-weight: 700; text-align: center;">4. ACUAN</td>
-                <td>
-                    @if(trim($referenceValue) === '')
-                        <p class="qmh-answer">-</p>
-                    @else
-                        @php $refIsHtml = \App\Support\QmhAnswerSanitizer::looksLikeHtml($referenceValue); @endphp
-                        @if($refIsHtml)
-                            <div class="qmh-answer">{!! $referenceValue !!}</div>
-                        @else
-                            <p class="qmh-answer">{!! nl2br(e($referenceValue)) !!}</p>
-                        @endif
-                    @endif
-                </td>
-            </tr>
-            <tr>
-                <td style="font-weight: 700; text-align: center;">5. INSTRUKSI KERJA</td>
-                <td>{!! $renderAnswer('instructions') !!}</td>
-            </tr>
-            <tr>
-                <td style="font-weight: 700; text-align: center;">6. DOKUMENTASI YANG DIPERLUKAN</td>
-                <td>
-                    @php
-                        $docs = $answers['required_docs'] ?? null;
-                    @endphp
-                    @if(is_string($docs))
-                        @if(trim($docs) === '' || \App\Support\QmhAnswerSanitizer::plainText($docs) === '')
-                            <p class="qmh-answer">-</p>
-                        @else
-                            <div class="qmh-answer">{!! $docs !!}</div>
-                        @endif
-                    @elseif(is_array($docs) && count($docs) > 0)
-                        <ul class="qmh-list">
-                            @foreach($docs as $item)
-                                @php $itemText = is_string($item) ? trim($item) : ''; @endphp
-                                @if($itemText !== '' && \App\Support\QmhAnswerSanitizer::plainText($itemText) !== '')
-                                    <li>
-                                        @if(\App\Support\QmhAnswerSanitizer::looksLikeHtml($itemText))
-                                            <div class="qmh-answer">{!! $itemText !!}</div>
-                                        @else
-                                            {{ $itemText }}
-                                        @endif
-                                    </li>
+        <div class="qmh-section">
+            <div class="qmh-question">1. TUJUAN</div>
+            {!! $renderAnswer('purpose') !!}
+        </div>
+
+        <div class="qmh-section">
+            <div class="qmh-question">2. RUANG LINGKUP</div>
+            {!! $renderAnswer('scope') !!}
+        </div>
+
+        <div class="qmh-section">
+            <div class="qmh-question">3. TANGGUNG JAWAB</div>
+            @php
+                $responsibility = $getAnswer('responsibilities');
+            @endphp
+            @if($responsibility === '' || \App\Support\QmhAnswerSanitizer::plainText($responsibility) === '')
+                <p class="qmh-answer">JABATAN LABORATORIUM</p>
+            @else
+                {!! $renderAnswer('responsibilities') !!}
+            @endif
+        </div>
+
+        <div class="qmh-section">
+            <div class="qmh-question">4. ACUAN</div>
+            @if(trim($referenceValue) === '')
+                <p class="qmh-answer">-</p>
+            @else
+                @php $refIsHtml = \App\Support\QmhAnswerSanitizer::looksLikeHtml($referenceValue); @endphp
+                @if($refIsHtml)
+                    <div class="qmh-answer">{!! $referenceValue !!}</div>
+                @else
+                    <p class="qmh-answer">{!! nl2br(e($referenceValue)) !!}</p>
+                @endif
+            @endif
+        </div>
+
+        <div class="qmh-section">
+            <div class="qmh-question">5. INSTRUKSI KERJA</div>
+            {!! $renderAnswer('instructions') !!}
+        </div>
+
+        <div class="qmh-section">
+            <div class="qmh-question">6. DOKUMENTASI YANG DIPERLUKAN</div>
+            @php
+                $docs = $answers['required_docs'] ?? null;
+            @endphp
+            @if(is_string($docs))
+                @if(trim($docs) === '' || \App\Support\QmhAnswerSanitizer::plainText($docs) === '')
+                    <p class="qmh-answer">-</p>
+                @else
+                    <div class="qmh-answer">{!! $docs !!}</div>
+                @endif
+            @elseif(is_array($docs) && count($docs) > 0)
+                <ul class="qmh-list">
+                    @foreach($docs as $item)
+                        @php $itemText = is_string($item) ? trim($item) : ''; @endphp
+                        @if($itemText !== '' && \App\Support\QmhAnswerSanitizer::plainText($itemText) !== '')
+                            <li>
+                                @if(\App\Support\QmhAnswerSanitizer::looksLikeHtml($itemText))
+                                    <div class="qmh-answer">{!! $itemText !!}</div>
+                                @else
+                                    {{ $itemText }}
                                 @endif
-                            @endforeach
-                        </ul>
-                    @else
-                        <p class="qmh-answer">-</p>
-                    @endif
-                </td>
-            </tr>
-            <tr>
-                <td style="font-weight: 700; text-align: center;">7. PENUTUP</td>
-                <td>
-                    @if($closingValue === '' || \App\Support\QmhAnswerSanitizer::plainText($closingValue) === '')
-                        <p class="qmh-answer"><strong>{{ $closingDefault }}</strong></p>
-                    @elseif(\App\Support\QmhAnswerSanitizer::looksLikeHtml($closingValue))
-                        <div class="qmh-answer"><strong>{!! $closingValue !!}</strong></div>
-                    @else
-                        <p class="qmh-answer"><strong>{!! nl2br(e($closingValue)) !!}</strong></p>
-                    @endif
-                </td>
-            </tr>
-        </table>
+                            </li>
+                        @endif
+                    @endforeach
+                </ul>
+            @else
+                <p class="qmh-answer">-</p>
+            @endif
+        </div>
+
+        <div class="qmh-section">
+            <div class="qmh-question">7. PENUTUP</div>
+            @if($closingValue === '' || \App\Support\QmhAnswerSanitizer::plainText($closingValue) === '')
+                <p class="qmh-answer"><strong>{{ $closingDefault }}</strong></p>
+            @elseif(\App\Support\QmhAnswerSanitizer::looksLikeHtml($closingValue))
+                <div class="qmh-answer"><strong>{!! $closingValue !!}</strong></div>
+            @else
+                <p class="qmh-answer"><strong>{!! nl2br(e($closingValue)) !!}</strong></p>
+            @endif
+        </div>
     @elseif(in_array((string) ($document?->doc_type ?? ''), ['formulir', 'fr'], true))
         @php
             $formQuestions = $questions;
@@ -828,7 +921,16 @@
                 @endforeach
             </table>
         @endif
-    @elseif(count($questions) > 0 && $hasStructuredAnswers)
+    @elseif(
+        count($questions) > 0
+        && (
+            $hasStructuredAnswers
+            || (string) ($document?->doc_type ?? '') === 'sop'
+        )
+    )
+        @if((string) ($document?->doc_type ?? '') === 'sop')
+            <div class="sop-body-offset">
+        @endif
         @foreach($questions as $idx => $q)
             @php
                 $qid = (string) ($q['id'] ?? '');
@@ -904,6 +1006,9 @@
                 @endif
             </div>
         @endforeach
+        @if((string) ($document?->doc_type ?? '') === 'sop')
+            </div>
+        @endif
     @else
         {!! \App\Support\QmhHtmlSanitizer::sanitize($contentHtml ?? ($revision->content_html ?: '<p>Konten dokumen belum tersedia.</p>')) !!}
     @endif

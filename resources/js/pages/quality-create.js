@@ -12,8 +12,6 @@ export function qmhCreatePage(config = {}) {
         frV2StructureMode: config.initialFrV2StructureMode || "non_table",
         parentSopId: config.initialParentSopId,
         pairedIkId: config.initialPairedIkId,
-        templateManageUrl: config.templateManageUrl,
-        canManageTemplate: Boolean(config.canManageTemplate),
         frV2CreateEnabled: Boolean(config.frV2CreateEnabled),
         sopOptions: config.sopOptions || [],
         ikOptions: config.ikOptions || [],

@@ -123,32 +123,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('reports.index')
             ->middleware('permission:qmh.report');
 
-        Route::get('/templates', [QualityQmhTemplateController::class, 'index'])
-            ->name('templates.index')
-            ->middleware('permission:qmh.template.manage');
-
-        Route::post('/templates', [QualityQmhTemplateController::class, 'store'])
-            ->name('templates.store')
-            ->middleware('permission:qmh.template.manage');
-
         Route::get('/templates/{template}/preview', [QualityQmhTemplateController::class, 'preview'])
             ->name('templates.preview');
-
-        Route::get('/templates/{template}/edit', [QualityQmhTemplateController::class, 'edit'])
-            ->name('templates.edit')
-            ->middleware('permission:qmh.template.manage');
-
-        Route::patch('/templates/{template}', [QualityQmhTemplateController::class, 'update'])
-            ->name('templates.update')
-            ->middleware('permission:qmh.template.manage');
-
-        Route::patch('/templates/{template}/activate', [QualityQmhTemplateController::class, 'activate'])
-            ->name('templates.activate')
-            ->middleware('permission:qmh.template.manage');
-
-        Route::patch('/templates/{template}/deactivate', [QualityQmhTemplateController::class, 'deactivate'])
-            ->name('templates.deactivate')
-            ->middleware('permission:qmh.template.manage');
 
         Route::get('/rapat', [QualityQmhRapatController::class, 'index'])
             ->name('rapat.index')
