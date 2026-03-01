@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Quality;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Quality\StoreQmhTemplateRequest;
 use App\Http\Requests\Quality\UpdateQmhTemplateRequest;
+use App\Models\QmhDocumentRevision;
 use App\Models\QmhTemplate;
 use App\Support\Audit;
 use App\Support\QmhFrLayoutProfile;
@@ -47,6 +48,7 @@ class QmhTemplateController extends Controller
             ->orderByDesc('version')
             ->orderByDesc('updated_at')
             ->get();
+        $revisionRepresentatives = $this->resolveRevisionRepresentativesByCard();
 
         $dashboardCards = collect([
             [
@@ -69,7 +71,7 @@ class QmhTemplateController extends Controller
                 'label' => 'FR Table',
                 'description' => 'Template FR format table',
             ],
-        ])->map(function (array $definition) use ($dashboardSource): array {
+        ])->map(function (array $definition) use ($dashboardSource, $revisionRepresentatives): array {
             $candidate = $dashboardSource
                 ->filter(fn (QmhTemplate $template): bool => $this->dashboardGroupKeyForTemplate($template) === $definition['key'])
                 ->sortByDesc(fn (QmhTemplate $template): int => (int) $template->is_active)
@@ -77,28 +79,32 @@ class QmhTemplateController extends Controller
                 ->sortByDesc(fn (QmhTemplate $template): int => $template->updated_at?->getTimestamp() ?? 0)
                 ->first();
 
-            $displayPolicy = $this->resolveTemplateDisplayPolicy($candidate);
+            $representative = $revisionRepresentatives[$definition['key']] ?? null;
+            $displayTemplate = $candidate ?? ($representative['template'] ?? null);
+
+            $displayPolicy = $this->resolveTemplateDisplayPolicy($displayTemplate);
 
             return [
                 'key' => $definition['key'],
                 'label' => $definition['label'],
                 'description' => $definition['description'],
-                'has_template' => $candidate !== null,
-                'id' => $candidate?->id,
-                'name' => $candidate?->name,
-                'doc_type' => strtoupper((string) ($candidate?->doc_type ?? '')),
-                'clause' => $candidate?->clause,
-                'version' => $candidate?->version,
-                'is_active' => (bool) ($candidate?->is_active ?? false),
-                'updated_at' => $candidate?->updated_at?->format('d-m-Y H:i') ?? '-',
-                'edit_url' => $candidate ? route('quality.templates.edit', $candidate) : null,
-                'preview_url' => $candidate ? route('quality.templates.preview', $candidate) : null,
-                'activate_url' => $candidate ? route('quality.templates.activate', $candidate) : null,
-                'deactivate_url' => $candidate ? route('quality.templates.deactivate', $candidate) : null,
+                'has_template' => $displayTemplate !== null,
+                'id' => $displayTemplate?->id,
+                'name' => $displayTemplate?->name,
+                'doc_type' => strtoupper((string) ($displayTemplate?->doc_type ?? '')),
+                'clause' => $displayTemplate?->clause,
+                'version' => $displayTemplate?->version,
+                'is_active' => (bool) ($displayTemplate?->is_active ?? false),
+                'updated_at' => $displayTemplate?->updated_at?->format('d-m-Y H:i') ?? '-',
+                'edit_url' => $displayTemplate ? route('quality.templates.edit', $displayTemplate) : null,
+                'preview_url' => $displayTemplate ? route('quality.templates.preview', $displayTemplate) : null,
+                'activate_url' => $displayTemplate ? route('quality.templates.activate', $displayTemplate) : null,
+                'deactivate_url' => $displayTemplate ? route('quality.templates.deactivate', $displayTemplate) : null,
                 'shell_mode' => $displayPolicy['shell_mode'],
                 'show_signoff_footer' => $displayPolicy['show_signoff_footer'],
                 'shell_label' => $displayPolicy['shell_label'],
                 'footer_label' => $displayPolicy['footer_label'],
+                'representative_status' => $representative['status_label'] ?? null,
             ];
         })->values();
 
@@ -132,6 +138,51 @@ class QmhTemplateController extends Controller
         $profile = (string) ($policy['layout_profile'] ?? QmhFrLayoutProfile::defaultAuthoringProfile());
 
         return $profile === 'risk_matrix' ? 'fr_table' : 'fr_non_table';
+    }
+
+    /**
+     * @return array<string, array{template: QmhTemplate, status_label: string}>
+     */
+    private function resolveRevisionRepresentativesByCard(): array
+    {
+        $rows = QmhDocumentRevision::query()
+            ->with('template')
+            ->whereIn('status', ['in_review', 'in_approval', 'published'])
+            ->whereNotNull('template_id')
+            ->whereHas('document', fn ($query) => $query->whereIn('doc_type', ['fr', 'formulir']))
+            ->orderByDesc('id')
+            ->get();
+
+        $grouped = [];
+
+        foreach ($rows as $revision) {
+            if (! $revision->template instanceof QmhTemplate) {
+                continue;
+            }
+
+            $key = $this->dashboardGroupKeyForTemplate($revision->template);
+            if (isset($grouped[$key])) {
+                continue;
+            }
+
+            $statusLabel = match ((string) $revision->status) {
+                'in_review' => 'In Review',
+                'in_approval' => 'In Approval',
+                'published' => 'Published',
+                default => null,
+            };
+
+            if ($statusLabel === null) {
+                continue;
+            }
+
+            $grouped[$key] = [
+                'template' => $revision->template,
+                'status_label' => $statusLabel,
+            ];
+        }
+
+        return $grouped;
     }
 
     /**

@@ -74,6 +74,12 @@
                                         </p>
                                     </template>
 
+                                    <template x-if="tpl.has_template && tpl.representative_status">
+                                        <p class="mt-1 text-[11px] text-blue-600 dark:text-blue-300">
+                                            Template referensi: <span x-text="tpl.representative_status"></span>
+                                        </p>
+                                    </template>
+
                                     <template x-if="tpl.has_template">
                                         <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400">
                                             <span x-text="tpl.shell_label"></span>
