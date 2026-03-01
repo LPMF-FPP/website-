@@ -8,7 +8,6 @@
 .worktrees/
 _bmad/
 _bmad-output/
-dokpol-style/apps/web/.next/
 docs/
 output/
 report/

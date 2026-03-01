@@ -51,6 +51,7 @@ Thumbs.db
 # Temporary and generated files
 test.txt
 qmh-living-system-tech-spec.md
+tmp-*.png
 
 # Local scratch notes/scripts (not for production deploy)
 CODE_REVIEW.md
