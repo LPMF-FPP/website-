@@ -62,7 +62,7 @@ class ConsolidatedReportController extends Controller
             );
 
             // Send WhatsApp notification
-            $this->reportService->sendGenerationNotification($report);
+            $this->reportService->sendGenerationNotification($report, true);
 
             return response()->json([
                 'success' => true,

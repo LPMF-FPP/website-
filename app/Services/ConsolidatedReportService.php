@@ -540,7 +540,7 @@ class ConsolidatedReportService
     /**
      * Send notification for generated report.
      */
-    public function sendGenerationNotification(ConsolidatedReport $report): int
+    public function sendGenerationNotification(ConsolidatedReport $report, bool $force = false): int
     {
         // Check if notification is enabled
         $notifyEnabled = (bool) $this->settings->get('consolidated_report.notify_on_generate', true);
@@ -558,7 +558,7 @@ class ConsolidatedReportService
         $normalizedPhone = $this->normalizePhone((string) $targetPhone);
         $normalizedJid = $normalizedPhone.'@s.whatsapp.net';
 
-        if ($this->hasNotificationQueuedOrSent($report, $normalizedJid)) {
+        if (! $force && $this->hasNotificationQueuedOrSent($report, $normalizedJid)) {
             Log::info("Consolidated report notification already queued/sent for report {$report->id} to {$normalizedJid}");
 
             return 0;

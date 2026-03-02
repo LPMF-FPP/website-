@@ -97,7 +97,7 @@ class ConsolidatedReportControllerTest extends TestCase
 
             $mock->shouldReceive('sendGenerationNotification')
                 ->once()
-                ->with($report);
+                ->with($report, true);
         });
 
         $data = [
