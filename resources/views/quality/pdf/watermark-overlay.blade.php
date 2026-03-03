@@ -24,6 +24,9 @@
             letter-spacing: 6px;
             color: rgba(100, 116, 139, 0.16);
             white-space: nowrap;
+            z-index: 0;
+            pointer-events: none;
+            user-select: none;
         }
     </style>
 </head>

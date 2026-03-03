@@ -34,8 +34,8 @@
                 if(this.versions.length > 0) this.activeVersion = this.versions[0].id;
             },
             get filteredVersions() {
-                if (!$store.changelog.search) return this.versions;
-                const term = $store.changelog.search.toLowerCase();
+                const term = (($store.changelog && $store.changelog.search) || '').toLowerCase();
+                if (!term) return this.versions;
                 return this.versions.filter(v => 
                     v.version.toLowerCase().includes(term) || 
                     v.title.toLowerCase().includes(term) ||
@@ -144,11 +144,11 @@
                                                 x-text="log.date"
                                             ></span>
                                         </div>
-                                        <template x-if="index === 0 && !$store.changelog.search">
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-primary-50 text-primary-700 border border-primary-100">
-                                                LATEST RELEASE
-                                            </span>
-                                        </template>
+                                    <template x-if="index === 0 && !($store.changelog && $store.changelog.search)">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-primary-50 text-primary-700 border border-primary-100">
+                                            LATEST RELEASE
+                                        </span>
+                                    </template>
                                     </div>
 
                                     <h3 class="text-lg font-semibold text-gray-800 mb-4" x-text="log.title"></h3>
@@ -190,12 +190,19 @@
 
     @push('scripts')
     <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.store('changelog', {
-                search: ''
-            })
-        })
-        
+        const ensureChangelogStore = () => {
+            if (typeof Alpine === 'undefined') {
+                return;
+            }
+
+            if (!Alpine.store('changelog')) {
+                Alpine.store('changelog', { search: '' });
+            }
+        };
+
+        ensureChangelogStore();
+        document.addEventListener('alpine:init', ensureChangelogStore);
+
         // Scroll Spy Logic
         document.addEventListener('scroll', () => {
             const versions = document.querySelectorAll('.scroll-mt-24');
@@ -210,7 +217,7 @@
             
             if (activeId) {
                 // Access Alpine component scope to update activeVersion
-                const container = document.querySelector('[x-data]');
+                const container = document.querySelector('[x-data*="versions:"]');
                 if(container && container._x_dataStack) {
                     container._x_dataStack[0].activeVersion = activeId;
                 }

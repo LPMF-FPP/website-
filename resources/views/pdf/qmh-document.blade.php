@@ -163,8 +163,10 @@
             font-size: 52px;
             letter-spacing: 6px;
             color: rgba(100, 116, 139, 0.18);
-            z-index: -1;
+            z-index: 0;
             white-space: nowrap;
+            pointer-events: none;
+            user-select: none;
         }
 
         header {

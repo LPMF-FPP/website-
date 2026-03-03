@@ -567,15 +567,51 @@ class QmhRevisionDownloadService
             return;
         }
 
-        $pdf->SetTextColor(208, 215, 224);
-        $pdf->SetFont('Helvetica', 'B', 24);
+        [$r, $g, $b] = $this->resolveFrV2WatermarkColor();
+
+        $pdf->SetTextColor($r, $g, $b);
+        $pdf->SetFont('Helvetica', 'B', 22);
         $textWidth = $pdf->GetStringWidth($text);
-        $x = max(8.0, ($pageWidth - $textWidth) / 2);
-        $y = $pageHeight / 2;
+        $centerX = $pageWidth / 2;
+        $centerY = $pageHeight / 2;
+        $angle = -30.0;
+        $x = $centerX - ($textWidth / 2);
+        $y = $centerY - 5.0;
+
+        if (method_exists($pdf, 'Rotate')) {
+            $pdf->Rotate($angle, $centerX, $centerY);
+        }
 
         $pdf->SetXY($x, $y);
         $pdf->Cell($textWidth, 10.0, $text, 0, 0, 'C');
+
+        if (method_exists($pdf, 'Rotate')) {
+            $pdf->Rotate(0);
+        }
+
         $pdf->SetTextColor(17, 24, 39);
+    }
+
+    /** @return array{0:int,1:int,2:int} */
+    private function resolveFrV2WatermarkColor(): array
+    {
+        $value = trim((string) env('QMH_FRV2_WATERMARK_RGB', ''));
+        if ($value === '') {
+            return [208, 215, 224];
+        }
+
+        $parts = array_map('trim', explode(',', $value));
+        if (count($parts) !== 3) {
+            return [208, 215, 224];
+        }
+
+        $rgb = array_map(static function (string $part): int {
+            $num = (int) $part;
+
+            return max(0, min(255, $num));
+        }, $parts);
+
+        return [$rgb[0], $rgb[1], $rgb[2]];
     }
 
     /**

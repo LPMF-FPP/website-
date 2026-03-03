@@ -40,6 +40,11 @@ class QmhRevisionDownloadServiceTest extends TestCase
             'revision_number' => 4,
             'version_label' => 'E2-R4',
             'status' => 'published',
+            'form_schema_json' => [
+                'version' => 1,
+                'doc_type' => 'sop',
+                'questions' => [],
+            ],
             'content_html' => '<p>Konten PDF uji watermark.</p>',
             'version_bump_mode' => 'auto',
             'dibuat_oleh' => $actor->id,
@@ -132,7 +137,8 @@ class QmhRevisionDownloadServiceTest extends TestCase
         $service = new QmhRevisionDownloadService;
         $html = $service->buildWatermarkedHtml($revision, 'SALINAN TERKENDALI');
 
-        $this->assertStringContainsString('fr-declaration', $html);
+        $this->assertStringContainsString('class="fr-minimal-header"', $html);
+        $this->assertStringNotContainsString('No. Dokumen', $html);
         $this->assertStringNotContainsString('<table class="risk-matrix-table">', $html);
     }
 
@@ -207,7 +213,7 @@ class QmhRevisionDownloadServiceTest extends TestCase
         $service = new QmhRevisionDownloadService;
         $html = $service->buildWatermarkedHtml($revision, 'SALINAN TERKENDALI');
 
-        $this->assertStringContainsString('fr-declaration', $html);
+        $this->assertStringContainsString('class="fr-minimal-header"', $html);
         $this->assertStringNotContainsString('No. Dokumen', $html);
         $this->assertStringNotContainsString('data:text/plain', $html);
     }
