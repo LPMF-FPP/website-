@@ -238,6 +238,8 @@ class QmhRevisionDownloadService
                     $offsetY = ($targetHeight - $renderHeight) / 2;
                 }
 
+                $this->drawFrV2Watermark($pdf, $targetWidth, $targetHeight, $watermarkText);
+
                 $pdf->useTemplate($sourceTemplate, $offsetX, $offsetY, $renderWidth, $renderHeight, false);
 
                 if ($drawShell) {
@@ -277,8 +279,6 @@ class QmhRevisionDownloadService
                         $logoAbsolutePath !== '' ? $logoAbsolutePath : null
                     );
                 }
-
-                $this->drawFrV2Watermark($pdf, $targetWidth, $targetHeight, $watermarkText);
 
                 if ($drawShell && $showSignoff) {
                     $this->drawFrV2SignoffFooter($pdf, $targetWidth, $targetHeight, $signoffPayload);
