@@ -11,7 +11,7 @@
         "audit:eslint": "eslint \"resources/js/**/*.{js,ts,vue,jsx,tsx}\" --format stylish",
         "audit:a11y": "node scripts/audit/axe-scan.mjs",
         "audit:ui:a11y": "node scripts/audit/axe-scan.mjs public/styleguide.html || true",
-        "audit:lh": "lhci autorun || true",
+        "audit:lh": "npx -y @lhci/cli@0.15.1 autorun || true",
         "audit:coverage": "node scripts/audit/css-coverage.mjs",
         "audit:cascade": "node scripts/audit/css-cascade.mjs",
         "audit:guard": "node scripts/audit/guard-nonlayout.mjs",
@@ -29,7 +29,6 @@
         "test": "npm run test:all"
     },
     "devDependencies": {
-        "@lhci/cli": "^0.15.1",
         "@playwright/mcp": "^0.0.64",
         "@tailwindcss/forms": "^0.5.10",
         "@tailwindcss/vite": "^4.1.13",
