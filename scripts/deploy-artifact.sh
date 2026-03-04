@@ -50,7 +50,7 @@ rsync -rlz --delete --force \
     --exclude='vendor/***' \
     "$tmp_dir/" "$host:$deploy_path/"
 
-ssh "$host" "cd \"$deploy_path\" && rm -rf .git .github .vscode .intelephense .opencode .ruff_cache .serena .uv-cache .worktrees _bmad _bmad-output docs output report temp tests dokpol-style && rm -f AGENTS.md CODE_REVIEW.md RAMS_UI_GUIDELINES.md VERCEL_GUIDELINES.md WALKTHROUGH.md qmh-living-system-tech-spec.md todos.md .editorconfig .eslintrc.cjs .stylelintrc.cjs eslint.config.cjs phpunit.xml phpunit.dusk.xml .phpunit.result.cache .env.testing .env.testing.example .env.dusk.local .env.dusk.testing lighthouserc.json .phpstorm.meta.php _ide_helper.php check_docs.php check_all_docs.php fix_numbering.php landing-page-lpmf.html role"
+ssh "$host" "cd \"$deploy_path\" && rm -rf .git .github .vscode .intelephense .opencode .ruff_cache .serena .uv-cache .worktrees _bmad _bmad-output docs output report temp tests dokpol-style && rm -f AGENTS.md CODE_REVIEW.md RAMS_UI_GUIDELINES.md VERCEL_GUIDELINES.md qmh-living-system-tech-spec.md todos.md .editorconfig .eslintrc.cjs .stylelintrc.cjs eslint.config.cjs phpunit.xml phpunit.dusk.xml .phpunit.result.cache .env.testing .env.testing.example .env.dusk.local .env.dusk.testing lighthouserc.json .phpstorm.meta.php _ide_helper.php check_docs.php check_all_docs.php fix_numbering.php landing-page-lpmf.html role"
 
 ssh "$host" "cd \"$deploy_path\" && composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction && php artisan migrate --force && export NVM_DIR=\"\$HOME/.nvm\" && [ -s \"\$NVM_DIR/nvm.sh\" ] && . \"\$NVM_DIR/nvm.sh\" && npm ci && npm run build && rm -rf node_modules && php artisan optimize:clear && php artisan optimize"
 
