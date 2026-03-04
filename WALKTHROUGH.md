@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v2.4.0
+# WALKTHROUGH - LPMF LIMS v2.4.7
 
 > **Single Source of Truth** — Pedoman terupdate terhadap codebase Laboratory Information Management System.
 
@@ -147,6 +147,21 @@ WhatsApp service berjalan di container Docker terpisah.
 ---
 
 ## 📰 Recent Changes (v2.4.x)
+
+### v2.4.7 (4 Maret 2026) - Personnel Role Management & Deploy Stability
+
+- **Personnel Role CRUD:** Halaman kelola role kini mendukung edit dan hapus role secara langsung, mengurangi kebutuhan intervensi manual di database.
+- **Changelog Deploy Fix:** File `WALKTHROUGH.md` sekarang disertakan dalam artifact deploy sehingga halaman `/changelogs` tampil dengan benar di production.
+- **Dependency Housekeeping:** Upgrade LHCI dan Puppeteer untuk menghilangkan warning deprecated, serta keluarkan LHCI dari dependency path deploy agar build lebih ringan.
+
+### v2.4.6 (1 Maret 2026) - QMH Template & PDF Polish, Statistics Resend
+
+- **QMH Watermark Underlay:** Watermark FR kini dirender sebagai underlay (bukan overlay) agar konten dokumen tetap mudah dibaca, termasuk stabilisasi path proof dan fallback store.
+- **Template Management Cleanup:** Surface manajemen template dihapus dari UI untuk menghindari konflik alur; output PDF dipoles lebih konsisten.
+- **FR Dashboard Split:** Dashboard FR kini dipisah antara varian tabel dan non-tabel, masing-masing menampilkan satu template referensi per kartu agar navigasi lebih jelas.
+- **Template Editor Overhaul:** Editor template QMH dimigrasikan ke plain code editor dengan alur blade-template workflow, termasuk preview hash semantics yang lebih trustworthy dan status header/footer pada kartu template.
+- **Statistics Report Resend:** Notifikasi laporan statistik kini bisa dikirim ulang secara manual dari halaman laporan.
+- **Deploy Hardening:** Proses cleanup artifact deploy diperketat dan file PNG temporer lokal dikecualikan untuk menghindari gangguan build.
 
 ### v2.4.5 (28 Februari 2026) - QMH Download Finalization & FR-v2 PDF Consistency
 
