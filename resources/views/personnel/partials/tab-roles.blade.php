@@ -52,12 +52,59 @@
     <x-page-section title="Role Tersedia">
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             @foreach($roleUsage as $roleData)
+                @php
+                    $isCoreRole = in_array($roleData['role'], $coreStaffRoles ?? [], true);
+                    $isUsedByUser = (int) $roleData['total'] > 0;
+                @endphp
                 <div class="rounded-lg border border-gray-200 bg-white px-4 py-3">
                     <div class="text-sm font-semibold text-gray-900">
                         {{ Str::of($roleData['role'])->replace('_', ' ')->title() }}
                     </div>
                     <div class="mt-1 text-xs text-gray-500">
                         {{ number_format((int) $roleData['total']) }} pengguna
+                    </div>
+
+                    <div class="mt-4 space-y-3 border-t border-gray-100 pt-3">
+                        <form method="POST" action="{{ route('analysts.roles.update', ['role' => $roleData['role']]) }}" class="space-y-2">
+                            @csrf
+                            @method('PATCH')
+                            <label class="block text-xs font-medium text-gray-600">Ubah nama role</label>
+                            <div class="flex items-center gap-2">
+                                <input
+                                    type="text"
+                                    name="role_name"
+                                    value="{{ old('role_name') && request()->routeIs('personnel.*') ? old('role_name') : Str::of($roleData['role'])->replace('_', ' ')->title() }}"
+                                    class="block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                    @disabled($isCoreRole)
+                                >
+                                <button
+                                    type="submit"
+                                    class="inline-flex items-center rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-xs font-semibold text-primary-700 transition hover:bg-primary-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                    @disabled($isCoreRole)
+                                >
+                                    Edit
+                                </button>
+                            </div>
+                        </form>
+
+                        <form method="POST" action="{{ route('analysts.roles.destroy', ['role' => $roleData['role']]) }}" onsubmit="return confirm('Yakin ingin menghapus role ini?');">
+                            @csrf
+                            @method('DELETE')
+                            <button
+                                type="submit"
+                                class="inline-flex w-full items-center justify-center rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                @disabled($isCoreRole || $isUsedByUser)
+                                title="{{ $isCoreRole ? 'Role inti sistem tidak dapat dihapus.' : ($isUsedByUser ? 'Role masih digunakan oleh pengguna.' : 'Hapus role') }}"
+                            >
+                                Hapus
+                            </button>
+                        </form>
+
+                        @if($isCoreRole)
+                            <p class="text-[11px] text-amber-700">Role inti sistem tidak dapat diedit/hapus.</p>
+                        @elseif($isUsedByUser)
+                            <p class="text-[11px] text-gray-500">Role sedang dipakai pengguna, hapus dinonaktifkan.</p>
+                        @endif
                     </div>
                 </div>
             @endforeach

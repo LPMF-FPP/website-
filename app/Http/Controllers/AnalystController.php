@@ -288,6 +288,130 @@ class AnalystController extends Controller
         return back()->with('success', 'Role baru berhasil ditambahkan: '.Str::of($newRole)->replace('_', ' ')->title());
     }
 
+    public function updateRoleType(Request $request, string $role): RedirectResponse
+    {
+        $currentRole = $this->roleCatalog->normalize($role);
+        $validated = $request->validate([
+            'role_name' => ['required', 'string', 'max:100'],
+        ]);
+
+        if ($currentRole === '') {
+            return back()->withErrors([
+                'role_name' => 'Role yang ingin diubah tidak valid.',
+            ]);
+        }
+
+        $newRole = $this->roleCatalog->normalize($validated['role_name']);
+        if ($newRole === '') {
+            return back()->withErrors([
+                'role_name' => 'Nama role baru tidak valid. Gunakan huruf/angka, spasi, garis bawah, atau tanda minus.',
+            ]);
+        }
+
+        $availableRoles = $this->roleCatalog->staffRoles();
+        if (! in_array($currentRole, $availableRoles, true)) {
+            return back()->withErrors([
+                'role_name' => 'Role sumber tidak ditemukan pada daftar role yang dapat dikelola.',
+            ]);
+        }
+
+        if (in_array($currentRole, $this->roleCatalog->coreStaffRoles(), true)) {
+            return back()->withErrors([
+                'role_name' => 'Role inti sistem tidak dapat diubah namanya.',
+            ]);
+        }
+
+        if ($newRole === $currentRole) {
+            return back()->with('success', 'Nama role tidak berubah.');
+        }
+
+        if (in_array($newRole, $availableRoles, true)) {
+            return back()->withErrors([
+                'role_name' => 'Nama role tujuan sudah digunakan.',
+            ]);
+        }
+
+        DB::transaction(function () use ($currentRole, $newRole, $request): void {
+            $permissionIds = RolePermission::query()
+                ->where('role', $currentRole)
+                ->pluck('permission_id')
+                ->all();
+
+            foreach ($permissionIds as $permissionId) {
+                RolePermission::query()->firstOrCreate([
+                    'role' => $newRole,
+                    'permission_id' => $permissionId,
+                ]);
+            }
+
+            RolePermission::query()->where('role', $currentRole)->delete();
+            User::query()->where('role', $currentRole)->update(['role' => $newRole]);
+
+            $updatedRoles = collect($this->roleCatalog->staffRoles())
+                ->map(fn (string $roleName) => $roleName === $currentRole ? $newRole : $roleName)
+                ->unique()
+                ->sort()
+                ->values()
+                ->all();
+
+            $this->settingsWriter->put([
+                'security' => [
+                    'available_roles' => $updatedRoles,
+                ],
+            ], 'USER_ROLE_TYPE_UPDATED', $request->user());
+        });
+
+        return back()->with('success', 'Role berhasil diubah menjadi: '.Str::of($newRole)->replace('_', ' ')->title());
+    }
+
+    public function destroyRoleType(Request $request, string $role): RedirectResponse
+    {
+        $targetRole = $this->roleCatalog->normalize($role);
+
+        if ($targetRole === '') {
+            return back()->withErrors([
+                'role_name' => 'Role yang ingin dihapus tidak valid.',
+            ]);
+        }
+
+        $availableRoles = $this->roleCatalog->staffRoles();
+        if (! in_array($targetRole, $availableRoles, true)) {
+            return back()->withErrors([
+                'role_name' => 'Role tidak ditemukan pada daftar role yang dapat dikelola.',
+            ]);
+        }
+
+        if (in_array($targetRole, $this->roleCatalog->coreStaffRoles(), true)) {
+            return back()->withErrors([
+                'role_name' => 'Role inti sistem tidak dapat dihapus.',
+            ]);
+        }
+
+        $usersUsingRole = User::query()->where('role', $targetRole)->count();
+        if ($usersUsingRole > 0) {
+            return back()->withErrors([
+                'role_name' => 'Role tidak dapat dihapus karena masih digunakan oleh '.$usersUsingRole.' pengguna. Ubah role pengguna terlebih dahulu.',
+            ]);
+        }
+
+        DB::transaction(function () use ($targetRole, $request): void {
+            RolePermission::query()->where('role', $targetRole)->delete();
+
+            $updatedRoles = collect($this->roleCatalog->staffRoles())
+                ->reject(fn (string $roleName) => $roleName === $targetRole)
+                ->values()
+                ->all();
+
+            $this->settingsWriter->put([
+                'security' => [
+                    'available_roles' => $updatedRoles,
+                ],
+            ], 'USER_ROLE_TYPE_DELETED', $request->user());
+        });
+
+        return back()->with('success', 'Role berhasil dihapus: '.Str::of($targetRole)->replace('_', ' ')->title());
+    }
+
     public function updatePermissions(Request $request, User $analyst): RedirectResponse
     {
         if ($analyst->id === $request->user()->id) {

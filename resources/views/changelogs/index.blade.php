@@ -17,7 +17,7 @@
                     </span>
                     <input 
                         type="text" 
-                        x-model="$store.changelog.search"
+                        x-model="search"
                         placeholder="Filter by version or keyword..." 
                         class="pl-10 w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring focus:ring-primary-200 focus:ring-opacity-50 text-sm shadow-sm"
                     >
@@ -30,11 +30,12 @@
         x-data="{ 
             versions: {{ Js::from($changelogs) }},
             activeVersion: null,
+            search: '',
             init() {
                 if(this.versions.length > 0) this.activeVersion = this.versions[0].id;
             },
             get filteredVersions() {
-                const term = (($store.changelog && $store.changelog.search) || '').toLowerCase();
+                const term = (this.search || '').toLowerCase();
                 if (!term) return this.versions;
                 return this.versions.filter(v => 
                     v.version.toLowerCase().includes(term) || 
@@ -144,7 +145,7 @@
                                                 x-text="log.date"
                                             ></span>
                                         </div>
-                                    <template x-if="index === 0 && !($store.changelog && $store.changelog.search)">
+                                    <template x-if="index === 0 && !search">
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-primary-50 text-primary-700 border border-primary-100">
                                             LATEST RELEASE
                                         </span>
@@ -190,19 +191,6 @@
 
     @push('scripts')
     <script>
-        const ensureChangelogStore = () => {
-            if (typeof Alpine === 'undefined') {
-                return;
-            }
-
-            if (!Alpine.store('changelog')) {
-                Alpine.store('changelog', { search: '' });
-            }
-        };
-
-        ensureChangelogStore();
-        document.addEventListener('alpine:init', ensureChangelogStore);
-
         // Scroll Spy Logic
         document.addEventListener('scroll', () => {
             const versions = document.querySelectorAll('.scroll-mt-24');

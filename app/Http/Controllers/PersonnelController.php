@@ -215,6 +215,7 @@ class PersonnelController extends Controller
 
         return [
             'manageableRoles' => $manageableRoles,
+            'coreStaffRoles' => $this->roleCatalog->coreStaffRoles(),
             'roleUsage' => $roleUsage,
         ];
     }
