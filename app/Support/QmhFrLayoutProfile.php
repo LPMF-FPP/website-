@@ -32,7 +32,7 @@ final class QmhFrLayoutProfile
      */
     public static function allowedShellModes(): array
     {
-        return ['full', 'body_only'];
+        return ['full', 'body_only', 'none'];
     }
 
     /**
@@ -359,6 +359,11 @@ final class QmhFrLayoutProfile
                 'shell_mode' => 'full',
                 'orientation_policy' => 'landscape',
                 'show_signoff_footer' => true,
+            ],
+            'structured_form', 'declaration' => [
+                'shell_mode' => 'none',
+                'orientation_policy' => 'portrait',
+                'show_signoff_footer' => false,
             ],
             default => [
                 'shell_mode' => 'full',

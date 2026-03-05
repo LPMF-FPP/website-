@@ -350,6 +350,7 @@
                                         id="dibuat_oleh"
                                         name="dibuat_oleh"
                                         x-model.number="dibuatOleh"
+                                        x-effect="$nextTick(() => { if ($el.value != dibuatOleh) $el.value = dibuatOleh })"
                                         :disabled="currentUserRole !== 'admin'"
                                         class="w-full rounded-md border text-sm focus:border-primary-600 focus:ring-primary-600 @error('dibuat_oleh') border-red-400 @else border-gray-300 @enderror disabled:bg-gray-100 disabled:text-gray-500"
                                     >

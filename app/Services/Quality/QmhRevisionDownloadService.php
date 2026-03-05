@@ -197,7 +197,7 @@ class QmhRevisionDownloadService
 
             $drawShell = QmhFrLayoutProfile::shouldRenderFrShellFromPolicy((string) ($layoutConfig['shell_mode'] ?? null));
             $layoutProfile = QmhFrLayoutProfile::normalizeRuntimeProfile((string) ($layoutConfig['layout_profile'] ?? 'legacy'));
-            $isDeclarationMinimal = ! $drawShell && $layoutProfile === 'declaration';
+            $isDeclarationMinimal = ! $drawShell && in_array($layoutProfile, ['declaration', 'structured_form'], true);
             $showSignoff = (bool) ($renderPayload['show_signoff_footer'] ?? true);
             $targetOrientation = $this->resolvePaperOrientation($renderPayload);
             $signoffPayload = [

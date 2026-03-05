@@ -69,8 +69,18 @@ export function qmhCreatePage(config = {}) {
                 }
             }
 
-            if (!this.dibuatOleh) {
+            if (this.currentUserRole !== "admin" || !this.dibuatOleh) {
                 this.dibuatOleh = this.currentUserId;
+            }
+
+            // Re-apply dibuatOleh after Alpine x-for renders select options,
+            // otherwise x-model binds before options exist and the browser
+            // falls back to the first <option>.
+            const resolvedDibuatOleh = this.dibuatOleh;
+            if (typeof this.$nextTick === "function") {
+                this.$nextTick(() => {
+                    this.dibuatOleh = resolvedDibuatOleh;
+                });
             }
 
             this.registerDraftWatchers();
@@ -232,7 +242,9 @@ export function qmhCreatePage(config = {}) {
                 this.parentSopId =
                     Number(parsed.parentSopId) || this.parentSopId;
                 this.pairedIkId = Number(parsed.pairedIkId) || this.pairedIkId;
-                this.dibuatOleh = Number(parsed.dibuatOleh) || this.dibuatOleh;
+                if (this.currentUserRole === "admin") {
+                    this.dibuatOleh = Number(parsed.dibuatOleh) || this.dibuatOleh;
+                }
                 this.diperiksaOleh =
                     Number(parsed.diperiksaOleh) || this.diperiksaOleh;
                 this.disahkanOleh =
@@ -850,10 +862,10 @@ export function qmhCreatePage(config = {}) {
 
                     const items = Array.isArray(existing)
                         ? existing
-                              .map((val) =>
-                                  typeof val === "string" ? val : "",
-                              )
-                              .filter((val) => val.trim() !== "")
+                            .map((val) =>
+                                typeof val === "string" ? val : "",
+                            )
+                            .filter((val) => val.trim() !== "")
                         : [];
 
                     this.answers[qid] = items;
@@ -866,8 +878,8 @@ export function qmhCreatePage(config = {}) {
                         typeof existingRaw === "string"
                             ? existingRaw
                             : typeof existingRaw === "number"
-                              ? String(existingRaw)
-                              : "";
+                                ? String(existingRaw)
+                                : "";
                     this.answers[qid] = existing;
 
                     if (this.docType === "fr") {
@@ -1023,8 +1035,8 @@ export function qmhCreatePage(config = {}) {
                     typeof this.answers[qid] === "string"
                         ? this.answers[qid]
                         : typeof this.answers[qid] === "number"
-                          ? String(this.answers[qid])
-                          : "";
+                            ? String(this.answers[qid])
+                            : "";
                 if (this.looksLikeHtml(val)) {
                     const normalizedHtml = this.normalizeEditorHtml(val);
                     if (this.isEditorBlank(normalizedHtml)) {
@@ -1449,8 +1461,8 @@ export function qmhCreatePage(config = {}) {
                         const listHtml =
                             filledItems.length > 0
                                 ? `<ul class="list-disc pl-5">${filledItems
-                                      .map((item) => `<li>${item}</li>`)
-                                      .join("")}</ul>`
+                                    .map((item) => `<li>${item}</li>`)
+                                    .join("")}</ul>`
                                 : `<p class="text-gray-500">-</p>`;
 
                         return `<div class="space-y-1"><div class="text-xs font-semibold text-gray-900">${idx + 1}. ${label}</div>${listHtml}</div>`;
@@ -1577,8 +1589,8 @@ export function qmhCreatePage(config = {}) {
                             typeof val === "string"
                                 ? val.trim()
                                 : typeof val === "number"
-                                  ? String(val)
-                                  : "";
+                                    ? String(val)
+                                    : "";
                         if (value) {
                             cell = `<div class="text-sm text-gray-800">${this.escapeHtml(value)}</div>`;
                         }
@@ -1706,8 +1718,8 @@ export function qmhCreatePage(config = {}) {
                         typeof valRaw === "string"
                             ? this.normalizePlainText(valRaw)
                             : typeof valRaw === "number"
-                              ? String(valRaw)
-                              : "";
+                                ? String(valRaw)
+                                : "";
                     if (isRequired && !val) {
                         this.fieldErrors[qid] = "Wajib diisi.";
                         return;
@@ -1749,8 +1761,8 @@ export function qmhCreatePage(config = {}) {
 
                     const items = Array.isArray(current)
                         ? current
-                              .filter((val) => typeof val === "string")
-                              .filter((val) => this.htmlToPlainText(val) !== "")
+                            .filter((val) => typeof val === "string")
+                            .filter((val) => this.htmlToPlainText(val) !== "")
                         : [];
 
                     if (items.length === 0) {
@@ -1953,10 +1965,10 @@ export function qmhCreatePage(config = {}) {
                 answers_json: isFrV2 ? null : answers,
                 form_schema_json:
                     !isFrV2 &&
-                    this.docType === "fr" &&
-                    this.schema &&
-                    typeof this.schema === "object" &&
-                    !Array.isArray(this.schema)
+                        this.docType === "fr" &&
+                        this.schema &&
+                        typeof this.schema === "object" &&
+                        !Array.isArray(this.schema)
                         ? this.schema
                         : null,
                 source_pdf_token: isFrV2 ? this.frV2PreviewToken || null : null,
