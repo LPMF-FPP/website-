@@ -52,6 +52,9 @@
         (auth()->user()?->role ?? '') !== 'admin' && (int) ($currentRevision?->dibuat_oleh ?? 0) !== $currentUserId => 'Hanya admin atau pembuat revisi yang dapat menghapus.',
         default => null,
     };
+    $latestPublishedVersionLabel = $document->revisions
+        ->firstWhere('status', 'published')?->version_label;
+    $editActionLabel = $status === 'published' ? 'Buat Revisi Baru' : 'Edit Dokumen';
 @endphp
 
 <x-app-layout>
@@ -84,6 +87,7 @@
             documentId: @js($document->id),
             currentStatus: @js($status),
             currentVersionLabel: @js($currentRevision?->version_label ?? 'E1-R0'),
+            latestPublishedVersionLabel: @js($latestPublishedVersionLabel),
             csrfToken: @js(csrf_token()),
         })"
         x-init="init()"
@@ -144,14 +148,14 @@
                                         title="Dokumen dikunci oleh pengguna lain"
                                         disabled
                                     >
-                                        Edit Dokumen
+                                        {{ $editActionLabel }}
                                     </button>
                                 @else
                                     <a
                                         href="{{ route('quality.documents.edit', $document) }}"
                                         class="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
                                     >
-                                        Edit Dokumen
+                                        {{ $editActionLabel }}
                                     </a>
                                 @endif
                             @else
@@ -160,7 +164,7 @@
                                     class="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-sm font-medium text-gray-500"
                                     disabled
                                 >
-                                    Edit Dokumen
+                                    {{ $editActionLabel }}
                                 </button>
                             @endif
                         @endif
@@ -739,6 +743,7 @@
                 documentId: config.documentId,
                 currentStatus: config.currentStatus,
                 currentVersionLabel: config.currentVersionLabel,
+                latestPublishedVersionLabel: config.latestPublishedVersionLabel,
                 csrfToken: config.csrfToken,
                 downloadRows: [],
                 downloadsLoading: false,
@@ -918,11 +923,11 @@
                 },
 
                 nextVersionLabel() {
-                    const currentLabel = this.currentVersionLabel || 'E1-R0';
-                    const match = String(currentLabel).match(/E(\d+)-R(\d+)/);
+                    const baseLabel = this.latestPublishedVersionLabel || this.currentVersionLabel || 'E1-R0';
+                    const match = String(baseLabel).match(/E(\d+)-R(\d+)/);
 
                     if (!match) {
-                        return currentLabel;
+                        return baseLabel;
                     }
 
                     const edition = Number.parseInt(match[1], 10);

@@ -3,6 +3,7 @@
 namespace App\Services\Quality;
 
 use App\Jobs\SendQmhWorkflowTaskNotificationJob;
+use App\Models\QmhDocument;
 use App\Models\QmhDocumentRevision;
 use App\Models\QmhTemplate;
 use App\Models\QmhWorkflowEvent;
@@ -17,6 +18,88 @@ use Illuminate\Validation\ValidationException;
 
 class QmhRevisionTransitionService
 {
+    public function beginNextDraft(QmhDocument $document, int $actorId): QmhDocument
+    {
+        return DB::transaction(function () use ($document, $actorId): QmhDocument {
+            $lockedDocument = QmhDocument::query()
+                ->whereKey($document->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $lockedDocument->load('currentRevision');
+            $currentRevision = $lockedDocument->currentRevision;
+
+            if (! $currentRevision instanceof QmhDocumentRevision) {
+                throw ValidationException::withMessages([
+                    'document' => 'Dokumen tidak memiliki revisi aktif.',
+                ]);
+            }
+
+            if ($currentRevision->status !== 'published') {
+                return $lockedDocument->fresh(['currentRevision']);
+            }
+
+            $nextVersion = $currentRevision->predictNextApprovalVersion(false, $currentRevision);
+
+            $draftRevision = $currentRevision->replicate([
+                'status',
+                'submitted_at',
+                'reviewed_at',
+                'approved_at',
+                'effective_date',
+                'obsolete_at',
+                'layout_checker_status',
+                'layout_checker_payload',
+                'layout_checker_checked_at',
+                'attestation_actor',
+                'attestation_reason',
+                'attestation_incident_ref',
+                'attestation_recorded_at',
+                'last_autosaved_at',
+                'created_at',
+                'updated_at',
+            ]);
+
+            $draftRevision->edition_number = $nextVersion['edition_number'];
+            $draftRevision->revision_number = $nextVersion['revision_number'];
+            $draftRevision->version_label = $nextVersion['version_label'];
+            $draftRevision->status = 'draft';
+            $draftRevision->version_bump_mode = $nextVersion['version_bump_mode'];
+            $draftRevision->dibuat_oleh = $actorId;
+            $draftRevision->diperiksa_oleh = null;
+            $draftRevision->disahkan_oleh = null;
+            $draftRevision->submitted_at = null;
+            $draftRevision->reviewed_at = null;
+            $draftRevision->approved_at = null;
+            $draftRevision->effective_date = null;
+            $draftRevision->obsolete_at = null;
+            $draftRevision->layout_checker_status = null;
+            $draftRevision->layout_checker_payload = null;
+            $draftRevision->layout_checker_checked_at = null;
+            $draftRevision->attestation_actor = null;
+            $draftRevision->attestation_reason = null;
+            $draftRevision->attestation_incident_ref = null;
+            $draftRevision->attestation_recorded_at = null;
+            $draftRevision->last_autosaved_at = null;
+            $draftRevision->content_version = 1;
+            $draftRevision->change_summary = null;
+            $draftRevision->save();
+
+            $lockedDocument->current_revision_id = $draftRevision->id;
+            $lockedDocument->updated_by = $actorId;
+            $lockedDocument->save();
+
+            $this->persistWorkflowEvent($draftRevision->id, $actorId, 'create_draft', [
+                'source_revision_id' => $currentRevision->id,
+                'source_version_label' => $currentRevision->version_label,
+                'next_version_label' => $draftRevision->version_label,
+                'trigger' => 'begin_next_draft',
+            ]);
+
+            return $lockedDocument->fresh(['currentRevision']);
+        });
+    }
+
     /**
      * @param  array<string, mixed>|null  $context
      * @return array<string, mixed>

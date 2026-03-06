@@ -13,6 +13,30 @@ class QmhRevisionApprovalServiceTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_predict_next_approval_version_uses_latest_published_revision_as_base(): void
+    {
+        $published = new QmhDocumentRevision([
+            'edition_number' => 1,
+            'revision_number' => 1,
+            'version_label' => 'E1-R1',
+            'status' => 'published',
+        ]);
+
+        $draft = new QmhDocumentRevision([
+            'edition_number' => 1,
+            'revision_number' => 1,
+            'version_label' => 'E1-R1',
+            'status' => 'draft',
+        ]);
+
+        $next = $draft->predictNextApprovalVersion(false, $published);
+
+        $this->assertSame(1, $next['edition_number']);
+        $this->assertSame(2, $next['revision_number']);
+        $this->assertSame('E1-R2', $next['version_label']);
+        $this->assertSame('auto', $next['version_bump_mode']);
+    }
+
     public function test_auto_bump_promotes_new_edition_when_previous_revision_is_nine(): void
     {
         /** @var User $creator */

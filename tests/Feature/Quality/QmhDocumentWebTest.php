@@ -876,6 +876,99 @@ class QmhDocumentWebTest extends TestCase
             ->assertDontSee('qmhFormBuilder({', false);
     }
 
+    public function test_editing_published_document_creates_next_draft_revision(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-SOP-NEXT-REV-01',
+            'title' => 'SOP Next Revision',
+            'clause' => 6,
+            'doc_type' => 'sop',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $published = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 1,
+            'version_label' => 'E1-R1',
+            'status' => 'published',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+            'diperiksa_oleh' => $user->id,
+            'disahkan_oleh' => $user->id,
+            'approved_at' => now()->subDay(),
+            'effective_date' => now()->subDay()->toDateString(),
+            'content_html' => '<p>Konten published</p>',
+            'content_version' => 4,
+        ]);
+
+        $document->update(['current_revision_id' => $published->id]);
+
+        $response = $this->actingAs($user)->get('/quality/documents/'.$document->id.'/edit');
+
+        $response->assertOk()
+            ->assertViewIs('quality.edit')
+            ->assertSee('QMH-SOP-NEXT-REV-01', false);
+
+        $document->refresh();
+        $document->load('currentRevision');
+
+        $this->assertNotSame($published->id, $document->current_revision_id);
+        $this->assertSame('draft', $document->currentRevision?->status);
+        $this->assertSame('E1-R2', $document->currentRevision?->version_label);
+        $this->assertSame($user->id, (int) $document->currentRevision?->dibuat_oleh);
+        $this->assertSame('<p>Konten published</p>', $document->currentRevision?->content_html);
+    }
+
+    public function test_published_document_shows_create_new_revision_labels(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'QMH-SOP-NEXT-LABEL-01',
+            'title' => 'SOP Next Revision Label',
+            'clause' => 6,
+            'doc_type' => 'sop',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+            'created_by' => $user->id,
+            'updated_by' => $user->id,
+        ]);
+
+        $published = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 1,
+            'version_label' => 'E1-R1',
+            'status' => 'published',
+            'version_bump_mode' => 'auto',
+            'dibuat_oleh' => $user->id,
+            'diperiksa_oleh' => $user->id,
+            'disahkan_oleh' => $user->id,
+            'approved_at' => now()->subDay(),
+            'effective_date' => now()->subDay()->toDateString(),
+        ]);
+
+        $document->update(['current_revision_id' => $published->id]);
+
+        $this->actingAs($user)
+            ->get('/quality/documents/'.$document->id)
+            ->assertOk()
+            ->assertSee('Buat Revisi Baru');
+
+        $this->actingAs($user)
+            ->get('/quality/documents')
+            ->assertOk()
+            ->assertSee('Revisi Baru');
+    }
+
     private function createQmhPermissions(): void
     {
         $viewPermission = Permission::query()->updateOrCreate(

@@ -241,6 +241,7 @@
                             'obsolete' => 'danger',
                             default => 'neutral',
                         };
+                        $editActionLabel = $status === 'published' ? 'Revisi Baru' : 'Edit';
                     @endphp
                     <tr x-bind:class="isSelected({{ $document->id }}) ? 'bg-primary-50/70' : 'bg-white'" class="transition-colors hover:bg-gray-50">
                         <td class="px-4 py-3 align-top">
@@ -265,7 +266,7 @@
                             <div class="inline-flex items-center gap-2">
                                 <a href="{{ route('quality.documents.show', $document) }}" class="inline-flex items-center rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1">Lihat</a>
                                 @if(auth()->user()?->hasPermission('qmh.create'))
-                                    <a href="{{ route('quality.documents.edit', $document) }}" class="inline-flex items-center rounded-md border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary-700 hover:bg-primary-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1">Edit</a>
+                                    <a href="{{ route('quality.documents.edit', $document) }}" class="inline-flex items-center rounded-md border border-primary-200 bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary-700 hover:bg-primary-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-600 focus-visible:ring-offset-1">{{ $editActionLabel }}</a>
                                 @endif
                             </div>
                         </td>

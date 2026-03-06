@@ -130,6 +130,62 @@ class QmhDocumentRevision extends Model
         return $this->hasMany(QmhDocumentDownloadLog::class, 'revision_id');
     }
 
+    /**
+     * @return array{edition_number: int, revision_number: int, version_label: string, version_bump_mode: string}
+     */
+    public function predictNextApprovalVersion(bool $promoteToNewEdition = false, ?self $latestPublished = null): array
+    {
+        $baseRevision = $latestPublished;
+
+        if ($baseRevision === null && $this->status === 'published') {
+            $baseRevision = $this;
+        }
+
+        if ($baseRevision === null) {
+            $editionNumber = (int) $this->edition_number;
+            $revisionNumber = (int) $this->revision_number;
+
+            if ($promoteToNewEdition) {
+                $editionNumber = max(2, $editionNumber + 1);
+                $revisionNumber = 0;
+            }
+
+            return [
+                'edition_number' => $editionNumber,
+                'revision_number' => $revisionNumber,
+                'version_label' => sprintf('E%d-R%d', $editionNumber, $revisionNumber),
+                'version_bump_mode' => $promoteToNewEdition ? 'manual' : 'auto',
+            ];
+        }
+
+        if ($promoteToNewEdition) {
+            $editionNumber = (int) $baseRevision->edition_number + 1;
+            $revisionNumber = 0;
+
+            return [
+                'edition_number' => $editionNumber,
+                'revision_number' => $revisionNumber,
+                'version_label' => sprintf('E%d-R%d', $editionNumber, $revisionNumber),
+                'version_bump_mode' => 'manual',
+            ];
+        }
+
+        $nextRevisionNumber = (int) $baseRevision->revision_number + 1;
+        $editionNumber = (int) $baseRevision->edition_number;
+
+        if ($nextRevisionNumber >= 10) {
+            $editionNumber++;
+            $nextRevisionNumber = 0;
+        }
+
+        return [
+            'edition_number' => $editionNumber,
+            'revision_number' => $nextRevisionNumber,
+            'version_label' => sprintf('E%d-R%d', $editionNumber, $nextRevisionNumber),
+            'version_bump_mode' => 'auto',
+        ];
+    }
+
     public function setPendukungVersion(int $version): void
     {
         $normalizedVersion = max(1, $version);

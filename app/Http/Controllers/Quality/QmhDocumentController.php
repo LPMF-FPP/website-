@@ -14,6 +14,7 @@ use App\Models\User;
 use App\Services\Quality\QmhDashboardSummaryService;
 use App\Services\Quality\QmhDashboardWorkspaceService;
 use App\Services\Quality\QmhDocumentService;
+use App\Services\Quality\QmhRevisionTransitionService;
 use App\Support\QmhFrV2Gate;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
@@ -149,8 +150,10 @@ class QmhDocumentController extends Controller
         return view('quality.show', compact('document', 'users'));
     }
 
-    public function edit(QmhDocument $document): View
+    public function edit(QmhDocument $document, QmhRevisionTransitionService $transitionService): View
     {
+        $document = $transitionService->beginNextDraft($document, (int) auth()->id());
+
         $document->load([
             'currentRevision.lock.owner',
             'currentRevision.template',

@@ -117,11 +117,10 @@ class QmhRevisionApprovalService
                 ->lockForUpdate()
                 ->first();
 
-            [$editionNumber, $revisionNumber, $mode] = $this->resolveNextVersion(
-                $revision,
-                $latestPublished,
-                $promoteToNewEdition
-            );
+            $nextVersion = $revision->predictNextApprovalVersion($promoteToNewEdition, $latestPublished);
+            $editionNumber = $nextVersion['edition_number'];
+            $revisionNumber = $nextVersion['revision_number'];
+            $mode = $nextVersion['version_bump_mode'];
 
             QmhDocumentRevision::query()
                 ->where('document_id', $revision->document_id)
@@ -134,7 +133,7 @@ class QmhRevisionApprovalService
 
             $revision->edition_number = $editionNumber;
             $revision->revision_number = $revisionNumber;
-            $revision->version_label = sprintf('E%d-R%d', $editionNumber, $revisionNumber);
+            $revision->version_label = $nextVersion['version_label'];
             $revision->status = 'published';
             $revision->version_bump_mode = $mode;
             $revision->disahkan_oleh = $actorId;
@@ -202,31 +201,6 @@ class QmhRevisionApprovalService
 
             return $revision->fresh();
         });
-    }
-
-    /**
-     * @return array{0: int, 1: int, 2: string}
-     */
-    private function resolveNextVersion(QmhDocumentRevision $targetRevision, ?QmhDocumentRevision $latestPublished, bool $promoteToNewEdition): array
-    {
-        if ($latestPublished === null) {
-            if ($promoteToNewEdition) {
-                return [max(2, $targetRevision->edition_number + 1), 0, 'manual'];
-            }
-
-            return [$targetRevision->edition_number, $targetRevision->revision_number, 'auto'];
-        }
-
-        if ($promoteToNewEdition) {
-            return [$latestPublished->edition_number + 1, 0, 'manual'];
-        }
-
-        $nextRevisionNumber = $latestPublished->revision_number + 1;
-        if ($nextRevisionNumber >= 10) {
-            return [$latestPublished->edition_number + 1, 0, 'auto'];
-        }
-
-        return [$latestPublished->edition_number, $nextRevisionNumber, 'auto'];
     }
 
     private function persistWorkflowEvent(int $revisionId, int $actorId, string $eventType, array $payload): void
