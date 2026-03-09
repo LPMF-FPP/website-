@@ -1,5 +1,12 @@
+@php
+    $labelRequest = $testRequestModel ?? $request ?? null;
+@endphp
 
-{{-- Remaining Label Section --}}
+@if(! $labelRequest)
+    <div class="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        Data permintaan tidak tersedia untuk menampilkan label sisa.
+    </div>
+@else
                 <div class="px-6 py-5 text-sm text-gray-700 space-y-4">
                     <x-page-section title="Label Sisa Sampel">
                         <div x-data="remainingLabelApp()" x-init="init()">
@@ -83,7 +90,7 @@
 
                                 {{-- Print All Button --}}
                                 <div class="mt-5 pt-5 border-t border-gray-100" x-show="remainingUnits.length > 0">
-                                    <a href="{{ route('labels.remaining.sheet', $request->id) }}" 
+                                    <a href="{{ route('labels.remaining.sheet', $labelRequest->id) }}" 
                                        target="_blank" 
                                        class="group inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-teal-600 to-teal-700 rounded-xl shadow-sm hover:from-teal-700 hover:to-teal-800 hover:shadow-md transition-all duration-200">
                                         <svg class="w-5 h-5 group-hover:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -116,7 +123,7 @@
                                                 <label class="block text-xs font-medium text-gray-700 mb-1">Pilih Sampel (Evidence Unit)</label>
                                                 <select x-model="form.evidence_unit_id" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-yellow-500 focus:ring-yellow-500 sm:text-sm">
                                                     <option value="">-- Pilih Sampel --</option>
-                                                    @foreach($request->evidenceUnits as $eu)
+                                                    @foreach($labelRequest->evidenceUnits as $eu)
                                                         <option value="{{ $eu->id }}">
                                                             {{ $eu->sample_code }} ({{ Str::limit($eu->sample_desc ?? 'No description', 30) }})
                                                         </option>
@@ -174,7 +181,7 @@
                                     init() {
                                         // Helper to flatten units from backend
                                         const initialUnits = [];
-                                        @foreach($request->evidenceUnits as $eu)
+                                        @foreach($labelRequest->evidenceUnits as $eu)
                                             @foreach($eu->remainingUnits as $ru)
                                                 initialUnits.push(@json($ru));
                                             @endforeach
@@ -201,16 +208,18 @@
                                             });
                                             
                                             const data = await res.json();
-                                            
-                                            if(data.id) {
+                                            const created = data?.data ?? data;
+
+                                            if (res.ok && data?.success && created?.id) {
                                                 // Add to list
-                                                this.remainingUnits.unshift(data);
+                                                this.remainingUnits.unshift(created);
                                                 // Reset form partially
                                                 this.form.qty_remaining = '';
                                                 this.form.uom = '';
-                                                alert('Label sisa berhasil dibuat: ' + data.remaining_code);
+                                                alert('Label sisa berhasil dibuat: ' + (created.remaining_code || '-'));
                                             } else {
-                                                alert('Gagal: ' + (data.message || 'Unknown error'));
+                                                const message = data?.message || data?.errors?.evidence_unit_id?.[0] || 'Unknown error';
+                                                alert('Gagal: ' + message);
                                             }
                                         } catch(e) {
                                             console.error(e);
@@ -238,12 +247,12 @@
                                                     
                                                     const data = await res.json();
                                                     
-                                                    if(data.success) {
+                                                    if (res.ok && data?.success) {
                                                         // Remove from list
                                                         this.remainingUnits = this.remainingUnits.filter(u => u.id !== id);
                                                         alert('Label berhasil dihapus.');
                                                     } else {
-                                                        alert('Gagal menghapus: ' + data.message);
+                                                        alert('Gagal menghapus: ' + (data?.message || 'Unknown error'));
                                                     }
                                                 } catch(e) {
                                                     console.error(e);
@@ -257,3 +266,4 @@
                         </script>
                     </x-page-section>
                 </div>
+@endif

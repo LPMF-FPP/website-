@@ -25,6 +25,7 @@
 
     <!-- Styles -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @livewireStyles
     @stack('styles')
 </head>
 <body class="font-sans antialiased bg-medical text-pd-text dark:text-pd-text">
@@ -33,28 +34,32 @@
         Lewati ke konten utama
     </a>
     <div class="min-h-dvh flex flex-col">
-        @include('layouts.navigation')
-        <div class="absolute top-2 right-2 z-40">
-            <form method="POST" action="{{ route('locale.switch', ['locale' => app()->getLocale()==='id' ? 'en':'id']) }}" class="inline">
-                @csrf
-                <button type="submit" class="text-xs px-2 py-1 rounded border-sem-subtle bg-white/70 dark:bg-accent-700/60 backdrop-blur hover:bg-white dark:hover:bg-accent-600 transition" title="Switch Language">
-                    {{ app()->getLocale()==='id' ? 'EN' : 'ID' }}
-                </button>
-            </form>
-        </div>
+        @if(!request()->boolean('iframe'))
+            @include('layouts.navigation')
+            <div class="absolute top-2 right-2 z-40">
+                <form method="POST" action="{{ route('locale.switch', ['locale' => app()->getLocale()==='id' ? 'en':'id']) }}" class="inline">
+                    @csrf
+                    <button type="submit" class="text-xs px-2 py-1 rounded border-sem-subtle bg-white/70 dark:bg-accent-700/60 backdrop-blur hover:bg-white dark:hover:bg-accent-600 transition" title="Switch Language">
+                        {{ app()->getLocale()==='id' ? 'EN' : 'ID' }}
+                    </button>
+                </form>
+            </div>
+        @endif
 
-        <!-- Page Heading -->
-        @isset($header)
-            <header class="surface-sem border-b border-sem shadow-none">
-                <div class="container mx-auto max-w-7xl py-4 px-4 sm:px-6 lg:px-8">
-                    {{ $header }}
-                </div>
-            </header>
-        @endisset
+        @if(!request()->boolean('iframe'))
+            <!-- Page Heading -->
+            @isset($header)
+                <header class="surface-sem border-b border-sem shadow-none">
+                    <div class="container mx-auto max-w-7xl py-4 px-4 sm:px-6 lg:px-8">
+                        {{ $header }}
+                    </div>
+                </header>
+            @endisset
+        @endif
 
         <!-- Page Content -->
-        <main id="main-content" class="flex-1 @if(!isset($header)) pt-6 @endif">
-            <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+        <main id="main-content" class="flex-1 @if(!isset($header) && !request()->boolean('iframe')) pt-6 @endif">
+            <div class="{{ request()->boolean('iframe') ? 'w-full h-full pb-8' : 'container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6' }}">
                 @isset($slot)
                     {{ $slot }}
                 @else
@@ -63,13 +68,15 @@
             </div>
         </main>
 
-        <!-- Footer -->
-        <footer class="border-t border-primary-100 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60">
-            <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 text-sm text-primary-600 flex flex-col sm:flex-row items-center justify-between gap-2">
-                <div class="opacity-90">&copy; {{ date('Y') }} Pusdokkes Polri · Farmasi Kepolisian</div>
+        @if(!request()->boolean('iframe'))
+            <!-- Footer -->
+            <footer class="border-t border-primary-100 bg-white/70 backdrop-blur supports-[backdrop-filter]:bg-white/60">
+                <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 text-sm text-primary-600 flex flex-col sm:flex-row items-center justify-between gap-2">
+                    <div class="opacity-90">&copy; {{ date('Y') }} Pusdokkes Polri · Farmasi Kepolisian</div>
 
-            </div>
-        </footer>
+                </div>
+            </footer>
+        @endif
     </div>
 
     {{-- Modal Portal Target --}}
@@ -78,6 +85,7 @@
     {{-- Global Confirm Dialog Component --}}
     <x-confirm-dialog />
 
+    @livewireScriptConfig
     @stack('scripts')
 </body>
 </html>

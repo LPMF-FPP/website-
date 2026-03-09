@@ -94,7 +94,7 @@ class CommandDispatcher
             return [
                 'command' => $command,
                 'params' => $safeParams,
-                'status' => 'access_denied',
+                'status' => 'invalid',
                 'response' => $response,
             ];
         }

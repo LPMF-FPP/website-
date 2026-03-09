@@ -7,8 +7,8 @@
 <div class="space-y-6">
     <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div>
-            <label class="block text-sm font-medium text-gray-700">Sampel</label>
-            <select name="sample_id" required
+            <label for="sample_id" class="block text-sm font-medium text-gray-700">Sampel</label>
+            <select name="sample_id" id="sample_id" required
                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
                 <option value="">-- pilih sampel --</option>
                 @foreach($samples as $sample)
@@ -23,8 +23,8 @@
         </div>
 
         <div>
-            <label class="block text-sm font-medium text-gray-700">Tahapan Proses</label>
-            <select name="stage" required
+            <label for="stage" class="block text-sm font-medium text-gray-700">Tahapan</label>
+            <select name="stage" id="stage" required
                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
                 <option value="">-- pilih tahapan --</option>
                 @php($currentStage = $process && $process->stage ? ($process->stage instanceof \App\Enums\TestProcessStage ? $process->stage->value : $process->stage) : null)
@@ -41,8 +41,8 @@
 
     <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div>
-            <label class="block text-sm font-medium text-gray-700">Pelaksana</label>
-            <select name="performed_by"
+            <label for="performed_by" class="block text-sm font-medium text-gray-700">Pelaksana</label>
+            <select name="performed_by" id="performed_by"
                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
                 <option value="">-- belum ditentukan --</option>
                 @foreach($analysts as $analyst)
@@ -55,10 +55,10 @@
                 <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
             @enderror
         </div>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
             <div>
-                <label class="block text-sm font-medium text-gray-700">Mulai</label>
-                <input type="datetime-local" name="started_at"
+                <label for="started_at" class="block text-sm font-medium text-gray-700">Mulai</label>
+                <input type="datetime-local" name="started_at" id="started_at"
                     value="{{ old('started_at', $process?->started_at?->format('Y-m-d\TH:i')) }}"
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
                 @error('started_at')
@@ -66,8 +66,8 @@
                 @enderror
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700">Selesai</label>
-                <input type="datetime-local" name="completed_at"
+                <label for="completed_at" class="block text-sm font-medium text-gray-700">Selesai</label>
+                <input type="datetime-local" name="completed_at" id="completed_at"
                     value="{{ old('completed_at', $process?->completed_at?->format('Y-m-d\TH:i')) }}"
                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
                 @error('completed_at')
@@ -79,8 +79,8 @@
 
     @if($showNotes)
         <div>
-            <label class="block text-sm font-medium text-gray-700">Catatan</label>
-            <textarea name="notes" rows="4"
+            <label for="notes" class="block text-sm font-medium text-gray-700">Catatan</label>
+            <textarea name="notes" id="notes" rows="4"
                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                 placeholder="Ringkasan progres, kondisi sampel, atau temuan penting">{{ old('notes', $process?->notes) }}</textarea>
             @error('notes')
@@ -91,9 +91,9 @@
 
     @if($showMetadata)
         <div>
-            <label class="block text-sm font-medium text-gray-700">Metadata Tambahan (opsional)</label>
+            <label for="metadata_raw" class="block text-sm font-medium text-gray-700">Metadata Tambahan (opsional)</label>
             <p class="mt-1 text-xs text-gray-500">Isi sebagai pasangan kunci-nilai. Contoh: <code>{"suhu": "25&deg;C", "alat": "GC-MS"}</code></p>
-            <textarea name="metadata_raw" rows="3"
+            <textarea name="metadata_raw" id="metadata_raw" rows="3"
                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                 placeholder='{"parameter": "nilai"}'>{{ old('metadata_raw', $process?->metadata ? json_encode($process->metadata, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) : '') }}</textarea>
             @error('metadata_raw')

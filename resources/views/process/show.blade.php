@@ -6,15 +6,15 @@
         />
     </x-slot>
 
-    <div class="max-w-6xl mx-auto sm:px-6 lg:px-8 space-y-6" x-data="processQuickActions()" x-init="init()">
+    <div class="max-w-6xl mx-auto sm:px-6 lg:px-8 grid grid-cols-1 items-start gap-6 lg:grid-cols-12" x-data="processQuickActions()" x-init="init()" data-api-base="{{ url('/api/processes') }}">
         @if(session('success'))
-            <div class="rounded-lg border border-success-200 bg-success-50 px-4 py-3 text-success-700">
+            <div class="col-span-full rounded-lg border border-success-200 bg-success-50 px-4 py-3 text-success-700">
                 {{ session('success') }}
             </div>
         @endif
 
         @if($errors->any())
-            <div class="rounded-lg border border-danger-200 bg-danger-50 px-4 py-3 text-danger-700">
+            <div class="col-span-full rounded-lg border border-danger-200 bg-danger-50 px-4 py-3 text-danger-700">
                 <ul class="list-disc list-inside space-y-1 text-sm">
                     @foreach($errors->all() as $error)
                         <li>{{ $error }}</li>
@@ -29,109 +29,78 @@
             $receivedAt = $testRequest->received_at ?? $testRequest->created_at;
         @endphp
 
-        <div class="flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <div class="text-2xl font-semibold text-primary-900">
-                    {{ $testRequest->receipt_number ?? $testRequest->request_number }}
-                </div>
-                <div class="mt-1 text-sm text-gray-600">
-                    {{ $investigator?->full_name ?? $investigator?->name ?? '-' }}
-                    @if($unit)
-                        / {{ $unit }}
-                    @endif
-                </div>
-                <div class="mt-1 text-xs text-gray-500">
-                    Diterima pada: {{ optional($receivedAt)->format('d F Y') ?? '-' }}
-                </div>
-            </div>
-            <div class="flex flex-wrap gap-2">
-                <a
-                    href="{{ route('testing.index') }}"
-                    class="inline-flex items-center gap-2 rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition hover:bg-gray-50">
-                    <x-icon name="arrow-left" size="sm" :decorative="true" />
-                    Kembali ke Daftar
-                </a>
-                @if($readyForDelivery)
-                    <form action="{{ route('testing.ready-for-delivery', $testRequest) }}" method="POST">
-                        @csrf
-                        <button type="submit" class="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700">
-                            <x-icon name="truck" size="sm" :decorative="true" />
-                            Kirim ke Penyerahan
-                        </button>
-                    </form>
-                @endif
-                <a
-                    href="{{ route('testing.processes.create', ['request_id' => $testRequest->id]) }}"
-                    class="inline-flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700">
-                    <x-icon name="plus" size="sm" :decorative="true" />
-                    Tambah Proses
-                </a>
-            </div>
-        </div>
-
-        <div class="rounded-lg bg-white p-6 shadow-sm">
-            <div class="flex items-center justify-between gap-4">
-                @foreach($stepper as $step)
-                    <div class="flex flex-1 flex-col items-center">
-                        <div
-                            class="flex h-8 w-8 items-center justify-center rounded-full border-2 text-xs font-semibold
-                            {{ $step['state'] === 'completed' ? 'border-primary-600 bg-primary-600 text-white' : ($step['state'] === 'active' ? 'border-primary-600 bg-primary-50 text-primary-700' : 'border-gray-200 text-gray-400') }}">
-                            @if($step['state'] === 'completed')
-                                <x-icon name="check" size="sm" :decorative="true" />
-                            @else
-                                <span>{{ $loop->iteration }}</span>
-                            @endif
-                        </div>
-                        <div class="mt-2 text-xs font-semibold {{ in_array($step['state'], ['completed', 'active'], true) ? 'text-primary-700' : 'text-gray-400' }}">
-                            {{ $step['label'] }}
-                        </div>
+        {{-- SIDEBAR: Context & Action --}}
+        <div class="space-y-6 lg:sticky lg:top-24 lg:col-span-4">
+            <div class="rounded-xl bg-gradient-to-br from-primary-50 to-white px-5 py-6 shadow-sm ring-1 ring-primary-100 flex flex-col gap-4">
+                <div>
+                    <div class="text-2xl font-semibold text-primary-900">
+                        {{ $testRequest->receipt_number ?? $testRequest->request_number }}
                     </div>
-                    @if(!$loop->last)
-                        <div class="mx-2 h-0.5 flex-1 {{ $step['state'] === 'completed' ? 'bg-primary-500' : 'bg-gray-200' }}"></div>
+                    <div class="mt-1 text-sm text-gray-600">
+                        {{ $investigator?->full_name ?? $investigator?->name ?? '-' }}
+                        @if($unit)
+                            / {{ $unit }}
+                        @endif
+                    </div>
+                    <div class="mt-1 text-xs text-gray-500">
+                        Diterima pada: {{ optional($receivedAt)->format('d F Y') ?? '-' }}
+                    </div>
+                </div>
+                <div class="flex flex-col gap-3 border-t border-primary-100 pt-4">
+                    @if($readyForDelivery)
+                        <form action="{{ route('testing.ready-for-delivery', $testRequest) }}" method="POST" class="w-full"
+                              x-data
+                              @submit.prevent="confirm('Yakin kirim ke penyerahan? Status semua sampel akan berubah menjadi Siap Diserahkan.') && $el.submit()">
+                            @csrf
+                            <button type="submit" class="flex w-full items-center justify-center gap-2 rounded-md bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600">
+                                <x-icon name="truck" size="sm" :decorative="true" />
+                                Kirim ke Penyerahan
+                            </button>
+                        </form>
                     @endif
-                @endforeach
+                    <a
+                        href="{{ route('testing.index') }}"
+                        class="flex w-full items-center justify-center gap-2 rounded-md bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition hover:bg-gray-50">
+                        <x-icon name="arrow-left" size="sm" :decorative="true" />
+                        Kembali ke Daftar
+                    </a>
+                </div>
+            </div>
+
+            <div class="rounded-lg bg-white p-5 shadow-sm ring-1 ring-gray-100">
+                <h3 class="mb-4 text-sm font-semibold text-gray-900">Perkembangan Tahapan</h3>
+                <div class="space-y-4">
+                    @foreach($stepper as $step)
+                        <div class="relative flex items-start gap-4">
+                            @if(!$loop->last)
+                                <div class="absolute left-4 top-8 bottom-[-1rem] -ml-px w-0.5 {{ $step['state'] === 'completed' ? 'bg-primary-500' : 'bg-gray-200' }}"></div>
+                            @endif
+                            <div
+                                class="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 text-xs font-semibold bg-white
+                                {{ $step['state'] === 'completed' ? 'border-primary-600 bg-primary-600 text-white' : ($step['state'] === 'active' ? 'border-primary-600 bg-primary-50 text-primary-700' : 'border-gray-300 text-gray-500') }}">
+                                @if($step['state'] === 'completed')
+                                    <x-icon name="check" size="sm" :decorative="true" />
+                                @else
+                                    <span>{{ $loop->iteration }}</span>
+                                @endif
+                            </div>
+                            <div class="pt-1.5">
+                                <div class="text-sm font-semibold {{ in_array($step['state'], ['completed', 'active'], true) ? 'text-primary-800' : 'text-gray-500' }}">
+                                    {{ $step['label'] }}
+                                </div>
+                                @if(!empty($step['progress']))
+                                    <div class="text-xs {{ $step['state'] === 'active' ? 'text-primary-600' : 'text-gray-400' }} mt-0.5">
+                                        {{ $step['progress'] }} Sampel
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
             </div>
         </div>
 
-        <div class="rounded-lg bg-white p-6 shadow-sm space-y-4">
-            <form method="GET" action="{{ route('testing.show', $testRequest) }}" class="flex flex-wrap items-end gap-3">
-                <div>
-                    <label for="filter_stage" class="block text-xs font-semibold uppercase tracking-wide text-gray-500">Tahapan</label>
-                    <select id="filter_stage" name="stage" class="mt-1 block w-48 rounded-md border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                        <option value="">Semua Tahapan</option>
-                        @foreach($stageOptions as $stage)
-                            <option value="{{ $stage->value }}" @selected(($filters['stage'] ?? '') === $stage->value)>{{ $stage->label() }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div>
-                    <label for="filter_short_description" class="block text-xs font-semibold uppercase tracking-wide text-gray-500">Deskripsi Singkat</label>
-                    <select id="filter_short_description" name="short_description" class="mt-1 block w-56 rounded-md border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                        <option value="">Semua Deskripsi</option>
-                        @forelse($shortDescriptions as $desc)
-                            <option value="{{ $desc }}" @selected(($filters['short_description'] ?? '') === $desc)>{{ $desc }}</option>
-                        @empty
-                            <option disabled>Tidak ada deskripsi</option>
-                        @endforelse
-                    </select>
-                </div>
-
-                <div>
-                    <label for="filter_status" class="block text-xs font-semibold uppercase tracking-wide text-gray-500">Status</label>
-                    <select id="filter_status" name="status" class="mt-1 block w-48 rounded-md border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500">
-                        <option value="">Semua Status</option>
-                        @foreach($statusOptions as $key => $label)
-                            <option value="{{ $key }}" @selected(($filters['status'] ?? '') === $key)>{{ $label }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <button type="submit" class="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-600 shadow-sm ring-1 ring-inset ring-gray-200 transition hover:text-primary-700">
-                    Terapkan
-                </button>
-            </form>
-
+        <div class="space-y-6 lg:col-span-8">
             <div class="rounded-lg border border-gray-100 bg-white">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -178,9 +147,9 @@
                                         <div class="relative inline-block text-left" x-data="{ open: false }">
                                             <div class="inline-flex overflow-hidden rounded-md border border-gray-200 shadow-sm">
                                                 <a
-                                                    href="{{ route('testing.processes.show', $sample->current_process) }}"
+                                                    href="{{ route('testing.processes.edit', $sample->current_process) }}"
                                                     class="inline-flex items-center px-3 py-2 text-sm font-semibold text-primary-700 hover:bg-primary-50">
-                                                    Lihat
+                                                    Kerjakan
                                                 </a>
                                                 <button
                                                     type="button"
@@ -202,7 +171,7 @@
                                                 x-transition:leave="transition ease-in duration-75"
                                                 x-transition:leave-start="transform opacity-100 scale-100"
                                                 x-transition:leave-end="transform opacity-0 scale-95"
-                                                class="absolute right-0 z-pd-overlay mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                                                class="absolute right-0 z-pd-overlay mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
                                                 style="display: none;">
                                                 <div class="py-1">
                                                     @php
@@ -214,7 +183,7 @@
                                                     @if(!$isStarted)
                                                         <button
                                                             type="button"
-                                                            @click="window.processActions.start({{ $process->id }}, {{ $sample->id }}); open = false"
+                                                            @click="$dispatch('process-start', { processId: {{ $process->id }}, sampleId: {{ $sample->id }} }); open = false"
                                                             class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                                             <x-icon name="play" size="sm" class="text-green-600" :decorative="true" />
                                                             Mulai Proses
@@ -224,23 +193,18 @@
                                                     @if($isStarted && !$isCompleted)
                                                         <button
                                                             type="button"
-                                                            @click="window.processActions.complete({{ $process->id }}, {{ $sample->id }}); open = false"
+                                                            @click="$dispatch('process-complete', { processId: {{ $process->id }}, sampleId: {{ $sample->id }} }); open = false"
                                                             class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                                             <x-icon name="check-circle" size="sm" class="text-primary-600" :decorative="true" />
                                                             Selesaikan Proses
                                                         </button>
                                                     @endif
 
-                                                    <a
-                                                        href="{{ route('testing.processes.edit', $process) }}"
-                                                        class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                                        <x-icon name="pencil" size="sm" class="text-gray-500" :decorative="true" />
-                                                        Edit Detail
-                                                    </a>
+
 
                                                     <button
                                                         type="button"
-                                                        @click="window.processActions.quickView({{ $process->id }}); open = false"
+                                                        @click="$dispatch('process-quick-view', { processId: {{ $process->id }} }); open = false"
                                                         class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                                         <x-icon name="eye" size="sm" class="text-gray-500" :decorative="true" />
                                                         Quick View
@@ -275,6 +239,15 @@
             <div>
                 {{ $samples->links() }}
             </div>
+
+            {{-- Label Sisa Sampel Section --}}
+            <div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-100 mt-8 pt-2">
+                <div class="border-t-2 border-gray-200 mx-4 mb-2"></div>
+                @include('partials.remaining-label-section', [
+                    'testRequestModel' => $testRequest
+                ])
+            </div>
+        </div>
         </div>
 
         {{-- Quick View Modal --}}
@@ -306,7 +279,7 @@
                     x-transition:leave="ease-in duration-200"
                     x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
                     x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                    class="relative w-full max-w-lg transform rounded-lg bg-white p-6 shadow-xl transition-all">
+                    class="relative w-full max-w-lg transform rounded-lg bg-white p-6 shadow-xl transition duration-300 ease-out">
 
                     {{-- Close Button --}}
                     <button
@@ -399,6 +372,8 @@
             x-transition:leave="transition ease-in duration-100"
             x-transition:leave-start="opacity-100"
             x-transition:leave-end="opacity-0"
+            role="status"
+            aria-live="polite"
             class="fixed bottom-4 right-4 z-pd-toast max-w-sm rounded-lg bg-white p-4 shadow-lg ring-1 ring-black ring-opacity-5"
             style="display: none;">
             <div class="flex items-start gap-3">
@@ -424,26 +399,6 @@
 
     @push('scripts')
     <script>
-    // Global object for process actions (to be called from nested Alpine.js components)
-    window.processActions = {
-        _component: null,
-        start: function(processId, sampleId) {
-            if (this._component) {
-                this._component.startProcess(processId, sampleId);
-            }
-        },
-        complete: function(processId, sampleId) {
-            if (this._component) {
-                this._component.completeProcess(processId, sampleId);
-            }
-        },
-        quickView: function(processId) {
-            if (this._component) {
-                this._component.showQuickView(processId);
-            }
-        }
-    };
-
     function processQuickActions() {
         return {
             showModal: false,
@@ -457,8 +412,8 @@
             },
 
             init() {
-                // Register this component for global access
-                window.processActions._component = this;
+                const apiBase = this.$root.dataset.apiBase;
+                this._apiBase = apiBase || '/api/processes';
 
                 // Check for stored toast message after page reload
                 const storedToast = sessionStorage.getItem('process_toast');
@@ -467,7 +422,6 @@
                 if (storedToast) {
                     const toastData = JSON.parse(storedToast);
                     sessionStorage.removeItem('process_toast');
-                    // Show toast after a brief delay to ensure page is rendered
                     setTimeout(() => {
                         this.showToast(toastData.type, toastData.message);
                     }, 100);
@@ -476,11 +430,21 @@
                 if (storedHighlight) {
                     this.highlightedSample = parseInt(storedHighlight);
                     sessionStorage.removeItem('process_highlight');
-                    // Auto-clear highlight after 5 seconds
                     setTimeout(() => {
                         this.highlightedSample = null;
                     }, 5000);
                 }
+
+                // Listen for dispatched events from child components
+                this.$root.addEventListener('process-start', (e) => {
+                    this.startProcess(e.detail.processId, e.detail.sampleId);
+                });
+                this.$root.addEventListener('process-complete', (e) => {
+                    this.completeProcess(e.detail.processId, e.detail.sampleId);
+                });
+                this.$root.addEventListener('process-quick-view', (e) => {
+                    this.showQuickView(e.detail.processId);
+                });
             },
 
             async showQuickView(processId) {
@@ -489,7 +453,7 @@
                 this.processData = null;
 
                 try {
-                    const response = await fetch(`/api/processes/${processId}`, {
+                    const response = await fetch(`${this._apiBase}/${processId}`, {
                         headers: {
                             'Accept': 'application/json',
                             'X-Requested-With': 'XMLHttpRequest'
@@ -517,7 +481,7 @@
 
             async startProcess(processId, sampleId = null) {
                 try {
-                    const response = await fetch(`/api/processes/${processId}/start`, {
+                    const response = await fetch(`${this._apiBase}/${processId}/start`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -529,7 +493,6 @@
 
                     const data = await response.json();
                     if (data.ok) {
-                        // Store toast and highlight in sessionStorage before reload
                         sessionStorage.setItem('process_toast', JSON.stringify({
                             type: 'success',
                             message: data.message || 'Proses berhasil dimulai.'
@@ -537,7 +500,6 @@
                         if (sampleId) {
                             sessionStorage.setItem('process_highlight', sampleId.toString());
                         }
-                        // Reload page to refresh status
                         window.location.reload();
                     } else {
                         this.showToast('error', data.message || 'Gagal memulai proses.');
@@ -549,7 +511,7 @@
 
             async completeProcess(processId, sampleId = null) {
                 try {
-                    const response = await fetch(`/api/processes/${processId}/complete`, {
+                    const response = await fetch(`${this._apiBase}/${processId}/complete`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -561,7 +523,6 @@
 
                     const data = await response.json();
                     if (data.ok) {
-                        // Store toast and highlight in sessionStorage before reload
                         sessionStorage.setItem('process_toast', JSON.stringify({
                             type: 'success',
                             message: data.message || 'Proses berhasil diselesaikan.'
@@ -569,7 +530,6 @@
                         if (sampleId) {
                             sessionStorage.setItem('process_highlight', sampleId.toString());
                         }
-                        // Reload page to refresh status
                         window.location.reload();
                     } else {
                         this.showToast('error', data.message || 'Gagal menyelesaikan proses.');

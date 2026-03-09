@@ -303,8 +303,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/', [ProcessController::class, 'index'])->name('index');
 
         Route::prefix('processes')->name('processes.')->group(function () {
-            Route::get('create', [SampleTestProcessController::class, 'create'])->name('create');
-            Route::post('/', [SampleTestProcessController::class, 'store'])->name('store');
             Route::get('{sample_process}/edit', [SampleTestProcessController::class, 'edit'])->name('edit');
             Route::match(['put', 'patch'], '{sample_process}', [SampleTestProcessController::class, 'update'])->name('update');
             Route::delete('{sample_process}', [SampleTestProcessController::class, 'destroy'])->name('destroy');
@@ -317,7 +315,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
 
         Route::post('{testRequest}/recent', [ProcessController::class, 'storeRecent'])->name('recent');
-        Route::post('{testRequest}/processes', [ProcessController::class, 'storeProcess'])->name('request-processes.store');
         Route::post('{testRequest}/ready-for-delivery', [ProcessController::class, 'markReadyForDelivery'])->name('ready-for-delivery');
         Route::get('{testRequest}', [ProcessController::class, 'show'])->name('show');
     });
@@ -332,44 +329,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
     });
 
-    Route::prefix('sample-processes')->name('sample-processes.')->group(function () {
-        Route::get('/', function () {
-            return redirect()->route('testing.index', request()->query());
-        })->name('index');
-
-        Route::get('create', function () {
-            return redirect()->route('testing.processes.create', request()->query());
-        })->name('create');
-
-        Route::get('{sample_process}/form/{stage}', function ($sample_process, $stage) {
-            return redirect()->route('testing.processes.generate-form', [
-                'sample_process' => $sample_process,
-                'stage' => $stage,
-            ] + request()->query());
-        })->name('generate-form');
-
-        Route::get('{sample_process}/lab-report', function ($sample_process) {
-            return redirect()->route('testing.processes.lab-report', [
-                'sample_process' => $sample_process,
-            ] + request()->query());
-        })->name('lab-report');
-
-        Route::get('{sample_process}/edit', function ($sample_process) {
-            return redirect()->route('testing.processes.edit', [
-                'sample_process' => $sample_process,
-            ] + request()->query());
-        })->name('edit');
-
-        Route::get('{sample_process}', function ($sample_process) {
-            return redirect()->route('testing.processes.show', [
-                'sample_process' => $sample_process,
-            ] + request()->query());
-        })->name('show');
-
-        Route::post('/', [SampleTestProcessController::class, 'store'])->name('store');
-        Route::match(['put', 'patch'], '{sample_process}', [SampleTestProcessController::class, 'update'])->name('update');
-        Route::delete('{sample_process}', [SampleTestProcessController::class, 'destroy'])->name('destroy');
-    });
     Route::post('samples/{sample}/ready-for-delivery', [SampleTestProcessController::class, 'markAsReadyForDelivery'])
         ->name('samples.ready-for-delivery');
     Route::get('analysts/{analyst}/logs', [AnalystController::class, 'logs'])->name('analysts.logs');

@@ -339,6 +339,7 @@ Route::middleware(['throttle:120,1'])->group(function () {
         Route::get('{process}', [SampleProcessController::class, 'show']);
         Route::post('{process}/start', [SampleProcessController::class, 'start']);
         Route::post('{process}/complete', [SampleProcessController::class, 'complete']);
+        Route::post('{process}/unlock', [SampleProcessController::class, 'unlock']);
         Route::put('{process}/notes', [SampleProcessController::class, 'updateNotes']);
     });
 

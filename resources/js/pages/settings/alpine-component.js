@@ -3,8 +3,6 @@
  * Registers settingsPageAlpine component that uses SettingsClient
  */
 
-import Alpine from "alpinejs";
-
 import { SettingsClient } from "./index.js";
 
 const DOCUMENT_TYPE_LABELS = {
@@ -90,6 +88,12 @@ const DOCUMENT_SOURCES = [
  * Reads initial data from window.__SETTINGS_INITIAL_DATA__ (injected by Blade)
  */
 export function registerSettingsComponent() {
+    const Alpine = window.Alpine;
+
+    if (!Alpine) {
+        return;
+    }
+
     Alpine.data("settingsPageAlpine", () => {
         // Read initial data from window (passed from Blade)
         const initialData = window.__SETTINGS_INITIAL_DATA__ || {};
@@ -1632,7 +1636,8 @@ export function registerSettingsComponent() {
                     this.documentTemplateState.documentTypes[0]?.code ||
                     "";
                 this.templateEditorModal.format = tpl.format || "html";
-                this.templateEditorModal.engine = tpl.render_engine || "dompdf";
+                this.templateEditorModal.engine =
+                    tpl.render_engine || "dompdf";
                 this.templateEditorModal.name = tpl.name || "";
                 this.templateEditorModal.id = tpl.id ?? null;
                 this.templateEditorModal.meta = {

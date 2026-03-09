@@ -9,6 +9,7 @@ use App\Models\EvidenceUnit;
 use App\Models\RemainingUnit;
 use App\Models\TestRequest;
 use App\Services\DocumentService;
+use App\Support\QuantityFormatter;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -131,31 +132,8 @@ class DeliveryController extends Controller
 
         ]);
 
-        $formatQuantity = static function ($value): ?string {
-            if ($value === null || $value === '') {
-                return null;
-            }
-
-            if (! is_numeric($value)) {
-                return trim((string) $value) ?: null;
-            }
-
-            $number = (float) $value;
-            $formatted = number_format($number, 2, '.', '');
-            $formatted = rtrim(rtrim($formatted, '0'), '.');
-
-            return $formatted === '' ? null : $formatted;
-        };
-
-        $appendUnit = static function (?string $quantity, ?string $unit): ?string {
-            if ($quantity === null) {
-                return null;
-            }
-
-            $unit = $unit ? trim($unit) : '';
-
-            return $unit !== '' ? $quantity.' '.$unit : $quantity;
-        };
+        $formatQuantity = QuantityFormatter::formatQuantity(...);
+        $appendUnit = QuantityFormatter::appendUnit(...);
 
         $request->samples->each(function ($sample) use ($formatQuantity, $appendUnit) {
             $deliveredQty = $sample->package_quantity;
@@ -498,31 +476,8 @@ class DeliveryController extends Controller
                 return collect($methods)->map(fn ($m) => $map[$m] ?? $m)->join('; ');
             };
 
-            $formatQuantity = static function ($value): ?string {
-                if ($value === null || $value === '') {
-                    return null;
-                }
-
-                if (! is_numeric($value)) {
-                    return trim((string) $value) ?: null;
-                }
-
-                $number = (float) $value;
-                $formatted = number_format($number, 2, '.', '');
-                $formatted = rtrim(rtrim($formatted, '0'), '.');
-
-                return $formatted === '' ? null : $formatted;
-            };
-
-            $appendUnit = static function (?string $quantity, ?string $unit): ?string {
-                if ($quantity === null) {
-                    return null;
-                }
-
-                $unit = $unit ? trim($unit) : '';
-
-                return $unit !== '' ? $quantity.' '.$unit : $quantity;
-            };
+            $formatQuantity = QuantityFormatter::formatQuantity(...);
+            $appendUnit = QuantityFormatter::appendUnit(...);
 
             // Load test processes to get report numbers
             $request->samples->load('testProcesses');

@@ -80,6 +80,9 @@ class LabelController extends Controller
                     'id' => $remaining->id,
                     'sample_code' => $remaining->sample_code,
                     'remaining_code' => $remaining->remaining_code,
+                    'qty_remaining' => $remaining->qty_remaining,
+                    'uom' => $remaining->uom,
+                    'created_at' => optional($remaining->created_at)?->toISOString(),
                     'qr_content' => $remaining->qr_content,
                 ],
             ]);

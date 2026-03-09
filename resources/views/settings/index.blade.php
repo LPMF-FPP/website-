@@ -277,5 +277,5 @@
         };
     </script>
 
-    @vite(['resources/js/app.js', 'resources/js/pages/settings/index.js'])
+    @vite(['resources/js/pages/settings/index.js'])
 </x-app-layout>

@@ -4,75 +4,66 @@ namespace App\Services\WhatsApp\Commands;
 
 use App\Models\Sample;
 use App\Models\TestRequest;
+use App\Services\WhatsApp\TemplateService;
 use Illuminate\Support\Facades\DB;
 
 class StatusRequestCommand
 {
+    public function __construct(
+        private TemplateService $templateService
+    ) {}
+
     public function execute(string $fromJid, array $params): string
     {
-        $kajiUlangStatuses = ['submitted', 'pending_verification', 'verified', 'pending_review'];
-        $pengujianStatuses = ['ready_for_test', 'in_testing', 'processing'];
-        $siapDiserahkanStatuses = ['ready_for_delivery', 'completed'];
+        $reviewStatuses = ['submitted', 'pending_verification', 'verified', 'pending_review'];
+        $testingStatuses = ['ready_for_test', 'in_testing', 'processing'];
+        $readyStatuses = ['ready_for_delivery'];
+        $completedStatuses = ['completed', 'delivered'];
 
-        $ongoingStatuses = array_merge($kajiUlangStatuses, $pengujianStatuses, $siapDiserahkanStatuses);
+        $trackedStatuses = array_merge($reviewStatuses, $testingStatuses, $readyStatuses, $completedStatuses);
 
-        $requests = TestRequest::select('status', DB::raw('count(*) as total'))
-            ->whereIn('status', $ongoingStatuses)
+        $requests = TestRequest::query()
+            ->select('status', DB::raw('count(*) as total'))
+            ->whereIn('status', $trackedStatuses)
             ->groupBy('status')
-            ->pluck('total', 'status')
-            ->toArray();
+            ->pluck('total', 'status');
 
-        $kajiUlangCount = 0;
-        $pengujianCount = 0;
-        $siapDiserahkanCount = 0;
+        $reviewTotal = $this->sumStatuses($requests, $reviewStatuses);
+        $testingTotal = $this->sumStatuses($requests, $testingStatuses);
+        $readyTotal = $this->sumStatuses($requests, $readyStatuses);
+        $completedTotal = $this->sumStatuses($requests, $completedStatuses);
+        $activeTotal = $reviewTotal + $testingTotal + $readyTotal;
+        $requestTotal = TestRequest::query()->count();
 
-        foreach ($requests as $status => $count) {
-            if (in_array($status, $kajiUlangStatuses)) {
-                $kajiUlangCount += $count;
-            }
-            if (in_array($status, $pengujianStatuses)) {
-                $pengujianCount += $count;
-            }
-            if (in_array($status, $siapDiserahkanStatuses)) {
-                $siapDiserahkanCount += $count;
-            }
-        }
+        $sampleTotal = Sample::query()
+            ->whereHas('testRequest', function ($query) use ($reviewStatuses, $testingStatuses, $readyStatuses) {
+                $query->whereIn('status', array_merge($reviewStatuses, $testingStatuses, $readyStatuses));
+            })
+            ->count();
 
-        $totalOngoing = $kajiUlangCount + $pengujianCount + $siapDiserahkanCount;
+        $sampleGrandTotal = Sample::query()->count();
 
-        $sampleQuery = Sample::whereHas('testRequest', function ($q) use ($ongoingStatuses) {
-            $q->whereIn('status', $ongoingStatuses);
-        });
+        return $this->templateService->render('command', 'STATUS_REPORT', [
+            'request_total' => (string) $requestTotal,
+            'sample_grand_total' => (string) $sampleGrandTotal,
+            'active_total' => (string) $activeTotal,
+            'review_total' => (string) $reviewTotal,
+            'testing_total' => (string) $testingTotal,
+            'ready_total' => (string) $readyTotal,
+            'sample_total' => (string) $sampleTotal,
+            'completed_total' => (string) $completedTotal,
+            'timestamp' => now()->format('d M Y H:i'),
+            'nomor_resi' => 'LPMF/001/2026',
+        ]);
+    }
 
-        $totalSamples = $sampleQuery->count();
-
-        $activeSubstances = $sampleQuery->whereNotNull('active_substance')
-            ->where('active_substance', '!=', '')
-            ->distinct()
-            ->pluck('active_substance')
-            ->toArray();
-
-        $response = "📊 *STATISTIK PERMINTAAN*\n\n";
-        $response .= "🔢 Total Ongoing: *{$totalOngoing}*\n";
-        $response .= "   ├ 📝 Kaji Ulang: {$kajiUlangCount}\n";
-        $response .= "   ├ ⚗️ Pengujian: {$pengujianCount}\n";
-        $response .= "   └ 📦 Siap Diserahkan: {$siapDiserahkanCount}\n\n";
-
-        $response .= "🧪 Jumlah Sampel: *{$totalSamples}*\n";
-
-        if (! empty($activeSubstances)) {
-            $substList = implode(', ', array_slice($activeSubstances, 0, 10));
-            if (count($activeSubstances) > 10) {
-                $substList .= ', dll...';
-            }
-            $response .= "💊 Zat Aktif: {$substList}\n";
-        } else {
-            $response .= "💊 Zat Aktif: -\n";
-        }
-
-        $response .= "\n─────────────────\n";
-        $response .= 'Ketik `/resi {nomor}` untuk detail.';
-
-        return $response;
+    /**
+     * @param  \Illuminate\Support\Collection<int|string, int|string>  $requests
+     * @param  array<int, string>  $statuses
+     */
+    private function sumStatuses($requests, array $statuses): int
+    {
+        return collect($statuses)
+            ->sum(fn (string $status): int => (int) ($requests[$status] ?? 0));
     }
 }

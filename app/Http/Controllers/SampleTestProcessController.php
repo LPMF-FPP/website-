@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Enums\SampleStatus;
 use App\Enums\TestProcessStage;
+use App\Models\AuditTrail;
 use App\Models\Document;
 use App\Models\Sample;
 use App\Models\SampleTestProcess;
+use App\Models\User;
 use App\Services\ActiveSubstanceService;
 use App\Services\NumberingService;
 use App\Services\WorkflowService;
@@ -31,171 +33,54 @@ class SampleTestProcessController extends Controller
         $this->activeSubstanceService = $activeSubstanceService;
     }
 
-    public function index(Request $request): View
+    public function show(SampleTestProcess $sampleProcess): RedirectResponse
     {
-        $query = SampleTestProcess::with(['sample.testRequest.investigator', 'analyst'])
-            ->whereHas('sample', function ($q) {
-                // Hanya proses dari sampel yang sudah diinput pengujian DAN belum ready_for_delivery
-                $q->whereNotNull('assigned_analyst_id')
-                    ->whereNotNull('test_date')
-                    ->where('status', '!=', SampleStatus::READY_FOR_DELIVERY->value);
-            });
-
-        if ($request->filled('stage')) {
-            $query->where('stage', $request->string('stage'));
-        }
-
-        // Filter by exact short_description if provided (dropdown)
-        if ($request->filled('short_description')) {
-            $name = $request->string('short_description');
-            $query->whereHas('sample', function ($q) use ($name) {
-                $q->where('short_description', $name);
-            });
-        }
-
-        // Filter by exact request_number if provided (dropdown)
-        if ($request->filled('request_number')) {
-            $reqNo = $request->string('request_number');
-            $query->whereHas('sample.testRequest', function ($q) use ($reqNo) {
-                $q->where('request_number', $reqNo);
-            });
-        }
-
-        $processes = $query->latest()
-            ->paginate(20)
-            ->withQueryString();
-
-        // Hanya tampilkan sampel yang sudah diinput data pengujiannya DAN belum ready_for_delivery
-        $samples = Sample::with('testRequest')
-            ->whereNotNull('assigned_analyst_id')
-            ->whereNotNull('test_date')
-            ->where('status', '!=', SampleStatus::READY_FOR_DELIVERY->value)
-            ->latest()
-            ->get();
-
-        // Build dropdown options from eligible samples only
-        $sampleNames = $samples->pluck('short_description')
-            ->filter()
-            ->unique()
-            ->sort()
-            ->values();
-        $requestNumbers = $samples->pluck('testRequest.request_number')
-            ->filter()
-            ->unique()
-            ->sort()
-            ->values();
-
-        // Get samples that have all 3 stages completed for "Ready for Delivery" action
-        $samplesReadyForDelivery = Sample::whereHas('testProcesses', function ($q) {
-            $q->whereNotNull('completed_at')
-                ->whereIn('stage', ['preparation', 'instrumentation', 'interpretation']);
-        }, '=', 3)
-            ->where('status', '!=', SampleStatus::READY_FOR_DELIVERY->value)
-            ->pluck('id')
-            ->toArray();
-
-        return view('sample-processes.index', [
-            'processes' => $processes,
-            'samples' => $samples,
-            'stages' => TestProcessStage::cases(),
-            'filters' => $request->only(['stage', 'short_description', 'request_number']),
-            'samplesReadyForDelivery' => $samplesReadyForDelivery,
-            'sampleNames' => $sampleNames,
-            'requestNumbers' => $requestNumbers,
-        ]);
+        return redirect()->route('testing.processes.edit', $sampleProcess);
     }
 
-    public function create(Request $request): View
-    {
-        // Hanya tampilkan sampel yang sudah diinput data pengujiannya DAN belum ready_for_delivery
-        $samplesQuery = Sample::with('testRequest')
-            ->whereNotNull('assigned_analyst_id')
-            ->whereNotNull('test_date')
-            ->where('status', '!=', SampleStatus::READY_FOR_DELIVERY->value)
-            ->latest();
-
-        if ($request->filled('request_id')) {
-            $samplesQuery->where('test_request_id', $request->integer('request_id'));
-        }
-
-        $samples = $samplesQuery->get();
-
-        $staffRoles = app(\App\Support\RoleCatalog::class)->staffRoles();
-
-        $analysts = \App\Models\User::where('is_active', true)
-            ->whereIn('role', $staffRoles)
-            ->orderBy('name')
-            ->get();
-
-        // Exclude ADMINISTRATION stage from selectable options on create page
-        $stages = collect(TestProcessStage::cases())
-            ->reject(fn ($stage) => $stage === TestProcessStage::ADMINISTRATION)
-            ->mapWithKeys(fn ($stage) => [$stage->value => $stage->label()])
-            ->toArray();
-
-        return view('sample-processes.create', [
-            'samples' => $samples,
-            'analysts' => $analysts,
-            'stages' => $stages,
-            'process' => null, // For create, process is null
-        ]);
-    }
-
-    public function store(Request $request): RedirectResponse
-    {
-        $validated = $request->validate([
-            'sample_id' => ['required', 'exists:samples,id'],
-            'stage' => ['required', 'string', Rule::in(array_column(TestProcessStage::cases(), 'value'))],
-            'performed_by' => ['nullable', 'exists:users,id'],
-            'started_at' => ['nullable', 'date'],
-            'completed_at' => ['nullable', 'date', 'after_or_equal:started_at'],
-            'notes' => ['nullable', 'string'],
-            'metadata_raw' => ['nullable', 'string'],
-        ]);
-
-        // Cek apakah kombinasi sample_id + stage sudah ada
-        $exists = SampleTestProcess::where('sample_id', $validated['sample_id'])
-            ->where('stage', $validated['stage'])
-            ->exists();
-
-        if ($exists) {
-            return back()
-                ->withErrors(['stage' => 'Kombinasi sampel dan tahapan ini sudah ada. Silakan pilih tahapan lain atau sampel lain.'])
-                ->withInput();
-        }
-
-        $metadata = null;
-        $metadataRawInput = $validated['metadata_raw'] ?? null;
-
-        if ($metadataRawInput !== null) {
-            $trimmed = trim($metadataRawInput);
-            if ($trimmed !== '') {
-                $decoded = json_decode($trimmed, true);
-                if (json_last_error() !== JSON_ERROR_NONE) {
-                    return back()->withErrors(['metadata_raw' => 'Format JSON tidak valid.'])->withInput();
-                }
-                $metadata = $decoded;
-            }
-        }
-
-        $sampleProcess = SampleTestProcess::create([
-            'sample_id' => $validated['sample_id'],
-            'stage' => $validated['stage'],
-            'performed_by' => $validated['performed_by'] ?? null,
-            'started_at' => $validated['started_at'] ?? null,
-            'completed_at' => $validated['completed_at'] ?? null,
-            'notes' => $validated['notes'] ?? null,
-            'metadata' => $metadata,
-        ]);
-
-        return redirect()
-            ->route('testing.processes.show', $sampleProcess)
-            ->with('success', 'Proses pengujian berhasil dibuat.');
-    }
-
-    public function show(SampleTestProcess $sampleProcess): View
+    public function edit(SampleTestProcess $sampleProcess): View
     {
         $sampleProcess->load(['sample.testRequest.investigator', 'sample.testProcesses', 'analyst']);
+
+        // Workflow Action States (previously in show())
+        $startAction = $this->workflowService->canStartProcess($sampleProcess);
+        $completeAction = $this->workflowService->canCompleteProcess($sampleProcess);
+        $unlockAction = $this->workflowService->canUnlockProcess($sampleProcess);
+
+        $actionState = [
+            'can_start' => $startAction['allowed'],
+            'start_reason' => $startAction['reason'],
+            'can_complete' => $completeAction['allowed'],
+            'complete_reason' => $completeAction['reason'],
+            'can_unlock' => $unlockAction['allowed'],
+            'unlock_reason' => $unlockAction['reason'],
+        ];
+
+        // Audit Trail Events (previously in show())
+        $recentWorkflowEvents = AuditTrail::query()
+            ->where('table_name', 'sample_test_processes')
+            ->where('record_id', (string) $sampleProcess->id)
+            ->whereIn('action', ['process_started', 'process_completed', 'process_unlocked'])
+            ->orderByDesc('changed_at')
+            ->limit(8)
+            ->get();
+
+        $actorNames = User::query()
+            ->whereIn('id', $recentWorkflowEvents
+                ->pluck('changed_by')
+                ->filter(fn ($id): bool => is_string($id) && ctype_digit($id))
+                ->map(fn (string $id): int => (int) $id)
+                ->unique()
+                ->values())
+            ->pluck('name', 'id');
+
+        $recentWorkflowEvents->transform(function (AuditTrail $event) use ($actorNames): AuditTrail {
+            $event->actor_name = (is_string($event->changed_by) && ctype_digit($event->changed_by))
+                ? ($actorNames[(int) $event->changed_by] ?? 'Pengguna')
+                : 'Sistem';
+
+            return $event;
+        });
 
         $interpretationDetails = null;
         if ($sampleProcess->stage === TestProcessStage::INTERPRETATION) {
@@ -213,13 +98,6 @@ class SampleTestProcessController extends Controller
                 ?? $sampleProcess->lab_report_no
                 ?? $metadata['report_number']
                 ?? '-';
-
-            // Check if report document exists in documents table
-            $reportDoc = \App\Models\Document::where('test_request_id', $sampleProcess->sample->test_request_id)
-                ->where('sample_id', $sampleProcess->sample_id)
-                ->whereIn('document_type', ['laporan_hasil_uji', 'lab_report'])
-                ->latest()
-                ->first();
 
             $attachmentPath = $metadata['test_result_attachment_path'] ?? null;
             $attachmentOriginal = $metadata['test_result_attachment_original'] ?? null;
@@ -257,8 +135,6 @@ class SampleTestProcessController extends Controller
                 'test_result' => $resultLabel,
                 'test_result_raw' => $resultRaw,
                 'report_number' => $reportNumber,
-                'report_document' => $reportDoc,
-                'report_exists' => $reportDoc !== null,
                 'attachment_path' => $attachmentPath,
                 'attachment_original' => $attachmentOriginal,
                 'attachment_url' => $attachmentUrl,
@@ -266,22 +142,16 @@ class SampleTestProcessController extends Controller
             ];
         }
 
-        return view('sample-processes.show', [
-            'sampleProcess' => $sampleProcess,
-            'stages' => TestProcessStage::cases(),
-            'interpretationDetails' => $interpretationDetails,
-        ]);
-    }
-
-    public function edit(SampleTestProcess $sampleProcess): View
-    {
-        $sampleProcess->load(['sample', 'analyst']);
-
-        // Hanya tampilkan sampel yang belum ready_for_delivery
+        $currentSampleId = $sampleProcess->sample_id;
         $samples = Sample::with('testRequest')
-            ->whereNotNull('assigned_analyst_id')
-            ->whereNotNull('test_date')
-            ->where('status', '!=', SampleStatus::READY_FOR_DELIVERY->value)
+            ->where(function ($query) use ($currentSampleId) {
+                $query->where(function ($q) {
+                    $q->whereNotNull('assigned_analyst_id')
+                        ->whereNotNull('test_date')
+                        ->where('status', '!=', SampleStatus::READY_FOR_DELIVERY->value);
+                })
+                    ->orWhere('id', $currentSampleId);
+            })
             ->latest()
             ->get();
 
@@ -385,6 +255,11 @@ class SampleTestProcessController extends Controller
             'secondaryResultAttachmentUrl' => $secondaryAttachmentUrl,
             'instrumentOptions' => $instrumentOptions,
             'suggestedInstrument' => $suggestedInstrument,
+
+            // Merged from show()
+            'interpretationDetails' => $interpretationDetails,
+            'actionState' => $actionState,
+            'recentWorkflowEvents' => $recentWorkflowEvents,
         ]);
     }
 
@@ -486,6 +361,13 @@ class SampleTestProcessController extends Controller
                 if (json_last_error() !== JSON_ERROR_NONE) {
                     return back()->withErrors(['metadata_raw' => 'Format JSON tidak valid.'])->withInput();
                 }
+
+                // Remove critical keys to prevent overwriting fields managed by the UI
+                $restrictedKeys = ['instrument', 'test_result', 'detected_substance', 'test_result_attachment_path', 'test_result_attachment_original', 'multi_interpretations'];
+                foreach ($restrictedKeys as $key) {
+                    unset($decoded[$key]);
+                }
+
                 $metadata = array_merge($metadata, $decoded);
             }
         }

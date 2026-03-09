@@ -4,17 +4,29 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\SampleTestProcess;
+use App\Services\Quality\AuditTrailService;
+use App\Services\WorkflowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class SampleProcessController extends Controller
 {
+    public function __construct(
+        private readonly WorkflowService $workflowService,
+        private readonly AuditTrailService $auditTrailService
+    ) {}
+
     /**
      * Get process details for modal display.
      */
     public function show(SampleTestProcess $process): JsonResponse
     {
         $process->load(['sample.testRequest', 'analyst']);
+
+        $start = $this->workflowService->canStartProcess($process);
+        $complete = $this->workflowService->canCompleteProcess($process);
+        $unlock = $this->workflowService->canUnlockProcess($process);
 
         return response()->json([
             'ok' => true,
@@ -38,6 +50,12 @@ class SampleProcessController extends Controller
                 'notes' => $process->notes,
                 'is_started' => $process->started_at !== null,
                 'is_completed' => $process->completed_at !== null,
+                'can_start' => $start['allowed'],
+                'start_reason' => $start['reason'],
+                'can_complete' => $complete['allowed'],
+                'complete_reason' => $complete['reason'],
+                'can_unlock' => $unlock['allowed'],
+                'unlock_reason' => $unlock['reason'],
             ],
         ]);
     }
@@ -47,21 +65,31 @@ class SampleProcessController extends Controller
      */
     public function start(Request $request, SampleTestProcess $process): JsonResponse
     {
-        if ($process->started_at !== null) {
+        try {
+            $before = $process->toArray();
+            $this->workflowService->startExistingProcess($process);
+            $process->refresh();
+
+            $this->auditTrailService->log(
+                tableName: 'sample_test_processes',
+                recordId: $process->id,
+                action: 'process_started',
+                oldValues: $before,
+                newValues: $process->toArray(),
+                changedBy: $request->user()?->id,
+                reason: 'Mulai tahap dari quick action pengujian'
+            );
+        } catch (ValidationException $e) {
             return response()->json([
                 'ok' => false,
-                'message' => 'Proses sudah dimulai sebelumnya.',
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
             ], 422);
         }
 
-        $process->update([
-            'started_at' => now(),
-            'performed_by' => $request->user()?->id ?? $process->performed_by,
-        ]);
-
         return response()->json([
             'ok' => true,
-            'message' => 'Proses berhasil dimulai.',
+            'message' => 'Tahap berhasil dimulai.',
             'data' => [
                 'started_at' => $process->started_at->toIso8601String(),
                 'started_at_display' => $process->started_at->format('d M Y H:i'),
@@ -74,36 +102,40 @@ class SampleProcessController extends Controller
      */
     public function complete(Request $request, SampleTestProcess $process): JsonResponse
     {
-        if ($process->completed_at !== null) {
+        try {
+            $before = $process->toArray();
+            $nextProcess = $this->workflowService->completeTestProcess($process);
+            $process->refresh();
+
+            $this->auditTrailService->log(
+                tableName: 'sample_test_processes',
+                recordId: $process->id,
+                action: 'process_completed',
+                oldValues: $before,
+                newValues: $process->toArray(),
+                changedBy: $request->user()?->id,
+                reason: 'Selesaikan tahap dari quick action pengujian'
+            );
+        } catch (ValidationException $e) {
             return response()->json([
                 'ok' => false,
-                'message' => 'Proses sudah selesai sebelumnya.',
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
             ], 422);
         }
 
-        // Auto-start if not started yet
-        $updates = [
-            'completed_at' => now(),
-        ];
-
-        if ($process->started_at === null) {
-            $updates['started_at'] = now();
-        }
-
-        if ($process->performed_by === null) {
-            $updates['performed_by'] = $request->user()?->id;
-        }
-
-        $process->update($updates);
-
         return response()->json([
             'ok' => true,
-            'message' => 'Proses berhasil diselesaikan.',
+            'message' => 'Tahap berhasil diselesaikan.',
             'data' => [
                 'started_at' => $process->started_at?->toIso8601String(),
                 'started_at_display' => $process->started_at?->format('d M Y H:i'),
                 'completed_at' => $process->completed_at->toIso8601String(),
                 'completed_at_display' => $process->completed_at->format('d M Y H:i'),
+                'next_process_id' => $nextProcess?->id,
+                'next_stage' => $nextProcess?->stage instanceof \BackedEnum
+                    ? $nextProcess->stage->value
+                    : $nextProcess?->stage,
             ],
         ]);
     }
@@ -124,6 +156,44 @@ class SampleProcessController extends Controller
         return response()->json([
             'ok' => true,
             'message' => 'Catatan berhasil diperbarui.',
+        ]);
+    }
+
+    public function unlock(Request $request, SampleTestProcess $process): JsonResponse
+    {
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'min:10', 'max:2000'],
+        ]);
+
+        try {
+            $before = $process->toArray();
+            $this->workflowService->unlockCompletedProcess($process, $validated['reason']);
+            $process->refresh();
+
+            $this->auditTrailService->log(
+                tableName: 'sample_test_processes',
+                recordId: $process->id,
+                action: 'process_unlocked',
+                oldValues: $before,
+                newValues: $process->toArray(),
+                changedBy: $request->user()?->id,
+                reason: $validated['reason']
+            );
+        } catch (ValidationException $e) {
+            return response()->json([
+                'ok' => false,
+                'message' => $e->getMessage(),
+                'errors' => $e->errors(),
+            ], 422);
+        }
+
+        return response()->json([
+            'ok' => true,
+            'message' => 'Tahap berhasil diperbaiki dengan alasan tercatat.',
+            'data' => [
+                'started_at' => $process->started_at?->toIso8601String(),
+                'completed_at' => $process->completed_at?->toIso8601String(),
+            ],
         ]);
     }
 }

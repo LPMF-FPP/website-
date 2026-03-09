@@ -7,7 +7,6 @@ use App\Models\User;
 use App\Models\UserPermission;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class AdminUserSeeder extends Seeder
 {
@@ -16,18 +15,37 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
-        $password = Str::random(16);
+        $password = 'password'; // Use standard predictable password for dev/test
 
-        $admin = User::updateOrCreate(
-            ['email' => 'labmutufarmapol@gmail.com'],
+        $seededAdmins = [
             [
-                'name' => 'Admin LPMF',
                 'email' => 'labmutufarmapol@gmail.com',
-                'password' => Hash::make($password),
-                'role' => 'admin',
-                'is_active' => true,
-                'email_verified_at' => now(),
-            ]
+                'name' => 'Admin LPMF',
+            ],
+        ];
+
+        if (app()->environment(['local', 'testing'])) {
+            $seededAdmins[] = [
+                'email' => 'admin@example.com',
+                'name' => 'Admin QA',
+            ];
+            $seededAdmins[] = [
+                'email' => 'test@example.com',
+                'name' => 'Test Admin',
+            ];
+        }
+
+        $admins = collect($seededAdmins)->map(
+            fn (array $adminData) => User::updateOrCreate(
+                ['email' => $adminData['email']],
+                [
+                    'name' => $adminData['name'],
+                    'password' => Hash::make($password),
+                    'role' => 'admin-lpmf',
+                    'is_active' => true,
+                    'email_verified_at' => now(),
+                ]
+            )
         );
 
         if (Permission::count() === 0) {
@@ -36,23 +54,21 @@ class AdminUserSeeder extends Seeder
 
         $permissionIds = Permission::pluck('id');
 
-        foreach ($permissionIds as $permissionId) {
-            UserPermission::updateOrCreate(
-                [
-                    'user_id' => $admin->id,
-                    'permission_id' => $permissionId,
-                ],
-                [
-                    'granted' => true,
-                ]
-            );
+        foreach ($admins as $admin) {
+            foreach ($permissionIds as $permissionId) {
+                UserPermission::updateOrCreate(
+                    ['user_id' => $admin->id, 'permission_id' => $permissionId],
+                    ['granted' => true]
+                );
+            }
+
+            $admin->clearPermissionCache();
         }
 
-        $admin->clearPermissionCache();
+        $emails = $admins->pluck('email')->implode(', ');
 
-        $this->command->info('Admin user created successfully!');
-        $this->command->info('Email: labmutufarmapol@gmail.com');
-        $this->command->warn("Generated password: {$password}");
-        $this->command->warn('⚠️  SAVE THIS PASSWORD! It will not be shown again.');
+        $this->command->info('Admin users created successfully!');
+        $this->command->info("Emails: {$emails}");
+        $this->command->info('Password for all seeded admins in current environment: password');
     }
 }

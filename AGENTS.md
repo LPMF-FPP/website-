@@ -196,6 +196,7 @@ Recommended pre-commit gate: `npm run test && npm run audit:critical && ./vendor
 
 - For Laravel feature/bugfix work, MUST load and follow `laravel-11-12-app-guidelines`
 - For frontend implementation tasks, MUST load `frontend-design` first; keep visual language consistent with existing app patterns
+- For high-end frontend polish, visual refinement, or premium UI tuning, use `design-taste-frontend` after `frontend-design` when stronger design engineering is needed
 - If acting as `frontend-developer` subagent, first action MUST be loading `frontend-design`
 - For UI/UX review or design refinement, use `ui-ux-pro-max` and `web-design-guidelines` when relevant
 - For Next.js or React tasks only, MUST use `next-best-practices` and `vercel-react-best-practices` before implementation
@@ -204,7 +205,7 @@ Recommended pre-commit gate: `npm run test && npm run audit:critical && ./vendor
 ## Installed Skills Inventory
 
 - Core project: `laravel-11-12-app-guidelines`, `frontend-design`, `web-design-guidelines`, `tailwind-design-system`
-- UI/UX and content: `ui-ux-pro-max`, `copywriting`
+- UI/UX and content: `ui-ux-pro-max`, `design-taste-frontend`, `copywriting`
 - Discovery and setup: `find-skills`
 - Next/React specialized: `next-best-practices`, `vercel-react-best-practices` (use only when task stack is Next.js/React)
 

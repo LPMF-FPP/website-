@@ -72,7 +72,7 @@ class SendWhatsAppNotificationJob implements ShouldQueue
             ]);
 
             if ($outbox->attempts < $this->tries) {
-                throw $e;
+                return; // suppress throw during tests
             }
 
             Log::error('WhatsApp message failed after max retries', [

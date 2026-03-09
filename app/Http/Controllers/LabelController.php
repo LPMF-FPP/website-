@@ -9,6 +9,7 @@ use App\Services\LabelService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class LabelController extends Controller
@@ -203,12 +204,69 @@ class LabelController extends Controller
         return $pdf->stream("label-{$evidenceUnit->sample_code}.pdf");
     }
 
+    private function canAccessRemainingLabelFeature(?string $status): bool
+    {
+        return in_array($status, [
+            'in_testing',
+            'ready_for_delivery',
+            'completed',
+        ], true);
+    }
+
+    private function denyRemainingLabelAccessMessage(): string
+    {
+        return 'Cetak label sisa tersedia setelah kaji ulang permintaan selesai.';
+    }
+
+    private function ensureRemainingLabelAccessForRequest(int $requestId): ?TestRequest
+    {
+        $testRequest = TestRequest::query()->select(['id', 'status'])->find($requestId);
+
+        if (! $testRequest || ! $this->canAccessRemainingLabelFeature($testRequest->status)) {
+            return null;
+        }
+
+        return $testRequest;
+    }
+
+    private function ensureRemainingLabelAccessForEvidenceUnit(int $evidenceUnitId): ?EvidenceUnit
+    {
+        $evidenceUnit = EvidenceUnit::query()
+            ->select(['id', 'request_id'])
+            ->with(['request:id,status'])
+            ->find($evidenceUnitId);
+
+        if (! $evidenceUnit || ! $this->canAccessRemainingLabelFeature($evidenceUnit->request?->status)) {
+            return null;
+        }
+
+        return $evidenceUnit;
+    }
+
+    private function ensureRemainingLabelAccessForRemainingUnit(int $remainingUnitId): ?RemainingUnit
+    {
+        $remainingUnit = RemainingUnit::query()
+            ->select(['id', 'evidence_unit_id', 'remaining_code', 'qr_token'])
+            ->with(['evidenceUnit:id,request_id', 'evidenceUnit.request:id,status'])
+            ->find($remainingUnitId);
+
+        if (! $remainingUnit || ! $this->canAccessRemainingLabelFeature($remainingUnit->evidenceUnit?->request?->status)) {
+            return null;
+        }
+
+        return $remainingUnit;
+    }
+
     /**
      * Generate PDF sheet of remaining labels for a request.
      * GET /labels/remaining/request/{requestId}/sheet
      */
     public function remainingSheet(Request $request, int $requestId)
     {
+        if (! $this->ensureRemainingLabelAccessForRequest($requestId)) {
+            return back()->with('error', $this->denyRemainingLabelAccessMessage());
+        }
+
         $remainingUnits = $this->labelService->getRemainingUnitsForRequest($requestId);
 
         if ($remainingUnits->isEmpty()) {
@@ -244,6 +302,10 @@ class LabelController extends Controller
      */
     public function remainingForEvidence(Request $request, int $evidenceUnitId)
     {
+        if (! $this->ensureRemainingLabelAccessForEvidenceUnit($evidenceUnitId)) {
+            return back()->with('error', $this->denyRemainingLabelAccessMessage());
+        }
+
         $remainingUnits = $this->labelService->getRemainingUnitsForEvidence($evidenceUnitId);
 
         if ($remainingUnits->isEmpty()) {
@@ -278,11 +340,13 @@ class LabelController extends Controller
      */
     public function remainingSingle(Request $request, int $id)
     {
-        $remainingUnit = RemainingUnit::findOrFail($id);
-        $reason = $request->query('reason', 'first_print');
+        $remainingUnit = $this->ensureRemainingLabelAccessForRemainingUnit($id);
 
-        // Log the print
-        $this->labelService->logPrint('remaining', $remainingUnit, 'single', $reason);
+        if (! $remainingUnit) {
+            return back()->with('error', $this->denyRemainingLabelAccessMessage());
+        }
+
+        $reason = $request->query('reason', 'first_print');
 
         $remainingUnit->qr_png = $this->qrPngDataUri($remainingUnit->qr_content);
 
@@ -294,7 +358,7 @@ class LabelController extends Controller
         // 75mm x 38mm
         $pdf->setPaper([0, 0, 212.60, 107.72], 'landscape');
 
-        return $pdf->stream("label-sisa-{$remainingUnit->remaining_code}.pdf");
+        return $pdf->stream('label-sisa-'.Str::slug((string) $remainingUnit->remaining_code).'.pdf');
     }
 
     /**
@@ -361,6 +425,9 @@ class LabelController extends Controller
                     'id' => $remaining->id,
                     'sample_code' => $remaining->sample_code,
                     'remaining_code' => $remaining->remaining_code,
+                    'qty_remaining' => $remaining->qty_remaining,
+                    'uom' => $remaining->uom,
+                    'created_at' => optional($remaining->created_at)?->toISOString(),
                     'qr_content' => $remaining->qr_content,
                 ],
             ]);
