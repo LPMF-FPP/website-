@@ -69,7 +69,7 @@
                             {{ $statusLabel }} · {{ $process->stage_label }}
                         </span>
                         <span class="text-gray-500">
-                            Resi: {{ $process->sample->testRequest?->request_number ?? '-' }}
+                            Resi: {{ $process->sample->testRequest?->receipt_number ?? $process->sample->testRequest?->request_number ?? '-' }}
                         </span>
                     </div>
                 </div>

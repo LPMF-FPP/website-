@@ -67,7 +67,7 @@
                             {{ $statusLabel }} · {{ $process->stage_label }}
                         </span>
                         <span class="text-gray-500">
-                            Resi: {{ $process->sample->testRequest?->request_number ?? '-' }}
+                            Resi: {{ $process->sample->testRequest?->receipt_number ?? $process->sample->testRequest?->request_number ?? '-' }}
                         </span>
                     </div>
                 </div>
@@ -162,97 +162,6 @@
                     </div>
                 </div>
 
-                @if ($interpretationDetails)
-                    <div class="overflow-hidden rounded-[1.75rem] border border-primary-100/70 bg-gradient-to-r from-primary-50/45 via-white to-white shadow-[0_20px_45px_-24px_rgba(15,23,42,0.08)]">
-                        <button type="button" @click="toggleSection('summary')" class="flex w-full items-center justify-between gap-3 px-6 py-4.5 text-left transition hover:bg-gray-50/80 sm:px-7">
-                            <span class="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-gray-700">
-                                <x-icon name="check-circle" size="sm" class="text-gray-500" :decorative="true" />
-                                Interpretasi Hasil
-                            </span>
-                            <span class="inline-flex items-center gap-2 text-xs font-medium text-gray-500">
-                                Klik untuk buka / tutup
-                                <span class="inline-flex transition" :class="{ 'rotate-180': activeSection === 'summary' }">
-                                    <x-icon name="chevron-down" size="sm" class="text-gray-400" :decorative="true" />
-                                </span>
-                            </span>
-                        </button>
-                        <div x-show="activeSection === 'summary'" x-collapse class="border-t border-primary-100/70 px-6 py-5 sm:px-7">
-                            <div class="rounded-2xl border border-gray-100 bg-gray-50/70 px-4 py-3 text-sm">
-                                <span class="text-gray-500">Nomor LHU:</span>
-                                <span class="font-semibold text-gray-900">{{ $interpretationDetails['report_number'] }}</span>
-                            </div>
-
-                            @php
-                                $rows = [];
-                                $rows[] = [
-                                    'instrument' => $interpretationDetails['instrument'] ?? '-',
-                                    'result_raw' => $interpretationDetails['test_result_raw'] ?? null,
-                                    'result' => $interpretationDetails['test_result'] ?? 'Belum ditentukan',
-                                    'detected' => $interpretationDetails['detected_substance'] ?? '-',
-                                    'attachment_url' => $interpretationDetails['attachment_url'] ?? null,
-                                    'attachment_original' => $interpretationDetails['attachment_original'] ?? null,
-                                ];
-                                if (! empty($interpretationDetails['multi'])) {
-                                    foreach ($interpretationDetails['multi'] as $mi) {
-                                        $rows[] = [
-                                            'instrument' => $mi['instrument'] ?? '-',
-                                            'result_raw' => $mi['test_result_raw'] ?? null,
-                                            'result' => $mi['test_result'] ?? 'Belum ditentukan',
-                                            'detected' => $mi['detected_substance'] ?? '-',
-                                            'attachment_url' => $mi['attachment_url'] ?? null,
-                                            'attachment_original' => $mi['attachment_original'] ?? null,
-                                        ];
-                                    }
-                                }
-                            @endphp
-
-                            <div class="mt-4 overflow-hidden rounded-[1.9rem] border border-white/70 bg-gradient-to-br from-white via-white to-primary-50/35 shadow-[0_24px_60px_-30px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/60">
-                                <div class="overflow-x-auto">
-                                    <table class="min-w-full border-separate border-spacing-0 text-sm text-gray-700">
-                                        <thead>
-                                            <tr class="bg-slate-50/75 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                                                <th class="px-5 py-4 text-left first:rounded-tl-[1.4rem]">Instrumen</th>
-                                                <th class="px-5 py-4 text-left">Hasil</th>
-                                                <th class="px-5 py-4 text-left">Zat Aktif Terdeteksi</th>
-                                                <th class="px-5 py-4 text-left last:rounded-tr-[1.4rem]">Lampiran</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                        @foreach ($rows as $r)
-                                            @php
-                                                $resultClass = match ($r['result_raw']) {
-                                                    'positive' => 'bg-red-100 text-red-700 ring-1 ring-red-200/70',
-                                                    'negative' => 'bg-green-100 text-green-700 ring-1 ring-green-200/70',
-                                                    default => 'bg-slate-100 text-slate-700 ring-1 ring-slate-200/70',
-                                                };
-                                            @endphp
-                                            <tr class="group transition-colors duration-200 hover:bg-white/70">
-                                                <td class="border-t border-slate-200/60 px-5 py-4 font-medium text-slate-900 group-first:border-t-0">{{ $r['instrument'] }}</td>
-                                                <td class="border-t border-slate-200/60 px-5 py-4 group-first:border-t-0">
-                                                    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] {{ $resultClass }}">
-                                                        {{ $r['result'] }}
-                                                    </span>
-                                                </td>
-                                                <td class="border-t border-slate-200/60 px-5 py-4 text-slate-600 group-first:border-t-0">{{ $r['detected'] }}</td>
-                                                <td class="border-t border-slate-200/60 px-5 py-4 group-first:border-t-0">
-                                                    @if (! empty($r['attachment_url']))
-                                                        <a href="{{ $r['attachment_url'] }}" target="_blank" class="inline-flex items-center rounded-full bg-white/85 px-3 py-1.5 text-xs font-medium text-primary-700 ring-1 ring-primary-100 transition hover:bg-primary-50/70 hover:text-primary-800">
-                                                            {{ $r['attachment_original'] ?? 'Lihat dokumen' }}
-                                                        </a>
-                                                    @else
-                                                        <span class="text-slate-400">—</span>
-                                                    @endif
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                @endif
-        
                 <div class="overflow-hidden rounded-[1.9rem] border border-primary-100/70 bg-gradient-to-r from-primary-50/50 via-white to-white shadow-[0_24px_55px_-28px_rgba(15,23,42,0.08)]">
                     <button type="button" @click="toggleSection('form')" class="flex w-full items-center justify-between gap-3 px-6 py-4.5 text-left transition hover:bg-white/80 sm:px-7">
                         <span>
@@ -777,7 +686,6 @@
                     </div>
                 </div>
             </div>
-        </div>
 
             <aside class="space-y-5 self-start lg:col-span-4 xl:col-span-4 lg:sticky lg:top-24">
                 <div class="space-y-3.5 rounded-[1.75rem] border border-primary-100/70 bg-gradient-to-r from-primary-50/55 via-white to-white px-4 py-4 shadow-[0_20px_45px_-24px_rgba(15,23,42,0.08)] sm:px-5 sm:py-5">
