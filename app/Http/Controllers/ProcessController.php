@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Concerns\ResolvesProcessStage;
 use App\Models\Sample;
 use App\Models\TestRequest;
+use App\Services\LabelService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -21,8 +22,10 @@ class ProcessController extends Controller
         return view('process.index');
     }
 
-    public function show(Request $request, TestRequest $testRequest): View
+    public function show(Request $request, TestRequest $testRequest, LabelService $labelService): View
     {
+        $labelService->ensureAutoRemainingUnitsForRequest($testRequest, $request->user()?->id);
+
         $testRequest->load([
             'investigator',
             'samples',

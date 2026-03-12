@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\CustomerSurvey;
 use App\Models\Delivery;
 use App\Models\Document;
-use App\Models\EvidenceUnit;
 use App\Models\RemainingUnit;
 use App\Models\TestRequest;
 use App\Services\DocumentService;
@@ -184,7 +183,7 @@ class DeliveryController extends Controller
         );
 
         // Auto-generate RemainingUnit labels for samples with leftover > 0
-        $this->autoGenerateRemainingLabels($request);
+        app(\App\Services\LabelService::class)->ensureAutoRemainingUnitsForRequest($request, Auth::id());
 
         // Reload evidenceUnits with remainingUnits after auto-generation
         $request->load('evidenceUnits.remainingUnits');
@@ -829,57 +828,6 @@ class DeliveryController extends Controller
         }
 
         return $value;
-    }
-
-    /**
-     * Auto-generate RemainingUnit labels for samples with leftover quantity > 0.
-     * Skips samples that already have a RemainingUnit via their EvidenceUnit.
-     */
-    private function autoGenerateRemainingLabels(TestRequest $request): void
-    {
-        foreach ($request->samples as $sample) {
-            // Get leftover quantity (already calculated and set as attribute)
-            $leftoverQty = $sample->getAttribute('leftover_quantity_value');
-
-            // Skip if no leftover or leftover <= 0
-            if ($leftoverQty === null || $leftoverQty <= 0) {
-                continue;
-            }
-
-            // Find or create EvidenceUnit for this sample
-            $evidenceUnit = EvidenceUnit::firstOrCreate(
-                ['sample_id' => $sample->id],
-                [
-                    'request_id' => $request->id,
-                    'sample_code' => $sample->sample_code,
-                    'sample_type' => $sample->sample_category ?? $sample->sample_form,
-                    'sample_desc' => $sample->short_description ?? $sample->sample_description,
-                    'investigator_name' => $request->investigator?->name,
-                    'investigator_unit' => $request->investigator?->jurisdiction,
-                    'received_at' => $sample->received_at ?? now(),
-                    'received_by' => Auth::id(),
-                ]
-            );
-
-            // Check if RemainingUnit already exists for this EvidenceUnit
-            $existingRemaining = RemainingUnit::where('evidence_unit_id', $evidenceUnit->id)->exists();
-
-            if ($existingRemaining) {
-                // Skip - label already exists
-                continue;
-            }
-
-            // Create RemainingUnit with leftover data
-            RemainingUnit::create([
-                'evidence_unit_id' => $evidenceUnit->id,
-                'sample_code' => $sample->sample_code,
-                'qty_remaining' => $leftoverQty,
-                'uom' => $sample->unit ?? $sample->quantity_unit,
-                'seal_status_delivered' => 'disegel',
-                'delivered_at' => now(),
-                'delivered_by' => Auth::id(),
-            ]);
-        }
     }
 
     /**

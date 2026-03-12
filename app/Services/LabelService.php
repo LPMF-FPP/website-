@@ -8,6 +8,7 @@ use App\Models\RemainingUnit;
 use App\Models\Sample;
 use App\Models\TestRequest;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -44,6 +45,8 @@ class LabelService
                     continue;
                 }
 
+                $receivedBy = $sample->received_by ?: Auth::id();
+
                 $evidenceUnit = EvidenceUnit::create([
                     'request_id' => $request->id,
                     'sample_id' => $sample->id,
@@ -56,7 +59,7 @@ class LabelService
                     'seal_status_received' => null, // To be filled during physical receipt
                     'condition_received' => $sample->condition,
                     'received_at' => $sample->received_at ?? $request->received_at,
-                    'received_by' => $sample->received_by ?? auth()->id(),
+                    'received_by' => $receivedBy,
                 ]);
 
                 $created->push($evidenceUnit);
@@ -77,6 +80,8 @@ class LabelService
     {
         $evidenceUnit = EvidenceUnit::findOrFail($evidenceUnitId);
 
+        $deliveredBy = $data['delivered_by'] ?? Auth::id();
+
         return RemainingUnit::create([
             'evidence_unit_id' => $evidenceUnitId,
             'sample_code' => $evidenceUnit->sample_code, // Will be set by model if empty
@@ -86,7 +91,7 @@ class LabelService
             'seal_status_delivered' => $data['seal_status_delivered'] ?? null,
             'condition_delivered' => $data['condition_delivered'] ?? null,
             'delivered_at' => $data['delivered_at'] ?? now(),
-            'delivered_by' => $data['delivered_by'] ?? auth()->id(),
+            'delivered_by' => $deliveredBy,
             'handover_doc_no' => $data['handover_doc_no'] ?? null,
         ]);
     }
@@ -128,6 +133,67 @@ class LabelService
     }
 
     /**
+     * Auto-create remaining labels from delivered quantity minus testing quantity.
+     *
+     * Creates at most one automatic RemainingUnit per evidence unit and leaves
+     * existing remaining labels untouched.
+     */
+    public function ensureAutoRemainingUnitsForRequest(TestRequest $request, ?int $actorId = null): void
+    {
+        $request->loadMissing(['investigator', 'samples', 'evidenceUnits.remainingUnits']);
+
+        foreach ($request->samples as $sample) {
+            $deliveredQty = is_numeric($sample->package_quantity) ? (float) $sample->package_quantity : null;
+            $usedQty = is_numeric($sample->quantity) ? (float) $sample->quantity : null;
+
+            if ($deliveredQty === null) {
+                continue;
+            }
+
+            $leftoverQty = $usedQty !== null
+                ? max($deliveredQty - $usedQty, 0.0)
+                : $deliveredQty;
+
+            if ($leftoverQty <= 0) {
+                continue;
+            }
+
+            $evidenceUnit = $request->evidenceUnits
+                ->firstWhere('sample_id', $sample->id)
+                ?? EvidenceUnit::firstOrCreate(
+                    ['sample_id' => $sample->id],
+                    [
+                        'request_id' => $request->id,
+                        'receipt_code' => $request->receipt_number,
+                        'sample_code' => $sample->sample_code,
+                        'sample_type' => $sample->sample_category ?? $sample->sample_form,
+                        'sample_desc' => $sample->short_description ?? $sample->sample_description,
+                        'investigator_name' => $request->investigator?->name ?? $request->investigator?->rank_name,
+                        'investigator_unit' => $request->investigator?->jurisdiction ?? $request->investigator?->satuan_kerja ?? $request->investigator?->unit,
+                        'seal_status_received' => null,
+                        'condition_received' => $sample->condition,
+                        'received_at' => $sample->received_at ?? $request->received_at,
+                        'received_by' => $sample->received_by ?? $actorId,
+                    ]
+                );
+
+            if (RemainingUnit::where('evidence_unit_id', $evidenceUnit->id)->exists()) {
+                continue;
+            }
+
+            RemainingUnit::create([
+                'evidence_unit_id' => $evidenceUnit->id,
+                'sample_code' => $sample->sample_code,
+                'qty_remaining' => $leftoverQty,
+                'uom' => $sample->unit ?? $sample->quantity_unit,
+                'seal_status_delivered' => 'disegel',
+                'delivered_at' => now(),
+                'delivered_by' => $actorId,
+            ]);
+        }
+    }
+
+    /**
      * Log a print action.
      */
     public function logPrint(
@@ -137,10 +203,12 @@ class LabelService
         ?string $reason = null,
         int $count = 1
     ): LabelPrintLog {
+        $printedBy = Auth::id();
+
         return LabelPrintLog::logPrint(
             $labelType,
             $printable,
-            auth()->id(),
+            $printedBy,
             $format,
             $reason,
             $count
