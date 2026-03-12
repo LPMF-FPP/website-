@@ -61,7 +61,7 @@ class ProcessController extends Controller
         ]);
     }
 
-    public function markReadyForDelivery(TestRequest $testRequest, \App\Services\WhatsApp\NotificationService $notificationService): RedirectResponse
+    public function markReadyForDelivery(TestRequest $testRequest): RedirectResponse
     {
         $requiredStages = ['preparation', 'instrumentation', 'interpretation'];
 

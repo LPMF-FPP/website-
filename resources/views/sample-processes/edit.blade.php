@@ -26,19 +26,19 @@
 @endphp
 <x-app-layout>
     <x-slot name="header">
-        <x-page-header title="Workspace Tahap Pengujian" :breadcrumbs="[]" />
+        <x-page-header title="Proses Pengujian Sampel" :breadcrumbs="[]" />
     </x-slot>
 
-    <div class="mx-auto max-w-[1440px] space-y-8 px-4 sm:px-6 lg:px-8" x-data="{ ...processDetailActions({ processId: {{ $process->id }} }), activeSection: 'actions', toggleSection(section) { this.activeSection = this.activeSection === section ? null : section } }" x-init="init()">
+    <div class="mx-auto max-w-[1480px] space-y-8 px-4 sm:px-6 lg:px-8" x-data="{ ...processDetailActions({ processId: {{ $process->id }} }), activeSection: 'actions', toggleSection(section) { this.activeSection = this.activeSection === section ? null : section } }" x-init="init()">
         
         @if (session('success'))
-            <div class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            <div class="rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
                 {{ session('success') }}
             </div>
         @endif
 
         @if (session('error') || $errors->any())
-            <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 @if (session('error'))
                     <p>{{ session('error') }}</p>
                 @endif
@@ -57,7 +57,7 @@
                 <div>
                     <p class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary-700">
                         <x-icon name="folder-open" size="sm" class="text-primary-600" :decorative="true" />
-                        Workflow Pengujian
+                        Proses Pengujian Sampel
                     </p>
                     <h2 class="mt-2 text-2xl font-semibold tracking-tight text-primary-950 sm:text-3xl">{{ $process->sample?->sample_code ?? 'Tahap #'.$process->id }}</h2>
                     <p class="mt-2 max-w-3xl text-sm leading-relaxed text-gray-600">{{ $process->sample->short_description ?? 'Deskripsi belum tersedia' }}</p>
@@ -67,7 +67,7 @@
                             {{ $statusLabel }} · {{ $process->stage_label }}
                         </span>
                         <span class="text-gray-500">
-                            Permintaan: {{ $process->sample->testRequest?->request_number ?? '-' }}
+                            Resi: {{ $process->sample->testRequest?->request_number ?? '-' }}
                         </span>
                     </div>
                 </div>
@@ -75,18 +75,18 @@
                     <a href="{{ route('testing.show', $process->sample->testRequest) }}"
                         class="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 transition hover:bg-gray-50">
                         <x-icon name="arrow-left" size="sm" :decorative="true" />
-                        Kembali ke Permintaan
+                        Kembali ke Resi
                     </a>
                 </div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 items-start gap-8 lg:grid-cols-[minmax(0,1.7fr)_minmax(320px,0.9fr)]">
+        <div class="grid grid-cols-1 gap-5 lg:grid-cols-12 lg:items-start">
             
-            <div class="space-y-6">
+            <div class="min-w-0 space-y-5 lg:col-span-8 xl:col-span-8">
                 {{-- Action Panel dari show.blade.php --}}
-                <div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
-                    <button type="button" @click="toggleSection('actions')" class="flex w-full items-center justify-between gap-3 px-6 py-4 text-left transition hover:bg-gray-50/80">
+                <div class="overflow-hidden rounded-[1.75rem] border border-primary-100/70 bg-gradient-to-r from-primary-50/55 via-white to-white shadow-[0_20px_45px_-24px_rgba(15,23,42,0.08)]">
+                    <button type="button" @click="toggleSection('actions')" class="flex w-full items-center justify-between gap-3 px-6 py-4.5 text-left transition hover:bg-gray-50/80 sm:px-7">
                         <span class="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-gray-700">
                             <x-icon name="play" size="sm" class="text-gray-500" :decorative="true" />
                             Aksi Tahap Saat Ini
@@ -98,15 +98,19 @@
                             </span>
                         </span>
                     </button>
-                    <div x-show="activeSection === 'actions'" x-collapse class="border-t border-gray-100 px-6 py-6">
-                        <div class="flex flex-wrap items-center justify-end gap-3">
+                    <div x-show="activeSection === 'actions'" x-collapse class="border-t border-primary-100/70 px-6 py-5 sm:px-7">
+                        <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-100 bg-gray-50/70 px-4 py-2.5">
+                            <div>
+                                <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">Kontrol Tahap</p>
+                                <p class="mt-1 text-xs text-gray-500">Jalankan aksi cepat sesuai aturan workflow aktif.</p>
+                            </div>
                             <div x-data="{ showRules: false }" class="relative">
                                 <button type="button" @click="showRules = !showRules" class="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition">
                                     <x-icon name="info" size="sm" :decorative="true" />
                                     Aturan workflow
                                 </button>
                                 <div x-show="showRules" x-transition @click.outside="showRules = false"
-                                    class="absolute right-0 z-10 mt-2 w-72 rounded-lg bg-white p-4 shadow-lg ring-1 ring-gray-200 text-xs text-gray-600"
+                                    class="absolute right-0 z-10 mt-2 w-72 rounded-2xl bg-white p-4 shadow-lg ring-1 ring-gray-200/80 text-xs text-gray-600"
                                     style="display: none;">
                                     <p class="font-semibold text-gray-700 mb-2">Validasi Workflow</p>
                                     <ul class="space-y-1.5">
@@ -122,7 +126,7 @@
                             <button type="button"
                                 @click="startProcess()"
                                 @disabled(! $actionState['can_start'])
-                                class="inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold shadow-sm transition {{ $actionState['can_start'] ? 'bg-green-600 text-white hover:bg-green-700' : 'cursor-not-allowed bg-gray-100 text-gray-400' }}">
+                                class="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold shadow-sm transition active:scale-[0.99] {{ $actionState['can_start'] ? 'bg-green-600 text-white hover:bg-green-700' : 'cursor-not-allowed bg-gray-100 text-gray-400' }}">
                                 <x-icon name="play" size="sm" :decorative="true" />
                                 Mulai Tahap
                             </button>
@@ -130,7 +134,7 @@
                             <button type="button"
                                 @click="completeProcess()"
                                 @disabled(! $actionState['can_complete'])
-                                class="inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold shadow-sm transition {{ $actionState['can_complete'] ? 'bg-primary-600 text-white hover:bg-primary-700' : 'cursor-not-allowed bg-gray-100 text-gray-400' }}">
+                                class="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold shadow-sm transition active:scale-[0.99] {{ $actionState['can_complete'] ? 'bg-primary-600 text-white hover:bg-primary-700' : 'cursor-not-allowed bg-gray-100 text-gray-400' }}">
                                 <x-icon name="check-circle" size="sm" :decorative="true" />
                                 Selesaikan Tahap
                             </button>
@@ -138,13 +142,13 @@
                             <button type="button"
                                 @click="openUnlockModal()"
                                 @disabled(! $actionState['can_unlock'])
-                                class="inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-semibold shadow-sm transition {{ $actionState['can_unlock'] ? 'bg-amber-500 text-white hover:bg-amber-600' : 'cursor-not-allowed bg-gray-100 text-gray-400' }}">
+                                class="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold shadow-sm transition active:scale-[0.99] {{ $actionState['can_unlock'] ? 'bg-amber-500 text-white hover:bg-amber-600' : 'cursor-not-allowed bg-gray-100 text-gray-400' }}">
                                 <x-icon name="folder-open" size="sm" :decorative="true" />
                                 Perbaiki Tahap
                             </button>
                         </div>
 
-                        <div class="mt-4 space-y-2 text-xs text-gray-600">
+                        <div class="mt-4 rounded-2xl border border-dashed border-gray-200 bg-white px-4 py-3 space-y-1.5 text-xs leading-relaxed text-gray-600">
                             @if (! $actionState['can_start'] && $actionState['start_reason'])
                                 <p>• Mulai Tahap: {{ $actionState['start_reason'] }}</p>
                             @endif
@@ -159,8 +163,8 @@
                 </div>
 
                 @if ($interpretationDetails)
-                    <div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
-                        <button type="button" @click="toggleSection('summary')" class="flex w-full items-center justify-between gap-3 px-6 py-4 text-left transition hover:bg-gray-50/80">
+                    <div class="overflow-hidden rounded-[1.75rem] border border-primary-100/70 bg-gradient-to-r from-primary-50/45 via-white to-white shadow-[0_20px_45px_-24px_rgba(15,23,42,0.08)]">
+                        <button type="button" @click="toggleSection('summary')" class="flex w-full items-center justify-between gap-3 px-6 py-4.5 text-left transition hover:bg-gray-50/80 sm:px-7">
                             <span class="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-gray-700">
                                 <x-icon name="check-circle" size="sm" class="text-gray-500" :decorative="true" />
                                 Interpretasi Hasil
@@ -172,8 +176,8 @@
                                 </span>
                             </span>
                         </button>
-                        <div x-show="activeSection === 'summary'" x-collapse class="border-t border-gray-100 px-6 py-6">
-                            <div class="text-sm">
+                        <div x-show="activeSection === 'summary'" x-collapse class="border-t border-primary-100/70 px-6 py-5 sm:px-7">
+                            <div class="rounded-2xl border border-gray-100 bg-gray-50/70 px-4 py-3 text-sm">
                                 <span class="text-gray-500">Nomor LHU:</span>
                                 <span class="font-semibold text-gray-900">{{ $interpretationDetails['report_number'] }}</span>
                             </div>
@@ -202,53 +206,55 @@
                                 }
                             @endphp
 
-                            <div class="mt-4 overflow-hidden rounded-lg border border-gray-200">
-                                <table class="min-w-full divide-y divide-gray-200 text-sm">
-                                    <thead class="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                                        <tr>
-                                            <th class="px-4 py-3 text-left">Instrumen</th>
-                                            <th class="px-4 py-3 text-left">Hasil</th>
-                                            <th class="px-4 py-3 text-left">Zat Aktif Terdeteksi</th>
-                                            <th class="px-4 py-3 text-left">Lampiran</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="divide-y divide-gray-200 text-gray-700">
+                            <div class="mt-4 overflow-hidden rounded-[1.9rem] border border-white/70 bg-gradient-to-br from-white via-white to-primary-50/35 shadow-[0_24px_60px_-30px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/60">
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full border-separate border-spacing-0 text-sm text-gray-700">
+                                        <thead>
+                                            <tr class="bg-slate-50/75 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                                <th class="px-5 py-4 text-left first:rounded-tl-[1.4rem]">Instrumen</th>
+                                                <th class="px-5 py-4 text-left">Hasil</th>
+                                                <th class="px-5 py-4 text-left">Zat Aktif Terdeteksi</th>
+                                                <th class="px-5 py-4 text-left last:rounded-tr-[1.4rem]">Lampiran</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
                                         @foreach ($rows as $r)
                                             @php
                                                 $resultClass = match ($r['result_raw']) {
-                                                    'positive' => 'bg-red-100 text-red-700',
-                                                    'negative' => 'bg-green-100 text-green-700',
-                                                    default => 'bg-gray-100 text-gray-700',
+                                                    'positive' => 'bg-red-100 text-red-700 ring-1 ring-red-200/70',
+                                                    'negative' => 'bg-green-100 text-green-700 ring-1 ring-green-200/70',
+                                                    default => 'bg-slate-100 text-slate-700 ring-1 ring-slate-200/70',
                                                 };
                                             @endphp
-                                            <tr class="odd:bg-white even:bg-gray-50/50">
-                                                <td class="px-4 py-3 font-medium text-gray-900">{{ $r['instrument'] }}</td>
-                                                <td class="px-4 py-3">
-                                                    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold {{ $resultClass }}">
+                                            <tr class="group transition-colors duration-200 hover:bg-white/70">
+                                                <td class="border-t border-slate-200/60 px-5 py-4 font-medium text-slate-900 group-first:border-t-0">{{ $r['instrument'] }}</td>
+                                                <td class="border-t border-slate-200/60 px-5 py-4 group-first:border-t-0">
+                                                    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] {{ $resultClass }}">
                                                         {{ $r['result'] }}
                                                     </span>
                                                 </td>
-                                                <td class="px-4 py-3">{{ $r['detected'] }}</td>
-                                                <td class="px-4 py-3">
+                                                <td class="border-t border-slate-200/60 px-5 py-4 text-slate-600 group-first:border-t-0">{{ $r['detected'] }}</td>
+                                                <td class="border-t border-slate-200/60 px-5 py-4 group-first:border-t-0">
                                                     @if (! empty($r['attachment_url']))
-                                                        <a href="{{ $r['attachment_url'] }}" target="_blank" class="text-primary-700 underline hover:text-primary-800">
+                                                        <a href="{{ $r['attachment_url'] }}" target="_blank" class="inline-flex items-center rounded-full bg-white/85 px-3 py-1.5 text-xs font-medium text-primary-700 ring-1 ring-primary-100 transition hover:bg-primary-50/70 hover:text-primary-800">
                                                             {{ $r['attachment_original'] ?? 'Lihat dokumen' }}
                                                         </a>
                                                     @else
-                                                        <span class="text-gray-400">—</span>
+                                                        <span class="text-slate-400">—</span>
                                                     @endif
                                                 </td>
                                             </tr>
                                         @endforeach
-                                    </tbody>
-                                </table>
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                         </div>
                     </div>
                 @endif
         
-                <div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
-                    <button type="button" @click="toggleSection('form')" class="flex w-full items-center justify-between gap-3 px-6 py-4 text-left transition hover:bg-gray-50/80">
+                <div class="overflow-hidden rounded-[1.9rem] border border-primary-100/70 bg-gradient-to-r from-primary-50/50 via-white to-white shadow-[0_24px_55px_-28px_rgba(15,23,42,0.08)]">
+                    <button type="button" @click="toggleSection('form')" class="flex w-full items-center justify-between gap-3 px-6 py-4.5 text-left transition hover:bg-white/80 sm:px-7">
                         <span>
                             <span class="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-gray-700">
                                 <x-icon name="pencil" size="sm" class="text-gray-500" :decorative="true" />
@@ -263,15 +269,19 @@
                             </span>
                         </span>
                     </button>
-                    <div x-show="activeSection === 'form'" x-collapse class="border-t border-gray-100 px-6 py-6">
-                        <div class="mb-4 flex flex-wrap items-center justify-end gap-3">
+                    <div x-show="activeSection === 'form'" x-collapse class="border-t border-primary-100/70 px-6 py-5 sm:px-7">
+                        <div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary-100/60 bg-white/85 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
+                            <div>
+                                <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">Area Kerja Utama</p>
+                                <p class="mt-1 text-xs text-gray-500">Fokus pada pembaruan data tahap, interpretasi hasil, dan lampiran kerja.</p>
+                            </div>
                             <div class="text-sm text-gray-600">
                                 @if(($process->stage instanceof \App\Enums\TestProcessStage ? $process->stage->value : $process->stage) === 'administration')
-                                    <span class="inline-flex items-center rounded-md bg-yellow-50 px-2 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-200">Tahap Administrasi tidak lagi digunakan</span>
+                                    <span class="inline-flex items-center rounded-xl bg-yellow-50 px-2.5 py-1 text-xs font-medium text-yellow-800 ring-1 ring-inset ring-yellow-200">Tahap Administrasi tidak lagi digunakan</span>
                                 @endif
                             </div>
                         </div>
-                        <form method="POST" action="{{ route('testing.processes.update', ['sample_process' => $process->id]) }}" class="space-y-6" enctype="multipart/form-data">
+                        <form id="sample-process-edit-form" method="POST" action="{{ route('testing.processes.update', ['sample_process' => $process->id]) }}" class="space-y-6" enctype="multipart/form-data">
                             @csrf
                             @method('PUT')
 
@@ -283,8 +293,8 @@
                             @endphp
 
                             @if(isset($activeSubstances) && $selectedStage === 'interpretation')
-                                <div x-data="{ open: true }" class="rounded-lg border border-gray-200 bg-gray-50">
-                                    <button type="button" @click="open = !open" class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-white/60">
+                                <div x-data="{ open: true }" class="overflow-hidden rounded-[1.9rem] border border-white/70 bg-gradient-to-br from-white via-white to-primary-50/40 shadow-[0_24px_60px_-30px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/60">
+                                    <button type="button" @click="open = !open" class="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition hover:bg-white/75 sm:px-6">
                                         <span>
                                             <span class="inline-flex items-center gap-2 text-sm font-semibold text-gray-900">
                                                 <x-icon name="check-circle" size="sm" class="text-primary-600" :decorative="true" />
@@ -299,7 +309,7 @@
                                             </span>
                                         </span>
                                     </button>
-                                    <div x-show="open" x-collapse class="border-t border-gray-200 px-4 py-4">
+                                    <div x-show="open" x-collapse class="border-t border-slate-200/70 px-5 py-5 sm:px-6">
                                         <div class="mt-4 grid gap-4 sm:grid-cols-2">
                                             <div>
                                                 <fieldset>
@@ -335,7 +345,7 @@
                                                     <p class="mt-2 text-xs text-gray-500">Belum ada data zat aktif tersimpan. Tambahkan melalui permintaan sampel terlebih dahulu.</p>
                                                 @else
                                                     <select name="detected_substance" id="detected-substance"
-                                                            class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                                            class="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500">
                                                             <option value="">-- pilih zat aktif --</option>
                                                             @foreach($activeSubstanceList as $substance)
                                                                 <option value="{{ $substance }}" @selected($detectedValue === $substance)>{{ $substance }}</option>
@@ -348,7 +358,7 @@
                                             </div>
                                         </div>
 
-                                        <div class="mt-6 border-t border-gray-200 pt-4">
+                                        <div class="mt-6 border-t border-slate-200/70 pt-5">
                                             <h4 class="inline-flex items-center gap-2 text-sm font-semibold text-gray-900">
                                                 <x-icon name="document" size="sm" class="text-gray-500" :decorative="true" />
                                                 Unggah Hasil Pengujian
@@ -359,16 +369,16 @@
                                                     ?? ($currentResultAttachmentPath ? basename($currentResultAttachmentPath) : null);
                                             @endphp
                                             @if(!empty($currentResultAttachmentUrl))
-                                                <div class="mt-3 rounded-md border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600">
+                                                <div class="mt-3 rounded-2xl border border-white/80 bg-slate-50/80 px-3.5 py-2.5 text-xs text-slate-600 ring-1 ring-slate-200/60">
                                                     <span class="font-medium text-gray-700">File saat ini:</span>
-                                                    <a href="{{ $currentResultAttachmentUrl }}" target="_blank" class="ml-1 text-primary-600 hover:text-primary-700 underline">
+                                                    <a href="{{ $currentResultAttachmentUrl }}" target="_blank" class="ml-1 text-primary-600 transition hover:text-primary-700">
                                                         {{ $resultAttachmentName ?? 'Lihat dokumen' }}
                                                     </a>
                                                 </div>
                                             @endif
                                             <div class="mt-3">
                                                 <input type="file" name="test_result_file" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-                                                        class="block w-full text-sm text-gray-700 file:mr-4 file:rounded-md file:border-0 file:bg-primary-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-primary-700">
+                                                        class="block w-full text-sm text-gray-700 file:mr-4 file:rounded-xl file:border-0 file:bg-primary-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-primary-700">
                                                 @error('test_result_file')
                                                     <p class="mt-2 text-xs text-red-600">{{ $message }}</p>
                                                 @enderror
@@ -378,8 +388,8 @@
                                 </div>
 
                                 {{-- Secondary interpretation for multi-instrument requests --}}
-                                <div x-data="{ open: false }" class="mt-6 rounded-lg border border-dashed border-gray-300 bg-white">
-                                    <button type="button" @click="open = !open" class="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition hover:bg-gray-50/70">
+                                <div x-data="{ open: false }" class="mt-6 overflow-hidden rounded-[1.75rem] border border-slate-200/70 bg-slate-50/55 shadow-[0_18px_45px_-32px_rgba(15,23,42,0.14)] ring-1 ring-white/80">
+                                    <button type="button" @click="open = !open" class="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition hover:bg-white/70 sm:px-6">
                                         <span>
                                             <span class="inline-flex items-center gap-2 text-sm font-semibold text-gray-900">
                                                 <x-icon name="document-duplicate" size="sm" class="text-gray-500" :decorative="true" />
@@ -394,7 +404,7 @@
                                             </span>
                                         </span>
                                     </button>
-                                    <div x-show="open" x-collapse class="border-t border-dashed border-gray-300 px-4 py-4">
+                                    <div x-show="open" x-collapse class="border-t border-slate-200/70 px-5 py-5 sm:px-6">
                                         <div class="mt-4">
                                             <label class="block text-xs font-semibold uppercase tracking-wide text-gray-700">Instrumen Pengujian</label>
                                             @php
@@ -402,7 +412,7 @@
                                                 // instrumentOptions passed from controller
                                             @endphp
                                             <select name="instrument_2"
-                                                    class="mt-2 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                                    class="mt-2 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500">
                                                     <option value="">-- Pilih Instrumen Pengujian --</option>
                                                     @foreach($instrumentOptions as $value => $label)
                                                         <option value="{{ $value }}" @selected($currentInstrument2 === $value)>{{ $label }}</option>
@@ -442,7 +452,7 @@
                                                     <p class="mt-2 text-xs text-gray-500">Belum ada data zat aktif tersimpan.</p>
                                                 @else
                                                     <select name="detected_substance_2" id="detected-substance-2"
-                                                            class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                                            class="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500">
                                                             <option value="">-- pilih zat aktif --</option>
                                                             @foreach($activeSubstanceList as $substance)
                                                                 <option value="{{ $substance }}" @selected($detectedValue2 === $substance)>{{ $substance }}</option>
@@ -452,7 +462,7 @@
                                             </div>
                                         </div>
 
-                                        <div class="mt-6 border-t border-gray-200 pt-4">
+                                        <div class="mt-6 border-t border-slate-200/70 pt-5">
                                             <h4 class="inline-flex items-center gap-2 text-sm font-semibold text-gray-900">
                                                 <x-icon name="document" size="sm" class="text-gray-500" :decorative="true" />
                                                 Unggah Hasil Pengujian (Instrumen Ke-2)
@@ -462,16 +472,16 @@
                                                     ?? ($secondaryResultAttachmentPath ? basename($secondaryResultAttachmentPath) : null);
                                             @endphp
                                             @if(!empty($secondaryResultAttachmentUrl))
-                                                <div class="mt-3 rounded-md border border-gray-200 bg-white px-3 py-2 text-xs text-gray-600">
+                                                <div class="mt-3 rounded-2xl border border-white/80 bg-white/90 px-3.5 py-2.5 text-xs text-slate-600 ring-1 ring-slate-200/60">
                                                     <span class="font-medium text-gray-700">File saat ini:</span>
-                                                    <a href="{{ $secondaryResultAttachmentUrl }}" target="_blank" class="ml-1 text-primary-600 hover:text-primary-700 underline">
+                                                    <a href="{{ $secondaryResultAttachmentUrl }}" target="_blank" class="ml-1 text-primary-600 transition hover:text-primary-700">
                                                         {{ $resultAttachmentName2 ?? 'Lihat dokumen' }}
                                                     </a>
                                                 </div>
                                             @endif
                                             <div class="mt-3">
                                                 <input type="file" name="test_result_file_2" accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-                                                        class="block w-full text-sm text-gray-700 file:mr-4 file:rounded-md file:border-0 file:bg-primary-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-primary-700">
+                                                        class="block w-full text-sm text-gray-700 file:mr-4 file:rounded-xl file:border-0 file:bg-primary-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-primary-700">
                                             </div>
                                         </div>
                                     </div>
@@ -480,10 +490,10 @@
 
                             {{-- INSTRUMENTATION STAGE: Instrument Logging --}}
                             @if($selectedStage === 'instrumentation')
-                                <div class="rounded-lg border border-gray-200 bg-gray-50"
+                                <div class="overflow-hidden rounded-[1.9rem] border border-white/70 bg-gradient-to-br from-white via-white to-primary-50/35 shadow-[0_24px_60px_-30px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/60"
                                     x-data="{ open: true, ...instrumentLogging({{ $process->sample_id }}) }"
                                     x-init="loadRequirements()">
-                                    <button type="button" @click="open = !open" class="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition hover:bg-gray-50/80">
+                                    <button type="button" @click="open = !open" class="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition hover:bg-white/75 sm:px-6">
                                         <span>
                                             <span class="inline-flex items-center gap-2 text-sm font-semibold text-gray-900">
                                                 <x-icon name="document-duplicate" size="sm" class="text-gray-500" :decorative="true" />
@@ -498,9 +508,9 @@
                                             </span>
                                         </span>
                                     </button>
-                                    <div x-show="open" x-collapse class="border-t border-gray-200 px-4 py-4">
+                                    <div x-show="open" x-collapse class="border-t border-slate-200/70 px-5 py-5 sm:px-6">
                                         <template x-if="loading">
-                                            <div class="mt-4 flex items-center gap-2 text-sm text-gray-500" role="status">
+                                            <div class="flex items-center gap-2 rounded-2xl border border-slate-200/70 bg-slate-50/70 px-4 py-3 text-sm text-gray-500" role="status">
                                                 <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -510,26 +520,35 @@
                                         </template>
 
                                         <template x-if="!loading && !enabled">
-                                            <div class="mt-4 rounded-md bg-yellow-50 border border-yellow-200 px-3 py-2 text-xs text-yellow-700">
+                                            <div class="rounded-2xl border border-yellow-200/80 bg-yellow-50/85 px-3.5 py-2.5 text-xs text-yellow-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
                                                 Pencatatan instrumen tidak diaktifkan. Aktifkan melalui Pengaturan &gt; Monitoring dan Pencatatan.
                                             </div>
                                         </template>
 
                                         <template x-if="!loading && enabled && Object.keys(requirements).length === 0">
-                                            <div class="mt-4 rounded-md bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-700">
+                                            <div class="rounded-2xl border border-blue-200/80 bg-blue-50/80 px-3.5 py-2.5 text-xs text-blue-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
                                                 Tidak ada instrumen yang perlu dicatat untuk metode pengujian sampel ini.
                                             </div>
                                         </template>
 
                                         <template x-if="!loading && enabled && Object.keys(requirements).length > 0">
-                                            <div class="mt-4 space-y-4">
+                                            <div class="space-y-4">
                                                 <template x-for="(methodReqs, methodCode) in requirements" :key="methodCode">
-                                                    <div class="rounded-md border border-gray-200 bg-white p-3">
-                                                        <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-600" x-text="getMethodLabel(methodCode)"></h4>
+                                                    <div class="rounded-[1.4rem] border border-white/80 bg-slate-50/70 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-slate-200/60">
+                                                        <div class="flex flex-col gap-1 border-b border-slate-200/70 pb-3 sm:flex-row sm:items-start sm:justify-between">
+                                                            <div>
+                                                                <h4 class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600" x-text="getMethodLabel(methodCode)"></h4>
+                                                                <p class="mt-1 text-xs text-gray-500">Tetapkan aset instrumen yang digunakan untuk metode ini sebelum melanjutkan.</p>
+                                                            </div>
+                                                            <span class="inline-flex w-fit items-center rounded-full bg-white/85 px-2.5 py-1 text-[11px] font-medium text-slate-500 ring-1 ring-slate-200/70">
+                                                                Kelompok metode
+                                                            </span>
+                                                        </div>
                                                         <div class="mt-3 space-y-3">
                                                             <template x-for="req in methodReqs" :key="req.id">
-                                                                <div class="flex flex-col sm:flex-row sm:items-center gap-2">
-                                                                    <div class="flex-1">
+                                                                <div class="rounded-2xl border border-white/85 bg-white/80 p-3.5 ring-1 ring-slate-200/60 transition group-hover:bg-white sm:p-4">
+                                                                    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                                                    <div class="flex-1 min-w-0">
                                                                         <label class="block text-sm font-medium text-gray-700">
                                                                             <span x-text="req.instrument_name"></span>
                                                                             <span x-show="req.mandatory" class="text-red-500">*</span>
@@ -541,12 +560,13 @@
                                                                         <select :name="'selections[' + methodCode + '][' + req.instrument_id + ']'"
                                                                                 x-model="selections[methodCode + '_' + req.instrument_id]"
                                                                                 :disabled="req.already_logged"
-                                                                                class="block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500 disabled:bg-gray-100 disabled:text-gray-500">
+                                                                                class="block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500 disabled:bg-gray-100 disabled:text-gray-500">
                                                                                 <option value="">-- Pilih Aset --</option>
                                                                                 <template x-for="asset in req.available_assets" :key="asset.id">
                                                                                     <option :value="asset.id" x-text="asset.asset_code + (asset.location ? ' (' + asset.location + ')' : '')" :selected="req.selected_asset_id == asset.id"></option>
                                                                                 </template>
                                                                             </select>
+                                                                    </div>
                                                                     </div>
                                                                 </div>
                                                             </template>
@@ -554,11 +574,19 @@
                                                     </div>
                                                 </template>
 
-                                                <div x-show="existingLogs.length > 0" class="mt-4">
-                                                    <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-600">Log Tercatat</h4>
-                                                    <ul class="mt-2 space-y-1 text-xs text-gray-600">
+                                                <div x-show="existingLogs.length > 0" class="mt-4 rounded-[1.4rem] border border-white/80 bg-slate-50/70 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] ring-1 ring-slate-200/60">
+                                                    <div class="flex flex-col gap-1 border-b border-slate-200/70 pb-3 sm:flex-row sm:items-start sm:justify-between">
+                                                        <div>
+                                                            <h4 class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-600">Log Tercatat</h4>
+                                                            <p class="mt-1 text-xs text-gray-500">Riwayat aset instrumen yang sudah disimpan pada tahap ini.</p>
+                                                        </div>
+                                                        <span class="inline-flex w-fit items-center rounded-full bg-white/85 px-2.5 py-1 text-[11px] font-medium text-slate-500 ring-1 ring-slate-200/70">
+                                                            Audit penggunaan
+                                                        </span>
+                                                    </div>
+                                                    <ul class="mt-3 space-y-2 text-xs text-gray-600">
                                                         <template x-for="log in existingLogs" :key="log.id">
-                                                            <li class="flex items-center gap-2">
+                                                            <li class="flex items-center gap-2 rounded-xl border border-white/80 bg-white/85 px-3 py-2 ring-1 ring-slate-200/50">
                                                                 <svg class="h-3 w-3 text-green-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                                                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                                                                 </svg>
@@ -568,13 +596,13 @@
                                                     </ul>
                                                 </div>
 
-                                                <div x-show="error" class="mt-3 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700" x-text="error" role="alert"></div>
-                                                <div x-show="success" class="mt-3 rounded-md bg-green-50 border border-green-200 px-3 py-2 text-xs text-green-700" x-text="success" role="status" aria-live="polite"></div>
+                                                <div x-show="error" class="mt-3 rounded-2xl border border-red-200/80 bg-red-50/80 px-3.5 py-2.5 text-xs text-red-700" x-text="error" role="alert"></div>
+                                                <div x-show="success" class="mt-3 rounded-2xl border border-green-200/80 bg-green-50/80 px-3.5 py-2.5 text-xs text-green-700" x-text="success" role="status" aria-live="polite"></div>
 
                                                 <div class="mt-4 flex justify-end">
                                                     <button type="button" @click="saveInstrumentUsage()"
                                                             :disabled="saving"
-                                                            class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                            class="inline-flex items-center rounded-xl bg-primary-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed">
                                                             <span x-show="!saving">Simpan Pencatatan Instrumen</span>
                                                             <span x-show="saving" class="flex items-center gap-2">
                                                                 <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
@@ -592,10 +620,10 @@
 
                             {{-- PREPARATION STAGE: Weighing (Analytical Balance) --}}
                             @if($selectedStage === 'preparation')
-                                <div class="rounded-lg border border-gray-200 bg-gray-50"
+                                <div class="overflow-hidden rounded-[1.9rem] border border-white/70 bg-gradient-to-br from-white via-white to-primary-50/35 shadow-[0_24px_60px_-30px_rgba(15,23,42,0.12)] ring-1 ring-slate-200/60"
                                     x-data="{ open: true, ...analyticalBalanceWeighing({{ $process->sample_id }}) }"
                                     x-init="checkWeighingStatus()">
-                                    <button type="button" @click="open = !open" class="flex w-full items-center justify-between gap-3 px-4 py-4 text-left transition hover:bg-gray-50/80">
+                                    <button type="button" @click="open = !open" class="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition hover:bg-white/75 sm:px-6">
                                         <span>
                                             <span class="inline-flex items-center gap-2 text-sm font-semibold text-gray-900">
                                                 <x-icon name="document" size="sm" class="text-gray-500" :decorative="true" />
@@ -610,7 +638,7 @@
                                             </span>
                                         </span>
                                     </button>
-                                    <div x-show="open" x-collapse class="border-t border-gray-200 px-4 py-4">
+                                    <div x-show="open" x-collapse class="border-t border-slate-200/70 px-5 py-5 sm:px-6">
                                         <template x-if="loading">
                                             <div class="mt-4 flex items-center gap-2 text-sm text-gray-500" role="status">
                                                 <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
@@ -622,7 +650,7 @@
                                         </template>
 
                                         <template x-if="!loading && !requiresWeighing">
-                                            <div class="mt-4 rounded-md bg-blue-50 border border-blue-200 px-3 py-2 text-xs text-blue-700">
+                                            <div class="mt-4 rounded-2xl border border-blue-200/80 bg-blue-50/80 px-3.5 py-2.5 text-xs text-blue-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
                                                 Sampel ini tidak memerlukan penimbangan (tidak ada requirement Analytical Balance pada metode pengujian yang dipilih).
                                             </div>
                                         </template>
@@ -630,7 +658,7 @@
                                         <template x-if="!loading && requiresWeighing">
                                             <div class="mt-4 space-y-4">
                                                 <template x-if="hasWeighing">
-                                                    <div class="rounded-md bg-green-50 border border-green-200 px-3 py-3">
+                                                    <div class="rounded-[1.4rem] border border-green-200/80 bg-green-50/80 px-3.5 py-3.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.5)]">
                                                         <div class="flex items-center gap-2 text-sm text-green-800">
                                                             <svg class="h-5 w-5 text-green-500" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                                                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
@@ -667,7 +695,7 @@
                                                                 </label>
                                                                 <input type="number" step="1" min="1" max="999"
                                                                         x-model="itemsCount"
-                                                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                                                        class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                                                                         placeholder="1">
                                                                 <p class="mt-1 text-xs text-gray-500">Berapa banyak sampel/aliquot yang ditimbang.</p>
                                                             </div>
@@ -677,7 +705,7 @@
                                                                 </label>
                                                                 <input type="number" step="0.000001" min="0.000001" max="99999999.999999"
                                                                         x-model="massValue"
-                                                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                                                        class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                                                                         placeholder="0.000000">
                                                                 <p class="mt-1 text-xs text-gray-500">Nilai massa dari Analytical Balance.</p>
                                                             </div>
@@ -686,7 +714,7 @@
                                                                     Unit <span class="text-red-500">*</span>
                                                                 </label>
                                                                 <select x-model="massUnit"
-                                                                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
+                                                                        class="mt-1 block w-full rounded-xl border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
                                                                         <option value="">-- Pilih Unit --</option>
                                                                         <option value="ug">Mikrogram (μg)</option>
                                                                         <option value="mg">Miligram (mg)</option>
@@ -705,13 +733,13 @@
                                                             </div>
                                                         </div>
 
-                                                        <div x-show="error" class="rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700" x-text="error" role="alert"></div>
-                                                        <div x-show="success" class="rounded-md bg-green-50 border border-green-200 px-3 py-2 text-xs text-green-700" x-text="success" role="status" aria-live="polite"></div>
+                                                        <div x-show="error" class="rounded-2xl border border-red-200/80 bg-red-50/80 px-3.5 py-2.5 text-xs text-red-700" x-text="error" role="alert"></div>
+                                                        <div x-show="success" class="rounded-2xl border border-green-200/80 bg-green-50/80 px-3.5 py-2.5 text-xs text-green-700" x-text="success" role="status" aria-live="polite"></div>
 
                                                         <div class="flex justify-end">
                                                             <button type="button" @click="saveWeighing()"
                                                                     :disabled="saving || !itemsCount || !massValue || !massUnit"
-                                                                    class="inline-flex items-center gap-2 rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                                    class="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed">
                                                                     <span x-show="!saving">Simpan Data Penimbangan</span>
                                                                     <span x-show="saving" class="flex items-center gap-2">
                                                                         <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
@@ -730,25 +758,31 @@
                                 </div>
                             @endif
 
-                            <div class="flex justify-end gap-3">
-                                <a href="{{ route('testing.processes.show', ['sample_process' => $process->id]) }}"
-                                    class="inline-flex items-center gap-2 rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-200 transition hover:text-primary-700">
-                                    <x-icon name="x-mark" size="sm" :decorative="true" />
-                                    Batal
-                                </a>
-                                <button type="submit"
-                                    class="inline-flex items-center gap-2 rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700">
-                                    <x-icon name="check-circle" size="sm" :decorative="true" />
-                                    Perbarui
-                                </button>
-                            </div>
                         </form>
                     </div>
                 </div>
- 
-             <div class="space-y-6 lg:sticky lg:top-24">
-                <div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
-                    <button type="button" @click="toggleSection('audit')" class="flex w-full items-center justify-between gap-3 px-6 py-4 text-left transition hover:bg-gray-50/80">
+
+                <div class="mt-2 rounded-[1.35rem] border border-primary-100/60 bg-gradient-to-r from-primary-50/45 via-white to-white px-4 py-4 sm:px-5">
+                    <div class="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+                        <a href="{{ route('testing.processes.show', ['sample_process' => $process->id]) }}"
+                            class="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-inset ring-gray-200 transition hover:text-primary-700">
+                            <x-icon name="x-mark" size="sm" :decorative="true" />
+                            Batal
+                        </a>
+                        <button type="submit" form="sample-process-edit-form"
+                            class="inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-700">
+                            <x-icon name="check-circle" size="sm" :decorative="true" />
+                            Perbarui
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+            <aside class="space-y-5 self-start lg:col-span-4 xl:col-span-4 lg:sticky lg:top-24">
+                <div class="space-y-3.5 rounded-[1.75rem] border border-primary-100/70 bg-gradient-to-r from-primary-50/55 via-white to-white px-4 py-4 shadow-[0_20px_45px_-24px_rgba(15,23,42,0.08)] sm:px-5 sm:py-5">
+                    <div class="overflow-hidden rounded-2xl border border-primary-100/60 bg-white/90 shadow-sm">
+                            <button type="button" @click="toggleSection('audit')" class="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition hover:bg-gray-50/80">
                         <span>
                             <span class="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-gray-700">
                                 <x-icon name="document" size="sm" class="text-gray-500" :decorative="true" />
@@ -762,16 +796,16 @@
                                 <x-icon name="chevron-down" size="sm" class="text-gray-400" :decorative="true" />
                             </span>
                         </span>
-                    </button>
-                    <div x-show="activeSection === 'audit'" x-collapse class="border-t border-gray-100 px-6 py-6">
-                        <div class="space-y-3">
+                            </button>
+                            <div x-show="activeSection === 'audit'" x-collapse class="border-t border-primary-100/60 px-5 py-4.5">
+                                <div class="space-y-3">
                             @forelse ($recentWorkflowEvents as $event)
                                 @php
                                     $eventAction = $event->action;
                                     $eventLabel = $eventLabels[$eventAction] ?? $eventAction;
                                     $eventClass = $eventClasses[$eventAction] ?? 'bg-gray-50 text-gray-700 ring-gray-200';
                                 @endphp
-                                <div class="rounded-md p-3 ring-1 {{ $eventClass }}">
+                                <div class="rounded-xl p-3 ring-1 {{ $eventClass }}">
                                     <p class="text-xs font-semibold uppercase tracking-wide">{{ $eventLabel }}</p>
                                     <p class="mt-1 text-xs">Pelaku: {{ $event->actor_name ?? 'Sistem' }}</p>
                                     <p class="mt-1 text-xs">
@@ -782,16 +816,16 @@
                                     @endif
                                 </div>
                             @empty
-                                <div class="rounded-md border border-dashed border-gray-200 p-3 text-xs text-gray-500">
+                                <div class="rounded-xl border border-dashed border-gray-200 bg-gray-50/60 p-3 text-xs text-gray-500">
                                     Belum ada audit trail aksi cepat untuk tahap ini.
                                 </div>
                             @endforelse
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
 
-                <div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-100">
-                    <button type="button" @click="toggleSection('meta')" class="flex w-full items-center justify-between gap-3 px-6 py-4 text-left transition hover:bg-gray-50/80">
+                    <div class="overflow-hidden rounded-2xl border border-primary-100/60 bg-white/90 shadow-sm">
+                            <button type="button" @click="toggleSection('meta')" class="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition hover:bg-gray-50/80">
                         <span>
                             <span class="inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-gray-700">
                                 <x-icon name="information-circle" size="sm" class="text-gray-500" :decorative="true" />
@@ -805,57 +839,67 @@
                                 <x-icon name="chevron-down" size="sm" class="text-gray-400" :decorative="true" />
                             </span>
                         </span>
-                    </button>
-                    <div x-show="activeSection === 'meta'" x-collapse class="border-t border-gray-100 px-6 py-6">
-                        <div class="flex flex-col gap-2 text-xs text-gray-600">
-                            <p>Dibuat: {{ $process->created_at->format('d/m/Y H:i') }}</p>
-                            <p>Diperbarui: {{ $process->updated_at->format('d/m/Y H:i') }}</p>
-                        </div>
-                        <div class="mt-4 border-t border-gray-100 pt-4">
-                            <form method="POST" action="{{ route('testing.processes.destroy', ['sample_process' => $process->id]) }}" x-data>
-                                @csrf
-                                @method('DELETE')
-                                <button type="button"
-                                    class="inline-flex w-full items-center justify-center gap-2 rounded-md bg-white px-4 py-2 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-inset ring-red-200 transition hover:bg-red-50"
-                                    @click.prevent="showConfirmDialog({
-                                        type: 'danger',
-                                        title: 'Hapus Tahap',
-                                        message: 'Hapus tahap ini secara permanen?',
-                                        confirmButtonText: 'Ya, Hapus',
-                                        onConfirm: () => $el.closest('form').submit()
-                                    })">
-                                    <x-icon name="trash" size="sm" :decorative="true" />
-                                    Hapus Tahap Permanen
-                                </button>
-                            </form>
-                        </div>
+                            </button>
+                            <div x-show="activeSection === 'meta'" x-collapse class="border-t border-primary-100/60 px-5 py-4.5">
+                                <div class="grid gap-3">
+                                    <div class="rounded-xl border border-gray-200 bg-gray-50/80 px-4 py-3">
+                                        <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">Dibuat</p>
+                                        <p class="mt-1 text-sm font-medium text-gray-900">{{ $process->created_at->format('d/m/Y H:i') }}</p>
+                                    </div>
+                                    <div class="rounded-xl border border-gray-200 bg-gray-50/80 px-4 py-3">
+                                        <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-gray-500">Diperbarui</p>
+                                        <p class="mt-1 text-sm font-medium text-gray-900">{{ $process->updated_at->format('d/m/Y H:i') }}</p>
+                                    </div>
+                                </div>
+
+                                <div class="mt-4 rounded-xl border border-red-100 bg-red-50/70 p-4">
+                                    <p class="text-[11px] font-semibold uppercase tracking-[0.18em] text-red-700">Aksi Bahaya</p>
+                                    <p class="mt-1 text-xs leading-relaxed text-red-600">Gunakan hanya jika tahap dibuat keliru dan tidak boleh dipulihkan melalui alur perbaikan biasa.</p>
+                                    <form method="POST" action="{{ route('testing.processes.destroy', ['sample_process' => $process->id]) }}" x-data class="mt-4">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="button"
+                                            class="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-red-600 shadow-sm ring-1 ring-inset ring-red-200 transition hover:bg-red-50 active:scale-[0.99]"
+                                            @click.prevent="showConfirmDialog({
+                                                type: 'danger',
+                                                title: 'Hapus Tahap',
+                                                message: 'Hapus tahap ini secara permanen?',
+                                                confirmButtonText: 'Ya, Hapus',
+                                                onConfirm: () => $el.closest('form').submit()
+                                            })">
+                                            <x-icon name="trash" size="sm" :decorative="true" />
+                                            Hapus Tahap Permanen
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
                     </div>
                 </div>
-             </div>
+            </aside>
         </div>
 
         <!-- Unlock Modal & Toast dari show.blade.php -->
         <div x-show="unlockModal" x-trap.noscroll.inert="unlockModal" @keydown.escape.window="unlockModal = false"
             class="fixed inset-0 z-[100] flex items-center justify-center p-4" style="display: none;">
             <div class="absolute inset-0 bg-gray-900/40" @click="unlockModal = false" x-transition.opacity></div>
-            <div class="relative z-10 w-full max-w-lg rounded-lg bg-white p-6 shadow-xl ring-1 ring-gray-200" x-transition>
+            <div class="relative z-10 w-full max-w-lg rounded-[1.35rem] bg-white p-6 shadow-xl ring-1 ring-gray-200" x-transition>
                 <h3 class="text-base font-semibold text-gray-900">Perbaiki Tahap</h3>
                 <p class="mt-1 text-sm text-gray-600">Isi alasan perbaikan tahap. Alasan ini akan masuk audit trail.</p>
 
                 <label for="unlock_reason" class="mt-4 block text-sm font-medium text-gray-700">Alasan <span class="text-red-500">*</span></label>
                 <textarea id="unlock_reason" x-model="unlockReason" rows="4"
-                    class="mt-1 block w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                    class="mt-1 block w-full rounded-xl border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500"
                     placeholder="Contoh: koreksi data instrumen karena salah input pada tahap sebelumnya."></textarea>
 
                 <p class="mt-2 text-xs text-gray-500">Minimal 10 karakter.</p>
 
                 <div class="mt-5 flex justify-end gap-2">
                     <button type="button" @click="unlockModal = false"
-                        class="inline-flex items-center rounded-md bg-white px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                        class="inline-flex items-center rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
                         Batal
                     </button>
                     <button type="button" @click="submitUnlock()" :disabled="busy"
-                        class="inline-flex items-center gap-2 rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60">
+                        class="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60">
                         <x-icon name="folder-open" size="sm" :decorative="true" />
                         Simpan Perbaikan
                     </button>

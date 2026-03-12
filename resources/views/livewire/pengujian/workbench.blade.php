@@ -44,7 +44,7 @@
     </div>
 
     <!-- Summary Operational -->
-    <div class="grid grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div class="bg-white px-4 py-3 rounded-lg border-l-4 border-gray-300 shadow-sm ring-1 ring-gray-100">
             <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Menunggu Proses</p>
             <p class="text-xl font-bold text-gray-900 mt-1">{{ $summaryStats['submitted'] ?? 0 }}</p>

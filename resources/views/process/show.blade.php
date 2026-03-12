@@ -447,6 +447,26 @@
                 });
             },
 
+            async parseApiResponse(response, fallbackMessage) {
+                const contentType = response.headers.get('content-type') || '';
+
+                if (!contentType.includes('application/json')) {
+                    if (response.status === 401 || response.status === 419) {
+                        throw new Error('Sesi Anda telah berakhir. Silakan muat ulang halaman dan masuk kembali.');
+                    }
+
+                    throw new Error(fallbackMessage);
+                }
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || fallbackMessage);
+                }
+
+                return data;
+            },
+
             async showQuickView(processId) {
                 this.showModal = true;
                 this.modalLoading = true;
@@ -459,7 +479,9 @@
                             'X-Requested-With': 'XMLHttpRequest'
                         }
                     });
-                    const data = await response.json();
+
+                    const data = await this.parseApiResponse(response, 'Gagal memuat data proses.');
+
                     if (data.ok) {
                         this.processData = data.data;
                     } else {
@@ -491,7 +513,8 @@
                         }
                     });
 
-                    const data = await response.json();
+                    const data = await this.parseApiResponse(response, 'Gagal memulai proses.');
+
                     if (data.ok) {
                         sessionStorage.setItem('process_toast', JSON.stringify({
                             type: 'success',
@@ -521,7 +544,8 @@
                         }
                     });
 
-                    const data = await response.json();
+                    const data = await this.parseApiResponse(response, 'Gagal menyelesaikan proses.');
+
                     if (data.ok) {
                         sessionStorage.setItem('process_toast', JSON.stringify({
                             type: 'success',

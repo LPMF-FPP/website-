@@ -318,12 +318,14 @@ class SampleTestProcessController extends Controller
         \App\Services\DocumentTemplateService $templateService,
         \App\Services\PdfRenderService $pdfRenderService
     ): RedirectResponse {
+        $requiresCompletionDetails = $request->filled('completed_at') || $sampleProcess->completed_at !== null;
+
         $validated = $request->validate([
             'sample_id' => ['required', 'exists:samples,id'],
             'stage' => ['required', 'string', Rule::in(array_column(TestProcessStage::cases(), 'value'))],
-            'performed_by' => ['nullable', 'exists:users,id'],
+            'performed_by' => [$requiresCompletionDetails ? 'required' : 'nullable', 'exists:users,id'],
             'started_at' => ['nullable', 'date'],
-            'completed_at' => ['nullable', 'date', 'after_or_equal:started_at'],
+            'completed_at' => [$requiresCompletionDetails ? 'required' : 'nullable', 'date', 'after_or_equal:started_at'],
             'notes' => ['nullable', 'string'],
             'metadata_raw' => ['nullable', 'string'],
             'instrument' => ['nullable', 'string', 'max:255'],
@@ -335,6 +337,12 @@ class SampleTestProcessController extends Controller
             'test_result_2' => ['nullable', 'string', Rule::in(['positive', 'negative'])],
             'detected_substance_2' => ['nullable', 'string', 'max:255'],
             'test_result_file_2' => ['nullable', 'file', 'max:20480', 'mimes:pdf,doc,docx,xls,xlsx,png,jpg,jpeg'],
+        ], [
+            'performed_by.required' => 'Pelaksana wajib dipilih saat tahap akan atau sudah diselesaikan.',
+            'performed_by.exists' => 'Pelaksana yang dipilih tidak valid.',
+            'completed_at.required' => 'Waktu selesai wajib diisi saat tahap akan atau sudah diselesaikan.',
+            'completed_at.date' => 'Waktu selesai harus berupa tanggal yang valid.',
+            'completed_at.after_or_equal' => 'Waktu selesai harus sama atau setelah waktu mulai.',
         ]);
 
         // Cek apakah kombinasi sample_id + stage sudah ada (kecuali record ini sendiri)

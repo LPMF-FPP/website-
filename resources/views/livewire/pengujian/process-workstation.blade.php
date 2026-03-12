@@ -29,7 +29,7 @@
 <div class="h-full flex flex-col bg-white overflow-y-auto">
 
     <div class="px-6 py-4 flex items-center justify-between border-b border-gray-200 bg-white sticky top-0 z-10">
-        <h2 class="text-lg font-semibold text-gray-900">Workspace Pengujian</h2>
+        <h2 class="text-lg font-semibold text-gray-900">Proses Pengujian Sampel</h2>
         <button type="button" wire:click="closePanel" class="rounded-md text-gray-400 hover:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2">
             <span class="sr-only">Tutup panel</span>
             <x-icon name="x-mark" class="h-6 w-6" />
@@ -59,7 +59,7 @@
                 <div>
                     <p class="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-primary-700">
                         <x-icon name="folder-open" size="sm" class="text-primary-600" :decorative="true" />
-                        Workflow Pengujian
+                        Proses Pengujian Sampel
                     </p>
                     <h2 class="mt-1 text-xl font-semibold text-primary-900">{{ $process->sample?->sample_code ?? 'Tahap #'.$process->id }}</h2>
                     <p class="mt-1 text-sm text-gray-600">{{ $process->sample->short_description ?? 'Deskripsi belum tersedia' }}</p>
@@ -69,7 +69,7 @@
                             {{ $statusLabel }} · {{ $process->stage_label }}
                         </span>
                         <span class="text-gray-500">
-                            Permintaan: {{ $process->sample->testRequest?->request_number ?? '-' }}
+                            Resi: {{ $process->sample->testRequest?->request_number ?? '-' }}
                         </span>
                     </div>
                 </div>

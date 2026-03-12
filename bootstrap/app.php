@@ -1,5 +1,6 @@
 <?php
 
+use App\Console\Commands\BootstrapLocalDemoCommand;
 use App\Console\Commands\PurgeOldFiles;
 use App\Console\Commands\QmhRefreshActionItemOverdue;
 use Illuminate\Foundation\Application;
@@ -49,6 +50,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withCommands([
+        BootstrapLocalDemoCommand::class,
         PurgeOldFiles::class,
         QmhRefreshActionItemOverdue::class,
     ])
