@@ -115,9 +115,10 @@
                         <ol class="space-y-5 px-6 py-6 sm:px-7 sm:py-7">
                             @foreach ([
                                 ['label' => 'Penerimaan', 'desc' => 'Permintaan diverifikasi dan dicatat oleh petugas administrasi.'],
+                                ['label' => 'Kaji Ulang Sampel', 'desc' => 'Kelengkapan administrasi dan kesesuaian sampel dikaji ulang sebelum proses teknis.'],
                                 ['label' => 'Preparasi Sampel', 'desc' => 'Sampel disiapkan untuk proses pengujian teknis.'],
                                 ['label' => 'Pengujian Instrumen', 'desc' => 'Analisa dilakukan menggunakan instrumen laboratorium.'],
-                                ['label' => 'Validasi & TTD', 'desc' => 'Laporan hasil ditinjau dan menunggu pengesahan.'],
+                                ['label' => 'Interpretasi Hasil', 'desc' => 'Hasil pengujian ditelaah dan disusun sebagai keluaran resmi layanan.'],
                                 ['label' => 'Penyerahan', 'desc' => 'Hasil resmi tersedia untuk diserahkan kepada pemohon.'],
                             ] as $index => $stage)
                                 <li class="flex gap-4">

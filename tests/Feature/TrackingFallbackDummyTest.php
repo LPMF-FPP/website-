@@ -14,7 +14,7 @@ class TrackingFallbackDummyTest extends TestCase
         $this->getJson('/track/DUMMY-RECEIPT-002.json?nocache=1')
             ->assertOk()
             ->assertJsonPath('request_number', 'DUMMY-PENGUJIAN-002')
-            ->assertJsonPath('raw_status', 'ttd_pimpinan')
+            ->assertJsonPath('raw_status', 'interpretasi_hasil')
             ->assertJsonPath('current_stage_index', 2);
     }
 
