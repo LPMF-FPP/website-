@@ -44,8 +44,8 @@ class DummyPengujianSeeder extends Seeder
                 'status' => 'in_testing',
                 'suspect_name' => 'Dummy Pengujian A',
                 'samples' => [
-                    ['code' => 'DUM-SAMP-001', 'short' => 'Serbuk putih dummy validasi workflow', 'stage_state' => 'current_preparation'],
-                    ['code' => 'DUM-SAMP-002', 'short' => 'Tablet dummy dengan tahap instrumen aktif', 'stage_state' => 'current_instrumentation'],
+                    ['code' => 'DUM-SAMP-001', 'short' => 'Serbuk putih dummy validasi workflow', 'stage_state' => 'current_preparation', 'test_methods' => ['uv_vis'], 'test_type' => 'Identifikasi UV-VIS'],
+                    ['code' => 'DUM-SAMP-002', 'short' => 'Tablet dummy dengan tahap instrumen aktif', 'stage_state' => 'current_instrumentation', 'test_methods' => ['gc_ms'], 'test_type' => 'Konfirmasi GC-MS'],
                 ],
             ],
             [
@@ -54,9 +54,9 @@ class DummyPengujianSeeder extends Seeder
                 'status' => 'ready_for_delivery',
                 'suspect_name' => 'Dummy Pengujian B',
                 'samples' => [
-                    ['code' => 'DUM-SAMP-003', 'short' => 'Kristal dummy siap diserahkan', 'stage_state' => 'ready_for_delivery'],
-                    ['code' => 'DUM-SAMP-004', 'short' => 'Cairan dummy siap diserahkan', 'stage_state' => 'ready_for_delivery'],
-                    ['code' => 'DUM-SAMP-005', 'short' => 'Daun dummy siap diserahkan', 'stage_state' => 'ready_for_delivery'],
+                    ['code' => 'DUM-SAMP-003', 'short' => 'Kristal dummy siap diserahkan', 'stage_state' => 'ready_for_delivery', 'test_methods' => ['gc_ms', 'uv_vis'], 'test_type' => 'Identifikasi Multi Metode'],
+                    ['code' => 'DUM-SAMP-004', 'short' => 'Cairan dummy siap diserahkan', 'stage_state' => 'ready_for_delivery', 'test_methods' => ['lc_ms'], 'test_type' => 'Identifikasi LC-MS'],
+                    ['code' => 'DUM-SAMP-005', 'short' => 'Daun dummy siap diserahkan', 'stage_state' => 'ready_for_delivery', 'test_methods' => ['uv_vis'], 'test_type' => 'Skrining UV-VIS'],
                 ],
             ],
         ];
@@ -109,6 +109,20 @@ class DummyPengujianSeeder extends Seeder
                         'sample_status' => $requestData['status'] === 'ready_for_delivery' ? 'ready_for_delivery' : 'in_testing',
                         'testing_started_at' => now()->subDay(),
                         'testing_completed_at' => $requestData['status'] === 'ready_for_delivery' ? now()->subHours(6) : null,
+                        'test_methods' => json_encode($sampleData['test_methods'] ?? ['uv_vis']),
+                        'requested_test_methods' => json_encode($sampleData['test_methods'] ?? ['uv_vis']),
+                        'test_type' => $sampleData['test_type'] ?? 'Identifikasi Sampel',
+                        'physical_identification' => $sampleData['short'],
+                        'batch_number' => 'DUMMY-BATCH-'.str_pad((string) ($sampleIndex + 1), 3, '0', STR_PAD_LEFT),
+                        'expiry_date' => now()->addMonths(12 + $sampleIndex),
+                        'quantity' => 1.00 + $sampleIndex,
+                        'quantity_unit' => 'gram',
+                        'active_substance' => match ($sampleData['code']) {
+                            'DUM-SAMP-003' => 'Metamfetamina',
+                            'DUM-SAMP-004' => 'Diazepam',
+                            'DUM-SAMP-005' => 'Cannabinoid',
+                            default => 'Kafein',
+                        },
                         'notes' => 'Dummy Pengujian Seeder',
                     ]
                 );
@@ -154,7 +168,18 @@ class DummyPengujianSeeder extends Seeder
                     'started_at' => $attributes['started_at'],
                     'completed_at' => $attributes['completed_at'],
                     'notes' => 'Dummy Pengujian Seeder',
-                    'metadata' => ['seed' => 'dummy_pengujian'],
+                    'metadata' => array_filter([
+                        'seed' => 'dummy_pengujian',
+                        'test_method' => $sample->test_methods ? (json_decode($sample->test_methods, true)[0] ?? null) : null,
+                        'instrument' => match (json_decode($sample->test_methods ?: '[]', true)[0] ?? null) {
+                            'gc_ms' => 'GC-MS (Gas Chromatography–Mass Spectrometry)',
+                            'uv_vis' => 'UV-VIS (Ultraviolet–Visible Spectrophotometry)',
+                            'lc_ms' => 'LC-MS (Liquid Chromatography–Mass Spectrometry)',
+                            default => null,
+                        },
+                        'test_result' => $stageState === 'ready_for_delivery' && $stage === 'interpretation' ? 'positive' : null,
+                        'detected_substance' => $stageState === 'ready_for_delivery' && $stage === 'interpretation' ? $sample->active_substance : null,
+                    ], fn ($value) => $value !== null),
                 ]
             );
         }

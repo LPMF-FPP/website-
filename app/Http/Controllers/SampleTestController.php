@@ -112,6 +112,7 @@ class SampleTestController extends Controller
 
                 $requestedMethods = $this->normalizeMethods($sample->requested_test_methods ?? $sample->test_methods);
                 $submittedMethods = array_values(array_unique($sampleData['test_methods']));
+                $encodedSubmittedMethods = json_encode($submittedMethods);
 
                 $missingRequested = array_diff($requestedMethods, $submittedMethods);
 
@@ -135,7 +136,8 @@ class SampleTestController extends Controller
 
                 $sample->update([
                     'assigned_analyst_id' => $sampleData['assigned_analyst_id'],
-                    'test_methods' => $submittedMethods,
+                    'test_methods' => $encodedSubmittedMethods,
+                    'requested_test_methods' => $sample->requested_test_methods ?: $encodedSubmittedMethods,
                     'test_type' => $sampleData['test_type'] ?? null,
                     'physical_identification' => $sampleData['physical_identification'],
                     'quantity' => $sampleData['quantity'],

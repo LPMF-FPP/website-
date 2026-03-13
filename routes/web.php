@@ -7,6 +7,7 @@ use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\EnvironmentMonitoringController;
 use App\Http\Controllers\InstrumentLoggingController;
 use App\Http\Controllers\InvestigatorManagementController;
+use App\Http\Controllers\LandingPageController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\ProcessController;
 use App\Http\Controllers\ProfileController;
@@ -46,7 +47,7 @@ Route::get('/', function () {
         return redirect()->route('dashboard');
     }
 
-    return view('landing');
+    return app(LandingPageController::class)();
 });
 
 // Public Tracking

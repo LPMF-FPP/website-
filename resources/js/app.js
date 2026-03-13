@@ -27,8 +27,11 @@ if (!window[APP_BOOT_KEY]) {
     window[APP_BOOT_KEY] = true;
 
     // Register Alpine plugins
-    Alpine.plugin(collapse);
-    Alpine.plugin(focus);
+    if (!window.__lpmfAlpinePluginsRegistered) {
+        Alpine.plugin(collapse);
+        Alpine.plugin(focus);
+        window.__lpmfAlpinePluginsRegistered = true;
+    }
 
     // Theme manager
     (function () {
@@ -144,7 +147,9 @@ if (!window[APP_BOOT_KEY]) {
                     });
 
                     if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                        throw new Error(
+                            `HTTP error! status: ${response.status}`,
+                        );
                     }
 
                     const data = await response.json();

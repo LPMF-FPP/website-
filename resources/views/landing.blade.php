@@ -1,714 +1,420 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LPMF LIMS | The Pulse of Evidence</title>
-    <meta name="description" content="Sistem Informasi Manajemen Laboratorium Forensik Pusdokkes Polri. Chain of Custody. Immutable Audit. Real-time Telemetry.">
-
-    <!-- Typography: Cabinet Grotesk (Display), Satoshi (Body), JetBrains Mono (Tech) -->
-    <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@800,700,500&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>LPMF LIMS - Sistem Informasi Manajemen Laboratorium</title>
+    <meta name="description" content="LPMF LIMS mendukung pengelolaan proses laboratorium, pemantauan data operasional, dan pelacakan status layanan dalam satu sistem yang terintegrasi.">
+    <link rel="icon" type="image/png" href="{{ asset('images/logo-pusdokkes-polri.png') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
+    @vite(['resources/css/app.css'])
     <style>
         :root {
-            /* Palette: "The Glass Evidence" - Dark, Sharp, Amber Accents */
-            --bg-deep: #050505;
-            --bg-panel: #0a0a0a;
-            --text-primary: #ffffff;
-            --text-secondary: #888888;
-            --text-muted: #9CA3AF;
-            
-            /* Accent: Forensic Amber */
-            --accent: #FFB800; 
-            --accent-glow: rgba(255, 184, 0, 0.15);
-            --border-light: rgba(255, 255, 255, 0.1);
-            --border-active: rgba(255, 255, 255, 0.3);
-
-            /* Spacing & Layout */
-            --container: 1400px;
-            --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        /* RESET & BASE */
-        *, *::before, *::after {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        :focus-visible {
-            outline: 2px solid var(--accent);
-            outline-offset: 4px;
-        }
-
-        /* Skip to main content link */
-        .sr-only {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0;
-        }
-        .sr-only:focus {
-            position: fixed;
-            top: 1rem;
-            left: 1rem;
-            width: auto;
-            height: auto;
-            padding: 1rem 2rem;
-            margin: 0;
-            overflow: visible;
-            clip: auto;
-            white-space: normal;
-            background: var(--accent);
-            color: var(--bg-deep);
-            font-family: 'JetBrains Mono', monospace;
-            font-weight: 700;
-            text-decoration: none;
-            z-index: 10000;
+            color-scheme: light;
+            --lp-bg: #f6f4f1;
+            --lp-text: #15233d;
+            --lp-text-soft: #536482;
+            --lp-border: rgba(21, 35, 61, 0.10);
+            --lp-border-strong: rgba(21, 35, 61, 0.18);
+            --lp-green: #0d6a4a;
+            --lp-gold: #b28917;
+            --lp-navy: #192845;
         }
 
         html {
             scroll-behavior: smooth;
-            font-size: 16px;
         }
 
         body {
-            background-color: var(--bg-deep);
-            color: var(--text-primary);
-            font-family: 'Satoshi', sans-serif;
+            margin: 0;
+            background: var(--lp-bg);
+            color: var(--lp-text);
+            font-family: 'Instrument Sans', system-ui, sans-serif;
             -webkit-font-smoothing: antialiased;
-            overflow-x: hidden;
-            line-height: 1.5;
+            text-rendering: optimizeLegibility;
         }
 
-        /* TYPOGRAPHY */
-        h1, h2, h3, h4 {
-            font-family: 'Cabinet Grotesk', sans-serif;
-            font-weight: 800;
-            line-height: 1;
-            letter-spacing: -0.02em;
-            text-transform: uppercase;
+        .lp-shell {
+            position: relative;
+            isolation: isolate;
+            overflow: clip;
         }
 
-        h1 {
-            font-size: clamp(3rem, 8vw, 8rem);
-            color: var(--text-primary);
-        }
-
-        h2 {
-            font-size: clamp(2rem, 5vw, 4rem);
-        }
-
-        .font-mono {
-            font-family: 'JetBrains Mono', monospace;
-            letter-spacing: -0.02em;
-        }
-
-        .text-accent { color: var(--accent); }
-        .text-secondary { color: var(--text-secondary); }
-
-        /* CUSTOM CURSOR */
-        #cursor {
+        .lp-shell::before {
+            content: '';
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 20px;
-            height: 20px;
-            border: 1px solid var(--accent);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
+            inset: 0;
             pointer-events: none;
-            z-index: 9999;
-            mix-blend-mode: difference;
-            transition: width 0.3s, height 0.3s;
-        }
-        
-        /* The "Forensic Light" Effect */
-        #flashlight {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 600px;
-            height: 600px;
-            background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0) 60%);
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            z-index: 9998;
-        }
-
-        /* GRID BACKGROUND */
-        .grid-bg {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-image: 
-                linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-            background-size: 100px 100px;
+            background:
+                radial-gradient(circle at top left, rgba(178, 137, 23, 0.07), transparent 32%),
+                radial-gradient(circle at 85% 24%, rgba(13, 106, 74, 0.07), transparent 26%);
             z-index: -1;
-            mask-image: radial-gradient(circle at var(--x, 50%) var(--y, 50%), black 0%, transparent 40%);
-            -webkit-mask-image: radial-gradient(circle at var(--x, 50%) var(--y, 50%), black 0%, transparent 40%);
         }
 
-        /* COMPONENTS */
-        .container {
-            max-width: var(--container);
-            margin: 0 auto;
-            padding: 0 2rem;
+        .lp-container {
+            width: min(100%, 88rem);
+            margin-inline: auto;
+            padding-inline: 1.5rem;
         }
 
-        .btn {
+        .lp-thin-border {
+            border-color: var(--lp-border);
+        }
+
+        .lp-topbar {
+            backdrop-filter: blur(14px);
+            background: rgba(246, 244, 241, 0.84);
+        }
+
+        .lp-logo-mark {
+            width: 2.7rem;
+            height: 2.7rem;
+            object-fit: contain;
+        }
+
+        .lp-label {
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            padding: 1.25rem 2.5rem;
-            background: var(--text-primary);
-            color: var(--bg-deep);
-            font-family: 'JetBrains Mono', monospace;
+            border: 1px solid rgba(178, 137, 23, 0.42);
+            color: var(--lp-gold);
+            padding: 0.42rem 0.72rem;
+            font-size: 0.63rem;
             font-weight: 700;
-            font-size: 0.9rem;
+            letter-spacing: 0.28em;
             text-transform: uppercase;
-            text-decoration: none;
-            border: 1px solid var(--text-primary);
-            transition: all 0.3s var(--ease-out);
-            position: relative;
-            overflow: hidden;
         }
 
-        .btn::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--accent);
-            transform: translateX(-100%);
-            transition: transform 0.3s var(--ease-out);
-            z-index: 0;
+        .lp-display {
+            font-size: clamp(3.3rem, 8vw, 6.9rem);
+            line-height: 0.94;
+            letter-spacing: -0.06em;
+            font-weight: 500;
         }
 
-        .btn span {
-            position: relative;
-            z-index: 1;
-        }
-
-        .btn:hover {
-            border-color: var(--accent);
-        }
-
-        .btn:hover::before {
-            transform: translateX(0);
-        }
-
-        .btn-outline {
-            background: transparent;
-            color: var(--text-primary);
-            border: 1px solid var(--border-active);
-        }
-        .btn-outline:hover {
-            background: var(--border-light);
-            border-color: var(--text-primary);
-        }
-
-        /* HEADER */
-        header {
-            position: fixed;
-            top: 0; left: 0; width: 100%;
-            padding: 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 100;
-            mix-blend-mode: difference;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            font-family: 'Cabinet Grotesk', sans-serif;
-            font-weight: 800;
-            font-size: 1.25rem;
+        .lp-serif {
+            font-family: 'Cormorant Garamond', Georgia, serif;
+            font-style: italic;
+            font-weight: 500;
             letter-spacing: -0.01em;
         }
 
-        /* HERO SECTION */
-        .hero {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            position: relative;
-            padding-top: 100px;
+        .lp-hero-copy {
+            max-width: 44rem;
+            font-size: clamp(1.2rem, 2.5vw, 1.9rem);
+            line-height: 1.55;
+            color: var(--lp-text-soft);
         }
 
-        .hero-content {
-            display: flex;
-            flex-direction: column;
-            gap: 2rem;
-            max-width: 80%;
+        .lp-stat-label,
+        .lp-kicker {
+            font-size: 0.68rem;
+            letter-spacing: 0.34em;
+            text-transform: uppercase;
+            color: #8694ac;
         }
 
-        .reveal-wrap {
-            overflow: hidden;
+        .lp-metric-value {
+            letter-spacing: -0.05em;
         }
 
-        .reveal-text {
-            transform: translateY(100%);
-            opacity: 0;
-            animation: slideUp 1s var(--ease-out) forwards;
+        .lp-dark-section {
+            background: var(--lp-navy);
+            color: #f5f7fb;
         }
 
-        .delay-1 { animation-delay: 0.1s; }
-        .delay-2 { animation-delay: 0.2s; }
-        .delay-3 { animation-delay: 0.4s; }
-
-        @keyframes slideUp {
-            to { transform: translateY(0); opacity: 1; }
+        .lp-dark-panel {
+            border: 1px solid rgba(255, 255, 255, 0.10);
+            background: rgba(255, 255, 255, 0.04);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
         }
 
-        .meta-tag {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
-            color: var(--accent);
-            border: 1px solid var(--accent);
-            padding: 0.5rem 1rem;
-            display: inline-block;
-            margin-bottom: 1rem;
-        }
-
-        /* SECTIONS */
-        section {
-            padding: 10rem 0;
-            border-top: 1px solid var(--border-light);
-        }
-
-        /* TELEMETRY HUD */
-        .hud-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            border-bottom: 1px solid var(--border-light);
-        }
-
-        .hud-item {
-            padding: 2rem;
-            border-right: 1px solid var(--border-light);
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            transition: background 0.3s;
-        }
-
-        .hud-item:hover {
+        .lp-input {
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.14);
             background: rgba(255, 255, 255, 0.02);
+            color: #f8fafc;
+            padding: 1rem 1.1rem;
+            font-size: 1.05rem;
+            line-height: 1.2;
+            font-family: 'Instrument Sans', system-ui, sans-serif;
         }
 
-        .hud-label {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.75rem;
-            color: var(--text-secondary);
+        .lp-input::placeholder {
+            color: rgba(241, 245, 249, 0.28);
+            letter-spacing: 0.12em;
             text-transform: uppercase;
         }
 
-        .hud-value {
-            font-family: 'Cabinet Grotesk', sans-serif;
-            font-size: 2rem;
-            font-weight: 700;
+        .lp-input:focus-visible {
+            outline: 2px solid rgba(13, 106, 74, 0.95);
+            outline-offset: 2px;
+            border-color: rgba(13, 106, 74, 0.85);
         }
 
-        .blink {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            background: var(--accent);
-            border-radius: 50%;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; box-shadow: 0 0 0 0 rgba(255, 184, 0, 0.7); }
-            70% { opacity: 0.5; box-shadow: 0 0 0 10px rgba(255, 184, 0, 0); }
-            100% { opacity: 1; box-shadow: 0 0 0 0 rgba(255, 184, 0, 0); }
-        }
-
-        /* NARRATIVE */
-        .narrative-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4rem;
+        .lp-button,
+        .lp-button-ghost {
+            display: inline-flex;
             align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            text-decoration: none;
+            transition: 180ms ease;
         }
 
-        .scramble-text {
-            font-family: 'JetBrains Mono', monospace;
-            color: var(--text-secondary);
+        .lp-button {
+            background: var(--lp-green);
+            color: #f8fafc;
+            padding: 1rem 1.8rem;
+            font-size: 0.76rem;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            border: 0;
+            cursor: pointer;
         }
 
-        /* CHAT SIMULATOR (FIELD DEVICE STYLE) */
-        .device-frame {
-            border: 1px solid var(--border-active);
-            background: #000;
-            padding: 1rem;
-            border-radius: 4px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            max-width: 400px;
-            position: relative;
-        }
-        
-        .device-frame::before {
-            content: 'SECURE_CHANNEL_V2.0';
-            position: absolute;
-            top: -25px;
-            left: 0;
-            font-size: 0.7rem;
-            color: var(--text-muted);
+        .lp-button:hover {
+            background: #0a5c40;
         }
 
-        .chat-line {
-            margin-bottom: 1rem;
-            opacity: 0;
-            transform: translateX(-10px);
-            transition: all 0.5s ease;
+        .lp-button-ghost {
+            border: 1px solid var(--lp-border-strong);
+            color: var(--lp-text);
+            padding: 0.9rem 1.4rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
         }
 
-        .chat-line.visible {
-            opacity: 1;
-            transform: translateX(0);
+        .lp-button-ghost:hover {
+            background: var(--lp-text);
+            color: #f8fafc;
         }
 
-        .chat-line.system { color: var(--accent); }
-        .chat-line.user { color: var(--text-primary); text-align: right; }
-
-        /* FEATURE CARDS */
-        .feature-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1px;
-            background: var(--border-light); /* Gap color */
-            border: 1px solid var(--border-light);
+        .lp-focus:focus-visible {
+            outline: 2px solid var(--lp-green);
+            outline-offset: 3px;
         }
 
-        .feature-card {
-            background: var(--bg-deep);
-            padding: 4rem 2rem;
-            transition: background 0.5s;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .feature-card:hover {
-            background: var(--bg-panel);
-        }
-
-        .feature-card:hover h3 {
-            color: var(--accent);
-        }
-
-        .feature-icon {
-            font-size: 2rem;
-            margin-bottom: 2rem;
-            display: block;
-        }
-
-        /* FOOTER */
-        footer {
-            padding: 4rem 0;
-            border-top: 1px solid var(--border-light);
-            text-align: center;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
-
-        /* UTILS */
-        .scroll-reveal {
-            opacity: 0;
-            transform: translateY(30px);
-            transition: opacity 0.8s var(--ease-out), transform 0.8s var(--ease-out);
-        }
-        .scroll-reveal.active {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        @media (max-width: 768px) {
-            h1 { font-size: 3.5rem; }
-            .narrative-grid, .hud-grid, .feature-grid { grid-template-columns: 1fr; }
-            .hud-item { border-right: none; border-bottom: 1px solid var(--border-light); }
-            .hero-content { max-width: 100%; }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            #cursor, #flashlight { display: none; }
-            .scroll-reveal { transition: none; opacity: 1; transform: none; }
-            .animate-pulse { animation: none; }
+        @media (max-width: 1024px) {
+            .lp-display {
+                font-size: clamp(3rem, 12vw, 5rem);
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Skip to main content for keyboard users -->
-    <a href="#main-content" class="sr-only">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-sm focus:bg-white focus:px-4 focus:py-3 focus:text-sm focus:font-semibold focus:text-slate-900">
         Lewati ke konten utama
     </a>
 
-    <div id="cursor"></div>
-    <div id="flashlight"></div>
-    <div class="grid-bg"></div>
+    <div class="lp-shell min-h-screen">
+        <nav class="lp-topbar sticky top-0 z-50 border-b lp-thin-border">
+            <div class="lp-container flex items-center justify-between gap-6 py-4">
+                <a href="{{ url('/') }}" class="lp-focus inline-flex items-center gap-2.5 no-underline" aria-label="LPMF LIMS beranda">
+                    <img src="{{ asset('images/logo-pusdokkes-polri.png') }}" alt="Logo Pusdokkes Polri" class="lp-logo-mark">
+                    <span class="text-lg font-semibold tracking-tight text-slate-950">LPMF LIMS</span>
+                </a>
 
-    <header>
-        <div class="logo" style="width: 100%; justify-content: center;">
-            <img src="https://storage.pusdokkes.polri.go.id/pusdokkes/logo.png" alt="Logo Pusdokkes Polri" style="height: 40px;">
-            <span>Farmapol Pusdokkes Polri</span>
-        </div>
-        <nav style="position: absolute; right: 2rem;">
-            <a href="{{ route('login') }}" class="btn-outline" style="padding: 0.75rem 1.5rem; text-decoration: none; border: 1px solid rgba(255,255,255,0.2); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;">
-                SECURE LOGIN
-            </a>
+                <div class="hidden items-center gap-8 md:flex">
+                    <a href="#statistik" class="lp-focus text-[0.72rem] font-medium uppercase tracking-[0.28em] text-slate-900 no-underline transition hover:text-[var(--lp-green)]">Statistik</a>
+                    <a href="#lacak-layanan" class="lp-focus text-[0.72rem] font-medium uppercase tracking-[0.28em] text-slate-900 no-underline transition hover:text-[var(--lp-green)]">Lacak Layanan</a>
+                    <a href="#tentang-kami" class="lp-focus text-[0.72rem] font-medium uppercase tracking-[0.28em] text-slate-900 no-underline transition hover:text-[var(--lp-green)]">Tentang Kami</a>
+                </div>
+
+                <a href="{{ route('login') }}" class="lp-button-ghost lp-focus">
+                    Login Sistem
+                </a>
+            </div>
         </nav>
-    </header>
 
-    <main id="main-content">
-        <!-- HERO -->
-        <section class="hero container" style="border-top: none; justify-content: center; text-align: center;">
-            <div class="hero-content" style="align-items: center; max-width: 100%;">
-                <div class="reveal-wrap">
-                    <div class="meta-tag reveal-text delay-1">
-                        <span class="blink"></span> SYSTEM OPERATIONAL
+        <main id="main-content">
+            <section class="border-b lp-thin-border pt-16 pb-24 sm:pt-20 sm:pb-28 lg:pt-24 lg:pb-32">
+                <div class="lp-container">
+                    <div class="grid grid-cols-1 items-end gap-14 lg:grid-cols-12 lg:gap-12">
+                        <div class="lg:col-span-8">
+                            <span class="lp-label mb-8">Civic Tech Infrastructure</span>
+                            <h1 class="lp-display max-w-5xl text-slate-950">
+                                Operasional<br>
+                                laboratorium yang<br>
+                                <span class="lp-serif">tertata</span>, terlacak, dan<br>
+                                <span style="color: var(--lp-green);">siap audit.</span>
+                            </h1>
+                            <p class="lp-hero-copy mt-10">
+                                LPMF LIMS mendukung pengelolaan proses laboratorium, pemantauan data operasional, dan pelacakan status layanan dalam satu sistem yang terintegrasi.
+                            </p>
+                        </div>
+
+                        <aside class="flex flex-col gap-6 lg:col-span-4 lg:pb-2">
+                            <div class="border-t lp-thin-border pt-4">
+                                <p class="lp-stat-label">Status Operasional</p>
+                                <div class="mt-3 flex items-center gap-2.5 text-sm font-medium text-slate-800">
+                                    <span @class([
+                                        'h-2 w-2 rounded-full',
+                                        'bg-emerald-500 motion-safe:animate-pulse' => ($heroStatus['indicator'] ?? 'offline') === 'online',
+                                        'bg-amber-500' => ($heroStatus['indicator'] ?? 'offline') !== 'online',
+                                    ])></span>
+                                    <span>{{ $heroStatus['label'] ?? 'Data Operasional Belum Tersedia' }}</span>
+                                </div>
+                                <p class="mt-2 text-sm leading-7 text-slate-500">{{ $heroStatus['detail'] ?? 'Menunggu sinkronisasi data laboratorium' }}</p>
+                            </div>
+                            <div class="border-t lp-thin-border pt-4">
+                                <p class="max-w-sm text-sm italic leading-7 text-slate-500">
+                                    Meningkatkan akuntabilitas data penelitian dan layanan publik melalui digitalisasi proses hulu ke hilir.
+                                </p>
+                            </div>
+                        </aside>
                     </div>
                 </div>
-                <div class="reveal-wrap">
-                    <h1 class="reveal-text delay-2">
-                        The Pulse of <br>
-                        <span style="color: transparent; -webkit-text-stroke: 1px var(--text-primary);">Evidence.</span>
-                    </h1>
+            </section>
+
+            <section id="statistik" class="py-20 sm:py-24">
+                <div class="lp-container">
+                    <div class="mb-12 flex items-center gap-5 sm:gap-8">
+                        <h2 class="lp-kicker shrink-0">{{ $stats['period_label'] ?? 'Ringkasan Operasional' }}</h2>
+                        <div class="h-px flex-1 bg-[var(--lp-border)]"></div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-y-10 sm:grid-cols-3 lg:grid-cols-6">
+                        @foreach (($stats['items'] ?? []) as $item)
+                            <div class="border-l lp-thin-border px-4">
+                                <div class="lp-metric-value text-4xl font-medium text-slate-950">{{ $item['value'] }}</div>
+                                <div class="mt-2 text-[0.68rem] uppercase tracking-[0.18em] text-slate-500">{{ $item['label'] }}</div>
+                            </div>
+                        @endforeach
+                    </div>
                 </div>
-                <div class="reveal-wrap">
-                    <p class="reveal-text delay-3 text-secondary" style="font-size: 1.5rem; max-width: 700px; margin-top: 1rem; margin-left: auto; margin-right: auto;">
-                        Sistem Manajemen Laboratorium Forensik dengan Chain of Custody yang tak terbantahkan. Presisi mutlak untuk Pusdokkes Polri.
+            </section>
+
+            <section id="lacak-layanan" class="lp-dark-section py-24 sm:py-28">
+                <div class="lp-container grid grid-cols-1 gap-14 lg:grid-cols-2 lg:gap-16">
+                    <div>
+                        <h2 class="text-3xl font-light tracking-tight text-white sm:text-[2.1rem]">Transparansi Layanan</h2>
+                        <p class="mt-6 max-w-xl text-lg leading-8 text-slate-300">
+                            Gunakan nomor permohonan Anda untuk memantau progres pengujian secara real-time. Kami menjamin setiap tahapan tercatat dalam audit trail yang sah.
+                        </p>
+
+                        <div class="mt-10 space-y-6">
+                            <div class="flex items-start gap-4">
+                                <span class="pt-0.5 font-mono text-sm text-[var(--lp-gold)]">01/</span>
+                                <p class="text-sm leading-7 text-slate-100">Masukan nomor resi yang tertera pada form tanda terima.</p>
+                            </div>
+                            <div class="flex items-start gap-4">
+                                <span class="pt-0.5 font-mono text-sm text-[var(--lp-gold)]">02/</span>
+                                <p class="text-sm leading-7 text-slate-100">Klik periksa untuk melihat detail posisi sampel dan estimasi selesai.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lp-dark-panel p-6 sm:p-8 lg:self-center">
+                        <form action="{{ route('public.track') }}" method="POST" class="space-y-4">
+                            @csrf
+                            <label for="tracking_number" class="block text-[0.68rem] uppercase tracking-[0.28em] text-slate-400">
+                                ID Lacak Layanan
+                            </label>
+                            <div class="flex flex-col gap-4 md:flex-row">
+                                <input
+                                    id="tracking_number"
+                                    name="tracking_number"
+                                    type="text"
+                                    required
+                                    value="{{ old('tracking_number') }}"
+                                    placeholder="Contoh: REQ-2023-001"
+                                    class="lp-input lp-focus flex-1"
+                                >
+                                <button type="submit" class="lp-button lp-focus md:px-7">
+                                    Periksa Status
+                                </button>
+                            </div>
+                            @if ($errors->has('tracking_number'))
+                                <p class="text-sm text-rose-300">{{ $errors->first('tracking_number') }}</p>
+                            @endif
+                            <p class="pt-1 text-[0.68rem] italic leading-6 text-slate-500">
+                                Data diperbarui secara otomatis setiap kali ada perubahan status di meja teknis.
+                            </p>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <section id="tentang-kami" class="py-24 sm:py-28">
+                <div class="lp-container grid grid-cols-1 gap-14 lg:grid-cols-12 lg:gap-12">
+                    <div class="lg:col-span-5">
+                        <p class="mb-8 text-[0.7rem] font-bold uppercase tracking-[0.3em] text-[var(--lp-gold)]">Selayang Pandang</p>
+                        <div class="max-w-xl space-y-6 text-slate-700">
+                            <p class="text-4xl leading-[1.3] text-slate-800 md:text-[2.65rem]">
+                                <span class="lp-serif">LPMF LIMS mendukung layanan laboratorium yang tertib, transparan, dan dapat dipertanggungjawabkan.</span>
+                            </p>
+                            <p class="text-lg leading-8 text-slate-600">
+                                LPMF adalah Laboratorium Pengujian Mutu Farmapol Pusdokkes Polri. Melalui LPMF LIMS, proses penerimaan, pengujian, pemantauan status layanan, dan dokumentasi operasional dikelola dalam satu alur kerja yang terintegrasi.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="border-l lp-thin-border pl-0 lg:col-span-7 lg:pl-14">
+                        <ul class="space-y-10">
+                            <li>
+                                <h3 class="mb-3 flex items-center gap-4 text-sm font-bold uppercase tracking-[0.28em] text-slate-950">
+                                    <span class="h-2 w-2 bg-[var(--lp-green)]"></span>
+                                    Integritas ISO 17025
+                                </h3>
+                                <p class="max-w-2xl text-lg leading-8 text-slate-600">
+                                    Seluruh alur kerja dirancang untuk memenuhi standar kompetensi laboratorium pengujian dan kalibrasi, memastikan hasil yang valid dan dapat dipertanggungjawabkan.
+                                </p>
+                            </li>
+                            <li>
+                                <h3 class="mb-3 flex items-center gap-4 text-sm font-bold uppercase tracking-[0.28em] text-slate-950">
+                                    <span class="h-2 w-2 bg-[var(--lp-green)]"></span>
+                                    Manajemen Sampel Digital
+                                </h3>
+                                <p class="max-w-2xl text-lg leading-8 text-slate-600">
+                                    Pelacakan barcode terintegrasi meminimalkan risiko kesalahan manusia dalam penanganan dan pencatatan data sampel di area teknis.
+                                </p>
+                            </li>
+                            <li>
+                                <h3 class="mb-3 flex items-center gap-4 text-sm font-bold uppercase tracking-[0.28em] text-slate-950">
+                                    <span class="h-2 w-2 bg-[var(--lp-green)]"></span>
+                                    Keamanan Data Institusi
+                                </h3>
+                                <p class="max-w-2xl text-lg leading-8 text-slate-600">
+                                    Protokol enkripsi modern dan pembatasan akses berbasis peran (RBAC) untuk melindungi kerahasiaan data pihak ketiga.
+                                </p>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="border-t lp-thin-border py-12 sm:py-14">
+            <div class="lp-container flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
+                <div>
+                    <div class="mb-4 flex items-center gap-2.5">
+                        <span class="h-6 w-6 rounded-sm bg-slate-300"></span>
+                        <span class="font-bold tracking-tight text-slate-950">LPMF LIMS</span>
+                    </div>
+                    <p class="text-[0.68rem] uppercase tracking-[0.22em] text-slate-400">
+                        Laboratorium Pengujian Mutu Farmapol<br>
+                        Pusdokkes Polri
                     </p>
                 </div>
-                <div class="reveal-wrap" style="margin-top: 2rem;">
-                    <div class="reveal-text delay-3" style="display: flex; gap: 1rem;">
-                        <a href="{{ route('login') }}" class="btn">
-                            <span>AKSES SISTEM</span>
-                        </a>
-                        <a href="#capabilities" class="btn btn-outline">
-                            <span>PELAJARI</span>
-                        </a>
+
+                <div class="grid grid-cols-2 gap-10 text-[0.68rem] font-bold uppercase tracking-[0.22em] text-slate-900 sm:gap-16">
+                    <div class="flex flex-col gap-4">
+                        <a href="#" class="lp-focus no-underline transition hover:text-[var(--lp-green)]">Kebijakan Privasi</a>
+                        <a href="#" class="lp-focus no-underline transition hover:text-[var(--lp-green)]">Ketentuan Layanan</a>
+                    </div>
+                    <div class="flex flex-col gap-4 md:items-end md:text-right">
+                        <span class="text-slate-400">© 2023 LPMF LIMS</span>
+                        <span class="text-slate-400">Ver. {{ $footerVersion ?? 'v2.4.x' }}</span>
                     </div>
                 </div>
             </div>
-        </section>
-
-        <!-- LIVE TELEMETRY -->
-        <div class="hud-grid" style="border-top: 1px solid var(--border-light);">
-            <div class="hud-item">
-                <span class="hud-label">System Status</span>
-                <span class="hud-value text-accent">SECURE</span>
-            </div>
-            <div class="hud-item">
-                <span class="hud-label">Active Samples</span>
-                <span class="hud-value">10<span style="font-size: 1rem; color: var(--text-muted);">/17</span></span>
-            </div>
-            <div class="hud-item">
-                <span class="hud-label">Avg. Turnaround</span>
-                <span class="hud-value">2.4 <span style="font-size: 1rem;">Days</span></span>
-            </div>
-            <div class="hud-item">
-                <span class="hud-label">Audit Logs</span>
-                <span class="hud-value">142</span>
-            </div>
-        </div>
-
-        <!-- NARRATIVE -->
-        <section class="container narrative-grid scroll-reveal-trigger">
-            <div class="scroll-reveal">
-                <h2 style="margin-bottom: 2rem;">From Crime Scene<br>To Courtroom.</h2>
-                <p class="text-secondary" style="font-size: 1.125rem; margin-bottom: 2rem; max-width: 400px;">
-                    Dalam forensik, integritas data adalah segalanya. Kami menghilangkan ambiguitas dengan pencatatan digital tingkat militer.
-                </p>
-                <ul class="font-mono text-secondary" style="display: grid; gap: 1rem; font-size: 0.9rem;">
-                    <li style="display: flex; gap: 1rem;">
-                        <span class="text-accent">[01]</span> Chain of Custody Otomatis
-                    </li>
-                    <li style="display: flex; gap: 1rem;">
-                        <span class="text-accent">[02]</span> Enkripsi Metadata Tersangka
-                    </li>
-                    <li style="display: flex; gap: 1rem;">
-                        <span class="text-accent">[03]</span> Log Aktivitas Immutable
-                    </li>
-                </ul>
-            </div>
-            <div class="scroll-reveal" style="display: flex; justify-content: center;">
-                <!-- Chat Simulator -->
-                <div class="device-frame">
-                    <div id="chat-stream">
-                        <!-- JS injected -->
-                    </div>
-                    <div style="border-top: 1px solid #333; margin-top: 1rem; padding-top: 0.5rem; color: #555;">
-                        > _
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- CAPABILITIES -->
-        <section id="capabilities" class="scroll-reveal-trigger">
-            <div class="container" style="margin-bottom: 4rem;">
-                <span class="meta-tag">CORE CAPABILITIES</span>
-                <h2>Standar Emas Forensik Digital</h2>
-            </div>
-            
-            <div class="feature-grid">
-                <div class="feature-card scroll-reveal">
-                    <span class="feature-icon text-accent">◈</span>
-                    <h3 style="font-size: 1.5rem; margin-bottom: 1rem;">Digital Chain of Custody</h3>
-                    <p class="text-secondary">Pelacakan bukti end-to-end. Setiap pemindahan, analisis, dan pengambilan sampel dicatat dengan timestamp presisi milidetik.</p>
-                </div>
-                <div class="feature-card scroll-reveal" style="transition-delay: 0.1s;">
-                    <span class="feature-icon text-accent">❖</span>
-                    <h3 style="font-size: 1.5rem; margin-bottom: 1rem;">Immutable Audit Trail</h3>
-                    <p class="text-secondary">Log aktivitas yang transparan dan terkunci secara kriptografis. Memastikan akuntabilitas absolut setiap personel.</p>
-                </div>
-                <div class="feature-card scroll-reveal" style="transition-delay: 0.2s;">
-                    <span class="feature-icon text-accent">⚡</span>
-                    <h3 style="font-size: 1.5rem; margin-bottom: 1rem;">Workflow Automation</h3>
-                    <p class="text-secondary">Otomatisasi alur kerja dari penerimaan hingga pelaporan. Mengurangi human-error dan mempercepat time-to-justice.</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- CONVERSION -->
-        <section class="container" style="text-align: center; padding: 15rem 0;">
-            <div class="scroll-reveal-trigger">
-                <h2 class="scroll-reveal" style="margin-bottom: 2rem;">Ready for Deployment?</h2>
-                <div class="scroll-reveal" style="transition-delay: 0.1s;">
-                    <a href="{{ route('login') }}" class="btn">
-                        <span>MASUK KE SISTEM</span>
-                    </a>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <footer>
-        <div class="container">
-            <div style="margin-bottom: 1rem;">LPMF LIMS // PUSDOKKES POLRI</div>
-            <div style="color: #333;">&copy; 2026 Laboratorium Forensik. Restricted Access.</div>
-        </div>
-    </footer>
-
-    <script>
-        // CURSOR LOGIC
-        const cursor = document.getElementById('cursor');
-        const flashlight = document.getElementById('flashlight');
-        const gridBg = document.querySelector('.grid-bg');
-
-        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-            document.addEventListener('mousemove', (e) => {
-                const x = e.clientX;
-                const y = e.clientY;
-                
-                cursor.style.left = x + 'px';
-                cursor.style.top = y + 'px';
-                
-                flashlight.style.left = x + 'px';
-                flashlight.style.top = y + 'px';
-
-                // Update grid mask position
-                gridBg.style.setProperty('--x', x + 'px');
-                gridBg.style.setProperty('--y', y + 'px');
-            });
-        }
-
-        // Hover states for cursor
-        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-            document.querySelectorAll('a, button').forEach(el => {
-                el.addEventListener('mouseenter', () => {
-                    cursor.style.width = '50px';
-                    cursor.style.height = '50px';
-                    cursor.style.borderColor = 'transparent';
-                    cursor.style.backgroundColor = 'rgba(255, 184, 0, 0.2)';
-                });
-                el.addEventListener('mouseleave', () => {
-                    cursor.style.width = '20px';
-                    cursor.style.height = '20px';
-                    cursor.style.borderColor = 'var(--accent)';
-                    cursor.style.backgroundColor = 'transparent';
-                });
-            });
-        }
-
-        // SCROLL OBSERVER
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.querySelectorAll('.scroll-reveal').forEach((el, i) => {
-                        setTimeout(() => {
-                            el.classList.add('active');
-                        }, i * 150);
-                    });
-                }
-            });
-        }, { threshold: 0.15 });
-
-        document.querySelectorAll('.scroll-reveal-trigger').forEach(el => observer.observe(el));
-
-        // CHAT SIMULATOR
-        const messages = [
-            { t: 'system', m: 'CONNECTING TO LPMF_BOT...' },
-            { t: 'user', m: '/status 24-0091-B' },
-            { t: 'system', m: 'SEARCHING DATABASE...' },
-            { t: 'system', m: 'FOUND: REQUEST #141' },
-            { t: 'system', m: 'STATUS: ANALYSIS_PHASE' },
-            { t: 'system', m: 'EST. COMPLETION: 24 HRS' }
-        ];
-
-        const chatStream = document.getElementById('chat-stream');
-        let msgIndex = 0;
-
-        function typeWriter(text, element, callback) {
-            let i = 0;
-            function type() {
-                if (i < text.length) {
-                    element.innerHTML += text.charAt(i);
-                    i++;
-                    setTimeout(type, 30);
-                } else if (callback) {
-                    callback();
-                }
-            }
-            type();
-        }
-
-        const chatObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting && msgIndex === 0) {
-                    runChat();
-                }
-            });
-        });
-        chatObserver.observe(document.querySelector('.device-frame'));
-
-        function runChat() {
-            if (msgIndex >= messages.length) return;
-            
-            const data = messages[msgIndex];
-            const div = document.createElement('div');
-            div.className = `chat-line ${data.t}`;
-            chatStream.appendChild(div);
-            
-            setTimeout(() => {
-                div.classList.add('visible');
-                typeWriter(data.m, div, () => {
-                    msgIndex++;
-                    setTimeout(runChat, 800);
-                });
-            }, 100);
-        }
-    </script>
+        </footer>
+    </div>
 </body>
 </html>

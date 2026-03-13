@@ -581,12 +581,55 @@ class ProcessWorkstation extends Component
                 $templateVersion = null;
                 $templateHash = null;
 
+                $normalizeMethods = function ($rawMethods): array {
+                    if (is_string($rawMethods)) {
+                        $decoded = json_decode($rawMethods, true);
+                        $rawMethods = is_array($decoded) ? $decoded : [$rawMethods];
+                    }
+
+                    if (! is_array($rawMethods)) {
+                        return [];
+                    }
+
+                    return array_values(array_filter(array_map(function ($method) {
+                        if (is_string($method)) {
+                            $method = trim($method);
+
+                            return $method !== '' ? $method : null;
+                        }
+
+                        return is_scalar($method) ? trim((string) $method) : null;
+                    }, $rawMethods)));
+                };
+
+                $formatMethodLabel = function (string $method): string {
+                    return match ($method) {
+                        'gc_ms' => 'GC-MS (Gas Chromatography–Mass Spectrometry)',
+                        'uv_vis' => 'UV-VIS (Ultraviolet–Visible Spectrophotometry)',
+                        'lc_ms' => 'LC-MS (Liquid Chromatography–Mass Spectrometry)',
+                        default => str($method)->replace('_', ' ')->title()->toString(),
+                    };
+                };
+
+                $methodSummary = collect([
+                    $metadata['test_method'] ?? null,
+                    $metadata['method'] ?? null,
+                    $this->process->method ?? null,
+                    $this->process->test_method ?? null,
+                ])
+                    ->filter(fn ($method) => is_string($method) && trim($method) !== '')
+                    ->merge($normalizeMethods($this->sample->test_methods ?? []))
+                    ->map(fn ($method) => $formatMethodLabel((string) $method))
+                    ->unique()
+                    ->values()
+                    ->join(', ');
+
                 $forcedActive = $this->sample->active_substance ?? null;
                 $detectedSubstance = $metadata['detected_substance'] ?? $metadata['detection'] ?? $metadata['hasil'] ?? $forcedActive;
                 $testResultText = match ($metadata['test_result'] ?? null) {
                     'positive' => 'Positif', 'negative' => 'Negatif', default => 'Belum ditentukan'
                 };
-                $instrument = $metadata['instrument'] ?? $metadata['instrument_pengujian'] ?? null;
+                $instrument = $metadata['instrument'] ?? $metadata['instrument_pengujian'] ?? ($methodSummary !== '' ? $methodSummary : null);
 
                 if ($template) {
                     $data = [
@@ -606,6 +649,7 @@ class ProcessWorkstation extends Component
                         'package_quantity' => $this->sample->package_quantity ?? 1,
                         'unit' => $this->sample->unit ?? 'N/A',
                         'test_date' => $this->process->completed_at?->format('d F Y') ?? now()->format('d F Y'),
+                        'test_methods' => $methodSummary !== '' ? $methodSummary : 'N/A',
                         'analyst_name' => $this->process->analyst->name ?? 'N/A',
                         'active_substance' => $forcedActive ?? 'Belum dianalisis',
                         'detected_substance' => $detectedSubstance ?? 'Tidak terdeteksi',

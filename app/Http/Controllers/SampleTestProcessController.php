@@ -632,6 +632,54 @@ class SampleTestProcessController extends Controller
         return $this->generateReportResponse($sampleProcess);
     }
 
+    private function normalizeSampleTestMethods(mixed $rawMethods): array
+    {
+        if (is_string($rawMethods)) {
+            $decoded = json_decode($rawMethods, true);
+            $rawMethods = is_array($decoded) ? $decoded : [$rawMethods];
+        }
+
+        if (! is_array($rawMethods)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(function ($method) {
+            if (is_string($method)) {
+                $method = trim($method);
+
+                return $method !== '' ? $method : null;
+            }
+
+            return is_scalar($method) ? trim((string) $method) : null;
+        }, $rawMethods)));
+    }
+
+    private function formatTestMethodLabel(string $method): string
+    {
+        return match ($method) {
+            'gc_ms' => 'GC-MS (Gas Chromatography–Mass Spectrometry)',
+            'uv_vis' => 'UV-VIS (Ultraviolet–Visible Spectrophotometry)',
+            'lc_ms' => 'LC-MS (Liquid Chromatography–Mass Spectrometry)',
+            default => str($method)->replace('_', ' ')->title()->toString(),
+        };
+    }
+
+    private function resolveLhuMethodSummary(SampleTestProcess $sampleProcess, array $metadata): ?string
+    {
+        $sampleMethods = $this->normalizeSampleTestMethods($sampleProcess->sample?->test_methods ?? []);
+        $metadataMethod = $metadata['test_method'] ?? $metadata['method'] ?? null;
+        $processMethod = $sampleProcess->method ?? $sampleProcess->test_method ?? null;
+
+        $methods = collect([$metadataMethod, $processMethod])
+            ->filter(fn ($method) => is_string($method) && trim($method) !== '')
+            ->merge($sampleMethods)
+            ->map(fn ($method) => $this->formatTestMethodLabel((string) $method))
+            ->unique()
+            ->values();
+
+        return $methods->isNotEmpty() ? $methods->join(', ') : null;
+    }
+
     private function createLhuDocument(
         SampleTestProcess $sampleProcess,
         \App\Services\DocumentService $docs,
@@ -640,6 +688,7 @@ class SampleTestProcessController extends Controller
         string $lhuNumber
     ): ?Document {
         $metadata = $sampleProcess->metadata ?? [];
+        $methodSummary = $this->resolveLhuMethodSummary($sampleProcess, $metadata);
 
         // Try to get active template for LHU
         $template = $templateService->getActiveTemplateByDocType('LHU');
@@ -661,7 +710,7 @@ class SampleTestProcessController extends Controller
             $forcedActive = $sampleProcess->sample->active_substance ?? null;
             $detectedSubstance = $metadata['detected_substance'] ?? $metadata['detection'] ?? $metadata['hasil'] ?? $forcedActive;
             $testResult = $metadata['test_result'] ?? null;
-            $instrument = $metadata['instrument'] ?? $metadata['instrument_pengujian'] ?? null;
+            $instrument = $metadata['instrument'] ?? $metadata['instrument_pengujian'] ?? $methodSummary;
 
             // Map test result to text
             $testResultText = match ($testResult) {
@@ -688,6 +737,7 @@ class SampleTestProcessController extends Controller
                 'package_quantity' => $sampleProcess->sample->package_quantity ?? 1,
                 'unit' => $sampleProcess->sample->unit ?? 'N/A',
                 'test_date' => $sampleProcess->completed_at?->format('d F Y') ?? now()->format('d F Y'),
+                'test_methods' => $methodSummary ?? 'N/A',
                 'analyst_name' => $sampleProcess->analyst->name ?? 'N/A',
                 'active_substance' => $forcedActive ?? 'Belum dianalisis',
                 'detected_substance' => $detectedSubstance ?? 'Tidak terdeteksi',

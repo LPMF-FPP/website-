@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v2.4.7
+# WALKTHROUGH - LPMF LIMS v2.4.8
 
 > **Single Source of Truth** — Pedoman terupdate terhadap codebase Laboratory Information Management System.
 
@@ -147,6 +147,14 @@ WhatsApp service berjalan di container Docker terpisah.
 ---
 
 ## 📰 Recent Changes (v2.4.x)
+
+### v2.4.8 (12 Maret 2026) - Landing Page Institusional & Statistik Real-time
+
+- **Landing Page Redesign:** Halaman publik `/` diperbarui menjadi landing page bergaya editorial-institusional dengan navigasi yang lebih bersih, fokus pada transparansi layanan, dan identitas visual LPMF LIMS yang konsisten.
+- **Branding Alignment:** Logo pojok kiri atas kini menggunakan aset PNG resmi Pusdokkes Polri, dan penamaan brand diseragamkan agar selalu tampil sebagai **LPMF LIMS**.
+- **Real Operational Data:** Ringkasan operasional landing page kini mengambil data langsung dari database (resi aktif, sampel terdaftar, rata-rata proses, SLA, resi selesai, dan user aktif), bukan angka placeholder.
+- **Footer Version Sync:** Versi pada footer landing page sekarang mengikuti entri changelog terbaru dari `WALKTHROUGH.md` agar sinkron dengan riwayat rilis.
+- **Copy Refresh:** Copy publik diperhalus untuk menghapus diksi yang tidak diperlukan dan memperjelas instruksi pelacakan menjadi fokus pada **nomor resi**.
 
 ### v2.4.7 (4 Maret 2026) - Personnel Role Management & Deploy Stability
 

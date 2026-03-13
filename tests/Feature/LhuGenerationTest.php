@@ -28,6 +28,7 @@ class LhuGenerationTest extends TestCase
         });
 
         // Setup user
+        /** @var User $user */
         $user = User::factory()->create([
             'role' => 'analis',
         ]);
@@ -57,6 +58,7 @@ class LhuGenerationTest extends TestCase
             ->put(route('testing.processes.update', $process), [
                 'sample_id' => $sample->id,
                 'stage' => TestProcessStage::INTERPRETATION->value,
+                'performed_by' => $user->id,
                 'test_result' => 'positive',
                 'detected_substance' => 'Metamfetamina',
                 'instrument' => 'GC-MS',
@@ -88,6 +90,7 @@ class LhuGenerationTest extends TestCase
         });
 
         // Setup user
+        /** @var User $user */
         $user = User::factory()->create([
             'role' => 'analis',
         ]);
@@ -116,6 +119,7 @@ class LhuGenerationTest extends TestCase
             ->put(route('testing.processes.update', $process), [
                 'sample_id' => $sample->id,
                 'stage' => TestProcessStage::INTERPRETATION->value,
+                'performed_by' => $user->id,
                 'test_result' => 'positive',
                 'detected_substance' => 'Metamfetamina',
                 'instrument' => 'GC-MS',

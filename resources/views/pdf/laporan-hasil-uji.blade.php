@@ -117,8 +117,45 @@
     'uv_vis' => 'UV-VIS (Ultraviolet–Visible Spectrophotometry)',
     'lc_ms'  => 'LC-MS (Liquid Chromatography–Mass Spectrometry)',
   ];
-  $methodKey = $proc->method ?? $proc->test_method ?? null;
-  $fallbackMethodLbl = $methodKey ? ($methodMap[$methodKey] ?? $methodKey) : null;
+  $normalizeMethods = function ($rawMethods) {
+    if (is_string($rawMethods)) {
+      $decoded = json_decode($rawMethods, true);
+      $rawMethods = is_array($decoded) ? $decoded : [$rawMethods];
+    }
+
+    if (!is_array($rawMethods)) {
+      return [];
+    }
+
+    return array_values(array_filter(array_map(function ($method) {
+      if (is_string($method)) {
+        $method = trim($method);
+        return $method !== '' ? $method : null;
+      }
+
+      return is_scalar($method) ? trim((string) $method) : null;
+    }, $rawMethods)));
+  };
+  $formatMethodLabel = function ($method) use ($methodMap) {
+    if ($method === null || $method === '') {
+      return null;
+    }
+
+    return $methodMap[$method] ?? \Illuminate\Support\Str::of((string) $method)->replace('_', ' ')->title()->toString();
+  };
+  $methodKey = $proc->method ?? $proc->test_method ?? $meta['test_method'] ?? $meta['method'] ?? null;
+  $sampleMethodLabels = collect($normalizeMethods($samp?->test_methods ?? []))
+    ->map(fn ($method) => $formatMethodLabel($method))
+    ->filter()
+    ->unique()
+    ->values();
+  $fallbackMethodLbl = collect([$formatMethodLabel($methodKey)])
+    ->filter()
+    ->merge($sampleMethodLabels)
+    ->unique()
+    ->values()
+    ->join(', ');
+  $fallbackMethodLbl = $fallbackMethodLbl !== '' ? $fallbackMethodLbl : null;
 
   $rows = [];
   $mainInstr = $meta['instrument'] ?? $meta['instrument_pengujian'] ?? $fallbackMethodLbl;

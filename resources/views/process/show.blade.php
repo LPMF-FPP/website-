@@ -115,6 +115,16 @@
                     </thead>
                     <tbody class="divide-y divide-gray-200 text-sm text-gray-700">
                         @forelse($samples as $sample)
+                            @php
+                                $lhuProcess = $sample->testProcesses
+                                    ->filter(fn ($process) => ($process->stage?->value ?? $process->stage) === 'interpretation' && $process->completed_at)
+                                    ->sortByDesc(fn ($process) => $process->completed_at?->timestamp ?? 0)
+                                    ->first();
+                                $lhuNumber = data_get($lhuProcess?->metadata ?? [], 'lhu_number')
+                                    ?? data_get($lhuProcess?->metadata ?? [], 'report_number');
+                                $lhuPreviewUrl = $lhuProcess ? route('testing.processes.lab-report', $lhuProcess) : null;
+                                $lhuDownloadUrl = $lhuProcess ? route('testing.processes.lab-report', ['sample_process' => $lhuProcess, 'download' => 1]) : null;
+                            @endphp
                             <tr 
                                 class="hover:bg-gray-50/70 transition-colors duration-500" 
                                 :class="{ 'bg-green-100 ring-2 ring-green-400 ring-inset': highlightedSample === {{ $sample->id }} }">
@@ -122,7 +132,13 @@
                                     {{ $sample->sample_code ?? '-' }}
                                 </td>
                                 <td class="px-4 py-3">
-                                    {{ $sample->short_description ?? '—' }}
+                                    <div>{{ $sample->short_description ?? '—' }}</div>
+                                    @if($lhuProcess && $lhuNumber)
+                                        <div class="mt-1 flex items-center gap-2 text-xs text-gray-500">
+                                            <x-icon name="document-text" size="sm" class="text-gray-400" :decorative="true" />
+                                            <span class="font-mono">{{ $lhuNumber }}</span>
+                                        </div>
+                                    @endif
                                 </td>
                                 <td class="px-4 py-3">
                                     {{ $sample->current_stage_label }}
@@ -171,7 +187,7 @@
                                                 x-transition:leave="transition ease-in duration-75"
                                                 x-transition:leave-start="transform opacity-100 scale-100"
                                                 x-transition:leave-end="transform opacity-0 scale-95"
-                                                class="absolute right-0 z-pd-overlay mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+                                                class="absolute right-0 z-pd-overlay mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
                                                 style="display: none;">
                                                 <div class="py-1">
                                                     @php
@@ -200,6 +216,23 @@
                                                         </button>
                                                     @endif
 
+                                                    @if($lhuProcess && $lhuNumber && $lhuPreviewUrl && $lhuDownloadUrl)
+                                                        <a
+                                                            href="{{ $lhuPreviewUrl }}"
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                            <x-icon name="document-text" size="sm" class="text-primary-600" :decorative="true" />
+                                                            Buka LHU
+                                                        </a>
+                                                        <a
+                                                            href="{{ $lhuDownloadUrl }}"
+                                                            class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                                            <x-icon name="arrow-down-tray" size="sm" class="text-primary-600" :decorative="true" />
+                                                            Unduh LHU
+                                                        </a>
+                                                    @endif
+
 
 
                                                     <button
@@ -211,6 +244,23 @@
                                                     </button>
                                                 </div>
                                             </div>
+                                        </div>
+                                    @elseif($lhuProcess && $lhuNumber && $lhuPreviewUrl && $lhuDownloadUrl)
+                                        <div class="inline-flex flex-wrap items-center justify-end gap-2">
+                                            <a
+                                                href="{{ $lhuPreviewUrl }}"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                class="inline-flex items-center gap-2 rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-sm font-semibold text-primary-700 hover:bg-primary-100">
+                                                <x-icon name="document-text" size="sm" :decorative="true" />
+                                                Buka LHU
+                                            </a>
+                                            <a
+                                                href="{{ $lhuDownloadUrl }}"
+                                                class="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                                                <x-icon name="arrow-down-tray" size="sm" :decorative="true" />
+                                                Unduh LHU
+                                            </a>
                                         </div>
                                     @else
                                         <span class="inline-flex items-center px-3 py-2 text-sm font-semibold text-gray-400">
