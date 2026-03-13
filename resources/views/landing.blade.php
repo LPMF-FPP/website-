@@ -118,6 +118,10 @@
 
         .lp-metric-value {
             letter-spacing: -0.05em;
+            line-height: 1.02;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            text-wrap: balance;
         }
 
         .lp-dark-section {
@@ -279,11 +283,11 @@
                         <div class="h-px flex-1 bg-[var(--lp-border)]"></div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-y-10 sm:grid-cols-3 lg:grid-cols-6">
+                    <div class="grid grid-cols-2 gap-x-2 gap-y-10 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-6 lg:gap-x-3 xl:gap-x-5">
                         @foreach (($stats['items'] ?? []) as $item)
-                            <div class="border-l lp-thin-border px-4">
-                                <div class="lp-metric-value text-4xl font-medium text-slate-950">{{ $item['value'] }}</div>
-                                <div class="mt-2 text-[0.68rem] uppercase tracking-[0.18em] text-slate-500">{{ $item['label'] }}</div>
+                            <div class="min-w-0 border-l lp-thin-border px-3 sm:px-4">
+                                <div class="lp-metric-value text-[1.9rem] font-medium text-slate-950 sm:text-[2.2rem] lg:text-[2rem] xl:text-4xl">{{ $item['value'] }}</div>
+                                <div class="mt-3 text-[0.68rem] uppercase tracking-[0.18em] text-slate-500">{{ $item['label'] }}</div>
                             </div>
                         @endforeach
                     </div>
