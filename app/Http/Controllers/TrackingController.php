@@ -108,13 +108,13 @@ class TrackingController extends Controller
             'interpretasi_hasil' => [
                 'title' => 'Interpretasi Hasil',
                 'description' => 'Hasil pengujian ditelaah, diinterpretasi, dan disiapkan sebagai keluaran resmi layanan.',
-                'timestamp' => optional($testRequest->completed_at)->toDateTimeString(),
+                'timestamp' => optional($testRequest->ready_for_delivery_at ?? $testRequest->completed_at)->toDateTimeString(),
                 'icon' => '✍️',
             ],
             'penyerahan' => [
                 'title' => 'Penyerahan',
                 'description' => 'Hasil pengujian diserahkan kepada pemohon.',
-                'timestamp' => optional($testRequest->completed_at)->toDateTimeString(),
+                'timestamp' => optional($testRequest->ready_for_delivery_at ?? $testRequest->completed_at)->toDateTimeString(),
                 'icon' => '📄',
             ],
         ];
@@ -126,7 +126,7 @@ class TrackingController extends Controller
             'in_testing' => 'pengujian_instrumen',
             'analysis' => 'pengujian_instrumen',
             'quality_check' => 'interpretasi_hasil',
-            'ready_for_delivery' => 'interpretasi_hasil',
+            'ready_for_delivery' => 'penyerahan',
             'completed' => 'penyerahan',
         ];
 
