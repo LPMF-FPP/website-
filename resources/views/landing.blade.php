@@ -286,7 +286,7 @@
                     <div class="grid grid-cols-2 gap-x-2 gap-y-10 sm:grid-cols-3 sm:gap-x-4 lg:grid-cols-6 lg:gap-x-3 xl:gap-x-5">
                         @foreach (($stats['items'] ?? []) as $item)
                             <div class="min-w-0 border-l lp-thin-border px-3 sm:px-4">
-                                <div class="lp-metric-value text-[1.9rem] font-medium text-slate-950 sm:text-[2.2rem] lg:text-[2rem] xl:text-4xl">{{ $item['value'] }}</div>
+                                <div class="lp-metric-value text-[1.45rem] font-medium text-slate-950 sm:text-[1.7rem] lg:text-[1.55rem] xl:text-[1.85rem]">{{ $item['value'] }}</div>
                                 <div class="mt-3 text-[0.68rem] uppercase tracking-[0.18em] text-slate-500">{{ $item['label'] }}</div>
                             </div>
                         @endforeach
