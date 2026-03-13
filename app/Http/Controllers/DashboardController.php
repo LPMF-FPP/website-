@@ -2,10 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\CustomerSurvey;
 use App\Models\Sample;
 use App\Models\TestRequest;
 use App\Models\TestResult;
+use App\Services\DashboardHeroStatsService;
 use App\Services\DisposisiTableService;
 use App\Services\EnvironmentMonitoringService;
 use App\Services\IkuService;
@@ -16,7 +16,8 @@ class DashboardController extends Controller
     public function __construct(
         private readonly IkuService $ikuService,
         private readonly EnvironmentMonitoringService $environmentService,
-        private readonly DisposisiTableService $disposisiService
+        private readonly DisposisiTableService $disposisiService,
+        private readonly DashboardHeroStatsService $dashboardHeroStatsService
     ) {}
 
     public function index()
@@ -46,10 +47,10 @@ class DashboardController extends Controller
             $environmentMonitoring = $this->getEnvironmentMonitoringData();
 
             // 6. Rata-rata kecepatan pengerjaan bulan ini
-            $avgProcessing = $this->calculateMonthlyAverageProcessingDays();
+            $avgProcessing = $this->dashboardHeroStatsService->calculateMonthlyAverageProcessingDays();
 
             // 7. Kepuasan Pelanggan
-            $customerSatisfaction = $this->calculateCustomerSatisfaction();
+            $customerSatisfaction = $this->dashboardHeroStatsService->calculateCustomerSatisfaction();
 
             // 8. Disposisi Table Data
             $disposisiData = $this->disposisiService->getPaginatedTableData(
@@ -106,55 +107,6 @@ class DashboardController extends Controller
         }
 
         return view('dashboard', $dashboardData);
-    }
-
-    private function calculateCustomerSatisfaction(): array
-    {
-        try {
-            $now = \Carbon\Carbon::now();
-            $startOfMonth = $now->copy()->startOfMonth();
-            $endOfMonth = $now->copy()->endOfMonth();
-
-            // Bulan ini
-            $currentMonth = CustomerSurvey::whereBetween('submitted_at', [$startOfMonth, $endOfMonth]);
-            $avgScore = $currentMonth->avg('score_avg') ?? 0;
-            $totalResponses = $currentMonth->count();
-
-            // Bulan lalu (untuk trend)
-            $lastMonthStart = $now->copy()->subMonth()->startOfMonth();
-            $lastMonthEnd = $now->copy()->subMonth()->endOfMonth();
-            $lastMonthAvg = CustomerSurvey::whereBetween('submitted_at', [$lastMonthStart, $lastMonthEnd])
-                ->avg('score_avg') ?? 0;
-
-            // Hitung persentase (skala 1-4 → 0-100%)
-            $percentage = $avgScore > 0 ? (($avgScore - 1) / 3) * 100 : 0;
-
-            // Trend
-            if ($lastMonthAvg > 0) {
-                $trend = $avgScore - $lastMonthAvg;
-                $trendDirection = $trend > 0.01 ? 'up' : ($trend < -0.01 ? 'down' : 'stable');
-                $trendValue = round(abs($trend), 2);
-            } else {
-                $trendValue = null;
-                $trendDirection = 'new';
-            }
-
-            return [
-                'score' => round($avgScore, 2),
-                'percentage' => round($percentage, 1),
-                'total_responses' => $totalResponses,
-                'trend' => $trendValue,
-                'trend_direction' => $trendDirection,
-            ];
-        } catch (\Exception $e) {
-            return [
-                'score' => 0,
-                'percentage' => 0,
-                'total_responses' => 0,
-                'trend' => 0,
-                'trend_direction' => 'stable',
-            ];
-        }
     }
 
     private function calculateIkuPerformance(): array
@@ -295,46 +247,6 @@ class DashboardController extends Controller
                 'is_work_day' => false,
                 'active_window' => null,
             ];
-        }
-    }
-
-    private function calculateMonthlyAverageProcessingDays(): array
-    {
-        try {
-            $now = \Carbon\Carbon::now();
-            $startOfMonth = $now->copy()->startOfMonth();
-            $endOfMonth = $now->copy()->endOfMonth();
-
-            $requests = TestRequest::whereIn('status', ['ready_for_delivery', 'completed'])
-                ->whereNotNull('submitted_at')
-                ->whereNotNull('ready_for_delivery_at')
-                ->whereBetween('ready_for_delivery_at', [$startOfMonth, $endOfMonth])
-                ->get(['submitted_at', 'ready_for_delivery_at']);
-
-            if ($requests->isEmpty()) {
-                return ['average' => null, 'count' => 0];
-            }
-
-            $totalDays = $requests->sum(function ($r) {
-                $startDate = \Carbon\Carbon::parse($r->submitted_at);
-                $endDate = \Carbon\Carbon::parse($r->ready_for_delivery_at);
-
-                // Safety check: jika tanggal selesai sebelum tanggal submit
-                if ($endDate->lt($startDate)) {
-                    return 0;
-                }
-
-                // Hitung hari kerja (Senin-Jumat)
-                // Menggunakan diffInWeekdays yang exclude weekend
-                return $startDate->diffInWeekdays($endDate);
-            });
-
-            return [
-                'average' => round($totalDays / $requests->count(), 1),
-                'count' => $requests->count(),
-            ];
-        } catch (\Exception $e) {
-            return ['average' => null, 'count' => 0];
         }
     }
 }

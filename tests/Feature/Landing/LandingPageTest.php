@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Landing;
 
+use App\Models\CustomerSurvey;
 use App\Models\Sample;
 use App\Models\TestRequest;
 use App\Models\User;
@@ -37,14 +38,30 @@ class LandingPageTest extends TestCase
             'test_request_id' => $completedRequest->id,
         ]);
 
+        CustomerSurvey::query()->create([
+            'test_request_id' => $completedRequest->id,
+            'respondent_name' => 'Responden Dummy',
+            'respondent_job_title' => 'Penyidik',
+            'respondent_institution' => 'POLRES Dummy',
+            'respondent_job_category' => 'Polri',
+            'request_type' => 'Kimia - Fisika',
+            'voluntary_statement' => true,
+            'answers' => [],
+            'score_avg' => 4,
+            'complaint' => '-',
+            'follow_up' => '-',
+            'suggestion' => 'Pelayanan sangat baik',
+            'submitted_at' => now(),
+        ]);
+
         $response = $this->get('/');
 
         $response->assertOk();
         $response->assertSee('images/logo-pusdokkes-polri.png', false);
         $response->assertSee('1 resi aktif', false);
         $response->assertSee('2', false);
-        $response->assertSee('10,0 hr', false);
-        $response->assertSee('100%', false);
+        $response->assertSee('0,0 hari/permintaan', false);
+        $response->assertSee('4,00/4', false);
         $response->assertSee('1', false);
         $response->assertSee('Data Operasional Tersedia', false);
         $response->assertSee('LPMF LIMS', false);

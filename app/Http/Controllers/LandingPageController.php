@@ -6,6 +6,7 @@ use App\Models\Sample;
 use App\Models\TestRequest;
 use App\Models\User;
 use App\Services\ChangelogService;
+use App\Services\DashboardHeroStatsService;
 use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\QueryException;
@@ -14,7 +15,8 @@ use Illuminate\Support\Facades\Schema;
 class LandingPageController extends Controller
 {
     public function __construct(
-        private readonly ChangelogService $changelogService
+        private readonly ChangelogService $changelogService,
+        private readonly DashboardHeroStatsService $dashboardHeroStatsService
     ) {}
 
     public function __invoke(): View
@@ -71,27 +73,8 @@ class LandingPageController extends Controller
             ];
         }
 
-        $completedOrReady = TestRequest::query()
-            ->whereIn('status', ['completed', 'ready_for_delivery'])
-            ->whereNotNull('ready_for_delivery_at')
-            ->whereNotNull('submitted_at')
-            ->get(['submitted_at', 'ready_for_delivery_at']);
-
-        $averageHours = $completedOrReady->avg(function (TestRequest $request) {
-            $start = $request->submitted_at;
-            $end = $request->ready_for_delivery_at;
-
-            return $start && $end ? (float) $start->diffInHours($end) : null;
-        });
-
-        $slaCompliant = $completedOrReady->filter(function (TestRequest $request) {
-            $start = $request->submitted_at;
-            $end = $request->ready_for_delivery_at;
-
-            return $start && $end ? $start->diffInWeekdays($end) <= 7 : false;
-        })->count();
-
-        $totalCompletedOrReady = $completedOrReady->count();
+        $avgProcessing = $this->dashboardHeroStatsService->calculateMonthlyAverageProcessingDays();
+        $customerSatisfaction = $this->dashboardHeroStatsService->calculateCustomerSatisfaction();
         $latestDataPoint = TestRequest::query()->latest('created_at')->value('created_at');
         $periodLabel = $latestDataPoint
             ? 'Ringkasan Operasional (s.d. '.Carbon::parse($latestDataPoint)->translatedFormat('d M Y').')'
@@ -110,13 +93,15 @@ class LandingPageController extends Controller
                 ],
                 [
                     'label' => 'Rata-rata Proses',
-                    'value' => ($averageHours !== null ? number_format($averageHours, 1, ',', '.') : '0').' hr',
+                    'value' => ($avgProcessing['average'] !== null && $avgProcessing['count'] > 0)
+                        ? number_format($avgProcessing['average'], 1, ',', '.').' hari/permintaan'
+                        : 'Belum ada data',
                 ],
                 [
-                    'label' => 'SLA ≤ 7 Hari',
-                    'value' => $totalCompletedOrReady > 0
-                        ? number_format(($slaCompliant / $totalCompletedOrReady) * 100, 0, ',', '.').'%'
-                        : '0%',
+                    'label' => 'Kepuasan Pelanggan',
+                    'value' => $customerSatisfaction['total_responses'] > 0
+                        ? number_format($customerSatisfaction['score'], 2, ',', '.').'/4'
+                        : 'Belum ada data',
                 ],
                 [
                     'label' => 'Resi Selesai',
