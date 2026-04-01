@@ -235,11 +235,27 @@ class Sample extends Model
 
     /**
      * Scope: Samples eligible for disposal
-     * - disposal_status = 'eligible'
+     * - Has completed interpretation process with LHU number
+     * - Completed 90+ days ago
+     * - Has not been disposed yet
      */
     public function scopeEligibleForDisposal(Builder $query): Builder
     {
-        return $query->where('disposal_status', SampleDisposalStatus::ELIGIBLE);
+        return $query
+            ->whereNull('disposal_id')
+            ->whereNull('disposed_at')
+            ->where(function (Builder $builder): void {
+                $builder
+                    ->whereNull('disposal_status')
+                    ->orWhere('disposal_status', '!=', SampleDisposalStatus::DISPOSED->value);
+            })
+            ->whereHas('testProcesses', function (Builder $builder): void {
+                $builder
+                    ->where('stage', 'interpretation')
+                    ->whereNotNull('completed_at')
+                    ->where('completed_at', '<=', now()->subDays(90))
+                    ->whereNotNull('metadata->lhu_number');
+            });
     }
 
     /**
@@ -287,6 +303,10 @@ class Sample extends Model
      */
     public function isEligibleForDisposal(): bool
     {
+        if ($this->disposal_id !== null || $this->disposed_at !== null || $this->disposal_status === SampleDisposalStatus::DISPOSED) {
+            return false;
+        }
+
         $interpretationProcess = $this->testProcesses()
             ->where('stage', 'interpretation')
             ->whereNotNull('completed_at')

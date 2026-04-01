@@ -8,13 +8,21 @@ use App\Models\InventoryLocation;
 use App\Models\InventoryMovement;
 use App\Models\Sample;
 use App\Models\SampleDisposal;
+use App\Models\SampleTestProcess;
 use App\Models\User;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class DashboardTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(PermissionSeeder::class);
+    }
 
     public function test_dashboard_shows_quick_action_widget()
     {
@@ -39,6 +47,30 @@ class DashboardTest extends TestCase
         $response->assertOk();
         $response->assertSee('Stok Opname');
         $response->assertSee(route('inventory.transaction.stocktake'));
+    }
+
+    public function test_dashboard_shows_disposal_button(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create();
+        $user->grantPermission('inventori.view');
+
+        $response = $this->actingAs($user)->get(route('inventory.dashboard'));
+
+        $response->assertOk();
+        $response->assertSee('Pemusnahan Sampel');
+        $response->assertSee(route('inventory.disposal.index'));
+    }
+
+    public function test_dashboard_hides_disposal_button_without_inventory_view_permission(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create();
+
+        $response = $this->actingAs($user)->get(route('inventory.dashboard'));
+
+        $response->assertOk();
+        $response->assertDontSee(route('inventory.disposal.index'));
     }
 
     public function test_dashboard_shows_overview_widget(): void
@@ -145,11 +177,17 @@ class DashboardTest extends TestCase
             'testing_completed_at' => now()->subDays(10),
         ]);
 
-        Sample::factory()->create([
-            'disposal_status' => 'eligible',
+        $eligibleSample = Sample::factory()->create([
+            'disposal_status' => 'pending',
             'disposal_id' => null,
             'disposed_at' => null,
-            'testing_completed_at' => now()->subDays(20),
+            'testing_completed_at' => now()->subDays(91),
+        ]);
+        SampleTestProcess::factory()->create([
+            'sample_id' => $eligibleSample->id,
+            'stage' => 'interpretation',
+            'completed_at' => now()->subDays(91),
+            'metadata' => ['lhu_number' => 'LHU-2025-1001'],
         ]);
 
         $disposal = SampleDisposal::factory()->create([

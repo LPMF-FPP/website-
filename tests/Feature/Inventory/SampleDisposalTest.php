@@ -11,6 +11,7 @@ use App\Models\SampleDisposal;
 use App\Models\SampleTestProcess;
 use App\Models\TestRequest;
 use App\Models\User;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Tests\TestCase;
 
@@ -23,7 +24,10 @@ class SampleDisposalTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        $this->seed(PermissionSeeder::class);
         $this->user = User::factory()->create();
+        $this->user->grantPermission('inventori.view');
+        $this->user->grantPermission('inventori.edit');
     }
 
     // ============================================
@@ -114,26 +118,8 @@ class SampleDisposalTest extends TestCase
 
     public function test_sample_scope_eligible_for_disposal(): void
     {
-        // Create a sample with completed LHU older than 90 days
-        $testRequest = TestRequest::factory()->create();
-        $eligibleSample = Sample::factory()->create([
-            'test_request_id' => $testRequest->id,
-            'disposal_status' => SampleDisposalStatus::ELIGIBLE,
-        ]);
-
-        // Create completed test process with LHU number, 90+ days ago
-        SampleTestProcess::factory()->create([
-            'sample_id' => $eligibleSample->id,
-            'stage' => 'interpretation',
-            'completed_at' => now()->subDays(91),
-            'metadata' => ['lhu_number' => 'LHU-2025-0001'],
-        ]);
-
-        // Create a non-eligible sample (no LHU, recent)
-        $nonEligibleSample = Sample::factory()->create([
-            'test_request_id' => $testRequest->id,
-            'disposal_status' => SampleDisposalStatus::PENDING,
-        ]);
+        $eligibleSample = $this->createEligibleSampleForDisposal();
+        $nonEligibleSample = $this->createEligibleSampleForDisposal(daysAgo: 30);
 
         $eligibleSamples = Sample::eligibleForDisposal()->get();
 
@@ -193,10 +179,7 @@ class SampleDisposalTest extends TestCase
 
     public function test_disposal_index_shows_eligible_samples(): void
     {
-        // Create eligible sample
-        $sample = Sample::factory()->create([
-            'disposal_status' => SampleDisposalStatus::ELIGIBLE,
-        ]);
+        $sample = $this->createEligibleSampleForDisposal();
 
         $response = $this->actingAs($this->user)
             ->get(route('inventory.disposal.index'));
@@ -207,9 +190,9 @@ class SampleDisposalTest extends TestCase
 
     public function test_disposal_create_shows_form(): void
     {
-        // Create eligible samples first
-        $samples = Sample::factory()->count(2)->create([
-            'disposal_status' => SampleDisposalStatus::ELIGIBLE,
+        $samples = collect([
+            $this->createEligibleSampleForDisposal(),
+            $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-2025-0002'),
         ]);
 
         $response = $this->actingAs($this->user)
@@ -224,9 +207,10 @@ class SampleDisposalTest extends TestCase
 
     public function test_can_execute_batch_disposal(): void
     {
-        // Create eligible samples
-        $samples = Sample::factory()->count(3)->create([
-            'disposal_status' => SampleDisposalStatus::ELIGIBLE,
+        $samples = collect([
+            $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-2025-0010'),
+            $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-2025-0011'),
+            $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-2025-0012'),
         ]);
         $witness = User::factory()->create([
             'name' => 'Saksi Pengujian',
@@ -262,9 +246,7 @@ class SampleDisposalTest extends TestCase
 
     public function test_disposal_creates_audit_record(): void
     {
-        $sample = Sample::factory()->create([
-            'disposal_status' => SampleDisposalStatus::ELIGIBLE,
-        ]);
+        $sample = $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-2025-0020');
         $witness = User::factory()->create([
             'name' => 'Test Witness',
             'rank' => 'KOMPOL',
@@ -289,9 +271,7 @@ class SampleDisposalTest extends TestCase
 
     public function test_disposal_store_requires_witness_input(): void
     {
-        $sample = Sample::factory()->create([
-            'disposal_status' => SampleDisposalStatus::ELIGIBLE,
-        ]);
+        $sample = $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-2025-0030');
 
         $response = $this->actingAs($this->user)
             ->post(route('inventory.disposal.store'), [
@@ -304,8 +284,9 @@ class SampleDisposalTest extends TestCase
 
     public function test_can_execute_batch_disposal_with_manual_witness_fields(): void
     {
-        $samples = Sample::factory()->count(2)->create([
-            'disposal_status' => SampleDisposalStatus::ELIGIBLE,
+        $samples = collect([
+            $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-2025-0040'),
+            $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-2025-0041'),
         ]);
 
         $response = $this->actingAs($this->user)
@@ -328,9 +309,7 @@ class SampleDisposalTest extends TestCase
 
     public function test_disposal_store_rejects_inactive_witness_user(): void
     {
-        $sample = Sample::factory()->create([
-            'disposal_status' => SampleDisposalStatus::ELIGIBLE,
-        ]);
+        $sample = $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-2025-0050');
         $inactiveWitness = User::factory()->create([
             'is_active' => false,
         ]);
@@ -347,9 +326,7 @@ class SampleDisposalTest extends TestCase
 
     public function test_disposal_snapshot_remains_after_witness_profile_changes(): void
     {
-        $sample = Sample::factory()->create([
-            'disposal_status' => SampleDisposalStatus::ELIGIBLE,
-        ]);
+        $sample = $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-2025-0060');
         $witness = User::factory()->create([
             'name' => 'Nama Lama',
             'rank' => 'AKBP',
@@ -415,5 +392,70 @@ class SampleDisposalTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Test Witness');
         $response->assertSee($disposal->batch_number);
+    }
+
+    public function test_sample_scope_eligible_for_disposal_includes_pending_production_samples(): void
+    {
+        $sample = $this->createEligibleSampleForDisposal(
+            disposalStatus: SampleDisposalStatus::PENDING,
+            lhuNumber: 'LHU-2025-0090'
+        );
+
+        $this->assertTrue(Sample::eligibleForDisposal()->get()->contains($sample));
+    }
+
+    public function test_disposal_index_requires_inventory_view_permission(): void
+    {
+        $user = User::factory()->create();
+
+        $response = $this->from(route('testing.index'))
+            ->actingAs($user)
+            ->get(route('inventory.disposal.index'));
+
+        $response->assertRedirect(route('testing.index'));
+        $response->assertSessionHas('error');
+    }
+
+    public function test_disposal_store_requires_inventory_edit_permission(): void
+    {
+        $user = User::factory()->create();
+        $user->grantPermission('inventori.view');
+        $sample = $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-2025-0100');
+
+        $response = $this->from(route('inventory.disposal.index'))
+            ->actingAs($user)
+            ->post(route('inventory.disposal.store'), [
+                'sample_ids' => [$sample->id],
+                'method' => 'bakar',
+                'witness_name' => 'Saksi',
+                'witness_role' => 'Petugas',
+            ]);
+
+        $response->assertRedirect(route('inventory.disposal.index'));
+        $response->assertSessionHas('error');
+    }
+
+    private function createEligibleSampleForDisposal(
+        int $daysAgo = 91,
+        SampleDisposalStatus $disposalStatus = SampleDisposalStatus::PENDING,
+        string $lhuNumber = 'LHU-2025-0001'
+    ): Sample {
+        $testRequest = TestRequest::factory()->create();
+        $sample = Sample::factory()->create([
+            'test_request_id' => $testRequest->id,
+            'disposal_status' => $disposalStatus,
+            'disposed_at' => null,
+            'disposal_id' => null,
+            'testing_completed_at' => now()->subDays($daysAgo),
+        ]);
+
+        SampleTestProcess::factory()->create([
+            'sample_id' => $sample->id,
+            'stage' => 'interpretation',
+            'completed_at' => now()->subDays($daysAgo),
+            'metadata' => ['lhu_number' => $lhuNumber],
+        ]);
+
+        return $sample;
     }
 }

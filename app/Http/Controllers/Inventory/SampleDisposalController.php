@@ -5,16 +5,17 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Inventory;
 
 use App\Enums\SampleDisposalMethod;
-use App\Enums\SampleDisposalStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Sample;
 use App\Models\SampleDisposal;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class SampleDisposalController extends Controller
@@ -124,41 +125,82 @@ class SampleDisposalController extends Controller
         $executedByName = trim((string) ($executor?->display_name_with_title ?? $executor?->name ?? ''));
         $executedByRole = trim((string) ($executor?->rank ?? $executor?->role ?? ''));
 
-        // Verify all samples are eligible
-        $samples = Sample::query()
-            ->whereIn('id', $validated['sample_ids'])
-            ->where('disposal_status', SampleDisposalStatus::ELIGIBLE)
-            ->get();
+        $samples = collect();
+        $disposal = DB::transaction(function () use ($validated, $witnessName, $witnessRole, $witnessUser, $executedByName, $executedByRole, &$samples) {
+            // Re-check eligibility in transaction so production data can be picked up from lifecycle rules.
+            $samples = Sample::query()
+                ->whereIn('id', $validated['sample_ids'])
+                ->eligibleForDisposal()
+                ->lockForUpdate()
+                ->get();
 
-        if ($samples->count() !== count($validated['sample_ids'])) {
+            if ($samples->count() !== count($validated['sample_ids'])) {
+                return null;
+            }
+
+            $disposal = $this->createDisposalRecord([
+                'executed_at' => now(),
+                'method' => SampleDisposalMethod::from($validated['method']),
+                'witness_name' => $witnessName !== '' ? $witnessName : '-',
+                'witness_role' => $witnessRole !== '' ? $witnessRole : '-',
+                'witness_user_id' => $witnessUser?->id,
+                'notes' => $validated['notes'] ?? null,
+                'executed_by' => Auth::id(),
+                'executed_by_name' => $executedByName !== '' ? $executedByName : '-',
+                'executed_by_role' => $executedByRole !== '' ? $executedByRole : 'ANALIS',
+                'created_by' => Auth::id(),
+            ]);
+
+            foreach ($samples as $sample) {
+                $sample->markAsDisposed($disposal);
+            }
+
+            return $disposal;
+        });
+
+        if (! $disposal) {
             return back()->withErrors([
                 'sample_ids' => 'Beberapa sampel tidak eligible untuk pemusnahan.',
             ])->withInput();
         }
 
-        // Create disposal record
-        $disposal = SampleDisposal::create([
-            'batch_number' => SampleDisposal::generateBatchNumber(),
-            'executed_at' => now(),
-            'method' => SampleDisposalMethod::from($validated['method']),
-            'witness_name' => $witnessName !== '' ? $witnessName : '-',
-            'witness_role' => $witnessRole !== '' ? $witnessRole : '-',
-            'witness_user_id' => $witnessUser?->id,
-            'notes' => $validated['notes'] ?? null,
-            'executed_by' => Auth::id(),
-            'executed_by_name' => $executedByName !== '' ? $executedByName : '-',
-            'executed_by_role' => $executedByRole !== '' ? $executedByRole : 'ANALIS',
-            'created_by' => Auth::id(),
-        ]);
-
-        // Mark all samples as disposed
-        foreach ($samples as $sample) {
-            $sample->markAsDisposed($disposal);
-        }
-
         return redirect()
             ->route('inventory.disposal.show', $disposal)
             ->with('success', "Pemusnahan {$samples->count()} sampel berhasil dieksekusi.");
+    }
+
+    /**
+     * Retry disposal creation when concurrent requests hit the same batch number.
+     */
+    private function createDisposalRecord(array $attributes): SampleDisposal
+    {
+        $attempts = 0;
+
+        while ($attempts < 5) {
+            $attempts++;
+
+            try {
+                return SampleDisposal::create([
+                    'batch_number' => SampleDisposal::generateBatchNumber(),
+                    ...$attributes,
+                ]);
+            } catch (QueryException $exception) {
+                if (! $this->isDuplicateBatchNumberException($exception) || $attempts >= 5) {
+                    throw $exception;
+                }
+            }
+        }
+
+        throw new \RuntimeException('Gagal membuat nomor batch pemusnahan yang unik.');
+    }
+
+    private function isDuplicateBatchNumberException(QueryException $exception): bool
+    {
+        $sqlState = (string) ($exception->errorInfo[0] ?? '');
+        $message = strtolower($exception->getMessage());
+
+        return in_array($sqlState, ['23000', '23505'], true)
+            && str_contains($message, 'batch_number');
     }
 
     /**

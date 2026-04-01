@@ -8,6 +8,9 @@
                 <div class="flex flex-wrap gap-2">
                     <x-button variant="outline" size="sm" href="{{ route('inventory.items.index') }}">Master Item</x-button>
                     <x-button variant="outline" size="sm" href="{{ route('inventory.stock-card') }}">Kartu Stok</x-button>
+                    @if(auth()->user()?->hasPermission('inventori.view'))
+                        <x-button variant="outline" size="sm" href="{{ route('inventory.disposal.index') }}" class="!border-rose-500 !text-rose-700 hover:!bg-rose-50">Pemusnahan Sampel</x-button>
+                    @endif
                     <x-button variant="outline" size="sm" href="{{ route('inventory.transaction.stocktake') }}" class="!border-amber-500 !text-amber-700 hover:!bg-amber-50">Stok Opname</x-button>
                 </div>
             </x-slot>

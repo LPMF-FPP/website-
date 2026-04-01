@@ -2,7 +2,9 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-4">
         <h3 class="font-semibold text-gray-900">🧪 Disposal Sampel</h3>
-        <a href="{{ route('inventory.disposal.index') }}" class="text-xs text-primary-600 hover:text-primary-800 font-medium">Kelola &rarr;</a>
+        @if(auth()->user()?->hasPermission('inventori.view'))
+            <a href="{{ route('inventory.disposal.index') }}" class="text-xs text-primary-600 hover:text-primary-800 font-medium">Kelola &rarr;</a>
+        @endif
     </div>
 
     <!-- Stats Grid -->
@@ -62,15 +64,26 @@
             <div class="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">Batch Terakhir</div>
             <div class="flex flex-row overflow-x-auto gap-3 pb-2 scrollbar-hide">
                 @foreach($recentSampleDisposals as $d)
-                    <a
-                        href="{{ route('inventory.disposal.show', $d) }}"
-                        class="flex-shrink-0 inline-flex items-center gap-2 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 text-sm hover:bg-gray-100 transition-colors whitespace-nowrap"
-                        title="{{ $d->executed_at ? $d->executed_at->format('d M Y') : 'Draft' }}"
-                    >
-                        <span class="font-mono font-semibold text-gray-900">{{ $d->batch_number }}</span>
-                        <span class="text-gray-300">|</span>
-                        <span class="text-gray-600 text-xs">{{ (int) ($d->samples_count ?? 0) }} spl</span>
-                    </a>
+                    @if(auth()->user()?->hasPermission('inventori.view'))
+                        <a
+                            href="{{ route('inventory.disposal.show', $d) }}"
+                            class="flex-shrink-0 inline-flex items-center gap-2 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 text-sm hover:bg-gray-100 transition-colors whitespace-nowrap"
+                            title="{{ $d->executed_at ? $d->executed_at->format('d M Y') : 'Draft' }}"
+                        >
+                            <span class="font-mono font-semibold text-gray-900">{{ $d->batch_number }}</span>
+                            <span class="text-gray-300">|</span>
+                            <span class="text-gray-600 text-xs">{{ (int) ($d->samples_count ?? 0) }} spl</span>
+                        </a>
+                    @else
+                        <span
+                            class="flex-shrink-0 inline-flex items-center gap-2 rounded-lg bg-gray-50 border border-gray-200 px-3 py-2 text-sm whitespace-nowrap"
+                            title="{{ $d->executed_at ? $d->executed_at->format('d M Y') : 'Draft' }}"
+                        >
+                            <span class="font-mono font-semibold text-gray-900">{{ $d->batch_number }}</span>
+                            <span class="text-gray-300">|</span>
+                            <span class="text-gray-600 text-xs">{{ (int) ($d->samples_count ?? 0) }} spl</span>
+                        </span>
+                    @endif
                 @endforeach
             </div>
         </div>

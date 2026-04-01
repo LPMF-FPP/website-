@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v2.4.8
+# WALKTHROUGH - LPMF LIMS v2.4.9
 
 > **Single Source of Truth** — Pedoman terupdate terhadap codebase Laboratory Information Management System.
 
@@ -147,6 +147,13 @@ WhatsApp service berjalan di container Docker terpisah.
 ---
 
 ## 📰 Recent Changes (v2.4.x)
+
+### v2.4.9 (1 April 2026) - Disposal Eligibility Production Fix & Access Hardening
+
+- **Disposal Eligibility Fix:** Halaman `/referensi/inventori/disposal` sekarang mendeteksi sampel siap musnah dari data riil workflow (`interpretation` selesai, `lhu_number` ada, umur hasil uji >= 90 hari) sehingga data production yang sebelumnya tertahan di status `pending` tetap muncul sebagai eligible.
+- **Execution Safety:** Eksekusi batch disposal sekarang me-recheck eligibility di dalam transaksi database dan menambahkan retry untuk benturan `batch_number` agar lebih aman saat ada request paralel.
+- **Access Hardening:** Route disposal sekarang dibatasi dengan permission inventori, dan tombol/link akses disposal di dashboard hanya tampil untuk user yang memang punya hak lihat inventori.
+- **Form UX Fix:** Input saksi manual sekarang sinkron dengan validasi backend, sehingga user tidak lagi dipaksa memilih saksi dari daftar user sistem.
 
 ### v2.4.8 (12 Maret 2026) - Landing Page Institusional & Statistik Real-time
 

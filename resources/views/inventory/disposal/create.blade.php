@@ -98,7 +98,7 @@
                             <label for="witness_user_id" class="block text-sm font-medium text-gray-700 mb-1">
                                 Saksi (User)
                             </label>
-                            <select name="witness_user_id" id="witness_user_id" required
+                            <select name="witness_user_id" id="witness_user_id"
                                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
                                 <option value="">-- Pilih Saksi --</option>
                                 @foreach($witnessUsers as $witnessUser)

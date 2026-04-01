@@ -656,10 +656,14 @@ Route::prefix('referensi/inventori')->name('inventory.')->middleware(['auth', 'v
     Route::get('ajax/fast-moving', [App\Http\Controllers\Inventory\DashboardController::class, 'ajaxFastMoving'])->name('ajax.fast-moving');
 
     // Sample Disposal (Pemusnahan Sisa Sampel)
-    Route::prefix('disposal')->name('disposal.')->group(function () {
+    Route::prefix('disposal')->name('disposal.')->middleware('permission:inventori.view')->group(function () {
         Route::get('/', [App\Http\Controllers\Inventory\SampleDisposalController::class, 'index'])->name('index');
-        Route::get('/create', [App\Http\Controllers\Inventory\SampleDisposalController::class, 'create'])->name('create');
-        Route::post('/', [App\Http\Controllers\Inventory\SampleDisposalController::class, 'store'])->name('store');
+        Route::get('/create', [App\Http\Controllers\Inventory\SampleDisposalController::class, 'create'])
+            ->middleware('permission:inventori.edit')
+            ->name('create');
+        Route::post('/', [App\Http\Controllers\Inventory\SampleDisposalController::class, 'store'])
+            ->middleware('permission:inventori.edit')
+            ->name('store');
         Route::get('/{disposal}', [App\Http\Controllers\Inventory\SampleDisposalController::class, 'show'])->name('show');
         Route::get('/{disposal}/pdf', [App\Http\Controllers\Inventory\SampleDisposalController::class, 'downloadPdf'])->name('pdf');
     });
