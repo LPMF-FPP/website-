@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v2.4.9
+# WALKTHROUGH - LPMF LIMS v2.4.10
 
 > **Single Source of Truth** — Pedoman terupdate terhadap codebase Laboratory Information Management System.
 
@@ -147,6 +147,12 @@ WhatsApp service berjalan di container Docker terpisah.
 ---
 
 ## 📰 Recent Changes (v2.4.x)
+
+### v2.4.10 (1 April 2026) - Configurable Disposal Retention Window
+
+- **Configurable Retention:** Rule umur disposal sekarang memakai setting `inventory.disposal_retention_days` dengan fallback aman `90`, sehingga kebijakan retensi dapat diubah tanpa patch code ulang.
+- **Operational Flexibility:** Nilai setting `0` sekarang mengizinkan disposal segera setelah `interpretation` selesai dan `lhu_number` tersedia, sementara nilai `> 0` tetap menegakkan masa retensi sesuai kebutuhan operasional.
+- **Test Coverage:** Coverage disposal diperluas untuk memastikan fallback default `90` tetap aktif saat setting belum diisi dan behavior `0 hari` berjalan sesuai konfigurasi.
 
 ### v2.4.9 (1 April 2026) - Disposal Eligibility Production Fix & Access Hardening
 

@@ -9,6 +9,7 @@ use App\Enums\SampleDisposalStatus;
 use App\Models\Sample;
 use App\Models\SampleDisposal;
 use App\Models\SampleTestProcess;
+use App\Models\SystemSetting;
 use App\Models\TestRequest;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
@@ -402,6 +403,27 @@ class SampleDisposalTest extends TestCase
         );
 
         $this->assertTrue(Sample::eligibleForDisposal()->get()->contains($sample));
+    }
+
+    public function test_sample_scope_eligible_for_disposal_uses_configured_retention_days(): void
+    {
+        SystemSetting::updateOrCreate(
+            ['key' => 'inventory.disposal_retention_days'],
+            ['value' => 0]
+        );
+
+        $sample = $this->createEligibleSampleForDisposal(daysAgo: 1, lhuNumber: 'LHU-2025-0091');
+
+        $this->assertTrue(Sample::eligibleForDisposal()->get()->contains($sample));
+    }
+
+    public function test_sample_scope_eligible_for_disposal_defaults_to_90_days_when_setting_missing(): void
+    {
+        SystemSetting::where('key', 'inventory.disposal_retention_days')->delete();
+
+        $sample = $this->createEligibleSampleForDisposal(daysAgo: 30, lhuNumber: 'LHU-2025-0092');
+
+        $this->assertFalse(Sample::eligibleForDisposal()->get()->contains($sample));
     }
 
     public function test_disposal_index_requires_inventory_view_permission(): void

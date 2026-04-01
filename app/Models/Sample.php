@@ -236,11 +236,13 @@ class Sample extends Model
     /**
      * Scope: Samples eligible for disposal
      * - Has completed interpretation process with LHU number
-     * - Completed 90+ days ago
+     * - Completed at least as long as the configured retention period
      * - Has not been disposed yet
      */
     public function scopeEligibleForDisposal(Builder $query): Builder
     {
+        $retentionDays = self::disposalRetentionDays();
+
         return $query
             ->whereNull('disposal_id')
             ->whereNull('disposed_at')
@@ -249,11 +251,11 @@ class Sample extends Model
                     ->whereNull('disposal_status')
                     ->orWhere('disposal_status', '!=', SampleDisposalStatus::DISPOSED->value);
             })
-            ->whereHas('testProcesses', function (Builder $builder): void {
+            ->whereHas('testProcesses', function (Builder $builder) use ($retentionDays): void {
                 $builder
                     ->where('stage', 'interpretation')
                     ->whereNotNull('completed_at')
-                    ->where('completed_at', '<=', now()->subDays(90))
+                    ->where('completed_at', '<=', now()->subDays($retentionDays))
                     ->whereNotNull('metadata->lhu_number');
             });
     }
@@ -299,7 +301,7 @@ class Sample extends Model
     /**
      * Check if sample is eligible for disposal based on business rules
      * - Has completed interpretation process with LHU number
-     * - Completed 90+ days ago
+     * - Completed at least as long as the configured retention period
      */
     public function isEligibleForDisposal(): bool
     {
@@ -307,13 +309,20 @@ class Sample extends Model
             return false;
         }
 
+        $retentionDays = self::disposalRetentionDays();
+
         $interpretationProcess = $this->testProcesses()
             ->where('stage', 'interpretation')
             ->whereNotNull('completed_at')
-            ->where('completed_at', '<=', now()->subDays(90))
+            ->where('completed_at', '<=', now()->subDays($retentionDays))
             ->whereNotNull('metadata->lhu_number')
             ->first();
 
         return $interpretationProcess !== null;
+    }
+
+    public static function disposalRetentionDays(): int
+    {
+        return max(0, (int) settings('inventory.disposal_retention_days', 90));
     }
 }
