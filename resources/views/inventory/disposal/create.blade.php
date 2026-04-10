@@ -313,11 +313,31 @@
                 removeWitness(index) {
                     this.witnesses.splice(index, 1);
 
-                    Object.keys(this.errors).forEach((key) => {
-                        if (key.startsWith(`witnesses.${index}.`)) {
-                            delete this.errors[key];
+                    const nextErrors = {};
+
+                    Object.entries(this.errors).forEach(([key, value]) => {
+                        const match = key.match(/^witnesses\.(\d+)\.(.+)$/);
+
+                        if (!match) {
+                            nextErrors[key] = value;
+                            return;
                         }
+
+                        const errorIndex = Number(match[1]);
+                        const field = match[2];
+
+                        if (errorIndex === index) {
+                            return;
+                        }
+
+                        const nextKey = errorIndex > index
+                            ? `witnesses.${errorIndex - 1}.${field}`
+                            : key;
+
+                        nextErrors[nextKey] = value;
                     });
+
+                    this.errors = nextErrors;
 
                     if (this.witnesses.length === 0) {
                         this.addWitness();

@@ -107,7 +107,7 @@
                                     {{ $lhuNumber }}
                                 </td>
                                 <td class="px-4 py-3 text-sm text-gray-600">
-                                    {{ $sample->testRequest?->investigator?->suspect_name ?? '-' }}
+                                    {{ $sample->testRequest?->suspect_name ?? '-' }}
                                 </td>
                                 <td class="px-4 py-3 text-sm text-gray-600">
                                     {{ $sample->short_description ?? $sample->sample_form }}
