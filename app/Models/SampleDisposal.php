@@ -21,16 +21,22 @@ class SampleDisposal extends Model
         'witness_name',
         'witness_role',
         'witness_user_id',
+        'witness_entries',
         'notes',
         'executed_by',
         'executed_by_name',
         'executed_by_role',
+        'executed_by_identity',
+        'approver_name',
+        'approver_role',
+        'approver_identity',
         'created_by',
     ];
 
     protected $casts = [
         'executed_at' => 'datetime',
         'method' => SampleDisposalMethod::class,
+        'witness_entries' => 'array',
     ];
 
     public function samples(): HasMany
@@ -81,5 +87,38 @@ class SampleDisposal extends Model
     public function getSampleCountAttribute(): int
     {
         return $this->samples()->count();
+    }
+
+    public function getWitnessEntriesForDisplayAttribute(): array
+    {
+        $entries = collect($this->witness_entries)
+            ->filter(fn ($entry) => is_array($entry))
+            ->map(function (array $entry): array {
+                $name = trim((string) ($entry['name'] ?? '-'));
+                $role = trim((string) ($entry['role'] ?? '-'));
+                $identity = trim((string) ($entry['identity'] ?? ''));
+
+                return [
+                    'name' => $name !== '' ? $name : '-',
+                    'role' => $role !== '' ? $role : '-',
+                    'identity' => $identity !== '' ? $identity : null,
+                ];
+            })
+            ->values()
+            ->all();
+
+        if ($entries !== []) {
+            return $entries;
+        }
+
+        $legacyNumber = $this->witnessUser?->nrp ?: $this->witnessUser?->nip;
+        $legacyNumberLabel = $this->witnessUser?->nrp ? 'NRP' : ($this->witnessUser?->nip ? 'NIP' : null);
+        $legacyIdentity = trim((string) ($legacyNumberLabel && $legacyNumber ? $legacyNumberLabel.': '.$legacyNumber : ''));
+
+        return [[
+            'name' => trim((string) ($this->witness_name ?: $this->witnessUser?->display_name_with_title ?: '-')) ?: '-',
+            'role' => trim((string) ($this->witness_role ?: $this->witnessUser?->rank ?: '-')) ?: '-',
+            'identity' => $legacyIdentity !== '' ? $legacyIdentity : null,
+        ]];
     }
 }

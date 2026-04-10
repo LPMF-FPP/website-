@@ -228,7 +228,22 @@ if (! function_exists('pdf_build_signer')) {
         }
 
         if ($identity === '') {
-            $identity = trim((string) ($fallbackRole ?? $fallbackIdentity ?? '-'));
+            $fallbackIdentityText = trim((string) ($fallbackIdentity ?? ''));
+            $fallbackRoleText = trim((string) ($fallbackRole ?? ''));
+
+            if ($fallbackIdentityText !== '') {
+                $fallbackIdentityText = preg_replace('/^(NRP|NIP)\s*[:.]?\s*/i', '$1. ', $fallbackIdentityText) ?? $fallbackIdentityText;
+
+                if (preg_match('/^\d+$/', $fallbackIdentityText)) {
+                    $fallbackIdentityText = 'NRP. '.$fallbackIdentityText;
+                }
+            }
+
+            if ($fallbackRoleText !== '' && $fallbackIdentityText !== '') {
+                $identity = trim($fallbackRoleText.' '.$fallbackIdentityText);
+            } else {
+                $identity = trim((string) ($fallbackRoleText !== '' ? $fallbackRoleText : $fallbackIdentityText));
+            }
         }
 
         if ($identity === '') {

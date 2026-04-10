@@ -38,7 +38,7 @@ class SampleDisposalTest extends TestCase
     public function test_sample_disposal_can_be_created(): void
     {
         $disposal = SampleDisposal::create([
-            'batch_number' => 'DSP-2026-0001',
+            'batch_number' => 'DSP-TEST-'.uniqid(),
             'executed_at' => now(),
             'method' => SampleDisposalMethod::BAKAR,
             'witness_name' => 'Budi Santoso',
@@ -49,7 +49,7 @@ class SampleDisposalTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('sample_disposals', [
-            'batch_number' => 'DSP-2026-0001',
+            'batch_number' => $disposal->batch_number,
             'method' => 'bakar',
             'witness_name' => 'Budi Santoso',
         ]);
@@ -189,12 +189,27 @@ class SampleDisposalTest extends TestCase
         $response->assertSee($sample->sample_code);
     }
 
+    public function test_disposal_index_shows_test_request_suspect_name(): void
+    {
+        $sample = $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-SUSPECT-0001');
+
+        $response = $this->actingAs($this->user)
+            ->get(route('inventory.disposal.index'));
+
+        $response->assertStatus(200);
+
+        $eligibleSamples = $response->viewData('eligibleSamples');
+        $matchedSample = $eligibleSamples->getCollection()->firstWhere('id', $sample->id);
+
+        $this->assertNotNull($matchedSample);
+        $this->assertSame($sample->fresh()->testRequest->suspect_name, $matchedSample->testRequest?->suspect_name);
+    }
+
     public function test_disposal_create_shows_form(): void
     {
-        $samples = collect([
-            $this->createEligibleSampleForDisposal(),
-            $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-2025-0002'),
-        ]);
+        $samples = collect(range(1, 22))->map(function (int $index) {
+            return $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-2025-'.str_pad((string) $index, 4, '0', STR_PAD_LEFT));
+        });
 
         $response = $this->actingAs($this->user)
             ->get(route('inventory.disposal.create', [
@@ -203,7 +218,36 @@ class SampleDisposalTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee('Metode Pemusnahan');
-        $response->assertSee('Saksi (User)');
+        $response->assertSee('Daftar Saksi');
+        $response->assertSee((string) $samples->count());
+    }
+
+    public function test_disposal_create_can_load_all_eligible_samples(): void
+    {
+        collect(range(1, 25))->map(function (int $index) {
+            return $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-ALL-'.str_pad((string) $index, 4, '0', STR_PAD_LEFT));
+        });
+
+        $response = $this->actingAs($this->user)
+            ->get(route('inventory.disposal.create', ['all' => 1]));
+
+        $response->assertStatus(200);
+        $response->assertSee('Tersangka LHU-ALL-0001');
+        $response->assertSee('Tersangka LHU-ALL-0025');
+    }
+
+    public function test_disposal_create_rejects_partial_batch_when_any_sample_is_no_longer_eligible(): void
+    {
+        $eligibleSample = $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-2025-1111');
+        $ineligibleSample = $this->createEligibleSampleForDisposal(daysAgo: 5, lhuNumber: 'LHU-2025-1112');
+
+        $response = $this->actingAs($this->user)
+            ->get(route('inventory.disposal.create', [
+                'sample_ids' => [$eligibleSample->id, $ineligibleSample->id],
+            ]));
+
+        $response->assertRedirect(route('inventory.disposal.index', ['tab' => 'eligible']));
+        $response->assertSessionHas('error');
     }
 
     public function test_can_execute_batch_disposal(): void
@@ -224,7 +268,15 @@ class SampleDisposalTest extends TestCase
             ->post(route('inventory.disposal.store'), [
                 'sample_ids' => $samples->pluck('id')->toArray(),
                 'method' => 'bakar',
-                'witness_user_id' => $witness->id,
+                'executor_name' => 'Pelaksana Manual',
+                'executor_role' => 'Ketua Tim Pemusnahan',
+                'executor_identity' => 'NRP: 99880011',
+                'witnesses' => [
+                    ['user_id' => $witness->id, 'name' => '', 'role' => '', 'identity' => 'NRP: 99887766'],
+                ],
+                'approver_name' => 'Kombes Manual',
+                'approver_role' => 'KBP',
+                'approver_identity' => 'NRP: 77889900',
                 'notes' => 'Pemusnahan berjalan lancar',
             ]);
 
@@ -234,6 +286,12 @@ class SampleDisposalTest extends TestCase
         $this->assertDatabaseHas('sample_disposals', [
             'method' => 'bakar',
             'witness_user_id' => $witness->id,
+            'executed_by_name' => 'Pelaksana Manual',
+            'executed_by_role' => 'Ketua Tim Pemusnahan',
+            'executed_by_identity' => 'NRP: 99880011',
+            'approver_name' => 'Kombes Manual',
+            'approver_role' => 'KBP',
+            'approver_identity' => 'NRP: 77889900',
         ]);
 
         // Verify all samples marked as disposed
@@ -259,7 +317,9 @@ class SampleDisposalTest extends TestCase
             ->post(route('inventory.disposal.store'), [
                 'sample_ids' => [$sample->id],
                 'method' => 'hancur',
-                'witness_user_id' => $witness->id,
+                'witnesses' => [
+                    ['user_id' => $witness->id, 'name' => '', 'role' => ''],
+                ],
             ]);
 
         $disposal = SampleDisposal::latest()->first();
@@ -280,7 +340,7 @@ class SampleDisposalTest extends TestCase
                 'method' => 'bakar',
             ]);
 
-        $response->assertSessionHasErrors(['witness_name', 'witness_role']);
+        $response->assertSessionHasErrors(['witnesses']);
     }
 
     public function test_can_execute_batch_disposal_with_manual_witness_fields(): void
@@ -294,8 +354,10 @@ class SampleDisposalTest extends TestCase
             ->post(route('inventory.disposal.store'), [
                 'sample_ids' => $samples->pluck('id')->toArray(),
                 'method' => 'hancur',
-                'witness_name' => 'Saksi Eksternal',
-                'witness_role' => 'Perwakilan Penyidik',
+                'witnesses' => [
+                    ['user_id' => '', 'name' => 'Saksi Eksternal', 'role' => 'Perwakilan Penyidik', 'identity' => 'NRP: 12345678'],
+                    ['user_id' => '', 'name' => 'Saksi Kedua', 'role' => 'Pengawas', 'identity' => 'NRP: 87654321'],
+                ],
             ]);
 
         $response->assertRedirect();
@@ -306,6 +368,10 @@ class SampleDisposalTest extends TestCase
             'witness_role' => 'Perwakilan Penyidik',
             'witness_user_id' => null,
         ]);
+
+        $disposal = SampleDisposal::latest()->first();
+        $this->assertCount(2, $disposal->witness_entries);
+        $this->assertSame('NRP: 12345678', $disposal->witness_entries[0]['identity']);
     }
 
     public function test_disposal_store_rejects_inactive_witness_user(): void
@@ -319,10 +385,12 @@ class SampleDisposalTest extends TestCase
             ->post(route('inventory.disposal.store'), [
                 'sample_ids' => [$sample->id],
                 'method' => 'bakar',
-                'witness_user_id' => $inactiveWitness->id,
+                'witnesses' => [
+                    ['user_id' => $inactiveWitness->id, 'name' => '', 'role' => ''],
+                ],
             ]);
 
-        $response->assertSessionHasErrors('witness_user_id');
+        $response->assertSessionHasErrors('witnesses.0.user_id');
     }
 
     public function test_disposal_snapshot_remains_after_witness_profile_changes(): void
@@ -339,7 +407,9 @@ class SampleDisposalTest extends TestCase
             ->post(route('inventory.disposal.store'), [
                 'sample_ids' => [$sample->id],
                 'method' => 'bakar',
-                'witness_user_id' => $witness->id,
+                'witnesses' => [
+                    ['user_id' => $witness->id, 'name' => '', 'role' => ''],
+                ],
             ]);
 
         $disposal = SampleDisposal::latest()->first();
@@ -380,11 +450,63 @@ class SampleDisposalTest extends TestCase
         $response->assertHeader('content-type', 'application/pdf');
     }
 
+    public function test_pdf_view_renders_multiple_witnesses_and_legacy_fallback(): void
+    {
+        $disposal = SampleDisposal::factory()->create([
+            'witness_entries' => [
+                ['name' => 'Saksi Satu', 'role' => 'Penyidik', 'identity' => 'NRP: 123'],
+                ['name' => 'Saksi Dua', 'role' => 'Kepala Lab', 'identity' => 'NIP: 456'],
+            ],
+            'witness_name' => 'Saksi Satu',
+            'witness_role' => 'Penyidik',
+        ]);
+
+        $pdfHtml = view('pdf.berita-acara-pemusnahan', [
+            'disposal' => $disposal->load(['samples.testRequest.investigator', 'samples.testProcesses', 'executedBy', 'witnessUser']),
+        ])->render();
+
+        $this->assertStringContainsString('SAKSI SATU', strtoupper($pdfHtml));
+        $this->assertStringContainsString('SAKSI DUA', strtoupper($pdfHtml));
+        $this->assertStringContainsString('PENYIDIK NRP. 123', strtoupper($pdfHtml));
+        $this->assertStringContainsString('KEPALA LAB NIP. 456', strtoupper($pdfHtml));
+
+        $legacyDisposal = SampleDisposal::factory()->create([
+            'witness_entries' => null,
+            'witness_name' => 'Saksi Legacy',
+            'witness_role' => 'Pengawas Legacy',
+            'witness_user_id' => null,
+        ]);
+
+        $legacyPdfHtml = view('pdf.berita-acara-pemusnahan', [
+            'disposal' => $legacyDisposal->load(['samples.testRequest.investigator', 'samples.testProcesses', 'executedBy', 'witnessUser']),
+        ])->render();
+
+        $this->assertStringContainsString('SAKSI LEGACY', strtoupper($legacyPdfHtml));
+        $this->assertStringContainsString('KEPALA FARMAPOL', strtoupper($legacyPdfHtml));
+    }
+
+    public function test_pdf_view_renders_manual_approver_identity_for_kepala_farmapol(): void
+    {
+        $disposal = SampleDisposal::factory()->create([
+            'approver_name' => 'Kombes Manual',
+            'approver_role' => 'KBP',
+            'approver_identity' => '12345678',
+        ]);
+
+        $pdfHtml = view('pdf.berita-acara-pemusnahan', [
+            'disposal' => $disposal->load(['samples.testRequest.investigator', 'samples.testProcesses', 'executedBy', 'witnessUser']),
+        ])->render();
+
+        $this->assertStringContainsString('KOMBES MANUAL', strtoupper($pdfHtml));
+        $this->assertStringContainsString('KBP NRP. 12345678', strtoupper($pdfHtml));
+    }
+
     public function test_disposal_show_displays_details(): void
     {
         $disposal = SampleDisposal::factory()->create([
             'witness_name' => 'Test Witness',
             'witness_user_id' => null,
+            'witness_entries' => null,
         ]);
 
         $response = $this->actingAs($this->user)
@@ -393,6 +515,55 @@ class SampleDisposalTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Test Witness');
         $response->assertSee($disposal->batch_number);
+    }
+
+    public function test_disposal_show_displays_multiple_witnesses(): void
+    {
+        $disposal = SampleDisposal::factory()->create([
+            'witness_entries' => [
+                ['name' => 'Saksi Satu', 'role' => 'Penyidik', 'identity' => '123'],
+                ['name' => 'Saksi Dua', 'role' => 'Kepala Lab', 'identity' => '456'],
+            ],
+            'witness_name' => 'Saksi Satu',
+            'witness_role' => 'Penyidik',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->get(route('inventory.disposal.show', $disposal));
+
+        $response->assertStatus(200);
+        $response->assertSee('Saksi Satu');
+        $response->assertSee('Saksi Dua');
+    }
+
+    public function test_disposal_show_displays_manual_approver(): void
+    {
+        $disposal = SampleDisposal::factory()->create([
+            'approver_name' => 'Irjen Manual',
+            'approver_role' => 'KBP',
+            'approver_identity' => 'NRP. 12345678',
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->get(route('inventory.disposal.show', $disposal));
+
+        $response->assertStatus(200);
+        $response->assertSee('Irjen Manual');
+        $response->assertSee('KBP NRP. 12345678');
+    }
+
+    public function test_disposal_show_uses_test_request_suspect_name(): void
+    {
+        $sample = $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-SHOW-0001');
+        $disposal = SampleDisposal::factory()->create();
+
+        $sample->markAsDisposed($disposal);
+
+        $response = $this->actingAs($this->user)
+            ->get(route('inventory.disposal.show', $disposal));
+
+        $response->assertStatus(200);
+        $response->assertSee($sample->testRequest->suspect_name);
     }
 
     public function test_sample_scope_eligible_for_disposal_includes_pending_production_samples(): void
@@ -449,8 +620,9 @@ class SampleDisposalTest extends TestCase
             ->post(route('inventory.disposal.store'), [
                 'sample_ids' => [$sample->id],
                 'method' => 'bakar',
-                'witness_name' => 'Saksi',
-                'witness_role' => 'Petugas',
+                'witnesses' => [
+                    ['user_id' => '', 'name' => 'Saksi', 'role' => 'Petugas'],
+                ],
             ]);
 
         $response->assertRedirect(route('inventory.disposal.index'));
@@ -462,7 +634,9 @@ class SampleDisposalTest extends TestCase
         SampleDisposalStatus $disposalStatus = SampleDisposalStatus::PENDING,
         string $lhuNumber = 'LHU-2025-0001'
     ): Sample {
-        $testRequest = TestRequest::factory()->create();
+        $testRequest = TestRequest::factory()->create([
+            'suspect_name' => 'Tersangka '.$lhuNumber,
+        ]);
         $sample = Sample::factory()->create([
             'test_request_id' => $testRequest->id,
             'disposal_status' => $disposalStatus,

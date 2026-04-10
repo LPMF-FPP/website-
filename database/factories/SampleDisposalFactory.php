@@ -25,10 +25,15 @@ class SampleDisposalFactory extends Factory
             'witness_name' => fake()->name(),
             'witness_role' => fake()->randomElement(['Kepala Lab', 'Wakil Kepala Lab', 'Koordinator', 'Analis Senior']),
             'witness_user_id' => null,
+            'witness_entries' => null,
             'notes' => fake()->optional()->sentence(),
             'executed_by' => User::factory(),
             'executed_by_name' => fake()->name(),
             'executed_by_role' => fake()->randomElement(['Analis', 'Koordinator', 'Penyelia']),
+            'executed_by_identity' => 'NRP: '.fake()->numerify('########'),
+            'approver_name' => fake()->name(),
+            'approver_role' => 'Kepala Farmapol',
+            'approver_identity' => 'NRP: '.fake()->numerify('########'),
             'created_by' => User::factory(),
         ];
     }
@@ -42,6 +47,12 @@ class SampleDisposalFactory extends Factory
                 'witness_user_id' => $witness->id,
                 'witness_name' => trim((string) ($witness->display_name_with_title ?: $witness->name ?: '-')),
                 'witness_role' => trim((string) ($witness->rank ?? $witness->role ?? '-')),
+                'witness_entries' => [[
+                    'name' => trim((string) ($witness->display_name_with_title ?: $witness->name ?: '-')),
+                    'role' => trim((string) ($witness->rank ?? $witness->role ?? '-')),
+                    'identity' => trim((string) ($witness->nrp ?: $witness->nip ?: '')),
+                    'user_id' => $witness->id,
+                ]],
             ];
         });
     }

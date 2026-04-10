@@ -8,21 +8,27 @@
     $leftLogoPath = public_path('images/logo-tribrata-polri.png');
     $rightLogoPath = public_path('images/logo-pusdokkes-polri.png');
 
-    $witnessSigner = pdf_build_signer(
-        ($disposal->witness_name || $disposal->witness_role) ? null : $disposal->witnessUser,
-        fallbackName: $disposal->witness_name,
-        fallbackIdentity: $disposal->witness_role
-    );
+    $witnessSigners = collect($disposal->witness_entries_for_display)
+        ->map(fn (array $entry) => pdf_build_signer(
+            null,
+            fallbackName: $entry['name'] ?? '-',
+            fallbackIdentity: $entry['identity'] ?? null,
+            fallbackRole: $entry['role'] ?? '-'
+        ))
+        ->values();
+    $witnessSummary = $witnessSigners->map(fn (array $signer) => $signer['name'].' ('.$signer['identity'].')')->implode('; ');
     $executorSigner = pdf_build_signer(
         ($disposal->executed_by_name || $disposal->executed_by_role) ? null : $disposal->executedBy,
         fallbackName: $disposal->executed_by_name,
-        fallbackIdentity: $disposal->executed_by_role,
-        fallbackRole: 'ANALIS'
+        fallbackIdentity: $disposal->executed_by_identity,
+        fallbackRole: $disposal->executed_by_role ?: 'ANALIS'
     );
-    $approverSigner = [
-        'name' => pdf_text_upper('-'),
-        'identity' => pdf_text_upper('-'),
-    ];
+    $approverSigner = pdf_build_signer(
+        null,
+        fallbackName: $disposal->approver_name,
+        fallbackIdentity: $disposal->approver_identity,
+        fallbackRole: $disposal->approver_role
+    );
 @endphp
 <!DOCTYPE html>
 <html lang="id">
@@ -106,7 +112,7 @@
     <tr><td class="label">Metode Pemusnahan</td><td class="sep">:</td><td class="value">{{ $disposal->method->label() }}</td></tr>
     <tr><td class="label">Jumlah Sampel</td><td class="sep">:</td><td class="value"><strong>{{ $disposal->samples->count() }}</strong> sampel</td></tr>
     <tr><td class="label">Pelaksana</td><td class="sep">:</td><td class="value">{{ $disposal->executed_by_name ?: ($disposal->executedBy?->display_name_with_title ?? $disposal->executedBy?->name ?? '-') }}</td></tr>
-    <tr><td class="label">Saksi</td><td class="sep">:</td><td class="value">{{ $witnessSigner['name'] }} ({{ $witnessSigner['identity'] }})</td></tr>
+    <tr><td class="label">Saksi</td><td class="sep">:</td><td class="value">{{ $witnessSummary !== '' ? $witnessSummary : '-' }}</td></tr>
     @if($disposal->notes)
     <tr><td class="label">Catatan</td><td class="sep">:</td><td class="value">{{ $disposal->notes }}</td></tr>
     @endif
@@ -137,7 +143,7 @@
         <td class="col-no">{{ $i + 1 }}</td>
         <td class="col-lhu">{{ $lhuNumber }}</td>
         <td class="col-lp">{{ $caseNumber }}@if($caseDate)<br><small>{{ $caseDate }}</small>@endif</td>
-        <td class="col-tersangka">{{ $investigator?->suspect_name ?? '-' }}</td>
+        <td class="col-tersangka">{{ $testRequest?->suspect_name ?? '-' }}</td>
         <td class="col-bukti">{{ $sample->short_description ?? $sample->sample_form }} ({{ $sample->sample_code }})</td>
       </tr>
       @endforeach
@@ -150,9 +156,11 @@
     <tr>
       <td class="sigcell">
         <div class="sigtitle">Saksi,</div>
-        <div class="sigspacer"></div>
-        <div class="signame">{{ $witnessSigner['name'] }}</div>
-        <div class="sigidentity">{{ $witnessSigner['identity'] }}</div>
+        @foreach($witnessSigners as $witnessSigner)
+          <div class="sigspacer"></div>
+          <div class="signame">{{ $witnessSigner['name'] }}</div>
+          <div class="sigidentity">{{ $witnessSigner['identity'] }}</div>
+        @endforeach
       </td>
       <td class="sigcell">
         <div class="sigtitle">Pelaksana,</div>
@@ -161,7 +169,7 @@
         <div class="sigidentity">{{ $executorSigner['identity'] }}</div>
       </td>
       <td class="sigcell">
-        <div class="sigtitle">Mengetahui,<br>Ka. Sub Satker Farmapol</div>
+        <div class="sigtitle">Mengetahui,<br>Kepala Farmapol</div>
         <div class="sigspacer"></div>
         <div class="signame">{{ $approverSigner['name'] }}</div>
         <div class="sigidentity">{{ $approverSigner['identity'] }}</div>

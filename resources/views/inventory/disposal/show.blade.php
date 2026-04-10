@@ -61,17 +61,30 @@
                     <dt class="text-sm font-medium text-gray-500">Jumlah Sampel</dt>
                     <dd class="mt-1 text-sm text-gray-900">{{ $disposal->samples->count() }} sampel</dd>
                 </div>
-                <div>
-                    <dt class="text-sm font-medium text-gray-500">Nama Saksi</dt>
-                    <dd class="mt-1 text-sm text-gray-900">{{ $disposal->witness_name ?: ($disposal->witnessUser?->display_name_with_title ?? '-') }}</dd>
-                </div>
-                <div>
-                    <dt class="text-sm font-medium text-gray-500">Jabatan Saksi</dt>
-                    <dd class="mt-1 text-sm text-gray-900">{{ $disposal->witness_role ?: ($disposal->witnessUser?->rank ?? '-') }}</dd>
+                <div class="md:col-span-2">
+                    <dt class="text-sm font-medium text-gray-500">Saksi</dt>
+                    <dd class="mt-2 space-y-2 text-sm text-gray-900">
+                        @foreach($disposal->witness_entries_for_display as $witness)
+                            <div class="rounded-md bg-gray-50 px-3 py-2">
+                                <div class="font-medium">{{ $witness['name'] }}</div>
+                                <div class="text-gray-600">{{ $witness['role'] }}</div>
+                                @if(!empty($witness['identity']))
+                                    <div class="text-xs text-gray-500">{{ $witness['identity'] }}</div>
+                                @endif
+                            </div>
+                        @endforeach
+                    </dd>
                 </div>
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Pelaksana</dt>
                     <dd class="mt-1 text-sm text-gray-900">{{ $disposal->executed_by_name ?: ($disposal->executedBy?->display_name_with_title ?? $disposal->executedBy?->name ?? '-') }}</dd>
+                </div>
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Kepala Farmapol</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ $disposal->approver_name ?: '-' }}</dd>
+                    @if($disposal->approver_role || $disposal->approver_identity)
+                        <div class="text-xs text-gray-500">{{ trim(($disposal->approver_role ? $disposal->approver_role.' ' : '').($disposal->approver_identity ?: '')) }}</div>
+                    @endif
                 </div>
                 <div>
                     <dt class="text-sm font-medium text-gray-500">Dicatat oleh</dt>
@@ -121,7 +134,7 @@
                                 @endif
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-600">
-                                {{ $investigator?->suspect_name ?? '-' }}
+                                {{ $testRequest?->suspect_name ?? '-' }}
                             </td>
                             <td class="px-4 py-3 text-sm text-gray-600">
                                 {{ $sample->short_description ?? $sample->sample_form }}
@@ -133,4 +146,10 @@
             </div>
         </div>
     </div>
+
+    @push('scripts')
+    <script>
+        window.localStorage.removeItem('inventory.disposal.selected_sample_ids');
+    </script>
+    @endpush
 </x-app-layout>

@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Session;
 use Illuminate\View\View;
 
 class SampleDisposalController extends Controller
@@ -31,12 +32,18 @@ class SampleDisposalController extends Controller
     public function index(Request $request): View
     {
         $tab = $request->get('tab', 'eligible');
+        $selectedSampleIds = collect(Session::get('inventory.disposal.selected_sample_ids', []))
+            ->map(fn ($id) => (string) $id)
+            ->values()
+            ->all();
 
-        // Eligible samples for disposal
-        $eligibleSamples = Sample::query()
+        $eligibleSamplesQuery = Sample::query()
             ->eligibleForDisposal()
             ->with(['testRequest.investigator', 'testProcesses'])
-            ->latest()
+            ->latest();
+
+        // Eligible samples for disposal
+        $eligibleSamples = (clone $eligibleSamplesQuery)
             ->paginate(20, ['*'], 'eligible_page');
 
         // Disposal history
@@ -50,19 +57,36 @@ class SampleDisposalController extends Controller
             'eligibleSamples' => $eligibleSamples,
             'disposals' => $disposals,
             'methods' => SampleDisposalMethod::options(),
+            'selectedSampleIds' => $selectedSampleIds,
+            'eligibleSampleIds' => (clone $eligibleSamplesQuery)->pluck('id')->map(fn ($id) => (string) $id)->all(),
         ]);
     }
 
     /**
      * Show batch execution form
      */
-    public function create(Request $request): View
+    public function create(Request $request): View|RedirectResponse
     {
         $sampleIds = $request->get('sample_ids', []);
+
+        if ($request->boolean('all')) {
+            $sampleIds = Sample::query()
+                ->eligibleForDisposal()
+                ->pluck('id')
+                ->all();
+        }
 
         if (is_string($sampleIds)) {
             $sampleIds = explode(',', $sampleIds);
         }
+
+        $sampleIds = collect($sampleIds)
+            ->flatten()
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn (int $id) => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
 
         $selectedSamples = Sample::query()
             ->whereIn('id', $sampleIds)
@@ -70,15 +94,33 @@ class SampleDisposalController extends Controller
             ->with(['testRequest.investigator', 'testProcesses'])
             ->get();
 
+        if (count($sampleIds) !== $selectedSamples->count()) {
+            Session::forget('inventory.disposal.selected_sample_ids');
+
+            return redirect()
+                ->route('inventory.disposal.index', ['tab' => 'eligible'])
+                ->with('error', 'Beberapa sampel tidak lagi eligible untuk pemusnahan. Silakan pilih ulang batch Anda.');
+        }
+
+        Session::put('inventory.disposal.selected_sample_ids', $selectedSamples->pluck('id')->all());
+
         $witnessUsers = User::query()
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name', 'title_prefix', 'title_suffix', 'role', 'rank', 'nrp', 'nip']);
 
+        $oldWitnesses = old('witnesses');
+        $witnessRows = is_array($oldWitnesses) && $oldWitnesses !== []
+            ? $oldWitnesses
+            : [
+                ['user_id' => '', 'name' => '', 'role' => ''],
+            ];
+
         return view('inventory.disposal.create', [
             'selectedSamples' => $selectedSamples,
             'methods' => SampleDisposalMethod::options(),
             'witnessUsers' => $witnessUsers,
+            'witnessRows' => $witnessRows,
         ]);
     }
 
@@ -89,44 +131,57 @@ class SampleDisposalController extends Controller
     {
         $validated = $request->validate([
             'sample_ids' => 'required|array|min:1',
-            'sample_ids.*' => 'exists:samples,id',
+            'sample_ids.*' => 'distinct|exists:samples,id',
             'method' => 'required|in:bakar,kubur,hancur,lainnya',
-            'witness_user_id' => 'nullable|exists:users,id',
-            'witness_name' => 'required_without:witness_user_id|string|max:255',
-            'witness_role' => 'required_without:witness_user_id|string|max:255',
+            'executor_name' => 'nullable|string|max:255',
+            'executor_role' => 'nullable|string|max:255',
+            'executor_identity' => 'nullable|string|max:255',
+            'witnesses' => 'required|array|min:1',
+            'witnesses.*.user_id' => 'nullable|exists:users,id',
+            'witnesses.*.name' => 'nullable|string|max:255',
+            'witnesses.*.role' => 'nullable|string|max:255',
+            'witnesses.*.identity' => 'nullable|string|max:255',
+            'approver_name' => 'nullable|string|max:255',
+            'approver_role' => 'nullable|string|max:255',
+            'approver_identity' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:1000',
         ]);
 
-        $witnessUser = null;
-        if (! empty($validated['witness_user_id'])) {
-            $witnessUser = User::query()
-                ->where('id', $validated['witness_user_id'])
-                ->where('is_active', true)
-                ->first();
+        $resolvedWitnessEntries = $this->resolveWitnessEntries($validated['witnesses']);
 
-            if (! $witnessUser) {
-                return back()->withErrors([
-                    'witness_user_id' => 'User saksi tidak valid atau tidak aktif.',
-                ])->withInput();
-            }
+        if ($resolvedWitnessEntries === []) {
+            return back()->withErrors([
+                'witnesses' => 'Isi minimal satu saksi yang valid.',
+            ])->withInput();
         }
 
-        $witnessName = trim((string) ($validated['witness_name'] ?? ''));
-        $witnessRole = trim((string) ($validated['witness_role'] ?? ''));
-
-        if ($witnessUser && $witnessName === '') {
-            $witnessName = trim((string) ($witnessUser->display_name_with_title ?: $witnessUser->name));
-        }
-        if ($witnessUser && $witnessRole === '') {
-            $witnessRole = trim((string) ($witnessUser->rank ?? $witnessUser->role ?? ''));
-        }
+        $primaryWitness = $resolvedWitnessEntries[0];
 
         $executor = Auth::user();
-        $executedByName = trim((string) ($executor?->display_name_with_title ?? $executor?->name ?? ''));
-        $executedByRole = trim((string) ($executor?->rank ?? $executor?->role ?? ''));
+        $executedByName = trim((string) ($validated['executor_name'] ?? ''));
+        $executedByRole = trim((string) ($validated['executor_role'] ?? ''));
+        $executedByIdentity = trim((string) ($validated['executor_identity'] ?? ''));
+
+        if ($executedByName === '') {
+            $executedByName = trim((string) ($executor?->display_name_with_title ?? $executor?->name ?? ''));
+        }
+
+        if ($executedByRole === '') {
+            $executedByRole = trim((string) ($executor?->rank ?? $executor?->role ?? ''));
+        }
+
+        if ($executedByIdentity === '') {
+            $executorNumber = $executor?->nrp ?: $executor?->nip;
+            $executorNumberLabel = $executor?->nrp ? 'NRP:' : ($executor?->nip ? 'NIP:' : null);
+            $executedByIdentity = trim((string) ($executorNumberLabel && $executorNumber ? $executorNumberLabel.' '.$executorNumber : ''));
+        }
+
+        $approverName = trim((string) ($validated['approver_name'] ?? ''));
+        $approverRole = trim((string) ($validated['approver_role'] ?? ''));
+        $approverIdentity = trim((string) ($validated['approver_identity'] ?? ''));
 
         $samples = collect();
-        $disposal = DB::transaction(function () use ($validated, $witnessName, $witnessRole, $witnessUser, $executedByName, $executedByRole, &$samples) {
+        $disposal = DB::transaction(function () use ($validated, $resolvedWitnessEntries, $primaryWitness, $executedByName, $executedByRole, $executedByIdentity, $approverName, $approverRole, $approverIdentity, &$samples) {
             // Re-check eligibility in transaction so production data can be picked up from lifecycle rules.
             $samples = Sample::query()
                 ->whereIn('id', $validated['sample_ids'])
@@ -141,13 +196,18 @@ class SampleDisposalController extends Controller
             $disposal = $this->createDisposalRecord([
                 'executed_at' => now(),
                 'method' => SampleDisposalMethod::from($validated['method']),
-                'witness_name' => $witnessName !== '' ? $witnessName : '-',
-                'witness_role' => $witnessRole !== '' ? $witnessRole : '-',
-                'witness_user_id' => $witnessUser?->id,
+                'witness_name' => $primaryWitness['name'],
+                'witness_role' => $primaryWitness['role'],
+                'witness_user_id' => $primaryWitness['user_id'],
+                'witness_entries' => $resolvedWitnessEntries,
                 'notes' => $validated['notes'] ?? null,
                 'executed_by' => Auth::id(),
                 'executed_by_name' => $executedByName !== '' ? $executedByName : '-',
                 'executed_by_role' => $executedByRole !== '' ? $executedByRole : 'ANALIS',
+                'executed_by_identity' => $executedByIdentity !== '' ? $executedByIdentity : null,
+                'approver_name' => $approverName !== '' ? $approverName : '-',
+                'approver_role' => $approverRole !== '' ? $approverRole : null,
+                'approver_identity' => $approverIdentity !== '' ? $approverIdentity : null,
                 'created_by' => Auth::id(),
             ]);
 
@@ -164,9 +224,67 @@ class SampleDisposalController extends Controller
             ])->withInput();
         }
 
+        Session::forget('inventory.disposal.selected_sample_ids');
+
         return redirect()
             ->route('inventory.disposal.show', $disposal)
             ->with('success', "Pemusnahan {$samples->count()} sampel berhasil dieksekusi.");
+    }
+
+    private function resolveWitnessEntries(array $witnesses): array
+    {
+        $resolved = [];
+
+        foreach ($witnesses as $index => $witness) {
+            $userId = (int) ($witness['user_id'] ?? 0);
+            $name = trim((string) ($witness['name'] ?? ''));
+            $role = trim((string) ($witness['role'] ?? ''));
+            $identity = trim((string) ($witness['identity'] ?? ''));
+
+            if ($userId === 0 && $name === '' && $role === '') {
+                continue;
+            }
+
+            $witnessUser = null;
+            if ($userId > 0) {
+                $witnessUser = User::query()
+                    ->where('id', $userId)
+                    ->where('is_active', true)
+                    ->first();
+
+                if (! $witnessUser) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        "witnesses.{$index}.user_id" => 'User saksi tidak valid atau tidak aktif.',
+                    ]);
+                }
+            }
+
+            if ($witnessUser && $name === '') {
+                $name = trim((string) ($witnessUser->display_name_with_title ?: $witnessUser->name));
+            }
+
+            if ($witnessUser && $role === '') {
+                $role = trim((string) ($witnessUser->rank ?? $witnessUser->role ?? ''));
+            }
+
+            if ($name === '' || $role === '') {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    "witnesses.{$index}.name" => 'Nama dan jabatan saksi wajib diisi.',
+                    "witnesses.{$index}.role" => 'Nama dan jabatan saksi wajib diisi.',
+                ]);
+            }
+
+            $resolved[] = [
+                'user_id' => $witnessUser?->id,
+                'name' => $name,
+                'role' => $role,
+                'identity' => $identity !== ''
+                    ? $identity
+                    : trim((string) ($witnessUser?->nrp ? 'NRP: '.$witnessUser->nrp : ($witnessUser?->nip ? 'NIP: '.$witnessUser->nip : ''))),
+            ];
+        }
+
+        return $resolved;
     }
 
     /**

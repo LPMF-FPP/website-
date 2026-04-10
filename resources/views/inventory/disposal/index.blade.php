@@ -40,14 +40,26 @@
         <div class="card">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-semibold">Sampel Siap Musnah</h3>
-                <button 
-                    type="button"
-                    x-show="selectedIds.length > 0"
-                    @click="processSelected"
-                    class="inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700">
-                    <span x-text="`Proses Pemusnahan (${selectedIds.length})`"></span>
-                </button>
+                <div class="flex items-center gap-2">
+                    <button 
+                        type="button"
+                        @click="processAllEligible"
+                        class="inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-red-700 shadow-sm ring-1 ring-red-200 hover:bg-red-50">
+                        <span>Proses Semua ({{ $eligibleSamples->total() }})</span>
+                    </button>
+                    <button 
+                        type="button"
+                        x-show="selectedIds.length > 0"
+                        @click="processSelected"
+                        class="inline-flex items-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700">
+                        <span x-text="`Proses Pilihan (${selectedIds.length})`"></span>
+                    </button>
+                </div>
             </div>
+
+            <p class="mb-4 text-sm text-gray-500">
+                Pilihan sampel disimpan selama Anda berpindah halaman. Gunakan "Proses Semua" bila ingin langsung memusnahkan seluruh sampel yang siap musnah.
+            </p>
 
             @if($eligibleSamples->isEmpty())
                 <div class="text-center py-12 text-gray-500">
@@ -61,7 +73,8 @@
                             <tr>
                                 <th class="px-4 py-3 text-left">
                                     <input type="checkbox" 
-                                        @change="toggleAll($event.target.checked)"
+                                        :checked="allVisibleSelected()"
+                                        @change="toggleAllVisible($event.target.checked)"
                                         class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
                                 </th>
                                 <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600">Kode Sampel</th>
@@ -83,7 +96,8 @@
                                 <td class="px-4 py-3">
                                     <input type="checkbox" 
                                         value="{{ $sample->id }}"
-                                        x-model="selectedIds"
+                                        :checked="isSelected('{{ $sample->id }}')"
+                                        @change="toggleOne('{{ $sample->id }}', $event.target.checked)"
                                         class="rounded border-gray-300 text-primary-600 focus:ring-primary-500">
                                 </td>
                                 <td class="px-4 py-3 text-sm font-medium text-gray-900">
@@ -155,7 +169,7 @@
                                     {{ $disposal->method->label() }}
                                 </td>
                                 <td class="px-4 py-3 text-sm text-gray-600">
-                                    {{ $disposal->executedBy?->name ?? '-' }}
+                                    {{ $disposal->executed_by_name ?: ($disposal->executedBy?->display_name_with_title ?? $disposal->executedBy?->name ?? '-') }}
                                 </td>
                                 <td class="px-4 py-3 text-center">
                                     <a href="{{ route('inventory.disposal.pdf', $disposal) }}" 
@@ -177,24 +191,86 @@
         @endif
     </div>
 
+    <script type="application/json" id="disposal-selected-sample-ids">@json($selectedSampleIds)</script>
+    <script type="application/json" id="disposal-visible-sample-ids">@json($eligibleSamples->pluck('id')->map(fn($id) => (string) $id)->toArray())</script>
+    <script type="application/json" id="disposal-all-sample-ids">@json($eligibleSampleIds)</script>
+    <script type="application/json" id="disposal-create-url">@json(route('inventory.disposal.create'))</script>
+
     @push('scripts')
     <script>
         function disposalIndex() {
+            const selectedSeed = JSON.parse(document.getElementById('disposal-selected-sample-ids').textContent || '[]');
+            const visibleSeed = JSON.parse(document.getElementById('disposal-visible-sample-ids').textContent || '[]');
+            const allEligibleIds = JSON.parse(document.getElementById('disposal-all-sample-ids').textContent || '[]');
+            const createUrl = JSON.parse(document.getElementById('disposal-create-url').textContent || '""');
+            const storageKey = 'inventory.disposal.selected_sample_ids';
+            const storedSelection = (() => {
+                try {
+                    return JSON.parse(window.localStorage.getItem(storageKey) || 'null');
+                } catch (error) {
+                    return null;
+                }
+            })();
+
             return {
-                selectedIds: [],
-                toggleAll(checked) {
-                    if (checked) {
-                        this.selectedIds = @json($eligibleSamples->pluck('id')->map(fn($id) => (string) $id)->toArray());
-                    } else {
-                        this.selectedIds = [];
+                selectedIds: Array.isArray(storedSelection) ? storedSelection : selectedSeed,
+                visibleIds: visibleSeed,
+                persistSelection() {
+                    window.localStorage.setItem(storageKey, JSON.stringify(this.selectedIds));
+                },
+                isSelected(id) {
+                    return this.selectedIds.includes(String(id));
+                },
+                allVisibleSelected() {
+                    return this.visibleIds.length > 0 && this.visibleIds.every(id => this.selectedIds.includes(id));
+                },
+                toggleOne(id, checked) {
+                    id = String(id);
+
+                    if (checked && !this.selectedIds.includes(id)) {
+                        this.selectedIds.push(id);
+                        this.persistSelection();
                     }
+
+                    if (!checked) {
+                        this.selectedIds = this.selectedIds.filter(selectedId => selectedId !== id);
+                        this.persistSelection();
+                    }
+                },
+                toggleAllVisible(checked) {
+                    if (checked) {
+                        this.visibleIds.forEach(id => {
+                            if (!this.selectedIds.includes(id)) {
+                                this.selectedIds.push(id);
+                            }
+                        });
+
+                        this.persistSelection();
+
+                        return;
+                    }
+
+                    this.selectedIds = this.selectedIds.filter(id => !this.visibleIds.includes(id));
+                    this.persistSelection();
                 },
                 processSelected() {
                     if (this.selectedIds.length === 0) {
                         alert('Pilih minimal 1 sampel untuk dimusnahkan.');
                         return;
                     }
-                    window.location.href = '{{ route('inventory.disposal.create') }}?sample_ids=' + this.selectedIds.join(',');
+
+                    this.persistSelection();
+                    window.location.href = createUrl + '?sample_ids=' + this.selectedIds.join(',');
+                },
+                processAllEligible() {
+                    if (allEligibleIds.length === 0) {
+                        alert('Tidak ada sampel eligible untuk diproses.');
+                        return;
+                    }
+
+                    this.selectedIds = [...allEligibleIds];
+                    this.persistSelection();
+                    window.location.href = createUrl + '?all=1';
                 }
             }
         }
