@@ -665,6 +665,9 @@ Route::prefix('referensi/inventori')->name('inventory.')->middleware(['auth', 'v
             ->middleware('permission:inventori.edit')
             ->name('store');
         Route::get('/{disposal}', [App\Http\Controllers\Inventory\SampleDisposalController::class, 'show'])->name('show');
+        Route::get('/{disposal}/documentation/{photo}', [App\Http\Controllers\Inventory\SampleDisposalController::class, 'documentationFile'])
+            ->where('photo', '.*')
+            ->name('documentation.file');
         Route::get('/{disposal}/pdf', [App\Http\Controllers\Inventory\SampleDisposalController::class, 'downloadPdf'])->name('pdf');
     });
 });

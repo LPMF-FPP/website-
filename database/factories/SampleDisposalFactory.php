@@ -34,6 +34,7 @@ class SampleDisposalFactory extends Factory
             'approver_name' => fake()->name(),
             'approver_role' => 'Kepala Farmapol',
             'approver_identity' => 'NRP: '.fake()->numerify('########'),
+            'documentation_photos' => null,
             'created_by' => User::factory(),
         ];
     }

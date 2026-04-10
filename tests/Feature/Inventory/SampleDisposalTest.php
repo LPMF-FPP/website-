@@ -14,6 +14,8 @@ use App\Models\TestRequest;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class SampleDisposalTest extends TestCase
@@ -25,6 +27,8 @@ class SampleDisposalTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        Storage::fake('public');
         $this->seed(PermissionSeeder::class);
         $this->user = User::factory()->create();
         $this->user->grantPermission('inventori.view');
@@ -330,6 +334,35 @@ class SampleDisposalTest extends TestCase
         $this->assertNotNull($disposal->executed_at);
     }
 
+    public function test_can_execute_batch_disposal_with_documentation_photos(): void
+    {
+        $sample = $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-DOC-0001');
+
+        $response = $this->actingAs($this->user)
+            ->post(route('inventory.disposal.store'), [
+                'sample_ids' => [$sample->id],
+                'method' => 'bakar',
+                'witnesses' => [
+                    ['user_id' => '', 'name' => 'Saksi Dokumentasi', 'role' => 'Pengawas'],
+                ],
+                'documentation_photos' => [
+                    UploadedFile::fake()->image('dok-1.jpg'),
+                    UploadedFile::fake()->image('dok-2.png'),
+                ],
+            ]);
+
+        $response->assertRedirect();
+
+        $disposal = SampleDisposal::latest()->first();
+
+        $this->assertNotNull($disposal);
+        $this->assertCount(2, $disposal->documentation_photos ?? []);
+
+        foreach ($disposal->documentation_photos as $photo) {
+            Storage::disk('public')->assertExists($photo['path']);
+        }
+    }
+
     public function test_disposal_store_requires_witness_input(): void
     {
         $sample = $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-2025-0030');
@@ -491,6 +524,17 @@ class SampleDisposalTest extends TestCase
             'approver_name' => 'Kombes Manual',
             'approver_role' => 'KBP',
             'approver_identity' => '12345678',
+            'documentation_photos' => [[
+                'path' => 'disposal-documentation/pdf-doc.jpg',
+                'original_name' => 'pdf-doc.jpg',
+                'mime_type' => 'image/jpeg',
+                'size' => 1024,
+            ]],
+        ]);
+        Storage::disk('public')->put('disposal-documentation/pdf-doc.jpg', 'pdf-image');
+        Sample::factory()->create([
+            'disposal_id' => $disposal->id,
+            'disposal_status' => SampleDisposalStatus::DISPOSED,
         ]);
 
         $pdfHtml = view('pdf.berita-acara-pemusnahan', [
@@ -499,6 +543,8 @@ class SampleDisposalTest extends TestCase
 
         $this->assertStringContainsString('KOMBES MANUAL', strtoupper($pdfHtml));
         $this->assertStringContainsString('KBP NRP. 12345678', strtoupper($pdfHtml));
+        $this->assertStringContainsString('DOKUMENTASI PEMUSNAHAN', strtoupper($pdfHtml));
+        $this->assertStringContainsString('TERLAMPIR', strtoupper($pdfHtml));
     }
 
     public function test_disposal_show_displays_details(): void
@@ -507,7 +553,14 @@ class SampleDisposalTest extends TestCase
             'witness_name' => 'Test Witness',
             'witness_user_id' => null,
             'witness_entries' => null,
+            'documentation_photos' => [[
+                'path' => 'disposal-documentation/show-test.jpg',
+                'original_name' => 'show-test.jpg',
+                'mime_type' => 'image/jpeg',
+                'size' => 1024,
+            ]],
         ]);
+        Storage::disk('public')->put('disposal-documentation/show-test.jpg', 'test-image');
 
         $response = $this->actingAs($this->user)
             ->get(route('inventory.disposal.show', $disposal));
@@ -515,6 +568,7 @@ class SampleDisposalTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Test Witness');
         $response->assertSee($disposal->batch_number);
+        $response->assertSee('show-test.jpg');
     }
 
     public function test_disposal_show_displays_multiple_witnesses(): void

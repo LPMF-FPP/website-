@@ -27,7 +27,7 @@
                 </a>
             </div>
         @else
-            <form action="{{ route('inventory.disposal.store') }}" method="POST" class="space-y-6">
+            <form action="{{ route('inventory.disposal.store') }}" method="POST" enctype="multipart/form-data" class="space-y-6">
                 @csrf
 
                 {{-- Selected Samples Summary --}}
@@ -273,6 +273,21 @@
                                 placeholder="Contoh: NRP: 12345678"
                                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500">
                             @error('approver_identity')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label for="documentation_photos" class="block text-sm font-medium text-gray-700 mb-1">
+                                Foto Dokumentasi Pemusnahan
+                            </label>
+                            <input type="file" name="documentation_photos[]" id="documentation_photos" multiple accept="image/*"
+                                class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30">
+                            <p class="mt-1 text-xs text-gray-500">Unggah maksimal 5 foto. Format JPG, JPEG, PNG, atau WEBP. Maksimal 5 MB per foto.</p>
+                            @error('documentation_photos')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                            @error('documentation_photos.*')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
                         </div>

@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v2.4.10
+# WALKTHROUGH - LPMF LIMS v2.4.11
 
 > **Single Source of Truth** — Pedoman terupdate terhadap codebase Laboratory Information Management System.
 
@@ -147,6 +147,13 @@ WhatsApp service berjalan di container Docker terpisah.
 ---
 
 ## 📰 Recent Changes (v2.4.x)
+
+### v2.4.11 (10 April 2026) - Disposal Documentation Photos & Report Evidence Column
+
+- **Disposal Documentation Upload:** Batch pemusnahan sekarang mendukung upload hingga **5 foto dokumentasi** langsung dari form eksekusi, dengan validasi tipe gambar dan batas ukuran per file.
+- **Operational Evidence Visibility:** Halaman detail pemusnahan kini menampilkan galeri dokumentasi yang bisa dibuka langsung tanpa bergantung pada `storage:link`, sehingga lebih aman untuk environment production saat ini.
+- **Report / PDF Update:** Berita Acara Pemusnahan sekarang memiliki kolom **Dokumentasi** pada tabel laporan dan lampiran section **Dokumentasi Pemusnahan** saat foto tersedia.
+- **Failure Cleanup Hardening:** File dokumentasi yang sudah terupload akan dibersihkan kembali jika transaksi pemusnahan gagal, untuk mencegah orphan file di storage.
 
 ### v2.4.10 (1 April 2026) - Configurable Disposal Retention Window
 

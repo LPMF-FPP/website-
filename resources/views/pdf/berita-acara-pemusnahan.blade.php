@@ -29,6 +29,9 @@
         fallbackIdentity: $disposal->approver_identity,
         fallbackRole: $disposal->approver_role
     );
+    $documentationPhotos = collect($disposal->documentation_photos_for_display)
+        ->filter(fn (array $photo) => $photo['exists'] && is_file($photo['absolute_path']))
+        ->values();
 @endphp
 <!DOCTYPE html>
 <html lang="id">
@@ -69,6 +72,12 @@
   .col-lp { width: 22%; }
   .col-tersangka { width: 24%; }
   .col-bukti { width: 30%; }
+  .col-dok { width: 16%; }
+  .doc-grid { width:100%; margin-top:10px; }
+  .doc-grid td { width:50%; border:none; padding:6px; vertical-align:top; }
+  .doc-card { border:1px solid #bbb; padding:6px; }
+  .doc-image { width:100%; max-height:220px; object-fit:contain; display:block; }
+  .doc-caption { margin-top:4px; font-size:8pt; text-align:center; color:#444; }
 
   .sign-table { width:100%; margin-top:10px; border:0; border-collapse:separate; }
   .sign-table td { width:33%; vertical-align:top; border:0; }
@@ -127,6 +136,7 @@
         <th class="col-lp">No. LP / Tgl</th>
         <th class="col-tersangka">Tersangka</th>
         <th class="col-bukti">Bukti Sisa (Asal)</th>
+        <th class="col-dok">Dokumentasi</th>
       </tr>
     </thead>
     <tbody>
@@ -145,10 +155,32 @@
         <td class="col-lp">{{ $caseNumber }}@if($caseDate)<br><small>{{ $caseDate }}</small>@endif</td>
         <td class="col-tersangka">{{ $testRequest?->suspect_name ?? '-' }}</td>
         <td class="col-bukti">{{ $sample->short_description ?? $sample->sample_form }} ({{ $sample->sample_code }})</td>
+        <td class="col-dok">{{ $documentationPhotos->isNotEmpty() ? 'Terlampir' : '-' }}</td>
       </tr>
       @endforeach
     </tbody>
   </table>
+
+  @if($documentationPhotos->isNotEmpty())
+    <div class="section-title" style="margin-top:12px;">Dokumentasi Pemusnahan</div>
+    <table class="doc-grid">
+      @foreach($documentationPhotos->chunk(2) as $photoRow)
+        <tr>
+          @foreach($photoRow as $photo)
+            <td>
+              <div class="doc-card">
+                <img class="doc-image" src="{{ $photo['absolute_path'] }}" alt="Dokumentasi pemusnahan {{ $loop->parent->iteration }}-{{ $loop->iteration }}">
+                <div class="doc-caption">{{ $photo['original_name'] }}</div>
+              </div>
+            </td>
+          @endforeach
+          @if($photoRow->count() === 1)
+            <td></td>
+          @endif
+        </tr>
+      @endforeach
+    </table>
+  @endif
 
   <p style="margin-top:12px;">Demikian Berita Acara ini dibuat dengan sebenarnya untuk dapat dipergunakan sebagaimana mestinya.</p>
 

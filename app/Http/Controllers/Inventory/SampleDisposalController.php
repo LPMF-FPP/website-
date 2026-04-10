@@ -17,7 +17,10 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class SampleDisposalController extends Controller
 {
@@ -144,6 +147,8 @@ class SampleDisposalController extends Controller
             'approver_name' => 'nullable|string|max:255',
             'approver_role' => 'nullable|string|max:255',
             'approver_identity' => 'nullable|string|max:255',
+            'documentation_photos' => 'nullable|array|max:5',
+            'documentation_photos.*' => 'file|image|mimes:jpg,jpeg,png,webp|max:5120',
             'notes' => 'nullable|string|max:1000',
         ]);
 
@@ -179,46 +184,57 @@ class SampleDisposalController extends Controller
         $approverName = trim((string) ($validated['approver_name'] ?? ''));
         $approverRole = trim((string) ($validated['approver_role'] ?? ''));
         $approverIdentity = trim((string) ($validated['approver_identity'] ?? ''));
+        $documentationPhotos = $this->storeDocumentationPhotos($request);
 
         $samples = collect();
-        $disposal = DB::transaction(function () use ($validated, $resolvedWitnessEntries, $primaryWitness, $executedByName, $executedByRole, $executedByIdentity, $approverName, $approverRole, $approverIdentity, &$samples) {
-            // Re-check eligibility in transaction so production data can be picked up from lifecycle rules.
-            $samples = Sample::query()
-                ->whereIn('id', $validated['sample_ids'])
-                ->eligibleForDisposal()
-                ->lockForUpdate()
-                ->get();
 
-            if ($samples->count() !== count($validated['sample_ids'])) {
-                return null;
-            }
+        try {
+            $disposal = DB::transaction(function () use ($validated, $resolvedWitnessEntries, $primaryWitness, $executedByName, $executedByRole, $executedByIdentity, $approverName, $approverRole, $approverIdentity, $documentationPhotos, &$samples) {
+                // Re-check eligibility in transaction so production data can be picked up from lifecycle rules.
+                $samples = Sample::query()
+                    ->whereIn('id', $validated['sample_ids'])
+                    ->eligibleForDisposal()
+                    ->lockForUpdate()
+                    ->get();
 
-            $disposal = $this->createDisposalRecord([
-                'executed_at' => now(),
-                'method' => SampleDisposalMethod::from($validated['method']),
-                'witness_name' => $primaryWitness['name'],
-                'witness_role' => $primaryWitness['role'],
-                'witness_user_id' => $primaryWitness['user_id'],
-                'witness_entries' => $resolvedWitnessEntries,
-                'notes' => $validated['notes'] ?? null,
-                'executed_by' => Auth::id(),
-                'executed_by_name' => $executedByName !== '' ? $executedByName : '-',
-                'executed_by_role' => $executedByRole !== '' ? $executedByRole : 'ANALIS',
-                'executed_by_identity' => $executedByIdentity !== '' ? $executedByIdentity : null,
-                'approver_name' => $approverName !== '' ? $approverName : '-',
-                'approver_role' => $approverRole !== '' ? $approverRole : null,
-                'approver_identity' => $approverIdentity !== '' ? $approverIdentity : null,
-                'created_by' => Auth::id(),
-            ]);
+                if ($samples->count() !== count($validated['sample_ids'])) {
+                    return null;
+                }
 
-            foreach ($samples as $sample) {
-                $sample->markAsDisposed($disposal);
-            }
+                $disposal = $this->createDisposalRecord([
+                    'executed_at' => now(),
+                    'method' => SampleDisposalMethod::from($validated['method']),
+                    'witness_name' => $primaryWitness['name'],
+                    'witness_role' => $primaryWitness['role'],
+                    'witness_user_id' => $primaryWitness['user_id'],
+                    'witness_entries' => $resolvedWitnessEntries,
+                    'notes' => $validated['notes'] ?? null,
+                    'executed_by' => Auth::id(),
+                    'executed_by_name' => $executedByName !== '' ? $executedByName : '-',
+                    'executed_by_role' => $executedByRole !== '' ? $executedByRole : 'ANALIS',
+                    'executed_by_identity' => $executedByIdentity !== '' ? $executedByIdentity : null,
+                    'approver_name' => $approverName !== '' ? $approverName : '-',
+                    'approver_role' => $approverRole !== '' ? $approverRole : null,
+                    'approver_identity' => $approverIdentity !== '' ? $approverIdentity : null,
+                    'documentation_photos' => $documentationPhotos !== [] ? $documentationPhotos : null,
+                    'created_by' => Auth::id(),
+                ]);
 
-            return $disposal;
-        });
+                foreach ($samples as $sample) {
+                    $sample->markAsDisposed($disposal);
+                }
+
+                return $disposal;
+            });
+        } catch (\Throwable $exception) {
+            $this->deleteDocumentationPhotos($documentationPhotos);
+
+            throw $exception;
+        }
 
         if (! $disposal) {
+            $this->deleteDocumentationPhotos($documentationPhotos);
+
             return back()->withErrors([
                 'sample_ids' => 'Beberapa sampel tidak eligible untuk pemusnahan.',
             ])->withInput();
@@ -358,5 +374,52 @@ class SampleDisposalController extends Controller
         $filename = "berita-acara-pemusnahan-{$disposal->batch_number}.pdf";
 
         return $pdf->download($filename);
+    }
+
+    public function documentationFile(SampleDisposal $disposal, string $photo): BinaryFileResponse
+    {
+        $decodedPath = rawurldecode($photo);
+
+        $documentation = collect($disposal->documentation_photos_for_display)
+            ->firstWhere('path', $decodedPath);
+
+        abort_unless($documentation && $documentation['exists'], 404);
+
+        return response()->file($documentation['absolute_path'], [
+            'Content-Type' => $documentation['mime_type'],
+        ]);
+    }
+
+    private function storeDocumentationPhotos(Request $request): array
+    {
+        return collect($request->file('documentation_photos', []))
+            ->filter()
+            ->map(function ($file): array {
+                $storedPath = $file->storeAs(
+                    'disposal-documentation',
+                    Str::uuid()->toString().'.'.$file->getClientOriginalExtension(),
+                    'public'
+                );
+
+                return [
+                    'path' => $storedPath,
+                    'original_name' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getClientMimeType() ?: 'image/jpeg',
+                    'size' => (int) $file->getSize(),
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function deleteDocumentationPhotos(array $photos): void
+    {
+        foreach ($photos as $photo) {
+            $path = $photo['path'] ?? null;
+
+            if ($path && Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+            }
+        }
     }
 }

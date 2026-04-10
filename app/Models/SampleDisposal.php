@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class SampleDisposal extends Model
 {
@@ -30,6 +31,7 @@ class SampleDisposal extends Model
         'approver_name',
         'approver_role',
         'approver_identity',
+        'documentation_photos',
         'created_by',
     ];
 
@@ -37,6 +39,7 @@ class SampleDisposal extends Model
         'executed_at' => 'datetime',
         'method' => SampleDisposalMethod::class,
         'witness_entries' => 'array',
+        'documentation_photos' => 'array',
     ];
 
     public function samples(): HasMany
@@ -120,5 +123,29 @@ class SampleDisposal extends Model
             'role' => trim((string) ($this->witness_role ?: $this->witnessUser?->rank ?: '-')) ?: '-',
             'identity' => $legacyIdentity !== '' ? $legacyIdentity : null,
         ]];
+    }
+
+    public function getDocumentationPhotosForDisplayAttribute(): array
+    {
+        return collect($this->documentation_photos)
+            ->filter(fn ($photo) => is_array($photo) && ! empty($photo['path']))
+            ->map(function (array $photo): array {
+                $path = ltrim((string) $photo['path'], '/');
+
+                return [
+                    'path' => $path,
+                    'original_name' => trim((string) ($photo['original_name'] ?? basename($path))),
+                    'mime_type' => trim((string) ($photo['mime_type'] ?? 'image/jpeg')),
+                    'size' => (int) ($photo['size'] ?? 0),
+                    'exists' => Storage::disk('public')->exists($path),
+                    'url' => route('inventory.disposal.documentation.file', [
+                        'disposal' => $this,
+                        'photo' => rawurlencode($path),
+                    ]),
+                    'absolute_path' => Storage::disk('public')->path($path),
+                ];
+            })
+            ->values()
+            ->all();
     }
 }

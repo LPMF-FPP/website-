@@ -96,6 +96,25 @@
                     <dd class="mt-1 text-sm text-gray-900">{{ $disposal->notes }}</dd>
                 </div>
                 @endif
+                <div class="md:col-span-2">
+                    <dt class="text-sm font-medium text-gray-500">Dokumentasi</dt>
+                    <dd class="mt-2">
+                        @if($disposal->documentation_photos_for_display !== [])
+                            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                @foreach($disposal->documentation_photos_for_display as $photo)
+                                    <a href="{{ $photo['url'] }}" target="_blank" rel="noopener noreferrer" class="block overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm hover:border-primary-300 hover:shadow-md transition">
+                                        <div class="aspect-[4/3] bg-gray-100">
+                                            <img src="{{ $photo['url'] }}" alt="Dokumentasi pemusnahan {{ $loop->iteration }}" class="h-full w-full object-cover">
+                                        </div>
+                                        <div class="px-3 py-2 text-xs text-gray-600">{{ $photo['original_name'] }}</div>
+                                    </a>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="text-sm text-gray-500">Belum ada foto dokumentasi.</p>
+                        @endif
+                    </dd>
+                </div>
             </dl>
         </div>
 
