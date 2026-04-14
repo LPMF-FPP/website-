@@ -10,6 +10,8 @@ use App\Models\Sample;
 use App\Models\SampleDisposal;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -49,6 +51,42 @@ class SampleDisposalController extends Controller
         $eligibleSamples = (clone $eligibleSamplesQuery)
             ->paginate(20, ['*'], 'eligible_page');
 
+        $latestEligibleInterpretations = $this->latestEligibleInterpretationQuery()->get();
+
+        $monthlySummaries = $latestEligibleInterpretations
+            ->map(function (object $interpretation): array {
+                $completedAt = CarbonImmutable::parse($interpretation->latest_completed_at);
+
+                return [
+                    'key' => $completedAt->format('Y-m'),
+                    'label' => $completedAt->translatedFormat('F Y'),
+                    'completed_at' => $completedAt,
+                    'sample_id' => (int) $interpretation->id,
+                ];
+            })
+            ->filter()
+            ->groupBy('key')
+            ->map(function ($group, string $key): array {
+                /** @var \Illuminate\Support\Collection<int, array> $group */
+                $sorted = $group->sortByDesc('completed_at')->values();
+
+                return [
+                    'key' => $key,
+                    'label' => $sorted->first()['label'],
+                    'count' => $sorted->count(),
+                    'sample_ids' => $sorted->pluck('sample_id')->values()->all(),
+                    'latest_completed_at' => $sorted->first()['completed_at'],
+                ];
+            })
+            ->sortByDesc('latest_completed_at')
+            ->values();
+
+        $eligibleOverview = [
+            'total' => $latestEligibleInterpretations->count(),
+            'monthly_count' => $monthlySummaries->count(),
+            'selected_count' => count($selectedSampleIds),
+        ];
+
         // Disposal history
         $disposals = SampleDisposal::query()
             ->with(['samples', 'executedBy', 'witnessUser'])
@@ -62,6 +100,8 @@ class SampleDisposalController extends Controller
             'methods' => SampleDisposalMethod::options(),
             'selectedSampleIds' => $selectedSampleIds,
             'eligibleSampleIds' => (clone $eligibleSamplesQuery)->pluck('id')->map(fn ($id) => (string) $id)->all(),
+            'monthlySummaries' => $monthlySummaries,
+            'eligibleOverview' => $eligibleOverview,
         ]);
     }
 
@@ -71,10 +111,34 @@ class SampleDisposalController extends Controller
     public function create(Request $request): View|RedirectResponse
     {
         $sampleIds = $request->get('sample_ids', []);
+        $month = $request->string('month')->toString();
+        $selectedMonth = null;
+
+        if ($month !== '') {
+            $selectedMonth = CarbonImmutable::createFromFormat('!Y-m', $month);
+
+            $isValidMonth = $selectedMonth !== false && $selectedMonth->format('Y-m') === $month;
+
+            if (! $isValidMonth) {
+                return redirect()
+                    ->route('inventory.disposal.index', ['tab' => 'eligible'])
+                    ->with('error', 'Format bulan pemusnahan tidak valid.');
+            }
+
+            $selectedMonth = $selectedMonth->startOfMonth();
+        }
 
         if ($request->boolean('all')) {
             $sampleIds = Sample::query()
                 ->eligibleForDisposal()
+                ->pluck('id')
+                ->all();
+        } elseif ($selectedMonth) {
+            $sampleIds = $this->latestEligibleInterpretationQuery()
+                ->whereBetween('latest_completed_at', [
+                    $selectedMonth->startOfMonth(),
+                    $selectedMonth->endOfMonth(),
+                ])
                 ->pluck('id')
                 ->all();
         }
@@ -124,6 +188,7 @@ class SampleDisposalController extends Controller
             'methods' => SampleDisposalMethod::options(),
             'witnessUsers' => $witnessUsers,
             'witnessRows' => $witnessRows,
+            'selectedMonthLabel' => $selectedMonth?->translatedFormat('F Y'),
         ]);
     }
 
@@ -301,6 +366,22 @@ class SampleDisposalController extends Controller
         }
 
         return $resolved;
+    }
+
+    private function latestEligibleInterpretationQuery(): Builder
+    {
+        $latestInterpretations = DB::table('sample_test_processes')
+            ->select('sample_id', DB::raw('MAX(completed_at) as latest_completed_at'))
+            ->where('stage', 'interpretation')
+            ->whereNotNull('completed_at')
+            ->groupBy('sample_id');
+
+        return Sample::query()
+            ->eligibleForDisposal()
+            ->joinSub($latestInterpretations, 'latest_interpretations', function ($join): void {
+                $join->on('latest_interpretations.sample_id', '=', 'samples.id');
+            })
+            ->select('samples.id', 'latest_interpretations.latest_completed_at');
     }
 
     /**

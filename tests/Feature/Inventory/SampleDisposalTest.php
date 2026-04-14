@@ -240,6 +240,75 @@ class SampleDisposalTest extends TestCase
         $response->assertSee('Tersangka LHU-ALL-0025');
     }
 
+    public function test_disposal_create_can_load_eligible_samples_by_month(): void
+    {
+        $marchSample = $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-MONTH-0001');
+        $aprilSample = $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-MONTH-0002');
+
+        $marchCompletedAt = now()->subMonths(4)->startOfMonth()->addDays(10);
+        $aprilCompletedAt = now()->subMonths(3)->startOfMonth()->addDays(5);
+
+        $marchSample->testProcesses()->where('stage', 'interpretation')->update(['completed_at' => $marchCompletedAt]);
+        $marchSample->update(['testing_completed_at' => $marchCompletedAt]);
+
+        $aprilSample->testProcesses()->where('stage', 'interpretation')->update(['completed_at' => $aprilCompletedAt]);
+        $aprilSample->update(['testing_completed_at' => $aprilCompletedAt]);
+
+        $response = $this->actingAs($this->user)
+            ->get(route('inventory.disposal.create', ['month' => $marchCompletedAt->format('Y-m')]));
+
+        $response->assertStatus(200);
+        $response->assertSee('Mode Bulanan');
+        $response->assertSee('Tersangka LHU-MONTH-0001');
+        $response->assertDontSee('Tersangka LHU-MONTH-0002');
+    }
+
+    public function test_disposal_index_exposes_monthly_summaries_that_match_batchable_months(): void
+    {
+        $marchSample = $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-MONTH-SUMMARY-0001');
+        $aprilSample = $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-MONTH-SUMMARY-0002');
+
+        $marchCompletedAt = now()->subMonths(5)->startOfMonth()->addDays(7);
+        $aprilCompletedAt = now()->subMonths(4)->startOfMonth()->addDays(11);
+
+        $marchSample->testProcesses()->where('stage', 'interpretation')->update(['completed_at' => $marchCompletedAt]);
+        $marchSample->update(['testing_completed_at' => $marchCompletedAt]);
+
+        $aprilSample->testProcesses()->where('stage', 'interpretation')->update(['completed_at' => $aprilCompletedAt]);
+        $aprilSample->update(['testing_completed_at' => $aprilCompletedAt]);
+
+        $response = $this->actingAs($this->user)
+            ->get(route('inventory.disposal.index', ['tab' => 'eligible']));
+
+        $response->assertStatus(200);
+
+        $monthlySummaries = $response->viewData('monthlySummaries');
+
+        $this->assertSame([
+            $aprilCompletedAt->format('Y-m'),
+            $marchCompletedAt->format('Y-m'),
+        ], $monthlySummaries->pluck('key')->all());
+
+        $this->assertSame(1, $monthlySummaries->firstWhere('key', $marchCompletedAt->format('Y-m'))['count']);
+        $this->assertSame(1, $monthlySummaries->firstWhere('key', $aprilCompletedAt->format('Y-m'))['count']);
+
+        $marchBatchResponse = $this->actingAs($this->user)
+            ->get(route('inventory.disposal.create', ['month' => $marchCompletedAt->format('Y-m')]));
+
+        $marchBatchResponse->assertStatus(200);
+        $marchBatchResponse->assertSee('Tersangka LHU-MONTH-SUMMARY-0001');
+        $marchBatchResponse->assertDontSee('Tersangka LHU-MONTH-SUMMARY-0002');
+    }
+
+    public function test_disposal_create_rejects_invalid_month_format(): void
+    {
+        $response = $this->actingAs($this->user)
+            ->get(route('inventory.disposal.create', ['month' => '2026-13']));
+
+        $response->assertRedirect(route('inventory.disposal.index', ['tab' => 'eligible']));
+        $response->assertSessionHas('error');
+    }
+
     public function test_disposal_create_rejects_partial_batch_when_any_sample_is_no_longer_eligible(): void
     {
         $eligibleSample = $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-2025-1111');
