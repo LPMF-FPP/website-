@@ -17,11 +17,16 @@
         ))
         ->values();
     $witnessSummary = $witnessSigners->map(fn (array $signer) => $signer['name'].' ('.$signer['identity'].')')->implode('; ');
+    $executorPerson = $disposal->executedBy;
+    $executorNumber = $executorPerson?->nrp ?: $executorPerson?->nip;
+    $executorNumberLabel = $executorPerson?->nrp ? 'NRP.' : ($executorPerson?->nip ? 'NIP.' : null);
+    $executorIdentityFallback = $disposal->executed_by_identity
+        ?: trim($executorNumberLabel && $executorNumber ? $executorNumberLabel.' '.$executorNumber : '');
     $executorSigner = pdf_build_signer(
-        ($disposal->executed_by_name || $disposal->executed_by_role) ? null : $disposal->executedBy,
-        fallbackName: $disposal->executed_by_name,
-        fallbackIdentity: $disposal->executed_by_identity,
-        fallbackRole: $disposal->executed_by_role ?: 'ANALIS'
+        null,
+        fallbackName: $disposal->executed_by_name ?: ($executorPerson?->name ?? '-'),
+        fallbackIdentity: $executorIdentityFallback,
+        fallbackRole: $disposal->executed_by_role ?: ($executorPerson?->rank ?: 'ANALIS')
     );
     $approverSigner = pdf_build_signer(
         null,

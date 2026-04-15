@@ -237,7 +237,7 @@ class SampleDisposalController extends Controller
         }
 
         if ($executedByRole === '') {
-            $executedByRole = trim((string) ($executor?->rank ?? $executor?->role ?? ''));
+            $executedByRole = trim((string) ($executor?->rank ?? ''));
         }
 
         if ($executedByIdentity === '') {
@@ -276,7 +276,7 @@ class SampleDisposalController extends Controller
                     'notes' => $validated['notes'] ?? null,
                     'executed_by' => Auth::id(),
                     'executed_by_name' => $executedByName !== '' ? $executedByName : '-',
-                    'executed_by_role' => $executedByRole !== '' ? $executedByRole : 'ANALIS',
+                    'executed_by_role' => $executedByRole !== '' ? $executedByRole : null,
                     'executed_by_identity' => $executedByIdentity !== '' ? $executedByIdentity : null,
                     'approver_name' => $approverName !== '' ? $approverName : '-',
                     'approver_role' => $approverRole !== '' ? $approverRole : null,
@@ -345,7 +345,13 @@ class SampleDisposalController extends Controller
             }
 
             if ($witnessUser && $role === '') {
-                $role = trim((string) ($witnessUser->rank ?? $witnessUser->role ?? ''));
+                $role = trim((string) ($witnessUser->rank ?? ''));
+
+                if ($role === '') {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        "witnesses.{$index}.role" => 'User saksi belum memiliki pangkat/jabatan. Isi jabatan manual atau lengkapi profil user.',
+                    ]);
+                }
             }
 
             if ($name === '' || $role === '') {

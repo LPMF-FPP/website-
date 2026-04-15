@@ -32,9 +32,15 @@ class Workbench extends Component
 
     public ?string $detailError = null;
 
+    public string $sortField = 'receipt_number';
+
+    public string $sortDirection = 'asc';
+
     protected array $queryString = [
         'q' => ['except' => ''],
         'scope' => ['except' => 'all'],
+        'sortField' => ['as' => 'sort', 'except' => 'receipt_number'],
+        'sortDirection' => ['as' => 'direction', 'except' => 'asc'],
         'selectedRequestId' => ['as' => 'selected', 'except' => null],
     ];
 
@@ -42,6 +48,14 @@ class Workbench extends Component
     {
         if (! in_array($this->scope, ['all', 'receipt_number', 'request_number', 'investigator'], true)) {
             $this->scope = 'all';
+        }
+
+        if (! in_array($this->sortField, ['receipt_number', 'created_at'], true)) {
+            $this->sortField = 'receipt_number';
+        }
+
+        if (! in_array($this->sortDirection, ['asc', 'desc'], true)) {
+            $this->sortDirection = 'asc';
         }
     }
 
@@ -52,6 +66,22 @@ class Workbench extends Component
 
     public function updatingScope(): void
     {
+        $this->resetPage();
+    }
+
+    public function sortBy(string $field): void
+    {
+        if (! in_array($field, ['receipt_number', 'created_at'], true)) {
+            return;
+        }
+
+        if ($this->sortField === $field) {
+            $this->sortDirection = $this->sortDirection === 'asc' ? 'desc' : 'asc';
+        } else {
+            $this->sortField = $field;
+            $this->sortDirection = $field === 'receipt_number' ? 'asc' : 'desc';
+        }
+
         $this->resetPage();
     }
 
@@ -166,8 +196,16 @@ class Workbench extends Component
         $query = TestRequest::query()
             ->with(['investigator'])
             ->withCount('samples')
-            ->whereNotIn('status', ['ready_for_delivery', 'completed', 'rejected'])
-            ->orderByDesc('created_at');
+            ->whereNotIn('status', ['ready_for_delivery', 'completed', 'rejected']);
+
+        if ($this->sortField === 'receipt_number') {
+            $query->orderByRaw("CASE WHEN COALESCE(receipt_number, request_number) ~ '\\d+$' THEN CAST(substring(COALESCE(receipt_number, request_number) from '(\\d+)$') AS BIGINT) END {$this->sortDirection} nulls last")
+                ->orderByRaw('COALESCE(receipt_number, request_number) '.$this->sortDirection)
+                ->orderBy('created_at');
+        } else {
+            $query->orderBy('created_at', $this->sortDirection)
+                ->orderByRaw('COALESCE(receipt_number, request_number) asc');
+        }
 
         if ($search === '') {
             return $query;

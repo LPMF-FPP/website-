@@ -11,6 +11,7 @@ use App\Services\DocumentService;
 use App\Support\QuantityFormatter;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 
@@ -23,7 +24,7 @@ class DeliveryController extends Controller
         return base_path("output/BA_Penyerahan_Ringkasan_{$sanitized}");
     }
 
-    public function index()
+    public function index(Request $request): Response|\Illuminate\Contracts\View\View
     {
         $requests = TestRequest::with([
             'investigator:id,name,jurisdiction,rank',
@@ -49,9 +50,9 @@ class DeliveryController extends Controller
             ->get();
 
         // Handle completed requests with search/filter/pagination
-        $search = request('search');
-        $sort = request('sort', 'completed_at');
-        $direction = request('direction', 'desc');
+        $search = $request->query('search');
+        $sort = $request->query('sort', 'completed_at');
+        $direction = $request->query('direction', 'desc');
 
         // Validate sort column to prevent SQL injection
         if (! in_array($sort, ['request_number', 'receipt_number', 'completed_at', 'suspect_name'])) {
@@ -80,7 +81,7 @@ class DeliveryController extends Controller
             })
             ->orderBy($sort, $direction)
             ->paginate(10, ['*'], 'completed_page')
-            ->appends(request()->except('completed_page'));
+            ->appends($request->except('completed_page'));
 
         $deliveries = Delivery::with([
 
@@ -109,6 +110,12 @@ class DeliveryController extends Controller
         ])
             ->latest()
             ->paginate(10);
+
+        if ($request->header('X-Fragment') === 'delivery-history') {
+            return response()->view('delivery.partials.history-table', [
+                'completedRequests' => $completedRequests,
+            ]);
+        }
 
         return view('delivery.index', compact('requests', 'deliveries', 'completedRequests'));
 

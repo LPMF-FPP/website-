@@ -28,6 +28,7 @@
         $witnessEntries = $disposal->witness_entries_for_display;
         $documentationPhotos = $disposal->documentation_photos_for_display;
         $executedBy = $disposal->executed_by_name ?: ($disposal->executedBy?->display_name_with_title ?? $disposal->executedBy?->name ?? '-');
+        $executorIdentity = trim(($disposal->executed_by_role ? $disposal->executed_by_role.' ' : '').($disposal->executed_by_identity ?: ''));
         $approverIdentity = trim(($disposal->approver_role ? $disposal->approver_role.' ' : '').($disposal->approver_identity ?: ''));
     @endphp
 
@@ -119,19 +120,22 @@
                     <div class="mt-6 grid gap-4 border-t border-slate-100 pt-6 md:grid-cols-2">
                         <div class="rounded-[24px] border border-slate-200 bg-slate-50/70 p-5">
                             <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Pelaksana</div>
-                            <div class="mt-3 text-lg font-semibold text-slate-900">{{ $executedBy }}</div>
-                            <p class="mt-2 text-sm text-slate-500">{{ $disposal->executed_by_role ?: '-' }}</p>
-                            @if($disposal->executed_by_identity)
-                                <p class="mt-1 text-xs text-slate-500">{{ $disposal->executed_by_identity }}</p>
-                            @endif
+                            <div class="mt-5 flex min-h-[8rem] flex-col justify-end rounded-2xl border border-slate-200/80 bg-white px-4 py-5 text-center shadow-sm">
+                                <div class="mx-auto inline-block border-b border-slate-900 px-4 pb-1 text-lg font-semibold uppercase tracking-[0.04em] text-slate-900">
+                                    {{ $executedBy }}
+                                </div>
+                                <p class="mt-3 text-sm text-slate-600">{{ $executorIdentity !== '' ? $executorIdentity : '-' }}</p>
+                            </div>
                         </div>
 
                         <div class="rounded-[24px] border border-slate-200 bg-slate-50/70 p-5">
                             <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Kepala Farmapol</div>
-                            <div class="mt-3 text-lg font-semibold text-slate-900">{{ $disposal->approver_name ?: '-' }}</div>
-                            @if($approverIdentity !== '')
-                                <p class="mt-2 text-sm text-slate-500">{{ $approverIdentity }}</p>
-                            @endif
+                            <div class="mt-5 flex min-h-[8rem] flex-col justify-end rounded-2xl border border-slate-200/80 bg-white px-4 py-5 text-center shadow-sm">
+                                <div class="mx-auto inline-block border-b border-slate-900 px-4 pb-1 text-lg font-semibold uppercase tracking-[0.04em] text-slate-900">
+                                    {{ $disposal->approver_name ?: '-' }}
+                                </div>
+                                <p class="mt-3 text-sm text-slate-600">{{ $approverIdentity !== '' ? $approverIdentity : '-' }}</p>
+                            </div>
                             <p class="mt-1 text-xs text-slate-500">Dicatat oleh {{ $disposal->createdBy?->name ?? '-' }}</p>
                         </div>
                     </div>

@@ -71,7 +71,22 @@
             <table class="min-w-full divide-y divide-gray-200 text-sm">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th scope="col" class="px-4 py-3.5 text-left text-xs font-semibold text-gray-900 uppercase tracking-wide">No. Resi & Tgl Terima</th>
+                        <th scope="col" class="px-4 py-3.5 text-left text-xs font-semibold text-gray-900 uppercase tracking-wide">
+                            <button
+                                type="button"
+                                wire:click="sortBy('receipt_number')"
+                                class="inline-flex items-center gap-2 rounded-sm text-left transition hover:text-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+                            >
+                                <span>No. Resi &amp; Tgl Terima</span>
+                                <span class="inline-flex h-5 min-w-5 items-center justify-center rounded bg-gray-200 px-1 text-[10px] font-bold text-gray-700">
+                                    @if($sortField === 'receipt_number')
+                                        {{ $sortDirection === 'asc' ? '↑' : '↓' }}
+                                    @else
+                                        ↕
+                                    @endif
+                                </span>
+                            </button>
+                        </th>
                         <th scope="col" class="px-4 py-3.5 text-left text-xs font-semibold text-gray-900 uppercase tracking-wide">Penyidik / Unit</th>
                         <th scope="col" class="px-4 py-3.5 text-left text-xs font-semibold text-gray-900 uppercase tracking-wide">Sampel</th>
                         <th scope="col" class="px-4 py-3.5 text-left text-xs font-semibold text-gray-900 uppercase tracking-wide">Status</th>
