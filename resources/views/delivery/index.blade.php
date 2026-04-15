@@ -206,7 +206,7 @@
         </div>
 
         <!-- Permintaan Sudah Diserahkan -->
-        <div class="mt-8 bg-white shadow-sm sm:rounded-lg" x-data="{ ...deliveryList(), responseMode: 'fragment' }" x-init="init()">
+        <div class="mt-8 bg-white shadow-sm sm:rounded-lg" x-data="{ ...deliveryList(), responseMode: 'fragment', requestHeaders: { 'X-Fragment': 'delivery-history' } }" x-init="init()">
             <div class="p-6 bg-white border-b border-gray-200">
                 <div class="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
                     <div>
