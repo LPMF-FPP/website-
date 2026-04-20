@@ -108,6 +108,25 @@ class LabelService
     }
 
     /**
+     * Ensure every sample in a request has an evidence label, then return the full set.
+     */
+    public function ensureEvidenceUnitsForRequest(int $requestId): Collection
+    {
+        $sampleIds = Sample::where('test_request_id', $requestId)
+            ->orderBy('id')
+            ->pluck('id')
+            ->all();
+
+        if ($sampleIds === []) {
+            return collect();
+        }
+
+        $this->createEvidenceUnits($requestId, $sampleIds);
+
+        return $this->getEvidenceUnitsForRequest($requestId);
+    }
+
+    /**
      * Get all remaining units for an evidence unit.
      */
     public function getRemainingUnitsForEvidence(int $evidenceUnitId): Collection

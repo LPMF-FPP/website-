@@ -96,18 +96,76 @@ class LabelController extends Controller
      */
     private function buildCaseLabelPayload(TestRequest $request): array
     {
-        // Combine all sample codes
-        $allSampleCodes = $request->samples->sortBy('id')
+        $sampleCodes = $request->samples->sortBy('id')
             ->pluck('sample_code')
-            ->implode(', ');
+            ->filter()
+            ->values();
+
+        $compactRange = $this->buildCompactSampleCodeRange($sampleCodes);
+
+        $allSampleCodes = match (true) {
+            $sampleCodes->isEmpty() => '-',
+            $sampleCodes->count() <= 4 => $sampleCodes->implode(', '),
+            $compactRange !== null => $compactRange,
+            default => sprintf('%d sampel', $sampleCodes->count()),
+        };
 
         return [
             'nama_tsk' => $request->suspect_name ?? '-',
             'nomor_surat' => $request->case_number ?? '-',
             'satuan_kerja' => $request->investigator->jurisdiction ?? '-',
-            'daftar_kode_sampel' => $allSampleCodes ?: '-',
+            'daftar_kode_sampel' => $allSampleCodes,
             'resi' => $request->receipt_number ?? '-',
+            'print_footer' => false,
         ];
+    }
+
+    private function buildCompactSampleCodeRange(\Illuminate\Support\Collection $sampleCodes): ?string
+    {
+        if ($sampleCodes->count() <= 1) {
+            return null;
+        }
+
+        $parsedCodes = $sampleCodes->map(function ($code) {
+            if (preg_match('/^(.*?)(\d+)$/', (string) $code, $matches) !== 1) {
+                return null;
+            }
+
+            return [
+                'prefix' => $matches[1],
+                'number' => (int) $matches[2],
+                'digits' => strlen($matches[2]),
+            ];
+        });
+
+        if ($parsedCodes->contains(null)) {
+            return null;
+        }
+
+        $first = $parsedCodes->first();
+
+        if (! is_array($first)) {
+            return null;
+        }
+
+        $samePrefix = $parsedCodes->every(fn ($parsed) => is_array($parsed) && $parsed['prefix'] === $first['prefix']);
+        $sameDigits = $parsedCodes->every(fn ($parsed) => is_array($parsed) && $parsed['digits'] === $first['digits']);
+
+        if (! $samePrefix || ! $sameDigits) {
+            return null;
+        }
+
+        $numbers = $parsedCodes->pluck('number')->values();
+        $expectedRange = range((int) $numbers->first(), (int) $numbers->last());
+
+        if ($numbers->all() !== $expectedRange) {
+            return null;
+        }
+
+        $firstNumber = str_pad((string) $numbers->first(), $first['digits'], '0', STR_PAD_LEFT);
+        $lastNumber = str_pad((string) $numbers->last(), $first['digits'], '0', STR_PAD_LEFT);
+
+        return sprintf('%s%s-%s (%d sampel)', $first['prefix'], $firstNumber, $lastNumber, $sampleCodes->count());
     }
 
     /**
@@ -118,8 +176,8 @@ class LabelController extends Controller
     {
         $testRequest = TestRequest::with(['samples', 'investigator'])->find($requestId);
 
-        // Ensure evidence units exist or are created (fallback logic if needed, but existing code relied on them existing)
-        $evidenceUnits = $this->labelService->getEvidenceUnitsForRequest($requestId);
+        // Keep label inventory in sync with current request samples before printing.
+        $evidenceUnits = $this->labelService->ensureEvidenceUnitsForRequest($requestId);
 
         if ($evidenceUnits->isEmpty()) {
             return back()->with('error', 'Tidak ada label barang bukti untuk dicetak.');
@@ -139,32 +197,53 @@ class LabelController extends Controller
         // Build right column payload (Case Label) - Fixed single payload
         $casePayload = $this->buildCaseLabelPayload($testRequest);
 
-        // Construct rows: Left = Evidence, Right = Case (only for first 4 rows)
-        // Total rows is determined by number of evidence labels
-        $totalRows = $evidencePayloads->count();
-
-        // Ensure at least 4 rows if we want to show 4 case labels even if < 4 samples?
-        // User said: "banyaknya label baru... tetap yaitu 4"
-        // So if we have 1 sample, we should have 4 rows?
-        // Row 1: Left=Sample1, Right=Case1
-        // Row 2: Left=Empty, Right=Case1
-        // Row 3: Left=Empty, Right=Case1
-        // Row 4: Left=Empty, Right=Case1
-        $totalRows = max($totalRows, 4);
-
         $rows = [];
-        for ($i = 0; $i < $totalRows; $i++) {
-            $rows[] = [
-                'left' => $evidencePayloads->get($i), // Returns null if index out of bounds
-                'right' => ($i < 4) ? $casePayload : null, // Only first 4 rows get case label
+
+        for ($i = 0; $i < 4; $i++) {
+            $row = [
+                'left' => $evidencePayloads->get($i),
+                'right' => array_merge($casePayload, ['kind' => 'case']),
             ];
+
+            $rows[] = $row;
         }
 
-        // Debug log first row (remove after verification)
-        logger()->info('Label hybrid row sample', ['row_0' => $rows[0]]);
+        $pages = collect([
+            [
+                'layout' => 'mixed',
+                'rows' => collect($rows),
+            ],
+        ]);
+
+        $remainingEvidencePayloads = $evidencePayloads->slice(4)->values();
+
+        foreach ($remainingEvidencePayloads->chunk(8) as $chunk) {
+            $gridRows = [];
+
+            for ($i = 0; $i < 4; $i++) {
+                $left = $chunk->get($i * 2);
+                $right = $chunk->get(($i * 2) + 1);
+
+                if (! $left && ! $right) {
+                    continue;
+                }
+
+                $gridRows[] = [
+                    'left' => $left,
+                    'right' => $right ? array_merge($right, ['kind' => 'evidence']) : null,
+                ];
+            }
+
+            if ($gridRows !== []) {
+                $pages->push([
+                    'layout' => 'evidence-grid',
+                    'rows' => collect($gridRows),
+                ]);
+            }
+        }
 
         $pdf = Pdf::loadView('labels.evidence-sheet', [
-            'rows' => collect($rows), // Pass as collection to allow ->chunk() in blade
+            'pages' => $pages,
             'request' => $testRequest, // Pass request for checklist
             'printDate' => now()->translatedFormat('d M Y H:i'),
         ]);

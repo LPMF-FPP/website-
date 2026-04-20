@@ -4,8 +4,13 @@
     <meta charset="UTF-8">
     <title>Label Barang Bukti</title>
     @php
-        $labelWidth = 75; // mm
-        $labelHeight = 38; // mm
+        $pageWidth = 165; // mm
+        $evidenceLabelWidth = 71; // mm
+        $caseLabelWidth = 69; // mm
+        $labelHeight = 35; // mm
+        $gapWidth = 5.0; // mm
+        $rowGap = 5.0; // mm
+        $sheetLeftOffset = 3; // mm
         $fontSize = 7; // pt
     @endphp
     <style>
@@ -29,30 +34,52 @@
             break-after: page;
         }
         .sheet {
-            padding-top: 5mm;
-            padding-left: 7mm;
+            padding-top: 3mm;
+            padding-left: {{ $sheetLeftOffset }}mm;
+            width: {{ $pageWidth - $sheetLeftOffset }}mm;
+            text-align: left;
         }
-        .grid-table {
-            border-collapse: collapse;
-            table-layout: fixed;
+        .sheet-row {
+            display: block;
+            width: {{ $evidenceLabelWidth + $caseLabelWidth + $gapWidth }}mm;
+            page-break-inside: avoid;
+            margin-left: 0;
+            margin-right: 0;
+            font-size: 0;
+            white-space: nowrap;
         }
-        .cell {
-            width: {{ $labelWidth }}mm;
+        .sheet-row + .sheet-row {
+            margin-top: {{ $rowGap }}mm;
+        }
+        .sheet-cell {
+            display: inline-block;
+            width: {{ $evidenceLabelWidth }}mm;
             height: {{ $labelHeight }}mm;
             vertical-align: top;
             padding: 0;
+            font-size: {{ $fontSize }}pt;
         }
-        .gap-x {
-            width: 2.5mm;
+        .sheet-cell.case-cell {
+            width: {{ $caseLabelWidth }}mm;
+            padding-left: 0;
         }
-        .gap-y td {
-            height: 2mm;
+        .sheet.layout-evidence-grid .sheet-row {
+            width: {{ ($evidenceLabelWidth * 2) + $gapWidth }}mm;
+        }
+        .sheet.layout-evidence-grid .sheet-cell.case-cell {
+            width: {{ $evidenceLabelWidth }}mm;
+        }
+        .sheet-gap {
+            display: inline-block;
+            width: {{ $gapWidth }}mm;
+            height: {{ $labelHeight }}mm;
+            vertical-align: top;
         }
         .label {
-            width: {{ $labelWidth }}mm;
+            width: {{ $evidenceLabelWidth }}mm;
             height: {{ $labelHeight }}mm;
             border: 0.25mm solid #333;
-            padding: 1mm;
+            padding: 0.7mm;
             position: relative;
             background: #fff;
             overflow: hidden;
@@ -60,6 +87,102 @@
         }
         .label-header {
             margin-bottom: 0.6mm;
+        }
+        .label.case-label {
+            width: {{ $caseLabelWidth }}mm;
+            padding-left: 0.8mm;
+            padding-right: 0.8mm;
+            padding-top: 0.5mm;
+            padding-bottom: 0.5mm;
+        }
+        .label.evidence-label {
+            padding-left: 0.8mm;
+            padding-right: 0.8mm;
+            padding-top: 0.5mm;
+            padding-bottom: 0.5mm;
+        }
+        .label.case-label .header-table {
+            margin-bottom: 0.25mm;
+            padding-bottom: 0.1mm;
+        }
+        .label.evidence-label .header-table {
+            margin-bottom: 0.25mm;
+            padding-bottom: 0.1mm;
+        }
+        .label.case-label .header-logo {
+            height: 3.4mm;
+        }
+        .label.evidence-label .header-logo {
+            height: 3.4mm;
+        }
+        .label.case-label .label-header h1 {
+            font-size: 6.5pt;
+        }
+        .label.evidence-label .label-header h1 {
+            font-size: 6.5pt;
+        }
+        .label.case-label .label-header .subtitle {
+            font-size: 3.8pt;
+            margin-top: 0;
+        }
+        .label.evidence-label .label-header .subtitle {
+            font-size: 3.8pt;
+            margin-top: 0;
+        }
+        .label.case-label .label-body {
+            margin-top: 0;
+        }
+        .label.evidence-label .label-body {
+            margin-top: 0;
+        }
+        .label.case-label .label-content {
+            padding-right: 0;
+        }
+        .label.evidence-label .label-content {
+            padding-right: 0;
+        }
+        .label.case-label .field {
+            margin-bottom: 0.15mm;
+        }
+        .label.evidence-label .field {
+            margin-bottom: 0.15mm;
+        }
+        .label.case-label .field-label {
+            font-size: 4.8pt;
+        }
+        .label.evidence-label .field-label {
+            font-size: 4.8pt;
+        }
+        .label.case-label .field-value {
+            font-size: 5.6pt;
+            line-height: 1;
+        }
+        .label.evidence-label .field-value {
+            font-size: 5.6pt;
+            line-height: 1;
+        }
+        .label.case-label .field-value.small {
+            font-size: 4.4pt;
+        }
+        .label.evidence-label .field-value.small {
+            font-size: 4.4pt;
+        }
+        .label.case-label .label-footer {
+            left: 1.2mm;
+            right: 1.2mm;
+            bottom: 0.35mm;
+            font-size: 4.3pt;
+            padding-top: 0.1mm;
+        }
+        .label.evidence-label .label-footer {
+            left: 1.2mm;
+            right: 1.2mm;
+            bottom: 0.35mm;
+            font-size: 4.3pt;
+            padding-top: 0.1mm;
+        }
+        .label.case-label.no-footer .label-footer {
+            display: none;
         }
         .label-header h1 {
             font-size: 8pt;
@@ -203,81 +326,70 @@
     </style>
 </head>
 <body>
-    {{-- HALAMAN 1: LABEL SHEET 2x5 --}}
-    @php
-        $pages = $rows->chunk(5);
-        if ($pages->isEmpty()) {
-            $pages = collect([collect()]);
-        }
-    @endphp
-
     @foreach($pages as $page)
-        <div class="sheet">
-            <table class="grid-table" cellspacing="0" cellpadding="0">
-                @for($r = 0; $r < 5; $r++)
-                    @php
-                        $row = $page->get($r);
-                    @endphp
-                    <tr>
-                        <td class="cell">
-                            @if($row && $row['left'])
-                                <div class="label">
-                                    <div class="label-header">
-                                        <table class="header-table">
-                                            <tr>
-                                                <td style="width: 12%; text-align: center; vertical-align: middle;">
-                                                    <img src="{{ public_path('images/logo-tribrata-polri.png') }}" class="header-logo" alt="Logo Polri">
-                                                </td>
-                                                <td style="width: 76%; text-align: center; vertical-align: middle;">
-                                                    <h1>Barang Bukti</h1>
-                                                    <div class="subtitle">Laboratorium Pengujian Mutu Farmapol Pusdokkes Polri</div>
-                                                </td>
-                                                <td style="width: 12%; text-align: center; vertical-align: middle;">
-                                                    <img src="{{ public_path('images/logo-pusdokkes-polri.png') }}" class="header-logo" alt="Logo Pusdokkes">
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </div>
+        <div class="sheet layout-{{ $page['layout'] ?? 'mixed' }}">
+            @foreach($page['rows'] as $row)
+                <div class="sheet-row">
+                    <div class="sheet-cell">
+                        @if($row && $row['left'])
+                            <div class="label evidence-label">
+                                <div class="label-header">
+                                    <table class="header-table">
+                                        <tr>
+                                            <td style="width: 12%; text-align: center; vertical-align: middle;">
+                                                <img src="{{ public_path('images/logo-tribrata-polri.png') }}" class="header-logo" alt="Logo Polri">
+                                            </td>
+                                            <td style="width: 76%; text-align: center; vertical-align: middle;">
+                                                <h1>Barang Bukti</h1>
+                                                <div class="subtitle">Laboratorium Pengujian Mutu Farmapol Pusdokkes Polri</div>
+                                            </td>
+                                            <td style="width: 12%; text-align: center; vertical-align: middle;">
+                                                <img src="{{ public_path('images/logo-pusdokkes-polri.png') }}" class="header-logo" alt="Logo Pusdokkes">
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
 
-                                    <div class="label-body">
-                                        <div class="label-content">
-                                            <div class="field">
-                                                <div class="field-label">Resi</div>
-                                                <div class="field-value">{{ $row['left']['resi'] }}</div>
-                                            </div>
-
-                                            <div class="field">
-                                                <div class="field-label">Kode Sampel</div>
-                                                <div class="field-value large">{{ $row['left']['kode_sampel'] }}</div>
-                                            </div>
-
-                                            <div class="field">
-                                                <div class="field-label">Tanggal Terima</div>
-                                                <div class="field-value">{{ $row['left']['tanggal_terima'] }}</div>
-                                            </div>
-
-                                            <div class="field">
-                                                <div class="field-label">Deskripsi Singkat</div>
-                                                <div class="field-value clamp2">{{ $row['left']['deskripsi_singkat'] }}</div>
-                                            </div>
+                                <div class="label-body">
+                                    <div class="label-content">
+                                        <div class="field">
+                                            <div class="field-label">Resi</div>
+                                            <div class="field-value">{{ $row['left']['resi'] }}</div>
                                         </div>
 
-                                        <div class="label-qr">
-                                            <img src="{{ $row['left']['qr'] }}" alt="QR Code">
-                                            <div class="qr-text">{{ $row['left']['qr_text'] }}</div>
+                                        <div class="field">
+                                            <div class="field-label">Kode Sampel</div>
+                                            <div class="field-value large">{{ $row['left']['kode_sampel'] }}</div>
+                                        </div>
+
+                                        <div class="field">
+                                            <div class="field-label">Tanggal Terima</div>
+                                            <div class="field-value">{{ $row['left']['tanggal_terima'] }}</div>
+                                        </div>
+
+                                        <div class="field">
+                                            <div class="field-label">Deskripsi Singkat</div>
+                                            <div class="field-value clamp2">{{ $row['left']['deskripsi_singkat'] }}</div>
                                         </div>
                                     </div>
 
-                                    <div class="label-footer">
-                                        Dicetak: {{ $printDate }}
+                                    <div class="label-qr">
+                                        <img src="{{ $row['left']['qr'] }}" alt="QR Code">
+                                        <div class="qr-text">{{ $row['left']['qr_text'] }}</div>
                                     </div>
                                 </div>
-                            @endif
-                        </td>
-                        <td class="gap-x"></td>
-                        <td class="cell">
-                            @if($row && $row['right'])
-                                <div class="label">
+
+                                <div class="label-footer">
+                                    Dicetak: {{ $printDate }}
+                                </div>
+                            </div>
+                        @endif
+                    </div>
+                    <div class="sheet-gap"></div>
+                    <div class="sheet-cell case-cell">
+                        @if($row && $row['right'])
+                            @if(($page['layout'] ?? 'mixed') === 'mixed')
+                                <div class="label case-label {{ empty($row['right']['print_footer']) ? 'no-footer' : '' }}">
                                     <div class="label-header">
                                         <table class="header-table">
                                             <tr>
@@ -319,18 +431,69 @@
                                         </div>
                                     </div>
 
+                                    @if(! empty($row['right']['print_footer']))
+                                        <div class="label-footer">
+                                            Dicetak: {{ $printDate }}
+                                        </div>
+                                    @endif
+                                </div>
+                            @else
+                                <div class="label evidence-label">
+                                    <div class="label-header">
+                                        <table class="header-table">
+                                            <tr>
+                                                <td style="width: 12%; text-align: center; vertical-align: middle;">
+                                                    <img src="{{ public_path('images/logo-tribrata-polri.png') }}" class="header-logo" alt="Logo Polri">
+                                                </td>
+                                                <td style="width: 76%; text-align: center; vertical-align: middle;">
+                                                    <h1>Barang Bukti</h1>
+                                                    <div class="subtitle">Laboratorium Pengujian Mutu Farmapol Pusdokkes Polri</div>
+                                                </td>
+                                                <td style="width: 12%; text-align: center; vertical-align: middle;">
+                                                    <img src="{{ public_path('images/logo-pusdokkes-polri.png') }}" class="header-logo" alt="Logo Pusdokkes">
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+
+                                    <div class="label-body">
+                                        <div class="label-content">
+                                            <div class="field">
+                                                <div class="field-label">Resi</div>
+                                                <div class="field-value">{{ $row['right']['resi'] }}</div>
+                                            </div>
+
+                                            <div class="field">
+                                                <div class="field-label">Kode Sampel</div>
+                                                <div class="field-value large">{{ $row['right']['kode_sampel'] }}</div>
+                                            </div>
+
+                                            <div class="field">
+                                                <div class="field-label">Tanggal Terima</div>
+                                                <div class="field-value">{{ $row['right']['tanggal_terima'] }}</div>
+                                            </div>
+
+                                            <div class="field">
+                                                <div class="field-label">Deskripsi Singkat</div>
+                                                <div class="field-value clamp2">{{ $row['right']['deskripsi_singkat'] }}</div>
+                                            </div>
+                                        </div>
+
+                                        <div class="label-qr">
+                                            <img src="{{ $row['right']['qr'] }}" alt="QR Code">
+                                            <div class="qr-text">{{ $row['right']['qr_text'] }}</div>
+                                        </div>
+                                    </div>
+
                                     <div class="label-footer">
                                         Dicetak: {{ $printDate }}
                                     </div>
                                 </div>
                             @endif
-                        </td>
-                    </tr>
-                    @if($r < 4)
-                        <tr class="gap-y"><td colspan="3"></td></tr>
-                    @endif
-                @endfor
-            </table>
+                        @endif
+                    </div>
+                </div>
+            @endforeach
         </div>
 
         @if(! $loop->last)
