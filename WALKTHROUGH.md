@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v2.4.11
+# WALKTHROUGH - LPMF LIMS v2.5.0
 
 > **Single Source of Truth** — Pedoman terupdate terhadap codebase Laboratory Information Management System.
 
@@ -147,6 +147,23 @@ WhatsApp service berjalan di container Docker terpisah.
 ---
 
 ## 📰 Recent Changes (v2.4.x)
+
+### v2.5.0 (20 April 2026) - Evidence Label Sheet Packing, Safety Hardening & Request Form UX
+
+- **Evidence Sheet Repack:** Layout cetak `labels/evidence-sheet` sekarang memisahkan halaman pertama sebagai format campuran (barang bukti + label `LPMF`) dan halaman lanjutan sebagai grid `2 x 4`, sehingga halaman kedua dan seterusnya dapat memuat hingga **8 label barang bukti** dengan jarak horizontal dan vertikal **5mm** yang lebih konsisten di DomPDF.
+- **Label Visual Alignment:** Tipografi label barang bukti diselaraskan dengan profil label `LPMF`, termasuk spacing internal yang lebih rapat dan aman untuk mengurangi risiko overflow serta menjaga keterbacaan pada ukuran label fisik saat dicetak.
+- **Evidence Label Sync on Print:** Proses cetak label barang bukti sekarang otomatis memastikan semua sampel pada request sudah memiliki `evidence_units` sebelum PDF dibangun, sehingga kasus sampel tambahan yang sebelumnya belum memiliki label tidak lagi hilang dari lembar cetak.
+- **Case Label Summary Hardening:** Ringkasan `Nomor Sampel` pada label `LPMF` kini hanya dikompakkan ke format range bila semua kode memiliki prefix yang sama dan urutan numeriknya benar-benar kontigu; jika tidak, sistem fallback aman ke daftar pendek atau format `N sampel` untuk mencegah informasi yang menyesatkan.
+- **Regression Coverage:** Penambahan `EvidenceSheetPrintTest` memperluas coverage untuk sinkronisasi label otomatis, packing halaman lanjutan, dan guard terhadap kompaksi kode sampel yang tidak valid agar kontrak layout cetak tetap terjaga saat ada perubahan berikutnya.
+- **Request Form UX:** Field `Deskripsi Singkat` pada `/requests/create` sekarang menggunakan `textarea` full-width dengan auto-resize di setiap card sampel, sehingga deskripsi lebih dari 10 karakter tetap mudah dibaca, nyaman diedit, dan konsisten juga untuk sampel yang ditambahkan secara dinamis.
+- **Deploy Config Update:** Konfigurasi deploy lokal diperbarui untuk memakai host production baru `192.168.1.88`, dan artifact deploy untuk perubahan label ini sudah tervalidasi berjalan di target production tersebut.
+
+### v2.4.12 (14 April 2026) - Disposal Monthly Batch Flow & UI Redesign
+
+- **Monthly Disposal Execution:** Halaman `/referensi/inventori/disposal` sekarang menyediakan grouping bulanan berbasis interpretasi terakhir per sampel, sehingga user dapat mengeksekusi disposal per bulan dengan hasil yang konsisten antara dashboard eligible dan form batch.
+- **Eligibility Query Hardening:** Penyusunan ringkasan bulanan disposal dipindahkan dari snapshot penuh in-memory ke query agregasi `latest interpretation` per sampel agar lebih hemat memory dan lebih aman saat jumlah data production bertambah.
+- **Disposal Create Redesign:** Form eksekusi batch disposal diperbarui menjadi layout command-center dengan ringkasan batch, disclosure section untuk pelaksana/saksi/otorisasi/dokumentasi, serta auto-open saat ada validation error agar recovery form tetap jelas.
+- **Disposal Detail Redesign:** Halaman detail batch disposal kini menampilkan hero ringkasan audit, metadata batch yang lebih mudah dipindai, panel saksi dan dokumentasi yang lebih rapi, serta manifest sampel dengan presentasi yang lebih konsisten untuk kebutuhan telaah dan cetak PDF.
 
 ### v2.4.11 (10 April 2026) - Disposal Documentation Photos & Report Evidence Column
 

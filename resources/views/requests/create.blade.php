@@ -579,7 +579,7 @@
 
                                     <!-- Deskripsi Singkat -->
 
-                                    <div>
+                                    <div class="md:col-span-3">
 
                                         <label class="block text-sm font-medium text-gray-700 mb-1">
 
@@ -587,15 +587,23 @@
 
                                         </label>
 
-                                        <input type="text"
+                                        <textarea
 
                                                name="samples[0][short_description]"
 
                                                required
 
-                                               class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                                               rows="2"
 
-                                               placeholder="Contoh: Tablet putih">
+                                               maxlength="120"
+
+                                               data-auto-resize="sample-short-description"
+
+                                               class="w-full min-h-[44px] resize-y overflow-hidden px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+
+                                               placeholder="Contoh: Tablet putih, logo tertentu, kondisi utuh, atau ciri visual singkat lainnya"></textarea>
+
+                                        <p class="text-xs text-gray-500 mt-1">Gunakan ciri yang paling mudah dikenali. Kolom ini menyesuaikan tinggi otomatis saat Anda mengetik.</p>
 
                                     </div>
 
@@ -995,6 +1003,30 @@ function previewSampleImages(input, sampleIndex) {
     }
 }
 
+function autoResizeTextarea(textarea) {
+    if (!(textarea instanceof HTMLTextAreaElement)) {
+        return;
+    }
+
+    textarea.style.height = 'auto';
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 160)}px`;
+}
+
+function bindSampleShortDescriptionAutoResize(scope = document) {
+    const textareas = scope.querySelectorAll('textarea[data-auto-resize="sample-short-description"]');
+
+    textareas.forEach(textarea => {
+        if (textarea.dataset.autoResizeBound === 'true') {
+            autoResizeTextarea(textarea);
+            return;
+        }
+
+        textarea.dataset.autoResizeBound = 'true';
+        textarea.addEventListener('input', () => autoResizeTextarea(textarea));
+        autoResizeTextarea(textarea);
+    });
+}
+
 // Drag and drop support for request letter
 (function() {
     const dropzone = document.getElementById('request_letter_dropzone');
@@ -1085,6 +1117,8 @@ document.getElementById('add-sample').addEventListener('click', function() {
         // Clear values except for default values
         if (input.type === 'text' || input.type === 'number') {
             input.value = '';
+        } else if (input.tagName === 'TEXTAREA') {
+            input.value = '';
         } else if (input.type === 'checkbox') {
             input.checked = false;
         } else if (input.type === 'file') {
@@ -1123,6 +1157,7 @@ document.getElementById('add-sample').addEventListener('click', function() {
     
     // Append to container
     container.appendChild(newSample);
+    bindSampleShortDescriptionAutoResize(newSample);
     
     sampleIndex++;
     
@@ -1170,6 +1205,8 @@ function checkRemoveButtons() {
         }
     }
 }
+
+bindSampleShortDescriptionAutoResize();
 </script>
 
 @vite('resources/js/pages/requests-form.js')
