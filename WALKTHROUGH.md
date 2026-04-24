@@ -156,7 +156,7 @@ WhatsApp service berjalan di container Docker terpisah.
 - **Case Label Summary Hardening:** Ringkasan `Nomor Sampel` pada label `LPMF` kini hanya dikompakkan ke format range bila semua kode memiliki prefix yang sama dan urutan numeriknya benar-benar kontigu; jika tidak, sistem fallback aman ke daftar pendek atau format `N sampel` untuk mencegah informasi yang menyesatkan.
 - **Regression Coverage:** Penambahan `EvidenceSheetPrintTest` memperluas coverage untuk sinkronisasi label otomatis, packing halaman lanjutan, dan guard terhadap kompaksi kode sampel yang tidak valid agar kontrak layout cetak tetap terjaga saat ada perubahan berikutnya.
 - **Request Form UX:** Field `Deskripsi Singkat` pada `/requests/create` sekarang menggunakan `textarea` full-width dengan auto-resize di setiap card sampel, sehingga deskripsi lebih dari 10 karakter tetap mudah dibaca, nyaman diedit, dan konsisten juga untuk sampel yang ditambahkan secara dinamis.
-- **Deploy Config Update:** Konfigurasi deploy lokal diperbarui untuk memakai host production baru `192.168.1.88`, dan artifact deploy untuk perubahan label ini sudah tervalidasi berjalan di target production tersebut.
+- **Deploy Config Update:** Konfigurasi deploy lokal diperbarui untuk memakai host production baru `192.168.1.16`, dan artifact deploy untuk perubahan label ini sudah tervalidasi berjalan di target production tersebut.
 
 ### v2.4.12 (14 April 2026) - Disposal Monthly Batch Flow & UI Redesign
 

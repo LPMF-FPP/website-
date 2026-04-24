@@ -92,6 +92,25 @@ class LabelController extends Controller
     }
 
     /**
+     * Build a web response payload for a remaining unit item.
+     */
+    private function buildRemainingUnitPayload(RemainingUnit $remaining): array
+    {
+        return [
+            'id' => $remaining->id,
+            'sample_code' => $remaining->sample_code,
+            'remaining_code' => $remaining->remaining_code,
+            'qty_remaining' => $remaining->qty_remaining,
+            'uom' => $remaining->uom,
+            'seal_status_delivered' => $remaining->seal_status_delivered,
+            'condition_delivered' => $remaining->condition_delivered,
+            'handover_doc_no' => $remaining->handover_doc_no,
+            'created_at' => optional($remaining->created_at)?->toISOString(),
+            'qr_content' => $remaining->qr_content,
+        ];
+    }
+
+    /**
      * Build explicit case label payload (for right column).
      */
     private function buildCaseLabelPayload(TestRequest $request): array
@@ -500,15 +519,7 @@ class LabelController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Label sisa sampel berhasil dibuat.',
-                'data' => [
-                    'id' => $remaining->id,
-                    'sample_code' => $remaining->sample_code,
-                    'remaining_code' => $remaining->remaining_code,
-                    'qty_remaining' => $remaining->qty_remaining,
-                    'uom' => $remaining->uom,
-                    'created_at' => optional($remaining->created_at)?->toISOString(),
-                    'qr_content' => $remaining->qr_content,
-                ],
+                'data' => $this->buildRemainingUnitPayload($remaining),
             ]);
         } catch (\RuntimeException $e) {
             return response()->json([
@@ -516,6 +527,40 @@ class LabelController extends Controller
                 'message' => $e->getMessage(),
             ], 422);
         }
+    }
+
+    /**
+     * Update a remaining unit.
+     * PUT /labels/remaining-units/{id}
+     */
+    public function updateRemainingUnit(Request $request, int $id)
+    {
+        $remainingUnit = $this->ensureRemainingLabelAccessForRemainingUnit($id);
+
+        if (! $remainingUnit) {
+            return response()->json([
+                'success' => false,
+                'message' => $this->denyRemainingLabelAccessMessage(),
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'qty_remaining' => ['nullable', 'numeric', 'min:0'],
+            'uom' => ['nullable', 'string', 'max:50'],
+            'seal_status_delivered' => ['nullable', 'string', 'max:100'],
+            'condition_delivered' => ['nullable', 'string', 'max:100'],
+            'handover_doc_no' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $remainingUnit->fill($validated);
+        $remainingUnit->save();
+        $remainingUnit->refresh();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Label sisa sampel berhasil diperbarui.',
+            'data' => $this->buildRemainingUnitPayload($remainingUnit),
+        ]);
     }
 
     /**

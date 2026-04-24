@@ -195,6 +195,12 @@ class DeliveryController extends Controller
         // Reload evidenceUnits with remainingUnits after auto-generation
         $request->load('evidenceUnits.remainingUnits');
 
+        $samplesNeedingRemainingLabels = $request->samples
+            ->filter(fn ($sample) => (float) ($sample->leftover_quantity_value ?? 0) > 0)
+            ->values();
+
+        $remainingLabelsRequired = $samplesNeedingRemainingLabels->isNotEmpty();
+
         // Check completion status for stepper
         $baExists = \App\Models\Document::where('test_request_id', $request->id)
             ->where('document_type', 'ba_penyerahan')
@@ -202,6 +208,7 @@ class DeliveryController extends Controller
 
         $labelsCount = $request->evidenceUnits->flatMap->remainingUnits->count();
         $labelsGenerated = $labelsCount > 0;
+        $remainingLabelStepCompleted = ! $remainingLabelsRequired || $labelsGenerated;
 
         // Get last WhatsApp notification status
         $lastNotification = \App\Models\WhatsappOutbox::where('test_request_id', $request->id)
@@ -224,15 +231,17 @@ class DeliveryController extends Controller
             2 => [
                 'key' => 'label_sisa',
                 'title' => 'Label Sisa Sampel',
-                'completed' => $labelsGenerated,
+                'completed' => $remainingLabelStepCompleted,
                 'locked' => ! $baExists,
                 'count' => $labelsCount,
+                'required' => $remainingLabelsRequired,
+                'remaining_sample_count' => $samplesNeedingRemainingLabels->count(),
             ],
             3 => [
                 'key' => 'notifikasi_wa',
                 'title' => 'Notifikasi WhatsApp',
                 'completed' => $waNotificationSent,
-                'locked' => ! $labelsGenerated,
+                'locked' => ! $remainingLabelStepCompleted,
             ],
             4 => [
                 'key' => 'survei',

@@ -138,8 +138,33 @@
                                             <div class="text-sm text-gray-500 mt-1">
                                                 @if($stepper[2]['locked'])
                                                     Selesaikan langkah sebelumnya terlebih dahulu.
+                                                @elseif(!($stepper[2]['required'] ?? true))
+                                                    <div class="rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-teal-50 px-4 py-3 text-sm text-emerald-800 shadow-sm">
+                                                        <div class="flex items-start gap-3">
+                                                            <div class="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                                                </svg>
+                                                            </div>
+                                                            <div class="min-w-0">
+                                                                <p class="font-semibold">Tidak ada sisa sampel yang perlu dilabeli.</p>
+                                                                <p class="mt-1 text-emerald-700/90">Semua sampel pada penyerahan ini habis diuji atau tidak memiliki sisa positif, sehingga langkah ini ditandai selesai otomatis dan proses dapat dilanjutkan.</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
                                                 @else
-                                                    {{-- Include partial --}}
+                                                    <div class="mb-3 flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-800">
+                                                        <div>
+                                                            <p class="font-semibold">Label sisa diperlukan.</p>
+                                                            <p class="mt-0.5 text-amber-700/90">{{ $stepper[2]['remaining_sample_count'] ?? 0 }} sampel masih memiliki sisa positif dan perlu dilabeli sebelum penyerahan dilanjutkan.</p>
+                                                        </div>
+                                                        @if(($stepper[2]['count'] ?? 0) > 0)
+                                                            <span class="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-200">
+                                                                {{ $stepper[2]['count'] }} label dibuat
+                                                            </span>
+                                                        @endif
+                                                    </div>
+
                                                     <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 mt-2">
                                                         @include('partials.remaining-label-section')
                                                     </div>

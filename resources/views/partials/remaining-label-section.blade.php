@@ -61,19 +61,34 @@
                                                                 <span x-text="new Date(unit.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })"></span>
                                                             </span>
                                                         </p>
+                                                        <p class="mt-2 text-xs text-gray-500" x-show="unit.seal_status_delivered || unit.condition_delivered || unit.handover_doc_no">
+                                                            <span x-show="unit.seal_status_delivered">Segel: <span x-text="unit.seal_status_delivered"></span></span>
+                                                            <span x-show="unit.seal_status_delivered && (unit.condition_delivered || unit.handover_doc_no)"> · </span>
+                                                            <span x-show="unit.condition_delivered">Kondisi: <span x-text="unit.condition_delivered"></span></span>
+                                                            <span x-show="unit.condition_delivered && unit.handover_doc_no"> · </span>
+                                                            <span x-show="unit.handover_doc_no">Dok: <span x-text="unit.handover_doc_no"></span></span>
+                                                        </p>
                                                     </div>
                                                 </div>
                                                 
                                                 {{-- Right: Action Buttons --}}
-                                                <div class="flex items-center gap-2 flex-shrink-0">
-                                                    <a :href="`/labels/remaining/${unit.id}/single`" 
-                                                       target="_blank" 
-                                                       class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 hover:border-amber-300 transition-colors duration-150">
+                                                 <div class="flex items-center gap-2 flex-shrink-0">
+                                                     <a :href="`/labels/remaining/${unit.id}/single`" 
+                                                        target="_blank" 
+                                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 hover:border-amber-300 transition-colors duration-150">
                                                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
                                                         </svg>
-                                                        Cetak
-                                                    </a>
+                                                         Cetak
+                                                     </a>
+                                                    <button type="button"
+                                                            @click="startEdit(unit)"
+                                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary-700 bg-primary-50 border border-primary-200 rounded-lg hover:bg-primary-100 hover:border-primary-300 transition-colors duration-150">
+                                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                                                        </svg>
+                                                        Edit
+                                                    </button>
                                                     <button type="button" 
                                                             @click="deleteLabel(unit.id)" 
                                                             class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-600 bg-white border border-gray-200 rounded-lg hover:bg-red-50 hover:border-red-200 hover:text-red-700 transition-colors duration-150">
@@ -81,6 +96,47 @@
                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
                                                         </svg>
                                                         Hapus
+                                                    </button>
+                                                 </div>
+                                            </div>
+
+                                            <div x-show="editingId === unit.id" x-collapse class="mt-4 border-t border-gray-100 pt-4">
+                                                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                                    <div class="grid grid-cols-2 gap-3 md:col-span-1">
+                                                        <div>
+                                                            <label class="block text-xs font-medium text-gray-700 mb-1">Qty Sisa</label>
+                                                            <input type="number" step="0.01" x-model="editForm.qty_remaining" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                                                        </div>
+                                                        <div>
+                                                            <label class="block text-xs font-medium text-gray-700 mb-1">Satuan</label>
+                                                            <input type="text" x-model="editForm.uom" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm" placeholder="g, ml, pcs">
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <label class="block text-xs font-medium text-gray-700 mb-1">Status Segel</label>
+                                                        <input type="text" x-model="editForm.seal_status_delivered" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm" placeholder="disegel / rusak / tanpa segel">
+                                                    </div>
+                                                    <div>
+                                                        <label class="block text-xs font-medium text-gray-700 mb-1">Kondisi</label>
+                                                        <input type="text" x-model="editForm.condition_delivered" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm" placeholder="baik / basah / pecah / dll">
+                                                    </div>
+                                                    <div>
+                                                        <label class="block text-xs font-medium text-gray-700 mb-1">Nomor Dokumen Serah</label>
+                                                        <input type="text" x-model="editForm.handover_doc_no" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm" placeholder="Opsional">
+                                                    </div>
+                                                </div>
+
+                                                <div class="mt-4 flex items-center justify-end gap-2">
+                                                    <button type="button"
+                                                            @click="cancelEdit()"
+                                                            class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                                        Batal
+                                                    </button>
+                                                    <button type="button"
+                                                            @click="updateLabel(unit.id)"
+                                                            :disabled="loading || !isEditValid"
+                                                            class="inline-flex items-center rounded-lg bg-primary-600 px-3 py-2 text-sm font-semibold text-white hover:bg-primary-700 disabled:opacity-50">
+                                                        Simpan Perubahan
                                                     </button>
                                                 </div>
                                             </div>
@@ -173,9 +229,21 @@
                                     },
                                     remainingUnits: [],
                                     loading: false,
-                                    
+                                    editingId: null,
+                                    editForm: {
+                                        qty_remaining: '',
+                                        uom: '',
+                                        seal_status_delivered: '',
+                                        condition_delivered: '',
+                                        handover_doc_no: '',
+                                    },
+                                     
                                     get isValid() {
                                         return this.form.evidence_unit_id && this.form.qty_remaining && this.form.uom;
+                                    },
+
+                                    get isEditValid() {
+                                        return this.editForm.qty_remaining !== '' && this.editForm.uom;
                                     },
 
                                     init() {
@@ -222,6 +290,82 @@
                                                 alert('Gagal: ' + message);
                                             }
                                         } catch(e) {
+                                            console.error(e);
+                                            alert('Terjadi kesalahan jaringan');
+                                        } finally {
+                                            this.loading = false;
+                                        }
+                                    },
+
+                                    startEdit(unit) {
+                                        this.editingId = unit.id;
+                                        this.editForm = {
+                                            qty_remaining: unit.qty_remaining ?? '',
+                                            uom: unit.uom ?? '',
+                                            seal_status_delivered: unit.seal_status_delivered ?? '',
+                                            condition_delivered: unit.condition_delivered ?? '',
+                                            handover_doc_no: unit.handover_doc_no ?? '',
+                                        };
+                                    },
+
+                                    cancelEdit() {
+                                        this.editingId = null;
+                                        this.editForm = {
+                                            qty_remaining: '',
+                                            uom: '',
+                                            seal_status_delivered: '',
+                                            condition_delivered: '',
+                                            handover_doc_no: '',
+                                        };
+                                    },
+
+                                    async updateLabel(id) {
+                                        if (!this.isEditValid) return;
+
+                                        this.loading = true;
+
+                                        try {
+                                            const payload = {
+                                                qty_remaining: this.editForm.qty_remaining,
+                                                uom: this.editForm.uom,
+                                                seal_status_delivered: this.editForm.seal_status_delivered || null,
+                                                condition_delivered: this.editForm.condition_delivered || null,
+                                                handover_doc_no: this.editForm.handover_doc_no || null,
+                                            };
+
+                                            const res = await fetch(`/labels/remaining-units/${id}`, {
+                                                method: 'PUT',
+                                                headers: {
+                                                    'Content-Type': 'application/json',
+                                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                                    'Accept': 'application/json'
+                                                },
+                                                body: JSON.stringify(payload)
+                                            });
+
+                                            const responseText = await res.text();
+                                            let data = null;
+
+                                            try {
+                                                data = responseText ? JSON.parse(responseText) : {};
+                                            } catch {
+                                                data = null;
+                                            }
+
+                                            const updated = data?.data ?? data;
+
+                                            if (res.ok && data?.success && updated?.id) {
+                                                this.remainingUnits = this.remainingUnits.map((unit) => unit.id === id ? { ...unit, ...updated } : unit);
+                                                this.cancelEdit();
+                                                alert('Label sisa berhasil diperbarui.');
+                                            } else {
+                                                const validationMessage = data?.errors
+                                                    ? Object.values(data.errors).flat().filter(Boolean)[0]
+                                                    : null;
+                                                const message = validationMessage || data?.message || `Request gagal (${res.status})`;
+                                                alert('Gagal memperbarui: ' + message);
+                                            }
+                                        } catch (e) {
                                             console.error(e);
                                             alert('Terjadi kesalahan jaringan');
                                         } finally {

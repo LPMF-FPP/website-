@@ -686,6 +686,7 @@ Route::prefix('labels')->middleware(['auth'])->group(function () {
     // Creation endpoints (AJAX)
     Route::post('evidence-units', [App\Http\Controllers\LabelController::class, 'createEvidenceUnits']);
     Route::post('remaining-units', [App\Http\Controllers\LabelController::class, 'createRemainingUnit']);
+    Route::put('remaining-units/{id}', [App\Http\Controllers\LabelController::class, 'updateRemainingUnit']);
     Route::delete('remaining-units/{id}', [App\Http\Controllers\LabelController::class, 'destroyRemainingUnit']);
 });
 

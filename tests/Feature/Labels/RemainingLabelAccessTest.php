@@ -92,8 +92,58 @@ it('returns render-ready payload when creating remaining label from web endpoint
                 'remaining_code',
                 'qty_remaining',
                 'uom',
+                'seal_status_delivered',
+                'condition_delivered',
+                'handover_doc_no',
                 'created_at',
                 'qr_content',
             ],
         ]);
+});
+
+it('updates remaining label from web endpoint with editable fields', function (): void {
+    $testRequest = TestRequest::factory()->create([
+        'status' => 'in_testing',
+    ]);
+
+    $sample = Sample::factory()->create([
+        'test_request_id' => $testRequest->id,
+    ]);
+
+    /** @var LabelService $labelService */
+    $labelService = app(LabelService::class);
+    $evidenceUnit = $labelService->createEvidenceUnits($testRequest->id, [$sample->id])->firstOrFail();
+    $remainingUnit = $labelService->createRemainingUnit($evidenceUnit->id, [
+        'qty_remaining' => 1.25,
+        'uom' => 'ml',
+        'seal_status_delivered' => 'disegel',
+    ]);
+
+    $this->actingAs($this->user)
+        ->putJson('/labels/remaining-units/'.$remainingUnit->id, [
+            'qty_remaining' => 0.75,
+            'uom' => 'gram',
+            'seal_status_delivered' => 'rusak ringan',
+            'condition_delivered' => 'wadah baik',
+            'handover_doc_no' => 'BAST-001/IV/2026',
+        ])
+        ->assertOk()
+        ->assertJsonPath('success', true)
+        ->assertJsonPath('data.id', $remainingUnit->id)
+        ->assertJsonPath('data.sample_code', $remainingUnit->sample_code)
+        ->assertJsonPath('data.remaining_code', $remainingUnit->remaining_code)
+        ->assertJsonPath('data.qty_remaining', '0.75')
+        ->assertJsonPath('data.uom', 'gram')
+        ->assertJsonPath('data.seal_status_delivered', 'rusak ringan')
+        ->assertJsonPath('data.condition_delivered', 'wadah baik')
+        ->assertJsonPath('data.handover_doc_no', 'BAST-001/IV/2026')
+        ->assertJsonPath('data.qr_content', $remainingUnit->qr_content)
+        ->assertJsonPath('data.created_at', optional($remainingUnit->created_at)?->toISOString());
+
+    expect($remainingUnit->fresh())
+        ->qty_remaining->toBe('0.75')
+        ->uom->toBe('gram')
+        ->seal_status_delivered->toBe('rusak ringan')
+        ->condition_delivered->toBe('wadah baik')
+        ->handover_doc_no->toBe('BAST-001/IV/2026');
 });
