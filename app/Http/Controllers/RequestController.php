@@ -8,13 +8,14 @@ use App\Models\Investigator;
 use App\Models\Sample;
 use App\Models\Suspect;
 use App\Models\TestRequest;
+use App\Models\User;
 use App\Services\ActiveSubstanceService;
 use App\Services\DocumentGeneration\DocumentRenderService;
 use App\Services\DocumentService;
+use App\Services\GoogleDriveDocumentSyncService;
 use App\Services\NumberingRepairService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -133,8 +134,6 @@ class RequestController extends Controller
                     ->with('warning', 'Permintaan ini sudah diproses sebelumnya.');
             }
 
-            // Mark token as used immediately (expires after 5 minutes)
-            Cache::put($cacheKey, true, 300);
         }
 
         // Additional lock based on user + timestamp to prevent race conditions
@@ -181,10 +180,14 @@ class RequestController extends Controller
             'is_investigator' => 'sometimes|boolean',
             // Data Kasus
             'case_number' => 'nullable|string|max:255',
+            'letter_date' => 'nullable|date',
             'case_description' => 'nullable|string',
-            'to_office' => 'required|string|max:255',
             // File upload
             'request_letter' => 'required|file|mimes:pdf|max:10240',
+            'has_expert_witness_request' => 'sometimes|boolean',
+            'expert_witness_letter_number' => 'required_if:has_expert_witness_request,1|nullable|string|max:255',
+            'expert_witness_letter_date' => 'required_if:has_expert_witness_request,1|nullable|date',
+            'expert_witness_request_file' => 'required_if:has_expert_witness_request,1|file|mimes:pdf|max:10240',
             'evidence_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
             // Suspect address (single field)
             'suspect_address' => 'nullable|string',
@@ -196,9 +199,6 @@ class RequestController extends Controller
             'samples.*.weight' => 'nullable|numeric|min:0',
             'samples.*.package_quantity' => 'required|integer|min:1',
             'samples.*.unit' => 'required|string|max:50',
-            'samples.*.test_types' => 'required|array|min:1',
-            'samples.*.test_types.*' => 'required|string|in:uv_vis,gc_ms,lc_ms',
-            'samples.*.active_substance' => 'required|string|max:255',
             'samples.*.photos' => 'nullable|array',
             'samples.*.photos.*' => 'image|mimes:jpg,jpeg,png|max:5120',
             'samples.*.photo' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
@@ -244,19 +244,18 @@ class RequestController extends Controller
             'suspects.required' => 'Minimal 1 tersangka harus diisi',
             'suspects.*.name.required' => 'Nama tersangka harus diisi',
             'request_letter.required' => 'Surat permintaan harus diupload',
+            'expert_witness_letter_number.required_if' => 'Nomor surat saksi ahli harus diisi jika permintaan meliputi saksi ahli',
+            'expert_witness_letter_date.required_if' => 'Tanggal surat saksi ahli harus diisi jika permintaan meliputi saksi ahli',
+            'expert_witness_request_file.required_if' => 'File PDF permintaan saksi ahli harus diupload jika permintaan meliputi saksi ahli',
+            'expert_witness_request_file.mimes' => 'File permintaan saksi ahli harus berupa PDF',
             'samples.required' => 'Minimal 1 sampel harus diisi',
             'samples.*.short_description.required' => 'Deskripsi singkat harus diisi',
-            'samples.*.test_types.required' => 'Pilih minimal satu jenis pengujian',
-            'samples.*.test_types.*.in' => 'Jenis pengujian tidak valid',
-            'samples.*.active_substance.required' => 'Zat aktif harus diisi',
             'samples.*.package_quantity.required' => 'Jumlah yang diserahkan harus diisi',
             'samples.*.package_quantity.min' => 'Jumlah yang diserahkan minimal 1',
         ];
 
         $validated = $request->validate($rules, $messages);
         $suspects = $validated['suspects'] ?? [];
-
-        \Log::info('FILES KEYS', ['keys' => array_keys(Arr::dot($request->allFiles()))]);
 
         // Initialize variables untuk cleanup di catch block
         $uploadedDocuments = collect([]);
@@ -313,13 +312,20 @@ class RequestController extends Controller
             $testRequest = TestRequest::create([
                 'investigator_id' => $investigator->id,
                 'user_id' => auth()->id(),
-                'to_office' => $validated['to_office'],
                 'case_number' => $validated['case_number'] ?? null,
+                'letter_date' => $validated['letter_date'] ?? null,
                 'suspect_name' => $firstSuspect['name'] ?? '',
                 'suspect_gender' => $firstSuspect['gender'] ?? null,
                 'suspect_age' => $firstSuspect['age'] ?? null,
                 'suspect_address' => $validated['suspect_address'] ?? null,
                 'case_description' => $validated['case_description'] ?? null,
+                'has_expert_witness_request' => $request->boolean('has_expert_witness_request'),
+                'expert_witness_letter_number' => $request->boolean('has_expert_witness_request')
+                    ? ($validated['expert_witness_letter_number'] ?? null)
+                    : null,
+                'expert_witness_letter_date' => $request->boolean('has_expert_witness_request')
+                    ? ($validated['expert_witness_letter_date'] ?? null)
+                    : null,
                 'official_letter_path' => null,
                 'evidence_photo_path' => null,
                 'status' => 'submitted',
@@ -351,6 +357,16 @@ class RequestController extends Controller
                 $testRequest->official_letter_path = $letterDoc->path;
             }
 
+            if ($request->boolean('has_expert_witness_request') && $request->hasFile('expert_witness_request_file')) {
+                $expertWitnessDoc = $documentService->storeUpload(
+                    $request->file('expert_witness_request_file'),
+                    $investigator,
+                    $testRequest,
+                    'expert_witness_request'
+                );
+                $uploadedDocuments->push($expertWitnessDoc);
+            }
+
             // 6. Upload foto barang bukti (optional) via DocumentService
             if ($request->hasFile('evidence_photo')) {
                 $evidenceDoc = $documentService->storeUpload(
@@ -378,9 +394,9 @@ class RequestController extends Controller
                     'sample_weight' => $sampleData['weight'] ?? null,
                     'package_quantity' => (int) $sampleData['package_quantity'],
                     'unit' => $sampleData['unit'],
-                    'test_methods' => json_encode(array_values($sampleData['test_types'])),
-                    'requested_test_methods' => json_encode(array_values($sampleData['test_types'])),
-                    'active_substance' => $sampleData['active_substance'],
+                    'test_methods' => null,
+                    'requested_test_methods' => null,
+                    'active_substance' => null,
                     'condition' => 'baik',
                     'sample_status' => 'received',
                 ]);
@@ -419,8 +435,22 @@ class RequestController extends Controller
 
             DB::commit();
 
+            $driveSync = app(GoogleDriveDocumentSyncService::class)
+                ->syncUploadedDocuments($uploadedDocuments, $request->user());
+
+            $successMessage = 'Permintaan pengujian berhasil dibuat dengan nomor: '.$testRequest->request_number;
+            if ($driveSync['uploaded'] > 0) {
+                $successMessage .= " {$driveSync['uploaded']} file berhasil disimpan ke Google Drive.";
+            } elseif ($uploadedDocuments->isNotEmpty()) {
+                $successMessage .= ' File lokal tersimpan, tetapi Google Drive belum tersinkronisasi. Pastikan akun Google Drive terhubung.';
+            }
+
+            if ($submissionToken = $request->input('_submission_token')) {
+                Cache::put('submission_token_'.$submissionToken, true, 300);
+            }
+
             return redirect()->route('requests.show', $testRequest->id)
-                ->with('success', 'Permintaan pengujian berhasil dibuat dengan nomor: '.$testRequest->request_number);
+                ->with('success', $successMessage);
 
         } catch (\Exception $e) {
             DB::rollback();
@@ -433,6 +463,12 @@ class RequestController extends Controller
                         Storage::disk($disk)->delete($doc->path);
                     }
                 }
+            }
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Terjadi kesalahan: '.$e->getMessage(),
+                ], 500);
             }
 
             return back()->withInput()
@@ -486,29 +522,30 @@ class RequestController extends Controller
                     ->with('warning', 'Perubahan ini sudah diproses sebelumnya.');
             }
 
-            // Mark token as used immediately (expires after 5 minutes)
-            Cache::put($cacheKey, true, 300);
         }
 
         $testRequest = TestRequest::with(['investigator', 'suspects'])->findOrFail($id);
 
         // Determine investigator type
         $isInvestigator = $request->boolean('is_investigator', $testRequest->investigator->is_polri ?? true);
+        $hasExistingExpertWitnessDocument = $testRequest->documents()
+            ->where('document_type', 'expert_witness_request')
+            ->exists();
+        $expertWitnessUploadRule = $request->boolean('has_expert_witness_request') && ! $hasExistingExpertWitnessDocument
+            ? 'required|file|mimes:pdf|max:10240'
+            : 'nullable|file|mimes:pdf|max:10240';
 
         // Build validation rules dynamically
         $rules = [
             'case_number' => 'nullable|string|max:255',
-            'to_office' => 'required|string|max:255',
+            'letter_date' => 'nullable|date',
             'suspect_address' => 'nullable|string',
             // Samples
             'samples' => 'required|array|min:1',
             'samples.*.id' => 'nullable|exists:samples,id,test_request_id,'.$testRequest->id,
             'samples.*.short_description' => 'required|string|max:255',
-            'samples.*.active_substance' => 'required|string|max:255',
             'samples.*.package_quantity' => 'required|integer|min:1',
             'samples.*.unit' => 'required|string|max:50',
-            'samples.*.test_types' => 'required|array|min:1',
-            'samples.*.test_types.*' => 'required|string|in:uv_vis,gc_ms,lc_ms',
             // Suspects array
             'suspects' => 'required|array|min:1',
             'suspects.*.name' => 'required|string|max:255',
@@ -516,6 +553,10 @@ class RequestController extends Controller
             'suspects.*.age' => 'nullable|integer|min:0|max:120',
             // File uploads
             'request_letter' => 'nullable|file|mimes:pdf|max:10240',
+            'has_expert_witness_request' => 'sometimes|boolean',
+            'expert_witness_letter_number' => 'required_if:has_expert_witness_request,1|nullable|string|max:255',
+            'expert_witness_letter_date' => 'required_if:has_expert_witness_request,1|nullable|date',
+            'expert_witness_request_file' => $expertWitnessUploadRule,
             'evidence_photo' => 'nullable|image|mimes:jpeg,png,jpg|max:5120',
         ];
 
@@ -535,6 +576,10 @@ class RequestController extends Controller
         }
 
         $validated = $request->validate($rules);
+
+        $uploadedDocuments = collect([]);
+        $documentsToDeleteAfterCommit = collect([]);
+        $pathsToDeleteAfterCommit = collect([]);
 
         DB::beginTransaction();
 
@@ -570,11 +615,18 @@ class RequestController extends Controller
             // Update test request
             $updateData = [
                 'case_number' => $validated['case_number'],
-                'to_office' => $validated['to_office'],
+                'letter_date' => $validated['letter_date'] ?? null,
                 'suspect_name' => $firstSuspect['name'] ?? '',
                 'suspect_gender' => $firstSuspect['gender'] ?? null,
                 'suspect_age' => $firstSuspect['age'] ?? null,
                 'suspect_address' => $validated['suspect_address'] ?? null,
+                'has_expert_witness_request' => $request->boolean('has_expert_witness_request'),
+                'expert_witness_letter_number' => $request->boolean('has_expert_witness_request')
+                    ? ($validated['expert_witness_letter_number'] ?? null)
+                    : null,
+                'expert_witness_letter_date' => $request->boolean('has_expert_witness_request')
+                    ? ($validated['expert_witness_letter_date'] ?? null)
+                    : null,
             ];
 
             // Handle File Uploads
@@ -582,9 +634,13 @@ class RequestController extends Controller
 
             // 1. Surat Permintaan
             if ($request->hasFile('request_letter')) {
-                // Delete old file if exists
-                if ($testRequest->official_letter_path) {
-                    Storage::disk('documents')->delete($testRequest->official_letter_path);
+                $existingRequestLetterDocuments = $testRequest->documents()
+                    ->where('document_type', 'request_letter')
+                    ->get();
+                $documentsToDeleteAfterCommit = $documentsToDeleteAfterCommit->merge($existingRequestLetterDocuments);
+
+                if ($testRequest->official_letter_path && $existingRequestLetterDocuments->doesntContain(fn (Document $document) => ($document->file_path ?? $document->path) === $testRequest->official_letter_path)) {
+                    $pathsToDeleteAfterCommit->push(['disk' => 'public', 'path' => $testRequest->official_letter_path]);
                 }
 
                 $letterDoc = $documentService->storeUpload(
@@ -593,14 +649,41 @@ class RequestController extends Controller
                     $testRequest,
                     'request_letter'
                 );
+                $uploadedDocuments->push($letterDoc);
                 $updateData['official_letter_path'] = $letterDoc->path;
+            }
+
+            if ($request->boolean('has_expert_witness_request')) {
+                if ($request->hasFile('expert_witness_request_file')) {
+                    $existingExpertWitnessDocuments = $testRequest->documents()
+                        ->where('document_type', 'expert_witness_request')
+                        ->get();
+                    $documentsToDeleteAfterCommit = $documentsToDeleteAfterCommit->merge($existingExpertWitnessDocuments);
+
+                    $expertWitnessDoc = $documentService->storeUpload(
+                        $request->file('expert_witness_request_file'),
+                        $inv,
+                        $testRequest,
+                        'expert_witness_request'
+                    );
+                    $uploadedDocuments->push($expertWitnessDoc);
+                }
+            } else {
+                $existingExpertWitnessDocuments = $testRequest->documents()
+                    ->where('document_type', 'expert_witness_request')
+                    ->get();
+                $documentsToDeleteAfterCommit = $documentsToDeleteAfterCommit->merge($existingExpertWitnessDocuments);
             }
 
             // 2. Foto Barang Bukti
             if ($request->hasFile('evidence_photo')) {
-                // Delete old file if exists
-                if ($testRequest->evidence_photo_path) {
-                    Storage::disk('samples')->delete($testRequest->evidence_photo_path);
+                $existingEvidencePhotoDocuments = $testRequest->documents()
+                    ->where('document_type', 'evidence_photo')
+                    ->get();
+                $documentsToDeleteAfterCommit = $documentsToDeleteAfterCommit->merge($existingEvidencePhotoDocuments);
+
+                if ($testRequest->evidence_photo_path && $existingEvidencePhotoDocuments->doesntContain(fn (Document $document) => ($document->file_path ?? $document->path) === $testRequest->evidence_photo_path)) {
+                    $pathsToDeleteAfterCommit->push(['disk' => 'public', 'path' => $testRequest->evidence_photo_path]);
                 }
 
                 $evidenceDoc = $documentService->storeUpload(
@@ -609,6 +692,7 @@ class RequestController extends Controller
                     $testRequest,
                     'evidence_photo'
                 );
+                $uploadedDocuments->push($evidenceDoc);
                 $updateData['evidence_photo_path'] = $evidenceDoc->path;
             }
 
@@ -630,18 +714,13 @@ class RequestController extends Controller
             $submittedSampleIds = [];
 
             foreach ($validated['samples'] as $sampleData) {
-                $encodedTestMethods = json_encode(array_values($sampleData['test_types']));
-
                 if (! empty($sampleData['id'])) {
                     $sample = Sample::find($sampleData['id']);
                     if ($sample && $sample->test_request_id == $testRequest->id) {
                         $sample->update([
                             'short_description' => $sampleData['short_description'],
-                            'active_substance' => $sampleData['active_substance'],
                             'package_quantity' => $sampleData['package_quantity'],
                             'unit' => $sampleData['unit'],
-                            'test_methods' => $encodedTestMethods,
-                            'requested_test_methods' => $encodedTestMethods,
                         ]);
                         $submittedSampleIds[] = $sample->id;
                     }
@@ -649,12 +728,12 @@ class RequestController extends Controller
                     $newSample = Sample::create([
                         'test_request_id' => $testRequest->id,
                         'short_description' => $sampleData['short_description'],
-                        'active_substance' => $sampleData['active_substance'],
+                        'active_substance' => null,
                         'package_quantity' => $sampleData['package_quantity'],
                         'unit' => $sampleData['unit'],
                         'sample_form' => 'other',
-                        'test_methods' => $encodedTestMethods,
-                        'requested_test_methods' => $encodedTestMethods,
+                        'test_methods' => null,
+                        'requested_test_methods' => null,
                         'condition' => 'baik',
                         'sample_status' => 'received',
                     ]);
@@ -689,16 +768,7 @@ class RequestController extends Controller
                 ->get();
 
             foreach ($baDocuments as $baDoc) {
-                // Delete file from storage
-                $disk = $baDoc->storage_disk ?? 'documents';
-                $path = $baDoc->file_path ?? $baDoc->path;
-
-                if ($path && Storage::disk($disk)->exists($path)) {
-                    Storage::disk($disk)->delete($path);
-                }
-
-                // Delete document record
-                $baDoc->delete();
+                $documentsToDeleteAfterCommit->push($baDoc);
 
                 Log::info('Deleted old BA document after edit', [
                     'request_id' => $testRequest->id,
@@ -717,16 +787,43 @@ class RequestController extends Controller
 
             DB::commit();
 
+            $this->deleteDocumentsAfterCommit($documentsToDeleteAfterCommit, $request->user());
+            $this->deleteStoredPathsAfterCommit($pathsToDeleteAfterCommit);
+
+            $driveSync = app(GoogleDriveDocumentSyncService::class)
+                ->syncUploadedDocuments($uploadedDocuments, $request->user());
+
+            $successMessage = 'Permintaan berhasil diupdate! Silakan generate ulang Berita Acara dengan data terbaru.';
+            if ($driveSync['uploaded'] > 0) {
+                $successMessage .= " {$driveSync['uploaded']} file baru berhasil disimpan ke Google Drive.";
+            } elseif ($uploadedDocuments->isNotEmpty()) {
+                $successMessage .= ' File lokal tersimpan, tetapi Google Drive belum tersinkronisasi. Pastikan akun Google Drive terhubung.';
+            }
+
+            if ($submissionToken = $request->input('_submission_token')) {
+                Cache::put('submission_token_'.$submissionToken, true, 300);
+            }
+
             return redirect()->route('requests.show', $id)
-                ->with('success', 'Permintaan berhasil diupdate! Silakan generate ulang Berita Acara dengan data terbaru.');
+                ->with('success', $successMessage);
 
         } catch (\Exception $e) {
             DB::rollBack();
 
-            \Log::error('Error updating request', [
-                'request_id' => $id,
-                'error' => $e->getMessage(),
-            ]);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'Terjadi kesalahan: '.$e->getMessage(),
+                ], 500);
+            }
+
+            try {
+                Log::error('Error updating request', [
+                    'request_id' => $id,
+                    'error' => $e->getMessage(),
+                ]);
+            } catch (\Throwable) {
+                // Preserve the user-facing validation/redirect flow even if logging is misconfigured.
+            }
 
             return back()
                 ->withInput()
@@ -750,11 +847,77 @@ class RequestController extends Controller
         return back()->with('success', 'Tanggal verifikasi Urmin berhasil disimpan.');
     }
 
+    private function deleteDocumentsAfterCommit($documents, ?User $user): void
+    {
+        $documents->unique('id')->each(function (Document $document) use ($user) {
+            try {
+                $driveDeleted = app(GoogleDriveDocumentSyncService::class)->deleteSyncedDocument($document, $user);
+
+                $path = $document->file_path ?? $document->path;
+                $disk = $document->storage_disk ?? 'public';
+                if ($path && Storage::disk($disk)->exists($path)) {
+                    Storage::disk($disk)->delete($path);
+                }
+
+                $driveDeleted ? $document->forceDelete() : $document->delete();
+            } catch (\Throwable $exception) {
+                Log::warning('Deferred document cleanup failed', [
+                    'document_id' => $document->id,
+                    'document_type' => $document->document_type,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+        });
+    }
+
+    private function deleteStoredPathsAfterCommit($paths): void
+    {
+        $paths->unique(fn (array $item) => ($item['disk'] ?? 'public').'|'.($item['path'] ?? ''))->each(function (array $item) {
+            try {
+                $disk = $item['disk'] ?? 'public';
+                $path = $item['path'] ?? null;
+
+                if ($path && Storage::disk($disk)->exists($path)) {
+                    Storage::disk($disk)->delete($path);
+                }
+            } catch (\Throwable $exception) {
+                Log::warning('Deferred file cleanup failed', [
+                    'disk' => $item['disk'] ?? null,
+                    'path' => $item['path'] ?? null,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+        });
+    }
+
     /**
      * Remove the specified resource from storage.
      */
     public function downloadDocument(TestRequest $testRequest, string $type)
     {
+        $user = auth()->user();
+        $isRequestOwner = $user && (int) $testRequest->user_id === (int) $user->id;
+        $isAdminRole = $user && in_array($user->role, ['admin', 'admin-lpmf'], true);
+
+        if (! $isRequestOwner && ! $isAdminRole && ! $user?->can('permintaan.view')) {
+            abort(403);
+        }
+
+        $allowedTypes = [
+            'request_letter',
+            'expert_witness_request',
+            'evidence_photo',
+            'sample_photo',
+            'sample_receipt',
+            'handover_report',
+            'request_letter_receipt',
+            'ba_penerimaan',
+            'ba_penerimaan_html',
+        ];
+
+        if (! in_array($type, $allowedTypes, true)) {
+            abort(404);
+        }
 
         $document = $testRequest->documents()->where('document_type', $type)->latest()->firstOrFail();
 
@@ -780,12 +943,22 @@ class RequestController extends Controller
 
     public function deleteDocument(TestRequest $testRequest, string $type)
     {
+        $user = auth()->user();
+        $isRequestOwner = $user && (int) $testRequest->user_id === (int) $user->id;
+        $isAdminRole = $user && in_array($user->role, ['admin', 'admin-lpmf'], true);
+
+        if (! $isRequestOwner && ! $isAdminRole && ! $user?->can('permintaan.create')) {
+            return response()->json([
+                'ok' => false,
+                'message' => 'Anda tidak memiliki akses untuk menghapus dokumen ini.',
+            ], 403);
+        }
 
         // Validasi tipe dokumen yang diizinkan
 
         $allowedTypes = ['sample_receipt', 'handover_report', 'request_letter_receipt'];
 
-        if (! in_array($type, $allowedTypes)) {
+        if (! in_array($type, $allowedTypes, true)) {
 
             return response()->json([
 
@@ -842,6 +1015,8 @@ class RequestController extends Controller
                 Storage::disk($disk)->delete($path);
             }
 
+            $driveDeleted = app(GoogleDriveDocumentSyncService::class)->deleteSyncedDocument($document, auth()->user());
+
             // Simpan info untuk audit log
 
             $documentInfo = [
@@ -856,7 +1031,7 @@ class RequestController extends Controller
 
             // Hapus record dari database
 
-            $document->forceDelete();
+            $driveDeleted ? $document->forceDelete() : $document->delete();
 
             // Log audit
 
@@ -1230,7 +1405,8 @@ class RequestController extends Controller
                 $data = [
                     'request_number' => $testRequest->request_number,
                     'case_number' => $testRequest->case_number,
-                    'to_office' => $testRequest->to_office,
+                    'expert_witness_letter_number' => $testRequest->expert_witness_letter_number,
+                    'expert_witness_letter_date' => $testRequest->expert_witness_letter_date?->translatedFormat('d F Y'),
                     'generated_at' => now()->format('d F Y'),
                     'investigator_name' => $inv->name,
                     'investigator_nrp' => $inv->nrp,
@@ -1273,7 +1449,8 @@ class RequestController extends Controller
                     req: $testRequest,
                     type: 'ba_penerimaan',
                     baseName: $baseName,
-                    replaceExisting: true
+                    replaceExisting: true,
+                    syncUser: request()->user()
                 );
 
                 if (request()->boolean('download')) {
@@ -1294,7 +1471,8 @@ class RequestController extends Controller
                 req: $testRequest,
                 type: 'ba_penerimaan',
                 baseName: $baseName,
-                replaceExisting: true
+                replaceExisting: true,
+                syncUser: request()->user()
             );
 
             // Update document metadata dengan template info

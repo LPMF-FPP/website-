@@ -33,6 +33,9 @@ class DocumentTypes
         'qr_code' => 'QR Code',
         'label_evidence' => 'Label Barang Bukti',
         'label_remaining' => 'Label Sisa Sampel',
+        'sample_label' => 'Label Barang Bukti',
+        'label_sample' => 'Label Barang Bukti',
+        'remaining_label' => 'Label Sisa Sampel',
     ];
 
     public static function label(?string $type): string

@@ -10,13 +10,16 @@ use App\Models\Sample;
 use App\Models\SampleTestProcess;
 use App\Models\User;
 use App\Services\ActiveSubstanceService;
+use App\Services\DocumentService;
+use App\Services\GoogleDriveDocumentSyncService;
 use App\Services\NumberingService;
 use App\Services\WorkflowService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -313,7 +316,7 @@ class SampleTestProcessController extends Controller
     public function update(
         Request $request,
         SampleTestProcess $sampleProcess,
-        \App\Services\DocumentService $documentService,
+        DocumentService $documentService,
         \App\Services\NumberingService $numberingService,
         \App\Services\DocumentTemplateService $templateService,
         \App\Services\PdfRenderService $pdfRenderService
@@ -359,6 +362,9 @@ class SampleTestProcessController extends Controller
 
         $metadata = $sampleProcess->metadata ?? [];
         $metadataRawInput = $validated['metadata_raw'] ?? null;
+        $uploadedDocuments = collect();
+        $documentsToDelete = collect();
+        $pathsToDelete = collect();
 
         if ($metadataRawInput !== null) {
             $trimmed = trim($metadataRawInput);
@@ -410,15 +416,17 @@ class SampleTestProcessController extends Controller
                 if (! is_array($metadata)) {
                     $metadata = [];
                 }
-                if (! empty($metadata['test_result_attachment_path']) && Storage::disk('public')->exists($metadata['test_result_attachment_path'])) {
-                    Storage::disk('public')->delete($metadata['test_result_attachment_path']);
+                if (! empty($metadata['test_result_attachment_path'])) {
+                    $this->queueTestResultAttachmentCleanup(
+                        $metadata['test_result_attachment_path'],
+                        (int) $validated['sample_id'],
+                        $documentsToDelete,
+                        $pathsToDelete
+                    );
                 }
-                $storedPath = $file->storeAs(
-                    'test-results',
-                    Str::uuid()->toString().'.'.$file->getClientOriginalExtension(),
-                    'public'
-                );
-                $metadata['test_result_attachment_path'] = $storedPath;
+                $document = $this->storeTestResultAttachment($file, $validated['sample_id'], $documentService);
+                $uploadedDocuments->push($document);
+                $metadata['test_result_attachment_path'] = $document->path;
                 $metadata['test_result_attachment_original'] = $file->getClientOriginalName();
             }
 
@@ -438,15 +446,17 @@ class SampleTestProcessController extends Controller
                 }
                 if ($request->hasFile('test_result_file_2')) {
                     $file2 = $request->file('test_result_file_2');
-                    if (! empty($entry['test_result_attachment_path']) && Storage::disk('public')->exists($entry['test_result_attachment_path'])) {
-                        Storage::disk('public')->delete($entry['test_result_attachment_path']);
+                    if (! empty($entry['test_result_attachment_path'])) {
+                        $this->queueTestResultAttachmentCleanup(
+                            $entry['test_result_attachment_path'],
+                            (int) $validated['sample_id'],
+                            $documentsToDelete,
+                            $pathsToDelete
+                        );
                     }
-                    $storedPath2 = $file2->storeAs(
-                        'test-results',
-                        Str::uuid()->toString().'.'.$file2->getClientOriginalExtension(),
-                        'public'
-                    );
-                    $entry['test_result_attachment_path'] = $storedPath2;
+                    $document2 = $this->storeTestResultAttachment($file2, $validated['sample_id'], $documentService);
+                    $uploadedDocuments->push($document2);
+                    $entry['test_result_attachment_path'] = $document2->path;
                     $entry['test_result_attachment_original'] = $file2->getClientOriginalName();
                 }
                 $multi[0] = $entry;
@@ -455,22 +465,37 @@ class SampleTestProcessController extends Controller
                 // If no secondary input and exists previously but now cleared, remove it and delete file
                 if (! empty($metadata['multi_interpretations']) && is_array($metadata['multi_interpretations'])) {
                     $entry = $metadata['multi_interpretations'][0] ?? null;
-                    if (is_array($entry) && ! empty($entry['test_result_attachment_path']) && Storage::disk('public')->exists($entry['test_result_attachment_path'])) {
-                        Storage::disk('public')->delete($entry['test_result_attachment_path']);
+                    if (is_array($entry) && ! empty($entry['test_result_attachment_path'])) {
+                        $this->queueTestResultAttachmentCleanup(
+                            $entry['test_result_attachment_path'],
+                            (int) $validated['sample_id'],
+                            $documentsToDelete,
+                            $pathsToDelete
+                        );
                     }
                     unset($metadata['multi_interpretations']);
                 }
             }
         } else {
             // Clean up interpretation-specific metadata if stage is not interpretation
-            if (! empty($metadata['test_result_attachment_path']) && Storage::disk('public')->exists($metadata['test_result_attachment_path'])) {
-                Storage::disk('public')->delete($metadata['test_result_attachment_path']);
+            if (! empty($metadata['test_result_attachment_path'])) {
+                $this->queueTestResultAttachmentCleanup(
+                    $metadata['test_result_attachment_path'],
+                    (int) $validated['sample_id'],
+                    $documentsToDelete,
+                    $pathsToDelete
+                );
             }
             // Clean up secondary attachments if any
             if (! empty($metadata['multi_interpretations']) && is_array($metadata['multi_interpretations'])) {
                 foreach ($metadata['multi_interpretations'] as $mi) {
-                    if (is_array($mi) && ! empty($mi['test_result_attachment_path']) && Storage::disk('public')->exists($mi['test_result_attachment_path'])) {
-                        Storage::disk('public')->delete($mi['test_result_attachment_path']);
+                    if (is_array($mi) && ! empty($mi['test_result_attachment_path'])) {
+                        $this->queueTestResultAttachmentCleanup(
+                            $mi['test_result_attachment_path'],
+                            (int) $validated['sample_id'],
+                            $documentsToDelete,
+                            $pathsToDelete
+                        );
                     }
                 }
             }
@@ -491,6 +516,8 @@ class SampleTestProcessController extends Controller
             'metadata' => $metadata,
         ]);
 
+        $this->deleteTestResultAttachmentsAfterUpdate($documentsToDelete, $pathsToDelete, $request->user());
+
         // Auto-generate LHU if interpretation stage and result is finalized
         $this->attemptAutoGenerateLhu(
             $sampleProcess,
@@ -499,30 +526,120 @@ class SampleTestProcessController extends Controller
             $documentService,
             $numberingService,
             $templateService,
-            $pdfRenderService
+            $pdfRenderService,
+            $request->user()
         );
+
+        $driveSync = $uploadedDocuments->isNotEmpty()
+            ? app(GoogleDriveDocumentSyncService::class)->syncUploadedDocuments($uploadedDocuments, $request->user())
+            : ['uploaded' => 0, 'skipped' => 0, 'failed' => 0];
 
         // Redirect back to testing.show (parent test request) for better UX flow
         $testRequest = $sampleProcess->sample?->testRequest;
+        $successMessage = 'Proses pengujian berhasil diperbarui.';
+        if ($driveSync['uploaded'] > 0) {
+            $successMessage .= " {$driveSync['uploaded']} lampiran hasil pengujian berhasil disimpan ke Google Drive.";
+        } elseif ($uploadedDocuments->isNotEmpty()) {
+            $successMessage .= ' Lampiran hasil pengujian tersimpan lokal, tetapi Google Drive belum tersinkronisasi. Pastikan akun Google Drive terhubung.';
+        }
+
         if ($testRequest) {
             return redirect()
                 ->route('testing.show', $testRequest)
-                ->with('success', 'Proses pengujian berhasil diperbarui.');
+                ->with('success', $successMessage);
         }
 
         return redirect()
             ->route('testing.index')
-            ->with('success', 'Proses pengujian berhasil diperbarui.');
+            ->with('success', $successMessage);
+    }
+
+    private function storeTestResultAttachment(UploadedFile $file, int $sampleId, DocumentService $documentService): Document
+    {
+        $sample = Sample::with('testRequest.investigator')->findOrFail($sampleId);
+        $testRequest = $sample->testRequest;
+
+        if (! $testRequest?->investigator) {
+            throw ValidationException::withMessages([
+                'test_result_file' => 'Data permintaan atau penyidik tidak ditemukan untuk lampiran hasil pengujian.',
+            ]);
+        }
+
+        $document = $documentService->storeUpload(
+            $file,
+            $testRequest->investigator,
+            $testRequest,
+            'test_results'
+        );
+
+        $document->forceFill(['sample_id' => $sample->id])->save();
+
+        return $document->fresh() ?? $document;
+    }
+
+    private function queueTestResultAttachmentCleanup(string $path, int $sampleId, Collection $documents, Collection $paths): void
+    {
+        $document = Document::query()
+            ->where('document_type', 'test_results')
+            ->where('sample_id', $sampleId)
+            ->where(function ($query) use ($path) {
+                $query->where('file_path', $path)
+                    ->orWhere('path', $path);
+            })
+            ->latest()
+            ->first();
+
+        if ($document) {
+            $documents->push($document);
+
+            return;
+        }
+
+        $paths->push(['disk' => 'public', 'path' => $path]);
+    }
+
+    private function deleteTestResultAttachmentsAfterUpdate(Collection $documents, Collection $paths, ?User $user): void
+    {
+        $driveSync = app(GoogleDriveDocumentSyncService::class);
+
+        $documents->unique('id')->each(function (Document $document) use ($driveSync, $user): void {
+            try {
+                $driveDeleted = $driveSync->deleteSyncedDocument($document, $user);
+                $path = $document->file_path ?? $document->path;
+                $disk = $document->storage_disk ?: 'public';
+
+                if ($path && Storage::disk($disk)->exists($path)) {
+                    Storage::disk($disk)->delete($path);
+                }
+
+                $driveDeleted ? $document->forceDelete() : $document->delete();
+            } catch (\Throwable $exception) {
+                Log::warning('Test result attachment cleanup failed', [
+                    'document_id' => $document->id,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+        });
+
+        $paths->unique(fn (array $item) => ($item['disk'] ?? 'public').'|'.($item['path'] ?? ''))->each(function (array $item): void {
+            $disk = $item['disk'] ?? 'public';
+            $path = $item['path'] ?? null;
+
+            if ($path && Storage::disk($disk)->exists($path)) {
+                Storage::disk($disk)->delete($path);
+            }
+        });
     }
 
     private function attemptAutoGenerateLhu(
         SampleTestProcess $sampleProcess,
         bool $isInterpretationStage,
         ?array $metadata,
-        \App\Services\DocumentService $documentService,
+        DocumentService $documentService,
         \App\Services\NumberingService $numberingService,
         \App\Services\DocumentTemplateService $templateService,
-        \App\Services\PdfRenderService $pdfRenderService
+        \App\Services\PdfRenderService $pdfRenderService,
+        ?User $syncUser = null
     ): void {
         if ($isInterpretationStage && ($metadata['test_result'] ?? null)) {
             try {
@@ -532,7 +649,7 @@ class SampleTestProcessController extends Controller
 
                 $lhuNumber = $this->ensureLhuNumber($sampleProcess, $numberingService);
 
-                $this->createLhuDocument($sampleProcess, $documentService, $templateService, $pdfRenderService, $lhuNumber);
+                $this->createLhuDocument($sampleProcess, $documentService, $templateService, $pdfRenderService, $lhuNumber, $syncUser);
 
                 Log::info('Auto-generated LHU for process', ['process_id' => $sampleProcess->id, 'lhu_number' => $lhuNumber]);
 
@@ -627,7 +744,7 @@ class SampleTestProcessController extends Controller
         $lhuNumber = $this->ensureLhuNumber($sampleProcess, $numberingService);
 
         // Generate document
-        $this->createLhuDocument($sampleProcess, $docs, $templateService, $pdfRenderService, $lhuNumber);
+        $this->createLhuDocument($sampleProcess, $docs, $templateService, $pdfRenderService, $lhuNumber, request()->user());
 
         return $this->generateReportResponse($sampleProcess);
     }
@@ -685,7 +802,8 @@ class SampleTestProcessController extends Controller
         \App\Services\DocumentService $docs,
         \App\Services\DocumentTemplateService $templateService,
         \App\Services\PdfRenderService $pdfRenderService,
-        string $lhuNumber
+        string $lhuNumber,
+        ?User $syncUser = null
     ): ?Document {
         $metadata = $sampleProcess->metadata ?? [];
         $methodSummary = $this->resolveLhuMethodSummary($sampleProcess, $metadata);
@@ -781,8 +899,8 @@ class SampleTestProcessController extends Controller
         // Use the LHU number as the baseName for filename
         $base = $docs->generateDocumentBaseName('lhu', $lhuNumber);
 
-        $docs->storeForSampleProcess($sampleProcess, 'html', 'laporan_hasil_uji_html', $base, $html, replaceExisting: true);
-        $docPdf = $docs->storeForSampleProcess($sampleProcess, 'pdf', 'laporan_hasil_uji', $base, $pdf, replaceExisting: true);
+        $docs->storeForSampleProcess($sampleProcess, 'html', 'laporan_hasil_uji_html', $base, $html, replaceExisting: true, syncUser: $syncUser);
+        $docPdf = $docs->storeForSampleProcess($sampleProcess, 'pdf', 'laporan_hasil_uji', $base, $pdf, replaceExisting: true, syncUser: $syncUser);
 
         // Update document metadata dengan template info
         if ($docPdf && $templateId) {

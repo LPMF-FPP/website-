@@ -22,8 +22,7 @@ class RequestUpdateTestMethodsTest extends TestCase
     {
         return $overrides + [
             'case_number' => 'CASE-123',
-            'to_office' => 'Pusdokkes Polri',
-            'suspect_address' => 'Somewhere',
+            'letter_date' => '2026-04-30',
             'investigator_rank' => $investigator->rank,
             'investigator_name' => $investigator->name,
             'investigator_nrp' => $investigator->nrp,
@@ -34,7 +33,7 @@ class RequestUpdateTestMethodsTest extends TestCase
         ];
     }
 
-    public function test_update_request_updates_existing_sample_test_methods_from_test_types(): void
+    public function test_update_request_preserves_existing_sample_technical_fields(): void
     {
         /** @var User $user */
         $user = User::factory()->create();
@@ -58,10 +57,8 @@ class RequestUpdateTestMethodsTest extends TestCase
                 [
                     'id' => $sample->id,
                     'short_description' => $sample->short_description,
-                    'active_substance' => $sample->active_substance,
                     'package_quantity' => $sample->package_quantity,
                     'unit' => $sample->unit,
-                    'test_types' => ['gc_ms'],
                 ],
             ],
             [
@@ -76,11 +73,15 @@ class RequestUpdateTestMethodsTest extends TestCase
 
         $updated = Sample::query()->findOrFail($sample->id);
 
-        $this->assertEqualsCanonicalizing(['gc_ms'], json_decode($updated->test_methods, true) ?? []);
-        $this->assertEqualsCanonicalizing(['gc_ms'], json_decode($updated->requested_test_methods, true) ?? []);
+        $this->assertSame('Caffeine', $updated->active_substance);
+        $this->assertEqualsCanonicalizing(['uv_vis'], json_decode($updated->test_methods, true) ?? []);
+        $this->assertEqualsCanonicalizing(['uv_vis'], json_decode($updated->requested_test_methods, true) ?? []);
+
+        $testRequest->refresh();
+        $this->assertSame('2026-04-30', $testRequest->letter_date?->format('Y-m-d'));
     }
 
-    public function test_update_request_creates_new_sample_and_persists_test_methods_from_test_types(): void
+    public function test_update_request_creates_new_sample_without_technical_fields(): void
     {
         /** @var User $user */
         $user = User::factory()->create();
@@ -104,17 +105,13 @@ class RequestUpdateTestMethodsTest extends TestCase
                 [
                     'id' => $existing->id,
                     'short_description' => $existing->short_description,
-                    'active_substance' => $existing->active_substance,
                     'package_quantity' => $existing->package_quantity,
                     'unit' => $existing->unit,
-                    'test_types' => ['uv_vis'],
                 ],
                 [
                     'short_description' => 'Brand New Sample',
-                    'active_substance' => 'Nicotine',
                     'package_quantity' => 1,
                     'unit' => 'gram',
-                    'test_types' => ['lc_ms'],
                 ],
             ],
             [
@@ -135,8 +132,9 @@ class RequestUpdateTestMethodsTest extends TestCase
             ->where('short_description', 'Brand New Sample')
             ->firstOrFail();
 
-        $this->assertEqualsCanonicalizing(['lc_ms'], json_decode($newSample->test_methods, true) ?? []);
-        $this->assertEqualsCanonicalizing(['lc_ms'], json_decode($newSample->requested_test_methods, true) ?? []);
+        $this->assertNull($newSample->active_substance);
+        $this->assertNull($newSample->test_methods);
+        $this->assertNull($newSample->requested_test_methods);
 
         $existing->refresh();
         $this->assertEqualsCanonicalizing(['uv_vis'], json_decode($existing->test_methods, true) ?? []);

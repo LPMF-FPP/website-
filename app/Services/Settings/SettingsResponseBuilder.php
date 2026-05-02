@@ -7,6 +7,7 @@ use App\Models\Document;
 use App\Models\DocumentTemplate;
 use App\Models\Instrument;
 use App\Models\MethodInstrumentRequirement;
+use App\Models\User;
 use App\Services\IkuService;
 use App\Services\WhatsApp\NotificationService;
 use App\Support\DocumentTypes;
@@ -39,6 +40,7 @@ class SettingsResponseBuilder
             'retention' => $retention,
             'notifications' => $this->composeNotifications(Arr::get($nested, 'notifications', Arr::get($nested, 'automation', []))),
             'monitoring_logging' => Arr::get($nested, 'monitoring_logging', []),
+            'google_drive' => $this->composeGoogleDrive(Arr::get($nested, 'google_drive', [])),
             'smtp' => $this->composeSmtp(Arr::get($nested, 'smtp', [])),
             'security' => Arr::get($nested, 'security.roles', []),
             'backup' => [
@@ -66,6 +68,17 @@ class SettingsResponseBuilder
             'languages' => LocalizationSettingsRequest::LANGUAGES,
             'storage_drivers' => ['public'],
             'document_types' => DocumentTypes::mapOptions($documentTypes),
+            'google_drive_users' => User::query()
+                ->where('is_active', true)
+                ->whereHas('googleDriveToken')
+                ->orderBy('name')
+                ->get(['id', 'name', 'email'])
+                ->map(fn (User $user): array => [
+                    'id' => $user->id,
+                    'label' => $user->name.' ('.$user->email.')',
+                ])
+                ->values()
+                ->all(),
         ];
     }
 
@@ -150,5 +163,16 @@ class SettingsResponseBuilder
         }
 
         return $retention;
+    }
+
+    private function composeGoogleDrive(array $googleDrive): array
+    {
+        return [
+            'folder_id' => Arr::get($googleDrive, 'folder_id', config('google-drive.folder_id', '')) ?: '',
+            'uploads_folder_name' => Arr::get($googleDrive, 'uploads_folder_name', config('google-drive.uploads_folder_name', 'LPMF LIMS Uploads')) ?: 'LPMF LIMS Uploads',
+            'request_folder_mode' => Arr::get($googleDrive, 'request_folder_mode', 'month_suspect') ?: 'month_suspect',
+            'use_suspect_name' => (bool) Arr::get($googleDrive, 'use_suspect_name', true),
+            'uploader_user_id' => Arr::get($googleDrive, 'uploader_user_id') ?: null,
+        ];
     }
 }

@@ -88,7 +88,7 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::define('manage-settings', function ($user) {
             // Allow admin and supervisor by default
-            if (in_array($user->role ?? null, ['admin', 'supervisor'], true)) {
+            if (in_array($user->role ?? null, ['admin', 'admin-lpmf', 'supervisor'], true)) {
                 return true;
             }
             // Check settings for additional roles

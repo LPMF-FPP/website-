@@ -5,10 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\EvidenceUnit;
 use App\Models\RemainingUnit;
 use App\Models\TestRequest;
+use App\Services\DocumentService;
 use App\Services\LabelService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
@@ -194,6 +198,7 @@ class LabelController extends Controller
     public function evidenceSheet(Request $request, int $requestId)
     {
         $testRequest = TestRequest::with(['samples', 'investigator'])->find($requestId);
+        $this->authorizeLabelRequest($testRequest);
 
         // Keep label inventory in sync with current request samples before printing.
         $evidenceUnits = $this->labelService->ensureEvidenceUnitsForRequest($requestId);
@@ -210,21 +215,30 @@ class LabelController extends Controller
             $this->labelService->logPrint('evidence', $eu, $format, $reason);
         }
 
-        // Build left column payloads (Evidence Labels)
+        $pdf = $this->buildEvidenceSheetPdf($testRequest, $evidenceUnits);
+        $binary = $pdf->output();
+        $this->storeLabelDocument(
+            $binary,
+            $testRequest,
+            'label_evidence',
+            'Label Barang Bukti '.$testRequest->request_number,
+            $request
+        );
+
+        return $this->inlinePdfResponse($binary, "label-barang-bukti-{$requestId}.pdf");
+    }
+
+    private function buildEvidenceSheetPdf(TestRequest $testRequest, $evidenceUnits)
+    {
         $evidencePayloads = $evidenceUnits->map(fn ($unit) => $this->buildLabelPayload($unit))->values();
-
-        // Build right column payload (Case Label) - Fixed single payload
         $casePayload = $this->buildCaseLabelPayload($testRequest);
-
         $rows = [];
 
         for ($i = 0; $i < 4; $i++) {
-            $row = [
+            $rows[] = [
                 'left' => $evidencePayloads->get($i),
                 'right' => array_merge($casePayload, ['kind' => 'case']),
             ];
-
-            $rows[] = $row;
         }
 
         $pages = collect([
@@ -234,9 +248,7 @@ class LabelController extends Controller
             ],
         ]);
 
-        $remainingEvidencePayloads = $evidencePayloads->slice(4)->values();
-
-        foreach ($remainingEvidencePayloads->chunk(8) as $chunk) {
+        foreach ($evidencePayloads->slice(4)->values()->chunk(8) as $chunk) {
             $gridRows = [];
 
             for ($i = 0; $i < 4; $i++) {
@@ -263,15 +275,13 @@ class LabelController extends Controller
 
         $pdf = Pdf::loadView('labels.evidence-sheet', [
             'pages' => $pages,
-            'request' => $testRequest, // Pass request for checklist
+            'request' => $testRequest,
             'printDate' => now()->translatedFormat('d M Y H:i'),
         ]);
 
-        // Custom size for Label 121: 165mm x 210mm
-        // 165mm = 467.72 pt, 210mm = 595.28 pt
         $pdf->setPaper([0, 0, 467.72, 595.28], 'portrait');
 
-        return $pdf->stream("label-barang-bukti-{$requestId}.pdf");
+        return $pdf;
     }
 
     /**
@@ -280,7 +290,8 @@ class LabelController extends Controller
      */
     public function evidenceSingle(Request $request, int $id)
     {
-        $evidenceUnit = EvidenceUnit::with('sample')->findOrFail($id);
+        $evidenceUnit = EvidenceUnit::with('sample.testRequest')->findOrFail($id);
+        $this->authorizeLabelRequest($evidenceUnit->sample?->testRequest);
         $reason = $request->query('reason', 'first_print');
 
         // Log the print
@@ -299,7 +310,7 @@ class LabelController extends Controller
         // 38mm = 107.72 pt
         $pdf->setPaper([0, 0, 212.60, 107.72], 'landscape');
 
-        return $pdf->stream("label-{$evidenceUnit->sample_code}.pdf");
+        return $this->inlinePdfResponse($pdf->output(), "label-{$evidenceUnit->sample_code}.pdf");
     }
 
     private function canAccessRemainingLabelFeature(?string $status): bool
@@ -311,6 +322,21 @@ class LabelController extends Controller
         ], true);
     }
 
+    private function authorizeLabelRequest(?TestRequest $testRequest): void
+    {
+        if (! $testRequest) {
+            abort(404);
+        }
+
+        $user = request()->user();
+        $isRequestOwner = $user && (int) $testRequest->user_id === (int) $user->id;
+        $isAdminRole = $user && in_array($user->role, ['admin', 'admin-lpmf'], true);
+
+        if (! $isRequestOwner && ! $isAdminRole && ! Gate::any(['permintaan.view', 'pengujian.view'])) {
+            abort(403);
+        }
+    }
+
     private function denyRemainingLabelAccessMessage(): string
     {
         return 'Cetak label sisa tersedia setelah kaji ulang permintaan selesai.';
@@ -318,7 +344,9 @@ class LabelController extends Controller
 
     private function ensureRemainingLabelAccessForRequest(int $requestId): ?TestRequest
     {
-        $testRequest = TestRequest::query()->select(['id', 'status'])->find($requestId);
+        $testRequest = TestRequest::query()->select(['id', 'status', 'user_id'])->find($requestId);
+
+        $this->authorizeLabelRequest($testRequest);
 
         if (! $testRequest || ! $this->canAccessRemainingLabelFeature($testRequest->status)) {
             return null;
@@ -331,8 +359,10 @@ class LabelController extends Controller
     {
         $evidenceUnit = EvidenceUnit::query()
             ->select(['id', 'request_id'])
-            ->with(['request:id,status'])
+            ->with(['request:id,status,user_id'])
             ->find($evidenceUnitId);
+
+        $this->authorizeLabelRequest($evidenceUnit?->request);
 
         if (! $evidenceUnit || ! $this->canAccessRemainingLabelFeature($evidenceUnit->request?->status)) {
             return null;
@@ -344,9 +374,10 @@ class LabelController extends Controller
     private function ensureRemainingLabelAccessForRemainingUnit(int $remainingUnitId): ?RemainingUnit
     {
         $remainingUnit = RemainingUnit::query()
-            ->select(['id', 'evidence_unit_id', 'remaining_code', 'qr_token'])
-            ->with(['evidenceUnit:id,request_id', 'evidenceUnit.request:id,status'])
+            ->with(['evidenceUnit:id,request_id,receipt_code', 'evidenceUnit.request:id,status,user_id'])
             ->find($remainingUnitId);
+
+        $this->authorizeLabelRequest($remainingUnit?->evidenceUnit?->request);
 
         if (! $remainingUnit || ! $this->canAccessRemainingLabelFeature($remainingUnit->evidenceUnit?->request?->status)) {
             return null;
@@ -379,19 +410,20 @@ class LabelController extends Controller
             $this->labelService->logPrint('remaining', $ru, $format, $reason);
         }
 
-        $remainingUnits->each(function ($unit) {
-            $unit->qr_png = $this->qrPngDataUri($unit->qr_content);
-        });
+        $pdf = $this->buildRemainingSheetPdf($remainingUnits);
+        $testRequest = TestRequest::with('investigator')->find($requestId);
+        $binary = $pdf->output();
+        if ($testRequest) {
+            $this->storeLabelDocument(
+                $binary,
+                $testRequest,
+                'label_remaining',
+                'Label Sisa Sampel '.$testRequest->request_number,
+                $request
+            );
+        }
 
-        $pdf = Pdf::loadView('labels.remaining-sheet', [
-            'remainingUnits' => $remainingUnits,
-            'printDate' => now()->format('d M Y H:i'),
-        ]);
-
-        // Custom size for Label 121: 165mm x 210mm
-        $pdf->setPaper([0, 0, 467.72, 595.28], 'portrait');
-
-        return $pdf->stream("label-sisa-{$requestId}.pdf");
+        return $this->inlinePdfResponse($binary, "label-sisa-{$requestId}.pdf");
     }
 
     /**
@@ -417,19 +449,20 @@ class LabelController extends Controller
             $this->labelService->logPrint('remaining', $ru, $format, $reason);
         }
 
-        $remainingUnits->each(function ($unit) {
-            $unit->qr_png = $this->qrPngDataUri($unit->qr_content);
-        });
+        $pdf = $this->buildRemainingSheetPdf($remainingUnits);
+        $testRequest = $remainingUnits->first()?->evidenceUnit?->request;
+        $binary = $pdf->output();
+        if ($testRequest) {
+            $this->storeLabelDocument(
+                $binary,
+                $testRequest,
+                'label_remaining',
+                'Label Sisa Sampel '.$testRequest->request_number,
+                $request
+            );
+        }
 
-        $pdf = Pdf::loadView('labels.remaining-sheet', [
-            'remainingUnits' => $remainingUnits,
-            'printDate' => now()->format('d M Y H:i'),
-        ]);
-
-        // Custom size for Label 121: 165mm x 210mm
-        $pdf->setPaper([0, 0, 467.72, 595.28], 'portrait');
-
-        return $pdf->stream("label-sisa-evidence-{$evidenceUnitId}.pdf");
+        return $this->inlinePdfResponse($binary, "label-sisa-evidence-{$evidenceUnitId}.pdf");
     }
 
     /**
@@ -456,7 +489,128 @@ class LabelController extends Controller
         // 75mm x 38mm
         $pdf->setPaper([0, 0, 212.60, 107.72], 'landscape');
 
-        return $pdf->stream('label-sisa-'.Str::slug((string) $remainingUnit->remaining_code).'.pdf');
+        $testRequest = TestRequest::with('investigator')->find($remainingUnit->evidenceUnit?->request_id);
+        $binary = $pdf->output();
+        if ($testRequest) {
+            $this->labelService->logPrint('remaining', $remainingUnit, 'single', $reason);
+            $this->storeLabelDocument(
+                $binary,
+                $testRequest,
+                'remaining_label',
+                'Label Sisa Sampel '.$remainingUnit->remaining_code,
+                $request
+            );
+        }
+
+        return $this->inlinePdfResponse($binary, 'label-sisa-'.Str::slug((string) $remainingUnit->remaining_code).'.pdf');
+    }
+
+    private function buildRemainingSheetPdf($remainingUnits)
+    {
+        $remainingUnits = $this->hydrateRemainingUnitsForPdf($remainingUnits);
+
+        $remainingUnits->each(function ($unit) {
+            $unit->qr_png = $this->qrPngDataUri($unit->qr_content);
+        });
+
+        $pdf = Pdf::loadView('labels.remaining-sheet', [
+            'remainingUnits' => $remainingUnits,
+            'printDate' => now()->format('d M Y H:i'),
+        ]);
+
+        // Custom size for Label 121: 165mm x 210mm
+        $pdf->setPaper([0, 0, 467.72, 595.28], 'portrait');
+
+        return $pdf;
+    }
+
+    private function hydrateRemainingUnitsForPdf($remainingUnits): Collection
+    {
+        $remainingUnits = collect($remainingUnits);
+        $ids = $remainingUnits->pluck('id')->filter()->values();
+
+        if ($ids->isEmpty()) {
+            return collect();
+        }
+
+        $sortOrder = $ids->flip();
+
+        return RemainingUnit::query()
+            ->with(['evidenceUnit:id,request_id,receipt_code'])
+            ->whereIn('id', $ids->all())
+            ->get()
+            ->sortBy(fn (RemainingUnit $unit) => $sortOrder[$unit->id] ?? PHP_INT_MAX)
+            ->values();
+    }
+
+    private function syncRemainingLabelDocument(RemainingUnit $remainingUnit, Request $request): ?array
+    {
+        $remainingUnit->loadMissing('evidenceUnit.request.investigator');
+        $testRequest = $remainingUnit->evidenceUnit?->request;
+
+        if (! $testRequest) {
+            return null;
+        }
+
+        $remainingUnits = $this->labelService->getRemainingUnitsForRequest($testRequest->id);
+        if ($remainingUnits->isEmpty()) {
+            return null;
+        }
+
+        $pdf = $this->buildRemainingSheetPdf($remainingUnits);
+
+        return $this->storeLabelDocument(
+            $pdf->output(),
+            $testRequest,
+            'label_remaining',
+            'Label Sisa Sampel '.$testRequest->request_number,
+            $request
+        );
+    }
+
+    private function storeLabelDocument(string $binary, TestRequest $testRequest, string $type, string $baseName, Request $request): ?array
+    {
+        $testRequest->loadMissing('investigator');
+        if (! $testRequest->investigator) {
+            return null;
+        }
+
+        try {
+            $doc = app(DocumentService::class)->storeGenerated(
+                binary: $binary,
+                ext: 'pdf',
+                inv: $testRequest->investigator,
+                req: $testRequest,
+                type: $type,
+                baseName: $baseName,
+                replaceExisting: true,
+                syncUser: $request->user()
+            );
+
+            $googleDriveStatus = data_get($doc->fresh()?->extra, 'google_drive.status');
+
+            return [
+                'document_id' => $doc->id,
+                'google_drive_status' => $googleDriveStatus,
+                'uploaded' => $googleDriveStatus === 'uploaded',
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('Label document generation failed', [
+                'request_id' => $testRequest->id,
+                'document_type' => $type,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    private function inlinePdfResponse(string $binary, string $filename)
+    {
+        return response($binary, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$filename.'"',
+        ]);
     }
 
     /**
@@ -472,14 +626,38 @@ class LabelController extends Controller
         ]);
 
         try {
+            $testRequest = TestRequest::with(['samples', 'investigator'])->findOrFail($validated['request_id']);
+            $this->authorizeLabelRequest($testRequest);
+
             $created = $this->labelService->createEvidenceUnits(
                 $validated['request_id'],
                 $validated['sample_ids']
             );
 
+            $evidenceUnits = $this->labelService->getEvidenceUnitsForRequest($validated['request_id']);
+            $labelDocument = null;
+
+            if ($evidenceUnits->isNotEmpty()) {
+                $pdf = $this->buildEvidenceSheetPdf($testRequest, $evidenceUnits);
+                $labelDocument = $this->storeLabelDocument(
+                    $pdf->output(),
+                    $testRequest,
+                    'label_evidence',
+                    'Label Barang Bukti '.$testRequest->request_number,
+                    $request
+                );
+            }
+
+            $driveMessage = match ($labelDocument['google_drive_status'] ?? null) {
+                'uploaded' => ' PDF label tersinkron ke Google Drive.',
+                'skipped', 'failed' => ' PDF label tersimpan lokal, tetapi Google Drive belum tersinkronisasi.',
+                default => ' PDF label belum dapat disimpan sebagai dokumen.',
+            };
+
             return response()->json([
                 'success' => true,
-                'message' => $created->count().' label barang bukti berhasil dibuat.',
+                'message' => $created->count().' label barang bukti berhasil dibuat.'.$driveMessage,
+                'drive_status' => $labelDocument['google_drive_status'] ?? 'failed',
                 'data' => $created->map(fn ($eu) => [
                     'id' => $eu->id,
                     'sample_id' => $eu->sample_id,
@@ -511,14 +689,25 @@ class LabelController extends Controller
         ]);
 
         try {
+            $evidenceUnit = $this->ensureRemainingLabelAccessForEvidenceUnit((int) $validated['evidence_unit_id']);
+
+            if (! $evidenceUnit) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $this->denyRemainingLabelAccessMessage(),
+                ], 403);
+            }
+
             $remaining = $this->labelService->createRemainingUnit(
                 $validated['evidence_unit_id'],
                 $validated
             );
+            $labelDocument = $this->syncRemainingLabelDocument($remaining, $request);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Label sisa sampel berhasil dibuat.',
+                'drive_status' => $labelDocument['google_drive_status'] ?? 'failed',
                 'data' => $this->buildRemainingUnitPayload($remaining),
             ]);
         } catch (\RuntimeException $e) {
@@ -555,10 +744,12 @@ class LabelController extends Controller
         $remainingUnit->fill($validated);
         $remainingUnit->save();
         $remainingUnit->refresh();
+        $labelDocument = $this->syncRemainingLabelDocument($remainingUnit, $request);
 
         return response()->json([
             'success' => true,
             'message' => 'Label sisa sampel berhasil diperbarui.',
+            'drive_status' => $labelDocument['google_drive_status'] ?? 'failed',
             'data' => $this->buildRemainingUnitPayload($remainingUnit),
         ]);
     }
@@ -570,7 +761,15 @@ class LabelController extends Controller
     public function destroyRemainingUnit(int $id)
     {
         try {
-            $unit = RemainingUnit::findOrFail($id);
+            $unit = $this->ensureRemainingLabelAccessForRemainingUnit($id);
+
+            if (! $unit) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $this->denyRemainingLabelAccessMessage(),
+                ], 403);
+            }
+
             $unit->delete();
 
             return response()->json([

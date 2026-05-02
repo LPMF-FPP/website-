@@ -113,6 +113,19 @@
 
                         <button
                             type="button"
+                            id="tab-google-drive"
+                            role="tab"
+                            :aria-selected="activeSection === 'google_drive'"
+                            aria-controls="panel-google-drive"
+                            @click="activeSection = 'google_drive'"
+                            :class="activeSection === 'google_drive' ? 'bg-gray-200 text-gray-900 font-medium' : 'bg-white text-gray-700 hover:bg-gray-50'"
+                            class="w-full text-left px-4 py-3 rounded-lg transition-colors text-sm"
+                        >
+                            Google Drive
+                        </button>
+
+                        <button
+                            type="button"
                             id="tab-iku"
                             role="tab"
                             :aria-selected="activeSection === 'iku'"
@@ -219,6 +232,16 @@
                     tabindex="-1"
                 >
                     @include('settings.partials.documents')
+                </div>
+
+                <div
+                    x-show="activeSection === 'google_drive'"
+                    id="panel-google-drive"
+                    role="tabpanel"
+                    aria-labelledby="tab-google-drive"
+                    tabindex="-1"
+                >
+                    @include('settings.partials.google-drive')
                 </div>
 
                 <div

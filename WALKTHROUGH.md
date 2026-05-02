@@ -146,7 +146,21 @@ WhatsApp service berjalan di container Docker terpisah.
 
 ---
 
-## 📰 Recent Changes (v2.4.x)
+## 📰 Recent Changes (v2.5.x)
+
+### v2.5.1 (2 Mei 2026) - Google Drive Sync, Intake Simplification & Delivery Label Reliability
+
+- **Integrasi Google Drive:** Sistem sekarang mendukung koneksi OAuth Google Drive per user, pengaturan uploader terpusat, folder tujuan configurable, dan upload dokumen melalui Google Drive REST API v3 dengan metadata sinkronisasi tersimpan pada record dokumen.
+- **Folder Drive Operasional:** Dokumen tersinkron ke struktur proses yang lebih rapi (`Permintaan`, `Pengujian`, `Penyerahan`) di bawah folder request berbasis bulan, nomor resi, dan nama tersangka sehingga arsip digital lebih mudah ditelusuri tanpa mengubah local storage sebagai sumber data utama.
+- **Sync Resilience:** Kegagalan upload Drive tidak lagi menggagalkan penyimpanan lokal; status `uploaded`, `skipped`, atau `failed` dicatat pada metadata dokumen agar user tetap bisa lanjut bekerja dan admin dapat menelusuri kondisi sinkronisasi.
+- **Request Intake Revision:** Halaman `/requests/create` dan edit permintaan disederhanakan menjadi fokus administrasi penerimaan, data penyidik, surat permintaan, tersangka, dokumen, dan fisik sampel; input teknis seperti zat aktif serta jenis/metode pengujian dipindahkan ke alur Kaji Ulang.
+- **Saksi Ahli Support:** Permintaan saksi ahli sekarang memiliki nomor surat, tanggal surat, dan upload PDF tersendiri dengan validasi kondisional saat opsi saksi ahli dipilih.
+- **BA Penerimaan Cleanup:** Berita Acara Penerimaan diperbarui agar hanya memuat informasi penerimaan yang relevan dan tidak lagi menampilkan field teknis seperti zat aktif, jenis pengujian, atau tujuan kantor.
+- **Penyerahan Detail Update:** Halaman `/delivery/{request}` kini menampilkan detail dokumen permintaan, nomor/tanggal surat, informasi saksi ahli bila ada, serta link LHU per sampel saat tersedia untuk membantu verifikasi sebelum penyerahan.
+- **Label Sisa Reliability:** PDF label sisa single dan sheet diperbaiki agar data `RESI`, `KODE`, `QTY SISA`, `SEGEL`, dan QR code selalu ter-render jelas di Chrome/PDF viewer maupun file yang disimpan/disinkronkan.
+- **Label Document Sync:** Cetak label barang bukti dan label sisa sekarang menyimpan dokumen generated yang sama dengan binary PDF yang dikirim ke browser, sehingga file lokal/Drive tidak berbeda dari preview yang dilihat user.
+- **Numbering Hardening:** Penerbitan nomor BA dan resi diperkuat dengan fallback format per-scope serta skip nomor yang sudah ada, sehingga sequence lokal yang tertinggal tidak lagi menyebabkan submit permintaan kembali ke form karena duplikasi nomor.
+- **Regression Coverage:** Penambahan dan pembaruan test feature untuk request store/update, BA Penerimaan, upload dokumen, LHU, penyerahan, evidence label, remaining label, dan safety numbering memastikan perubahan lintas modul tetap terjaga.
 
 ### v2.5.0 (20 April 2026) - Evidence Label Sheet Packing, Safety Hardening & Request Form UX
 

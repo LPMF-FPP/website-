@@ -63,6 +63,13 @@ class SampleTestController extends Controller
             ->sort()
             ->values();
 
+        $existingActiveSubstances = Sample::query()
+            ->whereNotNull('active_substance')
+            ->where('active_substance', '!=', '')
+            ->distinct()
+            ->orderBy('active_substance')
+            ->pluck('active_substance');
+
         return view('samples.test', [
             'requests' => $requests,
             'selectedRequest' => $selectedRequest,
@@ -71,6 +78,7 @@ class SampleTestController extends Controller
             'methodOptions' => TestMethod::options(),
             'otherSampleOptions' => Sample::OTHER_SAMPLE_CATEGORIES,
             'existingPhysicalIdentifications' => $existingPhysicalIdentifications,
+            'existingActiveSubstances' => $existingActiveSubstances,
         ]);
     }
 
@@ -84,6 +92,7 @@ class SampleTestController extends Controller
             'samples.*.assigned_analyst_id' => ['required', 'exists:users,id'],
             'samples.*.test_methods' => ['required', 'array', 'min:1'],
             'samples.*.test_methods.*' => ['string', Rule::in(array_map(fn ($method) => $method->value, TestMethod::cases()))],
+            'samples.*.active_substance' => ['required', 'string', 'max:255'],
             'samples.*.physical_identification' => ['required', 'string'],
             'samples.*.quantity' => ['required', 'numeric', 'min:0.01'],
             // quantity_unit is now optional - server will use sample.unit from database
@@ -96,6 +105,7 @@ class SampleTestController extends Controller
         ], [
             'samples.*.test_methods.required' => 'Metode pengujian wajib dipilih.',
             'samples.*.test_methods.*.in' => 'Metode pengujian tidak valid.',
+            'samples.*.active_substance.required' => 'Zat aktif wajib diisi pada kaji ulang permintaan.',
             'samples.*.quantity.min' => 'Jumlah sampel harus lebih dari 0.',
             'samples.*.batch_number.required' => 'Nomor batch wajib diisi.',
             'samples.*.test_type.required' => 'Jenis atau fokus pengujian wajib dipilih.',
@@ -138,6 +148,7 @@ class SampleTestController extends Controller
                     'assigned_analyst_id' => $sampleData['assigned_analyst_id'],
                     'test_methods' => $encodedSubmittedMethods,
                     'requested_test_methods' => $sample->requested_test_methods ?: $encodedSubmittedMethods,
+                    'active_substance' => $sampleData['active_substance'],
                     'test_type' => $sampleData['test_type'] ?? null,
                     'physical_identification' => $sampleData['physical_identification'],
                     'quantity' => $sampleData['quantity'],

@@ -2,11 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Models\Investigator;
 use App\Models\Sample;
 use App\Models\TestRequest;
 use App\Models\User;
 use App\Services\LabelService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 
 uses(RefreshDatabase::class);
 
@@ -16,7 +19,9 @@ beforeEach(function (): void {
 });
 
 it('shows remaining label section in testing page for in-testing request', function (): void {
+    $investigator = Investigator::factory()->create();
     $testRequest = TestRequest::factory()->create([
+        'investigator_id' => $investigator->id,
         'status' => 'in_testing',
     ]);
 
@@ -40,7 +45,9 @@ it('blocks remaining sheet printing before review completion', function (): void
 });
 
 it('returns pdf response for remaining sheet when request is in testing and labels exist', function (): void {
+    $investigator = Investigator::factory()->create();
     $testRequest = TestRequest::factory()->create([
+        'investigator_id' => $investigator->id,
         'status' => 'in_testing',
     ]);
 
@@ -63,6 +70,8 @@ it('returns pdf response for remaining sheet when request is in testing and labe
 });
 
 it('returns render-ready payload when creating remaining label from web endpoint', function (): void {
+    Storage::fake('public');
+
     $testRequest = TestRequest::factory()->create([
         'status' => 'in_testing',
     ]);
@@ -75,6 +84,11 @@ it('returns render-ready payload when creating remaining label from web endpoint
     $labelService = app(LabelService::class);
     $evidenceUnit = $labelService->createEvidenceUnits($testRequest->id, [$sample->id])->firstOrFail();
 
+    $mockPdf = \Mockery::mock(\Barryvdh\DomPDF\PDF::class);
+    $mockPdf->shouldReceive('setPaper')->andReturnSelf();
+    $mockPdf->shouldReceive('output')->andReturn('remaining-label-pdf');
+    Pdf::shouldReceive('loadView')->once()->andReturn($mockPdf);
+
     $this->actingAs($this->user)
         ->postJson('/labels/remaining-units', [
             'evidence_unit_id' => $evidenceUnit->id,
@@ -83,9 +97,11 @@ it('returns render-ready payload when creating remaining label from web endpoint
         ])
         ->assertOk()
         ->assertJsonPath('success', true)
+        ->assertJsonPath('drive_status', 'skipped')
         ->assertJsonStructure([
             'success',
             'message',
+            'drive_status',
             'data' => [
                 'id',
                 'sample_code',
@@ -99,6 +115,12 @@ it('returns render-ready payload when creating remaining label from web endpoint
                 'qr_content',
             ],
         ]);
+
+    $this->assertDatabaseHas('documents', [
+        'test_request_id' => $testRequest->id,
+        'document_type' => 'label_remaining',
+        'source' => 'generated',
+    ]);
 });
 
 it('updates remaining label from web endpoint with editable fields', function (): void {
@@ -146,4 +168,111 @@ it('updates remaining label from web endpoint with editable fields', function ()
         ->seal_status_delivered->toBe('rusak ringan')
         ->condition_delivered->toBe('wadah baik')
         ->handover_doc_no->toBe('BAST-001/IV/2026');
+});
+
+it('creates a fresh remaining label document on update so Drive sync is retried', function (): void {
+    Storage::fake('public');
+
+    $testRequest = TestRequest::factory()->create([
+        'status' => 'in_testing',
+    ]);
+
+    $sample = Sample::factory()->create([
+        'test_request_id' => $testRequest->id,
+    ]);
+
+    /** @var LabelService $labelService */
+    $labelService = app(LabelService::class);
+    $evidenceUnit = $labelService->createEvidenceUnits($testRequest->id, [$sample->id])->firstOrFail();
+    $remainingUnit = $labelService->createRemainingUnit($evidenceUnit->id, [
+        'qty_remaining' => 1.25,
+        'uom' => 'gram',
+    ]);
+
+    $mockPdf = \Mockery::mock(\Barryvdh\DomPDF\PDF::class);
+    $mockPdf->shouldReceive('setPaper')->andReturnSelf();
+    $mockPdf->shouldReceive('output')->twice()->andReturn('remaining-label-pdf');
+    Pdf::shouldReceive('loadView')->twice()->andReturn($mockPdf);
+
+    $this->actingAs($this->user)
+        ->postJson('/labels/remaining-units', [
+            'evidence_unit_id' => $evidenceUnit->id,
+            'qty_remaining' => 1.25,
+            'uom' => 'gram',
+        ])
+        ->assertOk();
+
+    $firstDocument = \App\Models\Document::query()
+        ->where('test_request_id', $testRequest->id)
+        ->where('document_type', 'label_remaining')
+        ->latest()
+        ->firstOrFail();
+
+    $this->actingAs($this->user)
+        ->putJson('/labels/remaining-units/'.$remainingUnit->id, [
+            'qty_remaining' => 1,
+            'uom' => 'gram',
+        ])
+        ->assertOk();
+
+    $latestDocument = \App\Models\Document::query()
+        ->where('test_request_id', $testRequest->id)
+        ->where('document_type', 'label_remaining')
+        ->latest()
+        ->firstOrFail();
+
+    expect($latestDocument->id)->not->toBe($firstDocument->id);
+    expect($latestDocument->fresh()->extra)->not->toBeNull();
+});
+
+it('stores and syncs single remaining label print as a document', function (): void {
+    Storage::fake('public');
+
+    $investigator = Investigator::factory()->create();
+    $testRequest = TestRequest::factory()->create([
+        'investigator_id' => $investigator->id,
+        'status' => 'in_testing',
+    ]);
+
+    $sample = Sample::factory()->create([
+        'test_request_id' => $testRequest->id,
+    ]);
+
+    /** @var LabelService $labelService */
+    $labelService = app(LabelService::class);
+    $evidenceUnit = $labelService->createEvidenceUnits($testRequest->id, [$sample->id])->firstOrFail();
+    $remainingUnit = $labelService->createRemainingUnit($evidenceUnit->id, [
+        'qty_remaining' => 1.25,
+        'uom' => 'gram',
+    ]);
+
+    $mockPdf = \Mockery::mock(\Barryvdh\DomPDF\PDF::class);
+    $mockPdf->shouldReceive('setPaper')->andReturnSelf();
+    $mockPdf->shouldReceive('output')->once()->andReturn('single-remaining-label-pdf');
+    Pdf::shouldReceive('loadView')
+        ->once()
+        ->withArgs(function (string $view, array $data) use ($remainingUnit): bool {
+            $this->assertSame('labels.remaining-single', $view);
+            $this->assertSame($remainingUnit->remaining_code, $data['remainingUnit']->remaining_code);
+            $this->assertSame('1.25', $data['remainingUnit']->qty_remaining);
+            $this->assertSame($remainingUnit->evidenceUnit->receipt_code, $data['remainingUnit']->evidenceUnit->receipt_code);
+
+            return true;
+        })
+        ->andReturn($mockPdf);
+
+    $this->actingAs($this->user)
+        ->get(route('labels.remaining.single', $remainingUnit->id))
+        ->assertOk()
+        ->assertHeader('Content-Type', 'application/pdf')
+        ->assertSee('single-remaining-label-pdf', false);
+
+    $document = \App\Models\Document::query()
+        ->where('test_request_id', $testRequest->id)
+        ->where('document_type', 'remaining_label')
+        ->latest()
+        ->firstOrFail();
+
+    expect($document->original_filename)->toContain($remainingUnit->remaining_code);
+    expect(data_get($document->fresh()->extra, 'google_drive.status'))->toBe('skipped');
 });

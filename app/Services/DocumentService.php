@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Document;
 use App\Models\Investigator;
 use App\Models\TestRequest;
+use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -40,6 +41,7 @@ class DocumentService
      */
     private array $typeDirs = [
         'request_letter' => 'uploads/request_letter',
+        'expert_witness_request' => 'uploads/expert_witness_request',
         'sample_photo' => 'uploads/sample_photo',
         'evidence_photo' => 'uploads/evidence_photo',
         'form_preparation' => 'generated/form_preparation',
@@ -53,6 +55,11 @@ class DocumentService
         'laporan_hasil_uji_html' => 'generated/laporan_hasil_uji_html',
         'ba_penyerahan' => 'generated/ba_penyerahan',
         'ba_penyerahan_html' => 'generated/ba_penyerahan_html',
+        'label_evidence' => 'generated/label_evidence',
+        'label_remaining' => 'generated/label_remaining',
+        'sample_label' => 'generated/label_evidence',
+        'label_sample' => 'generated/label_evidence',
+        'remaining_label' => 'generated/label_remaining',
     ];
 
     /**
@@ -231,9 +238,10 @@ class DocumentService
         string $type,
         string $baseName,
         bool $replaceExisting = false,
-        ?int $sampleId = null
+        ?int $sampleId = null,
+        ?User $syncUser = null
     ): Document {
-        return DB::transaction(function () use ($binary, $ext, $inv, $req, $type, $baseName, $replaceExisting, $sampleId) {
+        $document = DB::transaction(function () use ($binary, $ext, $inv, $req, $type, $baseName, $replaceExisting, $sampleId) {
             // Check for existing document if replaceExisting is true
             if ($replaceExisting && $req) {
                 $query = Document::where('test_request_id', $req->id)
@@ -250,38 +258,42 @@ class DocumentService
                 $existing = $query->latest()->first();
 
                 if ($existing) {
-                    // Delete old file from storage
-                    $oldPath = $existing->file_path ?? $existing->path;
-                    if ($oldPath && Storage::disk($this->disk)->exists($oldPath)) {
-                        Storage::disk($this->disk)->delete($oldPath);
+                    if ($this->shouldReplaceGeneratedDocumentInPlace($type)) {
+                        // Delete old file from storage
+                        $oldPath = $existing->file_path ?? $existing->path;
+                        if ($oldPath && Storage::disk($this->disk)->exists($oldPath)) {
+                            Storage::disk($this->disk)->delete($oldPath);
+                        }
+
+                        // Build new path and filename
+                        $invDir = "investigators/{$inv->folder_key}";
+                        $reqDir = $req->request_number;
+                        $dir = $this->typeDirs[$type] ?? ('generated/'.$type);
+                        $basePath = "{$invDir}/{$reqDir}/{$dir}";
+
+                        $slug = Str::slug($baseName);
+                        $timestamp = now()->format('YmdHis');
+                        $filename = "{$timestamp}-{$slug}.{$ext}";
+                        $originalFilename = "{$baseName}.{$ext}";
+                        $relPath = "{$basePath}/{$filename}";
+
+                        // Store new file
+                        Storage::disk($this->disk)->put($relPath, $binary);
+
+                        // Update existing document record
+                        $existing->update([
+                            'filename' => $originalFilename,
+                            'original_filename' => $originalFilename,
+                            'file_path' => $relPath,
+                            'path' => $relPath,
+                            'file_size' => strlen($binary),
+                            'updated_at' => now(),
+                        ]);
+
+                        return $existing->fresh();
                     }
 
-                    // Build new path and filename
-                    $invDir = "investigators/{$inv->folder_key}";
-                    $reqDir = $req->request_number;
-                    $dir = $this->typeDirs[$type] ?? ('generated/'.$type);
-                    $basePath = "{$invDir}/{$reqDir}/{$dir}";
-
-                    $slug = Str::slug($baseName);
-                    $timestamp = now()->format('YmdHis');
-                    $filename = "{$timestamp}-{$slug}.{$ext}";
-                    $originalFilename = "{$baseName}.{$ext}";
-                    $relPath = "{$basePath}/{$filename}";
-
-                    // Store new file
-                    Storage::disk($this->disk)->put($relPath, $binary);
-
-                    // Update existing document record
-                    $existing->update([
-                        'filename' => $originalFilename,
-                        'original_filename' => $originalFilename,
-                        'file_path' => $relPath,
-                        'path' => $relPath,
-                        'file_size' => strlen($binary),
-                        'updated_at' => now(),
-                    ]);
-
-                    return $existing->fresh();
+                    $existing->delete();
                 }
             }
 
@@ -328,6 +340,40 @@ class DocumentService
                 'extra' => null,
             ]);
         });
+
+        $this->syncGeneratedDocumentToGoogleDrive($document, $syncUser);
+
+        return $document->fresh() ?? $document;
+    }
+
+    private function syncGeneratedDocumentToGoogleDrive(Document $document, ?User $syncUser): void
+    {
+        if (! in_array($document->document_type, [
+            'ba_penerimaan',
+            'ba_penerimaan_html',
+            'laporan_hasil_uji',
+            'lhu',
+            'ba_penyerahan',
+            'label_evidence',
+            'label_remaining',
+            'sample_label',
+            'label_sample',
+            'remaining_label',
+        ], true)) {
+            return;
+        }
+
+        if (! $syncUser) {
+            return;
+        }
+
+        app(GoogleDriveDocumentSyncService::class)
+            ->syncUploadedDocuments([$document], $syncUser);
+    }
+
+    private function shouldReplaceGeneratedDocumentInPlace(string $type): bool
+    {
+        return ! in_array($type, ['label_remaining', 'remaining_label'], true);
     }
 
     /**
@@ -371,7 +417,8 @@ class DocumentService
         string $type,
         string $baseName,
         string $binary,
-        bool $replaceExisting = false
+        bool $replaceExisting = false,
+        ?User $syncUser = null
     ): Document {
         $process->loadMissing(['sample.testRequest.investigator']);
         $req = $process->sample->testRequest;
@@ -385,7 +432,8 @@ class DocumentService
             type: $type,
             baseName: $baseName,
             replaceExisting: $replaceExisting,
-            sampleId: $process->sample_id
+            sampleId: $process->sample_id,
+            syncUser: $syncUser
         );
     }
 

@@ -25,7 +25,6 @@ class TestRequestFactory extends Factory
             'receipt_number' => now()->format('Y-m-d').'-'.$uniqueSuffix,
             'investigator_id' => \App\Models\Investigator::factory(),
             'user_id' => \App\Models\User::factory(),
-            'to_office' => fake()->randomElement(['Pusdokkes Polri', 'Labfor Polri', 'Puslabfor Bareskrim']),
             'suspect_name' => fake()->name(),
             'suspect_gender' => fake()->randomElement(['male', 'female']),
             'suspect_age' => fake()->numberBetween(17, 65),

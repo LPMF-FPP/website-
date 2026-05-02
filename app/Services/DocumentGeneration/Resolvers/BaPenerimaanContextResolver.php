@@ -50,7 +50,6 @@ class BaPenerimaanContextResolver extends AbstractContextResolver
         $obj->received_at = now();
         $obj->notes = 'Contoh permintaan pengujian sampel';
         $obj->case_number = 'SP/001/XII/2025';
-        $obj->to_office = 'Kepala Sub Satker Farmapol Pusdokkes Polri';
         $obj->investigator = $this->getMockInvestigator();
         $obj->samples = $this->getMockSamples();
 

@@ -16,20 +16,6 @@
         ]);
     }
 
-    $methodMap = [
-        'uv_vis' => 'Identifikasi Spektrofotometri UV-VIS',
-        'gc_ms'  => 'Identifikasi GC-MS',
-        'lc_ms'  => 'Identifikasi LC-MS',
-    ];
-
-    $formatMethods = function($methods) use ($methodMap) {
-        if (is_string($methods)) { $arr = json_decode($methods, true) ?? []; }
-        else { $arr = $methods ?? []; }
-        return collect($arr)->map(fn($m) => $methodMap[$m] ?? $m)->unique()->join('; ');
-    };
-
-    $testsSummary = $request->samples->map(fn($s) => $formatMethods($s->test_methods ?? []))->filter()->unique()->join('; ');
-
     $getQty = function($sample) {
         $keys = [
             'package_quantity',
@@ -124,10 +110,8 @@
   .list-table th, .list-table td { border:1px solid #000; padding:3px 5px; vertical-align:top; }
   .list-table th { text-align:center; background:#f0f0f0; white-space: normal !important; overflow-wrap:anywhere; word-break:break-word; hyphens:auto; line-height:1.2; }
   .list-table td { overflow-wrap:anywhere; word-break:break-word; hyphens:auto; }
-  .col-name  { width: 30%; }
-  .col-qty   { width: 20%; text-align:center; }
-  .col-tests { width: 32%; }
-  .col-act   { width: 18%; }
+  .col-name  { width: 70%; }
+  .col-qty   { width: 30%; text-align:center; }
 
   .sign-table { width:100%; margin-top:10px; border:0; border-collapse:separate; }
   .sign-table td { width:50%; vertical-align:top; border:0; }
@@ -168,11 +152,13 @@
   <table class="meta-table">
     <tr><td class="label">Nomor Resi</td><td class="sep">:</td><td class="value nowrap"><strong>{{ $receiptNumber }}</strong></td></tr>
     <tr><td class="label">Nomor Surat Permintaan</td><td class="sep">:</td><td class="value">{{ $request->case_number ?? '-' }}</td></tr>
-    <tr><td class="label">Ditujukan Kepada</td><td class="sep">:</td><td class="value">{{ $request->to_office ?? 'Kepala Sub Satker Farmapol Pusdokkes Polri' }}</td></tr>
+    @if($request->has_expert_witness_request)
+      <tr><td class="label">Nomor Surat Saksi Ahli</td><td class="sep">:</td><td class="value">{{ $request->expert_witness_letter_number ?? '-' }}</td></tr>
+      <tr><td class="label">Tanggal Surat Saksi Ahli</td><td class="sep">:</td><td class="value">{{ $request->expert_witness_letter_date ? $request->expert_witness_letter_date->translatedFormat('d F Y') : '-' }}</td></tr>
+    @endif
     <tr><td class="label">Penyerah Sampel</td><td class="sep">:</td><td class="value">{{ trim(($request->investigator->rank ?? '').' '.($request->investigator->name ?? '')) }} (NRP: {{ $request->investigator->nrp ?? '-' }})</td></tr>
     <tr><td class="label">Unit/Satuan</td><td class="sep">:</td><td class="value">{{ $request->investigator->jurisdiction ?? '-' }}</td></tr>
     <tr><td class="label">Jumlah Sampel</td><td class="sep">:</td><td class="value"><strong>{{ $request->samples->count() }}</strong> sampel</td></tr>
-    <tr><td class="label">Jenis Pengujian</td><td class="sep">:</td><td class="value">{{ $testsSummary ?: '-' }}</td></tr>
   </table>
 
   <div class="section-title">Daftar Sampel yang Diterima</div>
@@ -181,8 +167,6 @@
       <tr>
         <th class="col-name">Deskripsi Singkat</th>
         <th class="col-qty">Jumlah Sampel yang Diterima</th>
-        <th class="col-tests">Jenis Pengujian</th>
-        <th class="col-act">Zat Aktif</th>
       </tr>
     </thead>
     <tbody>
@@ -190,8 +174,6 @@
       <tr>
         <td class="col-name"><b>{{ $sample->short_description ?? '—' }}</b></td>
         <td class="col-qty">{{ $formatQtyUnit($sample) }}</td>
-        <td class="col-tests">{{ $formatMethods($sample->test_methods ?? []) }}</td>
-        <td class="col-act">{{ $sample->active_substance ?? '-' }}</td>
       </tr>
       @endforeach
     </tbody>

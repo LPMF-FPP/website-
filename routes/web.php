@@ -5,6 +5,7 @@ use App\Http\Controllers\ConsolidatedReportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\EnvironmentMonitoringController;
+use App\Http\Controllers\GoogleDriveOAuthController;
 use App\Http\Controllers\InstrumentLoggingController;
 use App\Http\Controllers\InvestigatorManagementController;
 use App\Http\Controllers\LandingPageController;
@@ -253,6 +254,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Google Drive OAuth
+    Route::get('/google-drive/connect', [GoogleDriveOAuthController::class, 'connect'])->name('google-drive.connect');
+    Route::get('/google-drive/callback', [GoogleDriveOAuthController::class, 'callback'])->name('google-drive.callback');
+    Route::delete('/google-drive/disconnect', [GoogleDriveOAuthController::class, 'disconnect'])->name('google-drive.disconnect');
 
     // Lidik Sidik Index
 
@@ -673,7 +679,7 @@ Route::prefix('referensi/inventori')->name('inventory.')->middleware(['auth', 'v
 });
 
 // Label PDF Routes
-Route::prefix('labels')->middleware(['auth'])->group(function () {
+Route::prefix('labels')->middleware(['auth', 'verified'])->group(function () {
     // Evidence labels
     Route::get('evidence/request/{requestId}/sheet', [App\Http\Controllers\LabelController::class, 'evidenceSheet'])->name('labels.evidence.sheet');
     Route::get('evidence/{id}/single', [App\Http\Controllers\LabelController::class, 'evidenceSingle'])->name('labels.evidence.single');

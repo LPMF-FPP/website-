@@ -50,7 +50,6 @@ class NumberingRepairReclaimTest extends TestCase
             'suspect_name' => 'John Doe',
             'suspect_gender' => 'male',
             'suspect_age' => 30,
-            'to_office' => 'Kejaksaan',
             'case_description' => 'Test Case',
         ]);
 
@@ -100,7 +99,6 @@ class NumberingRepairReclaimTest extends TestCase
             'suspect_name' => 'John Doe',
             'suspect_gender' => 'male',
             'suspect_age' => 30,
-            'to_office' => 'Kejaksaan',
             'case_description' => 'Test Case',
         ]);
 
@@ -146,7 +144,6 @@ class NumberingRepairReclaimTest extends TestCase
             'suspect_name' => 'John Doe',
             'suspect_gender' => 'male',
             'suspect_age' => 30,
-            'to_office' => 'Kejaksaan',
             'case_description' => 'Test Case',
         ]);
 
@@ -201,7 +198,6 @@ class NumberingRepairReclaimTest extends TestCase
             'suspect_name' => 'John Doe',
             'suspect_gender' => 'male',
             'suspect_age' => 30,
-            'to_office' => 'Kejaksaan',
             'case_description' => 'Test Case',
         ]);
 

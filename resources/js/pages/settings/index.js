@@ -15,6 +15,7 @@ export class SettingsClient {
             branding: "/api/settings/branding",
             pdfPreview: "/api/settings/pdf/preview",
             localization: "/api/settings/localization-retention",
+            googleDrive: "/api/settings/google-drive",
             localizationTimePreview: "/api/settings/localization/time-preview",
             notificationsSecurity: "/api/settings/notifications-security",
             notificationsTest: "/api/settings/notifications/test",
@@ -79,6 +80,7 @@ export class SettingsClient {
                 templates: { message: "", intentClass: "text-primary-600" },
                 branding: { message: "", intentClass: "text-primary-600" },
                 localization: { message: "", intentClass: "text-primary-600" },
+                google_drive: { message: "", intentClass: "text-primary-600" },
                 notifications: { message: "", intentClass: "text-primary-600" },
                 documents: { message: "", intentClass: "text-primary-600" },
                 iku: { message: "", intentClass: "text-primary-600" },
@@ -96,6 +98,7 @@ export class SettingsClient {
                 templates: "",
                 branding: "",
                 localization: "",
+                google_drive: "",
                 notifications: "",
                 documents: "",
                 iku: "",
@@ -1082,6 +1085,14 @@ export class SettingsClient {
                         },
                     },
                 };
+            case "google_drive":
+                return {
+                    url: this.api.googleDrive,
+                    method: "PUT",
+                    body: {
+                        google_drive: this.clone(this.state.form.google_drive),
+                    },
+                };
             case "notifications":
                 return {
                     url: this.api.notificationsSecurity,
@@ -1260,6 +1271,15 @@ export class SettingsClient {
         if (!("export_filename_pattern" in form.retention)) {
             form.retention.export_filename_pattern = "";
         }
+        form.google_drive ??= {};
+        if (Array.isArray(form.google_drive) || typeof form.google_drive !== "object") {
+            form.google_drive = {};
+        }
+        form.google_drive.folder_id ??= "";
+        form.google_drive.uploads_folder_name ??= "LPMF LIMS Uploads";
+        form.google_drive.request_folder_mode ??= "month_suspect";
+        form.google_drive.use_suspect_name ??= true;
+        form.google_drive.uploader_user_id ??= "";
         form.notifications = this.mergeNotifications(
             form.notifications ?? form.automation ?? {},
         );

@@ -208,14 +208,6 @@
 
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label for="to_office" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Ditujukan Kepada <span class="text-red-500">*</span>
-                                </label>
-                                <input type="text" name="to_office" id="to_office" required
-                                       value="{{ old('to_office', $request->to_office) }}"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                            </div>
-                            <div>
                                 <label for="case_number" class="block text-sm font-medium text-gray-700 mb-2">
                                     Nomor Surat
                                 </label>
@@ -223,6 +215,17 @@
                                        value="{{ old('case_number', $request->case_number) }}"
                                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                                        placeholder="Contoh: S/123/IV/2025/RESKRIM">
+                            </div>
+                            <div>
+                                <label for="letter_date" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Tanggal Surat
+                                </label>
+                                <input type="date" name="letter_date" id="letter_date"
+                                       value="{{ old('letter_date', optional($request->letter_date)->format('Y-m-d')) }}"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('letter_date') border-red-500 @enderror">
+                                @error('letter_date')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
                             </div>
                         </div>
                     </div>
@@ -299,14 +302,13 @@
                             </div>
                             @endforeach
                         </div>
-                        <div class="mt-4">
-                            <label for="suspect_address" class="block text-sm font-medium text-gray-700 mb-2">Alamat Tersangka</label>
-                            <textarea name="suspect_address" id="suspect_address" rows="2"
-                                      class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500">{{ old('suspect_address', $request->suspect_address) }}</textarea>
-                        </div>
                     </div>
 
                     {{-- Step 4: Upload Dokumen --}}
+                    @php
+                        $expertWitnessDocument = $request->documents->where('document_type', 'expert_witness_request')->sortByDesc('id')->first();
+                        $hasExpertWitnessRequest = old('has_expert_witness_request', $request->has_expert_witness_request || $expertWitnessDocument ? '1' : '0') === '1';
+                    @endphp
                     <div id="step-documents" class="bg-gray-50 p-6 rounded-lg border border-gray-200 scroll-mt-24">
                         <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                             <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
@@ -383,6 +385,93 @@
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                             </div>
+
+                            <div class="md:col-span-2 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                                <fieldset>
+                                    <legend class="block text-sm font-medium text-gray-800 mb-3">
+                                        Apakah meliputi permintaan saksi ahli? <span class="text-red-500">*</span>
+                                    </legend>
+                                    <div class="flex flex-col gap-3 sm:flex-row sm:gap-6">
+                                        <label class="flex items-center gap-2 text-sm text-gray-700">
+                                            <input type="radio"
+                                                   name="has_expert_witness_request"
+                                                   value="1"
+                                                   {{ $hasExpertWitnessRequest ? 'checked' : '' }}
+                                                   class="h-4 w-4 border-gray-300 text-amber-600 focus:ring-amber-500">
+                                            <span>Ya, sertakan permintaan saksi ahli</span>
+                                        </label>
+                                        <label class="flex items-center gap-2 text-sm text-gray-700">
+                                            <input type="radio"
+                                                   name="has_expert_witness_request"
+                                                   value="0"
+                                                   {{ $hasExpertWitnessRequest ? '' : 'checked' }}
+                                                   class="h-4 w-4 border-gray-300 text-amber-600 focus:ring-amber-500">
+                                            <span>Tidak, lanjut tanpa dokumen saksi ahli</span>
+                                        </label>
+                                    </div>
+                                </fieldset>
+
+                                <div id="expert_witness_request_upload" class="mt-4 {{ $hasExpertWitnessRequest ? '' : 'hidden' }} space-y-4">
+                                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                        <div>
+                                            <label for="expert_witness_letter_number" class="block text-sm font-medium text-gray-700 mb-2">
+                                                Nomor Surat Saksi Ahli
+                                            </label>
+                                            <input type="text"
+                                                   name="expert_witness_letter_number"
+                                                   id="expert_witness_letter_number"
+                                                   value="{{ old('expert_witness_letter_number', $request->expert_witness_letter_number) }}"
+                                                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-amber-500 focus:border-amber-500 @error('expert_witness_letter_number') border-red-500 @enderror"
+                                                   placeholder="Contoh: B/123/IV/2026/Reskrim">
+                                            @error('expert_witness_letter_number')
+                                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+                                        <div>
+                                            <label for="expert_witness_letter_date" class="block text-sm font-medium text-gray-700 mb-2">
+                                                Tanggal Surat Saksi Ahli
+                                            </label>
+                                            <input type="date"
+                                                   name="expert_witness_letter_date"
+                                                   id="expert_witness_letter_date"
+                                                   value="{{ old('expert_witness_letter_date', optional($request->expert_witness_letter_date)->format('Y-m-d')) }}"
+                                                   class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-amber-500 focus:border-amber-500 @error('expert_witness_letter_date') border-red-500 @enderror">
+                                            @error('expert_witness_letter_date')
+                                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                            @enderror
+                                        </div>
+                                    </div>
+
+                                    @if($expertWitnessDocument)
+                                        <div class="mb-3 flex items-center rounded border border-amber-100 bg-white p-2 text-sm text-amber-800">
+                                            <svg class="mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                            <span class="flex-1 truncate">File permintaan saksi ahli saat ini tersimpan</span>
+                                            <a href="{{ route('requests.documents.download', [$request, 'expert_witness_request']) }}" target="_blank" class="ml-2 font-medium text-amber-700 hover:text-amber-900">Lihat</a>
+                                        </div>
+                                    @endif
+
+                                    <label for="expert_witness_request_file" class="block text-sm font-medium text-gray-700 mb-2">
+                                        {{ $expertWitnessDocument ? 'Ganti File Permintaan Saksi Ahli (PDF)' : 'File Permintaan Saksi Ahli (PDF)' }}
+                                    </label>
+                                    <div class="flex justify-center rounded-md border-2 border-dashed border-amber-300 bg-white px-6 pb-6 pt-5 transition-colors duration-200 hover:border-amber-400">
+                                        <div class="space-y-1 text-center">
+                                            <svg class="mx-auto h-10 w-10 text-amber-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                            </svg>
+                                            <div class="flex justify-center text-sm text-gray-600">
+                                                <label for="expert_witness_request_file" class="relative cursor-pointer rounded-md bg-white font-medium text-amber-700 hover:text-amber-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-amber-500 focus-within:ring-offset-2">
+                                                    <span>Upload file PDF</span>
+                                                    <input id="expert_witness_request_file" name="expert_witness_request_file" type="file" class="sr-only" accept=".pdf" {{ $expertWitnessDocument ? 'data-has-existing-document=1' : '' }}>
+                                                </label>
+                                            </div>
+                                            <p id="expert_witness_request_filename" class="text-xs text-gray-500">{{ $expertWitnessDocument ? 'Kosongkan jika tidak ingin mengganti file.' : 'PDF hingga 10MB' }}</p>
+                                        </div>
+                                    </div>
+                                    @error('expert_witness_request_file')
+                                        <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                    @enderror
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -407,30 +496,7 @@
  
                                      <input type="hidden" name="samples[{{ $index }}][id]" value="{{ $sample->id }}">
 
-                                     @php
-                                         $oldTestTypes = old('samples.' . $index . '.test_types');
-                                         if (is_string($oldTestTypes) && $oldTestTypes !== '') {
-                                             $oldTestTypes = [$oldTestTypes];
-                                         }
-
-                                         $persistedRaw = $sample->requested_test_methods;
-                                         if ($persistedRaw === null || $persistedRaw === '') {
-                                             $persistedRaw = $sample->test_methods;
-                                         }
-                                         $persistedTestTypes = [];
-                                         if (is_array($persistedRaw)) {
-                                             $persistedTestTypes = $persistedRaw;
-                                         } elseif (is_string($persistedRaw) && $persistedRaw !== '') {
-                                             $decoded = json_decode($persistedRaw, true);
-                                             if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                                                 $persistedTestTypes = $decoded;
-                                             }
-                                         }
-
-                                         $selectedTestTypes = is_array($oldTestTypes) ? $oldTestTypes : $persistedTestTypes;
-                                     @endphp
- 
-                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                          <div>
                                              <label class="block text-sm font-medium text-gray-700 mb-1">
                                                  Deskripsi Singkat <span class="text-red-500">*</span>
@@ -443,41 +509,6 @@
                                         </div>
 
                                           <div>
-                                              <label class="block text-sm font-medium text-gray-700 mb-1">
-                                                  Zat Aktif <span class="text-red-500">*</span>
-                                              </label>
-                                              <input type="text"
-                                                     name="samples[{{ $index }}][active_substance]"
-                                                     value="{{ old('samples.'.$index.'.active_substance', $sample->active_substance) }}"
-                                                     required
-                                                     class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                                          </div>
-
-                                          <div class="md:col-span-2">
-                                              <fieldset>
-                                                  <legend class="block text-sm font-medium text-gray-700 mb-1">
-                                                      Jenis Pengujian <span class="text-red-500">*</span>
-                                                  </legend>
-
-                                                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                                      <label class="flex items-center space-x-2 rounded-md border border-gray-200 px-3 py-2 bg-gray-50 hover:bg-gray-100">
-                                                          <input type="checkbox" name="samples[{{ $index }}][test_types][]" value="uv_vis" class="sample-test-type-checkbox" {{ in_array('uv_vis', $selectedTestTypes, true) ? 'checked' : '' }}>
-                                                          <span class="text-sm text-gray-700">Identifikasi Spektrofotometri UV-VIS</span>
-                                                      </label>
-                                                      <label class="flex items-center space-x-2 rounded-md border border-gray-200 px-3 py-2 bg-gray-50 hover:bg-gray-100">
-                                                          <input type="checkbox" name="samples[{{ $index }}][test_types][]" value="gc_ms" class="sample-test-type-checkbox" {{ in_array('gc_ms', $selectedTestTypes, true) ? 'checked' : '' }}>
-                                                          <span class="text-sm text-gray-700">Identifikasi GC-MS</span>
-                                                      </label>
-                                                      <label class="flex items-center space-x-2 rounded-md border border-gray-200 px-3 py-2 bg-gray-50 hover:bg-gray-100">
-                                                          <input type="checkbox" name="samples[{{ $index }}][test_types][]" value="lc_ms" class="sample-test-type-checkbox" {{ in_array('lc_ms', $selectedTestTypes, true) ? 'checked' : '' }}>
-                                                          <span class="text-sm text-gray-700">Identifikasi LC-MS</span>
-                                                      </label>
-                                                  </div>
-                                              </fieldset>
-                                              <p class="text-xs text-gray-500 mt-1">Pilih minimal satu jenis pengujian.</p>
-                                          </div>
- 
-                                         <div>
                                              <label class="block text-sm font-medium text-gray-700 mb-1">
                                                  Jumlah yang Diserahkan <span class="text-red-500">*</span>
                                              </label>
@@ -655,49 +686,16 @@
                  </div>
  
                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                     <div>
-                         <label class="block text-sm font-medium text-gray-700 mb-1">
-                             Deskripsi Singkat <span class="text-red-500">*</span>
-                         </label>
-                         <input type="text"
-                                name="samples[${sampleIndex}][short_description]"
-                                required
-                                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                     </div>
- 
-                      <div>
+                      <div class="md:col-span-2">
                           <label class="block text-sm font-medium text-gray-700 mb-1">
-                              Zat Aktif <span class="text-red-500">*</span>
+                              Deskripsi Singkat <span class="text-red-500">*</span>
                           </label>
                           <input type="text"
-                                 name="samples[${sampleIndex}][active_substance]"
+                                 name="samples[${sampleIndex}][short_description]"
                                  required
                                  class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                      </div>
+                     </div>
 
-                      <div class="md:col-span-2">
-                          <fieldset>
-                              <legend class="block text-sm font-medium text-gray-700 mb-1">
-                                  Jenis Pengujian <span class="text-red-500">*</span>
-                              </legend>
-                              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                                  <label class="flex items-center space-x-2 rounded-md border border-gray-200 px-3 py-2 bg-gray-50 hover:bg-gray-100">
-                                      <input type="checkbox" name="samples[${sampleIndex}][test_types][]" value="uv_vis" class="sample-test-type-checkbox">
-                                      <span class="text-sm text-gray-700">Identifikasi Spektrofotometri UV-VIS</span>
-                                  </label>
-                                  <label class="flex items-center space-x-2 rounded-md border border-gray-200 px-3 py-2 bg-gray-50 hover:bg-gray-100">
-                                      <input type="checkbox" name="samples[${sampleIndex}][test_types][]" value="gc_ms" class="sample-test-type-checkbox">
-                                      <span class="text-sm text-gray-700">Identifikasi GC-MS</span>
-                                  </label>
-                                  <label class="flex items-center space-x-2 rounded-md border border-gray-200 px-3 py-2 bg-gray-50 hover:bg-gray-100">
-                                      <input type="checkbox" name="samples[${sampleIndex}][test_types][]" value="lc_ms" class="sample-test-type-checkbox">
-                                      <span class="text-sm text-gray-700">Identifikasi LC-MS</span>
-                                  </label>
-                              </div>
-                          </fieldset>
-                          <p class="text-xs text-gray-500 mt-1">Pilih minimal satu jenis pengujian.</p>
-                      </div>
- 
                      <div>
                          <label class="block text-sm font-medium text-gray-700 mb-1">
                              Jumlah yang Diserahkan <span class="text-red-500">*</span>

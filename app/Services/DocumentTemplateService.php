@@ -106,7 +106,8 @@ class DocumentTemplateService
             // Request/General
             'request_number',
             'case_number',
-            'to_office',
+            'expert_witness_letter_number',
+            'expert_witness_letter_date',
             'generated_at',
 
             // Investigator

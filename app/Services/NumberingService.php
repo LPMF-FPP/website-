@@ -363,10 +363,37 @@ class NumberingService
         }
 
         // Return safe defaults
-        return [
-            'pattern' => '{YYYY}-{MM}-{DD}-{SEQ:4}',
-            'reset' => 'never',
-            'start_from' => 1,
-        ];
+        return match ($scope) {
+            'sample_code' => [
+                'pattern' => 'W{SEQ:3}{RM}{YYYY}',
+                'reset' => 'yearly',
+                'start_from' => 1,
+            ],
+            'ba' => [
+                'pattern' => 'BA/{YYYY}/{MM}/{SEQ:4}',
+                'reset' => 'monthly',
+                'start_from' => 1,
+            ],
+            'tracking' => [
+                'pattern' => 'LPMF{SEQ:3}{MM}{YY}',
+                'reset' => 'monthly',
+                'start_from' => 1,
+            ],
+            'lhu' => [
+                'pattern' => 'LHU-{YYYY}-{SEQ:4}',
+                'reset' => 'yearly',
+                'start_from' => 1,
+            ],
+            'ba_penyerahan' => [
+                'pattern' => 'LPMF/BA/{SEQ:3}/Rah/{YYYY}',
+                'reset' => 'yearly',
+                'start_from' => 1,
+            ],
+            default => [
+                'pattern' => '{YYYY}-{MM}-{DD}-{SEQ:4}',
+                'reset' => 'never',
+                'start_from' => 1,
+            ],
+        };
     }
 }

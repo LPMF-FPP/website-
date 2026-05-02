@@ -43,8 +43,9 @@ Thumbs.db
 /.vscode/*
 !/.vscode/settings.json
 /.zed
-# Keep IDE helper files (generated but useful for team)
-# _ide_helper.php and .phpstorm.meta.php are tracked
+# IDE helper files (auto-generated, regenerate with: php artisan ide-helper:generate)
+_ide_helper.php
+.phpstorm.meta.php
 /storage/framework/views/*.php
 /storage/framework/views/*.blade.php
 

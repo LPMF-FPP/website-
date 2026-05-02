@@ -146,4 +146,46 @@ class DeliveryShowLhuTest extends TestCase
         $response->assertDontSee('Buka PDF');
         $response->assertDontSee('Laporan Hasil Uji', false);
     }
+
+    public function test_delivery_show_displays_request_and_expert_witness_letter_details(): void
+    {
+        $this->seed(SystemSettingSeeder::class);
+        settings_fake(['notifications.whatsapp.enabled' => false]);
+        settings_forget_cache();
+
+        Queue::fake();
+
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $request = TestRequest::factory()->create([
+            'user_id' => $user->id,
+            'status' => 'ready_for_delivery',
+            'case_number' => 'B/123/V/2026/Reskrim',
+            'letter_date' => '2026-05-08',
+            'has_expert_witness_request' => true,
+            'expert_witness_letter_number' => 'SAHLI/456/V/2026',
+            'expert_witness_letter_date' => '2026-05-09',
+        ]);
+
+        Sample::factory()->create([
+            'test_request_id' => $request->id,
+            'status' => 'ready_for_delivery',
+            'package_quantity' => 0,
+            'quantity' => 0,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->get(route('delivery.show', $request));
+
+        $response->assertOk();
+        $response->assertSee('Dokumen Permintaan');
+        $response->assertSee('Nomor Surat Permintaan');
+        $response->assertSee('B/123/V/2026/Reskrim');
+        $response->assertSee('Tanggal Surat Permintaan');
+        $response->assertSee('08 Mei 2026');
+        $response->assertSee('Surat Saksi Ahli');
+        $response->assertSee('SAHLI/456/V/2026');
+        $response->assertSee('09 Mei 2026');
+    }
 }

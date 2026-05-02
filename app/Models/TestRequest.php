@@ -16,11 +16,12 @@ class TestRequest extends Model
 
     protected $fillable = [
 
-        'request_number', 'receipt_number', 'investigator_id', 'user_id', 'to_office', 'suspect_name',
+        'request_number', 'receipt_number', 'investigator_id', 'user_id', 'suspect_name',
 
-        'suspect_gender', 'suspect_age', 'suspect_address', 'case_number', 'case_description', 'incident_date',
+        'suspect_gender', 'suspect_age', 'suspect_address', 'case_number', 'letter_date', 'case_description', 'incident_date',
 
         'incident_location', 'status', 'official_letter_path', 'evidence_photo_path',
+        'has_expert_witness_request', 'expert_witness_letter_number', 'expert_witness_letter_date',
 
         'submitted_at', 'verified_at', 'received_at', 'completed_at',
         'ready_for_delivery_at',
@@ -31,6 +32,9 @@ class TestRequest extends Model
     protected $casts = [
 
         'incident_date' => 'date',
+        'letter_date' => 'date',
+        'expert_witness_letter_date' => 'date',
+        'has_expert_witness_request' => 'boolean',
 
         'suspect_age' => 'integer',
 
@@ -58,7 +62,7 @@ class TestRequest extends Model
             // NumberingService::issue() uses lockForUpdate() which guarantees uniqueness
             // DO NOT use retry loops - they cause sequence gaps when transactions fail
             if (! $model->request_number) {
-                $model->request_number = $numbering->issue('ba', [
+                $model->request_number = self::issueUniqueNumber($numbering, 'ba', 'request_number', [
                     'investigator_id' => $model->investigator_id ?? null,
                 ]);
             }
@@ -66,7 +70,7 @@ class TestRequest extends Model
             // Generate receipt/tracking number (nomor resi)
             // Same principle - single call, no retry needed
             if (! $model->receipt_number) {
-                $model->receipt_number = $numbering->issue('tracking', [
+                $model->receipt_number = self::issueUniqueNumber($numbering, 'tracking', 'receipt_number', [
                     'investigator_id' => $model->investigator_id ?? null,
                 ]);
             }
@@ -110,6 +114,19 @@ class TestRequest extends Model
 
         static::saved($clear);
 
+    }
+
+    private static function issueUniqueNumber(\App\Services\NumberingService $numbering, string $scope, string $column, array $context): string
+    {
+        for ($attempt = 0; $attempt < 100; $attempt++) {
+            $number = $numbering->issue($scope, $context);
+
+            if (! self::query()->where($column, $number)->exists()) {
+                return $number;
+            }
+        }
+
+        throw new \RuntimeException("Gagal menerbitkan nomor unik untuk {$column}.");
     }
 
     public function investigator(): BelongsTo

@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\Settings\BrandingController;
 use App\Http\Controllers\Api\Settings\DocumentMaintenanceController;
 use App\Http\Controllers\Api\Settings\DocumentTemplateController;
 use App\Http\Controllers\Api\Settings\EmergencyBackupController;
+use App\Http\Controllers\Api\Settings\GoogleDriveSettingsController;
 use App\Http\Controllers\Api\Settings\IkuSettingsController;
 use App\Http\Controllers\Api\Settings\LocalizationRetentionController;
 use App\Http\Controllers\Api\Settings\NotificationsController;
@@ -250,6 +251,7 @@ Route::middleware(['throttle:120,1'])->group(function () {
 
         Route::put('/localization-retention', [LocalizationRetentionController::class, 'update']);
         Route::get('/localization/time-preview', [SettingsLocalizationController::class, 'timePreview']);
+        Route::put('/google-drive', [GoogleDriveSettingsController::class, 'update']);
         Route::put('/notifications-security', [NotificationsController::class, 'update']);
         Route::post('/notifications/test', [NotificationsController::class, 'test']);
         Route::get('/documents', [DocumentMaintenanceController::class, 'index']);
@@ -384,7 +386,7 @@ Route::middleware(['throttle:120,1'])->group(function () {
             'customer_rank_name' => $request->investigator->rank.' '.$request->investigator->name,
             'customer_no' => $request->investigator->nrp ?? '',
             'unit' => $request->investigator->jurisdiction ?? '',
-            'addressed_to' => $request->to_office ?? 'Kepala Sub Satker Farmapol Pusdokkes Polri',
+            'addressed_to' => 'Kepala Sub Satker Farmapol Pusdokkes Polri',
             'tests_summary' => $request->samples->map(fn ($s) => $formatTestMethods($s->test_methods))->unique()->join('; '),
             'sample_count' => $request->samples->count(),
             'samples' => $request->samples->map(function ($sample) use ($formatTestMethods) {

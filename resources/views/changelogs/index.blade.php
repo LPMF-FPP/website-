@@ -4,7 +4,7 @@
             <x-breadcrumbs :items="[['label' => 'Beranda', 'href' => route('dashboard')], ['label' => 'Changelogs']]" />
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 class="text-2xl font-semibold text-primary-900 tracking-tight">System Changelogs</h1>
+                    <h1 class="text-2xl font-semibold text-primary-900 tracking-tight">Riwayat Perubahan Sistem</h1>
                     <p class="text-sm text-accent-600">Riwayat pembaruan dan evolusi sistem LPMF LIMS</p>
                 </div>
                 
@@ -18,7 +18,7 @@
                     <input 
                         type="text" 
                         x-model="search"
-                        placeholder="Filter by version or keyword..." 
+                        placeholder="Cari versi atau kata kunci..."
                         class="pl-10 w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring focus:ring-primary-200 focus:ring-opacity-50 text-sm shadow-sm"
                     >
                 </div>
@@ -147,7 +147,7 @@
                                         </div>
                                     <template x-if="index === 0 && !search">
                                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-bold bg-primary-50 text-primary-700 border border-primary-100">
-                                            LATEST RELEASE
+                                            RILIS TERBARU
                                         </span>
                                     </template>
                                     </div>
@@ -167,7 +167,7 @@
                                 </div>
                                 <template x-if="log.is_archived">
                                     <div class="bg-gray-50 px-6 py-2 text-xs text-gray-500 border-t border-gray-100 text-center uppercase tracking-widest font-semibold">
-                                        Archived
+                                        Arsip
                                     </div>
                                 </template>
                             </div>
@@ -182,8 +182,8 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                         </svg>
                     </div>
-                    <h3 class="text-lg font-medium text-gray-900">No versions found</h3>
-                    <p class="text-gray-500 mt-1">Try adjusting your search filters.</p>
+                    <h3 class="text-lg font-medium text-gray-900">Tidak ada versi ditemukan</h3>
+                    <p class="text-gray-500 mt-1">Coba ubah kata kunci pencarian Anda.</p>
                 </div>
             </div>
         </div>

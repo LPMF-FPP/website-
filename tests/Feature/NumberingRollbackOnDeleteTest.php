@@ -42,7 +42,6 @@ class NumberingRollbackOnDeleteTest extends TestCase
             'suspect_name' => 'John Doe',
             'suspect_gender' => 'male',
             'suspect_age' => 30,
-            'to_office' => 'Kejaksaan',
             'case_description' => 'Test Case',
         ]);
 
@@ -77,7 +76,6 @@ class NumberingRollbackOnDeleteTest extends TestCase
             'suspect_name' => 'John Doe 1',
             'suspect_gender' => 'male',
             'suspect_age' => 30,
-            'to_office' => 'Kejaksaan',
             'case_description' => 'Test Case 1',
         ]);
 
@@ -88,7 +86,6 @@ class NumberingRollbackOnDeleteTest extends TestCase
             'suspect_name' => 'John Doe 2',
             'suspect_gender' => 'male',
             'suspect_age' => 30,
-            'to_office' => 'Kejaksaan',
             'case_description' => 'Test Case 2',
         ]);
 
@@ -115,7 +112,6 @@ class NumberingRollbackOnDeleteTest extends TestCase
             'suspect_name' => 'John Doe',
             'suspect_gender' => 'male',
             'suspect_age' => 30,
-            'to_office' => 'Kejaksaan',
             'case_description' => 'Test Case',
         ]);
 
@@ -150,7 +146,6 @@ class NumberingRollbackOnDeleteTest extends TestCase
             'suspect_name' => 'John Doe',
             'suspect_gender' => 'male',
             'suspect_age' => 30,
-            'to_office' => 'Kejaksaan',
             'case_description' => 'Test Case',
         ]);
 

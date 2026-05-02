@@ -34,7 +34,6 @@ class RequestUpdateSampleCodeCompactionTest extends TestCase
     {
         return [
             'case_number' => 'CASE-COMPACT',
-            'to_office' => 'Pusdokkes Polri',
             'suspect_address' => 'Somewhere',
             'investigator_rank' => $investigator->rank,
             'investigator_name' => $investigator->name,

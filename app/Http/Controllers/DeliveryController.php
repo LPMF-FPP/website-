@@ -710,7 +710,7 @@ class DeliveryController extends Controller
         ])->render();
 
         // arsip HTML (replace existing to avoid duplication)
-        $docs->storeGenerated($html, 'html', $inv, $req, 'ba_penyerahan_html', $base, replaceExisting: true);
+        $docs->storeGenerated($html, 'html', $inv, $req, 'ba_penyerahan_html', $base, replaceExisting: true, syncUser: request()->user());
 
         // HTML → PDF
         $pdf = Pdf::loadHTML($html)->setPaper('a4')
@@ -718,7 +718,7 @@ class DeliveryController extends Controller
             ->setOption('dpi', 96)->output();
 
         // arsip PDF (replace existing to avoid duplication)
-        $docs->storeGenerated($pdf, 'pdf', $inv, $req, 'ba_penyerahan', $base, replaceExisting: true);
+        $docs->storeGenerated($pdf, 'pdf', $inv, $req, 'ba_penyerahan', $base, replaceExisting: true, syncUser: request()->user());
 
         return back()->with('success', 'BA Penyerahan dibuat & disimpan di storage publik.');
     }

@@ -51,7 +51,6 @@ class BeritaAcaraPenerimaanTest extends TestCase
             'investigator_id' => $this->investigator->id,
             'user_id' => $this->user->id,
             'case_number' => 'BP/001/2025',
-            'to_office' => 'Pusdokkes Polri',
         ]);
 
         // Create some samples
@@ -263,7 +262,6 @@ class BeritaAcaraPenerimaanTest extends TestCase
             'investigator_id' => $this->investigator->id,
             'user_id' => $receiverUser->id,
             'case_number' => 'BP/009/2025',
-            'to_office' => 'Pusdokkes Polri',
         ]);
 
         Sample::factory()->create([

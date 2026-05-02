@@ -580,6 +580,36 @@
                             <div class="font-medium text-gray-900 mt-0.5">{{ $request->suspect_name ?? '-' }}</div>
                         </div>
 
+                        <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+                            <div class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Dokumen Permintaan</div>
+                            <div class="space-y-3">
+                                <div>
+                                    <div class="text-[11px] uppercase tracking-wide text-slate-400">Nomor Surat Permintaan</div>
+                                    <div class="mt-0.5 font-medium text-slate-900">{{ $request->case_number ?? '-' }}</div>
+                                </div>
+                                <div>
+                                    <div class="text-[11px] uppercase tracking-wide text-slate-400">Tanggal Surat Permintaan</div>
+                                    <div class="mt-0.5 text-slate-900">{{ $request->letter_date?->locale('id')->translatedFormat('d F Y') ?? '-' }}</div>
+                                </div>
+
+                                @if($request->has_expert_witness_request || $request->expert_witness_letter_number || $request->expert_witness_letter_date)
+                                    <div class="border-t border-slate-200 pt-3">
+                                        <div class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Surat Saksi Ahli</div>
+                                        <div class="space-y-2">
+                                            <div>
+                                                <div class="text-[11px] uppercase tracking-wide text-slate-400">Nomor Surat Saksi Ahli</div>
+                                                <div class="mt-0.5 font-medium text-slate-900">{{ $request->expert_witness_letter_number ?? '-' }}</div>
+                                            </div>
+                                            <div>
+                                                <div class="text-[11px] uppercase tracking-wide text-slate-400">Tanggal Surat Saksi Ahli</div>
+                                                <div class="mt-0.5 text-slate-900">{{ $request->expert_witness_letter_date?->locale('id')->translatedFormat('d F Y') ?? '-' }}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+
                         <div>
                             <div class="text-xs text-gray-500 uppercase tracking-wide">Tanggal Selesai</div>
                             <div class="text-gray-900 mt-0.5">{{ $request->completed_at ? $request->completed_at->format('d M Y H:i') : '-' }}</div>

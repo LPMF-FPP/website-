@@ -6,6 +6,7 @@
 document.addEventListener("DOMContentLoaded", () => {
     initInvestigatorToggle();
     initSuspectRows();
+    initExpertWitnessRequestToggle();
 });
 
 /**
@@ -205,9 +206,75 @@ function updateRemoveButtons() {
     });
 }
 
+function initExpertWitnessRequestToggle() {
+    const radios = document.querySelectorAll(
+        'input[name="has_expert_witness_request"]',
+    );
+    const uploadBlock = document.getElementById("expert_witness_request_upload");
+    const fileInput = document.getElementById("expert_witness_request_file");
+    const letterNumberInput = document.getElementById(
+        "expert_witness_letter_number",
+    );
+    const letterDateInput = document.getElementById("expert_witness_letter_date");
+    const filenameDisplay = document.getElementById(
+        "expert_witness_request_filename",
+    );
+
+    if (!uploadBlock || !fileInput || radios.length === 0) {
+        return;
+    }
+
+    function updateVisibility() {
+        const shouldUpload =
+            document.querySelector(
+                'input[name="has_expert_witness_request"]:checked',
+            )?.value === "1";
+
+        uploadBlock.classList.toggle("hidden", !shouldUpload);
+        fileInput.required = shouldUpload && !fileInput.dataset.hasExistingDocument;
+
+        [letterNumberInput, letterDateInput].forEach((input) => {
+            if (input) {
+                input.required = shouldUpload;
+                input.disabled = !shouldUpload;
+            }
+        });
+
+        if (!shouldUpload) {
+            fileInput.value = "";
+            if (letterNumberInput) {
+                letterNumberInput.value = "";
+            }
+            if (letterDateInput) {
+                letterDateInput.value = "";
+            }
+            if (filenameDisplay) {
+                filenameDisplay.textContent = "PDF hingga 10MB";
+            }
+        }
+    }
+
+    radios.forEach((radio) => {
+        radio.addEventListener("change", updateVisibility);
+    });
+
+    fileInput.addEventListener("change", () => {
+        if (!filenameDisplay || !fileInput.files?.[0]) {
+            return;
+        }
+
+        const file = fileInput.files[0];
+        const fileSize = (file.size / (1024 * 1024)).toFixed(2);
+        filenameDisplay.textContent = `${file.name} (${fileSize} MB)`;
+    });
+
+    updateVisibility();
+}
+
 // Export for use in inline scripts if needed
 window.RequestsForm = {
     addSuspectRow,
     reindexSuspects,
     updateRemoveButtons,
+    initExpertWitnessRequestToggle,
 };

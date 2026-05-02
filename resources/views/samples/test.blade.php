@@ -234,6 +234,7 @@
 
                                         $selectedQuantity = old("samples.$sampleIndex.quantity", $sample->quantity);
                                         $selectedBatchNumber = old("samples.$sampleIndex.batch_number", $sample->batch_number);
+                                        $selectedActiveSubstance = old("samples.$sampleIndex.active_substance", $sample->active_substance);
                                         $selectedTestType = old("samples.$sampleIndex.test_type", $sample->test_type);
                                         $selectedNotes = old("samples.$sampleIndex.notes", $sample->notes);
                                         $resolvedMethods = array_values(array_unique(array_filter(array_merge($requestedMethods, $optionalSelectedMethods))));
@@ -241,6 +242,7 @@
                                         $isSampleComplete =
                                             $selectedAnalystId > 0 &&
                                             count($resolvedMethods) > 0 &&
+                                            filled($selectedActiveSubstance) &&
                                             filled($physicalIdentificationValue) &&
                                             is_numeric($selectedQuantity) &&
                                             (float) $selectedQuantity > 0 &&
@@ -409,6 +411,26 @@
 
                                                 @error("samples.$sampleIndex.test_methods")
                                                     <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                                                @enderror
+                                            </div>
+
+                                            <div class="md:col-span-2">
+                                                <label class="block text-sm font-medium text-gray-700" for="sample-{{ $sample->id }}-active-substance">Zat Aktif</label>
+                                                <input
+                                                    id="sample-{{ $sample->id }}-active-substance"
+                                                    type="text"
+                                                    name="samples[{{ $sampleIndex }}][active_substance]"
+                                                    value="{{ $selectedActiveSubstance }}"
+                                                    list="active_substance_list"
+                                                    required
+                                                    data-validate="active-substance"
+                                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                                    placeholder="Pilih atau ketik zat aktif hasil kaji ulang"
+                                                    autocomplete="off"
+                                                >
+                                                <p class="mt-1 text-xs text-gray-500">Diisi saat kaji ulang karena merupakan keputusan teknis pengujian.</p>
+                                                @error("samples.$sampleIndex.active_substance")
+                                                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                                                 @enderror
                                             </div>
 
@@ -645,6 +667,12 @@
 
         <div id="review-feedback" class="sr-only" aria-live="polite"></div>
 
+        <datalist id="active_substance_list">
+            @foreach($existingActiveSubstances as $substance)
+                <option value="{{ $substance }}">
+            @endforeach
+        </datalist>
+
         <div
             id="review-loading-state"
             class="fixed inset-0 z-50 hidden items-center justify-center bg-white/60 backdrop-blur-sm"
@@ -765,6 +793,7 @@
                     }
 
                     const analyst = panel.querySelector('[data-validate="analyst"]');
+                    const activeSubstance = panel.querySelector('[data-validate="active-substance"]');
                     const physical = panel.querySelector('[data-validate="physical-identification"]');
                     const quantity = panel.querySelector('[data-validate="quantity"]');
                     const batch = panel.querySelector('[data-validate="batch-number"]');
@@ -783,6 +812,7 @@
                     const isComplete =
                         analyst instanceof HTMLSelectElement && analyst.value !== '' &&
                         hasMethods &&
+                        activeSubstance instanceof HTMLInputElement && activeSubstance.value.trim() !== '' &&
                         physical instanceof HTMLInputElement && physical.value.trim() !== '' &&
                         Number.isFinite(quantityValue) && quantityValue > 0 &&
                         batch instanceof HTMLInputElement && batch.value.trim() !== '' &&

@@ -36,7 +36,6 @@ class SamplePhotoUploadTest extends TestCase
             'investigator_jurisdiction' => 'Polda Jawa Tengah',
             'investigator_phone' => '081234567890',
             'investigator_email' => 'eko@polri.go.id',
-            'to_office' => 'Pusdokkes Polri',
             'case_number' => 'BP/999/2025',
             'suspect_name' => 'Tersangka Test',
             'suspect_gender' => 'male',
@@ -123,7 +122,6 @@ class SamplePhotoUploadTest extends TestCase
             'investigator_rank' => 'AKP',
             'investigator_jurisdiction' => 'Polres Bandung',
             'investigator_phone' => '082345678901',
-            'to_office' => 'Pusdokkes Polri',
             'suspect_name' => 'Tersangka Test 2',
             'samples' => [
                 [
@@ -170,7 +168,6 @@ class SamplePhotoUploadTest extends TestCase
             'investigator_rank' => 'IPDA',
             'investigator_jurisdiction' => 'Polda DIY',
             'investigator_phone' => '083456789012',
-            'to_office' => 'Pusdokkes Polri',
             'suspect_name' => 'Tersangka Test 3',
             'samples' => [
                 [
@@ -269,7 +266,6 @@ class SamplePhotoUploadTest extends TestCase
             'investigator_rank' => 'IPTU',
             'investigator_jurisdiction' => 'Polda Test',
             'investigator_phone' => '084567890123',
-            'to_office' => 'Pusdokkes Polri',
             'suspect_name' => 'Test Suspect',
             'suspect_gender' => 'male',
             'samples' => [

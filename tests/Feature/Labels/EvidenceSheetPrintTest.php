@@ -43,6 +43,7 @@ class EvidenceSheetPrintTest extends TestCase
 
         $mockPdf = \Mockery::mock(\Barryvdh\DomPDF\PDF::class);
         $mockPdf->shouldReceive('setPaper')->andReturnSelf();
+        $mockPdf->shouldReceive('output')->andReturn('pdf-content');
         $mockPdf->shouldReceive('stream')->andReturn(response('pdf-content', 200, ['Content-Type' => 'application/pdf']));
 
         Pdf::shouldReceive('loadView')
@@ -96,6 +97,7 @@ class EvidenceSheetPrintTest extends TestCase
 
         $mockPdf = \Mockery::mock(\Barryvdh\DomPDF\PDF::class);
         $mockPdf->shouldReceive('setPaper')->andReturnSelf();
+        $mockPdf->shouldReceive('output')->andReturn('pdf-content');
         $mockPdf->shouldReceive('stream')->andReturn(response('pdf-content', 200, ['Content-Type' => 'application/pdf']));
 
         Pdf::shouldReceive('loadView')
@@ -146,6 +148,7 @@ class EvidenceSheetPrintTest extends TestCase
 
         $mockPdf = \Mockery::mock(\Barryvdh\DomPDF\PDF::class);
         $mockPdf->shouldReceive('setPaper')->andReturnSelf();
+        $mockPdf->shouldReceive('output')->andReturn('pdf-content');
         $mockPdf->shouldReceive('stream')->andReturn(response('pdf-content', 200, ['Content-Type' => 'application/pdf']));
 
         Pdf::shouldReceive('loadView')

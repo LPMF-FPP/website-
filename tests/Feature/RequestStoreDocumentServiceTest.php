@@ -4,8 +4,10 @@ namespace Tests\Feature;
 
 use App\Models\Document;
 use App\Models\Investigator;
+use App\Models\Sequence;
 use App\Models\TestRequest;
 use App\Models\User;
+use App\Services\NumberingService;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -36,8 +38,8 @@ class RequestStoreDocumentServiceTest extends TestCase
             'investigator_jurisdiction' => 'Polda Metro Jaya',
             'investigator_phone' => '081234567890',
             'investigator_email' => 'andri@polri.go.id',
-            'to_office' => 'Pusdokkes Polri',
             'case_number' => 'BP/001/2025',
+            'letter_date' => '2026-04-30',
             'suspects' => [
                 [
                     'name' => 'Test Suspect',
@@ -80,6 +82,7 @@ class RequestStoreDocumentServiceTest extends TestCase
         // Assert: TestRequest was created
         $testRequest = TestRequest::where('investigator_id', $investigator->id)->first();
         $this->assertNotNull($testRequest);
+        $this->assertSame('2026-04-30', $testRequest->letter_date?->format('Y-m-d'));
 
         // Assert: Documents were created in documents table
         $letterDoc = Document::where('test_request_id', $testRequest->id)
@@ -130,7 +133,6 @@ class RequestStoreDocumentServiceTest extends TestCase
             'investigator_rank' => 'IPDA',
             'investigator_jurisdiction' => 'Polres Jakarta Pusat',
             'investigator_phone' => '082345678901',
-            'to_office' => 'Pusdokkes Polri',
             'suspects' => [
                 [
                     'name' => 'Test Suspect 2',
@@ -178,6 +180,74 @@ class RequestStoreDocumentServiceTest extends TestCase
         $this->assertNull($testRequest->evidence_photo_path);
     }
 
+    public function test_request_store_skips_stale_duplicate_request_and_receipt_numbers(): void
+    {
+        /** @var NumberingService $numbering */
+        $numbering = app(NumberingService::class);
+        $duplicateRequestNumber = $numbering->preview('ba', [], 1);
+        $duplicateReceiptNumber = $numbering->preview('tracking', [], 1);
+
+        $existingInvestigator = Investigator::factory()->create();
+        $existingDuplicate = TestRequest::query()
+            ->where('request_number', $duplicateRequestNumber)
+            ->orWhere('receipt_number', $duplicateReceiptNumber)
+            ->first();
+
+        if ($existingDuplicate) {
+            TestRequest::withoutEvents(fn () => $existingDuplicate->forceFill([
+                'request_number' => $duplicateRequestNumber,
+                'receipt_number' => $duplicateReceiptNumber,
+            ])->save());
+        } else {
+            TestRequest::withoutEvents(fn () => TestRequest::factory()->create([
+                'investigator_id' => $existingInvestigator->id,
+                'request_number' => $duplicateRequestNumber,
+                'receipt_number' => $duplicateReceiptNumber,
+            ]));
+        }
+
+        Sequence::query()->whereIn('scope', ['ba', 'tracking'])->delete();
+
+        $requestData = [
+            'is_investigator' => true,
+            'investigator_nrp' => '88112233',
+            'investigator_name' => 'Penyidik Nomor Stale',
+            'investigator_rank' => 'BRIPTU',
+            'investigator_jurisdiction' => 'Polres Nomor Stale',
+            'investigator_phone' => '081234567890',
+            'case_number' => 'BP/STALE/2026',
+            'letter_date' => '2026-05-01',
+            'suspects' => [
+                [
+                    'name' => 'Tersangka Nomor Stale',
+                    'gender' => 'male',
+                    'age' => 31,
+                ],
+            ],
+            'samples' => [
+                [
+                    'short_description' => 'Sampel nomor stale',
+                    'package_quantity' => 1,
+                    'unit' => 'tablet',
+                ],
+            ],
+            'request_letter' => UploadedFile::fake()->create('surat-stale.pdf', 50, 'application/pdf'),
+        ];
+
+        $response = $this->actingAs($this->user)
+            ->post(route('requests.store'), $requestData);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('success');
+
+        $storedRequest = TestRequest::query()
+            ->where('case_number', 'BP/STALE/2026')
+            ->firstOrFail();
+
+        $this->assertNotSame($duplicateRequestNumber, $storedRequest->request_number);
+        $this->assertNotSame($duplicateReceiptNumber, $storedRequest->receipt_number);
+    }
+
     public function test_investigator_folder_key_is_generated_if_empty(): void
     {
         // Arrange: Create investigator without folder_key
@@ -202,7 +272,6 @@ class RequestStoreDocumentServiceTest extends TestCase
             'investigator_rank' => 'IPTU',
             'investigator_jurisdiction' => 'Test Jurisdiction',
             'investigator_phone' => '083456789012',
-            'to_office' => 'Pusdokkes Polri',
             'suspects' => [
                 [
                     'name' => 'Test Suspect 3',
