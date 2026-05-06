@@ -137,7 +137,7 @@ class QmhRevisionDownloadServiceTest extends TestCase
         $service = new QmhRevisionDownloadService;
         $html = $service->buildWatermarkedHtml($revision, 'SALINAN TERKENDALI');
 
-        $this->assertStringContainsString('class="fr-minimal-header"', $html);
+        $this->assertStringContainsString('class="form-table"', $html);
         $this->assertStringNotContainsString('No. Dokumen', $html);
         $this->assertStringNotContainsString('<table class="risk-matrix-table">', $html);
     }
@@ -213,7 +213,7 @@ class QmhRevisionDownloadServiceTest extends TestCase
         $service = new QmhRevisionDownloadService;
         $html = $service->buildWatermarkedHtml($revision, 'SALINAN TERKENDALI');
 
-        $this->assertStringContainsString('class="fr-minimal-header"', $html);
+        $this->assertStringContainsString('class="form-table"', $html);
         $this->assertStringNotContainsString('No. Dokumen', $html);
         $this->assertStringNotContainsString('data:text/plain', $html);
     }
