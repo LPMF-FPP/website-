@@ -63,7 +63,8 @@ class QmhTemplateResolutionByClauseProfileTest extends TestCase
             ->assertJsonCount(1, 'data')
             ->assertJsonPath('data.0.name', 'FR Clause 7 Risk')
             ->assertJsonPath('data.0.clause', 7)
-            ->assertJsonPath('data.0.layout_profile', 'risk_matrix');
+            ->assertJsonPath('data.0.layout_profile', 'table')
+            ->assertJsonPath('data.0.layout_profile_runtime', 'risk_matrix');
     }
 
     public function test_it_resolves_fallback_template_when_approved_for_document(): void
