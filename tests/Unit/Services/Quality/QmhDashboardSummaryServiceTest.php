@@ -26,9 +26,11 @@ class QmhDashboardSummaryServiceTest extends TestCase
             'doc_type' => 'sop',
             'owner_label' => 'Laboratorium',
             'is_active' => true,
+        ]);
+        $document->forceFill([
             'created_at' => '2026-02-10 08:00:00',
             'updated_at' => '2026-02-10 08:00:00',
-        ]);
+        ])->save();
 
         $currentRevision = QmhDocumentRevision::query()->create([
             'document_id' => $document->id,
