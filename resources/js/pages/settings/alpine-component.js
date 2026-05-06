@@ -107,6 +107,7 @@ export function registerSettingsComponent() {
         // Initialize client immediately to prevent "client is not defined" errors
         const client = new SettingsClient({
             templates: initialTemplates,
+            options: optionValues,
             initialManageRoles,
             initialIssueRoles,
         });

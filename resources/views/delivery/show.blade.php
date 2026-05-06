@@ -582,6 +582,10 @@
 
                         <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
                             <div class="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">Dokumen Permintaan</div>
+                            @php
+                                $requestLetterDate = $request->letter_date ?? $request->created_at;
+                            @endphp
+
                             <div class="space-y-3">
                                 <div>
                                     <div class="text-[11px] uppercase tracking-wide text-slate-400">Nomor Surat Permintaan</div>
@@ -589,7 +593,7 @@
                                 </div>
                                 <div>
                                     <div class="text-[11px] uppercase tracking-wide text-slate-400">Tanggal Surat Permintaan</div>
-                                    <div class="mt-0.5 text-slate-900">{{ $request->letter_date?->locale('id')->translatedFormat('d F Y') ?? '-' }}</div>
+                                    <div class="mt-0.5 text-slate-900">{{ $requestLetterDate?->locale('id')->translatedFormat('d F Y') ?? '-' }}</div>
                                 </div>
 
                                 @if($request->has_expert_witness_request || $request->expert_witness_letter_number || $request->expert_witness_letter_date)

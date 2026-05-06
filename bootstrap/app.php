@@ -4,6 +4,7 @@ use App\Console\Commands\BootstrapLocalDemoCommand;
 use App\Console\Commands\GoogleDriveSmokeCommand;
 use App\Console\Commands\PurgeOldFiles;
 use App\Console\Commands\QmhRefreshActionItemOverdue;
+use App\Console\Commands\SyncGoogleDriveDocumentsCommand;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -55,6 +56,7 @@ return Application::configure(basePath: dirname(__DIR__))
         GoogleDriveSmokeCommand::class,
         PurgeOldFiles::class,
         QmhRefreshActionItemOverdue::class,
+        SyncGoogleDriveDocumentsCommand::class,
     ])
     ->withSchedule(function (): void {
         Schedule::command('lims:purge-old-files')->dailyAt('02:00');

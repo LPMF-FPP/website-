@@ -188,4 +188,38 @@ class DeliveryShowLhuTest extends TestCase
         $response->assertSee('SAHLI/456/V/2026');
         $response->assertSee('09 Mei 2026');
     }
+
+    public function test_delivery_show_falls_back_to_request_created_date_when_letter_date_is_empty(): void
+    {
+        $this->seed(SystemSettingSeeder::class);
+        settings_fake(['notifications.whatsapp.enabled' => false]);
+        settings_forget_cache();
+
+        Queue::fake();
+
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $request = TestRequest::factory()->create([
+            'user_id' => $user->id,
+            'status' => 'ready_for_delivery',
+            'case_number' => 'B/76/II/2025/Sek.Ciptim',
+            'letter_date' => null,
+            'created_at' => '2026-02-24 08:30:00',
+        ]);
+
+        Sample::factory()->create([
+            'test_request_id' => $request->id,
+            'status' => 'ready_for_delivery',
+            'package_quantity' => 0,
+            'quantity' => 0,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->get(route('delivery.show', $request));
+
+        $response->assertOk();
+        $response->assertSee('Tanggal Surat Permintaan');
+        $response->assertSee('24 Februari 2026');
+    }
 }

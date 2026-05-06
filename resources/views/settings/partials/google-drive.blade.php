@@ -52,7 +52,7 @@
                     x-model="client.state.form.google_drive.uploader_user_id"
                 >
                     <option value="">Gunakan akun Google Drive user yang sedang login</option>
-                    <template x-for="user in client.state.options.google_drive_users || []" :key="user.id">
+                    <template x-for="user in client.state.options?.google_drive_users || []" :key="user.id">
                         <option :value="String(user.id)" x-text="user.label"></option>
                     </template>
                 </select>
