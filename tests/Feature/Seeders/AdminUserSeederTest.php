@@ -22,7 +22,7 @@ class AdminUserSeederTest extends TestCase
         $admin = User::where('email', 'labmutufarmapol@gmail.com')->first();
 
         $this->assertNotNull($admin);
-        $this->assertSame('admin', $admin->role);
+        $this->assertSame('admin-lpmf', $admin->role);
 
         $expectedPermissionIds = Permission::pluck('id')->sort()->values()->all();
         $grantedPermissionIds = $admin->permissions()->pluck('permissions.id')->sort()->values()->all();
