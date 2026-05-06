@@ -421,7 +421,7 @@ class QmhRevisionApprovalDownloadTest extends TestCase
         $this->assertStringStartsWith('%PDF', $content);
     }
 
-    public function test_fr_source_pdf_layout_defaults_to_full_shell_when_schema_snapshot_omits_layout_keys(): void
+    public function test_fr_source_pdf_layout_uses_structured_form_policy_when_schema_snapshot_omits_layout_keys(): void
     {
         [$revision] = $this->createFrRevisionInApprovalWithRealSourcePdf();
 
@@ -455,9 +455,9 @@ class QmhRevisionApprovalDownloadTest extends TestCase
         /** @var array{shell_mode: string, orientation_policy: string, show_signoff_footer: bool} $resolved */
         $resolved = $method->invoke($service, $revision->fresh(['document', 'template']), $revision->form_schema_json ?? []);
 
-        $this->assertSame('full', $resolved['shell_mode']);
+        $this->assertSame('none', $resolved['shell_mode']);
         $this->assertSame('portrait', $resolved['orientation_policy']);
-        $this->assertTrue($resolved['show_signoff_footer']);
+        $this->assertFalse($resolved['show_signoff_footer']);
     }
 
     /**
