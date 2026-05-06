@@ -1,6 +1,5 @@
 <?php
 
-use App\Console\Commands\BootstrapLocalDemoCommand;
 use App\Console\Commands\GoogleDriveSmokeCommand;
 use App\Console\Commands\PurgeOldFiles;
 use App\Console\Commands\QmhRefreshActionItemOverdue;
@@ -52,7 +51,6 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withCommands([
-        BootstrapLocalDemoCommand::class,
         GoogleDriveSmokeCommand::class,
         PurgeOldFiles::class,
         QmhRefreshActionItemOverdue::class,
