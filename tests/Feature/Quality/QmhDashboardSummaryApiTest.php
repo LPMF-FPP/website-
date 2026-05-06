@@ -34,9 +34,11 @@ class QmhDashboardSummaryApiTest extends TestCase
             'doc_type' => 'sop',
             'owner_label' => 'Laboratorium',
             'is_active' => true,
+        ]);
+        $matching->forceFill([
             'created_at' => '2026-02-10 08:00:00',
             'updated_at' => '2026-02-10 08:00:00',
-        ]);
+        ])->save();
 
         $matchingCurrentRevision = QmhDocumentRevision::query()->create([
             'document_id' => $matching->id,
@@ -104,9 +106,11 @@ class QmhDashboardSummaryApiTest extends TestCase
             'doc_type' => 'ik',
             'owner_label' => 'Laboratorium',
             'is_active' => true,
+        ]);
+        $outOfScope->forceFill([
             'created_at' => '2026-02-12 08:00:00',
             'updated_at' => '2026-02-12 08:00:00',
-        ]);
+        ])->save();
 
         $outRevision = QmhDocumentRevision::query()->create([
             'document_id' => $outOfScope->id,
