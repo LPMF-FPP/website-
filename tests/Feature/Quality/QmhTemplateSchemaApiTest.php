@@ -110,7 +110,7 @@ class QmhTemplateSchemaApiTest extends TestCase
             ->getJson('/api/quality/templates?doc_type=formulir');
 
         $response->assertOk();
-        $response->assertJsonPath('data.0.layout_profile', 'risk_matrix');
+        $response->assertJsonPath('data.0.layout_profile', 'table');
         $response->assertJsonPath('data.0.layout_profile_runtime', 'risk_matrix');
         $response->assertJsonPath('data.0.is_legacy_layout', false);
         $response->assertJsonPath('data.0.logo_source', 'custom');
@@ -180,7 +180,7 @@ class QmhTemplateSchemaApiTest extends TestCase
             ->getJson('/api/quality/templates?doc_type=formulir');
 
         $response->assertOk();
-        $response->assertJsonPath('data.0.layout_profile', 'structured_form');
+        $response->assertJsonPath('data.0.layout_profile', 'non_table');
         $response->assertJsonPath('data.0.layout_profile_runtime', 'legacy');
         $response->assertJsonPath('data.0.is_legacy_layout', true);
     }
@@ -246,11 +246,12 @@ class QmhTemplateSchemaApiTest extends TestCase
         $response->assertJsonPath('resolved_from', 'exact');
         $response->assertJsonPath('data.0.name', 'FR Clause 7 Risk');
         $response->assertJsonPath('data.0.clause', 7);
-        $response->assertJsonPath('data.0.layout_profile', 'risk_matrix');
+        $response->assertJsonPath('data.0.layout_profile', 'table');
+        $response->assertJsonPath('data.0.layout_profile_runtime', 'risk_matrix');
         $response->assertJsonPath('data.0.resolved_from', 'exact');
     }
 
-    public function test_template_list_returns_none_resolution_when_exact_filter_has_no_match(): void
+    public function test_template_list_auto_falls_back_to_clause_4_when_exact_filter_has_no_match(): void
     {
         /** @var User $user */
         $user = User::factory()->create(['role' => 'admin']);
@@ -275,8 +276,11 @@ class QmhTemplateSchemaApiTest extends TestCase
             ->getJson('/api/quality/templates?doc_type=fr&clause=8&layout_profile=declaration');
 
         $response->assertOk();
-        $response->assertJsonCount(0, 'data');
-        $response->assertJsonPath('resolved_from', 'none');
+        $response->assertJsonCount(1, 'data');
+        $response->assertJsonPath('resolved_from', 'fallback_auto');
+        $response->assertJsonPath('data.0.clause', 4);
+        $response->assertJsonPath('data.0.layout_profile', 'non_table');
+        $response->assertJsonPath('data.0.layout_profile_runtime', 'structured_form');
     }
 
     public function test_template_list_auto_falls_back_to_clause_4_for_create_context(): void
