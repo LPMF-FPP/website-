@@ -26,6 +26,17 @@ class DeliveryController extends Controller
 
     public function index(Request $request): Response|\Illuminate\Contracts\View\View
     {
+        $requestSort = $request->query('request_sort', 'completed_at');
+        $requestDirection = $request->query('request_direction', 'desc');
+
+        if ($requestSort !== 'receipt_number') {
+            $requestSort = 'completed_at';
+            $requestDirection = 'desc';
+        }
+        if (! in_array($requestDirection, ['asc', 'desc'], true)) {
+            $requestDirection = 'desc';
+        }
+
         $requests = TestRequest::with([
             'investigator:id,name,jurisdiction,rank',
             'samples' => function ($query) {
@@ -44,9 +55,13 @@ class DeliveryController extends Controller
             ->where(function ($query) {
                 $query->where('status', 'ready_for_delivery');
             })
-    // Include suspect_name and receipt_number for display
+            // Include suspect_name and receipt_number for display
             ->select('id', 'request_number', 'receipt_number', 'investigator_id', 'suspect_name', 'status', 'completed_at')
-            ->orderByDesc('completed_at')
+            ->when($requestSort === 'receipt_number', function ($query) use ($requestDirection) {
+                $query->orderByRaw("COALESCE(receipt_number, request_number) {$requestDirection}");
+            }, function ($query) {
+                $query->orderByDesc('completed_at');
+            })
             ->get();
 
         // Handle completed requests with search/filter/pagination

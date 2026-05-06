@@ -6,7 +6,7 @@
         />
     </x-slot>
 
-    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8" x-data="listFetcher()" x-init="init()">
+    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8" x-data="listFetcher('readyDeliveryList')" x-init="init()">
         <div class="bg-white shadow-sm sm:rounded-lg">
             <div class="p-6 bg-white border-b border-gray-200">
                 @if(session('success'))
@@ -104,13 +104,25 @@
                     <x-skeleton-table :columns="6" :rows="8" />
                 </div>
 
+                <div x-ref="readyDeliveryList">
                 @if($requests->isNotEmpty())
-                <template x-if="!loading">
-                    <div class="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 md:rounded-lg" x-ref="listContainer">
+                    <div x-show="!loading" class="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
                         <table class="min-w-full divide-y divide-gray-300">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">No. Resi</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                                        <a href="{{ route('delivery.index', array_merge(request()->query(), [
+                                            'request_sort' => 'receipt_number',
+                                            'request_direction' => request('request_sort', 'completed_at') === 'receipt_number' && request('request_direction') === 'asc' ? 'desc' : 'asc',
+                                        ])) }}" class="group inline-flex items-center">
+                                            No. Resi
+                                            @if(request('request_sort') === 'receipt_number')
+                                                <span class="ml-2 flex-none rounded bg-gray-200 px-1 text-gray-900 group-hover:bg-gray-300">
+                                                    {{ request('request_direction') === 'asc' ? '↑' : '↓' }}
+                                                </span>
+                                            @endif
+                                        </a>
+                                    </th>
                                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Penyidik</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Tersangka</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Jumlah Sampel</th>
@@ -192,7 +204,6 @@
                             </tbody>
                         </table>
                     </div>
-                </template>
                 @else
                     <div class="py-16 text-center">
                         <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-100 to-cyan-100 shadow-inner">
@@ -202,6 +213,7 @@
                         <p class="mt-1 mx-auto max-w-sm text-sm text-gray-500">Tidak ada permintaan yang menunggu penyerahan. Permintaan akan muncul di sini setelah proses pengujian selesai.</p>
                     </div>
                 @endif
+                </div>
             </div>
         </div>
 
@@ -215,6 +227,12 @@
                     </div>
                     
                     <form action="{{ route('delivery.index') }}" method="GET" class="flex gap-2" @submit.prevent="handleFilterSubmit($event)">
+                        @if(request('request_sort'))
+                            <input type="hidden" name="request_sort" value="{{ request('request_sort') }}">
+                        @endif
+                        @if(request('request_direction'))
+                            <input type="hidden" name="request_direction" value="{{ request('request_direction') }}">
+                        @endif
                         <div class="relative rounded-md shadow-sm">
                             <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
                                 <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor">

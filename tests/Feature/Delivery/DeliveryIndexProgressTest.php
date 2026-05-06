@@ -143,6 +143,110 @@ it('sorts delivery history by receipt number', function () {
     ], false);
 });
 
+it('sorts ready for delivery requests by receipt number', function () {
+    $user = User::factory()->create(['role' => 'admin']);
+
+    $later = TestRequest::factory()->create([
+        'status' => 'ready_for_delivery',
+        'receipt_number' => 'RESI-READY-300',
+        'request_number' => 'REQ-READY-300',
+        'completed_at' => now()->subDay(),
+    ]);
+
+    $middle = TestRequest::factory()->create([
+        'status' => 'ready_for_delivery',
+        'receipt_number' => 'RESI-READY-200',
+        'request_number' => 'REQ-READY-200',
+        'completed_at' => now()->subDays(2),
+    ]);
+
+    $earlier = TestRequest::factory()->create([
+        'status' => 'ready_for_delivery',
+        'receipt_number' => 'RESI-READY-100',
+        'request_number' => 'REQ-READY-100',
+        'completed_at' => now()->subHours(6),
+    ]);
+
+    $ascending = $this->actingAs($user)->get(route('delivery.index', [
+        'request_sort' => 'receipt_number',
+        'request_direction' => 'asc',
+    ]));
+
+    $ascending->assertOk();
+    $ascending->assertSeeInOrder([
+        $earlier->receipt_number,
+        $middle->receipt_number,
+        $later->receipt_number,
+    ], false);
+
+    $descending = $this->actingAs($user)->get(route('delivery.index', [
+        'request_sort' => 'receipt_number',
+        'request_direction' => 'desc',
+    ]));
+
+    $descending->assertOk();
+    $descending->assertSeeInOrder([
+        $later->receipt_number,
+        $middle->receipt_number,
+        $earlier->receipt_number,
+    ], false);
+});
+
+it('sorts ready for delivery by displayed receipt fallback and validates sort input', function () {
+    $user = User::factory()->create(['role' => 'admin']);
+
+    $fallback = TestRequest::factory()->create([
+        'status' => 'ready_for_delivery',
+        'receipt_number' => null,
+        'request_number' => 'REQ-FALLBACK-100',
+        'completed_at' => now()->subDay(),
+    ]);
+    $fallback->forceFill(['receipt_number' => null])->saveQuietly();
+    $fallback->refresh();
+
+    $receipt = TestRequest::factory()->create([
+        'status' => 'ready_for_delivery',
+        'receipt_number' => 'RESI-FALLBACK-200',
+        'request_number' => 'REQ-FALLBACK-200',
+        'completed_at' => now()->subHours(6),
+    ]);
+
+    $ascending = $this->actingAs($user)->get(route('delivery.index', [
+        'request_sort' => 'receipt_number',
+        'request_direction' => 'asc',
+    ]));
+
+    $ascending->assertOk();
+    $ascending->assertSeeInOrder([
+        $fallback->fresh()->request_number,
+        $receipt->receipt_number,
+    ], false);
+
+    $invalidSort = $this->actingAs($user)->get(route('delivery.index', [
+        'request_sort' => 'suspect_name',
+        'request_direction' => 'asc',
+    ]));
+
+    $invalidSort->assertOk();
+    $invalidSort->assertSeeInOrder([
+        $receipt->receipt_number,
+        $fallback->fresh()->request_number,
+    ], false);
+});
+
+it('preserves ready delivery sort parameters when sorting and filtering delivery history', function () {
+    $user = User::factory()->create(['role' => 'admin']);
+
+    $response = $this->actingAs($user)->get(route('delivery.index', [
+        'request_sort' => 'receipt_number',
+        'request_direction' => 'asc',
+    ]));
+
+    $response->assertOk();
+    $response->assertSee('name="request_sort" value="receipt_number"', false);
+    $response->assertSee('name="request_direction" value="asc"', false);
+});
+
 it('returns delivery history fragment for ajax sort requests', function () {
     $user = User::factory()->create(['role' => 'admin']);
 

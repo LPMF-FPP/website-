@@ -4,7 +4,7 @@
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                        <a href="{{ route('delivery.index', ['sort' => 'receipt_number', 'direction' => request('direction') == 'asc' ? 'desc' : 'asc', 'completed_page' => request('completed_page'), 'search' => request('search')]) }}" class="group inline-flex">
+                        <a href="{{ route('delivery.index', array_merge(request()->query(), ['sort' => 'receipt_number', 'direction' => request('direction') == 'asc' ? 'desc' : 'asc'])) }}" class="group inline-flex">
                             No. Resi
                             @if(request('sort') == 'receipt_number')
                                 <span class="ml-2 flex-none rounded bg-gray-200 text-gray-900 group-hover:bg-gray-300">
@@ -17,7 +17,7 @@
                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Tersangka</th>
                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Jumlah Sampel</th>
                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                        <a href="{{ route('delivery.index', ['sort' => 'completed_at', 'direction' => request('direction') == 'asc' ? 'desc' : 'asc', 'completed_page' => request('completed_page'), 'search' => request('search')]) }}" class="group inline-flex">
+                        <a href="{{ route('delivery.index', array_merge(request()->query(), ['sort' => 'completed_at', 'direction' => request('direction') == 'asc' ? 'desc' : 'asc'])) }}" class="group inline-flex">
                             Tanggal Penyerahan
                             @if(request('sort', 'completed_at') == 'completed_at')
                                 <span class="ml-2 flex-none rounded bg-gray-200 text-gray-900 group-hover:bg-gray-300">

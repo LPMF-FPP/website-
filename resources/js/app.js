@@ -94,7 +94,7 @@ if (!window[APP_BOOT_KEY]) {
 
     document.addEventListener("alpine:init", () => {
         Alpine.store("toast", toastStore);
-        Alpine.data("listFetcher", () => createListFetcher());
+        Alpine.data("listFetcher", (targetRef) => createListFetcher(targetRef));
         Alpine.data("qmhCreatePage", (config = {}) => qmhCreatePage(config));
         Alpine.data("qmhAuditPage", () => qmhAuditPage());
         Alpine.data("qmhGovernancePage", () => qmhGovernancePage());
