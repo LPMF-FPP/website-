@@ -20,7 +20,7 @@ class QmhTemplateDrivenCreateTest extends TestCase
         $this->createQmhPermissions();
     }
 
-    public function test_template_list_endpoint_returns_only_active_templates_for_doc_type_and_includes_preview_url(): void
+    public function test_template_list_endpoint_returns_non_archived_templates_for_doc_type_and_includes_preview_url(): void
     {
         /** @var User $user */
         $user = User::factory()->create(['role' => 'admin']);
@@ -84,7 +84,7 @@ class QmhTemplateDrivenCreateTest extends TestCase
             ->getJson('/api/quality/templates?doc_type=sop');
 
         $response->assertOk();
-        $response->assertJsonCount(2, 'data');
+        $response->assertJsonCount(3, 'data');
         $response->assertJsonPath('data.0.name', 'SOP Klausul 8 Aktif');
         $response->assertJsonPath('data.0.preview_url', route('quality.templates.preview', $activeSopTemplate->id));
         $response->assertJsonPath('data.0.content_html', '<p>Template SOP 8</p>');
@@ -147,7 +147,7 @@ class QmhTemplateDrivenCreateTest extends TestCase
         $response->assertJsonPath('data.current_revision.template_version', 2);
     }
 
-    public function test_create_document_rejects_template_from_different_clause(): void
+    public function test_create_document_allows_clause_four_template_as_fallback_for_other_clauses(): void
     {
         /** @var User $user */
         $user = User::factory()->create(['role' => 'admin']);
@@ -172,8 +172,8 @@ class QmhTemplateDrivenCreateTest extends TestCase
                 'doc_type' => 'sop',
                 'template_id' => $templateId,
             ])
-            ->assertStatus(422)
-            ->assertJsonValidationErrors(['template_id']);
+            ->assertCreated()
+            ->assertJsonPath('data.current_revision.template_id', $templateId);
     }
 
     private function createQmhPermissions(): void
