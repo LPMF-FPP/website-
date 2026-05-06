@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v2.5.0
+# WALKTHROUGH - LPMF LIMS v2.5.2
 
 > **Single Source of Truth** — Pedoman terupdate terhadap codebase Laboratory Information Management System.
 
@@ -147,6 +147,13 @@ WhatsApp service berjalan di container Docker terpisah.
 ---
 
 ## 📰 Recent Changes (v2.5.x)
+
+### v2.5.2 (6 Mei 2026) - Production Artifact Cleanup & Seeder Safety
+
+- **Production Artifact Cleanup:** Seeder khusus pengujian lokal, dummy data, dan command bootstrap demo lokal dihapus dari artifact production agar paket deploy hanya membawa kode operasional yang relevan.
+- **Seeder Safety:** `DatabaseSeeder` sekarang hanya menjalankan seeder konfigurasi sistem yang dibutuhkan, sehingga perintah seeding default tidak lagi dapat membuat user admin dev/test atau data dummy perkara, sampel, label, pengujian, maupun pemusnahan.
+- **Deploy Hygiene:** Deploy production tetap menggunakan artifact dari clean `HEAD`, tanpa stash atau file uncommitted, dengan verifikasi bahwa file seeder user/dummy tidak tersedia lagi pada target production.
+- **Regression Coverage:** Full Pest parallel, Pint, dan audit critical dijalankan ulang setelah cleanup untuk memastikan penghapusan seeders dev-only tidak mengganggu alur aplikasi yang berjalan.
 
 ### v2.5.1 (2 Mei 2026) - Google Drive Sync, Intake Simplification & Delivery Label Reliability
 
