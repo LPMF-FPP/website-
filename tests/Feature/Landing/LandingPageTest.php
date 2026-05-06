@@ -6,6 +6,7 @@ use App\Models\CustomerSurvey;
 use App\Models\Sample;
 use App\Models\TestRequest;
 use App\Models\User;
+use App\Services\ChangelogService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -66,6 +67,8 @@ class LandingPageTest extends TestCase
         $response->assertSee('Data Operasional Tersedia', false);
         $response->assertSee('LPMF LIMS', false);
         $response->assertSee('Masukan nomor resi', false);
-        $response->assertSee('Ver. v2.4.8', false);
+        $latestVersion = app(ChangelogService::class)->getChangelogs()[0]['version'] ?? null;
+
+        $response->assertSee('Ver. '.$latestVersion, false);
     }
 }
