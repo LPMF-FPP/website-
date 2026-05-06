@@ -48,7 +48,7 @@ class QmhGovernanceUxFlowTest extends TestCase
         $this->actingAs($user)
             ->get('/quality/governance')
             ->assertOk()
-            ->assertSee('Action Items Due Soon')
+            ->assertSee('Action Item Jatuh Tempo Dekat')
             ->assertSee('Tindak lanjut UX governance');
 
         $this->actingAs($user)
