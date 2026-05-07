@@ -380,6 +380,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Delivery
     Route::prefix('delivery')->group(function () {
         Route::get('/', [DeliveryController::class, 'index'])->name('delivery.index');
+        Route::get('/{request}/investigator/edit', [DeliveryController::class, 'editInvestigator'])
+            ->name('delivery.investigator.edit')
+            ->middleware('permission:investigators.edit');
+        Route::patch('/{request}/investigator', [DeliveryController::class, 'updateInvestigator'])
+            ->name('delivery.investigator.update')
+            ->middleware('permission:investigators.edit');
         Route::get('/{request}', [DeliveryController::class, 'show'])->name('delivery.show');
         Route::patch('/{delivery}/surat-pengantar', [DeliveryController::class, 'updateSuratPengantar'])
             ->name('delivery.update-surat-pengantar');

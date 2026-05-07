@@ -570,7 +570,17 @@
                         </div>
 
                         <div>
-                            <div class="text-xs text-gray-500 uppercase tracking-wide">Penyidik</div>
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="text-xs text-gray-500 uppercase tracking-wide">Penyidik</div>
+                                @if(auth()->user()?->hasPermission('investigators.edit'))
+                                    @if($request->status === 'ready_for_delivery' && $request->investigator)
+                                        <a href="{{ route('delivery.investigator.edit', $request) }}"
+                                            class="inline-flex items-center rounded-md bg-white px-2 py-1 text-xs font-semibold text-primary-700 shadow-sm ring-1 ring-inset ring-primary-200 hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                                            Edit
+                                        </a>
+                                    @endif
+                                @endif
+                            </div>
                             <div class="font-medium text-gray-900 mt-0.5">{{ $request->investigator->name ?? '-' }}</div>
                             <div class="text-gray-500 text-xs">{{ $request->investigator->rank ?? '' }} &middot; {{ $request->investigator->jurisdiction ?? '' }}</div>
                         </div>

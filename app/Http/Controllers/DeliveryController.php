@@ -13,6 +13,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class DeliveryController extends Controller
@@ -287,6 +288,121 @@ class DeliveryController extends Controller
 
         ]);
 
+    }
+
+    public function editInvestigator(TestRequest $request)
+    {
+        abort_unless(request()->user()?->hasPermission('investigators.edit'), 403);
+
+        $request->load('investigator');
+
+        abort_unless($this->canEditDeliveryInvestigator($request), 403);
+
+        return view('delivery.edit-investigator', [
+            'request' => $request,
+            'investigator' => $request->investigator,
+        ]);
+    }
+
+    public function updateInvestigator(Request $httpRequest, TestRequest $request)
+    {
+        abort_unless($httpRequest->user()?->hasPermission('investigators.edit'), 403);
+
+        $request->load('investigator');
+
+        abort_unless($this->canEditDeliveryInvestigator($request), 403);
+
+        $investigator = $request->investigator;
+        abort_unless($investigator, 404);
+
+        $rules = $investigator->is_polri
+            ? [
+                'investigator_name' => ['required', 'string', 'max:255'],
+                'investigator_nrp' => ['required', 'string', 'max:50', Rule::unique('investigators', 'nrp')->ignore($investigator->id)],
+                'investigator_rank' => ['required', 'string', 'max:255'],
+                'investigator_jurisdiction' => ['required', 'string', 'max:255'],
+                'investigator_phone' => ['required', 'string', 'max:20'],
+                'investigator_email' => ['nullable', 'email', 'max:255', Rule::unique('investigators', 'email')->ignore($investigator->id)],
+                'investigator_address' => ['nullable', 'string'],
+            ]
+            : [
+                'external_name' => ['required', 'string', 'max:255'],
+                'external_phone' => ['required', 'string', 'max:20'],
+                'external_institution' => ['required', 'string', 'max:255'],
+                'external_hp' => ['required', 'string', 'max:20'],
+                'external_occupation' => ['required', 'string', 'max:255'],
+            ];
+
+        $validated = $httpRequest->validate($rules);
+
+        $sharedError = null;
+
+        $stateError = null;
+
+        DB::transaction(function () use ($investigator, $request, $validated, &$sharedError, &$stateError): void {
+            $lockedRequest = $request->newQuery()
+                ->lockForUpdate()
+                ->findOrFail($request->id);
+
+            if ($lockedRequest->status !== 'ready_for_delivery' || (int) $lockedRequest->investigator_id !== (int) $investigator->id) {
+                $stateError = 'Data penyidik hanya dapat diedit saat permintaan masih siap diserahkan.';
+
+                return;
+            }
+
+            $lockedInvestigator = $investigator->newQuery()
+                ->lockForUpdate()
+                ->findOrFail($investigator->id);
+
+            if ($lockedInvestigator->testRequests()->whereKeyNot($request->id)->exists()) {
+                $sharedError = 'Data penyidik ini terhubung dengan permintaan lain. Ubah melalui Manajemen Penyidik agar dampaknya ditinjau lebih dulu.';
+
+                return;
+            }
+
+            if ($lockedInvestigator->is_polri) {
+                $lockedInvestigator->update([
+                    'name' => $validated['investigator_name'],
+                    'nrp' => $validated['investigator_nrp'],
+                    'rank' => $validated['investigator_rank'],
+                    'jurisdiction' => $validated['investigator_jurisdiction'],
+                    'phone' => $validated['investigator_phone'],
+                    'email' => $validated['investigator_email'] ?? null,
+                    'address' => $validated['investigator_address'] ?? null,
+                ]);
+            } else {
+                $lockedInvestigator->update([
+                    'name' => $validated['external_name'],
+                    'rank' => 'NON-POLRI',
+                    'jurisdiction' => $validated['external_institution'],
+                    'phone' => $validated['external_hp'],
+                    'alt_phone' => $validated['external_phone'],
+                    'institution' => $validated['external_institution'],
+                    'occupation' => $validated['external_occupation'],
+                ]);
+            }
+        });
+
+        if ($sharedError !== null) {
+            return back()
+                ->withInput()
+                ->withErrors(['investigator' => $sharedError]);
+        }
+
+        if ($stateError !== null) {
+            return back()
+                ->withInput()
+                ->withErrors(['investigator' => $stateError]);
+        }
+
+        return redirect()
+            ->route('delivery.show', $request)
+            ->with('success', 'Data penyidik pada penyerahan berhasil diperbarui. Generate ulang Berita Acara Penyerahan jika dokumen sudah dibuat sebelumnya.');
+    }
+
+    private function canEditDeliveryInvestigator(TestRequest $request): bool
+    {
+        return $request->status === 'ready_for_delivery' && $request->investigator !== null;
     }
 
     public function surveyForm(TestRequest $request)
