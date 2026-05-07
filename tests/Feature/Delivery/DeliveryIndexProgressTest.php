@@ -7,6 +7,7 @@ use App\Models\SampleTestProcess;
 use App\Models\TestRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Queue;
 
 uses(RefreshDatabase::class);
@@ -92,6 +93,37 @@ it('shows partial progress when a sample is missing preparation', function () {
 
     $response->assertOk();
     $response->assertSee('1/2 Sampel');
+});
+
+it('shows processing working days for ready and completed requests', function () {
+    $user = User::factory()->create(['role' => 'admin']);
+
+    TestRequest::factory()->create([
+        'status' => 'ready_for_delivery',
+        'receipt_number' => 'RESI-WORKING-READY',
+        'submitted_at' => Carbon::parse('2026-05-04 09:00:00'),
+        'ready_for_delivery_at' => Carbon::parse('2026-05-07 15:00:00'),
+        'completed_at' => Carbon::parse('2026-05-07 15:00:00'),
+    ]);
+
+    TestRequest::factory()->create([
+        'status' => 'completed',
+        'receipt_number' => 'RESI-WORKING-DONE',
+        'submitted_at' => Carbon::parse('2026-05-01 09:00:00'),
+        'ready_for_delivery_at' => Carbon::parse('2026-05-07 15:00:00'),
+        'completed_at' => Carbon::parse('2026-05-07 16:00:00'),
+    ]);
+
+    $response = $this->actingAs($user)->get(route('delivery.index'));
+
+    $response->assertOk();
+    $response->assertSee('Waktu Pengerjaan');
+    $response->assertSeeInOrder([
+        'RESI-WORKING-READY',
+        '3 hari kerja',
+        'RESI-WORKING-DONE',
+        '4 hari kerja',
+    ], false);
 });
 
 it('sorts delivery history by receipt number', function () {

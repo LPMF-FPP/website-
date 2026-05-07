@@ -101,7 +101,7 @@
                 </div>
 
                 <div x-show="loading" class="mb-4">
-                    <x-skeleton-table :columns="6" :rows="8" />
+                    <x-skeleton-table :columns="7" :rows="8" />
                 </div>
 
                 <div x-ref="readyDeliveryList">
@@ -127,6 +127,7 @@
                                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Tersangka</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Jumlah Sampel</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Tanggal Selesai</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Waktu Pengerjaan</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"></th>
                                 </tr>
                             </thead>
@@ -183,6 +184,16 @@
                                         </td>
                                         <td class="px-6 py-4 text-sm text-gray-900">
                                             {{ optional($request->completed_at)->format('d/m/Y') ?? '-' }}
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-gray-900">
+                                            @if($request->processing_working_days !== null)
+                                                <div class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                                                    {{ number_format($request->processing_working_days, 0, ',', '.') }} hari kerja
+                                                </div>
+                                                <div class="mt-1 text-xs text-gray-500">Sejak permintaan masuk</div>
+                                            @else
+                                                <span class="text-gray-400">-</span>
+                                            @endif
                                         </td>
                                         <td class="px-6 py-4 text-right text-sm font-medium">
                                             <div class="flex flex-wrap justify-end gap-2">
@@ -250,7 +261,7 @@
                 </div>
 
                 <div x-show="loading" x-cloak class="mb-4">
-                    <x-skeleton-table :columns="6" :rows="6" />
+                    <x-skeleton-table :columns="7" :rows="6" />
                 </div>
 
                 <div x-ref="listContainer">

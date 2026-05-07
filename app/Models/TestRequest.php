@@ -184,6 +184,22 @@ class TestRequest extends Model
         return $this->hasOne(CustomerSurvey::class);
     }
 
+    public function getProcessingWorkingDaysAttribute(): ?int
+    {
+        $startDate = $this->submitted_at ?? $this->created_at;
+        $endDate = $this->ready_for_delivery_at;
+
+        if (! $startDate || ! $endDate) {
+            return null;
+        }
+
+        if ($endDate->lt($startDate)) {
+            return 0;
+        }
+
+        return (int) $startDate->diffInWeekdays($endDate);
+    }
+
     public function evidenceUnits(): HasMany
     {
         return $this->hasMany(EvidenceUnit::class, 'request_id');

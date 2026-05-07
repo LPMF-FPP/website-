@@ -56,7 +56,7 @@ class DeliveryController extends Controller
                 $query->where('status', 'ready_for_delivery');
             })
             // Include suspect_name and receipt_number for display
-            ->select('id', 'request_number', 'receipt_number', 'investigator_id', 'suspect_name', 'status', 'completed_at')
+            ->select('id', 'request_number', 'receipt_number', 'investigator_id', 'suspect_name', 'status', 'submitted_at', 'completed_at', 'ready_for_delivery_at', 'created_at')
             ->when($requestSort === 'receipt_number', function ($query) use ($requestDirection) {
                 $query->orderByRaw("COALESCE(receipt_number, request_number) {$requestDirection}");
             }, function ($query) {
