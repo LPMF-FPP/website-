@@ -230,9 +230,11 @@
     </div>
 
     <!-- STEP 2: PREVIEW -->
-    <div x-show="step === 'preview'" class="bg-white rounded-lg shadow">
-        @include('statistics.partials.consolidated-preview')
-    </div>
+    <template x-if="step === 'preview' && previewData">
+        <div class="bg-white rounded-lg shadow">
+            @include('statistics.partials.consolidated-preview')
+        </div>
+    </template>
 
     <!-- STEP 3: SUCCESS -->
     <div x-show="step === 'success'" class="bg-white rounded-lg shadow p-10 text-center">

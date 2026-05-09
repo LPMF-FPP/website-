@@ -37,6 +37,7 @@ class ConsolidatedReportControllerTest extends TestCase
         $response->assertOk();
         $response->assertViewIs('statistics.partials.consolidated-form');
         $response->assertViewHas('defaultSigners', [['role' => 'Mocked']]);
+        $response->assertSee('x-if="step === \'preview\' && previewData"', false);
     }
 
     public function test_save_default_signers_logs_changes()
