@@ -41,6 +41,18 @@
         .compact-box { border: 1px solid #000; padding: 6px; margin-bottom: 10px; font-size: 9pt; }
         .compact-box p { margin: 0 0 3px 0; }
         .compact-box ul { margin: 0; padding-left: 15px; }
+        .appendix-card { border: 1px solid #000; padding: 6px; font-size: 8.5pt; }
+        .appendix-card-title { font-weight: bold; margin-bottom: 3px; }
+        .appendix-card-value { font-weight: bold; font-size: 12pt; margin-bottom: 3px; }
+        .muted { color: #666; font-size: 8pt; }
+        .visual-card { border: 1px solid #222; padding: 6px; margin-bottom: 6px; page-break-inside: avoid; }
+        .visual-title { font-weight: bold; text-transform: uppercase; font-size: 8.5pt; margin-bottom: 5px; }
+        .legend-row { font-size: 7.5pt; margin-bottom: 2px; }
+        .legend-dot { display: inline-block; width: 7px; height: 7px; margin-right: 3px; vertical-align: middle; }
+        .bar-track { height: 7px; background: #e5e7eb; border-radius: 3px; overflow: hidden; }
+        .bar-fill { height: 7px; border-radius: 3px; }
+        .micro-row { margin-bottom: 3px; font-size: 7.5pt; }
+        .summary-pill { border: 1px solid #999; padding: 4px 6px; font-size: 8pt; margin-bottom: 4px; }
 
         /* Signatures - table-based layout for proper column separation */
         .signatures { width: 100%; margin-top: 25px; page-break-inside: avoid; }
@@ -223,6 +235,7 @@
             </tfoot>
             @endif
         </table>
+
     </div>
 
     <!-- III. KECEPATAN PENGERJAAN & IV. KEPUASAN PELANGGAN -->
@@ -380,6 +393,233 @@
                 </tr>
             </tbody>
         </table>
+    </div>
+    @endif
+
+    <!-- Lampiran Statistik Dashboard -->
+    @php $appendix = $report->report_data['dashboard_appendix'] ?? null; @endphp
+    @if(is_array($appendix))
+    @php
+        $summaryCards = array_values(array_filter(is_array($appendix['summary_cards'] ?? null) ? $appendix['summary_cards'] : [], 'is_array'));
+        $summaryTable = array_values(array_filter(is_array($appendix['summary_table'] ?? null) ? $appendix['summary_table'] : [], 'is_array'));
+        $appendixCharts = array_values(array_filter(is_array($appendix['charts'] ?? null) ? $appendix['charts'] : [], 'is_array'));
+        $chartColors = ['#1d4ed8', '#dc2626', '#059669', '#d97706', '#7c3aed', '#db2777', '#0891b2', '#65a30d'];
+        $compactCharts = array_values(array_filter($appendixCharts, fn ($chart) => ! in_array($chart['title'] ?? '', ['Permintaan per Bulan', 'Sampel vs Target IKU'], true)));
+        $lineCharts = array_values(array_filter($appendixCharts, fn ($chart) => in_array($chart['title'] ?? '', ['Permintaan per Bulan', 'Sampel vs Target IKU'], true)));
+        $topRows = fn ($rows, int $limit = 6): array => array_slice(array_values(array_filter(is_array($rows) ? $rows : [], 'is_array')), 0, $limit);
+        $topRowsWithOther = function ($rows, int $limit = 5): array {
+            $safeRows = array_values(array_filter(is_array($rows) ? $rows : [], 'is_array'));
+            $top = array_slice($safeRows, 0, $limit);
+            $rest = array_slice($safeRows, $limit);
+
+            if ($rest === []) {
+                return $top;
+            }
+
+            $top[] = [
+                'label' => 'Lainnya',
+                'count' => array_sum(array_map(fn ($row) => (float) ($row['count'] ?? 0), $rest)),
+                'percentage' => round(array_sum(array_map(fn ($row) => (float) ($row['percentage'] ?? 0), $rest)), 1),
+            ];
+
+            return $top;
+        };
+        $maxValue = function ($rows, string $key): float {
+            $values = array_map(fn ($row) => (float) ($row[$key] ?? 0), array_values(array_filter(is_array($rows) ? $rows : [], 'is_array')));
+
+            return max(1, ...$values);
+        };
+        $maxValueForKeys = function ($rows, array $keys): float {
+            $values = [];
+            foreach (array_values(array_filter(is_array($rows) ? $rows : [], 'is_array')) as $row) {
+                foreach ($keys as $key) {
+                    $values[] = (float) ($row[$key] ?? 0);
+                }
+            }
+
+            return max(1, ...$values);
+        };
+        $barWidth = fn ($value, $max): int => (float) $value <= 0 ? 0 : max(3, (int) round(((float) $value / max(1, (float) $max)) * 100));
+        $linePoints = function ($rows, string $key, float $width = 192, float $height = 52, float $padX = 14, float $padY = 18, ?array $scaleKeys = null) use ($maxValue, $maxValueForKeys): string {
+            $safeRows = array_values(array_filter(is_array($rows) ? $rows : [], 'is_array'));
+            $max = is_array($scaleKeys) ? $maxValueForKeys($safeRows, $scaleKeys) : $maxValue($safeRows, $key);
+            $step = count($safeRows) > 1 ? $width / (count($safeRows) - 1) : $width;
+
+            return collect($safeRows)->map(function ($row, int $index) use ($key, $max, $step, $height, $padX, $padY) {
+                $x = round($padX + ($index * $step), 1);
+                $y = round($padY + $height - (((float) ($row[$key] ?? 0) / $max) * $height), 1);
+
+                return "{$x},{$y}";
+            })->implode(' ');
+        };
+        $lineDots = function ($rows, string $key, float $width = 192, float $height = 52, float $padX = 14, float $padY = 18, ?array $scaleKeys = null) use ($maxValue, $maxValueForKeys): array {
+            $safeRows = array_values(array_filter(is_array($rows) ? $rows : [], 'is_array'));
+            $max = is_array($scaleKeys) ? $maxValueForKeys($safeRows, $scaleKeys) : $maxValue($safeRows, $key);
+            $step = count($safeRows) > 1 ? $width / (count($safeRows) - 1) : $width;
+
+            return collect($safeRows)->map(function ($row, int $index) use ($key, $max, $step, $height, $padX, $padY) {
+                return [
+                    'x' => round($padX + ($index * $step), 1),
+                    'y' => round($padY + $height - (((float) ($row[$key] ?? 0) / $max) * $height), 1),
+                ];
+            })->toArray();
+        };
+    @endphp
+    <div class="section" style="page-break-before: always;">
+        <div class="section-title">Lampiran Statistik Dashboard</div>
+        <p class="muted" style="margin-top: 0;">
+            Lampiran ini merangkum data chart dan angka dashboard statistik sesuai periode laporan.
+        </p>
+
+        <table style="width: 100%; border-collapse: collapse; border: none; margin-bottom: 10px;">
+            @foreach(array_chunk($summaryCards, 2) as $cardRow)
+                <tr>
+                    @foreach($cardRow as $card)
+                        <td style="width: 50%; border: none; padding: 3px; vertical-align: top;">
+                            <div class="appendix-card">
+                                <div class="appendix-card-title">{{ $card['label'] ?? '-' }}</div>
+                                <div class="appendix-card-value">{{ $card['value'] ?? 0 }}</div>
+                                <div class="muted">{{ $card['note'] ?? '' }}</div>
+                            </div>
+                        </td>
+                    @endforeach
+                    @if(count($cardRow) === 1)
+                        <td style="width: 50%; border: none; padding: 3px;"></td>
+                    @endif
+                </tr>
+            @endforeach
+        </table>
+
+        @foreach($summaryTable as $row)
+            <div class="summary-pill">
+                <strong>{{ $row['category'] ?? '-' }}</strong>: {{ $row['period_value'] ?? 0 }} periode ini,
+                {{ $row['year_value'] ?? 0 }} tahun berjalan, target {{ $row['target'] ?? '-' }}.
+                Status: <strong>{{ $row['status'] ?? '-' }}</strong>
+            </div>
+        @endforeach
+
+        <table style="width: 100%; border-collapse: collapse; border: none; margin-top: 8px;">
+            @foreach(array_chunk($compactCharts, 2) as $chartRow)
+                <tr>
+                    @foreach($chartRow as $chart)
+                        @php
+                            $rows = is_array($chart['rows'] ?? null) ? $chart['rows'] : [];
+                            $type = $chart['type'] ?? '';
+                            $chartTitle = $chart['title'] ?? 'Data Dashboard';
+                        @endphp
+                        <td style="width: 50%; border: none; padding: 3px; vertical-align: top;">
+                            <div class="visual-card">
+                                <div class="visual-title">{{ $chartTitle }}</div>
+
+                                @if(empty($rows))
+                                    <div class="muted" style="text-align: center; padding: 10px; border: 1px dashed #aaa;">Tidak ada data pada periode ini.</div>
+                                @elseif(in_array($type, ['pie', 'doughnut'], true))
+                                    @php
+                                        $pieRows = $topRowsWithOther($rows, 5);
+                                        $pieTotal = max(1, array_sum(array_map(fn ($row) => (float) ($row['count'] ?? 0), $pieRows)));
+                                        $offset = 25;
+                                    @endphp
+                                    <table style="width: 100%; border: none; border-collapse: collapse;">
+                                        <tr>
+                                            <td style="width: 72px; border: none; vertical-align: top;">
+                                                <svg width="68" height="68" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+                                                    <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#e5e7eb" stroke-width="8" />
+                                                    @foreach($pieRows as $index => $row)
+                                                        @php
+                                                            $slice = ((float) ($row['count'] ?? 0) / $pieTotal) * 100;
+                                                            $color = $chartColors[$index % count($chartColors)];
+                                                            $dashOffset = $offset;
+                                                            $offset -= $slice;
+                                                        @endphp
+                                                        <circle cx="18" cy="18" r="15.9155" fill="none" stroke="{{ $color }}" stroke-width="8" stroke-dasharray="{{ number_format($slice, 2, '.', '') }} {{ number_format(100 - $slice, 2, '.', '') }}" stroke-dashoffset="{{ number_format($dashOffset, 2, '.', '') }}" />
+                                                    @endforeach
+                                                    @if($type === 'doughnut')
+                                                        <circle cx="18" cy="18" r="8" fill="#fff" />
+                                                    @endif
+                                                </svg>
+                                            </td>
+                                            <td style="border: none; vertical-align: top;">
+                                                @foreach($pieRows as $index => $row)
+                                                    <div class="legend-row">
+                                                        <span class="legend-dot" style="background: {{ $chartColors[$index % count($chartColors)] }};"></span>
+                                                        {{ $row['label'] ?? '-' }}: <strong>{{ $row['count'] ?? 0 }}</strong> ({{ $row['percentage'] ?? 0 }}%)
+                                                    </div>
+                                                @endforeach
+                                            </td>
+                                        </tr>
+                                    </table>
+                                @else
+                                    @php $maxCount = $maxValue($rows, 'count'); @endphp
+                                    @foreach($topRows($rows, 6) as $index => $row)
+                                        <div class="micro-row">
+                                            <div style="margin-bottom: 1px;">{{ $row['label'] ?? '-' }} <strong style="float: right;">{{ $row['count'] ?? 0 }} ({{ $row['percentage'] ?? 0 }}%)</strong></div>
+                                            <div class="bar-track"><div class="bar-fill" style="width: {{ $barWidth($row['count'] ?? 0, $maxCount) }}%; background: {{ $chartColors[$index % count($chartColors)] }};"></div></div>
+                                        </div>
+                                    @endforeach
+                                @endif
+                            </div>
+                        </td>
+                    @endforeach
+                    @if(count($chartRow) === 1)
+                        <td style="width: 50%; border: none; padding: 3px;"></td>
+                    @endif
+                </tr>
+            @endforeach
+        </table>
+
+        @foreach($lineCharts as $chart)
+            @php
+                $rows = is_array($chart['rows'] ?? null) ? $chart['rows'] : [];
+                $chartTitle = $chart['title'] ?? 'Data Dashboard';
+                $trendRows = $topRows($rows, 12);
+            @endphp
+            <div class="visual-card" style="margin-top: 6px;">
+                <div class="visual-title">{{ $chartTitle }}</div>
+
+                @if(empty($trendRows))
+                    <div class="muted" style="text-align: center; padding: 10px; border: 1px dashed #aaa;">Tidak ada data pada periode ini.</div>
+                @else
+                    @php
+                        $firstKey = $chartTitle === 'Permintaan per Bulan' ? 'requests' : 'samples';
+                        $secondKey = $chartTitle === 'Permintaan per Bulan' ? 'completed' : 'target';
+                        $firstColor = $chartTitle === 'Permintaan per Bulan' ? '#1d4ed8' : '#059669';
+                        $secondColor = $chartTitle === 'Permintaan per Bulan' ? '#059669' : '#dc2626';
+                        $firstLabel = $chartTitle === 'Permintaan per Bulan' ? 'Masuk' : 'Aktual';
+                        $secondLabel = $chartTitle === 'Permintaan per Bulan' ? 'Selesai' : 'Target';
+                        $scaleKeys = [$firstKey, $secondKey];
+                        $firstDots = $lineDots($trendRows, $firstKey, 420, 72, 18, 20, $scaleKeys);
+                        $secondDots = $lineDots($trendRows, $secondKey, 420, 72, 18, 20, $scaleKeys);
+                    @endphp
+                    <svg width="100%" height="122" viewBox="0 0 460 118" xmlns="http://www.w3.org/2000/svg">
+                        <line x1="18" y1="92" x2="438" y2="92" stroke="#cbd5e1" stroke-width="1" />
+                        <line x1="18" y1="56" x2="438" y2="56" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3 3" />
+                        <polyline points="{{ $linePoints($trendRows, $firstKey, 420, 72, 18, 20, $scaleKeys) }}" fill="none" stroke="{{ $firstColor }}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+                        <polyline points="{{ $linePoints($trendRows, $secondKey, 420, 72, 18, 20, $scaleKeys) }}" fill="none" stroke="{{ $secondColor }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4" />
+                        @foreach($firstDots as $index => $dot)
+                            <circle cx="{{ $dot['x'] }}" cy="{{ $dot['y'] }}" r="2" fill="{{ $firstColor }}" />
+                            <rect x="{{ $dot['x'] - 6 }}" y="{{ max(6, $dot['y'] - 14) }}" width="12" height="9" rx="2" fill="#fff" stroke="{{ $firstColor }}" stroke-width="0.4" />
+                            <text x="{{ $dot['x'] }}" y="{{ max(12, $dot['y'] - 7) }}" text-anchor="middle" font-size="6" font-weight="700" fill="{{ $firstColor }}">{{ $trendRows[$index][$firstKey] ?? 0 }}</text>
+                        @endforeach
+                        @if($secondKey === 'target')
+                            @php
+                                $lastIndex = max(0, count($secondDots) - 1);
+                                $lastTargetDot = $secondDots[$lastIndex] ?? null;
+                            @endphp
+                            @if($lastTargetDot)
+                                <rect x="{{ $lastTargetDot['x'] - 8 }}" y="{{ max(6, $lastTargetDot['y'] - 14) }}" width="16" height="9" rx="2" fill="#fff" stroke="{{ $secondColor }}" stroke-width="0.4" />
+                                <text x="{{ $lastTargetDot['x'] }}" y="{{ max(12, $lastTargetDot['y'] - 7) }}" text-anchor="middle" font-size="5.8" font-weight="700" fill="{{ $secondColor }}">{{ $trendRows[$lastIndex][$secondKey] ?? 0 }}</text>
+                            @endif
+                        @else
+                            @foreach($secondDots as $index => $dot)
+                                <rect x="{{ $dot['x'] - 7 }}" y="{{ min(106, $dot['y'] + 7) }}" width="14" height="9" rx="2" fill="#fff" stroke="{{ $secondColor }}" stroke-width="0.4" />
+                                <text x="{{ $dot['x'] }}" y="{{ min(113, $dot['y'] + 14) }}" text-anchor="middle" font-size="5.8" font-weight="700" fill="{{ $secondColor }}">{{ $trendRows[$index][$secondKey] ?? 0 }}</text>
+                            @endforeach
+                        @endif
+                    </svg>
+                    <div class="legend-row"><span class="legend-dot" style="background: {{ $firstColor }};"></span>{{ $firstLabel }} <span class="legend-dot" style="background: {{ $secondColor }}; margin-left: 8px;"></span>{{ $secondLabel }} <strong style="float: right;">{{ $chart['total'] ?? 0 }} total</strong></div>
+                @endif
+            </div>
+        @endforeach
     </div>
     @endif
 

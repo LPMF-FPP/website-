@@ -329,6 +329,138 @@
                 </div>
             </template>
 
+            <!-- LAMPIRAN STATISTIK DASHBOARD -->
+            <template x-if="previewData.dashboard_appendix">
+            <div class="mb-4 rounded-lg border border-slate-300 bg-slate-50 p-4">
+                <div class="mb-4 flex items-start justify-between gap-3">
+                    <div>
+                        <h3 class="font-bold mb-1 text-sm uppercase tracking-wide text-slate-900">Lampiran Statistik Dashboard</h3>
+                        <p class="text-xs text-slate-600">Visual ringkas dari chart dan angka dashboard statistik sesuai periode laporan.</p>
+                    </div>
+                    <span class="rounded-full border border-slate-300 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">Appendix</span>
+                </div>
+
+                <div class="grid grid-cols-4 gap-2 mb-4">
+                    <template x-for="card in (previewData.dashboard_appendix.summary_cards || [])" :key="card.label">
+                        <div class="rounded-md border border-slate-300 bg-white p-3 text-xs shadow-sm">
+                            <p class="text-[10px] font-bold uppercase tracking-wide text-slate-500" x-text="card.label"></p>
+                            <p class="mt-1 text-xl font-bold text-slate-950" x-text="card.value"></p>
+                            <p class="mt-1 text-[10px] leading-tight text-slate-500" x-text="card.note"></p>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="mb-4 grid grid-cols-2 gap-2">
+                    <template x-for="row in (previewData.dashboard_appendix.summary_table || [])" :key="row.category">
+                        <div class="rounded-md border border-slate-300 bg-white p-3 text-[10px] shadow-sm">
+                            <p class="font-bold uppercase tracking-wide text-slate-700" x-text="row.category"></p>
+                            <p class="mt-1 text-slate-600">
+                                <span class="font-bold text-slate-950" x-text="row.period_value"></span>
+                                <span> periode ini, </span>
+                                <span class="font-bold text-slate-950" x-text="row.year_value"></span>
+                                <span> tahun berjalan.</span>
+                            </p>
+                            <p class="mt-1 text-slate-500">
+                                <span>Target </span><span class="font-semibold" x-text="row.target"></span>
+                                <span> · Status </span><span class="font-semibold" x-text="row.status"></span>
+                            </p>
+                        </div>
+                    </template>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <template x-for="chart in (previewData.dashboard_appendix.charts || [])" :key="chart.title">
+                    <div class="page-break-inside-avoid rounded-md border border-slate-300 bg-white p-3 shadow-sm" :class="['Permintaan per Bulan', 'Sampel vs Target IKU'].includes(chart.title) ? 'col-span-2' : ''">
+                        <div class="mb-3 flex items-center justify-between gap-2">
+                            <h4 class="text-xs font-bold uppercase tracking-wide text-slate-800" x-text="chart.title"></h4>
+                            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600" x-text="chart.total + ' total'"></span>
+                        </div>
+
+                        <template x-if="(chart.rows || []).length === 0">
+                            <div class="rounded border border-dashed border-slate-300 p-4 text-center text-xs italic text-slate-500">Tidak ada data pada periode ini.</div>
+                        </template>
+
+                        <template x-if="(chart.rows || []).length > 0 && ['pie', 'doughnut'].includes(chart.type)">
+                            <div class="flex items-center gap-4">
+                                <div class="relative h-24 w-24 shrink-0 rounded-full border border-slate-200 shadow-inner" :style="`background: ${pieGradient(chart.rows)}`">
+                                    <div x-show="chart.type === 'doughnut'" class="absolute inset-5 rounded-full bg-white border border-slate-200"></div>
+                                </div>
+                                <div class="min-w-0 flex-1 space-y-1 text-[10px]">
+                                    <template x-for="(row, index) in topRowsWithOther(chart.rows, 5)" :key="row.label">
+                                        <div class="flex items-center gap-2">
+                                            <span class="h-2 w-2 shrink-0 rounded-full" :style="`background-color: ${chartColor(index)}`"></span>
+                                            <span class="min-w-0 flex-1 truncate" x-text="row.label"></span>
+                                            <span class="font-bold" x-text="row.count + ' / ' + row.percentage + '%'"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+
+                        <template x-if="(chart.rows || []).length > 0 && chart.type === 'bar'">
+                            <div class="space-y-1.5 text-[10px]">
+                                <template x-for="(row, index) in topRows(chart.rows, 6)" :key="row.label">
+                                    <div>
+                                        <div class="mb-0.5 flex justify-between gap-2">
+                                            <span class="truncate" x-text="row.label"></span>
+                                            <span class="font-bold" x-text="row.count + ' (' + row.percentage + '%)'"></span>
+                                        </div>
+                                        <div class="h-2 rounded-full bg-slate-100">
+                                            <div class="h-2 rounded-full" :style="`width: ${percentOf(row.count, maxValue(chart.rows, 'count'))}%; background-color: ${chartColor(index)}`"></div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </template>
+
+                        <template x-if="chart.title === 'Permintaan per Bulan'">
+                            <div class="text-[10px]">
+                                <div class="relative w-full rounded border border-slate-200 bg-slate-50 p-2" style="height: 180px;">
+                                    <svg viewBox="0 0 356 188" class="absolute inset-0 h-full w-full">
+                                        <line x1="28" y1="156" x2="328" y2="156" stroke="#cbd5e1" stroke-width="1" />
+                                        <line x1="28" y1="96" x2="328" y2="96" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3 3" />
+                                        <polyline :points="linePoints(chart.rows, 'requests', 300, 118, 28, 28, ['requests', 'completed'])" fill="none" stroke="#1d4ed8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+                                        <polyline :points="linePoints(chart.rows, 'completed', 300, 118, 28, 28, ['requests', 'completed'])" fill="none" stroke="#059669" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4" />
+                                        <g x-show="hasPositiveValue(chart.rows, 'requests') || hasPositiveValue(chart.rows, 'completed')" x-html="lineSvgLabels(chart.rows, 'requests', '#1d4ed8', -18, 300, 118, 28, 28, ['requests', 'completed'])"></g>
+                                        <g x-show="hasPositiveValue(chart.rows, 'requests') || hasPositiveValue(chart.rows, 'completed')" x-html="lineSvgLabels(chart.rows, 'completed', '#059669', 18, 300, 118, 28, 28, ['requests', 'completed'])"></g>
+                                    </svg>
+                                    <template x-if="!hasPositiveValue(chart.rows, 'requests') && !hasPositiveValue(chart.rows, 'completed')">
+                                        <div class="absolute inset-x-6 top-1/2 -translate-y-1/2 rounded border border-dashed border-slate-300 bg-white/80 py-2 text-center text-[10px] font-semibold text-slate-500">Tidak ada tren permintaan pada periode 12 bulan ini.</div>
+                                    </template>
+                                </div>
+                                <div class="mt-2 flex items-center justify-between gap-2 text-[10px] text-slate-600">
+                                    <span><span class="inline-block h-2 w-4 rounded-sm bg-blue-700"></span> Masuk</span>
+                                    <span><span class="inline-block h-2 w-4 rounded-sm bg-emerald-600"></span> Selesai</span>
+                                    <span class="font-bold" x-text="chart.total + ' permintaan'"></span>
+                                </div>
+                            </div>
+                        </template>
+
+                        <template x-if="chart.title === 'Sampel vs Target IKU'">
+                            <div class="text-[10px]">
+                                <div class="relative w-full rounded border border-slate-200 bg-slate-50 p-2" style="height: 180px;">
+                                    <svg viewBox="0 0 356 188" class="absolute inset-0 h-full w-full">
+                                        <line x1="28" y1="156" x2="328" y2="156" stroke="#cbd5e1" stroke-width="1" />
+                                        <line x1="28" y1="96" x2="328" y2="96" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3 3" />
+                                        <polyline :points="linePoints(chart.rows, 'samples', 300, 118, 28, 28, ['samples', 'target'])" fill="none" stroke="#059669" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+                                        <polyline :points="linePoints(chart.rows, 'target', 300, 118, 28, 28, ['samples', 'target'])" fill="none" stroke="#dc2626" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" />
+                                        <g x-html="lineSvgLabels(chart.rows, 'samples', '#059669', 18, 300, 118, 28, 28, ['samples', 'target'])"></g>
+                                        <g x-html="lineSvgEndpointLabel(chart.rows, 'target', '#dc2626', -18, 300, 118, 28, 28, ['samples', 'target'], 'right')"></g>
+                                    </svg>
+                                </div>
+                                <div class="mt-2 flex items-center justify-between gap-2 text-[10px] text-slate-600">
+                                    <span><span class="inline-block h-2 w-4 rounded-sm bg-emerald-600"></span> Aktual</span>
+                                    <span><span class="inline-block h-2 w-4 rounded-sm bg-red-600"></span> Target</span>
+                                    <span class="font-bold" x-text="chart.total + '/' + (chart.target?.yearly ?? 200) + ' sampel'"></span>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                    </template>
+                </div>
+            </div>
+            </template>
+
             <!-- NARASI PENUTUP -->
             <div class="mb-8">
                 <label class="block text-xs font-bold text-gray-400 uppercase mb-1 bg-gray-50 p-1 border border-dashed border-gray-300">Editable Area</label>

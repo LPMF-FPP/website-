@@ -116,6 +116,154 @@
         .finally(() => {
             this.savingDefaults = false;
         });
+    },
+
+    chartColor(index) {
+        const colors = ['#1d4ed8', '#dc2626', '#059669', '#d97706', '#7c3aed', '#db2777', '#0891b2', '#65a30d'];
+        return colors[index % colors.length];
+    },
+
+    topRows(rows, limit = 5) {
+        return (rows || []).slice(0, limit);
+    },
+
+    topRowsWithOther(rows, limit = 5) {
+        const safeRows = rows || [];
+        const top = safeRows.slice(0, limit);
+        const rest = safeRows.slice(limit);
+
+        if (rest.length === 0) {
+            return top;
+        }
+
+        const count = rest.reduce((sum, row) => sum + Number(row.count || 0), 0);
+        const percentage = rest.reduce((sum, row) => sum + Number(row.percentage || 0), 0);
+
+        return [
+            ...top,
+            {
+                label: 'Lainnya',
+                count,
+                percentage: Math.round(percentage * 10) / 10,
+            },
+        ];
+    },
+
+    pieGradient(rows) {
+        const safeRows = this.topRowsWithOther(rows, 5);
+        const total = safeRows.reduce((sum, row) => sum + Number(row.count || 0), 0);
+
+        if (total <= 0) {
+            return 'conic-gradient(#e5e7eb 0 360deg)';
+        }
+
+        let cursor = 0;
+        const segments = safeRows.map((row, index) => {
+            const start = cursor;
+            cursor += (Number(row.count || 0) / total) * 360;
+            return `${this.chartColor(index)} ${start}deg ${cursor}deg`;
+        });
+
+        return `conic-gradient(${segments.join(', ')})`;
+    },
+
+    maxValue(rows, key) {
+        return Math.max(1, ...(rows || []).map(row => Number(row[key] || 0)));
+    },
+
+    maxValueForKeys(rows, keys) {
+        const values = [];
+
+        (rows || []).forEach(row => {
+            keys.forEach(key => values.push(Number(row[key] || 0)));
+        });
+
+        return Math.max(1, ...values);
+    },
+
+    hasPositiveValue(rows, key) {
+        return (rows || []).some(row => Number(row[key] || 0) > 0);
+    },
+
+    percentOf(value, max) {
+        const numberValue = Number(value || 0);
+
+        if (numberValue <= 0) {
+            return 0;
+        }
+
+        return Math.max(3, Math.round((numberValue / Math.max(1, Number(max || 1))) * 100));
+    },
+
+    linePoints(rows, key, width = 300, height = 118, padX = 28, padY = 28, scaleKeys = null) {
+        const safeRows = rows || [];
+        const max = Array.isArray(scaleKeys) ? this.maxValueForKeys(safeRows, scaleKeys) : this.maxValue(safeRows, key);
+        const step = safeRows.length > 1 ? width / (safeRows.length - 1) : width;
+
+        return safeRows.map((row, index) => {
+            const x = Math.round(padX + (index * step));
+            const y = Math.round(padY + height - ((Number(row[key] || 0) / max) * height));
+
+            return `${x},${y}`;
+        }).join(' ');
+    },
+
+    linePoint(rows, index, key, width = 300, height = 118, padX = 28, padY = 28, scaleKeys = null) {
+        const safeRows = rows || [];
+        const max = Array.isArray(scaleKeys) ? this.maxValueForKeys(safeRows, scaleKeys) : this.maxValue(safeRows, key);
+        const step = safeRows.length > 1 ? width / (safeRows.length - 1) : width;
+        const row = safeRows[index] || {};
+
+        return {
+            x: Math.round(padX + (index * step)),
+            y: Math.round(padY + height - ((Number(row[key] || 0) / max) * height)),
+        };
+    },
+
+    lineSvgLabels(rows, key, color, offsetY = -16, width = 300, height = 118, padX = 28, padY = 28, scaleKeys = null, minY = 12, maxY = 176) {
+        return this.topRows(rows, 12).map((row, index) => {
+            const point = this.linePoint(rows, index, key, width, height, padX, padY, scaleKeys);
+            const value = String(row[key] ?? 0);
+            const labelWidth = Math.max(14, value.length * 5.6 + 8);
+            const labelHeight = 12;
+            const x = Math.max(2, Math.min(354 - labelWidth, point.x - (labelWidth / 2)));
+            const y = Math.max(minY, Math.min(maxY, point.y + offsetY)) - (labelHeight / 2);
+            const textY = y + 8.5;
+
+            return `<circle cx='${point.x}' cy='${point.y}' r='2.4' fill='${color}' />`
+                + `<rect x='${x}' y='${y}' width='${labelWidth}' height='${labelHeight}' rx='3' fill='#ffffff' stroke='${color}' stroke-width='0.8' />`
+                + `<text x='${x + (labelWidth / 2)}' y='${textY}' text-anchor='middle' font-size='8.5' font-weight='700' fill='${color}'>${value}</text>`;
+        }).join('');
+    },
+
+    lineSvgEndpointLabel(rows, key, color, offsetY = -16, width = 300, height = 118, padX = 28, padY = 28, scaleKeys = null, side = 'right', minY = 12, maxY = 176) {
+        const safeRows = this.topRows(rows, 12);
+        if (safeRows.length === 0) {
+            return '';
+        }
+
+        const index = side === 'left' ? 0 : safeRows.length - 1;
+        const row = safeRows[index];
+        const point = this.linePoint(safeRows, index, key, width, height, padX, padY, scaleKeys);
+        const value = String(row[key] ?? 0);
+        const labelWidth = Math.max(18, value.length * 5.6 + 8);
+        const labelHeight = 12;
+        const x = Math.max(2, Math.min(354 - labelWidth, point.x - (labelWidth / 2)));
+        const y = Math.max(minY, Math.min(maxY, point.y + offsetY)) - (labelHeight / 2);
+        const textY = y + 8.5;
+
+        return `<rect x='${x}' y='${y}' width='${labelWidth}' height='${labelHeight}' rx='3' fill='#ffffff' stroke='${color}' stroke-width='0.8' />`
+            + `<text x='${x + (labelWidth / 2)}' y='${textY}' text-anchor='middle' font-size='8.5' font-weight='700' fill='${color}'>${value}</text>`;
+    },
+
+    labelY(point, offset = -10, min = 12, max = 178) {
+        return Math.max(min, Math.min(max, point.y + offset));
+    },
+
+    pointLabelStyle(point, offsetY = -18, width = 356, height = 188) {
+        const y = this.labelY(point, offsetY, 12, 176);
+
+        return `left: ${(point.x / width) * 100}%; top: ${(y / height) * 100}%; transform: translate(-50%, -50%);`;
     }
 }">
 
