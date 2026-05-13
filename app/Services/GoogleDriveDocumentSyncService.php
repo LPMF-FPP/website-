@@ -21,29 +21,52 @@ class GoogleDriveDocumentSyncService
 
     /**
      * @param  Collection<int, Document>|iterable<int, Document>  $documents
-     * @return array{uploaded:int, skipped:int, failed:int}
+     * @return array{uploaded:int, skipped:int, failed:int, reason:?string}
      */
     public function syncUploadedDocuments(iterable $documents, ?User $user): array
     {
-        $result = ['uploaded' => 0, 'skipped' => 0, 'failed' => 0];
-        $syncUser = $this->syncUserFor($user);
+        $result = ['uploaded' => 0, 'skipped' => 0, 'failed' => 0, 'reason' => null];
+        $syncUser = null;
+        $accessToken = null;
+        $accessFailure = null;
 
-        if (! $syncUser) {
+        $syncCandidates = $this->syncUsersFor($user);
+        if ($syncCandidates === []) {
             foreach ($documents as $document) {
-                $this->markSkipped($document, 'Tidak ada akun Google Drive aktif untuk sinkronisasi. Hubungkan profil user atau pilih akun uploader Google Drive di Pengaturan.');
+                $this->markSkipped($document, $this->noActiveAccountReason());
                 $result['skipped']++;
             }
+            $result['reason'] = $this->noActiveAccountReason();
 
             return $result;
         }
 
-        try {
-            $accessToken = $this->oauth->accessTokenFor($syncUser);
-        } catch (Throwable $exception) {
+        foreach ($syncCandidates as $candidate) {
+            try {
+                $accessToken = $this->oauth->accessTokenFor($candidate);
+                $syncUser = $candidate;
+                break;
+            } catch (Throwable $exception) {
+                $accessFailure = $exception;
+
+                Log::warning('Google Drive OAuth token unavailable for document sync candidate', [
+                    'user_id' => $candidate->id,
+                    'using_configured_uploader' => $candidate->is($this->configuredUploaderUser()),
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+        }
+
+        if (! $syncUser || ! is_string($accessToken)) {
+            $reason = $accessFailure
+                ? $this->humanTokenFailureReason($accessFailure->getMessage())
+                : $this->noActiveAccountReason();
+
             foreach ($documents as $document) {
-                $this->markSkipped($document, $exception->getMessage());
+                $this->markSkipped($document, $reason);
                 $result['skipped']++;
             }
+            $result['reason'] = $reason;
 
             return $result;
         }
@@ -66,6 +89,49 @@ class GoogleDriveDocumentSyncService
         }
 
         return $result;
+    }
+
+    public function googleDriveHealth(): array
+    {
+        $configuredUploader = $this->configuredUploaderUser();
+        $configuredUploaderId = settings('google_drive.uploader_user_id');
+        $activeTokenUsers = User::query()
+            ->where('is_active', true)
+            ->whereHas('googleDriveToken')
+            ->count();
+
+        $retryable = Document::query()
+            ->where('source', 'upload')
+            ->whereIn('extra->google_drive->status', ['skipped', 'failed'])
+            ->count();
+
+        $untracked = Document::query()
+            ->where('source', 'upload')
+            ->whereNull('extra->google_drive->status')
+            ->count();
+
+        $tokenStatus = 'missing';
+        $tokenMessage = null;
+
+        if ($configuredUploader) {
+            try {
+                $this->oauth->accessTokenFor($configuredUploader);
+                $tokenStatus = 'ok';
+            } catch (Throwable $exception) {
+                $tokenStatus = 'invalid';
+                $tokenMessage = $this->humanTokenFailureReason($exception->getMessage());
+            }
+        }
+
+        return [
+            'configured_uploader_user_id' => is_numeric($configuredUploaderId) ? (int) $configuredUploaderId : null,
+            'configured_uploader_available' => (bool) $configuredUploader,
+            'active_users_with_drive_token' => $activeTokenUsers,
+            'token_status' => $tokenStatus,
+            'token_message' => $tokenMessage,
+            'retryable_documents' => $retryable,
+            'untracked_upload_documents' => $untracked,
+        ];
     }
 
     public function deleteSyncedDocument(Document $document, ?User $user): bool
@@ -105,18 +171,25 @@ class GoogleDriveDocumentSyncService
         return $fallbackUser;
     }
 
-    private function syncUserFor(?User $user): ?User
+    /**
+     * @return list<User>
+     */
+    private function syncUsersFor(?User $user): array
     {
+        $users = [];
         $configuredUser = $this->configuredUploaderUser();
         if ($configuredUser) {
-            return $configuredUser;
+            $users[] = $configuredUser;
         }
 
         if ($user?->googleDriveToken) {
-            return $user;
+            $alreadyAdded = collect($users)->contains(fn (User $candidate): bool => $candidate->is($user));
+            if (! $alreadyAdded) {
+                $users[] = $user;
+            }
         }
 
-        return null;
+        return $users;
     }
 
     private function configuredUploaderUser(): ?User
@@ -131,6 +204,20 @@ class GoogleDriveDocumentSyncService
             ->where('is_active', true)
             ->whereHas('googleDriveToken')
             ->first();
+    }
+
+    private function noActiveAccountReason(): string
+    {
+        return 'Tidak ada akun Google Drive aktif untuk sinkronisasi. Hubungkan profil user atau pilih akun uploader Google Drive di Pengaturan.';
+    }
+
+    private function humanTokenFailureReason(string $reason): string
+    {
+        if (str_contains(strtolower($reason), 'expired or revoked')) {
+            return 'Token Google Drive akun uploader sudah tidak valid atau dicabut oleh Google. Hubungkan ulang akun Google Drive uploader di Profil, lalu jalankan sinkronisasi ulang dokumen tertunda.';
+        }
+
+        return $reason;
     }
 
     private function syncDocument(Document $document, string $accessToken, User $user): void

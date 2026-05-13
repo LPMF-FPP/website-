@@ -3,12 +3,15 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use Illuminate\Foundation\Testing\DatabaseTransactions;
+use App\Models\UserGoogleDriveToken;
+use App\Services\GoogleDriveOAuthService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use RuntimeException;
 use Tests\TestCase;
 
 class ProfileTest extends TestCase
 {
-    use DatabaseTransactions;
+    use RefreshDatabase;
 
     public function test_profile_page_is_displayed(): void
     {
@@ -19,6 +22,34 @@ class ProfileTest extends TestCase
             ->get('/profile');
 
         $response->assertOk();
+    }
+
+    public function test_profile_warns_when_google_drive_token_is_revoked(): void
+    {
+        $user = User::factory()->create();
+        UserGoogleDriveToken::create([
+            'user_id' => $user->id,
+            'access_token' => 'expired-access-token',
+            'refresh_token' => 'revoked-refresh-token',
+            'expires_at' => now()->subMinute(),
+        ]);
+
+        $oauth = \Mockery::mock(GoogleDriveOAuthService::class);
+        $oauth->shouldReceive('accessTokenFor')
+            ->once()
+            ->with(\Mockery::on(fn (User $candidate): bool => $candidate->is($user)))
+            ->andThrow(new RuntimeException('Google Drive token refresh failed: Token has been expired or revoked.'));
+        app()->instance(GoogleDriveOAuthService::class, $oauth);
+
+        $response = $this
+            ->actingAs($user)
+            ->get('/profile');
+
+        $response
+            ->assertOk()
+            ->assertSee('Google Drive perlu dihubungkan ulang.')
+            ->assertSee('Token Google Drive sudah tidak valid atau dicabut oleh Google.')
+            ->assertSee('Putuskan Google Drive');
     }
 
     public function test_profile_information_can_be_updated(): void

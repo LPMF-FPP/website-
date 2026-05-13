@@ -532,7 +532,7 @@ class SampleTestProcessController extends Controller
 
         $driveSync = $uploadedDocuments->isNotEmpty()
             ? app(GoogleDriveDocumentSyncService::class)->syncUploadedDocuments($uploadedDocuments, $request->user())
-            : ['uploaded' => 0, 'skipped' => 0, 'failed' => 0];
+            : ['uploaded' => 0, 'skipped' => 0, 'failed' => 0, 'reason' => null];
 
         // Redirect back to testing.show (parent test request) for better UX flow
         $testRequest = $sampleProcess->sample?->testRequest;
@@ -540,7 +540,7 @@ class SampleTestProcessController extends Controller
         if ($driveSync['uploaded'] > 0) {
             $successMessage .= " {$driveSync['uploaded']} lampiran hasil pengujian berhasil disimpan ke Google Drive.";
         } elseif ($uploadedDocuments->isNotEmpty()) {
-            $successMessage .= ' Lampiran hasil pengujian tersimpan lokal, tetapi Google Drive belum tersinkronisasi. Pastikan akun Google Drive terhubung.';
+            $successMessage .= ' Lampiran hasil pengujian tersimpan lokal, tetapi Google Drive belum tersinkronisasi. '.($driveSync['reason'] ?: 'Pastikan akun Google Drive terhubung.');
         }
 
         if ($testRequest) {

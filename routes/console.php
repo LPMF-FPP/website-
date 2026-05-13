@@ -16,6 +16,12 @@ Schedule::command('qmh:action-items:refresh-overdue')
     ->everyFifteenMinutes()
     ->withoutOverlapping();
 Schedule::command('lims:purge-old-files')->dailyAt('02:00');
+Schedule::command('lims:google-drive-sync-documents')
+    ->everyThirtyMinutes()
+    ->withoutOverlapping();
+Schedule::command('lims:google-drive-health')
+    ->hourly()
+    ->withoutOverlapping();
 Schedule::command('storage:cleanup-duplicates --dry-run')
     ->dailyAt('02:20')
     ->withoutOverlapping();
