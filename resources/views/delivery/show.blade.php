@@ -404,21 +404,49 @@
                                         </div>
                                     @endif
 
-                                    {{-- Qty Info --}}
+                                    {{-- Rekonsiliasi Sampel --}}
                                     <div class="mt-3 grid grid-cols-3 gap-2 text-xs text-gray-500 bg-gray-50 rounded p-2">
                                         <div>
-                                            <span class="block text-gray-400 text-[10px] uppercase">Diserahkan</span>
+                                            <span class="block text-gray-400 text-[10px] uppercase">Jumlah Diserahkan</span>
                                             <span class="font-medium text-gray-700">{{ $sample->delivered_quantity_display ?? '-' }}</span>
                                         </div>
                                         <div>
-                                            <span class="block text-gray-400 text-[10px] uppercase">Diuji</span>
+                                            <span class="block text-gray-400 text-[10px] uppercase">Digunakan untuk Pengujian</span>
                                             <span class="font-medium text-gray-700">{{ $sample->testing_quantity_display ?? '-' }}</span>
                                         </div>
                                         <div>
-                                            <span class="block text-gray-400 text-[10px] uppercase">Sisa</span>
+                                            <span class="block text-gray-400 text-[10px] uppercase">Sisa Diserahkan</span>
                                             <span class="font-medium text-gray-700">{{ $sample->leftover_quantity_display ?? '-' }}</span>
                                         </div>
                                     </div>
+
+                                    @if(auth()->user()?->hasAnyPermission(['penyerahan.edit', 'penyerahan.create']))
+                                        @if(($request->status ?? null) !== 'ready_for_delivery')
+                                            <p class="mt-3 rounded-md border border-gray-200 bg-gray-50 p-3 text-[11px] text-gray-600">Jumlah sisa sampel sudah final dan tidak dapat diedit pada status ini.</p>
+                                        @elseif(($sample->remaining_units_count ?? 1) > 1)
+                                            <p class="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-[11px] text-amber-800">Sampel ini memiliki beberapa label sisa. Perbarui jumlah dari menu label agar setiap label tetap akurat.</p>
+                                        @else
+                                        <form method="POST" action="{{ route('delivery.remaining-quantities.update', $request) }}" class="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3">
+                                            @csrf
+                                            @method('PATCH')
+                                            <label for="remaining-qty-{{ $sample->id }}" class="block text-xs font-semibold text-amber-900">Edit jumlah sisa sampel</label>
+                                            <div class="mt-1 flex items-center gap-2">
+                                                <input
+                                                    id="remaining-qty-{{ $sample->id }}"
+                                                    name="samples[{{ $sample->id }}][qty_remaining]"
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value="{{ old('samples.'.$sample->id.'.qty_remaining', $sample->leftover_quantity_value) }}"
+                                                    class="w-28 rounded-md border-gray-300 text-sm focus:border-primary-600 focus:ring-primary-600"
+                                                >
+                                                <span class="text-xs font-medium text-amber-900">{{ $sample->remaining_unit?->uom ?: ($sample->unit ?? $sample->quantity_unit ?? '') }}</span>
+                                                <button type="submit" class="rounded-md bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700">Simpan</button>
+                                            </div>
+                                            <p class="mt-1 text-[11px] text-amber-800">Generate ulang Berita Acara setelah mengubah jumlah sisa.</p>
+                                        </form>
+                                        @endif
+                                    @endif
                                 </div>
                             @endforeach
                         </div>

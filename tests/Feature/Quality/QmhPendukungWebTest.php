@@ -75,6 +75,49 @@ class QmhPendukungWebTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_download_after_version_update_returns_latest_uploaded_file_without_cache(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($user)
+            ->post('/quality/pendukung', [
+                'doc_code' => 'DP-4.099',
+                'title' => 'Dokumen Pendukung Cache',
+                'clause' => 4,
+                'file' => UploadedFile::fake()->createWithContent('awal.pdf', "%PDF-1.4\nfile-awal"),
+            ])
+            ->assertRedirect();
+
+        $document = QmhDocument::query()->where('doc_code', 'DP-4.099')->firstOrFail();
+
+        $this->actingAs($user)
+            ->patch('/quality/pendukung/'.$document->id, [
+                'doc_code' => 'DP-4.099',
+                'title' => 'Dokumen Pendukung Cache Revisi',
+                'clause' => 4,
+                'file' => UploadedFile::fake()->createWithContent('revisi.pdf', "%PDF-1.4\nfile-revisi"),
+            ])
+            ->assertRedirect(route('quality.pendukung.show', $document));
+
+        $response = $this->actingAs($user)
+            ->get(route('quality.pendukung.file', ['document' => $document, 'download' => 1]));
+
+        $response->assertOk();
+        $cacheControl = (string) $response->headers->get('Cache-Control');
+        $this->assertStringContainsString('no-store', $cacheControl);
+        $this->assertStringContainsString('max-age=0', $cacheControl);
+        $this->assertStringContainsString('must-revalidate', $cacheControl);
+        $response->assertHeader('Pragma', 'no-cache');
+        $this->assertSame("%PDF-1.4\nfile-revisi", $response->streamedContent());
+
+        $document->refresh();
+        $this->actingAs($user)
+            ->get(route('quality.pendukung.show', $document))
+            ->assertOk()
+            ->assertSee('v='.(string) $document->current_revision_id, false);
+    }
+
     private function createQmhPermissions(): void
     {
         $viewPermission = Permission::query()->updateOrCreate(

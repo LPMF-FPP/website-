@@ -77,6 +77,7 @@ export function qmhPendukungPicker(config = {}) {
                     title: String(item.title || ""),
                     clause: Number(item.clause || 0),
                     mime: String(item?.current_revision?.source_pdf_mime || ""),
+                    revisionId: Number(item?.current_revision?.id || 0),
                 }));
             } catch {
                 this.error = "Gagal memuat daftar dokumen pendukung.";
@@ -119,7 +120,10 @@ export function qmhPendukungPicker(config = {}) {
         },
 
         buildFileUrl(item) {
-            return `/quality/pendukung/${item.id}/file`;
+            const revisionId = Number(item?.revisionId || 0);
+            const versionQuery = revisionId > 0 ? `?v=${revisionId}` : "";
+
+            return `/quality/pendukung/${item.id}/file${versionQuery}`;
         },
 
         confirmSelection() {

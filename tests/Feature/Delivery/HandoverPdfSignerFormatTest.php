@@ -4,7 +4,9 @@ namespace Tests\Feature\Delivery;
 
 use App\Models\Delivery;
 use App\Models\Document;
+use App\Models\EvidenceUnit;
 use App\Models\Investigator;
+use App\Models\RemainingUnit;
 use App\Models\Sample;
 use App\Models\TestRequest;
 use App\Models\User;
@@ -187,5 +189,130 @@ class HandoverPdfSignerFormatTest extends TestCase
         $this->assertStringNotContainsString('BA-ST-012-II-2026-FPP', $htmlContent);
         $this->assertStringNotContainsString('Rujukan Dokumen Asal', $htmlContent);
         $this->assertStringNotContainsString('FR/LPMF/7.8.1', $htmlContent);
+    }
+
+    public function test_handover_html_shows_sample_quantity_reconciliation(): void
+    {
+        /** @var User $authUser */
+        $authUser = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        $investigator = Investigator::factory()->create();
+
+        $request = TestRequest::factory()->create([
+            'investigator_id' => $investigator->id,
+            'user_id' => $authUser->id,
+            'status' => 'ready_for_delivery',
+        ]);
+
+        Sample::factory()->create([
+            'test_request_id' => $request->id,
+            'sample_code' => 'W099A2026',
+            'short_description' => 'Tablet Rekonsiliasi',
+            'test_methods' => json_encode(['gc_ms']),
+            'package_quantity' => 10,
+            'unit' => 'tablet',
+            'quantity' => 4,
+            'quantity_unit' => 'tablet',
+        ]);
+
+        $delivery = Delivery::factory()->create([
+            'request_id' => $request->id,
+            'delivered_by' => $authUser->id,
+        ]);
+
+        $this->actingAs($authUser)
+            ->post(route('delivery.handover.generate', $delivery))
+            ->assertStatus(302);
+
+        $htmlDocument = Document::query()
+            ->where('test_request_id', $request->id)
+            ->where('document_type', 'ba_penyerahan_html')
+            ->latest()
+            ->first();
+
+        $this->assertNotNull($htmlDocument);
+        Storage::disk('public')->assertExists($htmlDocument->path);
+
+        $htmlContent = Storage::disk('public')->get($htmlDocument->path);
+
+        $this->assertStringContainsString('Rekonsiliasi Sampel', $htmlContent);
+        $this->assertStringContainsString('Jumlah Diserahkan', $htmlContent);
+        $this->assertStringContainsString('Digunakan untuk Pengujian', $htmlContent);
+        $this->assertStringContainsString('Sisa Diserahkan', $htmlContent);
+        $this->assertStringContainsString('10 tablet', $htmlContent);
+        $this->assertStringContainsString('4 tablet', $htmlContent);
+        $this->assertStringContainsString('6 tablet', $htmlContent);
+    }
+
+    public function test_handover_html_uses_persisted_remaining_unit_override_and_aggregates_split_labels(): void
+    {
+        /** @var User $authUser */
+        $authUser = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        $investigator = Investigator::factory()->create();
+
+        $request = TestRequest::factory()->create([
+            'investigator_id' => $investigator->id,
+            'user_id' => $authUser->id,
+            'status' => 'ready_for_delivery',
+        ]);
+
+        $sample = Sample::factory()->create([
+            'test_request_id' => $request->id,
+            'sample_code' => 'W099-LONG-CODE-REKONSILIASI-2026',
+            'short_description' => 'Tablet Rekonsiliasi Panjang',
+            'test_methods' => json_encode(['gc_ms']),
+            'package_quantity' => 10,
+            'unit' => 'tablet',
+            'quantity' => 4,
+            'quantity_unit' => 'tablet',
+        ]);
+
+        $evidenceUnit = EvidenceUnit::query()->create([
+            'request_id' => $request->id,
+            'sample_id' => $sample->id,
+            'receipt_code' => $request->receipt_number,
+            'sample_code' => $sample->sample_code,
+        ]);
+
+        RemainingUnit::query()->create([
+            'evidence_unit_id' => $evidenceUnit->id,
+            'qty_remaining' => 2,
+            'uom' => 'tablet',
+        ]);
+        RemainingUnit::query()->create([
+            'evidence_unit_id' => $evidenceUnit->id,
+            'qty_remaining' => 1.5,
+            'uom' => 'tablet',
+        ]);
+
+        $delivery = Delivery::factory()->create([
+            'request_id' => $request->id,
+            'delivered_by' => $authUser->id,
+        ]);
+
+        $this->actingAs($authUser)
+            ->post(route('delivery.handover.generate', $delivery))
+            ->assertStatus(302);
+
+        $htmlDocument = Document::query()
+            ->where('test_request_id', $request->id)
+            ->where('document_type', 'ba_penyerahan_html')
+            ->latest()
+            ->first();
+
+        $this->assertNotNull($htmlDocument);
+        Storage::disk('public')->assertExists($htmlDocument->path);
+
+        $htmlContent = Storage::disk('public')->get($htmlDocument->path);
+
+        $this->assertStringContainsString('tbl-rekon', $htmlContent);
+        $this->assertStringContainsString('W099-LONG-CODE-REKONSILIASI-2026', $htmlContent);
+        $this->assertStringContainsString('3.5 tablet', $htmlContent);
+        $this->assertStringNotContainsString('6 tablet', $htmlContent);
     }
 }

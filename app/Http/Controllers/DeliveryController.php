@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CustomerSurvey;
 use App\Models\Delivery;
 use App\Models\Document;
+use App\Models\EvidenceUnit;
 use App\Models\RemainingUnit;
 use App\Models\TestRequest;
 use App\Services\DocumentService;
@@ -211,6 +212,31 @@ class DeliveryController extends Controller
         // Reload evidenceUnits with remainingUnits after auto-generation
         $request->load('evidenceUnits.remainingUnits');
 
+        $remainingUnitsBySampleId = $request->evidenceUnits
+            ->filter(fn ($evidenceUnit) => $evidenceUnit->sample_id !== null)
+            ->keyBy('sample_id');
+
+        $request->samples->each(function ($sample) use ($formatQuantity, $appendUnit, $remainingUnitsBySampleId) {
+            $evidenceUnit = $remainingUnitsBySampleId->get($sample->id);
+            if (! $evidenceUnit instanceof EvidenceUnit) {
+                return;
+            }
+
+            $remainingUnits = $evidenceUnit->remainingUnits->sortBy('id')->values();
+            $remainingUnit = $remainingUnits->first();
+            if (! $remainingUnit instanceof RemainingUnit) {
+                return;
+            }
+
+            $leftoverQty = $remainingUnits->sum(fn (RemainingUnit $unit) => (float) $unit->qty_remaining);
+            $leftoverUnit = $remainingUnit->uom ?: ($sample->unit ?? $sample->quantity_unit);
+
+            $sample->setAttribute('leftover_quantity_value', $leftoverQty);
+            $sample->setAttribute('leftover_quantity_display', $appendUnit($formatQuantity($leftoverQty), $leftoverUnit));
+            $sample->setAttribute('remaining_unit', $remainingUnit);
+            $sample->setAttribute('remaining_units_count', $remainingUnits->count());
+        });
+
         $samplesNeedingRemainingLabels = $request->samples
             ->filter(fn ($sample) => (float) ($sample->leftover_quantity_value ?? 0) > 0)
             ->values();
@@ -288,6 +314,125 @@ class DeliveryController extends Controller
 
         ]);
 
+    }
+
+    public function updateRemainingQuantities(Request $httpRequest, TestRequest $request)
+    {
+        abort_unless($httpRequest->user()?->hasAnyPermission(['penyerahan.edit', 'penyerahan.create']), 403);
+
+        if ($request->status !== 'ready_for_delivery') {
+            return back()->withErrors(['remaining_quantities' => 'Jumlah sisa sampel hanya dapat diedit saat permintaan masih siap diserahkan.']);
+        }
+
+        $request->loadMissing(['investigator', 'samples', 'evidenceUnits.remainingUnits']);
+
+        $validated = $httpRequest->validate([
+            'samples' => ['required', 'array'],
+            'samples.*.qty_remaining' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
+        ], [
+            'samples.required' => 'Data sisa sampel wajib dikirim.',
+            'samples.*.qty_remaining.numeric' => 'Jumlah sisa sampel harus berupa angka.',
+            'samples.*.qty_remaining.min' => 'Jumlah sisa sampel tidak boleh kurang dari 0.',
+            'samples.*.qty_remaining.max' => 'Jumlah sisa sampel terlalu besar.',
+        ]);
+
+        $sampleIds = $request->samples->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $submittedSamples = collect($validated['samples'] ?? []);
+        $invalidSampleIds = $submittedSamples
+            ->keys()
+            ->map(fn ($sampleId) => (int) $sampleId)
+            ->reject(fn ($sampleId) => in_array($sampleId, $sampleIds, true));
+
+        if ($invalidSampleIds->isNotEmpty()) {
+            return back()->withErrors(['remaining_quantities' => 'Data sampel tidak sesuai dengan permintaan penyerahan.'])->withInput();
+        }
+
+        if ($submittedSamples->isEmpty()) {
+            return back()->withErrors(['remaining_quantities' => 'Pilih minimal satu sampel untuk diperbarui.'])->withInput();
+        }
+
+        foreach ($submittedSamples as $sampleId => $payload) {
+            $sample = $request->samples->firstWhere('id', (int) $sampleId);
+            $deliveredQty = is_numeric($sample?->package_quantity) ? (float) $sample->package_quantity : null;
+            $qty = array_key_exists('qty_remaining', $payload) && $payload['qty_remaining'] !== null && $payload['qty_remaining'] !== ''
+                ? (float) $payload['qty_remaining']
+                : 0.0;
+
+            if ($deliveredQty !== null && $qty > $deliveredQty) {
+                return back()->withErrors([
+                    'remaining_quantities' => 'Jumlah sisa sampel tidak boleh melebihi jumlah yang diserahkan.',
+                ])->withInput();
+            }
+
+            $evidenceUnit = $request->evidenceUnits->firstWhere('sample_id', (int) $sample?->id);
+            if ($evidenceUnit instanceof EvidenceUnit && $evidenceUnit->remainingUnits->count() > 1) {
+                return back()->withErrors([
+                    'remaining_quantities' => 'Sampel dengan beberapa label sisa harus diperbarui dari menu label agar setiap label tetap akurat.',
+                ])->withInput();
+            }
+        }
+
+        DB::transaction(function () use ($request, $submittedSamples, $httpRequest): void {
+            $request->loadMissing(['samples', 'evidenceUnits.remainingUnits']);
+
+            foreach ($submittedSamples as $sampleId => $payload) {
+                $sample = $request->samples->firstWhere('id', (int) $sampleId);
+                if (! $sample) {
+                    continue;
+                }
+
+                $evidenceUnit = EvidenceUnit::query()->firstOrCreate(
+                    ['sample_id' => $sample->id],
+                    [
+                        'request_id' => $request->id,
+                        'receipt_code' => $request->receipt_number,
+                        'sample_code' => $sample->sample_code,
+                        'sample_type' => $sample->sample_category ?? $sample->sample_form,
+                        'sample_desc' => $sample->short_description ?? $sample->sample_description,
+                        'investigator_name' => $request->investigator?->name ?? $request->investigator?->rank_name,
+                        'investigator_unit' => $request->investigator?->jurisdiction ?? $request->investigator?->satuan_kerja ?? $request->investigator?->unit,
+                        'seal_status_received' => null,
+                        'condition_received' => $sample->condition,
+                        'received_at' => $sample->received_at ?? $request->received_at,
+                        'received_by' => $sample->received_by ?? $httpRequest->user()?->id,
+                    ]
+                );
+
+                $qty = array_key_exists('qty_remaining', $payload) && $payload['qty_remaining'] !== null && $payload['qty_remaining'] !== ''
+                    ? (float) $payload['qty_remaining']
+                    : 0.0;
+                $uom = (string) ($sample->unit ?? $sample->quantity_unit ?? '');
+                $deliveredQty = is_numeric($sample->package_quantity) ? (float) $sample->package_quantity : null;
+                $testingQty = $deliveredQty !== null ? max($deliveredQty - $qty, 0.0) : null;
+
+                $remainingUnit = RemainingUnit::query()
+                    ->where('evidence_unit_id', $evidenceUnit->id)
+                    ->orderBy('id')
+                    ->first()
+                    ?? new RemainingUnit(['evidence_unit_id' => $evidenceUnit->id]);
+
+                $remainingUnit->fill([
+                    'sample_code' => $sample->sample_code,
+                    'qty_remaining' => $qty,
+                    'uom' => $uom !== '' ? $uom : null,
+                    'seal_status_delivered' => $remainingUnit->seal_status_delivered ?: 'disegel',
+                    'delivered_at' => $remainingUnit->delivered_at ?? now(),
+                    'delivered_by' => $remainingUnit->delivered_by ?? $httpRequest->user()?->id,
+                ]);
+                $remainingUnit->save();
+
+                if ($testingQty !== null) {
+                    $sample->forceFill([
+                        'quantity' => $testingQty,
+                        'quantity_unit' => $uom !== '' ? $uom : $sample->quantity_unit,
+                    ])->save();
+                }
+            }
+        });
+
+        return redirect()
+            ->route('delivery.show', $request)
+            ->with('success', 'Jumlah sisa sampel berhasil diperbarui. Generate ulang Berita Acara Penyerahan jika dokumen sudah dibuat sebelumnya.');
     }
 
     public function editInvestigator(TestRequest $request)
@@ -780,7 +925,7 @@ class DeliveryController extends Controller
             $delivery->setRelation('deliveredBy', $currentSigner);
         }
 
-        $delivery->loadMissing(['request.investigator', 'request.samples', 'request.user', 'deliveredBy']);
+        $delivery->loadMissing(['request.investigator', 'request.samples', 'request.evidenceUnits.remainingUnits', 'request.user', 'deliveredBy']);
         $req = $delivery->request;
         $inv = $req->investigator;
 
@@ -862,7 +1007,7 @@ class DeliveryController extends Controller
      */
     public function handoverView(Delivery $delivery, DocumentService $docs)
     {
-        $delivery->loadMissing(['request.investigator', 'request.samples', 'request.user', 'deliveredBy']);
+        $delivery->loadMissing(['request.investigator', 'request.samples', 'request.evidenceUnits.remainingUnits', 'request.user', 'deliveredBy']);
         $req = $delivery->request;
         $inv = $req->investigator;
 

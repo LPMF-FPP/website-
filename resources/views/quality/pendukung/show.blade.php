@@ -22,6 +22,8 @@
         @endif
 
         <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            @php($previewFileRoute = route('quality.pendukung.file', ['document' => $document, 'v' => (int) $document->current_revision_id]))
+            @php($downloadFileRoute = route('quality.pendukung.file', ['document' => $document, 'v' => (int) $document->current_revision_id, 'download' => 1]))
             <dl class="grid gap-4 md:grid-cols-2">
                 <div>
                     <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Kode</dt>
@@ -43,11 +45,11 @@
 
             <div class="mt-5 flex flex-wrap items-center gap-2">
                 @if($fileExists)
-                    <a href="{{ route('quality.pendukung.file', $document) }}" target="_blank" rel="noopener"
+                    <a href="{{ $previewFileRoute }}" target="_blank" rel="noopener"
                        class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
                         Preview File
                     </a>
-                    <a href="{{ route('quality.pendukung.file', ['document' => $document, 'download' => 1]) }}"
+                    <a href="{{ $downloadFileRoute }}"
                        class="inline-flex items-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
                         Unduh File
                     </a>

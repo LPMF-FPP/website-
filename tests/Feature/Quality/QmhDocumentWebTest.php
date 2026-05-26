@@ -105,6 +105,41 @@ class QmhDocumentWebTest extends TestCase
         $this->assertQmhSubnavActiveLabel($edit->getContent(), 'Dokumen');
     }
 
+    public function test_pendukung_document_show_page_downloads_uploaded_supporting_file_directly(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $document = QmhDocument::query()->create([
+            'doc_code' => 'DP-4.777',
+            'title' => 'Dokumen Pendukung Langsung',
+            'clause' => 4,
+            'doc_type' => 'pendukung',
+            'owner_label' => 'Laboratorium',
+            'is_active' => true,
+        ]);
+        $revision = QmhDocumentRevision::query()->create([
+            'document_id' => $document->id,
+            'edition_number' => 1,
+            'revision_number' => 0,
+            'version_label' => 'v1',
+            'status' => 'published',
+            'version_bump_mode' => 'manual',
+            'source_pdf_disk' => 'local',
+            'source_pdf_path' => 'qmh-pendukung/4/dokumen-pendukung.pdf',
+            'source_pdf_mime' => 'application/pdf',
+            'dibuat_oleh' => $user->id,
+        ]);
+        $document->update(['current_revision_id' => $revision->id]);
+
+        $this->actingAs($user)
+            ->get('/quality/documents/'.$document->id)
+            ->assertOk()
+            ->assertSee('Unduh File Pendukung')
+            ->assertSee('/quality/pendukung/'.$document->id.'/file?v='.$revision->id, false)
+            ->assertSee('download=1', false);
+    }
+
     public function test_reports_page_renders_breadcrumbs_and_subnav_when_user_has_permission(): void
     {
         $this->grantPermissionToRole('admin', 'qmh.report', 'Laporan Quality Management Hub', 'qmh', 'report');

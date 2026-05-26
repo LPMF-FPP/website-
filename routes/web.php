@@ -389,6 +389,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/{request}', [DeliveryController::class, 'show'])->name('delivery.show');
         Route::patch('/{delivery}/surat-pengantar', [DeliveryController::class, 'updateSuratPengantar'])
             ->name('delivery.update-surat-pengantar');
+        Route::patch('/{request}/remaining-quantities', [DeliveryController::class, 'updateRemainingQuantities'])
+            ->name('delivery.remaining-quantities.update');
         Route::post('/{request}/send-notification', [DeliveryController::class, 'sendPickupNotification'])
             ->name('delivery.send-notification');
         Route::post('/{request}/complete', [DeliveryController::class, 'markAsCompleted'])

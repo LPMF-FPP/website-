@@ -264,7 +264,33 @@
       $unit = $unit ? trim($unit) : '';
       return $unit !== '' ? $quantity . ' ' . $unit : $quantity;
   };
-  $calcSisa = function($s) use ($formatQuantity, $appendUnit) {
+  $remainingUnitsBySampleId = collect($req->evidenceUnits ?? [])
+      ->filter(fn($evidenceUnit) => isset($evidenceUnit->sample_id))
+      ->keyBy('sample_id')
+      ->map(fn($evidenceUnit) => collect($evidenceUnit->remainingUnits ?? [])->sortBy('id')->values());
+  $calcDelivered = function($s) use ($formatQuantity, $appendUnit) {
+      return $appendUnit(
+          $formatQuantity($s->package_quantity ?? null),
+          $s->unit ?? $s->quantity_unit
+      ) ?? '-';
+  };
+  $calcTesting = function($s) use ($formatQuantity, $appendUnit) {
+      return $appendUnit(
+          $formatQuantity($s->quantity ?? null),
+          $s->quantity_unit ?? $s->unit
+      ) ?? '-';
+  };
+  $calcSisa = function($s) use ($formatQuantity, $appendUnit, $remainingUnitsBySampleId) {
+      $remainingUnits = $remainingUnitsBySampleId->get($s->id, collect());
+      if ($remainingUnits->isNotEmpty()) {
+          $remainingUnit = $remainingUnits->first();
+          $display = $appendUnit(
+              $formatQuantity($remainingUnits->sum(fn($unit) => (float) ($unit->qty_remaining ?? 0))),
+              $remainingUnit->uom ?? ($s->unit ?? $s->quantity_unit)
+          );
+          return $display ?? '0';
+      }
+
       $deliveredQty = $s->package_quantity;
       $testingQty   = $s->quantity;
       if ($deliveredQty !== null && !is_numeric($deliveredQty)) { $deliveredQty = null; }
@@ -318,6 +344,10 @@
   .tbl-sampel{ table-layout:auto; }
   .tbl-sampel .col-no{ width:22px; text-align:center; }
   .tbl-sampel td:last-child{ word-break:break-word; hyphens:auto; }
+  .tbl-rekon{ table-layout:fixed; }
+  .tbl-rekon th,.tbl-rekon td{ word-break:break-word; }
+  .tbl-rekon .col-code{ width:34%; }
+  .tbl-rekon .col-qty{ width:22%; }
 
   /* ===== Tanda tangan proporsional ===== */
   .signatures{ width:100%; border-collapse:separate; border-spacing:10px 0; margin-top:6px; }
@@ -388,18 +418,31 @@
 
 
   <div class="section">
-    <h2>Sisa Sampel Diserahkan</h2>
-    <table>
-      <thead><tr><th>Kode Sampel</th><th>Sisa</th></tr></thead>
+    <h2>Rekonsiliasi Sampel</h2>
+    <table class="tbl-rekon">
+      <thead>
+        <tr>
+          <th class="col-code">Kode Sampel</th>
+          <th class="col-qty">Jumlah Diserahkan</th>
+          <th class="col-qty">Digunakan untuk Pengujian</th>
+          <th class="col-qty">Sisa Diserahkan</th>
+        </tr>
+      </thead>
       <tbody>
         @forelse($samples as $s)
           @php $code = $s->sample_code ?? $s->short_description ?? '—'; @endphp
-          <tr><td>{{ $code }}</td><td>{{ $calcSisa($s) }}</td></tr>
+          <tr>
+            <td>{{ $code }}</td>
+            <td>{{ $calcDelivered($s) }}</td>
+            <td>{{ $calcTesting($s) }}</td>
+            <td>{{ $calcSisa($s) }}</td>
+          </tr>
         @empty
-          <tr><td colspan="2" style="text-align:center;font-style:italic;">Tidak ada data sisa sampel.</td></tr>
+          <tr><td colspan="4" style="text-align:center;font-style:italic;">Tidak ada data rekonsiliasi sampel.</td></tr>
         @endforelse
       </tbody>
     </table>
+    <div class="small muted">Sisa diserahkan dihitung dari jumlah sampel yang diserahkan dikurangi jumlah yang digunakan untuk pengujian, atau berdasarkan penyesuaian fisik akhir saat penyerahan.</div>
   </div>
 
   <div class="section small muted">

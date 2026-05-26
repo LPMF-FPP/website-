@@ -55,6 +55,14 @@
     $latestPublishedVersionLabel = $document->revisions
         ->firstWhere('status', 'published')?->version_label;
     $editActionLabel = $status === 'published' ? 'Buat Revisi Baru' : 'Edit Dokumen';
+    $isPendukungDocument = $document->doc_type === 'pendukung';
+    $pendukungDownloadUrl = $isPendukungDocument
+        ? route('quality.pendukung.file', [
+            'document' => $document,
+            'v' => (int) $document->current_revision_id,
+            'download' => 1,
+        ])
+        : null;
 @endphp
 
 <x-app-layout>
@@ -190,13 +198,22 @@
                         @endif
 
                         @if(auth()->user()?->hasPermission('qmh.create'))
-                            <button
-                                type="button"
-                                @click="openDownloadModal()"
-                                class="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                            >
-                                Unduh PDF
-                            </button>
+                            @if($isPendukungDocument)
+                                <a
+                                    href="{{ $pendukungDownloadUrl }}"
+                                    class="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                >
+                                    Unduh File Pendukung
+                                </a>
+                            @else
+                                <button
+                                    type="button"
+                                    @click="openDownloadModal()"
+                                    class="inline-flex w-full items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                >
+                                    Unduh PDF
+                                </button>
+                            @endif
                         @endif
 
                         @if(auth()->user()?->hasPermission('qmh.create'))

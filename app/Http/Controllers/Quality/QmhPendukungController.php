@@ -171,6 +171,10 @@ class QmhPendukungController extends Controller
         $headers = [
             'Content-Type' => (string) ($revision?->source_pdf_mime ?: 'application/octet-stream'),
             'Content-Disposition' => $contentDisposition.'; filename="'.$filename.'"',
+            'Cache-Control' => 'private, no-store, max-age=0, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+            'X-Content-Type-Options' => 'nosniff',
         ];
 
         if ($download) {

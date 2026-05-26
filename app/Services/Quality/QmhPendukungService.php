@@ -215,7 +215,10 @@ class QmhPendukungService
 
     public function getFileUrl(QmhDocument $document): string
     {
-        return route('quality.pendukung.file', ['document' => $document]);
+        return route('quality.pendukung.file', [
+            'document' => $document,
+            'v' => (int) $document->current_revision_id,
+        ]);
     }
 
     public function fileExists(QmhDocument $document): bool

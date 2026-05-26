@@ -114,7 +114,10 @@ class QmhDocument extends Model
 
     public function fileUrl(): string
     {
-        return route('quality.pendukung.file', ['document' => $this]);
+        return route('quality.pendukung.file', [
+            'document' => $this,
+            'v' => (int) $this->current_revision_id,
+        ]);
     }
 
     public function getPendukungUsage(): Collection
