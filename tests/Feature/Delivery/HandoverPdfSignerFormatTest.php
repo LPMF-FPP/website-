@@ -186,7 +186,9 @@ class HandoverPdfSignerFormatTest extends TestCase
         $htmlContent = Storage::disk('public')->get($htmlDocument->path);
 
         $this->assertStringContainsString('BA-ST/012/II/2026/FPP', $htmlContent);
+        $this->assertStringContainsString('Kode Dokumen: BA-ST/012/II/2026/FPP', $htmlContent);
         $this->assertStringNotContainsString('BA-ST-012-II-2026-FPP', $htmlContent);
+        $this->assertStringNotContainsString('Kode Dokumen: BA-Penyerahan/', $htmlContent);
         $this->assertStringNotContainsString('Rujukan Dokumen Asal', $htmlContent);
         $this->assertStringNotContainsString('FR/LPMF/7.8.1', $htmlContent);
     }

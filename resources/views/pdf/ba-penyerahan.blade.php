@@ -471,7 +471,7 @@
   </table>
 
   <div class="footer">
-    <div class="small">Kode Dokumen: BA-Penyerahan/{{ $req->request_number }}</div>
+    <div class="small">Kode Dokumen: {{ $baPenyerahanNumber }}</div>
     <div class="small">Dicetak pada: {{ $today->translatedFormat('d F Y H:i') }} WIB</div>
     <div class="small">Halaman 1 dari 1</div>
   </div>
