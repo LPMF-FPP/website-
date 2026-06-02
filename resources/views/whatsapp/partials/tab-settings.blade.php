@@ -286,19 +286,15 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Model</label>
-                            <input type="text" x-model="settingsForm.ai_model" list="ai-model-options" placeholder="gpt-5.3-codex"
+                            <input type="text" x-model="settingsForm.ai_model" list="ai-model-options" placeholder="gpt-5.3-codex-spark"
                                    class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
                             <datalist id="ai-model-options">
-                                <option value="gpt-5-codex"></option>
-                                <option value="gpt-5.1"></option>
-                                <option value="gpt-5.2"></option>
-                                <option value="gpt-5.3-codex"></option>
-                                <option value="gpt-5-codex-mini"></option>
-                                <option value="gpt-5.1-codex"></option>
-                                <option value="gpt-5.1-codex-mini"></option>
-                                <option value="gpt-5.1-codex-max"></option>
-                                <option value="gpt-5.2-codex"></option>
                                 <option value="gpt-5.3-codex-spark"></option>
+                                <option value="gpt-oss-120b-medium"></option>
+                                <option value="gpt-5.4-mini"></option>
+                                <option value="gpt-5.5"></option>
+                                <option value="gpt-5.4"></option>
+                                <option value="gpt-image-2"></option>
                             </datalist>
                             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Bisa pilih dari list atau isi manual sesuai provider AI.</p>
                         </div>

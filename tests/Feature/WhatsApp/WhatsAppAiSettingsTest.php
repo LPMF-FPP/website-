@@ -66,6 +66,27 @@ it('saves ai configuration from whatsapp settings', function () {
         ]);
 });
 
+it('saves gowa configuration without ai fields', function () {
+    /** @var \Tests\TestCase $this */
+    /** @var User $user */
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->postJson('/whatsapp/settings', [
+        'base_url' => 'https://gowa.local',
+        'basic_user' => 'bot',
+        'basic_pass' => 'secret-pass',
+        'device_id' => 'device-123',
+        'inventory_alert_expiry_days' => 30,
+    ]);
+
+    $response->assertOk();
+
+    expect(DB::table('settings')->where('key', 'notifications.whatsapp.base_url')->value('value'))->toBe('"https://gowa.local"');
+    expect(DB::table('settings')->where('key', 'notifications.whatsapp.basic_user')->value('value'))->toBe('"bot"');
+    expect(DB::table('settings')->where('key', 'notifications.whatsapp.device_id')->value('value'))->toBe('"device-123"');
+    expect(DB::table('settings')->where('key', 'notifications.whatsapp.ai.provider')->exists())->toBeFalse();
+});
+
 it('tests ai from whatsapp settings endpoint', function () {
     /** @var \Tests\TestCase $this */
     /** @var User $user */

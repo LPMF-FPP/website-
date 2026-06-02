@@ -554,11 +554,14 @@
                             basic_pass: this.settingsForm.basic_pass,
                             device_id: this.settingsForm.device_id,
                             inventory_alert_expiry_days: this.settingsForm.inventory_alert_expiry_days,
-                            ai_provider: this.settingsForm.ai_provider,
-                            ai_base_url: this.settingsForm.ai_base_url,
-                            ai_model: this.settingsForm.ai_model,
-                            ai_api_key: this.settingsForm.ai_api_key
                         };
+
+                        if (this.activeSettingsTab !== 'gowa') {
+                            payload.ai_provider = this.settingsForm.ai_provider;
+                            payload.ai_base_url = this.settingsForm.ai_base_url;
+                            payload.ai_model = this.settingsForm.ai_model;
+                            payload.ai_api_key = this.settingsForm.ai_api_key;
+                        }
 
                         const res = await fetch('{{ route("whatsapp.settings.save") }}', {
                             method: 'POST',
