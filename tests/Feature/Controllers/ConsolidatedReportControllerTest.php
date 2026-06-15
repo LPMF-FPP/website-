@@ -313,8 +313,11 @@ class ConsolidatedReportControllerTest extends TestCase
         $this->assertStringContainsString("</table>\n    </div>\n\n    <!-- II. Rekap Zat Aktif -->", $html);
         $this->assertStringContainsString('Status: <strong>Normal</strong>', $html);
         $this->assertStringContainsString('Lainnya', $html);
-        $this->assertSame(1, substr_count($html, '>16.7</text>'));
-        $this->assertStringNotContainsString('18,20 438,20', $html);
+        $this->assertStringContainsString('class="trend-table"', $html);
+        $this->assertStringContainsString('<strong>16.7</strong>', $html);
+        $this->assertStringNotContainsString('<svg', $html);
+        $this->assertStringNotContainsString('<polyline', $html);
+        $this->assertStringNotContainsString('<circle', $html);
         $this->assertNotEmpty(Pdf::loadView('pdf.consolidated-report', ['report' => $report])->setPaper('a4', 'portrait')->output());
     }
 

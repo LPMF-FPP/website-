@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v2.5.2
+# WALKTHROUGH - LPMF LIMS v2.5.3
 
 > **Single Source of Truth** — Pedoman terupdate terhadap codebase Laboratory Information Management System.
 
@@ -147,6 +147,20 @@ WhatsApp service berjalan di container Docker terpisah.
 ---
 
 ## 📰 Recent Changes (v2.5.x)
+
+### v2.5.3 (15 Juni 2026) - Delivery, Statistics, Google Drive & WhatsApp Hardening
+
+- **Delivery Processing Time:** Dashboard penyerahan sekarang menampilkan durasi proses pengujian dari penerimaan hingga siap serah, sehingga petugas dapat memantau waktu layanan langsung dari daftar delivery.
+- **Investigator Edit Hardening:** Edit data penyidik dari modul delivery diperkuat dengan route, validasi, dan tampilan yang lebih aman agar koreksi informasi penyidik tidak merusak konteks penyerahan yang sedang berjalan.
+- **Statistics Report Guard:** Preview consolidated report dilindungi dari kondisi data kosong/tidak lengkap, dan laporan periodik kini dapat menyertakan appendix dashboard untuk memperkaya ringkasan statistik operasional.
+- **Dependency Audit Remediation:** Lockfile NPM diperbarui untuk menutup temuan audit dependency yang dapat diselesaikan tanpa perubahan perilaku aplikasi.
+- **Google Drive Sync Health:** Pemeriksaan kesehatan sinkronisasi Google Drive diperkuat melalui command health, error handling controller/profile, dan guard sync dokumen agar status koneksi lebih mudah didiagnosis sebelum upload dokumen operasional.
+- **Remaining Quantity Reconciliation:** Alur penyerahan dan dokumen QMH pendukung diperbaiki agar rekonsiliasi jumlah sisa sampel lebih konsisten antara tampilan delivery, PDF BA Penyerahan, picker dokumen pendukung, dan halaman QMH.
+- **Handover PDF Code Alignment:** Footer dan kode dokumen pada PDF BA Penyerahan diselaraskan dengan format dokumen yang berlaku, dilengkapi coverage untuk format penandatangan dan kode dokumen.
+- **GOWA Settings Save Fix:** Tab GOWA di WhatsApp Hub sekarang menyimpan konfigurasi GOWA tanpa ikut mengirim field konfigurasi AI, sehingga validasi AI tidak lagi dapat menggagalkan penyimpanan `Base URL`, `Device ID`, `Basic Auth User`, dan `Basic Auth Password`.
+- **AI Model Options Update:** Pilihan model pada tab AI diperbarui menjadi `gpt-5.3-codex-spark`, `gpt-oss-120b-medium`, `gpt-5.4-mini`, `gpt-5.5`, `gpt-5.4`, dan `gpt-image-2`, dengan placeholder yang diselaraskan ke opsi default terbaru.
+- **Regression Coverage:** Coverage feature diperluas untuk delivery progress, edit penyidik delivery, consolidated report, Google Drive sync, label sisa/BA penyerahan, QMH pendukung, dan WhatsApp settings agar perubahan setelah rilis 6 Mei tetap terlindungi.
+- **Production Deployment:** Perubahan WhatsApp telah dipaketkan melalui artifact deploy production, menjalankan composer install, migration check, Vite build, optimize cache, serta verifikasi pascadeploy `about`, `migrate:status`, dan smoke read-only QMH.
 
 ### v2.5.2 (6 Mei 2026) - Production Artifact Cleanup & Seeder Safety
 

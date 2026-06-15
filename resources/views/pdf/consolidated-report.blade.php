@@ -53,6 +53,9 @@
         .bar-fill { height: 7px; border-radius: 3px; }
         .micro-row { margin-bottom: 3px; font-size: 7.5pt; }
         .summary-pill { border: 1px solid #999; padding: 4px 6px; font-size: 8pt; margin-bottom: 4px; }
+        .trend-table { width: 100%; border-collapse: collapse; font-size: 7pt; }
+        .trend-table th, .trend-table td { border: 1px solid #ddd; padding: 2px 3px; vertical-align: middle; }
+        .trend-table th { background: #f3f4f6; font-weight: bold; }
 
         /* Signatures - table-based layout for proper column separation */
         .signatures { width: 100%; margin-top: 25px; page-break-inside: avoid; }
@@ -440,30 +443,6 @@
             return max(1, ...$values);
         };
         $barWidth = fn ($value, $max): int => (float) $value <= 0 ? 0 : max(3, (int) round(((float) $value / max(1, (float) $max)) * 100));
-        $linePoints = function ($rows, string $key, float $width = 192, float $height = 52, float $padX = 14, float $padY = 18, ?array $scaleKeys = null) use ($maxValue, $maxValueForKeys): string {
-            $safeRows = array_values(array_filter(is_array($rows) ? $rows : [], 'is_array'));
-            $max = is_array($scaleKeys) ? $maxValueForKeys($safeRows, $scaleKeys) : $maxValue($safeRows, $key);
-            $step = count($safeRows) > 1 ? $width / (count($safeRows) - 1) : $width;
-
-            return collect($safeRows)->map(function ($row, int $index) use ($key, $max, $step, $height, $padX, $padY) {
-                $x = round($padX + ($index * $step), 1);
-                $y = round($padY + $height - (((float) ($row[$key] ?? 0) / $max) * $height), 1);
-
-                return "{$x},{$y}";
-            })->implode(' ');
-        };
-        $lineDots = function ($rows, string $key, float $width = 192, float $height = 52, float $padX = 14, float $padY = 18, ?array $scaleKeys = null) use ($maxValue, $maxValueForKeys): array {
-            $safeRows = array_values(array_filter(is_array($rows) ? $rows : [], 'is_array'));
-            $max = is_array($scaleKeys) ? $maxValueForKeys($safeRows, $scaleKeys) : $maxValue($safeRows, $key);
-            $step = count($safeRows) > 1 ? $width / (count($safeRows) - 1) : $width;
-
-            return collect($safeRows)->map(function ($row, int $index) use ($key, $max, $step, $height, $padX, $padY) {
-                return [
-                    'x' => round($padX + ($index * $step), 1),
-                    'y' => round($padY + $height - (((float) ($row[$key] ?? 0) / $max) * $height), 1),
-                ];
-            })->toArray();
-        };
     @endphp
     <div class="section" style="page-break-before: always;">
         <div class="section-title">Lampiran Statistik Dashboard</div>
@@ -517,37 +496,20 @@
                                     @php
                                         $pieRows = $topRowsWithOther($rows, 5);
                                         $pieTotal = max(1, array_sum(array_map(fn ($row) => (float) ($row['count'] ?? 0), $pieRows)));
-                                        $offset = 25;
                                     @endphp
-                                    <table style="width: 100%; border: none; border-collapse: collapse;">
-                                        <tr>
-                                            <td style="width: 72px; border: none; vertical-align: top;">
-                                                <svg width="68" height="68" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
-                                                    <circle cx="18" cy="18" r="15.9155" fill="none" stroke="#e5e7eb" stroke-width="8" />
-                                                    @foreach($pieRows as $index => $row)
-                                                        @php
-                                                            $slice = ((float) ($row['count'] ?? 0) / $pieTotal) * 100;
-                                                            $color = $chartColors[$index % count($chartColors)];
-                                                            $dashOffset = $offset;
-                                                            $offset -= $slice;
-                                                        @endphp
-                                                        <circle cx="18" cy="18" r="15.9155" fill="none" stroke="{{ $color }}" stroke-width="8" stroke-dasharray="{{ number_format($slice, 2, '.', '') }} {{ number_format(100 - $slice, 2, '.', '') }}" stroke-dashoffset="{{ number_format($dashOffset, 2, '.', '') }}" />
-                                                    @endforeach
-                                                    @if($type === 'doughnut')
-                                                        <circle cx="18" cy="18" r="8" fill="#fff" />
-                                                    @endif
-                                                </svg>
-                                            </td>
-                                            <td style="border: none; vertical-align: top;">
-                                                @foreach($pieRows as $index => $row)
-                                                    <div class="legend-row">
-                                                        <span class="legend-dot" style="background: {{ $chartColors[$index % count($chartColors)] }};"></span>
-                                                        {{ $row['label'] ?? '-' }}: <strong>{{ $row['count'] ?? 0 }}</strong> ({{ $row['percentage'] ?? 0 }}%)
-                                                    </div>
-                                                @endforeach
-                                            </td>
-                                        </tr>
-                                    </table>
+                                    @foreach($pieRows as $index => $row)
+                                        @php
+                                            $slice = ((float) ($row['count'] ?? 0) / $pieTotal) * 100;
+                                            $color = $chartColors[$index % count($chartColors)];
+                                        @endphp
+                                        <div class="micro-row">
+                                            <div style="margin-bottom: 1px;">
+                                                <span class="legend-dot" style="background: {{ $color }};"></span>{{ $row['label'] ?? '-' }}
+                                                <strong style="float: right;">{{ $row['count'] ?? 0 }} ({{ $row['percentage'] ?? 0 }}%)</strong>
+                                            </div>
+                                            <div class="bar-track"><div class="bar-fill" style="width: {{ $barWidth($slice, 100) }}%; background: {{ $color }};"></div></div>
+                                        </div>
+                                    @endforeach
                                 @else
                                     @php $maxCount = $maxValue($rows, 'count'); @endphp
                                     @foreach($topRows($rows, 6) as $index => $row)
@@ -587,35 +549,32 @@
                         $firstLabel = $chartTitle === 'Permintaan per Bulan' ? 'Masuk' : 'Aktual';
                         $secondLabel = $chartTitle === 'Permintaan per Bulan' ? 'Selesai' : 'Target';
                         $scaleKeys = [$firstKey, $secondKey];
-                        $firstDots = $lineDots($trendRows, $firstKey, 420, 72, 18, 20, $scaleKeys);
-                        $secondDots = $lineDots($trendRows, $secondKey, 420, 72, 18, 20, $scaleKeys);
+                        $maxTrendValue = $maxValueForKeys($trendRows, $scaleKeys);
                     @endphp
-                    <svg width="100%" height="122" viewBox="0 0 460 118" xmlns="http://www.w3.org/2000/svg">
-                        <line x1="18" y1="92" x2="438" y2="92" stroke="#cbd5e1" stroke-width="1" />
-                        <line x1="18" y1="56" x2="438" y2="56" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3 3" />
-                        <polyline points="{{ $linePoints($trendRows, $firstKey, 420, 72, 18, 20, $scaleKeys) }}" fill="none" stroke="{{ $firstColor }}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-                        <polyline points="{{ $linePoints($trendRows, $secondKey, 420, 72, 18, 20, $scaleKeys) }}" fill="none" stroke="{{ $secondColor }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4" />
-                        @foreach($firstDots as $index => $dot)
-                            <circle cx="{{ $dot['x'] }}" cy="{{ $dot['y'] }}" r="2" fill="{{ $firstColor }}" />
-                            <rect x="{{ $dot['x'] - 6 }}" y="{{ max(6, $dot['y'] - 14) }}" width="12" height="9" rx="2" fill="#fff" stroke="{{ $firstColor }}" stroke-width="0.4" />
-                            <text x="{{ $dot['x'] }}" y="{{ max(12, $dot['y'] - 7) }}" text-anchor="middle" font-size="6" font-weight="700" fill="{{ $firstColor }}">{{ $trendRows[$index][$firstKey] ?? 0 }}</text>
-                        @endforeach
-                        @if($secondKey === 'target')
-                            @php
-                                $lastIndex = max(0, count($secondDots) - 1);
-                                $lastTargetDot = $secondDots[$lastIndex] ?? null;
-                            @endphp
-                            @if($lastTargetDot)
-                                <rect x="{{ $lastTargetDot['x'] - 8 }}" y="{{ max(6, $lastTargetDot['y'] - 14) }}" width="16" height="9" rx="2" fill="#fff" stroke="{{ $secondColor }}" stroke-width="0.4" />
-                                <text x="{{ $lastTargetDot['x'] }}" y="{{ max(12, $lastTargetDot['y'] - 7) }}" text-anchor="middle" font-size="5.8" font-weight="700" fill="{{ $secondColor }}">{{ $trendRows[$lastIndex][$secondKey] ?? 0 }}</text>
-                            @endif
-                        @else
-                            @foreach($secondDots as $index => $dot)
-                                <rect x="{{ $dot['x'] - 7 }}" y="{{ min(106, $dot['y'] + 7) }}" width="14" height="9" rx="2" fill="#fff" stroke="{{ $secondColor }}" stroke-width="0.4" />
-                                <text x="{{ $dot['x'] }}" y="{{ min(113, $dot['y'] + 14) }}" text-anchor="middle" font-size="5.8" font-weight="700" fill="{{ $secondColor }}">{{ $trendRows[$index][$secondKey] ?? 0 }}</text>
+                    <table class="trend-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 18%;">Bulan</th>
+                                <th>{{ $firstLabel }}</th>
+                                <th>{{ $secondLabel }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($trendRows as $row)
+                                <tr>
+                                    <td>{{ $row['label'] ?? '-' }}</td>
+                                    <td>
+                                        <div style="margin-bottom: 1px;"><strong>{{ $row[$firstKey] ?? 0 }}</strong></div>
+                                        <div class="bar-track"><div class="bar-fill" style="width: {{ $barWidth($row[$firstKey] ?? 0, $maxTrendValue) }}%; background: {{ $firstColor }};"></div></div>
+                                    </td>
+                                    <td>
+                                        <div style="margin-bottom: 1px;"><strong>{{ $row[$secondKey] ?? 0 }}</strong></div>
+                                        <div class="bar-track"><div class="bar-fill" style="width: {{ $barWidth($row[$secondKey] ?? 0, $maxTrendValue) }}%; background: {{ $secondColor }};"></div></div>
+                                    </td>
+                                </tr>
                             @endforeach
-                        @endif
-                    </svg>
+                        </tbody>
+                    </table>
                     <div class="legend-row"><span class="legend-dot" style="background: {{ $firstColor }};"></span>{{ $firstLabel }} <span class="legend-dot" style="background: {{ $secondColor }}; margin-left: 8px;"></span>{{ $secondLabel }} <strong style="float: right;">{{ $chart['total'] ?? 0 }} total</strong></div>
                 @endif
             </div>
