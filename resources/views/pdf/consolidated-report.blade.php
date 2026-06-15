@@ -56,6 +56,7 @@
         .trend-table { width: 100%; border-collapse: collapse; font-size: 7pt; }
         .trend-table th, .trend-table td { border: 1px solid #ddd; padding: 2px 3px; vertical-align: middle; }
         .trend-table th { background: #f3f4f6; font-weight: bold; }
+        .line-chart-image { width: 100%; height: 122px; display: block; margin-bottom: 5px; border: 1px solid #e5e7eb; }
 
         /* Signatures - table-based layout for proper column separation */
         .signatures { width: 100%; margin-top: 25px; page-break-inside: avoid; }
@@ -443,6 +444,75 @@
             return max(1, ...$values);
         };
         $barWidth = fn ($value, $max): int => (float) $value <= 0 ? 0 : max(3, (int) round(((float) $value / max(1, (float) $max)) * 100));
+        $formatChartValue = function ($value): string {
+            $number = (float) $value;
+
+            return rtrim(rtrim(number_format($number, 1, '.', ''), '0'), '.');
+        };
+        $lineChartDataUri = function (array $rows, string $firstKey, string $secondKey, string $firstColor, string $secondColor, string $firstLabel, string $secondLabel) use ($formatChartValue, $maxValueForKeys): string {
+            $safeRows = array_values(array_filter($rows, 'is_array'));
+            $width = 720;
+            $height = 220;
+            $left = 42;
+            $right = 18;
+            $top = 22;
+            $bottom = 44;
+            $plotWidth = $width - $left - $right;
+            $plotHeight = $height - $top - $bottom;
+            $max = $maxValueForKeys($safeRows, [$firstKey, $secondKey]);
+            $step = count($safeRows) > 1 ? $plotWidth / (count($safeRows) - 1) : $plotWidth;
+            $escape = fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+
+            $pointsFor = function (string $key) use ($safeRows, $left, $top, $plotHeight, $max, $step): array {
+                return collect($safeRows)->map(function ($row, int $index) use ($key, $left, $top, $plotHeight, $max, $step) {
+                    $value = (float) ($row[$key] ?? 0);
+
+                    return [
+                        'x' => round($left + ($index * $step), 1),
+                        'y' => round($top + $plotHeight - (($value / max(1, $max)) * $plotHeight), 1),
+                        'value' => $value,
+                        'label' => $row['label'] ?? '-',
+                    ];
+                })->toArray();
+            };
+
+            $firstPoints = $pointsFor($firstKey);
+            $secondPoints = $pointsFor($secondKey);
+            $pointsAttribute = fn (array $points): string => collect($points)->map(fn ($point) => $point['x'].','.$point['y'])->implode(' ');
+
+            $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="'.$width.'" height="'.$height.'" viewBox="0 0 '.$width.' '.$height.'">';
+            $svg .= '<rect width="'.$width.'" height="'.$height.'" fill="#ffffff"/>';
+            $svg .= '<line x1="'.$left.'" y1="'.($top + $plotHeight).'" x2="'.($width - $right).'" y2="'.($top + $plotHeight).'" stroke="#cbd5e1" stroke-width="1"/>';
+            $svg .= '<line x1="'.$left.'" y1="'.$top.'" x2="'.$left.'" y2="'.($top + $plotHeight).'" stroke="#cbd5e1" stroke-width="1"/>';
+
+            foreach ([0.25, 0.5, 0.75] as $gridRatio) {
+                $gridY = round($top + ($plotHeight * $gridRatio), 1);
+                $svg .= '<line x1="'.$left.'" y1="'.$gridY.'" x2="'.($width - $right).'" y2="'.$gridY.'" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="4 4"/>';
+            }
+
+            $svg .= '<polyline points="'.$pointsAttribute($firstPoints).'" fill="none" stroke="'.$firstColor.'" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>';
+            $svg .= '<polyline points="'.$pointsAttribute($secondPoints).'" fill="none" stroke="'.$secondColor.'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="8 6"/>';
+
+            foreach ($firstPoints as $index => $point) {
+                $svg .= '<circle cx="'.$point['x'].'" cy="'.$point['y'].'" r="4" fill="'.$firstColor.'"/>';
+                $svg .= '<text x="'.$point['x'].'" y="'.max(12, $point['y'] - 9).'" text-anchor="middle" font-size="11" font-weight="700" fill="'.$firstColor.'">'.$escape($formatChartValue($point['value'])).'</text>';
+
+                $secondPoint = $secondPoints[$index] ?? null;
+                if ($secondPoint) {
+                    $svg .= '<circle cx="'.$secondPoint['x'].'" cy="'.$secondPoint['y'].'" r="3" fill="'.$secondColor.'"/>';
+                    $svg .= '<text x="'.$secondPoint['x'].'" y="'.min($height - 22, $secondPoint['y'] + 17).'" text-anchor="middle" font-size="10" font-weight="700" fill="'.$secondColor.'">'.$escape($formatChartValue($secondPoint['value'])).'</text>';
+                }
+
+                $label = $escape($point['label']);
+                $svg .= '<text x="'.$point['x'].'" y="'.($height - 16).'" text-anchor="middle" font-size="9" fill="#334155">'.$label.'</text>';
+            }
+
+            $svg .= '<rect x="'.$left.'" y="4" width="10" height="10" fill="'.$firstColor.'"/><text x="'.($left + 15).'" y="13" font-size="10" fill="#111827">'.$escape($firstLabel).'</text>';
+            $svg .= '<rect x="'.($left + 92).'" y="4" width="10" height="10" fill="'.$secondColor.'"/><text x="'.($left + 107).'" y="13" font-size="10" fill="#111827">'.$escape($secondLabel).'</text>';
+            $svg .= '</svg>';
+
+            return 'data:image/svg+xml;base64,'.base64_encode($svg);
+        };
     @endphp
     <div class="section" style="page-break-before: always;">
         <div class="section-title">Lampiran Statistik Dashboard</div>
@@ -550,7 +620,9 @@
                         $secondLabel = $chartTitle === 'Permintaan per Bulan' ? 'Selesai' : 'Target';
                         $scaleKeys = [$firstKey, $secondKey];
                         $maxTrendValue = $maxValueForKeys($trendRows, $scaleKeys);
+                        $lineChartSrc = $lineChartDataUri($trendRows, $firstKey, $secondKey, $firstColor, $secondColor, $firstLabel, $secondLabel);
                     @endphp
+                    <img class="line-chart-image" src="{{ $lineChartSrc }}" alt="Line chart {{ $chartTitle }}">
                     <table class="trend-table">
                         <thead>
                             <tr>

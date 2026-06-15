@@ -313,6 +313,8 @@ class ConsolidatedReportControllerTest extends TestCase
         $this->assertStringContainsString("</table>\n    </div>\n\n    <!-- II. Rekap Zat Aktif -->", $html);
         $this->assertStringContainsString('Status: <strong>Normal</strong>', $html);
         $this->assertStringContainsString('Lainnya', $html);
+        $this->assertSame(2, substr_count($html, 'class="line-chart-image"'));
+        $this->assertSame(2, substr_count($html, 'data:image/svg+xml;base64,'));
         $this->assertStringContainsString('class="trend-table"', $html);
         $this->assertStringContainsString('<strong>16.7</strong>', $html);
         $this->assertStringNotContainsString('<svg', $html);
