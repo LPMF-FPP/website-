@@ -53,9 +53,6 @@
         .bar-fill { height: 7px; border-radius: 3px; }
         .micro-row { margin-bottom: 3px; font-size: 7.5pt; }
         .summary-pill { border: 1px solid #999; padding: 4px 6px; font-size: 8pt; margin-bottom: 4px; }
-        .trend-table { width: 100%; border-collapse: collapse; font-size: 7pt; }
-        .trend-table th, .trend-table td { border: 1px solid #ddd; padding: 2px 3px; vertical-align: middle; }
-        .trend-table th { background: #f3f4f6; font-weight: bold; }
         .line-chart-image { width: 100%; height: 122px; display: block; margin-bottom: 5px; border: 1px solid #e5e7eb; }
 
         /* Signatures - table-based layout for proper column separation */
@@ -623,30 +620,6 @@
                         $lineChartSrc = $lineChartDataUri($trendRows, $firstKey, $secondKey, $firstColor, $secondColor, $firstLabel, $secondLabel);
                     @endphp
                     <img class="line-chart-image" src="{{ $lineChartSrc }}" alt="Line chart {{ $chartTitle }}">
-                    <table class="trend-table">
-                        <thead>
-                            <tr>
-                                <th style="width: 18%;">Bulan</th>
-                                <th>{{ $firstLabel }}</th>
-                                <th>{{ $secondLabel }}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($trendRows as $row)
-                                <tr>
-                                    <td>{{ $row['label'] ?? '-' }}</td>
-                                    <td>
-                                        <div style="margin-bottom: 1px;"><strong>{{ $row[$firstKey] ?? 0 }}</strong></div>
-                                        <div class="bar-track"><div class="bar-fill" style="width: {{ $barWidth($row[$firstKey] ?? 0, $maxTrendValue) }}%; background: {{ $firstColor }};"></div></div>
-                                    </td>
-                                    <td>
-                                        <div style="margin-bottom: 1px;"><strong>{{ $row[$secondKey] ?? 0 }}</strong></div>
-                                        <div class="bar-track"><div class="bar-fill" style="width: {{ $barWidth($row[$secondKey] ?? 0, $maxTrendValue) }}%; background: {{ $secondColor }};"></div></div>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
                     <div class="legend-row"><span class="legend-dot" style="background: {{ $firstColor }};"></span>{{ $firstLabel }} <span class="legend-dot" style="background: {{ $secondColor }}; margin-left: 8px;"></span>{{ $secondLabel }} <strong style="float: right;">{{ $chart['total'] ?? 0 }} total</strong></div>
                 @endif
             </div>
