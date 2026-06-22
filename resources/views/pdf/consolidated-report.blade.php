@@ -106,16 +106,8 @@
     <div class="header">
         @php
             $leftLogoPath = public_path('images/logo-tribrata-polri.png');
-            $rightLogoPath = public_path('images/logo-pusdokkes-polri.svg');
-            $rightLogoSrc = null;
-
-            if (file_exists($rightLogoPath)) {
-                $rightLogoMime = mime_content_type($rightLogoPath) ?: 'image/svg+xml';
-                $rightLogoData = base64_encode((string) file_get_contents($rightLogoPath));
-                if ($rightLogoData !== '') {
-                    $rightLogoSrc = sprintf('data:%s;base64,%s', $rightLogoMime, $rightLogoData);
-                }
-            }
+            $rightLogoPath = public_path('images/logo-pusdokkes-polri.png');
+            $rightLogoSrc = file_exists($rightLogoPath) ? $rightLogoPath : null;
         @endphp
         @if(file_exists($leftLogoPath))
             <img class="logo logo-left" src="{{ $leftLogoPath }}" alt="Logo Polri">

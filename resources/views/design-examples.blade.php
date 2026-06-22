@@ -44,7 +44,7 @@
                 <x-card title="Interactive" :interactive="true" :elevated="true">
                     Card dengan hover elevation.
                 </x-card>
-                <x-card title="Dengan Gambar" image="/images/logo-pusdokkes-polri.svg" image-position="top">
+                <x-card title="Dengan Gambar" image="/images/logo-pusdokkes-polri.png" image-position="top">
                     Card dengan gambar di atas.
                 </x-card>
             </div>

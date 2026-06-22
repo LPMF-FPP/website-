@@ -6,15 +6,8 @@
     $printedAt = now();
 
     $leftLogoPath = public_path('images/logo-tribrata-polri.png');
-    $rightLogoPath = public_path('images/logo-pusdokkes-polri.svg');
-    $rightLogoSrc = null;
-    if (file_exists($rightLogoPath)) {
-        $rightLogoMime = mime_content_type($rightLogoPath) ?: 'image/svg+xml';
-        $rightLogoData = base64_encode((string) file_get_contents($rightLogoPath));
-        if ($rightLogoData !== '') {
-            $rightLogoSrc = sprintf('data:%s;base64,%s', $rightLogoMime, $rightLogoData);
-        }
-    }
+    $rightLogoPath = public_path('images/logo-pusdokkes-polri.png');
+    $rightLogoSrc = file_exists($rightLogoPath) ? $rightLogoPath : null;
 
     $witnessSigners = collect($disposal->witness_entries_for_display)
         ->map(fn (array $entry) => pdf_build_signer(
