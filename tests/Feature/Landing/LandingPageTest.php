@@ -7,6 +7,7 @@ use App\Models\Sample;
 use App\Models\TestRequest;
 use App\Models\User;
 use App\Services\ChangelogService;
+use App\Services\DashboardHeroStatsService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -55,13 +56,18 @@ class LandingPageTest extends TestCase
             'submitted_at' => now(),
         ]);
 
+        $avgProcessing = app(DashboardHeroStatsService::class)->calculateMonthlyAverageProcessingDays();
+        $expectedAverageProcessing = ($avgProcessing['average'] !== null && $avgProcessing['count'] > 0)
+            ? number_format($avgProcessing['average'], 1, ',', '.').' hari/permintaan'
+            : 'Belum ada data';
+
         $response = $this->get('/');
 
         $response->assertOk();
         $response->assertSee('images/logo-pusdokkes-polri.png', false);
         $response->assertSee('1 resi aktif', false);
         $response->assertSee('2', false);
-        $response->assertSee('hari/permintaan', false);
+        $response->assertSee($expectedAverageProcessing, false);
         $response->assertSee('4,00/4', false);
         $response->assertSee('1', false);
         $response->assertSee('Data Operasional Tersedia', false);

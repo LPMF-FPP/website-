@@ -53,8 +53,8 @@ class GenerateBeritaAcara extends Command
             '--api', $apiUrl,
             '--outdir', base_path('output'),
             '--template', base_path('templates/berita_acara_penerimaan.html.j2'),
-            '--logo-tribrata', public_path('assets/logo-tribrata-polri.png'),
-            '--logo-pusdokkes', public_path('assets/logo-pusdokkes-polri.png'),
+            '--logo-tribrata', public_path('images/logo-tribrata-polri.png'),
+            '--logo-pusdokkes', public_path('images/logo-pusdokkes-polri.png'),
         ];
 
         if ($generatePdf) {
