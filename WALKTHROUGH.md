@@ -148,6 +148,13 @@ WhatsApp service berjalan di container Docker terpisah.
 
 ## 📰 Recent Changes (v2.5.x)
 
+### v2.5.4 (22 Juni 2026) - Remaining Label Sheet Reconciliation
+
+- **Remaining Label Sheet Reconciliation:** Cetak `labels/remaining/request/{id}/sheet`, `labels/remaining/{evidenceUnit}/all`, dan label sisa single sekarang merekonsiliasi label sisa tunggal dari `jumlah diserahkan - jumlah diuji`, sehingga data stale pada `remaining_units.qty_remaining` tidak lagi membuat `Qty Sisa` tercetak lebih besar dari sisa riil sampel.
+- **Self-Healing Remaining Label Data:** Alur pengambilan label sisa kini sekaligus menyinkronkan ulang row label sisa tunggal yang stale ke nilai rekonsiliasi terbaru, sehingga kasus historis seperti sisa `30` yang seharusnya `20` ikut terkoreksi saat label diakses kembali.
+- **Regression Coverage:** Penambahan coverage khusus memastikan PDF label sisa sheet menggunakan nilai hasil rekonsiliasi dan menyimpan koreksi tersebut ke database tanpa mengganggu alur delivery maupun BA penyerahan yang sudah diperbaiki sebelumnya.
+- **Production Deployment:** Perbaikan label sisa ini telah dipaketkan dan dideploy ke production melalui artifact deploy, lalu diverifikasi pada request `242` bahwa `delivered=30`, `tested=10`, dan `stored_remaining=20` sudah konsisten.
+
 ### v2.5.3 (15 Juni 2026) - Delivery, Statistics, Google Drive & WhatsApp Hardening
 
 - **Delivery Processing Time:** Dashboard penyerahan sekarang menampilkan durasi proses pengujian dari penerimaan hingga siap serah, sehingga petugas dapat memantau waktu layanan langsung dari daftar delivery.
