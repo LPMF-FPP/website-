@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Investigator;
+use App\Models\RemainingUnit;
 use App\Models\Sample;
 use App\Models\TestRequest;
 use App\Models\User;
@@ -67,6 +68,51 @@ it('returns pdf response for remaining sheet when request is in testing and labe
     $this->actingAs($this->user)
         ->get(route('labels.remaining.sheet', $testRequest->id))
         ->assertOk();
+});
+
+it('reconciles stale single remaining label quantity before rendering remaining sheet', function (): void {
+    $testRequest = TestRequest::factory()->create([
+        'status' => 'in_testing',
+    ]);
+
+    $sample = Sample::factory()->create([
+        'test_request_id' => $testRequest->id,
+        'package_quantity' => 30,
+        'quantity' => 10,
+        'unit' => 'tablet',
+        'quantity_unit' => 'tablet',
+    ]);
+
+    /** @var LabelService $labelService */
+    $labelService = app(LabelService::class);
+    $evidenceUnit = $labelService->createEvidenceUnits($testRequest->id, [$sample->id])->firstOrFail();
+
+    $remainingUnit = RemainingUnit::query()->create([
+        'evidence_unit_id' => $evidenceUnit->id,
+        'sample_code' => $sample->sample_code,
+        'qty_remaining' => 30,
+        'uom' => 'tablet',
+        'delivered_at' => now(),
+    ]);
+
+    $mockPdf = \Mockery::mock(\Barryvdh\DomPDF\PDF::class);
+    $mockPdf->shouldReceive('setPaper')->once()->andReturnSelf();
+    $mockPdf->shouldReceive('output')->once()->andReturn('remaining-sheet-pdf');
+    Pdf::shouldReceive('loadView')
+        ->once()
+        ->with('labels.remaining-sheet', \Mockery::on(function (array $data): bool {
+            $unit = $data['remainingUnits']->first();
+
+            return (float) $unit->qty_remaining === 20.0
+                && $unit->qty_with_uom === '20.00 tablet';
+        }))
+        ->andReturn($mockPdf);
+
+    $this->actingAs($this->user)
+        ->get(route('labels.remaining.sheet', $testRequest->id))
+        ->assertOk();
+
+    expect($remainingUnit->fresh()->qty_remaining)->toBe('20.00');
 });
 
 it('returns render-ready payload when creating remaining label from web endpoint', function (): void {

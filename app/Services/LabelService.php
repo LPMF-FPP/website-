@@ -7,6 +7,7 @@ use App\Models\LabelPrintLog;
 use App\Models\RemainingUnit;
 use App\Models\Sample;
 use App\Models\TestRequest;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -122,6 +123,54 @@ class LabelService
         ])->save();
     }
 
+    public function reconcileSingleRemainingUnitsWithSampleQuantities(Collection $remainingUnits): Collection
+    {
+        if ($remainingUnits->isEmpty()) {
+            return $remainingUnits;
+        }
+
+        if (! $remainingUnits instanceof EloquentCollection) {
+            $remainingUnits = new EloquentCollection($remainingUnits->all());
+        }
+
+        $remainingUnits->loadMissing(['evidenceUnit.sample', 'evidenceUnit.remainingUnits']);
+
+        $remainingUnits->each(function (RemainingUnit $remainingUnit): void {
+            $evidenceUnit = $remainingUnit->evidenceUnit;
+            if (! $evidenceUnit instanceof EvidenceUnit) {
+                return;
+            }
+
+            if (($evidenceUnit->remainingUnits?->count() ?? 0) !== 1) {
+                return;
+            }
+
+            $sample = $evidenceUnit->sample;
+            if (! $sample instanceof Sample) {
+                return;
+            }
+
+            $reconciledQty = $this->resolveRemainingQuantityFromSample($sample);
+            if ($reconciledQty === null) {
+                return;
+            }
+
+            $reconciledUom = $remainingUnit->uom ?: ($sample->unit ?? $sample->quantity_unit);
+            $currentQty = is_numeric($remainingUnit->qty_remaining) ? (float) $remainingUnit->qty_remaining : null;
+
+            if ($currentQty === $reconciledQty && $remainingUnit->uom === $reconciledUom) {
+                return;
+            }
+
+            $remainingUnit->forceFill([
+                'qty_remaining' => $reconciledQty,
+                'uom' => $reconciledUom,
+            ])->save();
+        });
+
+        return $remainingUnits;
+    }
+
     /**
      * Get all evidence units for a request.
      */
@@ -157,10 +206,12 @@ class LabelService
      */
     public function getRemainingUnitsForEvidence(int $evidenceUnitId): Collection
     {
-        return RemainingUnit::with(['deliveredBy'])
+        $remainingUnits = RemainingUnit::with(['deliveredBy', 'evidenceUnit.sample', 'evidenceUnit.remainingUnits'])
             ->where('evidence_unit_id', $evidenceUnitId)
             ->orderBy('created_at')
             ->get();
+
+        return $this->reconcileSingleRemainingUnitsWithSampleQuantities($remainingUnits);
     }
 
     /**
@@ -170,11 +221,13 @@ class LabelService
     {
         $evidenceUnitIds = EvidenceUnit::where('request_id', $requestId)->pluck('id');
 
-        return RemainingUnit::with(['evidenceUnit', 'deliveredBy'])
+        $remainingUnits = RemainingUnit::with(['evidenceUnit.sample', 'evidenceUnit.remainingUnits', 'deliveredBy'])
             ->whereIn('evidence_unit_id', $evidenceUnitIds)
             ->orderBy('sample_code')
             ->orderBy('created_at')
             ->get();
+
+        return $this->reconcileSingleRemainingUnitsWithSampleQuantities($remainingUnits);
     }
 
     /**
@@ -223,6 +276,10 @@ class LabelService
                 );
 
             if (RemainingUnit::where('evidence_unit_id', $evidenceUnit->id)->exists()) {
+                $this->reconcileSingleRemainingUnitsWithSampleQuantities(
+                    $evidenceUnit->remainingUnits()->with(['evidenceUnit.sample', 'evidenceUnit.remainingUnits'])->get()
+                );
+
                 continue;
             }
 
@@ -236,6 +293,20 @@ class LabelService
                 'delivered_by' => $actorId,
             ]);
         }
+    }
+
+    private function resolveRemainingQuantityFromSample(Sample $sample): ?float
+    {
+        $deliveredQty = is_numeric($sample->package_quantity) ? (float) $sample->package_quantity : null;
+        if ($deliveredQty === null) {
+            return null;
+        }
+
+        $usedQty = is_numeric($sample->quantity) ? (float) $sample->quantity : null;
+
+        return $usedQty !== null
+            ? max($deliveredQty - $usedQty, 0.0)
+            : $deliveredQty;
     }
 
     /**

@@ -477,6 +477,10 @@ class LabelController extends Controller
             return back()->with('error', $this->denyRemainingLabelAccessMessage());
         }
 
+        $remainingUnit = $this->labelService
+            ->reconcileSingleRemainingUnitsWithSampleQuantities(collect([$remainingUnit]))
+            ->first();
+
         $reason = $request->query('reason', 'first_print');
 
         $remainingUnit->qr_png = $this->qrPngDataUri($remainingUnit->qr_content);
