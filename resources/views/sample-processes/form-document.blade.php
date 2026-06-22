@@ -51,7 +51,7 @@
             <p class="text-xs text-gray-600">Dicetak: {{ now()->format('d M Y H:i') }}</p>
         </div>
         <div class="shrink-0">
-            <img src="{{ asset('images/logo-pusdokkes-polri.png') }}" alt="Logo Pusdokkes Polri" class="h-14 w-auto">
+            <img src="{{ asset('images/logo-pusdokkes-polri.svg') }}" alt="Logo Pusdokkes Polri" class="h-14 w-auto">
         </div>
     </header>
 

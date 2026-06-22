@@ -130,6 +130,10 @@ it('updates remaining label from web endpoint with editable fields', function ()
 
     $sample = Sample::factory()->create([
         'test_request_id' => $testRequest->id,
+        'package_quantity' => 10,
+        'quantity' => 4,
+        'unit' => 'ml',
+        'quantity_unit' => 'ml',
     ]);
 
     /** @var LabelService $labelService */
@@ -168,6 +172,10 @@ it('updates remaining label from web endpoint with editable fields', function ()
         ->seal_status_delivered->toBe('rusak ringan')
         ->condition_delivered->toBe('wadah baik')
         ->handover_doc_no->toBe('BAST-001/IV/2026');
+
+    expect($sample->fresh())
+        ->quantity->toBe('9.25')
+        ->quantity_unit->toBe('gram');
 });
 
 it('creates a fresh remaining label document on update so Drive sync is retried', function (): void {

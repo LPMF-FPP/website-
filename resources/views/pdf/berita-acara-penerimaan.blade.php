@@ -69,9 +69,16 @@
 
     $isPreview = $isPreview ?? false;
     $leftLogoPath = public_path('images/logo-tribrata-polri.png');
-    $rightLogoPath = public_path('images/logo-pusdokkes-polri.png');
+    $rightLogoPath = public_path('images/logo-pusdokkes-polri.svg');
     $leftLogoSrc = $isPreview ? asset('images/logo-tribrata-polri.png') : $leftLogoPath;
-    $rightLogoSrc = $isPreview ? asset('images/logo-pusdokkes-polri.png') : $rightLogoPath;
+    $rightLogoSrc = null;
+    if (file_exists($rightLogoPath)) {
+        $rightLogoMime = mime_content_type($rightLogoPath) ?: 'image/svg+xml';
+        $rightLogoData = base64_encode((string) file_get_contents($rightLogoPath));
+        if ($rightLogoData !== '') {
+            $rightLogoSrc = sprintf('data:%s;base64,%s', $rightLogoMime, $rightLogoData);
+        }
+    }
 
     $submittedSigner = pdf_build_signer($request->investigator);
     $receivedSigner = pdf_build_signer($request->user);
@@ -135,7 +142,7 @@
       <div class="lab">LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN</div>
       <div class="meta">Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240 • Telp/Fax: 021-4700921 • Email: labmutufarmapol@gmail.com</div>
     </div>
-    @if(file_exists($rightLogoPath))
+    @if($rightLogoSrc)
       <img class="logo logo-right" src="{{ $rightLogoSrc }}" alt="Logo Pusdokkes">
     @endif
   </div>

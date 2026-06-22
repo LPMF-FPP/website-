@@ -4,9 +4,9 @@
 
     $logoSrc = is_string($logoSrc ?? null) ? $logoSrc : '';
     if ($logoSrc === '') {
-        $logoPath = public_path('images/logo-pusdokkes-polri.png');
+        $logoPath = public_path('images/logo-pusdokkes-polri.svg');
         if (file_exists($logoPath)) {
-            $logoMime = mime_content_type($logoPath) ?: 'image/png';
+            $logoMime = mime_content_type($logoPath) ?: 'image/svg+xml';
             $logoData = base64_encode((string) file_get_contents($logoPath));
             if ($logoData !== '') {
                 $logoSrc = sprintf('data:%s;base64,%s', $logoMime, $logoData);

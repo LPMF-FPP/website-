@@ -702,6 +702,7 @@ class LabelController extends Controller
                 $validated['evidence_unit_id'],
                 $validated
             );
+            $this->labelService->syncSampleTestingQuantityFromRemainingUnits($evidenceUnit->fresh('sample', 'remainingUnits'));
             $labelDocument = $this->syncRemainingLabelDocument($remaining, $request);
 
             return response()->json([
@@ -743,6 +744,10 @@ class LabelController extends Controller
 
         $remainingUnit->fill($validated);
         $remainingUnit->save();
+        $evidenceUnit = $remainingUnit->evidenceUnit()->with('sample', 'remainingUnits')->first();
+        if ($evidenceUnit instanceof EvidenceUnit) {
+            $this->labelService->syncSampleTestingQuantityFromRemainingUnits($evidenceUnit);
+        }
         $remainingUnit->refresh();
         $labelDocument = $this->syncRemainingLabelDocument($remainingUnit, $request);
 
@@ -770,7 +775,11 @@ class LabelController extends Controller
                 ], 403);
             }
 
+            $evidenceUnit = $unit->evidenceUnit()->with('sample', 'remainingUnits')->first();
             $unit->delete();
+            if ($evidenceUnit instanceof EvidenceUnit) {
+                $this->labelService->syncSampleTestingQuantityFromRemainingUnits($evidenceUnit->fresh('sample', 'remainingUnits'));
+            }
 
             return response()->json([
                 'success' => true,

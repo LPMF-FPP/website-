@@ -61,6 +61,7 @@ class QmhPdfStructuredTemplateHtmlTest extends TestCase
         $this->assertStringContainsString('Tgl. Efektif', $html);
         $this->assertStringContainsString('Halaman', $html);
         $this->assertStringContainsString('page-number', $html);
+        $this->assertStringContainsString('data:image/svg+xml;base64,', $html);
         $this->assertStringNotContainsString('DARI -', $html);
         $this->assertStringContainsString('Halaman <span class="page-number"></span>/-', $html);
         $this->assertStringContainsString('SOP UJI PDF', $html);

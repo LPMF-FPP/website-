@@ -23,7 +23,7 @@
                 <div class="flex justify-between h-16">
                     <div class="flex items-center">
                         <div class="flex-shrink-0 flex items-center gap-3">
-                            <img class="h-10 w-auto" src="{{ asset('images/logo-pusdokkes-polri.png') }}" alt="Pusdokkes Polri">
+                            <img class="h-10 w-auto" src="{{ asset('images/logo-pusdokkes-polri.svg') }}" alt="Pusdokkes Polri">
                             <div>
                                 <h1 class="text-lg font-bold text-slate-900 leading-none">LPMF LIMS</h1>
                                 <p class="text-xs text-slate-500 font-medium">Farmapol Pusdokkes Polri</p>
@@ -168,7 +168,7 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex flex-col md:flex-row justify-between items-center">
                     <div class="flex items-center gap-3 mb-6 md:mb-0">
-                        <img class="h-12 w-auto" src="{{ asset('images/logo-pusdokkes-polri.png') }}" alt="Pusdokkes Polri">
+                        <img class="h-12 w-auto" src="{{ asset('images/logo-pusdokkes-polri.svg') }}" alt="Pusdokkes Polri">
                         <div>
                             <span class="block text-lg font-bold">LPMF LIMS</span>
                             <span class="block text-sm text-slate-400">Pusdokkes Polri</span>

@@ -58,7 +58,7 @@ class LandingPageTest extends TestCase
         $response = $this->get('/');
 
         $response->assertOk();
-        $response->assertSee('images/logo-pusdokkes-polri.png', false);
+        $response->assertSee('images/logo-pusdokkes-polri.svg', false);
         $response->assertSee('1 resi aktif', false);
         $response->assertSee('2', false);
         $response->assertSee('0,0 hari/permintaan', false);

@@ -106,7 +106,16 @@
     <div class="header">
         @php
             $leftLogoPath = public_path('images/logo-tribrata-polri.png');
-            $rightLogoPath = public_path('images/logo-pusdokkes-polri.png');
+            $rightLogoPath = public_path('images/logo-pusdokkes-polri.svg');
+            $rightLogoSrc = null;
+
+            if (file_exists($rightLogoPath)) {
+                $rightLogoMime = mime_content_type($rightLogoPath) ?: 'image/svg+xml';
+                $rightLogoData = base64_encode((string) file_get_contents($rightLogoPath));
+                if ($rightLogoData !== '') {
+                    $rightLogoSrc = sprintf('data:%s;base64,%s', $rightLogoMime, $rightLogoData);
+                }
+            }
         @endphp
         @if(file_exists($leftLogoPath))
             <img class="logo logo-left" src="{{ $leftLogoPath }}" alt="Logo Polri">
@@ -116,8 +125,8 @@
             <div class="lab">LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN</div>
             <div class="meta">Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240 • Telp/Fax: 021-4700921 • Email: labmutufarmapol@gmail.com</div>
         </div>
-        @if(file_exists($rightLogoPath))
-            <img class="logo logo-right" src="{{ $rightLogoPath }}" alt="Logo Pusdokkes">
+        @if($rightLogoSrc)
+            <img class="logo logo-right" src="{{ $rightLogoSrc }}" alt="Logo Pusdokkes">
         @endif
     </div>
 
@@ -615,8 +624,6 @@
                         $secondColor = $chartTitle === 'Permintaan per Bulan' ? '#059669' : '#dc2626';
                         $firstLabel = $chartTitle === 'Permintaan per Bulan' ? 'Masuk' : 'Aktual';
                         $secondLabel = $chartTitle === 'Permintaan per Bulan' ? 'Selesai' : 'Target';
-                        $scaleKeys = [$firstKey, $secondKey];
-                        $maxTrendValue = $maxValueForKeys($trendRows, $scaleKeys);
                         $lineChartSrc = $lineChartDataUri($trendRows, $firstKey, $secondKey, $firstColor, $secondColor, $firstLabel, $secondLabel);
                     @endphp
                     <img class="line-chart-image" src="{{ $lineChartSrc }}" alt="Line chart {{ $chartTitle }}">

@@ -220,7 +220,7 @@
         <nav class="lp-topbar sticky top-0 z-50 border-b lp-thin-border">
             <div class="lp-container flex items-center justify-between gap-6 py-4">
                 <a href="{{ url('/') }}" class="lp-focus inline-flex items-center gap-2.5 no-underline" aria-label="LPMF LIMS beranda">
-                    <img src="{{ asset('images/logo-pusdokkes-polri.png') }}" alt="Logo Pusdokkes Polri" class="lp-logo-mark">
+                    <img src="{{ asset('images/logo-pusdokkes-polri.svg') }}" alt="Logo Pusdokkes Polri" class="lp-logo-mark">
                     <span class="text-lg font-semibold tracking-tight text-slate-950">LPMF LIMS</span>
                 </a>
 

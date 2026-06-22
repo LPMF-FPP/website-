@@ -9,9 +9,16 @@
   $today = isset($generatedAt) ? Carbon::parse($generatedAt) : now();
   $isPreview = $isPreview ?? false;
   $leftLogoPath = public_path('images/logo-tribrata-polri.png');
-  $rightLogoPath = public_path('images/logo-pusdokkes-polri.png');
+  $rightLogoPath = public_path('images/logo-pusdokkes-polri.svg');
   $leftLogoSrc = $isPreview ? asset('images/logo-tribrata-polri.png') : $leftLogoPath;
-  $rightLogoSrc = $isPreview ? asset('images/logo-pusdokkes-polri.png') : $rightLogoPath;
+  $rightLogoSrc = null;
+  if (file_exists($rightLogoPath)) {
+    $rightLogoMime = mime_content_type($rightLogoPath) ?: 'image/svg+xml';
+    $rightLogoData = base64_encode((string) file_get_contents($rightLogoPath));
+    if ($rightLogoData !== '') {
+      $rightLogoSrc = sprintf('data:%s;base64,%s', $rightLogoMime, $rightLogoData);
+    }
+  }
 
   $toArray = function ($value) {
     if ($value instanceof \Illuminate\Support\Collection) return $value->toArray();
@@ -282,7 +289,7 @@
   };
   $calcSisa = function($s) use ($formatQuantity, $appendUnit, $remainingUnitsBySampleId) {
       $remainingUnits = $remainingUnitsBySampleId->get($s->id, collect());
-      if ($remainingUnits->isNotEmpty()) {
+      if ($remainingUnits->count() > 1) {
           $remainingUnit = $remainingUnits->first();
           $display = $appendUnit(
               $formatQuantity($remainingUnits->sum(fn($unit) => (float) ($unit->qty_remaining ?? 0))),

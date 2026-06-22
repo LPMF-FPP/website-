@@ -207,8 +207,15 @@
     $leftLogoPath = public_path('images/logo-tribrata-polri.png');
     $leftLogoBase64 = file_exists($leftLogoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($leftLogoPath)) : '';
     
-    $rightLogoPath = public_path('images/logo-pusdokkes-polri.png');
-    $rightLogoBase64 = file_exists($rightLogoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($rightLogoPath)) : '';
+    $rightLogoPath = public_path('images/logo-pusdokkes-polri.svg');
+    $rightLogoBase64 = '';
+    if (file_exists($rightLogoPath)) {
+        $rightLogoMime = mime_content_type($rightLogoPath) ?: 'image/svg+xml';
+        $rightLogoData = base64_encode((string) file_get_contents($rightLogoPath));
+        if ($rightLogoData !== '') {
+            $rightLogoBase64 = 'data:' . $rightLogoMime . ';base64,' . $rightLogoData;
+        }
+    }
     
     $signBase64 = '';
     if ($hasSign) {

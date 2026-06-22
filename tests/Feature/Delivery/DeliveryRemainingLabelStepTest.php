@@ -201,6 +201,41 @@ it('rejects direct remaining quantity edits for split remaining labels', functio
         ->assertSee('Sampel ini memiliki beberapa label sisa.');
 });
 
+it('prefers arithmetic reconciliation over stale single remaining label on delivery page', function (): void {
+    $request = TestRequest::factory()->create(['status' => 'ready_for_delivery']);
+    $sample = Sample::factory()->create([
+        'test_request_id' => $request->id,
+        'package_quantity' => 30,
+        'quantity' => 10,
+        'unit' => 'tablet',
+        'quantity_unit' => 'tablet',
+    ]);
+
+    $evidenceUnit = EvidenceUnit::query()->create([
+        'request_id' => $request->id,
+        'sample_id' => $sample->id,
+        'receipt_code' => $request->receipt_number,
+        'sample_code' => $sample->sample_code,
+    ]);
+
+    RemainingUnit::query()->create([
+        'evidence_unit_id' => $evidenceUnit->id,
+        'qty_remaining' => 30,
+        'uom' => 'tablet',
+    ]);
+
+    createHandoverDocument($request);
+
+    $this->actingAs($this->user)
+        ->get(route('delivery.show', $request))
+        ->assertOk()
+        ->assertSee('30 tablet')
+        ->assertSee('10 tablet')
+        ->assertSee('20 tablet')
+        ->assertDontSee('Edit jumlah sisa sampel</label>')
+        ->assertSee('value="20"', false);
+});
+
 function createHandoverDocument(TestRequest $request): void
 {
     Document::factory()->create([

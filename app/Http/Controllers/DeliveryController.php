@@ -228,13 +228,18 @@ class DeliveryController extends Controller
                 return;
             }
 
+            $sample->setAttribute('remaining_unit', $remainingUnit);
+            $sample->setAttribute('remaining_units_count', $remainingUnits->count());
+
+            if ($remainingUnits->count() <= 1) {
+                return;
+            }
+
             $leftoverQty = $remainingUnits->sum(fn (RemainingUnit $unit) => (float) $unit->qty_remaining);
             $leftoverUnit = $remainingUnit->uom ?: ($sample->unit ?? $sample->quantity_unit);
 
             $sample->setAttribute('leftover_quantity_value', $leftoverQty);
             $sample->setAttribute('leftover_quantity_display', $appendUnit($formatQuantity($leftoverQty), $leftoverUnit));
-            $sample->setAttribute('remaining_unit', $remainingUnit);
-            $sample->setAttribute('remaining_units_count', $remainingUnits->count());
         });
 
         $samplesNeedingRemainingLabels = $request->samples

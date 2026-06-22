@@ -4,7 +4,7 @@
             <!-- Logo Section -->
             <div class="flex min-w-0 items-center gap-4">
                 <a href="{{ route('dashboard') }}" class="flex items-center gap-3 group">
-                    <img src="{{ asset('images/logo-pusdokkes-polri.png') }}" alt="Logo Pusdokkes Polri" class="h-10 w-auto group-hover:scale-105 transition-transform duration-200">
+                    <img src="{{ asset('images/logo-pusdokkes-polri.svg') }}" alt="Logo Pusdokkes Polri" class="h-10 w-auto group-hover:scale-105 transition-transform duration-200">
                     <div class="nav-wide-only h-8 w-px bg-primary-200 dark:bg-accent-700"></div>
                     <div class="nav-wide-only">
                         <h1 class="text-lg font-bold text-pd-text leading-tight">

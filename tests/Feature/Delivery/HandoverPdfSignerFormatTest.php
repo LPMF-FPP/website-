@@ -317,4 +317,69 @@ class HandoverPdfSignerFormatTest extends TestCase
         $this->assertStringContainsString('3.5 tablet', $htmlContent);
         $this->assertStringNotContainsString('6 tablet', $htmlContent);
     }
+
+    public function test_handover_html_prefers_sample_reconciliation_over_stale_single_remaining_label(): void
+    {
+        /** @var User $authUser */
+        $authUser = User::factory()->create([
+            'role' => 'admin',
+        ]);
+
+        $investigator = Investigator::factory()->create();
+
+        $request = TestRequest::factory()->create([
+            'investigator_id' => $investigator->id,
+            'user_id' => $authUser->id,
+            'status' => 'ready_for_delivery',
+        ]);
+
+        $sample = Sample::factory()->create([
+            'test_request_id' => $request->id,
+            'sample_code' => 'W237A2026',
+            'short_description' => 'Tablet Regresi Sisa Tunggal',
+            'test_methods' => json_encode(['gc_ms']),
+            'package_quantity' => 30,
+            'unit' => 'tablet',
+            'quantity' => 10,
+            'quantity_unit' => 'tablet',
+        ]);
+
+        $evidenceUnit = EvidenceUnit::query()->create([
+            'request_id' => $request->id,
+            'sample_id' => $sample->id,
+            'receipt_code' => $request->receipt_number,
+            'sample_code' => $sample->sample_code,
+        ]);
+
+        RemainingUnit::query()->create([
+            'evidence_unit_id' => $evidenceUnit->id,
+            'qty_remaining' => 30,
+            'uom' => 'tablet',
+        ]);
+
+        $delivery = Delivery::factory()->create([
+            'request_id' => $request->id,
+            'delivered_by' => $authUser->id,
+        ]);
+
+        $this->actingAs($authUser)
+            ->post(route('delivery.handover.generate', $delivery))
+            ->assertStatus(302);
+
+        $htmlDocument = Document::query()
+            ->where('test_request_id', $request->id)
+            ->where('document_type', 'ba_penyerahan_html')
+            ->latest()
+            ->first();
+
+        $this->assertNotNull($htmlDocument);
+        Storage::disk('public')->assertExists($htmlDocument->path);
+
+        $htmlContent = Storage::disk('public')->get($htmlDocument->path);
+
+        $this->assertStringContainsString('30 tablet', $htmlContent);
+        $this->assertStringContainsString('10 tablet', $htmlContent);
+        $this->assertStringContainsString('20 tablet', $htmlContent);
+        $this->assertSame(1, substr_count($htmlContent, '30 tablet'));
+    }
 }

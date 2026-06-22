@@ -34,7 +34,7 @@
                     <p class="text-xs">Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240 • Telp/Fax: 021-4700921 • Email: labmutufarmapol@gmail.com</p>
                 </div>
                 <div class="w-20">
-                    <img src="{{ asset('images/logo-pusdokkes-polri.png') }}" alt="Logo Pusdokkes" class="h-16 mx-auto">
+                    <img src="{{ asset('images/logo-pusdokkes-polri.svg') }}" alt="Logo Pusdokkes" class="h-16 mx-auto">
                 </div>
             </div>
 

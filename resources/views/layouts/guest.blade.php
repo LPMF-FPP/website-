@@ -22,7 +22,7 @@
         <div class="min-h-dvh flex flex-col sm:justify-center items-center pt-6 sm:pt-0" role="main">
             <div>
                 <a href="/">
-                    <img src="{{ asset('images/logo-pusdokkes-polri.png') }}" alt="Logo Pusdokkes Polri" class="w-20 h-20">
+                    <img src="{{ asset('images/logo-pusdokkes-polri.svg') }}" alt="Logo Pusdokkes Polri" class="w-20 h-20">
                 </a>
             </div>
 
