@@ -47,7 +47,16 @@
                             @endif
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-900">
-                            {{ $request->suspect_name ?? '-' }}
+                            @if($request->display_primary_suspect_name)
+                                <div class="flex flex-col gap-1">
+                                    <span class="font-medium">{{ $request->display_primary_suspect_name }}</span>
+                                    @if($request->display_additional_suspect_count > 0)
+                                        <span class="text-xs text-gray-500">+{{ $request->display_additional_suspect_count }} tersangka lainnya</span>
+                                    @endif
+                                </div>
+                            @else
+                                -
+                            @endif
                         </td>
                         <td class="px-6 py-4 text-sm text-gray-900">
                             <div class="flex items-center gap-1.5 text-emerald-700 font-semibold">

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Sample;
 use App\Models\SampleTestProcess;
+use App\Models\Suspect;
 use App\Models\TestRequest;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -324,4 +325,77 @@ it('keeps full page response for generic ajax delivery index requests', function
     $response->assertOk();
     $response->assertSee('Penyerahan Hasil Pengujian');
     $response->assertSee('Riwayat Penyerahan');
+});
+
+it('shows first suspect and additional suspect count on delivery index', function () {
+    $user = User::factory()->create(['role' => 'admin']);
+
+    $request = TestRequest::factory()->create([
+        'status' => 'ready_for_delivery',
+        'suspect_name' => 'Legacy Tersangka',
+    ]);
+
+    Suspect::factory()->create([
+        'test_request_id' => $request->id,
+        'name' => 'BUDI SANTOSO',
+        'order_no' => 1,
+    ]);
+
+    Suspect::factory()->create([
+        'test_request_id' => $request->id,
+        'name' => 'ANDI SAPUTRA',
+        'order_no' => 2,
+    ]);
+
+    Suspect::factory()->create([
+        'test_request_id' => $request->id,
+        'name' => 'RIZKY PRATAMA',
+        'order_no' => 3,
+    ]);
+
+    $response = $this->actingAs($user)->get(route('delivery.index'));
+
+    $response->assertOk();
+    $response->assertSee('BUDI SANTOSO');
+    $response->assertSee('+2 tersangka lainnya');
+    $response->assertDontSee('Legacy Tersangka');
+});
+
+it('falls back to legacy suspect name on delivery index when suspects relation is empty', function () {
+    $user = User::factory()->create(['role' => 'admin']);
+
+    $request = TestRequest::factory()->create([
+        'status' => 'ready_for_delivery',
+        'suspect_name' => 'Tersangka Legacy Delivery',
+    ]);
+
+    $response = $this->actingAs($user)->get(route('delivery.index'));
+
+    $response->assertOk();
+    $response->assertSee('Tersangka Legacy Delivery');
+});
+
+it('searches delivery history by related suspect names', function () {
+    $user = User::factory()->create(['role' => 'admin']);
+
+    $request = TestRequest::factory()->create([
+        'status' => 'completed',
+        'receipt_number' => 'RESI-SUSPECT-SEARCH',
+        'suspect_name' => 'Nama Legacy Umum',
+        'completed_at' => now(),
+    ]);
+
+    Suspect::factory()->create([
+        'test_request_id' => $request->id,
+        'name' => 'SITI AMINAH',
+        'order_no' => 1,
+    ]);
+
+    $response = $this->actingAs($user)->get(route('delivery.index', [
+        'search' => 'SITI AMINAH',
+    ]));
+
+    $response->assertOk();
+    $response->assertSee('RESI-SUSPECT-SEARCH');
+    $response->assertSee('SITI AMINAH');
 });

@@ -4,6 +4,7 @@ namespace Tests\Feature\Delivery;
 
 use App\Models\Sample;
 use App\Models\SampleTestProcess;
+use App\Models\Suspect;
 use App\Models\TestRequest;
 use App\Models\User;
 use Database\Seeders\SystemSettingSeeder;
@@ -221,5 +222,90 @@ class DeliveryShowLhuTest extends TestCase
         $response->assertOk();
         $response->assertSee('Tanggal Surat Permintaan');
         $response->assertSee('24 Februari 2026');
+    }
+
+    public function test_delivery_show_displays_all_suspects_from_relation(): void
+    {
+        $this->seed(SystemSettingSeeder::class);
+        settings_fake(['notifications.whatsapp.enabled' => false]);
+        settings_forget_cache();
+
+        Queue::fake();
+
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $request = TestRequest::factory()->create([
+            'user_id' => $user->id,
+            'status' => 'ready_for_delivery',
+            'suspect_name' => 'Legacy Tersangka',
+        ]);
+
+        Suspect::factory()->create([
+            'test_request_id' => $request->id,
+            'name' => 'BUDI SANTOSO',
+            'gender' => 'male',
+            'age' => 32,
+            'order_no' => 1,
+        ]);
+
+        Suspect::factory()->create([
+            'test_request_id' => $request->id,
+            'name' => 'SITI AMINAH',
+            'gender' => 'female',
+            'age' => 29,
+            'order_no' => 2,
+        ]);
+
+        Sample::factory()->create([
+            'test_request_id' => $request->id,
+            'status' => 'ready_for_delivery',
+            'package_quantity' => 0,
+            'quantity' => 0,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->get(route('delivery.show', $request));
+
+        $response->assertOk();
+        $response->assertSee('BUDI SANTOSO');
+        $response->assertSee('SITI AMINAH');
+        $response->assertDontSee('Legacy Tersangka');
+        $response->assertSee('32 th');
+        $response->assertSee('29 th');
+    }
+
+    public function test_delivery_show_falls_back_to_legacy_suspect_name_when_relation_is_empty(): void
+    {
+        $this->seed(SystemSettingSeeder::class);
+        settings_fake(['notifications.whatsapp.enabled' => false]);
+        settings_forget_cache();
+
+        Queue::fake();
+
+        /** @var User $user */
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $request = TestRequest::factory()->create([
+            'user_id' => $user->id,
+            'status' => 'ready_for_delivery',
+            'suspect_name' => 'Tersangka Fallback Show',
+            'suspect_gender' => 'female',
+            'suspect_age' => 41,
+        ]);
+
+        Sample::factory()->create([
+            'test_request_id' => $request->id,
+            'status' => 'ready_for_delivery',
+            'package_quantity' => 0,
+            'quantity' => 0,
+        ]);
+
+        $response = $this->actingAs($user)
+            ->get(route('delivery.show', $request));
+
+        $response->assertOk();
+        $response->assertSee('Tersangka Fallback Show');
+        $response->assertSee('41 th');
     }
 }

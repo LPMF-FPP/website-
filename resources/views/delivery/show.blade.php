@@ -615,7 +615,28 @@
 
                         <div>
                             <div class="text-xs text-gray-500 uppercase tracking-wide">Tersangka</div>
-                            <div class="font-medium text-gray-900 mt-0.5">{{ $request->suspect_name ?? '-' }}</div>
+                            @if($request->display_suspect_collection->isNotEmpty())
+                                <ol class="mt-1 space-y-1 text-sm text-gray-900">
+                                    @foreach($request->display_suspect_collection as $suspect)
+                                        <li class="flex items-start gap-2">
+                                            <span class="mt-0.5 text-xs font-semibold text-gray-500">{{ $loop->iteration }}.</span>
+                                            <div>
+                                                <div class="font-medium text-gray-900">{{ $suspect->name }}</div>
+                                                @if($suspect->gender || $suspect->age)
+                                                    <div class="text-xs text-gray-500">
+                                                        {{ $suspect->gender === 'male' ? 'L' : ($suspect->gender === 'female' ? 'P' : '-') }}
+                                                        @if($suspect->age)
+                                                            , {{ $suspect->age }} th
+                                                        @endif
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </li>
+                                    @endforeach
+                                </ol>
+                            @else
+                                <div class="font-medium text-gray-900 mt-0.5">-</div>
+                            @endif
                         </div>
 
                         <div class="rounded-xl border border-slate-200 bg-slate-50/80 p-4">

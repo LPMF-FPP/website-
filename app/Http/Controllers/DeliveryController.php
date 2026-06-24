@@ -41,6 +41,7 @@ class DeliveryController extends Controller
 
         $requests = TestRequest::with([
             'investigator:id,name,jurisdiction,rank',
+            'suspects:id,test_request_id,name,gender,age,order_no',
             'samples' => function ($query) {
                 $query->select('id', 'test_request_id', 'short_description', 'sample_code')
                     ->with(['testProcesses' => function ($q) {
@@ -81,6 +82,7 @@ class DeliveryController extends Controller
 
         $completedRequests = TestRequest::with([
             'investigator:id,name,jurisdiction,rank',
+            'suspects:id,test_request_id,name,gender,age,order_no',
             'samples' => function ($query) {
                 $query->select('id', 'test_request_id', 'short_description');
             },
@@ -91,6 +93,9 @@ class DeliveryController extends Controller
                     $sub->where('request_number', 'ilike', "%{$search}%")
                         ->orWhere('receipt_number', 'ilike', "%{$search}%")
                         ->orWhere('suspect_name', 'ilike', "%{$search}%")
+                        ->orWhereHas('suspects', function ($suspects) use ($search) {
+                            $suspects->where('name', 'ilike', "%{$search}%");
+                        })
                         ->orWhereHas('investigator', function ($inv) use ($search) {
                             $inv->where('name', 'ilike', "%{$search}%");
                         });
@@ -146,6 +151,8 @@ class DeliveryController extends Controller
             'investigator',
 
             'samples.analyst',
+
+            'suspects',
 
             'samples.testProcesses.analyst',
 

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 class TestRequest extends Model
@@ -198,6 +199,53 @@ class TestRequest extends Model
         }
 
         return (int) $startDate->diffInWeekdays($endDate);
+    }
+
+    public function getDisplaySuspectNamesAttribute(): array
+    {
+        if ($this->relationLoaded('suspects') && $this->suspects->isNotEmpty()) {
+            return $this->suspects
+                ->pluck('name')
+                ->filter(fn ($name) => filled($name))
+                ->values()
+                ->all();
+        }
+
+        if (filled($this->suspect_name)) {
+            return [(string) $this->suspect_name];
+        }
+
+        return [];
+    }
+
+    public function getDisplayPrimarySuspectNameAttribute(): ?string
+    {
+        return $this->display_suspect_names[0] ?? null;
+    }
+
+    public function getDisplayAdditionalSuspectCountAttribute(): int
+    {
+        return max(count($this->display_suspect_names) - 1, 0);
+    }
+
+    public function getDisplaySuspectCollectionAttribute(): Collection
+    {
+        if ($this->relationLoaded('suspects') && $this->suspects->isNotEmpty()) {
+            return $this->suspects->filter(fn (Suspect $suspect) => filled($suspect->name))->values();
+        }
+
+        if (! filled($this->suspect_name)) {
+            return collect();
+        }
+
+        return collect([
+            new Suspect([
+                'name' => $this->suspect_name,
+                'gender' => $this->suspect_gender,
+                'age' => $this->suspect_age,
+                'order_no' => 1,
+            ]),
+        ]);
     }
 
     public function evidenceUnits(): HasMany
