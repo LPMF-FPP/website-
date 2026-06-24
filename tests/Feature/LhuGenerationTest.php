@@ -2,9 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Enums\DocumentFormat;
+use App\Enums\DocumentType;
 use App\Enums\SampleStatus;
 use App\Enums\TestProcessStage;
 use App\Models\Document;
+use App\Models\DocumentTemplate;
+use App\Models\Investigator;
 use App\Models\Sample;
 use App\Models\SampleTestProcess;
 use App\Models\TestRequest;
@@ -85,9 +89,126 @@ class LhuGenerationTest extends TestCase
             ->firstOrFail();
         $this->assertSame('skipped', data_get($document->extra, 'google_drive.status'));
 
+        $htmlDocument = Document::query()
+            ->where('test_request_id', $testRequest->id)
+            ->where('document_type', 'laporan_hasil_uji_html')
+            ->firstOrFail();
+
+        $html = Storage::disk($htmlDocument->storage_disk ?? 'public')->get($htmlDocument->path);
+        $this->assertStringContainsString('&ldquo;Pro Justitia&rdquo;', $html);
+
         // Assert process metadata has lhu_number
         $process->refresh();
         $this->assertNotNull($process->metadata['lhu_number'] ?? null);
+    }
+
+    public function test_lhu_does_not_include_pro_justitia_for_non_polri_request(): void
+    {
+        Storage::fake('public');
+
+        $this->mock(\App\Services\PdfRenderService::class, function ($mock) {
+            $mock->shouldReceive('htmlToPdf')
+                ->andReturn('%PDF-1.4 mock pdf content');
+        });
+
+        /** @var User $user */
+        $user = User::factory()->create([
+            'role' => 'analis',
+        ]);
+
+        $investigator = Investigator::factory()->create([
+            'is_polri' => false,
+            'rank' => 'Pemohon',
+            'nrp' => 'EXT0000001',
+        ]);
+
+        $testRequest = TestRequest::factory()->create([
+            'investigator_id' => $investigator->id,
+        ]);
+        $sample = Sample::factory()->create([
+            'test_request_id' => $testRequest->id,
+            'status' => SampleStatus::INTERPRETATION_IN_PROGRESS,
+        ]);
+        $process = SampleTestProcess::factory()->create([
+            'sample_id' => $sample->id,
+            'stage' => TestProcessStage::INTERPRETATION,
+            'metadata' => [],
+        ]);
+
+        $this->actingAs($user)
+            ->put(route('testing.processes.update', $process), [
+                'sample_id' => $sample->id,
+                'stage' => TestProcessStage::INTERPRETATION->value,
+                'performed_by' => $user->id,
+                'test_result' => 'positive',
+                'detected_substance' => 'Metamfetamina',
+                'instrument' => 'GC-MS',
+                'completed_at' => now()->toDateTimeString(),
+            ])
+            ->assertRedirect();
+
+        $htmlDocument = Document::query()
+            ->where('test_request_id', $testRequest->id)
+            ->where('document_type', 'laporan_hasil_uji_html')
+            ->firstOrFail();
+
+        $html = Storage::disk($htmlDocument->storage_disk ?? 'public')->get($htmlDocument->path);
+        $this->assertStringNotContainsString('&ldquo;Pro Justitia&rdquo;', $html);
+    }
+
+    public function test_active_lhu_template_injects_pro_justitia_for_polri_request(): void
+    {
+        Storage::fake('public');
+
+        $this->mock(\App\Services\PdfRenderService::class, function ($mock) {
+            $mock->shouldReceive('htmlToPdf')
+                ->andReturn('%PDF-1.4 mock pdf content');
+        });
+
+        DocumentTemplate::factory()->create([
+            'type' => DocumentType::LHU,
+            'format' => DocumentFormat::HTML,
+            'doc_type' => 'LHU',
+            'status' => 'issued',
+            'is_active' => true,
+            'content_html' => '<div class="doc-template"><h1>LAPORAN HASIL UJI</h1><p>Nomor: {{report_number}}</p></div>',
+        ]);
+
+        /** @var User $user */
+        $user = User::factory()->create([
+            'role' => 'analis',
+        ]);
+
+        $testRequest = TestRequest::factory()->create();
+        $sample = Sample::factory()->create([
+            'test_request_id' => $testRequest->id,
+            'status' => SampleStatus::INTERPRETATION_IN_PROGRESS,
+        ]);
+        $process = SampleTestProcess::factory()->create([
+            'sample_id' => $sample->id,
+            'stage' => TestProcessStage::INTERPRETATION,
+            'metadata' => [],
+        ]);
+
+        $this->actingAs($user)
+            ->put(route('testing.processes.update', $process), [
+                'sample_id' => $sample->id,
+                'stage' => TestProcessStage::INTERPRETATION->value,
+                'performed_by' => $user->id,
+                'test_result' => 'positive',
+                'detected_substance' => 'Metamfetamina',
+                'instrument' => 'GC-MS',
+                'completed_at' => now()->toDateTimeString(),
+            ])
+            ->assertRedirect();
+
+        $htmlDocument = Document::query()
+            ->where('test_request_id', $testRequest->id)
+            ->where('document_type', 'laporan_hasil_uji_html')
+            ->firstOrFail();
+
+        $html = Storage::disk($htmlDocument->storage_disk ?? 'public')->get($htmlDocument->path);
+        $this->assertStringContainsString('&ldquo;Pro Justitia&rdquo;', $html);
     }
 
     public function test_lhu_generation_fails_gracefully_on_error()
@@ -336,9 +457,12 @@ class LhuGenerationTest extends TestCase
             $this->createMock(GoogleDriveOAuthService::class),
             $this->createMock(GoogleDriveService::class),
         );
-        $method = (new ReflectionClass($service))->getMethod('syncUserFor');
+        $method = (new ReflectionClass($service))->getMethod('syncUsersFor');
         $method->setAccessible(true);
 
-        $this->assertSame($uploader->id, $method->invoke($service, $currentUser)?->id);
+        $candidates = $method->invoke($service, $currentUser);
+
+        $this->assertIsArray($candidates);
+        $this->assertSame($uploader->id, $candidates[0]?->id ?? null);
     }
 }

@@ -44,6 +44,7 @@ class LhuContextResolver extends AbstractContextResolver
             'investigator' => $this->getMockInvestigator(),
             'noLHU' => 'FLHU001',
             'forcedActiveSubstance' => 'Sample Active Substance',
+            'pro_justitia_text' => '&ldquo;Pro Justitia&rdquo;',
         ]);
     }
 
@@ -90,6 +91,7 @@ class LhuContextResolver extends AbstractContextResolver
             'name' => 'Dr. John Doe',
             'nrp' => 'NRP12345',
             'unit' => 'Forensic Unit',
+            'is_polri' => true,
         ];
     }
 }

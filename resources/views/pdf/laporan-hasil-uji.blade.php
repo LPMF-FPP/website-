@@ -214,6 +214,10 @@
     if ($hasSign) {
         $signBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($signPath));
     }
+
+    $showProJustitia = isset($showProJustitia)
+        ? (bool) $showProJustitia
+        : (bool) ($inv?->is_polri ?? false);
 @endphp
 <!DOCTYPE html>
 <html lang="id">
@@ -240,6 +244,7 @@
   .title-row td { padding-top:4px; }
   .ttl { font-weight:700; font-size:12.5pt; }
   .meta-ttl { text-align:right; font-size:10pt; }
+  .pro-justitia { margin-top:4px; font-style:italic; font-size:10pt; font-weight:600; text-align:center; }
 
   /* KV */
   .kv { margin-top:5px; }
@@ -313,7 +318,12 @@
   <!-- TITLE + META -->
   <table class="title-row avoid">
     <tr>
-      <td class="ttl">LAPORAN HASIL UJI</td>
+      <td class="ttl">
+        LAPORAN HASIL UJI
+        @if($showProJustitia)
+          <div class="pro-justitia">&ldquo;Pro Justitia&rdquo;</div>
+        @endif
+      </td>
       <td class="meta-ttl">
         Nomor: <b>{{ $noLHU }}</b><br>
         Halaman: <b>1/1</b>

@@ -146,6 +146,7 @@ class DocumentTemplateService
             'report_number',
             'instrument',
             'conclusion',
+            'pro_justitia_text',
 
             // Lab info
             'lab_name',

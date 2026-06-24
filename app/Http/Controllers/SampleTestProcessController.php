@@ -20,6 +20,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -807,6 +808,8 @@ class SampleTestProcessController extends Controller
     ): ?Document {
         $metadata = $sampleProcess->metadata ?? [];
         $methodSummary = $this->resolveLhuMethodSummary($sampleProcess, $metadata);
+        $shouldShowProJustitia = $this->shouldShowProJustitia($sampleProcess);
+        $proJustitiaText = $shouldShowProJustitia ? '&ldquo;Pro Justitia&rdquo;' : '';
 
         // Try to get active template for LHU
         $template = $templateService->getActiveTemplateByDocType('LHU');
@@ -863,6 +866,7 @@ class SampleTestProcessController extends Controller
                 'test_result' => $testResultText,
                 'test_result_text' => $testResultText,
                 'conclusion' => "Barang bukti mengandung {$detectedSubstance}",
+                'pro_justitia_text' => $proJustitiaText,
                 'lab_name' => 'Pusdokkes Polri',
                 'lab_address' => 'Jakarta',
             ];
@@ -889,8 +893,11 @@ class SampleTestProcessController extends Controller
                 'generatedAt' => now(),
                 'noLHU' => $lhuNumber,
                 'forcedActiveSubstance' => $forcedActive,
+                'showProJustitia' => $shouldShowProJustitia,
             ])->render();
         }
+
+        $html = $this->injectProJustitiaIntoLhuHtml($html, $shouldShowProJustitia, $proJustitiaText);
 
         // Generate PDF from HTML using PdfRenderService
         $pdf = $pdfRenderService->htmlToPdf($html, config('app.url'));
@@ -920,6 +927,41 @@ class SampleTestProcessController extends Controller
         }
 
         return $docPdf;
+    }
+
+    private function shouldShowProJustitia(SampleTestProcess $sampleProcess): bool
+    {
+        return (bool) ($sampleProcess->sample?->testRequest?->investigator?->is_polri ?? false);
+    }
+
+    private function injectProJustitiaIntoLhuHtml(string $html, bool $shouldShowProJustitia, string $proJustitiaText): string
+    {
+        if (! $shouldShowProJustitia || $proJustitiaText === '') {
+            return $html;
+        }
+
+        if (Str::contains(Str::lower(html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8')), 'pro justitia')) {
+            return $html;
+        }
+
+        $injection = '<div class="pro-justitia" style="margin-top:4px;font-style:italic;font-size:10pt;font-weight:600;text-align:center;">'.$proJustitiaText.'</div>';
+
+        $patterns = [
+            '/(<td\s+class="ttl"[^>]*>.*?LAPORAN HASIL UJI.*?<\/td>)/is',
+            '/(<h1[^>]*>.*?LAPORAN HASIL UJI.*?<\/h1>)/is',
+            '/(<span\s+class="badge"[^>]*>.*?LAPORAN PENGUJIAN LABORATORIUM.*?<\/span>)/is',
+        ];
+
+        foreach ($patterns as $pattern) {
+            $updated = preg_replace($pattern, '$1'.$injection, $html, 1, $count);
+            if ($updated !== null && $count > 0) {
+                return $updated;
+            }
+        }
+
+        $updated = preg_replace('/(<body[^>]*>)/i', '$1'.$injection, $html, 1, $count);
+
+        return $updated !== null && $count > 0 ? $updated : $html;
     }
 
     public function generateReportResponse(SampleTestProcess $sampleProcess)
