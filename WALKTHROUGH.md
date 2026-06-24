@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v2.5.3
+# WALKTHROUGH - LPMF LIMS v2.5.5
 
 > **Single Source of Truth** — Pedoman terupdate terhadap codebase Laboratory Information Management System.
 
@@ -147,6 +147,16 @@ WhatsApp service berjalan di container Docker terpisah.
 ---
 
 ## 📰 Recent Changes (v2.5.x)
+
+### v2.5.5 (24 Juni 2026) - Delivery Multi-Suspect & LHU Pro Justitia
+
+- **Delivery Multi-Suspect Display:** Modul `/delivery` dan `/delivery/{request}` sekarang membaca relasi `suspects` sebagai sumber utama data tersangka, sehingga request dengan lebih dari satu tersangka tidak lagi terpotong ke satu nama legacy saja.
+- **Delivery History Search Alignment:** Pencarian riwayat penyerahan kini ikut mencocokkan nama pada relasi `suspects`, sehingga nama tersangka tambahan yang sudah tampil di UI juga dapat ditemukan lewat kolom pencarian history.
+- **Legacy Fallback Safety:** Delivery tetap fallback ke `test_requests.suspect_name` saat request lama belum memiliki row pada tabel `suspects`, agar data historis tetap terbaca tanpa migrasi manual.
+- **LHU Pro Justitia for Polri Requests:** Dokumen Laporan Hasil Uji sekarang menampilkan label italic `&ldquo;Pro Justitia&rdquo;` hanya bila permintaan berasal dari penyidik/anggota Polri (`investigator.is_polri = true`), baik pada jalur template aktif `LHU` maupun fallback Blade legacy.
+- **Template Path Parity:** Generator LHU kini menyalurkan token `pro_justitia_text` ke template aktif dan sekaligus memiliki injeksi HTML final sebagai pengaman, sehingga perubahan tetap berlaku walau template aktif database belum diperbarui manual.
+- **Title Alignment Polish:** Label `&ldquo;Pro Justitia&rdquo;` diselaraskan menjadi rata kiri tepat di bawah judul `LAPORAN HASIL UJI`, agar terasa menyatu dengan heading dokumen dan tetap konsisten pada hasil PDF/HTML akhir.
+- **Regression Coverage:** Coverage LHU diperluas untuk memastikan request Polri menampilkan `&ldquo;Pro Justitia&rdquo;`, request non-Polri tidak menampilkannya, dan jalur render template aktif tetap mengikuti aturan yang sama.
 
 ### v2.5.4 (22 Juni 2026) - Remaining Label Sheet Reconciliation
 
