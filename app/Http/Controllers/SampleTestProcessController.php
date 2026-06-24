@@ -944,7 +944,7 @@ class SampleTestProcessController extends Controller
             return $html;
         }
 
-        $injection = '<div class="pro-justitia" style="margin-top:4px;font-style:italic;font-size:10pt;font-weight:600;text-align:center;">'.$proJustitiaText.'</div>';
+        $injection = '<div class="pro-justitia" style="margin-top:4px;font-style:italic;font-size:10pt;font-weight:600;text-align:left;">'.$proJustitiaText.'</div>';
 
         $patterns = [
             '/(<td\s+class="ttl"[^>]*>.*?LAPORAN HASIL UJI.*?<\/td>)/is',

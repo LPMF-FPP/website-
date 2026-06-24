@@ -244,7 +244,7 @@
   .title-row td { padding-top:4px; }
   .ttl { font-weight:700; font-size:12.5pt; }
   .meta-ttl { text-align:right; font-size:10pt; }
-  .pro-justitia { margin-top:4px; font-style:italic; font-size:10pt; font-weight:600; text-align:center; }
+  .pro-justitia { margin-top:4px; font-style:italic; font-size:10pt; font-weight:600; text-align:left; }
 
   /* KV */
   .kv { margin-top:5px; }
