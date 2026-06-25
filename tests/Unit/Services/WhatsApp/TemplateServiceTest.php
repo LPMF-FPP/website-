@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services\WhatsApp;
 
+use App\Services\NumberingService;
 use App\Services\WhatsApp\TemplateService;
 use Tests\TestCase;
 
@@ -103,5 +104,14 @@ class TemplateServiceTest extends TestCase
         $preview = $this->service->preview('system', 'CONSOLIDATED_BIWEEKLY');
 
         $this->assertStringContainsString('https://lpmf.web.id/statistics?tab=reports', $preview);
+    }
+
+    public function test_status_report_preview_uses_current_tracking_number_format(): void
+    {
+        $expectedResi = app(NumberingService::class)->example('tracking');
+
+        $preview = $this->service->preview('command', 'STATUS_REPORT');
+
+        $this->assertStringContainsString($expectedResi, $preview);
     }
 }

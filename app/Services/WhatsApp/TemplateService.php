@@ -3,6 +3,7 @@
 namespace App\Services\WhatsApp;
 
 use App\Models\SystemSetting;
+use App\Services\NumberingService;
 use Illuminate\Support\Facades\Cache;
 
 class TemplateService
@@ -411,14 +412,16 @@ class TemplateService
      */
     private function getSampleData(string $category, string $key): array
     {
+        $sampleResi = app(NumberingService::class)->example('tracking');
+
         $samples = [
             'greetings' => 'Selamat Pagi',
             'pangkat' => 'IPDA',
             'nama' => 'Budi Santoso',
             'nomor surat' => 'B/001/I/2026/Reskrim',
             'tersangka' => 'Tersangka ABC',
-            'resi' => 'LPMF/001/2026',
-            'nomor_resi' => 'LPMF/001/2026',
+            'resi' => $sampleResi,
+            'nomor_resi' => $sampleResi,
             'reason' => 'Sampel tidak memenuhi syarat',
             'command' => '/unknown',
             'request_number' => 'REQ-2026-0001',
