@@ -30,10 +30,10 @@ class TemplateService
             'HANDOVER_COMPLETED' => "{greetings} {pangkat} {nama},\n\nSerah terima hasil pengujian dengan nomor resi *{resi}* a.n. TSK {tersangka} telah selesai.\n\nTerima kasih telah menggunakan layanan kami.\n\n_Laboratorium Farmapol Pusdokkes Polri_",
         ],
         'command' => [
-            'HELP' => "🤖 *Bot LPMF Tracking*\n\nBerikut perintah yang tersedia:\n\n📦 */resi {nomor_resi}*\nMelihat progres permintaan berdasarkan nomor resi.\nContoh: /resi LPMF/001/2026\n\n📊 */status*\nMelihat ringkasan antrean layanan laboratorium saat ini.\n\n🌡️ */suhu*\nTanpa parameter: melihat daftar sensor.\nInput manual: /suhu {lokasi} {suhu} {kelembaban} {am/pm}\n\n📦 */stok*\nTanpa parameter: melihat ringkasan stok.\nInput manual: /stok {masuk/keluar} {nama} {jml}\n\n🧾 */qmh*\nMenindaklanjuti revisi QMH sesuai kode aksi yang diterima.\n\n─────────────────\nSilakan gunakan command sesuai format agar permintaan dapat diproses dengan tepat.",
+            'HELP' => "🤖 *Bot LPMF Tracking*\n\nBerikut perintah yang tersedia:\n\n📦 */resi {nomor_resi}*\nMelihat progres permintaan berdasarkan nomor resi.\nContoh: /resi {nomor_resi}\n\n📊 */status*\nMelihat ringkasan antrean layanan laboratorium saat ini.\n\n🌡️ */suhu*\nTanpa parameter: melihat daftar sensor.\nInput manual: /suhu {lokasi} {suhu} {kelembaban} {am/pm}\n\n📦 */stok*\nTanpa parameter: melihat ringkasan stok.\nInput manual: /stok {masuk/keluar} {nama} {jml}\n\n🧾 */qmh*\nMenindaklanjuti revisi QMH sesuai kode aksi yang diterima.\n\n─────────────────\nSilakan gunakan command sesuai format agar permintaan dapat diproses dengan tepat.",
             'HELP_ADMIN' => "\n\n🛠️ *Perintah Admin*\n`/restart` — restart system/queue\n`/whitelist` — kelola whitelist WhatsApp",
             'RESI_NOT_FOUND' => "❌ Nomor resi tidak ditemukan: {resi}\n\nPastikan nomor resi benar.",
-            'RESI_FORMAT_ERROR' => "❌ Format salah!\n\nGunakan: /resi {nomor_resi}\n\nContoh: /resi LPMF/001/2026",
+            'RESI_FORMAT_ERROR' => "❌ Format salah!\n\nGunakan: /resi {nomor_resi}\n\nContoh: /resi {nomor_resi}",
             'RESI_TRACKING' => "📋 *PELACAKAN RESI PERMINTAAN*\n\n🔖 *Kode Resi:* {resi}\n📄 *Nomor Permintaan:* {request_number}\n👮 *Penyidik:* {investigator}\n📦 *Jumlah Sampel:* {sample_count}\n\n🧭 *Tahapan Proses (1-5)*\n{milestones}\n\n📌 *Status Terkini*\n*{current_status}*\n\nKeterangan: ✅ selesai | 🟡 sedang berjalan | ⚪️ menunggu\n─────────────────\nℹ️ Cek ulang kapan saja dengan ketik:\n*/resi {resi}*",
             'UNKNOWN_COMMAND' => "❌ Command tidak dikenali: {command}\n\nKetik /help untuk melihat perintah yang tersedia.",
             'COMMAND_ERROR' => "❌ Terjadi kesalahan saat memproses command.\n\nSilakan coba lagi beberapa saat lagi.",
@@ -75,10 +75,10 @@ class TemplateService
             'HANDOVER_COMPLETED' => ['greetings', 'pangkat', 'nama', 'tersangka', 'resi'],
         ],
         'command' => [
-            'HELP' => [],
+            'HELP' => ['nomor_resi'],
             'HELP_ADMIN' => [],
             'RESI_NOT_FOUND' => ['resi'],
-            'RESI_FORMAT_ERROR' => [],
+            'RESI_FORMAT_ERROR' => ['nomor_resi'],
             'RESI_TRACKING' => ['resi', 'request_number', 'investigator', 'milestones', 'current_status', 'sample_count'],
             'UNKNOWN_COMMAND' => ['command'],
             'COMMAND_ERROR' => [],
@@ -407,12 +407,17 @@ class TemplateService
         return $this->renderWithReplacements($template, $sampleData);
     }
 
+    public function exampleTrackingNumber(): string
+    {
+        return app(NumberingService::class)->example('tracking');
+    }
+
     /**
      * Get sample data for preview.
      */
     private function getSampleData(string $category, string $key): array
     {
-        $sampleResi = app(NumberingService::class)->example('tracking');
+        $sampleResi = $this->exampleTrackingNumber();
 
         $samples = [
             'greetings' => 'Selamat Pagi',

@@ -14,7 +14,9 @@ class HelpCommand
 
     public function execute(string $fromJid, array $params): string
     {
-        $response = $this->templateService->get('command', 'HELP');
+        $response = $this->templateService->render('command', 'HELP', [
+            'nomor_resi' => $this->templateService->exampleTrackingNumber(),
+        ]);
 
         // Admin Only Section: Show if user is Whitelisted
         if ($this->whitelistService->isAllowed($fromJid)) {

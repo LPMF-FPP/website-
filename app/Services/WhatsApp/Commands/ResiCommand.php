@@ -15,7 +15,9 @@ class ResiCommand
     public function execute(string $fromJid, array $params): string
     {
         if (empty($params[0])) {
-            return $this->templateService->get('command', 'RESI_FORMAT_ERROR');
+            return $this->templateService->render('command', 'RESI_FORMAT_ERROR', [
+                'nomor_resi' => $this->templateService->exampleTrackingNumber(),
+            ]);
         }
 
         $receiptNumber = (string) $params[0];

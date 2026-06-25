@@ -53,7 +53,7 @@ class StatusRequestCommand
             'sample_total' => (string) $sampleTotal,
             'completed_total' => (string) $completedTotal,
             'timestamp' => now()->format('d M Y H:i'),
-            'nomor_resi' => 'LPMF/001/2026',
+            'nomor_resi' => $this->templateService->exampleTrackingNumber(),
         ]);
     }
 

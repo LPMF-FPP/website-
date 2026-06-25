@@ -114,4 +114,22 @@ class TemplateServiceTest extends TestCase
 
         $this->assertStringContainsString($expectedResi, $preview);
     }
+
+    public function test_help_preview_uses_current_tracking_number_format(): void
+    {
+        $expectedResi = app(NumberingService::class)->example('tracking');
+
+        $preview = $this->service->preview('command', 'HELP');
+
+        $this->assertStringContainsString("/resi {$expectedResi}", $preview);
+    }
+
+    public function test_resi_format_error_preview_uses_current_tracking_number_format(): void
+    {
+        $expectedResi = app(NumberingService::class)->example('tracking');
+
+        $preview = $this->service->preview('command', 'RESI_FORMAT_ERROR');
+
+        $this->assertStringContainsString("/resi {$expectedResi}", $preview);
+    }
 }
