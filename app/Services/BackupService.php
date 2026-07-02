@@ -70,14 +70,14 @@ class BackupService
         $storagePath = storage_path('app');
         $archivePath = $outputPath.'/storage.tar.gz';
 
-        $excludes = [
+        $excludes = array_merge([
             'backups',
             'public/.gitignore',
             '.gitignore',
-        ];
+        ], $this->findUnreadableStoragePaths($storagePath));
 
         $excludeArgs = implode(' ', array_map(
-            fn ($ex) => "--exclude='{$ex}'",
+            fn ($ex) => '--exclude='.escapeshellarg($ex),
             $excludes
         ));
 
@@ -98,6 +98,49 @@ class BackupService
             'path' => $archivePath,
             'size' => filesize($archivePath),
         ];
+    }
+
+    private function findUnreadableStoragePaths(string $storagePath): array
+    {
+        $unreadablePaths = [];
+
+        $this->collectUnreadablePaths($storagePath, $storagePath, $unreadablePaths);
+
+        return array_values(array_unique($unreadablePaths));
+    }
+
+    private function collectUnreadablePaths(string $currentPath, string $rootPath, array &$unreadablePaths): void
+    {
+        $entries = @scandir($currentPath);
+
+        if ($entries === false) {
+            $relativePath = ltrim(substr($currentPath, strlen($rootPath)), '/');
+
+            if ($relativePath !== '') {
+                $unreadablePaths[] = $relativePath;
+            }
+
+            return;
+        }
+
+        foreach ($entries as $entry) {
+            if ($entry === '.' || $entry === '..') {
+                continue;
+            }
+
+            $path = $currentPath.'/'.$entry;
+            $relativePath = ltrim(substr($path, strlen($rootPath)), '/');
+
+            if (! is_readable($path)) {
+                $unreadablePaths[] = $relativePath;
+
+                continue;
+            }
+
+            if (is_dir($path)) {
+                $this->collectUnreadablePaths($path, $rootPath, $unreadablePaths);
+            }
+        }
     }
 
     public function generateManifest(string $outputPath, array $files): array
