@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Process;
 
 class BackupService
 {
+    private const BACKUP_PROCESS_TIMEOUT_SECONDS = 1800;
+
     public function createDatabaseDump(string $outputPath): array
     {
         $connection = config('database.default');
@@ -45,7 +47,7 @@ class BackupService
             throw new \RuntimeException("Unsupported database driver: {$driver}");
         }
 
-        $result = Process::run($command);
+        $result = Process::timeout(self::BACKUP_PROCESS_TIMEOUT_SECONDS)->run($command);
 
         if ($result->failed()) {
             throw new \RuntimeException('Database dump failed: '.$result->errorOutput());
@@ -86,7 +88,7 @@ class BackupService
             $excludeArgs
         );
 
-        $result = Process::run($command);
+        $result = Process::timeout(self::BACKUP_PROCESS_TIMEOUT_SECONDS)->run($command);
 
         if ($result->failed()) {
             throw new \RuntimeException('Storage archive failed: '.$result->errorOutput());
