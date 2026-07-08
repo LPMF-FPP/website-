@@ -45,15 +45,52 @@ abstract class AbstractContextResolver implements DocumentContextResolver
             }
         }
 
+        $orgName = settings('branding.org_name')
+            ?? settings('branding.institution_name')
+            ?? 'LPMF';
+
+        $labName = settings('branding.lab_name')
+            ?? 'LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN';
+
+        $address = settings('branding.address')
+            ?? settings('pdf.header.address');
+
+        $phone = settings('branding.phone');
+        $email = settings('branding.email');
+        $website = settings('branding.website');
+
         return [
-            'institution_name' => settings('branding.institution_name', 'LPMF'),
+            'org_name' => $orgName,
+            'lab_name' => $labName,
+            'institution_name' => $orgName,
             'logo_url' => $logoUrl,
             'logo_path' => $logoPath, // Keep original path for reference
-            'address' => settings('branding.address'),
-            'phone' => settings('branding.phone'),
-            'email' => settings('branding.email'),
-            'website' => settings('branding.website'),
+            'address' => $address,
+            'phone' => $phone,
+            'email' => $email,
+            'website' => $website,
+            'contact_line' => $this->buildBrandingContactLine($phone, $email, $website)
+                ?? settings('pdf.header.contact'),
         ];
+    }
+
+    protected function buildBrandingContactLine(?string $phone, ?string $email, ?string $website): ?string
+    {
+        $parts = [];
+
+        if (is_string($phone) && trim($phone) !== '') {
+            $parts[] = 'Telp: '.trim($phone);
+        }
+
+        if (is_string($email) && trim($email) !== '') {
+            $parts[] = 'Email: '.trim($email);
+        }
+
+        if (is_string($website) && trim($website) !== '') {
+            $parts[] = 'Website: '.trim($website);
+        }
+
+        return $parts === [] ? null : implode(' • ', $parts);
     }
 
     /**

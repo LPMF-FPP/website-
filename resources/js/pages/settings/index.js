@@ -1250,6 +1250,13 @@ export class SettingsClient {
         );
 
         form.branding ??= {};
+        form.branding.lab_code ??= "";
+        form.branding.org_name ??= "";
+        form.branding.lab_name ??= "";
+        form.branding.address ??= "";
+        form.branding.phone ??= "";
+        form.branding.email ??= "";
+        form.branding.website ??= "";
         form.pdf ??= { header: {}, footer: {}, qr: {} };
         form.pdf.header ??= {};
         form.pdf.footer ??= {};

@@ -4,6 +4,8 @@
 
     $printedAt = isset($generatedAt) ? Carbon::parse($generatedAt) : now();
     $monthLabel = $month->translatedFormat('F Y');
+    $letterheadOrgName = settings('branding.org_name', 'PUSAT KEDOKTERAN DAN KESEHATAN POLRI');
+    $letterheadLabName = settings('branding.lab_name', 'LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN');
 @endphp
 <!DOCTYPE html>
 <html lang="id">
@@ -16,7 +18,8 @@
 
   .header { position: relative; margin:0 0 12px; padding-bottom:8px; border-bottom:1px solid #000; }
   .center { text-align:center; line-height:1.18; }
-  .instansi, .lab { font-weight:700; text-transform:uppercase; margin:0; }
+  .instansi { font-weight:700; font-size:14pt; text-transform:uppercase; margin:0; }
+  .lab { font-weight:700; font-size:12.5pt; text-transform:uppercase; margin:0; }
   .meta { font-size: 8.8pt; margin:1px 0 0; }
 
   h1.title { text-align:center; font-size:14pt; margin:12px 0 4px; text-transform:uppercase; }
@@ -45,8 +48,8 @@
 
   <div class="header">
     <div class="center">
-      <div class="instansi">PUSAT KEDOKTERAN DAN KESEHATAN POLRI</div>
-      <div class="lab">LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN</div>
+      <div class="instansi">{{ $letterheadOrgName }}</div>
+      <div class="lab">{{ $letterheadLabName }}</div>
       <div class="meta">Log Penimbangan Sampel (Analytical Balance)</div>
     </div>
   </div>

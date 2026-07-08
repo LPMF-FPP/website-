@@ -1,3 +1,16 @@
+@php
+    $letterheadOrgName = settings('branding.org_name', 'PUSAT KEDOKTERAN DAN KESEHATAN POLRI');
+    $letterheadLabName = settings('branding.lab_name', 'LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN');
+    $letterheadAddress = settings('branding.address', 'Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240');
+    $letterheadPhone = settings('branding.phone', '021-4700921');
+    $letterheadEmail = settings('branding.email', 'labmutufarmapol@gmail.com');
+    $letterheadWebsite = settings('branding.website');
+    $letterheadContactParts = [];
+    if ($letterheadPhone) { $letterheadContactParts[] = 'Telp: '.$letterheadPhone; }
+    if ($letterheadEmail) { $letterheadContactParts[] = 'Email: '.$letterheadEmail; }
+    if ($letterheadWebsite) { $letterheadContactParts[] = 'Website: '.$letterheadWebsite; }
+    $letterheadContactLine = implode(' • ', $letterheadContactParts);
+@endphp
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -13,8 +26,8 @@
         .logo-left { left: 0; }
         .logo-right { right: 0; }
         .center { text-align: center; line-height: 1.18; }
-        .instansi { font-weight: 700; text-transform: uppercase; margin: 0; font-size: 11pt; }
-        .lab { font-weight: 700; text-transform: uppercase; margin: 0; font-size: 12pt; }
+        .instansi { font-weight: 700; text-transform: uppercase; margin: 0; font-size: 14pt; }
+        .lab { font-weight: 700; text-transform: uppercase; margin: 0; font-size: 12.5pt; }
         .meta { font-size: 8.8pt; margin: 1px 0 0; }
 
         /* Judul */
@@ -113,9 +126,9 @@
             <img class="logo logo-left" src="{{ $leftLogoPath }}" alt="Logo Polri">
         @endif
         <div class="center">
-            <div class="instansi">PUSAT KEDOKTERAN DAN KESEHATAN POLRI</div>
-            <div class="lab">LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN</div>
-            <div class="meta">Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240 • Telp/Fax: 021-4700921 • Email: labmutufarmapol@gmail.com</div>
+            <div class="instansi">{{ $letterheadOrgName }}</div>
+            <div class="lab">{{ $letterheadLabName }}</div>
+            <div class="meta">{{ $letterheadAddress }}@if($letterheadContactLine) • {{ $letterheadContactLine }}@endif</div>
         </div>
         @if($rightLogoSrc)
             <img class="logo logo-right" src="{{ $rightLogoSrc }}" alt="Logo Pusdokkes">

@@ -10,6 +10,8 @@
         }
     }
 
+    $letterheadLabName = settings('branding.lab_name', 'LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN');
+
     $docTypeLabel = match ((string) ($document->doc_type ?? '')) {
         'sop' => 'PROSEDUR',
         'ik' => 'INSTRUKSI KERJA',
@@ -261,7 +263,7 @@
         }
 
         .header-left .org {
-            font-size: 10px;
+            font-size: 12px;
             font-weight: 700;
             text-transform: uppercase;
         }
@@ -513,7 +515,7 @@
                         @if($logoSrc)
                             <img class="logo" src="{{ $logoSrc }}" alt="Logo">
                         @endif
-                        <div class="org">LABORATORIUM PENGUJIAN MUTU<br>FARMAPOL PUSDOKKES POLRI</div>
+                        <div class="org">{!! nl2br(e($letterheadLabName)) !!}</div>
                     </td>
                     <td class="header-center">
                         <div class="type">{{ $docTypeLabel }}</div>

@@ -111,6 +111,18 @@
         );
     }
 
+    $letterheadOrgName = settings('branding.org_name', 'PUSAT KEDOKTERAN DAN KESEHATAN POLRI');
+    $letterheadLabName = settings('branding.lab_name', 'LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN');
+    $letterheadAddress = settings('branding.address', 'Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240');
+    $letterheadPhone = settings('branding.phone', '021-4700921');
+    $letterheadEmail = settings('branding.email', 'labmutufarmapol@gmail.com');
+    $letterheadWebsite = settings('branding.website');
+    $letterheadContactParts = [];
+    if ($letterheadPhone) { $letterheadContactParts[] = 'Telp: '.$letterheadPhone; }
+    if ($letterheadEmail) { $letterheadContactParts[] = 'Email: '.$letterheadEmail; }
+    if ($letterheadWebsite) { $letterheadContactParts[] = 'Website: '.$letterheadWebsite; }
+    $letterheadContactLine = implode(' • ', $letterheadContactParts);
+
   // Metode/Instrumen & Hasil uji
   $methodMap = [
     'gc_ms'  => 'GC-MS (Gas Chromatography–Mass Spectrometry)',
@@ -237,8 +249,8 @@
   /* Header */
   .hdr td { vertical-align:middle; }
   .hdr .c { text-align:center; line-height:1.15; }
-  .instansi { font-weight:700; font-size:12.5pt; text-transform:uppercase; }
-  .lab      { font-weight:700; font-size:11pt;  text-transform:uppercase; }
+  .instansi { font-weight:700; font-size:14pt; text-transform:uppercase; }
+  .lab      { font-weight:700; font-size:12.5pt;  text-transform:uppercase; }
   .addr     { font-size:8.8pt; }
 
   .title-row td { padding-top:4px; }
@@ -302,9 +314,9 @@
         @endif
       </td>
       <td class="c">
-        <div class="instansi">PUSAT KEDOKTERAN DAN KESEHATAN POLRI</div>
-        <div class="lab">LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN</div>
-        <div class="addr">Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240 • Telp/Fax: 021-4700921 • Email: labmutufarmapol@gmail.com</div>
+        <div class="instansi">{{ $letterheadOrgName }}</div>
+        <div class="lab">{{ $letterheadLabName }}</div>
+        <div class="addr">{{ $letterheadAddress }}@if($letterheadContactLine) • {{ $letterheadContactLine }}@endif</div>
       </td>
       <td style="width:78px; text-align:right">
         @if($rightLogoBase64)

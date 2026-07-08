@@ -12,6 +12,17 @@
   $rightLogoPath = public_path('images/logo-pusdokkes-polri.png');
   $leftLogoSrc = $isPreview ? asset('images/logo-tribrata-polri.png') : $leftLogoPath;
   $rightLogoSrc = file_exists($rightLogoPath) ? ($isPreview ? asset('images/logo-pusdokkes-polri.png') : $rightLogoPath) : null;
+  $letterheadOrgName = settings('branding.org_name', 'PUSAT KEDOKTERAN DAN KESEHATAN POLRI');
+  $letterheadLabName = settings('branding.lab_name', 'LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN');
+  $letterheadAddress = settings('branding.address', 'Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240');
+  $letterheadPhone = settings('branding.phone', '021-4700921');
+  $letterheadEmail = settings('branding.email', 'labmutufarmapol@gmail.com');
+  $letterheadWebsite = settings('branding.website');
+  $letterheadContactParts = [];
+  if ($letterheadPhone) { $letterheadContactParts[] = 'Telp: '.$letterheadPhone; }
+  if ($letterheadEmail) { $letterheadContactParts[] = 'Email: '.$letterheadEmail; }
+  if ($letterheadWebsite) { $letterheadContactParts[] = 'Website: '.$letterheadWebsite; }
+  $letterheadContactLine = implode(' • ', $letterheadContactParts);
 
   $toArray = function ($value) {
     if ($value instanceof \Illuminate\Support\Collection) return $value->toArray();
@@ -323,7 +334,8 @@
   .logo { height:52px; position:absolute; top:0; }
   .logo-left{left:0;} .logo-right{right:0;}
   .center{ text-align:center; line-height:1.18; }
-  .instansi,.lab{ font-weight:700; text-transform:uppercase; margin:0; }
+  .instansi{ font-weight:700; font-size:14pt; text-transform:uppercase; margin:0; }
+  .lab{ font-weight:700; font-size:12.5pt; text-transform:uppercase; margin:0; }
   .meta{ font-size:8.8pt; margin:1px 0 0; }
   h1.title{ text-align:center; font-size:14.5pt; margin:4px 0 6px; text-transform:uppercase; }
 
@@ -370,9 +382,9 @@
       <img class="logo logo-left" src="{{ $leftLogoSrc }}" alt="">
     @endif
     <div class="center">
-      <div class="instansi">PUSAT KEDOKTERAN DAN KESEHATAN POLRI</div>
-      <div class="lab">LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN</div>
-      <div class="meta">Jl. Cipinang Baru Raya No.3B, Jakarta Timur 13240 • Telp/Fax: 021-4700921 • Email: labmutufarmapol@gmail.com</div>
+      <div class="instansi">{{ $letterheadOrgName }}</div>
+      <div class="lab">{{ $letterheadLabName }}</div>
+      <div class="meta">{{ $letterheadAddress }}@if($letterheadContactLine) • {{ $letterheadContactLine }}@endif</div>
     </div>
     @if(file_exists($rightLogoPath))
       <img class="logo logo-right" src="{{ $rightLogoSrc }}" alt="">

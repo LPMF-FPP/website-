@@ -18,7 +18,7 @@ class BrandingSettingsRequest extends FormRequest
             $branding = $this->input('branding', []);
 
             // Trim string fields
-            foreach (['lab_code', 'org_name', 'logo_path', 'primary_color', 'secondary_color', 'digital_stamp_path', 'watermark_path'] as $field) {
+            foreach (['lab_code', 'org_name', 'lab_name', 'address', 'phone', 'email', 'website', 'logo_path', 'primary_color', 'secondary_color', 'digital_stamp_path', 'watermark_path'] as $field) {
                 if (isset($branding[$field])) {
                     $branding[$field] = is_string($branding[$field]) ? trim($branding[$field]) : $branding[$field];
                     // Convert empty string to null for nullable fields
@@ -68,6 +68,11 @@ class BrandingSettingsRequest extends FormRequest
             'branding' => ['sometimes', 'required', 'array'],
             'branding.lab_code' => ['sometimes', 'required', 'string', 'max:20'],
             'branding.org_name' => ['sometimes', 'required', 'string', 'max:255'],
+            'branding.lab_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'branding.address' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'branding.phone' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'branding.email' => ['sometimes', 'nullable', 'email', 'max:255'],
+            'branding.website' => ['sometimes', 'nullable', 'string', 'max:255'],
             'branding.logo_path' => ['sometimes', 'nullable', 'string', 'max:255'],
             'branding.primary_color' => $hexRule,
             'branding.secondary_color' => ['sometimes', 'nullable', 'regex:/^#([a-f0-9]{6})$/i'],

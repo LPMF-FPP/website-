@@ -16,8 +16,15 @@
         }
         .header h1 {
             margin: 0;
+            font-size: 18px;
             text-transform: uppercase;
             color: {{ $branding['primary_color'] ?? '#000' }};
+        }
+        .header .lab-name {
+            font-size: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin: 2px 0 0;
         }
         .section {
             margin-bottom: 18px;
@@ -41,10 +48,33 @@
     </style>
 </head>
 <body>
+    @php
+        $contactParts = [];
+
+        if (! empty($branding['phone'])) {
+            $contactParts[] = 'Telp: '.$branding['phone'];
+        }
+
+        if (! empty($branding['email'])) {
+            $contactParts[] = 'Email: '.$branding['email'];
+        }
+
+        if (! empty($branding['website'])) {
+            $contactParts[] = 'Website: '.$branding['website'];
+        }
+
+        $contactLine = $branding['contact_line']
+            ?? ($contactParts !== [] ? implode(' • ', $contactParts) : null)
+            ?? ($pdf['header']['contact'] ?? null);
+
+        $addressLine = $branding['address']
+            ?? ($pdf['header']['address'] ?? 'Alamat belum diatur');
+    @endphp
     <div class="header">
-        <h1>{{ $branding['org_name'] ?? 'Laboratorium' }}</h1>
-        <p>{{ $pdf['header']['address'] ?? 'Alamat belum diatur' }}</p>
-        <p>{{ $pdf['header']['contact'] ?? '' }}</p>
+        <h1>{{ $branding['org_name'] ?? $branding['institution_name'] ?? 'Laboratorium' }}</h1>
+        <p class="lab-name">{{ $branding['lab_name'] ?? 'LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN' }}</p>
+        <p>{{ $addressLine }}</p>
+        <p>{{ $contactLine ?? '' }}</p>
     </div>
 
     <div class="section">

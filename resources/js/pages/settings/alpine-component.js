@@ -965,7 +965,26 @@ export function registerSettingsComponent() {
             },
 
             previewPdf() {
-                return this.client.previewPdf();
+                const previewWindow = window.open("", "_blank");
+
+                return this.client.previewPdf().then(() => {
+                    if (!this.client.state.pdfPreviewUrl) {
+                        if (previewWindow && !previewWindow.closed) {
+                            previewWindow.close();
+                        }
+
+                        return;
+                    }
+
+                    if (previewWindow && !previewWindow.closed) {
+                        previewWindow.location.href =
+                            this.client.state.pdfPreviewUrl;
+
+                        return;
+                    }
+
+                    window.open(this.client.state.pdfPreviewUrl, "_blank");
+                });
             },
 
             previewTemplate(...args) {

@@ -9,6 +9,7 @@
 | Resource                                               | Description                             |
 | ------------------------------------------------------ | --------------------------------------- |
 | [AGENTS.md](./AGENTS.md)                               | Workflow rules & agent delegation guide |
+| [docs/project-context.md](./docs/project-context.md)   | Lean rules for AI agents                |
 | [todos.md](./todos.md)                                 | Current task list                       |
 | [docs/project-overview.md](./docs/project-overview.md) | Executive summary & tech stack detail   |
 | [docs/architecture.md](./docs/architecture.md)         | System modules & data flow              |

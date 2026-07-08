@@ -23,10 +23,11 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
                 </svg>
                 <div class="text-sm text-amber-800">
-                    <p class="font-medium">Pengaturan ini belum terintegrasi dengan template dokumen</p>
+                    <p class="font-medium">Teks kop surat dikelola terpusat dari pengaturan ini</p>
                     <p class="mt-1 text-amber-700">
-                        Perubahan di sini tersimpan tetapi belum diterapkan ke dokumen PDF yang di-generate.
-                        Untuk mengubah tampilan dokumen, gunakan
+                        Perubahan nama instansi, nama laboratorium, alamat, telepon, email, dan website
+                        akan diterapkan ke dokumen berkop tanpa mengubah desainnya.
+                        Untuk mengubah layout atau tampilan visual dokumen, gunakan
                         <a
                             href="{{ route('settings.blade-templates') }}"
                             class="font-medium underline hover:text-amber-900"
@@ -49,15 +50,27 @@
             </label>
             <label class="block">
                 <span class="text-sm font-medium text-gray-700 mb-1 block">Nama Instansi</span>
-                <input class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.branding.org_name" placeholder="Alamat Komplek">
+                <input class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.branding.org_name" placeholder="Nama instansi laboratorium">
+            </label>
+            <label class="block">
+                <span class="text-sm font-medium text-gray-700 mb-1 block">Nama Laboratorium</span>
+                <input class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.branding.lab_name" placeholder="Nama laboratorium pada kop surat">
             </label>
             <label class="block">
                 <span class="text-sm font-medium text-gray-700 mb-1 block">Alamat</span>
-                <input class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.pdf.header.address">
+                <input class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.branding.address">
             </label>
             <label class="block">
-                <span class="text-sm font-medium text-gray-700 mb-1 block">Kontak</span>
-                <input class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.pdf.header.contact">
+                <span class="text-sm font-medium text-gray-700 mb-1 block">Telepon</span>
+                <input class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.branding.phone">
+            </label>
+            <label class="block">
+                <span class="text-sm font-medium text-gray-700 mb-1 block">Email</span>
+                <input type="email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.branding.email">
+            </label>
+            <label class="block">
+                <span class="text-sm font-medium text-gray-700 mb-1 block">Website</span>
+                <input class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.branding.website">
             </label>
             <label class="block">
                 <span class="text-sm font-medium text-gray-700 mb-1 block">Preset Watermark</span>

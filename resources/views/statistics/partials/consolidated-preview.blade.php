@@ -31,7 +31,7 @@
                 <div class="flex-1 text-center px-4">
                     <h2 class="font-bold text-lg uppercase">Pusat Kedokteran dan Kesehatan Polri</h2>
                     <h3 class="font-bold text-xl uppercase">Laboratorium Pengujian Mutu Farmasi Kepolisian</h3>
-                    <p class="text-xs">Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240 • Telp/Fax: 021-4700921 • Email: labmutufarmapol@gmail.com</p>
+                    <p class="text-xs">Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240 • Telp: 021-4700921 • Email: labmutufarmapol@gmail.com</p>
                 </div>
                 <div class="w-20">
                     <img src="{{ asset('images/logo-pusdokkes-polri.png') }}" alt="Logo Pusdokkes" class="h-16 mx-auto">

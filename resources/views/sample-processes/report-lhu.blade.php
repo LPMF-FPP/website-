@@ -22,8 +22,8 @@
         }
         header{display:grid;grid-template-columns:80px 1fr;gap:14px;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:2px solid var(--border);}
         .emblem{width:72px;height:72px;border:1px solid var(--border);border-radius:8px;display:grid;place-items:center;font-size:11px;color:var(--muted);}
-        .org h1{font-size:14px;margin:0 0 2px 0;letter-spacing:.2px;text-transform:uppercase}
-        .org .sub{font-size:12px;color:var(--muted);margin:0}
+        .org h1{font-size:16px;margin:0 0 2px 0;letter-spacing:.2px;text-transform:uppercase}
+        .org .sub{font-size:14px;color:var(--muted);margin:0}
         .meta{display:flex;flex-wrap:wrap;gap:10px 18px;margin:8px 0 14px 0}
         .badge{font-weight:600;color:#fff;background:var(--brand);padding:4px 8px;border-radius:6px;font-size:12px}
         .small{font-size:12px;color:var(--muted)}
@@ -70,6 +70,17 @@
     $testResultText = trim($testResultPrefix . ' ' . ($detectedSubstance ?: $testResultLabel));
     $reportDate = $generatedAt->format('d F Y');
     $instrumentLabel = $instrument ?: ($sample?->test_type ?? '-');
+    $letterheadOrgName = settings('branding.org_name', 'PUSAT KEDOKTERAN DAN KESEHATAN POLRI');
+    $letterheadLabName = settings('branding.lab_name', 'LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN');
+    $letterheadAddress = settings('branding.address', 'Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240');
+    $letterheadPhone = settings('branding.phone', '021-4700921');
+    $letterheadEmail = settings('branding.email', 'farmapolpusdokkespolri@yahoo.com');
+    $letterheadWebsite = settings('branding.website');
+    $letterheadContactParts = [];
+    if ($letterheadPhone) { $letterheadContactParts[] = 'Telp: '.$letterheadPhone; }
+    if ($letterheadEmail) { $letterheadContactParts[] = 'Email: '.$letterheadEmail; }
+    if ($letterheadWebsite) { $letterheadContactParts[] = 'Website: '.$letterheadWebsite; }
+    $letterheadContactLine = implode(' • ', $letterheadContactParts);
     $verifierStub = [
         'Teknis' => '',
         'Mutu' => '',
@@ -80,9 +91,9 @@
     <header>
         <div class="emblem">Logo</div>
         <div class="org">
-            <h1>FR/LPMF/7.8.3 - PUSAT KEDOKTERAN DAN KESEHATAN POLRI</h1>
-            <p class="sub">LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN</p>
-            <p class="small">Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240 &bull; Telp/Fax: 021-4700921 &bull; Email: farmapolpusdokkespolri@yahoo.com</p>
+            <h1>FR/LPMF/7.8.3 - {{ $letterheadOrgName }}</h1>
+            <p class="sub">{{ $letterheadLabName }}</p>
+            <p class="small">{{ $letterheadAddress }}@if($letterheadContactLine) &bull; {{ $letterheadContactLine }}@endif</p>
         </div>
     </header>
 

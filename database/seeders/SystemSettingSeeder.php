@@ -54,7 +54,12 @@ class SystemSettingSeeder extends Seeder
                 'key' => 'branding',
                 'value' => [
                     'lab_code' => 'LPMF',
-                    'org_name' => 'Laboratorium Pengujian Mutu Farmasi Kepolisian',
+                    'org_name' => 'Pusat Kedokteran dan Kesehatan Polri',
+                    'lab_name' => 'Laboratorium Pengujian Mutu Farmasi Kepolisian',
+                    'address' => 'Jl. Contoh No.1, Jakarta',
+                    'phone' => '+62-21-xxxxxxx',
+                    'email' => 'lab@example.test',
+                    'website' => 'lpmf.local',
                     'logo_path' => null,
                     'primary_color' => '#0A5FD3',
                     'secondary_color' => '#0EC5FF',

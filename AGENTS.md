@@ -52,6 +52,15 @@ This guide is for coding agents in this repository. Prioritize correctness, pati
 - After implementation, run the smallest relevant verification command (test/lint/build) and iterate until passing
 - Treat `.env*` and secrets as sensitive: never expose raw values in terminal output, logs, or commit content
 
+## BMAD / OpenCode Reality Check
+
+- Treat `bmad/` as the active BMAD install for this repository's OpenCode commands and agents
+- Treat `_bmad/` as legacy/compatibility material unless a specific installed skill still explicitly requires it
+- Prefer installed skills under `.opencode/skills/` when choosing what to run in OpenCode
+- `.agents/skills/` may contain newer, extra, or compatibility skills; use them when explicitly available in the current session, but do not assume every entry there is wired to the active OpenCode command surface
+- If the user asks "what next", "help me choose", or speaks to BMAD in a general way, invoke `bmad-help` first and recommend running the next skill in a fresh context window
+- Keep `docs/project-context.md` and `AGENTS.md` aligned: `AGENTS.md` is the higher-priority operational contract, while `docs/project-context.md` is the lean agent reminder file
+
 ## MCP Integration Playbook
 
 - Morph MCP: use `morph-mcp_warpgrep_codebase_search` first for semantic discovery, then narrow with `glob`/`grep`
@@ -194,17 +203,31 @@ Recommended pre-commit gate: `npm run test && npm run audit:critical && ./vendor
 
 ## Skill Invocation Guidance
 
+- Use `bmad-help` first when the user asks which BMAD skill to use, what phase they are in, what to do next, or wants a guided BMAD entry point
 - For Laravel feature/bugfix work, MUST load and follow `laravel-11-12-app-guidelines`
+- For broad implementation requests that should be executed end-to-end inside BMAD, prefer `bmad-quick-dev`; if a story artifact already exists and implementation should follow it strictly, prefer `bmad-dev-story`
+- For codebase investigation, bug forensics, or building a mental model before changing code, use `bmad-investigate`; for BMAD-specific project scanning/documentation, use `bmad-document-project`
+- For code review requests, prefer `bmad-code-review`; use `bmad-review-adversarial-general` or `bmad-review-edge-case-hunter` when a narrower review lens is more appropriate
+- For creating or evolving planning artifacts, route explicitly: `bmad-product-brief` -> `bmad-prd`/`bmad-create-prd` -> `bmad-create-architecture` -> `bmad-create-epics-and-stories` -> `bmad-create-story`
+- For project-level agent guidance files, use `bmad-generate-project-context`; for documentation indexing/splitting, use `bmad-index-docs` or `bmad-shard-doc`
+- For implementation readiness or course correction around BMAD artifacts, use `bmad-check-implementation-readiness` and `bmad-correct-course`
+- For testing strategy and quality planning, use `bmad-tea` and the `bmad-testarch-*` skills; use `bmad-qa-generate-e2e-tests` only when the goal is adding end-to-end coverage for existing behavior
 - For frontend implementation tasks, MUST load `frontend-design` first; keep visual language consistent with existing app patterns
 - For high-end frontend polish, visual refinement, or premium UI tuning, use `design-taste-frontend` after `frontend-design` when stronger design engineering is needed
 - If acting as `frontend-developer` subagent, first action MUST be loading `frontend-design`
 - For UI/UX review or design refinement, use `ui-ux-pro-max` and `web-design-guidelines` when relevant
 - For Next.js or React tasks only, MUST use `next-best-practices` and `vercel-react-best-practices` before implementation
+- For brainstorming, multi-perspective critique, or facilitation, use `bmad-brainstorming`, `bmad-party-mode`, and `bmad-advanced-elicitation` as optional overlays rather than default first steps
 - Keep skill usage task-scoped; do not force Next.js skills on Laravel-only tasks
 
 ## Installed Skills Inventory
 
-- Core project: `laravel-11-12-app-guidelines`, `frontend-design`, `web-design-guidelines`, `tailwind-design-system`
+- Active OpenCode BMAD set lives under `.opencode/skills/`; treat that directory as the primary installed surface for this repo
+- Additional BMAD library/compatibility skills also exist under `.agents/skills/`; use them only when they are exposed by the current session or explicitly requested
+- Core project skills: `laravel-11-12-app-guidelines`, `frontend-design`, `web-design-guidelines`, `tailwind-design-system`
+- BMAD routing and orchestration: `bmad-help`, `bmad-quick-dev`, `bmad-dev-story`, `bmad-code-review`, `bmad-investigate`, `bmad-party-mode`, `bmad-advanced-elicitation`
+- BMAD planning/documentation: `bmad-product-brief`, `bmad-prd`, `bmad-create-prd`, `bmad-create-architecture`, `bmad-create-epics-and-stories`, `bmad-create-story`, `bmad-document-project`, `bmad-generate-project-context`
+- BMAD QA/testing: `bmad-tea`, `bmad-testarch-atdd`, `bmad-testarch-automate`, `bmad-testarch-ci`, `bmad-testarch-framework`, `bmad-testarch-nfr`, `bmad-testarch-test-design`, `bmad-testarch-test-review`, `bmad-testarch-trace`, `bmad-qa-generate-e2e-tests`
 - UI/UX and content: `ui-ux-pro-max`, `design-taste-frontend`, `copywriting`
 - Discovery and setup: `find-skills`
 - Next/React specialized: `next-best-practices`, `vercel-react-best-practices` (use only when task stack is Next.js/React)
