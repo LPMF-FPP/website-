@@ -149,6 +149,17 @@ WhatsApp service berjalan di container Docker terpisah.
 
 ## 📰 Recent Changes (v2.5.x)
 
+### v2.5.7 (8 Juli 2026) - Pembersihan Storage & Code Review Hardening
+
+- **Pembersihan Storage (Settings > Manajemen Dokumen):** Fitur deteksi dan pembersihan folder investigator orphan serta dokumen duplikat kini dilengkapi mekanisme pratinjau dua langkah — klik "Pratinjau" untuk melihat apa yang akan dihapus, lalu "Konfirmasi Hapus" untuk eksekusi. Flow ini mencegah penghapusan tidak sengaja dan memberikan transparansi penuh sebelum data dihapus.
+- **Filesystem Scanner Performance:** Pemindaian duplikat di filesystem kini dibatasi hanya pada direktori `investigators/` (tidak lagi seluruh public disk) dan menggunakan lookup O(1) via `array_flip` sebagai pengganti `in_array` linier untuk path yang sudah terdaftar di database.
+- **Deteksi Duplikat Filesystem di Cron:** Perintah `storage:cleanup-duplicates` kini juga mendeteksi file duplikat di filesystem yang tidak tercatat di database, menyelaraskan perilaku command line dengan controller API.
+- **Prune Soft-Deleted Documents:** Perintah baru `storage:prune-soft-deleted` membersihkan dokumen yang sudah soft-deleted lebih dari 30 hari secara permanen. Dijadwalkan mingguan setiap Minggu 04:00 dengan chunking 500 record per batch untuk mencegah OOM.
+- **Preview PDF Popup Fix:** Mekanisme popup pratinjau PDF diperbaiki agar tidak meninggalkan tab kosong saat preview gagal, dan menggunakan satu `window.open` setelah fetch selesai untuk menghindari popup blocker di browser modern.
+- **Kop Surat Contact Line Guard:** Separator `•` pada baris kontak kop surat kini hanya muncul jika alamat terisi, mencegah tampilan leading bullet pada 5 template utama.
+- **QMH Document Header:** Nama laboratorium pada header dokumen QMH kini mendukung `word-break` untuk menangani teks panjang tanpa bergantung pada `<br>` eksplisit.
+- **Branding Empty-String Normalization:** Field `address`, `phone`, `email`, `website`, dan `lab_name` pada branding settings kini dinormalisasi dari string kosong menjadi `null` saat disimpan, memastikan fallback default bekerja dengan benar.
+
 ### v2.5.6 (8 Juli 2026) - Kop Surat Terpusat & Backup Hardening
 
 - **Kop Surat Terpusat (Settings Branding):** Nama instansi, nama laboratorium, alamat, telepon, email, dan website kini dikelola dari satu tempat di `Settings > Branding & PDF` dan diterapkan ke seluruh dokumen berkop — Laporan Hasil Uji, Berita Acara Penerimaan, BA Penyerahan, BA Pemusnahan, laporan lingkungan/instrumen/penimbangan, QMH, dan LHU.
