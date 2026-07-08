@@ -194,6 +194,9 @@ export class SettingsClient {
             cleanupOrphanedLoading: false,
             cleanupDuplicatesLoading: false,
             cleanupResult: null,
+            cleanupPreview: null,
+            cleanupOrphanedPreview: null,
+            cleanupDuplicatesPreview: null,
             // Backup-related state (for backup-maintenance section)
             backupRunning: false,
             backupProgress: "Menyiapkan backup...",
@@ -1732,17 +1735,81 @@ export class SettingsClient {
     }
 
     /**
+     * Preview orphaned investigator folders (dry-run)
+     */
+    async previewCleanupOrphaned() {
+        this.state.cleanupOrphanedLoading = true;
+            this.state.cleanupResult = null;
+            this.state.cleanupOrphanedPreview = null;
+
+        try {
+            const data = await this.apiFetch(this.api.cleanupOrphaned, {
+                method: "POST",
+                body: JSON.stringify({ dry_run: true }),
+            });
+            this.state.cleanupOrphanedPreview = {
+                type: "orphaned",
+                count: data.count || 0,
+                size_label: data.size_label || "0 B",
+                samples: data.samples || [],
+                message: data.message || "",
+            };
+        } catch (error) {
+            this.state.cleanupResult = {
+                success: false,
+                message: error.message || "Gagal pratinjau folder orphan.",
+            };
+        } finally {
+            this.state.cleanupOrphanedLoading = false;
+        }
+    }
+
+    /**
+     * Preview duplicate documents (dry-run)
+     */
+    async previewCleanupDuplicates() {
+        this.state.cleanupDuplicatesLoading = true;
+            this.state.cleanupResult = null;
+            this.state.cleanupDuplicatesPreview = null;
+
+        try {
+            const data = await this.apiFetch(this.api.cleanupDuplicates, {
+                method: "POST",
+                body: JSON.stringify({ dry_run: true }),
+            });
+            this.state.cleanupDuplicatesPreview = {
+                type: "duplicates",
+                count: data.count || 0,
+                size_label: data.size_label || "0 B",
+                groups: data.groups || 0,
+                message: data.message || "",
+            };
+        } catch (error) {
+            this.state.cleanupResult = {
+                success: false,
+                message: error.message || "Gagal pratinjau dokumen duplikat.",
+            };
+        } finally {
+            this.state.cleanupDuplicatesLoading = false;
+        }
+    }
+
+    /**
      * Cleanup orphaned investigator folders
      */
     async cleanupOrphanedFolders() {
-        const count = this.state.cleanupStats?.orphaned_folders?.count || 0;
-        if (count === 0) {
+        const preview = this.state.cleanupOrphanedPreview;
+        if (!preview) {
+            this.state.cleanupResult = {
+                success: false,
+                message: "Lakukan pratinjau terlebih dahulu.",
+            };
             return;
         }
 
         if (
             !confirm(
-                `Yakin hapus ${count} folder investigator orphan? Tindakan ini tidak dapat dibatalkan.`,
+                `Yakin hapus ${preview.count} folder investigator orphan? Tindakan ini tidak dapat dibatalkan.`,
             )
         ) {
             return;
@@ -1762,6 +1829,7 @@ export class SettingsClient {
                     `Berhasil menghapus ${data.deleted} folder.`,
                 size_label: data.size_label,
             };
+            this.state.cleanupOrphanedPreview = null;
             // Refresh stats after cleanup (preserve the success message)
             await this.fetchCleanupStats(true);
         } catch (error) {
@@ -1778,14 +1846,18 @@ export class SettingsClient {
      * Cleanup duplicate documents
      */
     async cleanupDuplicates() {
-        const count = this.state.cleanupStats?.duplicate_documents?.count || 0;
-        if (count === 0) {
+        const preview = this.state.cleanupDuplicatesPreview;
+        if (!preview) {
+            this.state.cleanupResult = {
+                success: false,
+                message: "Lakukan pratinjau terlebih dahulu.",
+            };
             return;
         }
 
         if (
             !confirm(
-                `Yakin hapus ${count} dokumen duplikat? Hanya dokumen terbaru per tipe yang akan dipertahankan.`,
+                `Yakin hapus ${preview.count} dokumen duplikat? Hanya dokumen terbaru per tipe yang akan dipertahankan.`,
             )
         ) {
             return;
@@ -1805,6 +1877,7 @@ export class SettingsClient {
                     `Berhasil menghapus ${data.deleted} dokumen duplikat.`,
                 size_label: data.size_label,
             };
+            this.state.cleanupDuplicatesPreview = null;
             // Refresh stats after cleanup (preserve the success message)
             await this.fetchCleanupStats(true);
             // Also refresh documents list

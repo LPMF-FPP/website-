@@ -675,4 +675,90 @@ class DocumentService
 
         return [$disk, $path];
     }
+
+    /**
+     * Find duplicate files in filesystem that are not tracked in database.
+     * Groups files by request folder + base document type (ignoring _html suffix).
+     *
+     * @return array{count: int, size: int, groups: int, files: array}
+     */
+    public function findFilesystemDuplicates($disk = null): array
+    {
+        $disk = $disk ?: Storage::disk('public');
+
+        $allFiles = collect($disk->directoryExists('investigators')
+            ? $disk->allFiles('investigators')
+            : [])
+            ->filter(fn ($f) => Str::endsWith($f, ['.pdf', '.html', '.docx', '.doc', '.xlsx', '.xls']))
+            ->values();
+
+        $trackedPaths = Document::pluck('file_path')
+            ->merge(Document::pluck('path'))
+            ->filter()
+            ->map(fn ($p) => ltrim($p, '/'))
+            ->unique()
+            ->values()
+            ->toArray();
+
+        $trackedPathsMap = array_flip($trackedPaths);
+
+        $grouped = $allFiles->groupBy(function ($path) {
+            if (preg_match('#investigators/[^/]+/(\d{4}-\d{2}-\d{2}-\d+)/generated/([^/]+)/#', $path, $matches)) {
+                $requestId = $matches[1];
+                $docType = $matches[2];
+                $baseDocType = preg_replace('/_html$/', '', $docType);
+                $ext = pathinfo($path, PATHINFO_EXTENSION);
+
+                return $requestId.'|'.$baseDocType.'|'.$ext;
+            }
+
+            return null;
+        })->filter();
+
+        $duplicateCount = 0;
+        $duplicateSize = 0;
+        $duplicateGroups = 0;
+        $filesToDelete = [];
+
+        foreach ($grouped as $key => $files) {
+            $untrackedFiles = $files->filter(fn ($f) => ! isset($trackedPathsMap[ltrim($f, '/')]))->values();
+
+            if ($untrackedFiles->count() <= 1) {
+                continue;
+            }
+
+            // Sort by actual last-modified time to keep the newest
+            $sorted = $untrackedFiles->sortBy(function ($f) use ($disk) {
+                try {
+                    return $disk->lastModified($f);
+                } catch (\Throwable $e) {
+                    return 0;
+                }
+            })->values();
+            $duplicates = $sorted->slice(0, -1)->values();
+
+            if ($duplicates->isEmpty()) {
+                continue;
+            }
+
+            $duplicateGroups++;
+
+            foreach ($duplicates as $file) {
+                $duplicateCount++;
+                $filesToDelete[] = $file;
+                try {
+                    $duplicateSize += $disk->size($file);
+                } catch (\Throwable $e) {
+                    // Ignore
+                }
+            }
+        }
+
+        return [
+            'count' => $duplicateCount,
+            'size' => $duplicateSize,
+            'groups' => $duplicateGroups,
+            'files' => $filesToDelete,
+        ];
+    }
 }

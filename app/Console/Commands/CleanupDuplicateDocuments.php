@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Document;
+use App\Services\DocumentService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -19,6 +20,7 @@ class CleanupDuplicateDocuments extends Command
     {
         $dryRun = $this->option('dry-run');
         $disk = Storage::disk('public');
+        $documents = app(DocumentService::class);
 
         $this->info('Scanning for duplicate generated documents...');
 
@@ -76,15 +78,42 @@ class CleanupDuplicateDocuments extends Command
         $this->info("Total duplicate documents to remove: {$totalDuplicates}");
         $this->info('Total size to reclaim: '.number_format($totalSize / 1024 / 1024, 2).' MB');
 
-        // Show some examples
+        // Also check filesystem duplicates not tracked in database
+        $filesystemDuplicates = $documents->findFilesystemDuplicates($disk);
+        if ($filesystemDuplicates['count'] > 0) {
+            $this->line('');
+            $this->warn("Additional filesystem duplicates found: {$filesystemDuplicates['count']} files in {$filesystemDuplicates['groups']} groups");
+            $this->info('Additional size: '.number_format($filesystemDuplicates['size'] / 1024 / 1024, 2).' MB');
+            $totalDuplicates += $filesystemDuplicates['count'];
+            $totalSize += $filesystemDuplicates['size'];
+        }
+        $filesToDelete = $filesystemDuplicates['files'];
+
         $this->line('');
-        $this->info('Sample duplicates:');
+        $this->info('--- Combined total ---');
+        $this->info("Total items to remove: {$totalDuplicates}");
+        $this->info('Total size to reclaim: '.number_format($totalSize / 1024 / 1024, 2).' MB');
+
+        // Show some DB examples
+        $this->line('');
+        $this->info('Sample DB duplicates:');
         foreach ($documentsToDelete->take(10) as $doc) {
             $this->line("  - [{$doc->document_type}] {$doc->original_filename} (created: {$doc->created_at})");
         }
 
         if ($documentsToDelete->count() > 10) {
             $this->line('  ... and '.($documentsToDelete->count() - 10).' more');
+        }
+
+        if (count($filesToDelete) > 0) {
+            $this->line('');
+            $this->info('Sample filesystem duplicates:');
+            foreach (array_slice($filesToDelete, 0, 10) as $f) {
+                $this->line("  - {$f}");
+            }
+            if (count($filesToDelete) > 10) {
+                $this->line('  ... and '.(count($filesToDelete) - 10).' more');
+            }
         }
 
         if ($dryRun) {
@@ -124,6 +153,23 @@ class CleanupDuplicateDocuments extends Command
             } catch (\Throwable $e) {
                 $this->error("Failed to delete document #{$doc->id}: ".$e->getMessage());
                 $failed++;
+            }
+        }
+
+        // Delete filesystem-only duplicates
+        if (count($filesToDelete) > 0) {
+            $this->line('');
+            $this->info('Deleting filesystem duplicate files...');
+            foreach ($filesToDelete as $filePath) {
+                try {
+                    if ($disk->exists($filePath)) {
+                        $disk->delete($filePath);
+                        $deleted++;
+                    }
+                } catch (\Throwable $e) {
+                    $this->error("Failed to delete file: {$filePath}: ".$e->getMessage());
+                    $failed++;
+                }
             }
         }
 

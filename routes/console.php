@@ -36,6 +36,10 @@ Schedule::command('storage:cleanup-investigators --force')
     ->weeklyOn(0, '03:40')
     ->withoutOverlapping()
     ->runInBackground();
+Schedule::command('storage:prune-soft-deleted --force')
+    ->weeklyOn(0, '04:00')
+    ->withoutOverlapping()
+    ->runInBackground();
 
 // Consolidated Reports Auto-Generation
 Schedule::command('reports:generate-consolidated')

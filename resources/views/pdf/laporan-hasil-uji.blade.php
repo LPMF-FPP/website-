@@ -316,7 +316,7 @@
       <td class="c">
         <div class="instansi">{{ $letterheadOrgName }}</div>
         <div class="lab">{{ $letterheadLabName }}</div>
-        <div class="addr">{{ $letterheadAddress }}@if($letterheadContactLine) • {{ $letterheadContactLine }}@endif</div>
+         <div class="addr">{{ $letterheadAddress }}{{ $letterheadAddress && $letterheadContactLine ? ' • ' : '' }}{{ $letterheadContactLine }}</div>
       </td>
       <td style="width:78px; text-align:right">
         @if($rightLogoBase64)

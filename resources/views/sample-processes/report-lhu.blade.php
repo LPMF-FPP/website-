@@ -74,7 +74,7 @@
     $letterheadLabName = settings('branding.lab_name', 'LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN');
     $letterheadAddress = settings('branding.address', 'Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240');
     $letterheadPhone = settings('branding.phone', '021-4700921');
-    $letterheadEmail = settings('branding.email', 'farmapolpusdokkespolri@yahoo.com');
+    $letterheadEmail = settings('branding.email', 'labmutufarmapol@gmail.com');
     $letterheadWebsite = settings('branding.website');
     $letterheadContactParts = [];
     if ($letterheadPhone) { $letterheadContactParts[] = 'Telp: '.$letterheadPhone; }

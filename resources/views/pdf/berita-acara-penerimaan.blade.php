@@ -145,7 +145,7 @@
     <div class="center">
       <div class="instansi">{{ $letterheadOrgName }}</div>
       <div class="lab">{{ $letterheadLabName }}</div>
-      <div class="meta">{{ $letterheadAddress }}@if($letterheadContactLine) • {{ $letterheadContactLine }}@endif</div>
+       <div class="meta">{{ $letterheadAddress }}{{ $letterheadAddress && $letterheadContactLine ? ' • ' : '' }}{{ $letterheadContactLine }}</div>
     </div>
     @if($rightLogoSrc)
       <img class="logo logo-right" src="{{ $rightLogoSrc }}" alt="Logo Pusdokkes">

@@ -266,6 +266,7 @@
             font-size: 12px;
             font-weight: 700;
             text-transform: uppercase;
+            word-break: break-word;
         }
 
         .header-center {

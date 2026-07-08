@@ -67,9 +67,23 @@
                             </template>
                             <button 
                                 type="button"
-                                class="mt-4 px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                @click="client.cleanupOrphanedFolders()"
+                                class="mt-4 px-4 py-2 text-sm font-medium text-orange-700 bg-orange-100 border border-orange-300 rounded-lg hover:bg-orange-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                @click="client.previewCleanupOrphaned()"
                                 :disabled="client.state.cleanupOrphanedLoading || (client.state.cleanupStats?.orphaned_folders?.count || 0) === 0">
+                                <span class="flex items-center gap-2">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    Pratinjau
+                                </span>
+                            </button>
+                            <button 
+                                type="button"
+                                class="mt-2 px-4 py-2 text-sm font-medium text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                x-show="client.state.cleanupOrphanedPreview"
+                                @click="client.cleanupOrphanedFolders()"
+                                :disabled="client.state.cleanupOrphanedLoading">
                                 <span x-show="!client.state.cleanupOrphanedLoading" class="flex items-center gap-2">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -112,9 +126,23 @@
                             </div>
                             <button 
                                 type="button"
-                                class="mt-4 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                @click="client.cleanupDuplicates()"
+                                class="mt-4 px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 border border-blue-300 rounded-lg hover:bg-blue-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                @click="client.previewCleanupDuplicates()"
                                 :disabled="client.state.cleanupDuplicatesLoading || (client.state.cleanupStats?.duplicate_documents?.count || 0) === 0">
+                                <span class="flex items-center gap-2">
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    Pratinjau
+                                </span>
+                            </button>
+                            <button 
+                                type="button"
+                                class="mt-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                x-show="client.state.cleanupDuplicatesPreview"
+                                @click="client.cleanupDuplicates()"
+                                :disabled="client.state.cleanupDuplicatesLoading">
                                 <span x-show="!client.state.cleanupDuplicatesLoading" class="flex items-center gap-2">
                                     <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -131,6 +159,47 @@
                             </button>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            {{-- Cleanup Preview Section --}}
+            <div x-show="client.state.cleanupOrphanedPreview || client.state.cleanupDuplicatesPreview"
+                class="bg-yellow-50 border border-yellow-200 rounded-lg p-4"
+                role="status"
+                x-data="{ preview: client.state.cleanupOrphanedPreview || client.state.cleanupDuplicatesPreview }">
+                <div class="flex items-start gap-3">
+                    <svg class="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-yellow-800" x-text="preview?.message"></p>
+                        <div class="mt-2 flex items-baseline gap-2">
+                            <span class="text-sm text-yellow-700">Akan dihapus:</span>
+                            <span class="text-lg font-bold text-yellow-800" x-text="preview?.count"></span>
+                            <span class="text-sm text-yellow-600" x-text="preview?.type === 'orphaned' ? 'folder' : 'dokumen'"></span>
+                            <span class="text-sm text-yellow-600" x-text="`(${preview?.size_label})`"></span>
+                        </div>
+                        <template x-if="preview?.type === 'orphaned' && preview?.samples?.length > 0">
+                            <div class="mt-2 text-xs text-yellow-600">
+                                <span>Contoh folder: </span>
+                                <span x-text="preview.samples.slice(0, 5).join(', ')"></span>
+                            </div>
+                        </template>
+                        <template x-if="preview?.type === 'duplicates'">
+                            <div class="mt-2 text-xs text-yellow-600">
+                                <span x-text="`${preview?.groups || 0} grup duplikasi`"></span>
+                            </div>
+                        </template>
+                        <p class="mt-3 text-xs text-yellow-600">Klik tombol hapus di atas untuk melanjutkan, atau klik Perbarui Statistik untuk membatalkan.</p>
+                    </div>
+                    <button 
+                        type="button"
+                        class="ml-auto text-gray-400 hover:text-gray-600"
+                        @click="client.state.cleanupOrphanedPreview = null; client.state.cleanupDuplicatesPreview = null;">
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
             </div>
 

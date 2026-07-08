@@ -24,14 +24,28 @@
         <div class="bg-white shadow-lg mx-auto max-w-[210mm] p-[8mm] text-black text-[10pt] leading-normal font-serif">
             
             <!-- KOP SURAT -->
+            @php
+                $cpvOrgName = settings('branding.org_name', 'PUSAT KEDOKTERAN DAN KESEHATAN POLRI');
+                $cpvLabName = settings('branding.lab_name', 'LABORATORIUM PENGUJIAN MUTU FARMASI KEPOLISIAN');
+                $cpvAddress = settings('branding.address', 'Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240');
+                $cpvPhone = settings('branding.phone', '021-4700921');
+                $cpvEmail = settings('branding.email', 'labmutufarmapol@gmail.com');
+                $cpvWebsite = settings('branding.website');
+                $cpvContactParts = [];
+                if ($cpvPhone) { $cpvContactParts[] = 'Telp: '.$cpvPhone; }
+                if ($cpvEmail) { $cpvContactParts[] = 'Email: '.$cpvEmail; }
+                if ($cpvWebsite) { $cpvContactParts[] = 'Website: '.$cpvWebsite; }
+                $cpvContactLine = implode(' • ', $cpvContactParts);
+                $cpvAddressLine = $cpvAddress . ($cpvAddress && $cpvContactLine ? ' • ' . $cpvContactLine : '');
+            @endphp
             <div class="flex items-start justify-between border-b-2 border-black pb-2 mb-4">
                 <div class="w-20">
                     <img src="{{ asset('images/logo-tribrata-polri.png') }}" alt="Logo Polri" class="h-16 mx-auto">
                 </div>
                 <div class="flex-1 text-center px-4">
-                    <h2 class="font-bold text-lg uppercase">Pusat Kedokteran dan Kesehatan Polri</h2>
-                    <h3 class="font-bold text-xl uppercase">Laboratorium Pengujian Mutu Farmasi Kepolisian</h3>
-                    <p class="text-xs">Jl. Cipinang Baru Raya No. 3B, Jakarta Timur 13240 • Telp: 021-4700921 • Email: labmutufarmapol@gmail.com</p>
+                    <h2 class="font-bold text-lg uppercase">{{ $cpvOrgName }}</h2>
+                    <h3 class="font-bold text-xl uppercase">{{ $cpvLabName }}</h3>
+                    <p class="text-xs">{{ $cpvAddressLine }}</p>
                 </div>
                 <div class="w-20">
                     <img src="{{ asset('images/logo-pusdokkes-polri.png') }}" alt="Logo Pusdokkes" class="h-16 mx-auto">

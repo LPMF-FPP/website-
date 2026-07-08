@@ -22,7 +22,7 @@ class BrandingSettingsRequest extends FormRequest
                 if (isset($branding[$field])) {
                     $branding[$field] = is_string($branding[$field]) ? trim($branding[$field]) : $branding[$field];
                     // Convert empty string to null for nullable fields
-                    if ($branding[$field] === '' && in_array($field, ['logo_path', 'secondary_color', 'digital_stamp_path', 'watermark_path'])) {
+                    if ($branding[$field] === '' && in_array($field, ['logo_path', 'secondary_color', 'digital_stamp_path', 'watermark_path', 'address', 'phone', 'email', 'website', 'lab_name'])) {
                         $branding[$field] = null;
                     }
                 }
