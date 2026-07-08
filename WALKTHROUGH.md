@@ -149,6 +149,16 @@ WhatsApp service berjalan di container Docker terpisah.
 
 ## 📰 Recent Changes (v2.5.x)
 
+### v2.5.6 (8 Juli 2026) - Kop Surat Terpusat & Backup Hardening
+
+- **Kop Surat Terpusat (Settings Branding):** Nama instansi, nama laboratorium, alamat, telepon, email, dan website kini dikelola dari satu tempat di `Settings > Branding & PDF` dan diterapkan ke seluruh dokumen berkop — Laporan Hasil Uji, Berita Acara Penerimaan, BA Penyerahan, BA Pemusnahan, laporan lingkungan/instrumen/penimbangan, QMH, dan LHU.
+- **Ukuran Font Diperbesar:** Nama Instansi dinaikkan menjadi 14pt dan Nama Laboratorium menjadi 12.5pt di semua template PDF, mengatasi inkonsistensi ukuran antar dokumen yang sebelumnya bervariasi dari 9pt hingga 12.5pt tanpa ukuran eksplisit.
+- **Label Kontak Disederhanakan:** Prefix `Telp/Fax:` diganti menjadi `Telp:` di seluruh dokumen kop surat dan `AbstractContextResolver`.
+- **Fix PDF Preview Popup Blocker:** Tombol `Pratinjau PDF` di Settings kini membuka tab baru sebelum request async agar tidak diblokir popup blocker browser.
+- **Backup Process Timeout:** Timeout proses backup darurat dinaikkan menjadi 30 menit (1800 detik) untuk mencegah kegagalan pada environment dengan volume data besar.
+- **Backup Unreadable Path Exclusion:** Proses backup kini otomatis mengecualikan path storage yang tidak dapat dibaca (misalnya samples symlink yang belum ditautkan) tanpa menggagalkan keseluruhan proses backup.
+- **WhatsApp Status Preview Alignment:** Format penomoran resi tracking pada WhatsApp status preview dan contoh pelacakan diselaraskan dengan format `LPMF{SEQ:3}{MM}{YY}` yang berlaku, sehingga petugas dapat memberikan panduan pelacakan yang konsisten kepada penyidik.
+
 ### v2.5.5 (24 Juni 2026) - Delivery Multi-Suspect & LHU Pro Justitia
 
 - **Delivery Multi-Suspect Display:** Modul `/delivery` dan `/delivery/{request}` sekarang membaca relasi `suspects` sebagai sumber utama data tersangka, sehingga request dengan lebih dari satu tersangka tidak lagi terpotong ke satu nama legacy saja.
