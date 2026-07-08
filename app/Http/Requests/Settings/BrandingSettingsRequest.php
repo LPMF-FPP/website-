@@ -35,7 +35,7 @@ class BrandingSettingsRequest extends FormRequest
         if ($this->has('lab')) {
             $lab = $this->input('lab', []);
 
-            foreach (['head_title', 'head_name', 'head_rank', 'head_nrp', 'head_signature'] as $field) {
+            foreach (['head_title', 'head_name', 'head_rank', 'head_nrp', 'head_signature', 'verifikator_teknis_signature', 'verifikator_mutu_signature', 'verifikator_administrasi_signature'] as $field) {
                 if (isset($lab[$field])) {
                     $lab[$field] = is_string($lab[$field]) ? trim($lab[$field]) : $lab[$field];
                     if ($lab[$field] === '') {
@@ -101,6 +101,9 @@ class BrandingSettingsRequest extends FormRequest
             'lab.head_rank' => ['sometimes', 'nullable', 'string', 'max:50'],
             'lab.head_nrp' => ['sometimes', 'nullable', 'string', 'max:30'],
             'lab.head_signature' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'lab.verifikator_teknis_signature' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'lab.verifikator_mutu_signature' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'lab.verifikator_administrasi_signature' => ['sometimes', 'nullable', 'string', 'max:255'],
 
             'pdf' => ['sometimes', 'required', 'array'],
             'pdf.header' => ['sometimes', 'required', 'array'],

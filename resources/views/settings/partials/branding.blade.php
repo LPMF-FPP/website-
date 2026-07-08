@@ -102,6 +102,25 @@
             </div>
         </div>
 
+        <div class="pt-4 border-t border-gray-200">
+            <h3 class="text-sm font-semibold text-gray-900 mb-3">Gambar TTD Verifikator</h3>
+            <p class="text-xs text-gray-500 mb-4">Gambar tanda tangan untuk masing-masing verifikator.</p>
+            <div class="grid md:grid-cols-3 gap-4">
+                <label class="block">
+                    <span class="text-sm font-medium text-gray-700 mb-1 block">TTD Verifikator Teknis</span>
+                    <input class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.lab.verifikator_teknis_signature" placeholder="images/ttd-teknis.png">
+                </label>
+                <label class="block">
+                    <span class="text-sm font-medium text-gray-700 mb-1 block">TTD Verifikator Mutu</span>
+                    <input class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.lab.verifikator_mutu_signature" placeholder="images/ttd-mutu.png">
+                </label>
+                <label class="block">
+                    <span class="text-sm font-medium text-gray-700 mb-1 block">TTD Verifikator Administrasi</span>
+                    <input class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.lab.verifikator_administrasi_signature" placeholder="images/ttd-administrasi.png">
+                </label>
+            </div>
+        </div>
+
         <div class="grid md:grid-cols-2 gap-4 mt-4">
             <label class="block">
                 <span class="text-sm font-medium text-gray-700 mb-1 block">Preset Watermark</span>

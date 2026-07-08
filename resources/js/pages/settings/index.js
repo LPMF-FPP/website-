@@ -1267,6 +1267,9 @@ export class SettingsClient {
         form.lab.head_rank ??= "";
         form.lab.head_nrp ??= "";
         form.lab.head_signature ??= "";
+        form.lab.verifikator_teknis_signature ??= "";
+        form.lab.verifikator_mutu_signature ??= "";
+        form.lab.verifikator_administrasi_signature ??= "";
         form.pdf ??= { header: {}, footer: {}, qr: {} };
         form.pdf.header ??= {};
         form.pdf.footer ??= {};

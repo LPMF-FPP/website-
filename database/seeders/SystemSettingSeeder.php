@@ -202,6 +202,18 @@ class SystemSettingSeeder extends Seeder
                 'key' => 'lab.head_signature',
                 'value' => 'images/ttd-kafarmapol.png',
             ],
+            [
+                'key' => 'lab.verifikator_teknis_signature',
+                'value' => 'images/ttd-teknis.png',
+            ],
+            [
+                'key' => 'lab.verifikator_mutu_signature',
+                'value' => 'images/ttd-mutu.png',
+            ],
+            [
+                'key' => 'lab.verifikator_administrasi_signature',
+                'value' => 'images/ttd-administrasi.png',
+            ],
         ];
 
         foreach ($settings as $setting) {

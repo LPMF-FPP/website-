@@ -226,6 +226,17 @@
     $verifMutu = $verifMutuId ? ($verifUsers[$verifMutuId] ?? null) : null;
     $verifAdministrasi = $verifAdministrasiId ? ($verifUsers[$verifAdministrasiId] ?? null) : null;
 
+    // Verifikator signature images
+    $verifTeknisSignPath = settings('lab.verifikator_teknis_signature');
+    $verifMutuSignPath = settings('lab.verifikator_mutu_signature');
+    $verifAdminSignPath = settings('lab.verifikator_administrasi_signature');
+    $verifTeknisSign = $verifTeknisSignPath && file_exists(public_path($verifTeknisSignPath))
+        ? 'data:image/png;base64,' . base64_encode(file_get_contents(public_path($verifTeknisSignPath))) : null;
+    $verifMutuSign = $verifMutuSignPath && file_exists(public_path($verifMutuSignPath))
+        ? 'data:image/png;base64,' . base64_encode(file_get_contents(public_path($verifMutuSignPath))) : null;
+    $verifAdminSign = $verifAdminSignPath && file_exists(public_path($verifAdminSignPath))
+        ? 'data:image/png;base64,' . base64_encode(file_get_contents(public_path($verifAdminSignPath))) : null;
+
     // Images
     $leftLogoPath = public_path('images/logo-tribrata-polri.png');
     $leftLogoBase64 = file_exists($leftLogoPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($leftLogoPath)) : '';
@@ -430,9 +441,9 @@
         <table class="paraf" style="width:100%;">
           <tr><th colspan="3">Paraf verifikator</th></tr>
           <tr>
-            <td>1. Teknis{!! $verifTeknis ? '<br><span style="font-size:8pt;">(' . e($verifTeknis) . ')</span>' : '' !!}<div class="boxh"></div></td>
-            <td>2. Mutu{!! $verifMutu ? '<br><span style="font-size:8pt;">(' . e($verifMutu) . ')</span>' : '' !!}<div class="boxh"></div></td>
-            <td>3. Administrasi{!! $verifAdministrasi ? '<br><span style="font-size:8pt;">(' . e($verifAdministrasi) . ')</span>' : '' !!}<div class="boxh"></div></td>
+            <td>1. Teknis{!! $verifTeknis ? '<br><span style="font-size:8pt;">(' . e($verifTeknis) . ')</span>' : '' !!}<div class="boxh">@if($verifTeknisSign)<img src="{{ $verifTeknisSign }}" style="height:48px; max-width:100%">@endif</div></td>
+            <td>2. Mutu{!! $verifMutu ? '<br><span style="font-size:8pt;">(' . e($verifMutu) . ')</span>' : '' !!}<div class="boxh">@if($verifMutuSign)<img src="{{ $verifMutuSign }}" style="height:48px; max-width:100%">@endif</div></td>
+            <td>3. Administrasi{!! $verifAdministrasi ? '<br><span style="font-size:8pt;">(' . e($verifAdministrasi) . ')</span>' : '' !!}<div class="boxh">@if($verifAdminSign)<img src="{{ $verifAdminSign }}" style="height:48px; max-width:100%">@endif</div></td>
           </tr>
         </table>
       </td>
