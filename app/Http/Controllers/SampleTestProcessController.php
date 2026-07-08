@@ -734,18 +734,17 @@ class SampleTestProcessController extends Controller
         \App\Services\DocumentTemplateService $templateService,
         \App\Services\PdfRenderService $pdfRenderService
     ) {
-        $sampleProcess->load(['sample.testRequest.investigator']);
+        $sampleProcess->load(['sample.testRequest.investigator', 'sample.testRequest.delivery']);
 
-        // Validate that sample exists
         if (! $sampleProcess->sample) {
             abort(404, 'Sample not found for this process');
         }
 
-        // Use helper to get/generate number
         $lhuNumber = $this->ensureLhuNumber($sampleProcess, $numberingService);
 
-        // Generate document
-        $this->createLhuDocument($sampleProcess, $docs, $templateService, $pdfRenderService, $lhuNumber, request()->user());
+        $showSignatures = (bool) ($sampleProcess->sample->testRequest->delivery?->show_lhu_signatures ?? false);
+
+        $this->createLhuDocument($sampleProcess, $docs, $templateService, $pdfRenderService, $lhuNumber, request()->user(), $showSignatures);
 
         return $this->generateReportResponse($sampleProcess);
     }
@@ -804,7 +803,8 @@ class SampleTestProcessController extends Controller
         \App\Services\DocumentTemplateService $templateService,
         \App\Services\PdfRenderService $pdfRenderService,
         string $lhuNumber,
-        ?User $syncUser = null
+        ?User $syncUser = null,
+        bool $showSignatures = false
     ): ?Document {
         $metadata = $sampleProcess->metadata ?? [];
         $methodSummary = $this->resolveLhuMethodSummary($sampleProcess, $metadata);
@@ -869,6 +869,10 @@ class SampleTestProcessController extends Controller
                 'pro_justitia_text' => $proJustitiaText,
                 'lab_name' => 'Pusdokkes Polri',
                 'lab_address' => 'Jakarta',
+                'show_signatures' => $showSignatures,
+                'verifikator_teknis_id' => $metadata['verifikator_teknis_id'] ?? null,
+                'verifikator_mutu_id' => $metadata['verifikator_mutu_id'] ?? null,
+                'verifikator_administrasi_id' => $metadata['verifikator_administrasi_id'] ?? null,
             ];
 
             // Render HTML from template
@@ -894,6 +898,7 @@ class SampleTestProcessController extends Controller
                 'noLHU' => $lhuNumber,
                 'forcedActiveSubstance' => $forcedActive,
                 'showProJustitia' => $shouldShowProJustitia,
+                'showSignatures' => $showSignatures,
             ])->render();
         }
 

@@ -28,6 +28,7 @@ class BrandingController extends Controller
         $this->writer->put([
             'branding' => $validated['branding'],
             'pdf' => $validated['pdf'],
+            'lab' => $validated['lab'] ?? [],
         ], 'UPDATE_BRANDING', $request->user());
 
         $snapshot = $this->builder->build();
@@ -35,6 +36,7 @@ class BrandingController extends Controller
         return response()->json([
             'branding' => Arr::get($snapshot, 'branding', []),
             'pdf' => Arr::get($snapshot, 'pdf', []),
+            'lab' => Arr::get($snapshot, 'lab', []),
         ]);
     }
 

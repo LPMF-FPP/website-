@@ -207,13 +207,24 @@
     }
 
     // KAFARMAPOL
-    $cfg = config('lab', []);
-    $headTitle   = $cfg['head_title'] ?? 'KAFARMAPOL';
-    $headName    = $cfg['head_name']  ?? 'KUSWARDANI, S.Si., Apt., M.Farm';
-    $headRankNrp = ($cfg['head_rank'] ?? 'KOMBES POL.').' NRP. '.($cfg['head_nrp'] ?? '70040687');
-    $signRel     = $cfg['head_signature'] ?? 'images/ttd-kafarmapol.png'; 
-    $signPath    = public_path($signRel);
-    $hasSign     = file_exists($signPath);
+    $headTitle   = settings('lab.head_title', 'KAFARMAPOL');
+    $headName    = settings('lab.head_name', 'KUSWARDANI, S.Si., Apt., M.Farm');
+    $headRankNrp = (settings('lab.head_rank', 'KOMBES POL.')) . ' NRP. ' . settings('lab.head_nrp', '70040687');
+    $signRel     = settings('lab.head_signature', 'images/ttd-kafarmapol.png'); 
+    $signPath    = $signRel ? public_path($signRel) : '';
+    $hasSign     = $signPath && file_exists($signPath);
+
+    $showSignatures = (bool) ($showSignatures ?? false);
+
+    // Verifikator
+    $verifTeknisId = data_get($process->metadata ?? [], 'verifikator_teknis_id');
+    $verifMutuId = data_get($process->metadata ?? [], 'verifikator_mutu_id');
+    $verifAdministrasiId = data_get($process->metadata ?? [], 'verifikator_administrasi_id');
+    $verifUserIds = array_filter([$verifTeknisId, $verifMutuId, $verifAdministrasiId]);
+    $verifUsers = ! empty($verifUserIds) ? \App\Models\User::whereIn('id', $verifUserIds)->pluck('name', 'id') : collect();
+    $verifTeknis = $verifTeknisId ? ($verifUsers[$verifTeknisId] ?? null) : null;
+    $verifMutu = $verifMutuId ? ($verifUsers[$verifMutuId] ?? null) : null;
+    $verifAdministrasi = $verifAdministrasiId ? ($verifUsers[$verifAdministrasiId] ?? null) : null;
 
     // Images
     $leftLogoPath = public_path('images/logo-tribrata-polri.png');
@@ -224,7 +235,11 @@
     
     $signBase64 = '';
     if ($hasSign) {
-        $signBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($signPath));
+        try {
+            $signBase64 = 'data:image/png;base64,' . base64_encode(file_get_contents($signPath));
+        } catch (\Throwable $e) {
+            Log::warning('Gagal membaca gambar TTD Kafarmapol', ['path' => $signPath, 'error' => $e->getMessage()]);
+        }
     }
 
     $showProJustitia = isset($showProJustitia)
@@ -387,6 +402,7 @@
   </div>
 
   <!-- KIRI: TTD KAFARMAPOL | KANAN: PARAF VERIFIKATOR -->
+  @if($showSignatures)
   <table class="avoid" style="margin-top:6px;">
     <tr class="signrow">
       <!-- LEFT: KAFARMAPOL -->
@@ -414,14 +430,15 @@
         <table class="paraf" style="width:100%;">
           <tr><th colspan="3">Paraf verifikator</th></tr>
           <tr>
-            <td>1. Teknis<div class="boxh"></div></td>
-            <td>2. Mutu<div class="boxh"></div></td>
-            <td>3. Administrasi<div class="boxh"></div></td>
+            <td>1. Teknis{!! $verifTeknis ? '<br><span style="font-size:8pt;">(' . e($verifTeknis) . ')</span>' : '' !!}<div class="boxh"></div></td>
+            <td>2. Mutu{!! $verifMutu ? '<br><span style="font-size:8pt;">(' . e($verifMutu) . ')</span>' : '' !!}<div class="boxh"></div></td>
+            <td>3. Administrasi{!! $verifAdministrasi ? '<br><span style="font-size:8pt;">(' . e($verifAdministrasi) . ')</span>' : '' !!}<div class="boxh"></div></td>
           </tr>
         </table>
       </td>
     </tr>
   </table>
+  @endif
 
 </body>
 </html>

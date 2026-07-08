@@ -35,6 +35,7 @@ class SettingsResponseBuilder
                 'list' => DocumentTemplate::orderBy('name')->get(),
             ],
             'branding' => Arr::get($nested, 'branding', []),
+            'lab' => Arr::get($nested, 'lab', []),
             'pdf' => Arr::get($nested, 'pdf', []),
             'localization' => Arr::get($nested, 'localization', Arr::get($nested, 'locale', [])),
             'retention' => $retention,

@@ -151,6 +151,12 @@ class DocumentTemplateService
             // Lab info
             'lab_name',
             'lab_address',
+
+            // Signature / Verifikator
+            'show_signatures',
+            'verifikator_teknis_id',
+            'verifikator_mutu_id',
+            'verifikator_administrasi_id',
         ];
 
         // Replace tokens

@@ -31,6 +31,22 @@ class BrandingSettingsRequest extends FormRequest
             $this->merge(['branding' => $branding]);
         }
 
+        // Normalize lab fields
+        if ($this->has('lab')) {
+            $lab = $this->input('lab', []);
+
+            foreach (['head_title', 'head_name', 'head_rank', 'head_nrp', 'head_signature'] as $field) {
+                if (isset($lab[$field])) {
+                    $lab[$field] = is_string($lab[$field]) ? trim($lab[$field]) : $lab[$field];
+                    if ($lab[$field] === '') {
+                        $lab[$field] = null;
+                    }
+                }
+            }
+
+            $this->merge(['lab' => $lab]);
+        }
+
         // Normalize PDF fields
         if ($this->has('pdf')) {
             $pdf = $this->input('pdf', []);
@@ -78,6 +94,13 @@ class BrandingSettingsRequest extends FormRequest
             'branding.secondary_color' => ['sometimes', 'nullable', 'regex:/^#([a-f0-9]{6})$/i'],
             'branding.digital_stamp_path' => ['sometimes', 'nullable', 'string', 'max:255'],
             'branding.watermark_path' => ['sometimes', 'nullable', 'string', 'max:255'],
+
+            'lab' => ['sometimes', 'required', 'array'],
+            'lab.head_title' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'lab.head_name' => ['sometimes', 'nullable', 'string', 'max:150'],
+            'lab.head_rank' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'lab.head_nrp' => ['sometimes', 'nullable', 'string', 'max:30'],
+            'lab.head_signature' => ['sometimes', 'nullable', 'string', 'max:255'],
 
             'pdf' => ['sometimes', 'required', 'array'],
             'pdf.header' => ['sometimes', 'required', 'array'],

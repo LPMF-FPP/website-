@@ -404,6 +404,49 @@
                                         </div>
                                     @endif
 
+                                    @if($process && $delivery->show_lhu_signatures)
+                                        @php
+                                            $vteknis = data_get($process->metadata ?? [], 'verifikator_teknis_id');
+                                            $vmutu = data_get($process->metadata ?? [], 'verifikator_mutu_id');
+                                            $vadmin = data_get($process->metadata ?? [], 'verifikator_administrasi_id');
+                                        @endphp
+                                        <form method="POST" action="{{ route('delivery.sample-process.verifikator', $process) }}" class="mt-3 border border-gray-200 rounded-lg p-3 bg-gray-50">
+                                            @csrf
+                                            @method('PATCH')
+                                            <p class="text-xs font-semibold text-gray-700 mb-2">Verifikator LHU</p>
+                                            <div class="grid grid-cols-3 gap-2">
+                                                <div>
+                                                    <label class="block text-[10px] text-gray-500 uppercase mb-0.5">Teknis</label>
+                                                    <select name="verifikator_teknis_id" class="w-full text-xs border border-gray-300 rounded py-1 px-1.5">
+                                                        <option value="">--</option>
+                                                        @foreach($users as $user)
+                                                            <option value="{{ $user->id }}" {{ $vteknis == $user->id ? 'selected' : '' }}>{{ $user->name }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-[10px] text-gray-500 uppercase mb-0.5">Mutu</label>
+                                                    <select name="verifikator_mutu_id" class="w-full text-xs border border-gray-300 rounded py-1 px-1.5">
+                                                        <option value="">--</option>
+                                                        @foreach($users as $user)
+                                                            <option value="{{ $user->id }}" {{ $vmutu == $user->id ? 'selected' : '' }}>{{ $user->name }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-[10px] text-gray-500 uppercase mb-0.5">Administrasi</label>
+                                                    <select name="verifikator_administrasi_id" class="w-full text-xs border border-gray-300 rounded py-1 px-1.5">
+                                                        <option value="">--</option>
+                                                        @foreach($users as $user)
+                                                            <option value="{{ $user->id }}" {{ $vadmin == $user->id ? 'selected' : '' }}>{{ $user->name }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <button type="submit" class="mt-2 rounded bg-white px-2.5 py-1 text-xs font-medium text-gray-700 shadow-sm ring-1 ring-gray-300 hover:bg-gray-100">Simpan</button>
+                                        </form>
+                                    @endif
+
                                     {{-- Rekonsiliasi Sampel --}}
                                     <div class="mt-3 grid grid-cols-3 gap-2 text-xs text-gray-500 bg-gray-50 rounded p-2">
                                         <div>
@@ -543,6 +586,24 @@
                                 </button>
                             @endif
                         </div>
+                    </form>
+                </div>
+
+                <div class="rounded-lg bg-white shadow-sm ring-1 ring-gray-900/5 p-6">
+                    <h3 class="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                        TTD & Paraf LHU
+                    </h3>
+                    <form method="POST" action="{{ route('delivery.toggle-lhu-signatures', $delivery) }}" class="space-y-3">
+                        @csrf
+                        @method('PATCH')
+                        <label class="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                            <input type="checkbox" name="enabled" value="1" class="rounded border-gray-300"
+                                {{ $delivery->show_lhu_signatures ? 'checked' : '' }}
+                                onchange="this.form.submit()">
+                            <span>Sertakan TTD Kafarmapol & Paraf Verifikator</span>
+                        </label>
+                        <p class="text-xs text-gray-400">Jika dicentang, LHU akan menampilkan tanda tangan Kepala Farmapol dan paraf verifikator (Teknis, Mutu, Administrasi).</p>
                     </form>
                 </div>
 

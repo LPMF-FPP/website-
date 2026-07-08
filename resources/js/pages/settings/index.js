@@ -1069,6 +1069,7 @@ export class SettingsClient {
                     body: {
                         branding: this.clone(this.state.form.branding),
                         pdf: this.clone(this.state.form.pdf),
+                        lab: this.clone(this.state.form.lab),
                     },
                 };
             case "localization":
@@ -1260,6 +1261,12 @@ export class SettingsClient {
         form.branding.phone ??= "";
         form.branding.email ??= "";
         form.branding.website ??= "";
+        form.lab ??= {};
+        form.lab.head_title ??= "";
+        form.lab.head_name ??= "";
+        form.lab.head_rank ??= "";
+        form.lab.head_nrp ??= "";
+        form.lab.head_signature ??= "";
         form.pdf ??= { header: {}, footer: {}, qr: {} };
         form.pdf.header ??= {};
         form.pdf.footer ??= {};
