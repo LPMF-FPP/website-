@@ -7,7 +7,6 @@ use App\Models\Delivery;
 use App\Models\Document;
 use App\Models\EvidenceUnit;
 use App\Models\RemainingUnit;
-use App\Models\SampleTestProcess;
 use App\Models\TestRequest;
 use App\Services\DocumentService;
 use App\Support\QuantityFormatter;
@@ -318,7 +317,6 @@ class DeliveryController extends Controller
             'delivery' => $delivery,
             'lastNotification' => $lastNotification,
             'stepper' => $stepper,
-            'users' => \App\Models\User::orderBy('name')->get(['id', 'name']),
 
             'stages' => [
                 'preparation' => 'Preparasi Sampel',
@@ -1156,34 +1154,5 @@ class DeliveryController extends Controller
         ]);
 
         return back()->with('success', 'Data Surat Pengantar berhasil disimpan.');
-    }
-
-    public function toggleLhuSignatures(Request $request, Delivery $delivery)
-    {
-        $delivery->update([
-            'show_lhu_signatures' => $request->boolean('enabled', false),
-        ]);
-
-        return back()->with('success', $delivery->show_lhu_signatures
-            ? 'Tanda tangan dan paraf akan muncul di LHU.'
-            : 'Tanda tangan dan paraf disembunyikan dari LHU.');
-    }
-
-    public function updateVerifikator(Request $request, SampleTestProcess $process)
-    {
-        $validated = $request->validate([
-            'verifikator_teknis_id' => ['nullable', 'integer', 'exists:users,id'],
-            'verifikator_mutu_id' => ['nullable', 'integer', 'exists:users,id'],
-            'verifikator_administrasi_id' => ['nullable', 'integer', 'exists:users,id'],
-        ]);
-
-        $metadata = $process->metadata ?? [];
-        $metadata['verifikator_teknis_id'] = $validated['verifikator_teknis_id'] ?? null;
-        $metadata['verifikator_mutu_id'] = $validated['verifikator_mutu_id'] ?? null;
-        $metadata['verifikator_administrasi_id'] = $validated['verifikator_administrasi_id'] ?? null;
-        $process->metadata = $metadata;
-        $process->save();
-
-        return back()->with('success', 'Verifikator berhasil disimpan.');
     }
 }

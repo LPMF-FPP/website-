@@ -386,12 +386,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::patch('/{request}/investigator', [DeliveryController::class, 'updateInvestigator'])
             ->name('delivery.investigator.update')
             ->middleware('permission:investigators.edit');
-        Route::patch('/{delivery}/toggle-lhu-signatures', [DeliveryController::class, 'toggleLhuSignatures'])
-            ->name('delivery.toggle-lhu-signatures')
-            ->middleware('permission:penyerahan.edit');
-        Route::patch('/sample-process/{process}/verifikator', [DeliveryController::class, 'updateVerifikator'])
-            ->name('delivery.sample-process.verifikator')
-            ->middleware('permission:penyerahan.edit');
         Route::get('/{request}', [DeliveryController::class, 'show'])->name('delivery.show');
         Route::patch('/{delivery}/surat-pengantar', [DeliveryController::class, 'updateSuratPengantar'])
             ->name('delivery.update-surat-pengantar');

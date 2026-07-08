@@ -72,56 +72,6 @@
                 <span class="text-sm font-medium text-gray-700 mb-1 block">Website</span>
                 <input class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.branding.website">
             </label>
-        </div>
-
-        <div class="pt-4 border-t border-gray-200">
-            <h3 class="text-sm font-semibold text-gray-900 mb-3">Kepala Farmapol (KAFARMAPOL)</h3>
-            <p class="text-xs text-gray-500 mb-4">Data identitas dan tanda tangan Kepala Farmapol untuk Laporan Hasil Uji.</p>
-            <div class="grid md:grid-cols-2 gap-4">
-                <label class="block">
-                    <span class="text-sm font-medium text-gray-700 mb-1 block">Nama Lengkap</span>
-                    <input class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.lab.head_name" placeholder="KUSWARDANI, S.Si., Apt., M.Farm">
-                </label>
-                <label class="block">
-                    <span class="text-sm font-medium text-gray-700 mb-1 block">Pangkat</span>
-                    <input class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.lab.head_rank" placeholder="KOMBES POL.">
-                </label>
-                <label class="block">
-                    <span class="text-sm font-medium text-gray-700 mb-1 block">NRP</span>
-                    <input class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.lab.head_nrp" placeholder="70040687">
-                </label>
-                <label class="block">
-                    <span class="text-sm font-medium text-gray-700 mb-1 block">Jabatan</span>
-                    <input class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.lab.head_title" placeholder="KAFARMAPOL">
-                </label>
-                <label class="block md:col-span-2">
-                    <span class="text-sm font-medium text-gray-700 mb-1 block">Gambar Tanda Tangan</span>
-                    <input class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.lab.head_signature" placeholder="images/ttd-kafarmapol.png">
-                    <p class="mt-1 text-xs text-gray-400">Path relatif ke folder public. Upload file gambar ke <code>public/images/</code> terlebih dahulu.</p>
-                </label>
-            </div>
-        </div>
-
-        <div class="pt-4 border-t border-gray-200">
-            <h3 class="text-sm font-semibold text-gray-900 mb-3">Gambar TTD Verifikator</h3>
-            <p class="text-xs text-gray-500 mb-4">Gambar tanda tangan untuk masing-masing verifikator.</p>
-            <div class="grid md:grid-cols-3 gap-4">
-                <label class="block">
-                    <span class="text-sm font-medium text-gray-700 mb-1 block">TTD Verifikator Teknis</span>
-                    <input class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.lab.verifikator_teknis_signature" placeholder="images/ttd-teknis.png">
-                </label>
-                <label class="block">
-                    <span class="text-sm font-medium text-gray-700 mb-1 block">TTD Verifikator Mutu</span>
-                    <input class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.lab.verifikator_mutu_signature" placeholder="images/ttd-mutu.png">
-                </label>
-                <label class="block">
-                    <span class="text-sm font-medium text-gray-700 mb-1 block">TTD Verifikator Administrasi</span>
-                    <input class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.lab.verifikator_administrasi_signature" placeholder="images/ttd-administrasi.png">
-                </label>
-            </div>
-        </div>
-
-        <div class="grid md:grid-cols-2 gap-4 mt-4">
             <label class="block">
                 <span class="text-sm font-medium text-gray-700 mb-1 block">Preset Watermark</span>
                 <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" x-model="client.state.form.pdf.header.watermark">

@@ -182,38 +182,6 @@ class SystemSettingSeeder extends Seeder
                     'can_issue_number' => ['admin', 'supervisor', 'analis'],
                 ],
             ],
-            [
-                'key' => 'lab.head_title',
-                'value' => 'KAFARMAPOL',
-            ],
-            [
-                'key' => 'lab.head_name',
-                'value' => 'KUSWARDANI, S.Si., Apt., M.Farm',
-            ],
-            [
-                'key' => 'lab.head_rank',
-                'value' => 'KOMBES POL.',
-            ],
-            [
-                'key' => 'lab.head_nrp',
-                'value' => '70040687',
-            ],
-            [
-                'key' => 'lab.head_signature',
-                'value' => 'images/ttd-kafarmapol.png',
-            ],
-            [
-                'key' => 'lab.verifikator_teknis_signature',
-                'value' => 'images/ttd-teknis.png',
-            ],
-            [
-                'key' => 'lab.verifikator_mutu_signature',
-                'value' => 'images/ttd-mutu.png',
-            ],
-            [
-                'key' => 'lab.verifikator_administrasi_signature',
-                'value' => 'images/ttd-administrasi.png',
-            ],
         ];
 
         foreach ($settings as $setting) {

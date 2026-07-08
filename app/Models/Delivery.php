@@ -22,7 +22,6 @@ class Delivery extends Model
         'has_surat_pengantar',
         'surat_pengantar_number',
         'surat_pengantar_date',
-        'show_lhu_signatures',
     ];
 
     protected $casts = [
@@ -31,7 +30,6 @@ class Delivery extends Model
         'status' => \App\Enums\DeliveryStatus::class,
         'has_surat_pengantar' => 'boolean',
         'surat_pengantar_date' => 'date',
-        'show_lhu_signatures' => 'boolean',
     ];
 
     public function request(): BelongsTo
