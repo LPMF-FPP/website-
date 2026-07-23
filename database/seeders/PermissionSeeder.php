@@ -39,6 +39,14 @@ class PermissionSeeder extends Seeder
         ['name' => 'penyerahan.edit', 'display_name' => 'Edit Penyerahan', 'module' => 'penyerahan', 'action' => 'edit'],
         ['name' => 'penyerahan.delete', 'display_name' => 'Hapus Penyerahan', 'module' => 'penyerahan', 'action' => 'delete'],
 
+        // Buku Tamu
+        ['name' => 'guest-book.view', 'display_name' => 'Lihat Buku Tamu', 'module' => 'guest-book', 'action' => 'view'],
+        ['name' => 'guest-book.create', 'display_name' => 'Tambah Buku Tamu', 'module' => 'guest-book', 'action' => 'create'],
+        ['name' => 'guest-book.edit', 'display_name' => 'Edit Buku Tamu', 'module' => 'guest-book', 'action' => 'edit'],
+        ['name' => 'guest-book.checkout', 'display_name' => 'Catat Keluar Buku Tamu', 'module' => 'guest-book', 'action' => 'checkout'],
+        ['name' => 'guest-book.delete', 'display_name' => 'Hapus Buku Tamu', 'module' => 'guest-book', 'action' => 'delete'],
+        ['name' => 'guest-book.export', 'display_name' => 'Export Buku Tamu', 'module' => 'guest-book', 'action' => 'export'],
+
         // Tracking
         ['name' => 'tracking.view', 'display_name' => 'Lihat Tracking', 'module' => 'tracking', 'action' => 'view'],
 
@@ -124,6 +132,7 @@ class PermissionSeeder extends Seeder
             'pencarian.view',
             'statistik.view',
             'changelogs.view',
+            'guest-book.view',
         ],
         'analis' => [
             'dashboard.view',
@@ -137,6 +146,7 @@ class PermissionSeeder extends Seeder
             'monitoring.view',
             'inventori.view',
             'changelogs.view',
+            'guest-book.view',
         ],
         'penyelia' => [
             'dashboard.view',
@@ -156,6 +166,7 @@ class PermissionSeeder extends Seeder
             'qmh.rapat.view',
             'qmh.audit.view',
             'qmh.kum.view',
+            'guest-book.view', 'guest-book.create', 'guest-book.edit', 'guest-book.checkout',
         ],
         'manajer_teknis' => [
             'dashboard.view',
@@ -177,6 +188,7 @@ class PermissionSeeder extends Seeder
             'qmh.audit.view', 'qmh.audit.view.all', 'qmh.audit.create', 'qmh.audit.create.all', 'qmh.audit.edit', 'qmh.audit.delete',
             'qmh.kum.view', 'qmh.kum.view.all', 'qmh.kum.create', 'qmh.kum.create.all', 'qmh.kum.edit', 'qmh.kum.delete',
             'action-item:verify', 'action-item:close', 'action-item:reopen',
+            'guest-book.view', 'guest-book.create', 'guest-book.edit', 'guest-book.checkout', 'guest-book.delete', 'guest-book.export',
         ],
         'admin' => [
             // Admin mendapat semua permission
@@ -200,6 +212,7 @@ class PermissionSeeder extends Seeder
             'qmh.audit.view', 'qmh.audit.view.all', 'qmh.audit.create', 'qmh.audit.create.all', 'qmh.audit.edit', 'qmh.audit.delete',
             'qmh.kum.view', 'qmh.kum.view.all', 'qmh.kum.create', 'qmh.kum.create.all', 'qmh.kum.edit', 'qmh.kum.delete',
             'action-item:verify', 'action-item:close', 'action-item:reopen',
+            'guest-book.view', 'guest-book.create', 'guest-book.edit', 'guest-book.checkout', 'guest-book.delete', 'guest-book.export',
         ],
         'supervisor' => [
             // Supervisor sama dengan admin

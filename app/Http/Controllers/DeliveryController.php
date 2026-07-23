@@ -741,6 +741,25 @@ class DeliveryController extends Controller
             'completed_at' => now(),
         ]);
 
+        try {
+            \App\Models\GuestVisit::create([
+                'investigator_id' => $request->investigator_id,
+                'test_request_id' => $request->id,
+                'visit_date' => now()->toDateString(),
+                'visit_time' => now()->toTimeString(),
+                'purpose' => 'Pengambilan Hasil Pengujian',
+                'host_id' => auth()->id(),
+                'nda_accepted' => true,
+                'nda_accepted_at' => now(),
+                'created_by' => auth()->id(),
+            ]);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to create guest visit on delivery complete', [
+                'test_request_id' => $request->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+
         return back()->with('success', 'Penyerahan berhasil diselesaikan. Status permintaan telah diperbarui.');
     }
 

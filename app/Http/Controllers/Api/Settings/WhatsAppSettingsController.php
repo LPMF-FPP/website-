@@ -170,6 +170,21 @@ class WhatsAppSettingsController extends Controller
         }
     }
 
+    public function appInfo(): JsonResponse
+    {
+        try {
+            $info = $this->client->getAppInfo();
+
+            return response()->json($info, $info['success'] ? 200 : 502);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function checkHealth(): JsonResponse
     {
         try {

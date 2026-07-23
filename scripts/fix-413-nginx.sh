@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Fix Nginx 413 "Request Entity Too Large" Error
-# Server: 192.168.0.205
+# Server: 192.168.1.230
 # Run this script on the production server as root
 #
 
@@ -105,7 +105,7 @@ echo ""
 echo "Testing endpoints:"
 curl -sI http://127.0.0.1/requests | head -10
 echo ""
-curl -sI http://192.168.0.205/requests | head -10
+curl -sI http://192.168.1.230/requests | head -10
 
 echo ""
 echo "=== Summary ==="

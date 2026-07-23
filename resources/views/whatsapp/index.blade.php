@@ -11,6 +11,10 @@
                         <div class="w-2.5 h-2.5 rounded-full" :class="indicatorClass"></div>
                         <span class="text-xs font-medium text-gray-600 dark:text-gray-300" x-text="connectionLabel"></span>
                     </div>
+                    <!-- GOWA Version Badge -->
+                    <div x-show="gowaVersion" class="flex items-center px-2.5 py-1.5 rounded-full bg-primary-50 dark:bg-primary-900/30 border border-primary-200 dark:border-primary-800">
+                        <span class="text-xs font-mono font-semibold text-primary-700 dark:text-primary-300" x-text="'GOWA ' + gowaVersion"></span>
+                    </div>
                 </div>
             </x-slot>
         </x-page-header>
@@ -104,11 +108,12 @@
                 connected: Boolean(config.initialConnected),
                 connectionLabel: Boolean(config.initialConnected) ? 'Connected' : 'Disconnected',
                 indicatorClass: Boolean(config.initialConnected) ? 'bg-green-500' : 'bg-red-500',
+                gowaVersion: '',
                 failedChecks: 0,
                 lastSuccessAt: Boolean(config.initialConnected) ? Date.now() : null,
                 start() {
                     this.checkConnection();
-                    // Poll connection status every 30s
+                    this.fetchGowaVersion();
                     setInterval(() => this.checkConnection(), 30000);
                 },
                 async checkConnection() {
@@ -173,6 +178,20 @@
                         this.lastSuccessAt = null;
 
                         console.warn('Failed to refresh WhatsApp connection status', e);
+                    }
+                },
+                async fetchGowaVersion() {
+                    try {
+                        const res = await fetch('/api/settings/notifications/whatsapp/app-info', {
+                            headers: { 'Accept': 'application/json' }
+                        });
+                        if (!res.ok) return;
+                        const data = await res.json();
+                        if (data.success && data.version) {
+                            this.gowaVersion = data.version;
+                        }
+                    } catch (e) {
+                        // GOWA v8 or unreachable — leave version empty
                     }
                 }
             }

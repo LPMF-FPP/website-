@@ -1,11 +1,12 @@
 import "./bootstrap";
 
+import collapse from "@alpinejs/collapse";
+import focus from "@alpinejs/focus";
+
 import {
     Livewire,
     Alpine,
 } from "../../vendor/livewire/livewire/dist/livewire.esm";
-import collapse from "@alpinejs/collapse";
-import focus from "@alpinejs/focus";
 
 import { createListFetcher } from "./utils/list-fetcher";
 import { initSearchPage } from "./pages/search";

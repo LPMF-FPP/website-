@@ -825,9 +825,6 @@ class WhatsAppHubController extends Controller
 
     public function getGroupParticipants(string $jid): JsonResponse
     {
-        // GOWA doesn't expose easy participants count in listChats
-        // We might need to rely on the client or ignore for now if not supported
-        // But we implemented a placeholder in GowaClient
         return response()->json($this->gowaClient->getGroupParticipants($jid));
     }
 

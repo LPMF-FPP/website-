@@ -435,6 +435,25 @@ class RequestController extends Controller
 
             DB::commit();
 
+            try {
+                \App\Models\GuestVisit::create([
+                    'investigator_id' => $investigator->id,
+                    'test_request_id' => $testRequest->id,
+                    'visit_date' => $validated['letter_date'] ?? now()->toDateString(),
+                    'visit_time' => now()->toTimeString(),
+                    'purpose' => 'Permohonan Pengujian',
+                    'host_id' => auth()->id(),
+                    'nda_accepted' => true,
+                    'nda_accepted_at' => now(),
+                    'created_by' => auth()->id(),
+                ]);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Failed to create guest visit on request store', [
+                    'test_request_id' => $testRequest->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             $driveSync = app(GoogleDriveDocumentSyncService::class)
                 ->syncUploadedDocuments($uploadedDocuments, $request->user());
 

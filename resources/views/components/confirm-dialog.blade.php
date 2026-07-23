@@ -137,18 +137,17 @@ document.addEventListener('alpine:init', () => {
             if (this.isProcessing) return;
 
             this.isProcessing = true;
-            
+
             try {
                 if (this.onConfirm) {
                     const result = await this.onConfirm();
-                    
-                    // If onConfirm returns false, don't close dialog
+
                     if (result === false) {
                         this.isProcessing = false;
                         return;
                     }
                 }
-                
+
                 this.closeDialog();
             } catch (error) {
                 console.error('Confirm action error:', error);

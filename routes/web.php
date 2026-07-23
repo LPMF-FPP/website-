@@ -377,6 +377,37 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('investigators.destroy')
         ->can('investigators.delete');
 
+    // Guest Book
+    Route::prefix('buku-tamu')->name('guest-book.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\GuestVisitController::class, 'index'])
+            ->name('index')
+            ->middleware('permission:guest-book.view');
+        Route::get('/create', [\App\Http\Controllers\GuestVisitController::class, 'create'])
+            ->name('create')
+            ->middleware('permission:guest-book.create');
+        Route::post('/', [\App\Http\Controllers\GuestVisitController::class, 'store'])
+            ->name('store')
+            ->middleware('permission:guest-book.create');
+        Route::get('/{visit}', [\App\Http\Controllers\GuestVisitController::class, 'show'])
+            ->name('show')
+            ->middleware('permission:guest-book.view');
+        Route::get('/{visit}/edit', [\App\Http\Controllers\GuestVisitController::class, 'edit'])
+            ->name('edit')
+            ->middleware('permission:guest-book.edit');
+        Route::put('/{visit}', [\App\Http\Controllers\GuestVisitController::class, 'update'])
+            ->name('update')
+            ->middleware('permission:guest-book.edit');
+        Route::patch('/{visit}/checkout', [\App\Http\Controllers\GuestVisitController::class, 'checkout'])
+            ->name('checkout')
+            ->middleware('permission:guest-book.checkout');
+        Route::patch('/{visit}/visitor', [\App\Http\Controllers\GuestVisitController::class, 'updateVisitor'])
+            ->name('visitor')
+            ->middleware('permission:guest-book.edit');
+        Route::delete('/{visit}', [\App\Http\Controllers\GuestVisitController::class, 'destroy'])
+            ->name('destroy')
+            ->middleware('permission:guest-book.delete');
+    });
+
     // Delivery
     Route::prefix('delivery')->group(function () {
         Route::get('/', [DeliveryController::class, 'index'])->name('delivery.index');

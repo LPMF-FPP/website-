@@ -289,6 +289,7 @@ Route::middleware(['throttle:120,1'])->group(function () {
             Route::post('/test', [WhatsAppSettingsController::class, 'test']);
             Route::post('/check-connection', [WhatsAppSettingsController::class, 'checkConnection']);
             Route::get('/health', [WhatsAppSettingsController::class, 'checkHealth']);
+            Route::get('/app-info', [WhatsAppSettingsController::class, 'appInfo']);
             Route::get('/logs', [WhatsAppSettingsController::class, 'getOutboxLogs']);
             Route::get('/templates', [WhatsAppSettingsController::class, 'getTemplates']);
             Route::get('/devices', [WhatsAppSettingsController::class, 'getDevices']);

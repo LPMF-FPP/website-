@@ -12,6 +12,17 @@ deploy_path="$2"
 git_ref="${3:-origin/release}"
 maintenance_mode=0
 
+# ── Ensure host key is trusted (avoids "Host key verification failed") ──
+ensure_known_host() {
+    local hostname="${1%%@*}"
+    local hostaddr="${1##*@}"
+    mkdir -p "$HOME/.ssh"
+    ssh-keygen -f "$HOME/.ssh/known_hosts" -R "$hostaddr" 2>/dev/null || true
+    ssh-keygen -f "$HOME/.ssh/known_hosts" -R "$hostname" 2>/dev/null || true
+    ssh-keyscan -H "$hostaddr" >> "$HOME/.ssh/known_hosts" 2>/dev/null
+}
+ensure_known_host "$host"
+
 repo_root="$(git rev-parse --show-toplevel)"
 exclude_file="${repo_root}/scripts/deploy-artifact.exclude"
 

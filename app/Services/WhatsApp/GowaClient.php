@@ -266,6 +266,39 @@ class GowaClient
         try {
             $http = Http::timeout(15);
 
+            $response = $http->get("{$this->baseUrl}/health");
+
+            if ($response->successful()) {
+                return [
+                    'reachable' => true,
+                    'connected' => true,
+                    'status' => $response->status(),
+                    'devices_count' => null,
+                    'data' => null,
+                ];
+            }
+
+            if ($response->status() === 404) {
+                return $this->checkHealthFallback();
+            }
+
+            return [
+                'reachable' => false,
+                'connected' => false,
+                'status' => $response->status(),
+                'error' => $response->body(),
+            ];
+
+        } catch (\Throwable $e) {
+            return $this->checkHealthFallback();
+        }
+    }
+
+    private function checkHealthFallback(): array
+    {
+        try {
+            $http = Http::timeout(10);
+
             if ($this->basicUser && $this->basicPass) {
                 $http = $http->withBasicAuth($this->basicUser, $this->basicPass);
             }
@@ -276,14 +309,12 @@ class GowaClient
                 ]);
             }
 
-            // Use /devices as /health endpoint is not available in current GOWA version
             $response = $http->get("{$this->baseUrl}/devices");
 
             if ($response->successful()) {
                 $data = $response->json();
                 $devices = $data['results'] ?? [];
 
-                // Check if any device is logged in
                 $hasLoggedInDevice = collect($devices)->contains(function ($device) {
                     return ($device['state'] ?? '') === 'logged_in';
                 });
@@ -529,29 +560,105 @@ class GowaClient
     }
 
     /**
-     * Get participants for a specific group
-     * Currently GOWA doesn't expose a direct endpoint for this in docs,
-     * but we can try to fetch group metadata if available.
-     *
-     * Based on OpenAPI, there is no direct endpoint to get participants count easily
-     * without fetching group details.
-     *
-     * For now, we'll return a placeholder or empty list if not supported,
-     * or implement if a specific endpoint is found.
-     *
-     * NOTE: Since we don't have a direct endpoint documented for just participants,
-     * we will rely on the user/my/groups endpoint which might return participant count in metadata,
-     * or we assume we can't get exact count yet.
+     * Get GOWA server metadata (v9+).
+     */
+    public function getAppInfo(): array
+    {
+        try {
+            $http = Http::timeout(10);
+
+            if ($this->basicUser && $this->basicPass) {
+                $http = $http->withBasicAuth($this->basicUser, $this->basicPass);
+            }
+
+            $response = $http->get("{$this->baseUrl}/app/info");
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $results = $data['results'] ?? $data;
+
+                return [
+                    'success' => true,
+                    'version' => $results['version'] ?? null,
+                    'os' => $results['os'] ?? null,
+                    'base_path' => $results['base_path'] ?? null,
+                    'max_file_size' => $results['max_file_size'] ?? null,
+                    'max_video_size' => $results['max_video_size'] ?? null,
+                    'max_image_size' => $results['max_image_size'] ?? null,
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $response->body(),
+                'status' => $response->status(),
+            ];
+
+        } catch (\Throwable $e) {
+            Log::warning('Failed to get GOWA app info', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Get participants for a specific group via GOWA v9 /group/participants endpoint.
      */
     public function getGroupParticipants(string $groupId): array
     {
-        // For now, returning empty as we don't have a confirmed endpoint for this
-        // in the OpenAPI spec provided.
-        // If needed, we might need to parse it from the chats list if it contains metadata.
-        return [
-            'success' => false,
-            'message' => 'Not implemented yet',
-            'count' => 0,
-        ];
+        try {
+            $http = Http::timeout(15);
+
+            if ($this->basicUser && $this->basicPass) {
+                $http = $http->withBasicAuth($this->basicUser, $this->basicPass);
+            }
+
+            if ($this->deviceId) {
+                $http = $http->withHeaders([
+                    'X-Device-Id' => $this->deviceId,
+                ]);
+            }
+
+            $response = $http->get("{$this->baseUrl}/group/participants", [
+                'group_id' => $groupId,
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                $results = $data['results'] ?? [];
+
+                return [
+                    'success' => true,
+                    'group_id' => $results['group_id'] ?? $groupId,
+                    'name' => $results['name'] ?? null,
+                    'participants' => $results['participants'] ?? [],
+                    'count' => count($results['participants'] ?? []),
+                ];
+            }
+
+            return [
+                'success' => false,
+                'error' => $response->body(),
+                'status' => $response->status(),
+                'count' => 0,
+            ];
+
+        } catch (\Throwable $e) {
+            Log::warning('Failed to get GOWA group participants', [
+                'group_id' => $groupId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'count' => 0,
+            ];
+        }
     }
 }

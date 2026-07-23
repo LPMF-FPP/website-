@@ -315,9 +315,9 @@
                                                                 @click.prevent="showConfirmDialog({
                                                                     type: 'info',
                                                                     title: 'Konfirmasi Penyerahan Selesai',
-                                                                    message: 'Tandai penyerahan sebagai selesai?\\n\\nStatus akan berubah menjadi Selesai.',
+                                                                    message: 'Tandai penyerahan sebagai selesai?<br><br>Status akan berubah menjadi Selesai.',
                                                                     confirmButtonText: 'Ya, Selesaikan',
-                                                                    onConfirm: () => $el.closest('form').submit()
+                                                                    onConfirm: () => $el.closest('form')?.submit()
                                                                 })"
                                                                 class="inline-flex items-center rounded bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500">
                                                                 Tandai Selesai
