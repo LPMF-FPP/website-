@@ -103,6 +103,7 @@
         <div class="mb-4">
             <label class="flex items-start gap-3 cursor-pointer">
                 <input type="checkbox" name="same_as_owner" value="1" x-model="sameAsOwner"
+                       :disabled="!selectedId"
                        class="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                 <span class="text-sm text-gray-700">
                     Pemilik kasus = pihak yang datang<br>
@@ -111,7 +112,14 @@
             </label>
         </div>
 
-        <div x-show="!sameAsOwner" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div x-show="!sameAsOwner" x-cloak class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label for="visitor_name" class="block text-sm font-medium text-gray-700">Nama *</label>
+                <input type="text" name="visitor_name" id="visitor_name" x-model="visitorName"
+                       class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                       placeholder="Nama lengkap">
+                @error('visitor_name') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+            </div>
             <div>
                 <label for="visitor_name" class="block text-sm font-medium text-gray-700">Nama *</label>
                 <input type="text" name="visitor_name" id="visitor_name" x-model="visitorName"
@@ -146,8 +154,27 @@
             </div>
         </div>
 
-        <div x-show="sameAsOwner" class="mt-2 p-4 bg-blue-50 rounded-md border border-blue-100">
-            <p class="text-sm text-blue-700">Data akan otomatis diisi dari pemilik kasus yang dipilih.</p>
+        <div x-show="sameAsOwner" x-cloak class="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <span class="block text-sm font-medium text-gray-500">Nama (otomatis)</span>
+                <p class="text-sm font-medium text-gray-900" x-text="visitorName || '—'"></p>
+            </div>
+            <div>
+                <span class="block text-sm font-medium text-gray-500">NRP / Identitas</span>
+                <p class="text-sm font-medium text-gray-900" x-text="visitorIdentity || '—'"></p>
+            </div>
+            <div>
+                <span class="block text-sm font-medium text-gray-500">Relasi</span>
+                <p class="text-sm font-medium text-gray-900">Penyidik</p>
+            </div>
+            <div>
+                <span class="block text-sm font-medium text-gray-500">Telepon</span>
+                <p class="text-sm font-medium text-gray-900" x-text="visitorPhone || '—'"></p>
+            </div>
+            <input type="hidden" name="visitor_name" :value="visitorName">
+            <input type="hidden" name="visitor_identity" :value="visitorIdentity">
+            <input type="hidden" name="visitor_relation" value="Penyidik">
+            <input type="hidden" name="visitor_phone" :value="visitorPhone">
         </div>
     </div>
 </div>

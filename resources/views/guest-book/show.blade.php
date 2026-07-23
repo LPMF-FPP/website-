@@ -66,19 +66,19 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                 <div>
                     <span class="text-gray-500">Nama</span>
-                    <p class="font-medium text-gray-900">{{ $inv->full_name ?? $inv->name }}</p>
+                    <p class="font-medium text-gray-900">{{ $inv?->full_name ?? $inv?->name ?? '-' }}</p>
                 </div>
                 <div>
                     <span class="text-gray-500">NRP</span>
-                    <p class="font-medium text-gray-900">{{ $inv->nrp }}</p>
+                    <p class="font-medium text-gray-900">{{ $inv?->nrp ?? '-' }}</p>
                 </div>
                 <div>
                     <span class="text-gray-500">Instansi</span>
-                    <p class="font-medium text-gray-900">{{ $inv->jurisdiction ?? $inv->institution }}</p>
+                    <p class="font-medium text-gray-900">{{ $inv?->jurisdiction ?? $inv?->institution ?? '-' }}</p>
                 </div>
                 <div>
                     <span class="text-gray-500">Telepon</span>
-                    <p class="font-medium text-gray-900">{{ $inv->phone }}</p>
+                    <p class="font-medium text-gray-900">{{ $inv?->phone ?? '-' }}</p>
                 </div>
             </div>
         </div>

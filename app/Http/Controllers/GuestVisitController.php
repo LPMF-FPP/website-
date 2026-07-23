@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers;
 
 use App\Http\Requests\GuestBook\StoreGuestVisitRequest;
 use App\Http\Requests\GuestBook\UpdateGuestVisitRequest;
+use App\Http\Requests\GuestBook\UpdateVisitorRequest;
 use App\Models\GuestVisit;
 use App\Models\Investigator;
 use App\Models\User;
@@ -18,14 +21,15 @@ class GuestVisitController extends Controller
             ->orderBy('visit_time', 'desc');
 
         if ($search = $request->get('q')) {
-            $query->where(function ($q) use ($search) {
-                $q->where('visitor_name', 'ilike', "%{$search}%")
-                    ->orWhere('visitor_phone', 'ilike', "%{$search}%")
-                    ->orWhereHas('investigator', function ($sub) use ($search) {
-                        $sub->where('name', 'ilike', "%{$search}%")
-                            ->orWhere('nrp', 'ilike', "%{$search}%")
-                            ->orWhere('institution', 'ilike', "%{$search}%")
-                            ->orWhere('jurisdiction', 'ilike', "%{$search}%");
+            $escaped = addcslashes($search, '%_');
+            $query->where(function ($q) use ($escaped) {
+                $q->whereRaw('LOWER(visitor_name) LIKE ?', ['%'.mb_strtolower($escaped).'%'])
+                    ->orWhereRaw('LOWER(visitor_phone) LIKE ?', ['%'.mb_strtolower($escaped).'%'])
+                    ->orWhereHas('investigator', function ($sub) use ($escaped) {
+                        $sub->whereRaw('LOWER(name) LIKE ?', ['%'.mb_strtolower($escaped).'%'])
+                            ->orWhereRaw('LOWER(nrp) LIKE ?', ['%'.mb_strtolower($escaped).'%'])
+                            ->orWhereRaw('LOWER(institution) LIKE ?', ['%'.mb_strtolower($escaped).'%'])
+                            ->orWhereRaw('LOWER(jurisdiction) LIKE ?', ['%'.mb_strtolower($escaped).'%']);
                     });
             });
         }
@@ -72,7 +76,7 @@ class GuestVisitController extends Controller
 
         $visitorData = $this->resolveVisitorData($validated, $investigator, $sameAsOwner);
 
-        GuestVisit::create([
+        $visit = GuestVisit::create([
             'investigator_id' => $investigator->id,
             'visit_date' => $validated['visit_date'],
             'visit_time' => $validated['visit_time'],
@@ -82,11 +86,13 @@ class GuestVisitController extends Controller
             'visitor_identity' => $visitorData['visitor_identity'],
             'visitor_relation' => $visitorData['visitor_relation'],
             'visitor_phone' => $visitorData['visitor_phone'],
-            'nda_accepted' => true,
-            'nda_accepted_at' => now(),
             'notes' => $validated['notes'] ?? null,
             'created_by' => auth()->id(),
         ]);
+        $visit->forceFill([
+            'nda_accepted' => true,
+            'nda_accepted_at' => now(),
+        ])->save();
 
         return redirect()->route('guest-book.index')
             ->with('success', 'Kunjungan berhasil dicatat.');
@@ -134,27 +140,27 @@ class GuestVisitController extends Controller
 
     public function checkout(GuestVisit $visit)
     {
-        if (! $visit->isActive()) {
-            return back()->with('error', 'Kunjungan ini sudah checkout.');
+        $this->authorize('update', $visit);
+
+        $affected = GuestVisit::where('id', $visit->id)
+            ->where('status', 'active')
+            ->update([
+                'status' => 'checked_out',
+                'check_out_at' => now(),
+            ]);
+
+        if (! $affected) {
+            return back()->with('error', 'Kunjungan ini sudah checkout sebelumnya.');
         }
 
-        $visit->update([
-            'status' => 'checked_out',
-            'check_out_at' => now(),
-        ]);
+        $visit->refresh();
 
         return back()->with('success', 'Tamu berhasil dicatat keluar.');
     }
 
-    public function updateVisitor(Request $request, GuestVisit $visit)
+    public function updateVisitor(UpdateVisitorRequest $request, GuestVisit $visit)
     {
-        $validated = $request->validate([
-            'same_as_owner' => ['boolean'],
-            'visitor_name' => ['required_unless:same_as_owner,1', 'nullable', 'string', 'max:255'],
-            'visitor_identity' => ['nullable', 'string', 'max:50'],
-            'visitor_relation' => ['required_without:same_as_owner', 'nullable', 'string', 'max:50'],
-            'visitor_phone' => ['nullable', 'string', 'max:20'],
-        ]);
+        $this->authorize('update', $visit);
 
         $sameAsOwner = $request->boolean('same_as_owner');
         $investigator = $visit->investigator;

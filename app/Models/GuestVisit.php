@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
@@ -23,13 +25,11 @@ class GuestVisit extends Model
         'visitor_identity',
         'visitor_relation',
         'visitor_phone',
-        'status',
-        'check_out_at',
-        'nda_accepted',
-        'nda_accepted_at',
         'notes',
         'created_by',
     ];
+
+    protected $guarded = ['id', 'status', 'nda_accepted', 'nda_accepted_at', 'check_out_at'];
 
     protected $casts = [
         'visit_date' => 'date',
