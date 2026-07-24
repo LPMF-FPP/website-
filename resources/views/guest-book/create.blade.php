@@ -22,7 +22,7 @@
                 </span>
             </label>
 
-            <button type="button" x-data @click="$dispatch('open-nda-modal')"
+            <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-modal', {detail:'nda-modal'}))"
                     class="mt-2 text-sm text-blue-600 hover:text-blue-500 underline">
                 📄 Baca selengkapnya →
             </button>

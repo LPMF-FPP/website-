@@ -388,6 +388,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/', [\App\Http\Controllers\GuestVisitController::class, 'store'])
             ->name('store')
             ->middleware('permission:guest-book.create');
+        Route::get('/rekap-bulanan', [\App\Http\Controllers\GuestVisitController::class, 'monthlyReport'])
+            ->name('monthly-report')
+            ->middleware('permission:guest-book.export');
         Route::get('/{visit}', [\App\Http\Controllers\GuestVisitController::class, 'show'])
             ->name('show')
             ->middleware('permission:guest-book.view');

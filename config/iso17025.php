@@ -7,7 +7,7 @@ return [
             'checklist' => [
                 'Apakah risiko ketidakberpihakan sudah diidentifikasi?',
                 'Apakah ada komitmen manajemen tertulis?',
-                'Apakah prosedur menjaga kerahasiaan data pelanggan sudah jelas?',
+                'Apakah prosedur menjaga kerahasiaan data pengguna sudah jelas?',
             ],
         ],
         5 => [

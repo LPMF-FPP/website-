@@ -49,7 +49,7 @@
         </div>
     </div>
 
-    {{-- Kepuasan Pelanggan Card --}}
+    {{-- Kepuasan Pengguna Card --}}
     <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-500 to-teal-600 p-6 shadow-xl min-h-[200px]">
         {{-- Background Pattern --}}
         <div class="absolute inset-0 opacity-10">
@@ -70,7 +70,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
                 </div>
-                <span class="text-green-100 font-medium">Kepuasan Pelanggan</span>
+                <span class="text-green-100 font-medium">Kepuasan Pengguna</span>
             </div>
             
             @if(isset($customerSatisfaction) && $customerSatisfaction['total_responses'] > 0)

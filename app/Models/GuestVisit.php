@@ -20,9 +20,11 @@ class GuestVisit extends Model
         'visit_date',
         'visit_time',
         'purpose',
+        'purpose_detail',
         'host_id',
         'visitor_name',
         'visitor_identity',
+        'visitor_institution',
         'visitor_relation',
         'visitor_phone',
         'notes',
@@ -65,7 +67,7 @@ class GuestVisit extends Model
 
     public function isVisitorVerified(): bool
     {
-        return ! is_null($this->visitor_name);
+        return filled($this->visitor_name);
     }
 
     public function isActive(): bool

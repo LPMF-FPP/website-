@@ -396,7 +396,7 @@
 
   <table class="meta-table">
     <tr><td class="label">Nomor Resi</td><td class="sep">:</td><td class="value nowrap"><strong>{{ $req->receipt_number ?? $req->request_number }}</strong></td></tr>
-    <tr><td class="label">Pelanggan</td><td class="sep">:</td><td class="value">{{ trim(($inv?->rank).' '.($inv?->name)) ?: '—' }} @if($inv?->nrp ?? $inv?->nip) — NRP/NIP: {{ $inv?->nrp ?? $inv?->nip }} @endif</td></tr>
+    <tr><td class="label">Penerima</td><td class="sep">:</td><td class="value">{{ trim(($inv?->rank).' '.($inv?->name)) ?: '—' }} @if($inv?->nrp ?? $inv?->nip) — NRP/NIP: {{ $inv?->nrp ?? $inv?->nip }} @endif</td></tr>
     <tr><td class="label">Unit/Satuan</td><td class="sep">:</td><td class="value">{{ $inv?->jurisdiction ?? $req->unit ?? '—' }}</td></tr>
     <tr><td class="label">Nama Tersangka</td><td class="sep">:</td><td class="value">{{ $req->suspect_name ?? '—' }}</td></tr>
   <tr><td class="label">Kode Sampel</td><td class="sep">:</td><td class="value">{{ $allSampleCodesStr }}</td></tr>

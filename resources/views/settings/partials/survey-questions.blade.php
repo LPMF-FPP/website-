@@ -3,7 +3,7 @@
     <div>
         <h2 class="text-lg font-semibold text-gray-900 text-balance">Pertanyaan Survei Kepuasan</h2>
         <p class="text-sm text-gray-500 mt-1 text-pretty">
-            Kelola pertanyaan yang ditampilkan pada form survei kepuasan pelanggan.
+            Kelola pertanyaan yang ditampilkan pada form survei kepuasan pengguna.
         </p>
     </div>
 

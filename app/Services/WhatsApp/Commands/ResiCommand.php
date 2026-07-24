@@ -169,8 +169,8 @@ class ResiCommand
             'submitted', 'pending_verification' => 1,
             'verified', 'pending_review' => 2,
             'received', 'ready_for_test', 'in_testing', 'processing', 'analysis', 'quality_check' => 3,
-            'ready_for_delivery', 'completed' => 4,
-            'delivered' => 5,
+            'ready_for_delivery' => 4,
+            'completed', 'delivered' => 5,
             default => 0,
         };
     }

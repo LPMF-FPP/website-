@@ -69,6 +69,13 @@
                 'customerSatisfaction' => $customer_satisfaction
             ])
 
+            {{-- Buku Tamu Widget --}}
+            @if(auth()->user()->can('guest-book.view'))
+                @include('dashboard.partials.guest-book-widget', [
+                    'guestBookToday' => $guest_book_today ?? ['total' => 0, 'active' => 0, 'checked_out' => 0, 'latest' => collect([])]
+                ])
+            @endif
+
             {{-- Stats Cards (SSR) --}}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 @php $cards = [

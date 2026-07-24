@@ -385,7 +385,7 @@ class DeliveryController extends Controller
         }
 
         DB::transaction(function () use ($request, $submittedSamples, $httpRequest): void {
-            $request->loadMissing(['samples', 'evidenceUnits.remainingUnits']);
+            $request->load(['samples', 'evidenceUnits.remainingUnits']);
 
             foreach ($submittedSamples as $sampleId => $payload) {
                 $sample = $request->samples->firstWhere('id', (int) $sampleId);
@@ -742,6 +742,7 @@ class DeliveryController extends Controller
         ]);
 
         try {
+            $investigator = $request->investigator;
             $visit = \App\Models\GuestVisit::create([
                 'investigator_id' => $request->investigator_id,
                 'test_request_id' => $request->id,
@@ -749,6 +750,10 @@ class DeliveryController extends Controller
                 'visit_time' => now()->toTimeString(),
                 'purpose' => 'Pengambilan Hasil Pengujian',
                 'host_id' => auth()->id(),
+                'visitor_name' => $investigator?->name,
+                'visitor_identity' => $investigator?->nrp,
+                'visitor_relation' => $investigator ? 'Penyidik' : null,
+                'visitor_phone' => $investigator?->phone,
                 'created_by' => auth()->id(),
             ]);
             $visit->forceFill([

@@ -173,7 +173,7 @@
                 </div>
             </div>
 
-            <!-- III. KECEPATAN PENGERJAAN & IV. KEPUASAN PELANGGAN -->
+            <!-- III. KECEPATAN PENGERJAAN & IV. KEPUASAN PENGGUNA -->
             <div class="mb-4 grid grid-cols-2 gap-4">
                 <!-- III. KECEPATAN PENGERJAAN -->
                 <div>
@@ -194,9 +194,9 @@
                     </div>
                 </div>
 
-                <!-- IV. KEPUASAN PELANGGAN -->
+                <!-- IV. KEPUASAN PENGGUNA -->
                 <div>
-                    <h3 class="font-bold mb-2 text-sm">IV. KEPUASAN PELANGGAN</h3>
+                    <h3 class="font-bold mb-2 text-sm">IV. KEPUASAN PENGGUNA</h3>
                     <div class="border border-black p-3 text-xs bg-white h-full">
                         <p class="mb-2"><strong>Skor Rata-rata:</strong> <span x-text="previewData.satisfaction.avg_score"></span> / 4.00</p>
                         <p class="mb-3"><strong>Total Responden:</strong> <span x-text="previewData.satisfaction.total_respondents"></span></p>

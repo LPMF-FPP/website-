@@ -56,12 +56,6 @@
                     </x-nav-link>
                     @endcan
 
-                    @can('guest-book.view')
-                    <x-nav-link href="{{ route('guest-book.index') }}" :active="request()->routeIs('guest-book.*')" icon="user-group">
-                        Buku Tamu
-                    </x-nav-link>
-                    @endcan
-
                     {{-- Tasks Link moved to WhatsApp Hub --}}
                     {{-- <x-nav-link href="{{ route('tasks.index') }}" :active="request()->routeIs('tasks.*')">
                         Tugas
@@ -356,12 +350,6 @@
                     @can('penyerahan.view')
                     <x-responsive-nav-link href="{{ route('delivery.index') }}" :active="request()->routeIs('delivery.*')">
                         Penyerahan
-                    </x-responsive-nav-link>
-                    @endcan
-
-                    @can('guest-book.view')
-                    <x-responsive-nav-link href="{{ route('guest-book.index') }}" :active="request()->routeIs('guest-book.*')">
-                        Buku Tamu
                     </x-responsive-nav-link>
                     @endcan
 

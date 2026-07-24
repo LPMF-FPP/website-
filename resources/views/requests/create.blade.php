@@ -239,17 +239,6 @@
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                             </div>
-                            <div>
-                                <label for="external_phone" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Nomor Telepon <span class="text-red-500">*</span>
-                                </label>
-                                <input type="tel" name="external_phone" id="external_phone"
-                                       value="{{ old('external_phone') }}"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('external_phone') border-red-500 @enderror"
-                                       placeholder="Nomor telepon kantor/instansi">
-                                @error('external_phone')
-                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                                @enderror
                             </div>
                             <div>
                                 <label for="external_institution" class="block text-sm font-medium text-gray-700 mb-2">
@@ -284,6 +273,17 @@
                                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('external_occupation') border-red-500 @enderror"
                                        placeholder="Pekerjaan/jabatan">
                                 @error('external_occupation')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="tujuan" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Tujuan Pengujian <span class="text-red-500">*</span>
+                                </label>
+                                <textarea name="tujuan" id="tujuan" rows="3"
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('tujuan') border-red-500 @enderror"
+                                          placeholder="Jelaskan tujuan Anda mengajukan pengujian sampel ke LPMF...">{{ old('tujuan') }}</textarea>
+                                @error('tujuan')
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                             </div>
@@ -370,7 +370,7 @@
                         </div> {{-- End Informasi Surat Section --}}
 
                     {{-- 3. Data Tersangka Section --}}
-                    <div id="step-suspects" class="bg-orange-50 p-6 rounded-lg border border-orange-200 scroll-mt-24">
+                    <div id="step-suspects" data-investigator-only class="bg-orange-50 p-6 rounded-lg border border-orange-200 scroll-mt-24">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-lg font-semibold text-orange-900 flex items-center">
                                 <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
@@ -515,7 +515,7 @@
 
                         </div>
 
-                            <div class="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                            <div data-investigator-only class="rounded-lg border border-amber-200 bg-amber-50 p-4">
                                 <fieldset>
                                     <legend class="block text-sm font-medium text-gray-800 mb-3">
                                         Apakah meliputi permintaan saksi ahli? <span class="text-red-500">*</span>

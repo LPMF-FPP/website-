@@ -162,13 +162,6 @@
                                        value="{{ old('external_name', !$isPolri ? $request->investigator->name : '') }}"
                                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
                             </div>
-                            <div>
-                                <label for="external_phone" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Nomor Telepon <span class="text-red-500">*</span>
-                                </label>
-                                <input type="tel" name="external_phone" id="external_phone"
-                                       value="{{ old('external_phone', !$isPolri ? $request->investigator->alt_phone : '') }}"
-                                       class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
                             </div>
                             <div>
                                 <label for="external_institution" class="block text-sm font-medium text-gray-700 mb-2">
@@ -193,6 +186,17 @@
                                 <input type="text" name="external_occupation" id="external_occupation"
                                        value="{{ old('external_occupation', !$isPolri ? $request->investigator->occupation : '') }}"
                                        class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label for="tujuan" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Tujuan Pengujian <span class="text-red-500">*</span>
+                                </label>
+                                <textarea name="tujuan" id="tujuan" rows="3"
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 @error('tujuan') border-red-500 @enderror"
+                                          placeholder="Jelaskan tujuan Anda mengajukan pengujian sampel ke LPMF...">{{ old('tujuan', !$isPolri ? $request->tujuan : '') }}</textarea>
+                                @error('tujuan')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
                             </div>
                         </div>
                     </div>
@@ -231,7 +235,7 @@
                     </div>
 
                     {{-- Step 3: Data Tersangka --}}
-                    <div id="step-suspects" class="bg-orange-50 p-6 rounded-lg border border-orange-200 scroll-mt-24">
+                    <div id="step-suspects" data-investigator-only class="bg-orange-50 p-6 rounded-lg border border-orange-200 scroll-mt-24">
                         <div class="flex justify-between items-center mb-4">
                             <h3 class="text-lg font-semibold text-orange-900 flex items-center">
                                 <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
@@ -597,7 +601,6 @@
                 if (this.value) {
                     document.getElementById('external_name').value = option.dataset.name || '';
                     document.getElementById('external_institution').value = option.dataset.institution || '';
-                    document.getElementById('external_phone').value = option.dataset.altPhone || '';
                     document.getElementById('external_hp').value = option.dataset.phone || '';
                     document.getElementById('external_occupation').value = option.dataset.occupation || '';
                 }

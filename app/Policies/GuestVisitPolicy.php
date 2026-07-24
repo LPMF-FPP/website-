@@ -11,7 +11,7 @@ class GuestVisitPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasAnyPermission(['guest-book.view', 'guest-book.create', 'guest-book.edit', 'guest-book.checkout']);
+        return $user->hasPermission('guest-book.view');
     }
 
     public function view(User $user, GuestVisit $guestVisit): bool
@@ -32,5 +32,10 @@ class GuestVisitPolicy
     public function delete(User $user, GuestVisit $guestVisit): bool
     {
         return $user->hasPermission('guest-book.delete');
+    }
+
+    public function checkout(User $user, GuestVisit $guestVisit): bool
+    {
+        return $user->hasPermission('guest-book.checkout');
     }
 }

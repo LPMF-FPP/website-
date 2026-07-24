@@ -2,7 +2,7 @@
     <x-slot name="header">
         <div class="flex justify-between items-center">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                📝 Survei Kepuasan Pelanggan - {{ $request->request_number }}
+                📝 Survei Kepuasan Pengguna - {{ $request->request_number }}
             </h2>
             <a href="{{ route('delivery.index') }}"
                class="text-gray-600 hover:text-gray-900 px-4 py-2 border border-gray-300 rounded-md">
@@ -51,7 +51,7 @@
         <div class="bg-white shadow-sm sm:rounded-lg">
             <div class="p-6 bg-white border-b border-gray-200 space-y-6">
                 <div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Survei Kepuasan Pelanggan</h3>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Survei Kepuasan Pengguna</h3>
                     <p class="text-gray-600">Masukan Anda sangat berharga untuk meningkatkan kualitas pelayanan Sub-Satker Farmapol Pusdokkes Polri.</p>
                 </div>
 

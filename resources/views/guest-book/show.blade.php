@@ -12,6 +12,10 @@
         </x-page-header>
     </x-slot>
 
+    @php
+        $isCasePurpose = in_array($visit->purpose, ['Permohonan Pengujian', 'Pengambilan Hasil Pengujian'], true);
+    @endphp
+
     <div class="space-y-6">
         {{-- Kunjungan --}}
         <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-6">
@@ -28,6 +32,9 @@
                 <div>
                     <span class="text-gray-500">Keperluan</span>
                     <p class="font-medium text-gray-900">{{ $visit->purpose }}</p>
+                    @if($visit->purpose_detail)
+                        <p class="text-sm text-gray-600 mt-1">{{ $visit->purpose_detail }}</p>
+                    @endif
                 </div>
                 <div>
                     <span class="text-gray-500">Status</span>
@@ -51,7 +58,7 @@
                         <span class="text-gray-500">Permohonan</span>
                         <p>
                             <a href="{{ route('requests.show', $visit->test_request_id) }}" class="font-medium text-blue-600 hover:text-blue-500">
-                                {{ $visit->testRequest->request_number ?? '#' . $visit->test_request_id }}
+                                {{ $visit->testRequest?->request_number ?? '#' . $visit->test_request_id }}
                             </a>
                         </p>
                     </div>
@@ -59,29 +66,31 @@
             </div>
         </div>
 
-        {{-- Pemilik Kasus --}}
-        <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-6">
-            <h3 class="text-base font-semibold text-gray-900 mb-4">Pemilik Kasus</h3>
-            @php $inv = $visit->investigator; @endphp
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                <div>
-                    <span class="text-gray-500">Nama</span>
-                    <p class="font-medium text-gray-900">{{ $inv?->full_name ?? $inv?->name ?? '-' }}</p>
-                </div>
-                <div>
-                    <span class="text-gray-500">NRP</span>
-                    <p class="font-medium text-gray-900">{{ $inv?->nrp ?? '-' }}</p>
-                </div>
-                <div>
-                    <span class="text-gray-500">Instansi</span>
-                    <p class="font-medium text-gray-900">{{ $inv?->jurisdiction ?? $inv?->institution ?? '-' }}</p>
-                </div>
-                <div>
-                    <span class="text-gray-500">Telepon</span>
-                    <p class="font-medium text-gray-900">{{ $inv?->phone ?? '-' }}</p>
+        {{-- Pemilik Kasus (hanya keperluan kasus) --}}
+        @if($isCasePurpose && $visit->investigator)
+            <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-6">
+                <h3 class="text-base font-semibold text-gray-900 mb-4">Pemilik Kasus</h3>
+                @php $inv = $visit->investigator; @endphp
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                    <div>
+                        <span class="text-gray-500">Nama</span>
+                        <p class="font-medium text-gray-900">{{ $inv->full_name ?? $inv->name ?? '-' }}</p>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">NRP</span>
+                        <p class="font-medium text-gray-900">{{ $inv->nrp ?? '-' }}</p>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">Instansi</span>
+                        <p class="font-medium text-gray-900">{{ $inv->jurisdiction ?? $inv->institution ?? '-' }}</p>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">Telepon</span>
+                        <p class="font-medium text-gray-900">{{ $inv->phone ?? '-' }}</p>
+                    </div>
                 </div>
             </div>
-        </div>
+        @endif
 
         {{-- Pihak Yang Datang --}}
         <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-6">
@@ -97,10 +106,17 @@
                         <span class="text-gray-500">Identitas</span>
                         <p class="font-medium text-gray-900">{{ $visit->visitor_identity ?? '-' }}</p>
                     </div>
-                    <div>
-                        <span class="text-gray-500">Relasi</span>
-                        <p class="font-medium text-gray-900">{{ $visit->visitor_relation }}</p>
-                    </div>
+                    @if($isCasePurpose)
+                        <div>
+                            <span class="text-gray-500">Relasi</span>
+                            <p class="font-medium text-gray-900">{{ $visit->visitor_relation ?? '-' }}</p>
+                        </div>
+                    @else
+                        <div>
+                            <span class="text-gray-500">Instansi</span>
+                            <p class="font-medium text-gray-900">{{ $visit->visitor_institution ?? '-' }}</p>
+                        </div>
+                    @endif
                     <div>
                         <span class="text-gray-500">Telepon</span>
                         <p class="font-medium text-gray-900">{{ $visit->visitor_phone ?? '-' }}</p>
@@ -111,7 +127,7 @@
                         ✏️ Ubah Data
                     </a>
                 @endcan
-            @else
+            @elseif($isCasePurpose)
                 <div class="text-center py-4">
                     <p class="text-amber-600 font-medium">⚠️ Data pihak yang datang belum diverifikasi</p>
                     <div class="mt-3 flex items-center justify-center gap-3">
@@ -130,16 +146,32 @@
                         </a>
                     </div>
                 </div>
+            @else
+                <div class="text-center py-4">
+                    <p class="text-amber-600 font-medium">⚠️ Data pihak yang datang belum diverifikasi</p>
+                    <div class="mt-3">
+                        <a href="{{ route('guest-book.edit', $visit) }}"
+                           class="inline-flex items-center rounded bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                            Isi Data Tamu →
+                        </a>
+                    </div>
+                </div>
             @endif
         </div>
 
         {{-- NDA --}}
         <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-6">
             <h3 class="text-base font-semibold text-gray-900 mb-2">🔒 Perjanjian Kerahasiaan</h3>
-            <p class="text-sm text-green-700">
-                ✅ Disetujui — {{ $visit->nda_accepted_at?->format('d M Y, H:i') }} WIB
-            </p>
-            <button type="button" x-data @click="$dispatch('open-nda-modal')"
+            @if($visit->nda_accepted)
+                <p class="text-sm text-green-700">
+                    ✅ Disetujui — {{ $visit->nda_accepted_at?->format('d M Y, H:i') }} WIB
+                </p>
+            @else
+                <p class="text-sm text-red-600">
+                    ⚠️ Belum disetujui
+                </p>
+            @endif
+            <button type="button" onclick="window.dispatchEvent(new CustomEvent('open-modal', {detail:'nda-modal'}))"
                     class="mt-2 text-sm text-blue-600 hover:text-blue-500 underline">
                 📄 Lihat isi perjanjian →
             </button>

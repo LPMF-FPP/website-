@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\GuestVisit;
 use App\Models\Sample;
 use App\Models\TestRequest;
 use App\Models\TestResult;
@@ -49,7 +50,7 @@ class DashboardController extends Controller
             // 6. Rata-rata kecepatan pengerjaan bulan ini
             $avgProcessing = $this->dashboardHeroStatsService->calculateMonthlyAverageProcessingDays();
 
-            // 7. Kepuasan Pelanggan
+            // 7. Kepuasan Pengguna
             $customerSatisfaction = $this->dashboardHeroStatsService->calculateCustomerSatisfaction();
 
             // 8. Disposisi Table Data
@@ -73,6 +74,7 @@ class DashboardController extends Controller
                 'avg_processing' => $avgProcessing,
                 'customer_satisfaction' => $customerSatisfaction,
                 'disposisi_table' => $disposisiData,
+                'guest_book_today' => $this->getGuestBookToday(),
             ];
 
         } catch (\Exception $e) {
@@ -103,6 +105,12 @@ class DashboardController extends Controller
                     'trend_direction' => 'stable',
                 ],
                 'disposisi_table' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 15),
+                'guest_book_today' => [
+                    'total' => 0,
+                    'active' => 0,
+                    'checked_out' => 0,
+                    'latest' => collect([]),
+                ],
             ];
         }
 
@@ -246,6 +254,33 @@ class DashboardController extends Controller
                 'due_locations' => collect([]),
                 'is_work_day' => false,
                 'active_window' => null,
+            ];
+        }
+    }
+
+    private function getGuestBookToday(): array
+    {
+        try {
+            $today = today()->toDateString();
+            $visits = GuestVisit::with('investigator')
+                ->where('visit_date', $today)
+                ->orderBy('visit_time', 'desc')
+                ->get();
+
+            return [
+                'total' => $visits->count(),
+                'active' => $visits->where('status', 'active')->count(),
+                'checked_out' => $visits->where('status', 'checked_out')->count(),
+                'latest' => $visits->take(6),
+            ];
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Dashboard guest book today query failed', ['error' => $e->getMessage()]);
+
+            return [
+                'total' => 0,
+                'active' => 0,
+                'checked_out' => 0,
+                'latest' => collect([]),
             ];
         }
     }

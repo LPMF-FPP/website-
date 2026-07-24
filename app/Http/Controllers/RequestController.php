@@ -218,17 +218,19 @@ class RequestController extends Controller
         } else {
             // External (non-Polri) fields
             $rules['external_name'] = 'required|string|min:3|max:255';
-            $rules['external_phone'] = 'required|string|max:20';
             $rules['external_institution'] = 'required|string|max:255';
             $rules['external_hp'] = 'required|string|max:20';
             $rules['external_occupation'] = 'required|string|max:255';
+            $rules['tujuan'] = 'required|string|max:1000';
         }
 
-        // Suspects array validation (new multi-suspect input)
-        $rules['suspects'] = 'sometimes|array|min:1';
-        $rules['suspects.*.name'] = 'required|string|max:255';
-        $rules['suspects.*.gender'] = 'nullable|in:male,female';
-        $rules['suspects.*.age'] = 'nullable|integer|min:0|max:120';
+        // Suspects array validation (multi-suspect input, only for POLRI)
+        if ($isInvestigator) {
+            $rules['suspects'] = 'required|array|min:1';
+            $rules['suspects.*.name'] = 'required|string|max:255';
+            $rules['suspects.*.gender'] = 'nullable|in:male,female';
+            $rules['suspects.*.age'] = 'nullable|integer|min:0|max:120';
+        }
 
         $messages = [
             'investigator_name.required' => 'Nama penyidik harus diisi',
@@ -237,10 +239,10 @@ class RequestController extends Controller
             'investigator_jurisdiction.required' => 'Satuan/wilayah hukum harus diisi',
             'investigator_phone.required' => 'No. HP penyidik harus diisi',
             'external_name.required' => 'Nama harus diisi',
-            'external_phone.required' => 'Nomor telepon harus diisi',
             'external_institution.required' => 'Instansi harus diisi',
             'external_hp.required' => 'Nomor HP harus diisi',
             'external_occupation.required' => 'Pekerjaan harus diisi',
+            'tujuan.required' => 'Tujuan pengujian harus diisi',
             'suspects.required' => 'Minimal 1 tersangka harus diisi',
             'suspects.*.name.required' => 'Nama tersangka harus diisi',
             'request_letter.required' => 'Surat permintaan harus diupload',
@@ -293,7 +295,6 @@ class RequestController extends Controller
                     'rank' => 'NON-POLRI',
                     'jurisdiction' => $validated['external_institution'],
                     'phone' => $validated['external_hp'],
-                    'alt_phone' => $validated['external_phone'],
                     'institution' => $validated['external_institution'],
                     'occupation' => $validated['external_occupation'],
                 ]);
@@ -320,6 +321,7 @@ class RequestController extends Controller
                 'suspect_address' => $validated['suspect_address'] ?? null,
                 'case_description' => $validated['case_description'] ?? null,
                 'has_expert_witness_request' => $request->boolean('has_expert_witness_request'),
+                'tujuan' => $validated['tujuan'] ?? null,
                 'expert_witness_letter_number' => $request->boolean('has_expert_witness_request')
                     ? ($validated['expert_witness_letter_number'] ?? null)
                     : null,
@@ -439,10 +441,14 @@ class RequestController extends Controller
                 $visit = \App\Models\GuestVisit::create([
                     'investigator_id' => $investigator->id,
                     'test_request_id' => $testRequest->id,
-                    'visit_date' => $validated['letter_date'] ?? now()->toDateString(),
+                    'visit_date' => now()->toDateString(),
                     'visit_time' => now()->toTimeString(),
                     'purpose' => 'Permohonan Pengujian',
                     'host_id' => auth()->id(),
+                    'visitor_name' => $investigator->name,
+                    'visitor_identity' => $investigator->nrp,
+                    'visitor_relation' => 'Penyidik',
+                    'visitor_phone' => $investigator->phone,
                     'created_by' => auth()->id(),
                 ]);
                 $visit->forceFill([
@@ -1144,7 +1150,7 @@ class RequestController extends Controller
             // Hapus survey responses terkait
             $testRequest->surveyResponses()->delete();
 
-            // Hapus survey pelanggan terkait
+            // Hapus survey pengguna terkait
             $testRequest->customerSurvey()->delete();
 
             // Hapus file terkait

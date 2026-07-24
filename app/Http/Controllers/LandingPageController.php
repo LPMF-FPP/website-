@@ -98,7 +98,7 @@ class LandingPageController extends Controller
                         : 'Belum ada data',
                 ],
                 [
-                    'label' => 'Kepuasan Pelanggan',
+                    'label' => 'Kepuasan Pengguna',
                     'value' => $customerSatisfaction['total_responses'] > 0
                         ? number_format($customerSatisfaction['score'], 2, ',', '.').'/4'
                         : 'Belum ada data',

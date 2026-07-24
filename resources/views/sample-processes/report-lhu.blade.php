@@ -103,10 +103,10 @@
         <span class="page-num">Halaman 1/1</span>
     </div>
 
-    <h2>Informasi Pelanggan &amp; Sampel</h2>
+    <h2>Informasi Pengguna &amp; Sampel</h2>
     <div class="grid">
-        <div class="field"><div class="label">Nama Pelanggan</div><div class="value">{{ $customerUnit }}</div></div>
-        <div class="field"><div class="label">Alamat Pelanggan</div><div class="value">{{ $customerAddress }}</div></div>
+        <div class="field"><div class="label">Nama Pengguna</div><div class="value">{{ $customerUnit }}</div></div>
+        <div class="field"><div class="label">Alamat Pengguna</div><div class="value">{{ $customerAddress }}</div></div>
         <div class="field"><div class="label">Nama Kontak</div><div class="value">{{ $customerName ?: '-' }}</div></div>
         <div class="field"><div class="label">Nomor Permintaan</div><div class="value">{{ $requestNumber }}</div></div>
         <div class="field"><div class="label">Nomor Surat / Dasar</div><div class="value">{{ $caseNumber }}</div></div>

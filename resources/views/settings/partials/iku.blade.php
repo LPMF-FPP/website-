@@ -186,7 +186,7 @@
         <div class="flex items-center justify-between py-3 border-t border-gray-100">
             <div>
                 <label class="text-sm font-medium text-gray-700">Survey Wajib untuk Penyerahan</label>
-                <p class="text-xs text-gray-500">Pelanggan harus mengisi survey sebelum pengambilan hasil</p>
+                <p class="text-xs text-gray-500">Pengguna harus mengisi survey sebelum pengambilan hasil</p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" x-model="client.state.form.iku.survey_required_for_delivery" @change="ikuConfigDirty = true" class="sr-only peer">
@@ -383,7 +383,7 @@
     <div>
         <h2 class="text-lg font-semibold text-gray-900">Export Rekap Survey</h2>
         <p class="text-sm text-gray-500 mt-1">
-            Download data survey kepuasan pelanggan dalam format Excel.
+            Download data survey kepuasan pengguna dalam format Excel.
         </p>
     </div>
 

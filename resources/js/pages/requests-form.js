@@ -41,6 +41,13 @@ function initInvestigatorToggle() {
                 .forEach((el) => {
                     el.disabled = false;
                 });
+            // Show investigator-only sections
+            document.querySelectorAll("[data-investigator-only]").forEach((el) => {
+                el.style.display = "";
+                el.querySelectorAll("input, select, textarea").forEach((f) => {
+                    f.disabled = false;
+                });
+            });
         } else {
             investigatorBlock.style.display = "none";
             externalBlock.style.display = "";
@@ -56,6 +63,13 @@ function initInvestigatorToggle() {
                 .forEach((el) => {
                     el.disabled = false;
                 });
+            // Hide investigator-only sections (suspects, expert witness)
+            document.querySelectorAll("[data-investigator-only]").forEach((el) => {
+                el.style.display = "none";
+                el.querySelectorAll("input, select, textarea, button").forEach((f) => {
+                    f.disabled = true;
+                });
+            });
         }
     }
 

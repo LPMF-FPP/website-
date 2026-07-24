@@ -253,7 +253,7 @@
 
     </div>
 
-    <!-- III. KECEPATAN PENGERJAAN & IV. KEPUASAN PELANGGAN -->
+    <!-- III. KECEPATAN PENGERJAAN & IV. KEPUASAN PENGGUNA -->
     <div style="page-break-inside: avoid; margin-bottom: 10px;">
         <table style="width: 100%; border-collapse: collapse; border: none;">
             <tr>
@@ -275,7 +275,7 @@
                 <td style="width: 4%; border: none;"></td>
                 <td style="width: 48%; vertical-align: top; border: none; padding: 0;">
                     @if(isset($report->report_data['satisfaction']))
-                    <div class="section-title">IV. Kepuasan Pelanggan</div>
+                    <div class="section-title">IV. Kepuasan Pengguna</div>
                     <div class="compact-box">
                         <p><strong>Skor Rata-rata:</strong> {{ $report->report_data['satisfaction']['avg_score'] }} / 4.00</p>
                         <p><strong>Total Responden:</strong> {{ $report->report_data['satisfaction']['total_respondents'] }}</p>

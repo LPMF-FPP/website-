@@ -23,6 +23,7 @@ class TestRequest extends Model
 
         'incident_location', 'status', 'official_letter_path', 'evidence_photo_path',
         'has_expert_witness_request', 'expert_witness_letter_number', 'expert_witness_letter_date',
+        'tujuan',
 
         'submitted_at', 'verified_at', 'received_at', 'completed_at',
         'ready_for_delivery_at',
