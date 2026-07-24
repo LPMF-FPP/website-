@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v2.5.5
+# WALKTHROUGH - LPMF LIMS v2.6.0
 
 > **Single Source of Truth** — Pedoman terupdate terhadap codebase Laboratory Information Management System.
 
@@ -147,7 +147,20 @@ WhatsApp service berjalan di container Docker terpisah.
 
 ---
 
-## 📰 Recent Changes (v2.5.x)
+## 📰 Recent Changes (v2.6.x)
+
+### v2.6.0 (24 Juli 2026) - Buku Tamu, Dashboard Redesign & Form Non-POLRI
+
+- **Buku Tamu (Guest Book):** Fitur pencatatan kunjungan tamu laboratorium. Setiap permohonan pengujian baru dan penyerahan selesai otomatis mencatat kunjungan. Mendukung 9 jenis keperluan: Permohonan Pengujian, Pengambilan Hasil Pengujian, Audit Mutu, Inspeksi, Pelatihan, Kunjungan (Studi Banding), Service Mesin, Magang, Lainnya.
+- **Mode Form Dua Kategori:** Untuk keperluan pengujian/pengambilan (kasus), form menampilkan Pemilik Kasus dan Pihak Yang Datang dengan checkbox "Pemilik kasus = pihak yang datang". Untuk keperluan non-kasus, form menyembunyikan Tersangka & Saksi Ahli dan menampilkan field data tamu lengkap.
+- **Tujuan Pengujian:** Kategori bukan anggota Polri kini memiliki field "Tujuan Pengujian" sebagai pengganti data Tersangka dan Saksi Ahli.
+- **Widget Dashboard Buku Tamu:** Widget ringkas di dashboard utama menampilkan statistik kunjungan hari ini, daftar tamu terbaru dengan avatar inisial, date picker untuk navigasi ke halaman Buku Tamu dengan filter tanggal, dan month picker untuk download rekap bulanan.
+- **FAB Catat Kunjungan:** Tombol aksi utama "Catat Kunjungan" dipindahkan ke Floating Action Button di pojok kanan bawah halaman Buku Tamu, menggantikan posisi sebelumnya di header yang bersaing dengan kontrol sekunder.
+- **Rekap Bulanan PDF:** Download laporan rekap kunjungan per bulan dengan kop surat yang sama dengan BA ST dan BA Penerimaan, dilengkapi ringkasan statistik, rincian per keperluan dengan chart batang, dan daftar lengkap kunjungan.
+- **Auto-Create & Visitor Population:** Kunjungan otomatis kini mengisi data visitor (nama, identitas, relasi, telepon) dari data penyidik, bukan lagi meninggalkan kolom kosong.
+- **Terminologi Pengguna:** Seluruh istilah "Pelanggan" diganti menjadi "Pengguna" di 11 file, dan "Pelanggan" pada BA Serah Terima diganti menjadi "Penerima".
+- **WhatsApp Milestone:** Milestone #5 (Selesai) pada RESI tracking WhatsApp kini tercentang saat status permintaan `completed`.
+- **Validasi & Keamanan:** visitor_phone regex, visit_time range (06:00-22:00), visit_date lower bound (2024-01-01), notes max:2000, policy checkout, viewAny tightened, authorization di show/edit/destroy.
 
 ### v2.5.7 (8 Juli 2026) - Pembersihan Storage & Code Review Hardening
 
