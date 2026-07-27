@@ -304,6 +304,7 @@ export class SettingsClient {
                             ? `Body snippet: ${snippet}`
                             : "Empty response body."
                     }`,
+                { cause: parseError },
             );
         }
 

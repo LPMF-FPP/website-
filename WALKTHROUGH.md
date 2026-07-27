@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v2.6.0
+# WALKTHROUGH - LPMF LIMS v2.6.1
 
 > **Single Source of Truth** — Pedoman terupdate terhadap codebase Laboratory Information Management System.
 
@@ -148,6 +148,14 @@ WhatsApp service berjalan di container Docker terpisah.
 ---
 
 ## 📰 Recent Changes (v2.6.x)
+
+### v2.6.1 (27 Juli 2026) - Integritas Form Sampel & Remediasi Dependency
+
+- **Penyimpanan Multi-Sampel:** Memperbaiki struktur HTML form create/edit permintaan yang sebelumnya membuat sampel tambahan terlihat di halaman tetapi berada di luar elemen `<form>`, sehingga hanya sampel pertama yang terkirim ke server.
+- **Tes Regresi Form:** Menambahkan verifikasi DOM untuk memastikan container sampel selalu berada di dalam form create dan edit.
+- **Remediasi Keamanan NPM:** Memperbarui dependency langsung dan transitif yang terdampak, termasuk Axios, PostCSS, Concurrently, ESLint, `glob`, dan `minimatch`. Hasil `npm audit` turun dari 9 temuan (8 high, 1 critical) menjadi 0 kerentanan.
+- **Modernisasi Tooling:** Migrasi ESLint ke native flat config, mengganti `npm-run-all` dengan `npm-run-all2`, serta menghapus plugin TypeScript, Vue, JSX, dan Tailwind Vite yang tidak digunakan codebase.
+- **Quality Gates:** Instalasi bersih `npm ci`, ESLint, Stylelint, audit critical, build Vite, dan unit test JavaScript telah lulus.
 
 ### v2.6.0 (24 Juli 2026) - Buku Tamu, Dashboard Redesign & Form Non-POLRI
 

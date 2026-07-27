@@ -1966,7 +1966,7 @@ export function registerSettingsComponent() {
                     return;
                 }
 
-                let detail = null;
+                let detail;
                 try {
                     detail = await this.fetchTemplateDetail(templateId);
                 } catch (error) {
