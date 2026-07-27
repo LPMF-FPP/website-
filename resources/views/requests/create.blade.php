@@ -239,7 +239,6 @@
                                     <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                                 @enderror
                             </div>
-                            </div>
                             <div>
                                 <label for="external_institution" class="block text-sm font-medium text-gray-700 mb-2">
                                     Instansi <span class="text-red-500">*</span>
