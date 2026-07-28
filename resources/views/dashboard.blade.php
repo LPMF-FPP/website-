@@ -70,7 +70,7 @@
             ])
 
             {{-- Buku Tamu Widget --}}
-            @if(auth()->user()->can('guest-book.view'))
+            @if(auth()->user()->hasPermission('guest-book.view'))
                 @include('dashboard.partials.guest-book-widget', [
                     'guestBookToday' => $guest_book_today ?? ['total' => 0, 'active' => 0, 'checked_out' => 0, 'latest' => collect([])]
                 ])
