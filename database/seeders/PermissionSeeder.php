@@ -132,7 +132,7 @@ class PermissionSeeder extends Seeder
             'pencarian.view',
             'statistik.view',
             'changelogs.view',
-            'guest-book.view',
+            'guest-book.view', 'guest-book.create',
         ],
         'analis' => [
             'dashboard.view',
@@ -146,7 +146,7 @@ class PermissionSeeder extends Seeder
             'monitoring.view',
             'inventori.view',
             'changelogs.view',
-            'guest-book.view',
+            'guest-book.view', 'guest-book.create',
         ],
         'penyelia' => [
             'dashboard.view',
