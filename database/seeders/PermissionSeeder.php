@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Permission;
 use App\Models\RolePermission;
+use App\Models\User;
 use Illuminate\Database\Seeder;
 
 class PermissionSeeder extends Seeder
@@ -132,7 +133,7 @@ class PermissionSeeder extends Seeder
             'pencarian.view',
             'statistik.view',
             'changelogs.view',
-            'guest-book.view', 'guest-book.create',
+            'guest-book.view', 'guest-book.create', 'guest-book.edit', 'guest-book.checkout', 'guest-book.delete', 'guest-book.export',
         ],
         'analis' => [
             'dashboard.view',
@@ -146,7 +147,7 @@ class PermissionSeeder extends Seeder
             'monitoring.view',
             'inventori.view',
             'changelogs.view',
-            'guest-book.view', 'guest-book.create',
+            'guest-book.view', 'guest-book.create', 'guest-book.edit', 'guest-book.checkout', 'guest-book.delete', 'guest-book.export',
         ],
         'penyelia' => [
             'dashboard.view',
@@ -166,7 +167,7 @@ class PermissionSeeder extends Seeder
             'qmh.rapat.view',
             'qmh.audit.view',
             'qmh.kum.view',
-            'guest-book.view', 'guest-book.create', 'guest-book.edit', 'guest-book.checkout',
+            'guest-book.view', 'guest-book.create', 'guest-book.edit', 'guest-book.checkout', 'guest-book.delete', 'guest-book.export',
         ],
         'manajer_teknis' => [
             'dashboard.view',
@@ -235,6 +236,7 @@ class PermissionSeeder extends Seeder
             'qmh.audit.view', 'qmh.audit.view.all', 'qmh.audit.create', 'qmh.audit.create.all', 'qmh.audit.edit', 'qmh.audit.delete',
             'qmh.kum.view', 'qmh.kum.view.all', 'qmh.kum.create', 'qmh.kum.create.all', 'qmh.kum.edit', 'qmh.kum.delete',
             'action-item:verify', 'action-item:close', 'action-item:reopen',
+            'guest-book.view', 'guest-book.create', 'guest-book.edit', 'guest-book.checkout', 'guest-book.delete', 'guest-book.export',
         ],
         'analyst' => [
             // analyst sama dengan analis
@@ -249,6 +251,7 @@ class PermissionSeeder extends Seeder
             'monitoring.view',
             'inventori.view',
             'changelogs.view',
+            'guest-book.view', 'guest-book.create', 'guest-book.edit', 'guest-book.checkout', 'guest-book.delete', 'guest-book.export',
         ],
         'lab_analyst' => [
             // lab_analyst sama dengan analis
@@ -263,6 +266,7 @@ class PermissionSeeder extends Seeder
             'monitoring.view',
             'inventori.view',
             'changelogs.view',
+            'guest-book.view', 'guest-book.create', 'guest-book.edit', 'guest-book.checkout', 'guest-book.delete', 'guest-book.export',
         ],
         'petugas_lab' => [
             // petugas_lab akses terbatas
@@ -273,6 +277,7 @@ class PermissionSeeder extends Seeder
             'monitoring.view',
             'inventori.view',
             'changelogs.view',
+            'guest-book.view', 'guest-book.create', 'guest-book.edit', 'guest-book.checkout', 'guest-book.delete', 'guest-book.export',
         ],
     ];
 
@@ -310,6 +315,10 @@ class PermissionSeeder extends Seeder
                 }
             }
         }
+
+        User::query()->eachById(
+            fn (User $user) => $user->clearPermissionCache()
+        );
 
         $this->command->info('Role permissions created successfully.');
     }
