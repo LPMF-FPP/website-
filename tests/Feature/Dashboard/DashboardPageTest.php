@@ -58,6 +58,27 @@ class DashboardPageTest extends TestCase
         $response->assertSee('Kepuasan');
     }
 
+    public function test_dashboard_counts_pending_requests_instead_of_pending_samples(): void
+    {
+        $user = User::factory()->create();
+
+        foreach (['submitted', 'verified', 'received'] as $status) {
+            TestRequest::factory()->create(['status' => $status]);
+        }
+
+        foreach (['in_testing', 'analysis', 'quality_check', 'ready_for_delivery', 'completed', 'rejected'] as $status) {
+            TestRequest::factory()->create(['status' => $status]);
+        }
+
+        $response = $this->actingAs($user)->get(route('dashboard'));
+
+        $response->assertOk();
+        $response->assertViewHas('stats', fn (array $stats): bool => $stats['pending_requests'] === 3);
+        $response->assertSee('data-stat-key="pending_requests"', false);
+        $response->assertSeeText('Permintaan Pending');
+        $response->assertDontSeeText('Sampel Pending');
+    }
+
     public function test_dashboard_disposisi_search_uses_static_alpine_expression(): void
     {
         $user = User::factory()->create();

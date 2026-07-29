@@ -80,11 +80,11 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 @php $cards = [
                     ['label' => 'Total Permintaan', 'key' => 'total_requests'],
-                    ['label' => 'Sampel Pending', 'key' => 'pending_samples'],
+                    ['label' => 'Permintaan Pending', 'key' => 'pending_requests'],
                     ['label' => 'Pengujian Selesai', 'key' => 'completed_tests'],
                 ]; @endphp
                 @foreach($cards as $c)
-                <div class="card">
+                <div class="card" data-stat-key="{{ $c['key'] }}">
                     <div class="space-y-1">
                         <div class="text-3xl font-semibold text-primary-900">
                             {{ $stats[$c['key']] ?? 0 }}{{ $c['suffix'] ?? '' }}

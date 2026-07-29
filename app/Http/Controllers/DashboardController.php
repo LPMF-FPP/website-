@@ -26,9 +26,7 @@ class DashboardController extends Controller
         try {
             // 1. Hitung statistik utama dari database
             $totalRequests = TestRequest::count();
-            $pendingSamples = Sample::whereHas('testRequest', function ($query) {
-                $query->whereIn('status', ['submitted', 'verified', 'received']);
-            })->count();
+            $pendingRequests = TestRequest::whereIn('status', ['submitted', 'verified', 'received'])->count();
             $completedTests = TestRequest::where('status', 'completed')->count();
 
             // 2. Hitung IKU Performance
@@ -62,7 +60,7 @@ class DashboardController extends Controller
             $dashboardData = [
                 'stats' => [
                     'total_requests' => $totalRequests,
-                    'pending_samples' => $pendingSamples,
+                    'pending_requests' => $pendingRequests,
                     'completed_tests' => $completedTests,
                     'iku_value' => $ikuData['iku_value'],
                     'iku_category' => $ikuData['iku_category'],
@@ -82,7 +80,7 @@ class DashboardController extends Controller
             $dashboardData = [
                 'stats' => [
                     'total_requests' => 0,
-                    'pending_samples' => 0,
+                    'pending_requests' => 0,
                     'completed_tests' => 0,
                     'iku_value' => 0,
                     'iku_category' => 'F',
