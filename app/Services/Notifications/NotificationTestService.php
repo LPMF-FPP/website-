@@ -3,17 +3,22 @@
 namespace App\Services\Notifications;
 
 use App\Mail\TestNotificationMail;
+use App\Services\WhatsApp\NotificationService;
+use App\Services\WhatsApp\OutboundMessageService;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class NotificationTestService
 {
-    public function __construct(private readonly WhatsAppService $whatsapp) {}
+    public function __construct(
+        private readonly NotificationService $notificationService,
+        private readonly OutboundMessageService $outboundMessageService
+    ) {}
 
     /**
      * Send a test notification via the specified channel.
      *
-     * @return array{status: string, message: string, delivered_at?: string}
+     * @return array{status: string, message: string, delivered_at?: string, message_log_id?: int}
      */
     public function send(string $channel, string $target, ?string $message = null): array
     {
@@ -71,9 +76,20 @@ class NotificationTestService
         try {
             $text = $message ?: '*[LIMS]* Tes notifikasi - WhatsApp berfungsi dengan baik.';
 
-            $result = $this->whatsapp->send($target, $text);
+            $messageLog = $this->outboundMessageService->queueText(
+                $this->notificationService->formatJID($target),
+                $text,
+                [
+                    'recipient_name' => $target,
+                    'source_label' => 'Pesan uji pengaturan',
+                ]
+            );
 
-            return $result;
+            return [
+                'status' => 'queued',
+                'message' => 'Pesan uji WhatsApp telah diantrikan.',
+                'message_log_id' => $messageLog->id,
+            ];
         } catch (\Throwable $e) {
             Log::error('WhatsApp notification test failed', [
                 'target' => $target,

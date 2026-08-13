@@ -155,6 +155,36 @@ class WhatsAppHubOutboundRetryTest extends TestCase
             ->assertJsonPath('messages.data.0.retry_block_reason', 'Log ini dibuat sebelum fitur retry aman aktif. Payload asli tidak tersedia; kirim ulang dari sumber pesan untuk membuat log baru yang dapat diulang bila gagal.');
     }
 
+    public function test_imported_outbox_log_displays_its_safe_preview_and_cannot_be_retried(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        $message = WhatsAppMessageLog::query()->create([
+            'recipient_jid' => '628123456789@s.whatsapp.net',
+            'recipient_name' => 'Penyidik',
+            'recipient_type' => 'individual',
+            'status' => WhatsAppMessageLog::STATUS_FAILED,
+            'transport' => WhatsAppMessageLog::TRANSPORT_LEGACY_OUTBOX,
+            'payload_encrypted' => Crypt::encryptString(json_encode([
+                'kind' => 'text',
+                'recipient_jid' => '628123456789@s.whatsapp.net',
+                'message' => 'Dokumen siap untuk diambil.',
+                'mentions' => [],
+            ], JSON_THROW_ON_ERROR)),
+            'source_label' => 'Notifikasi siap diambil',
+            'retryable' => false,
+        ]);
+
+        $this->actingAs($user)
+            ->getJson(route('whatsapp.logs'))
+            ->assertOk()
+            ->assertJsonPath('messages.data.0.id', $message->id)
+            ->assertJsonPath('messages.data.0.message_preview', 'Dokumen siap untuk diambil.')
+            ->assertJsonPath('messages.data.0.message_preview_source', 'historical_outbox')
+            ->assertJsonPath('messages.data.0.is_legacy_log', true)
+            ->assertJsonPath('messages.data.0.retry_available', false)
+            ->assertJsonPath('messages.data.0.retry_block_reason', 'Log ini diimpor dari outbox sebelum fitur retry aman aktif. Pengiriman ulang diblokir untuk mencegah pesan ganda.');
+    }
+
     public function test_qmh_action_codes_are_redacted_from_message_previews(): void
     {
         $user = User::factory()->create(['role' => 'admin']);

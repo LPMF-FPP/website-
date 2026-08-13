@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WhatsAppMessageLog extends Model
 {
+    public const TRANSPORT_GOWA = 'gowa';
+
+    public const TRANSPORT_LEGACY_OUTBOX = 'legacy_outbox';
+
     public const STATUS_PENDING = 'pending';
 
     public const STATUS_PREPARING = 'preparing';
@@ -81,7 +85,7 @@ class WhatsAppMessageLog extends Model
 
     public function canRetry(): bool
     {
-        return $this->transport === 'gowa'
+        return $this->transport === self::TRANSPORT_GOWA
             && $this->status === self::STATUS_FAILED
             && $this->retryable
             && is_string($this->payload_encrypted)

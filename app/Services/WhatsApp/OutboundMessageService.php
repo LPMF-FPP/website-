@@ -16,8 +16,6 @@ use Illuminate\Support\Str;
 
 class OutboundMessageService
 {
-    private const TRANSPORT_GOWA = 'gowa';
-
     private const PRIVATE_ATTACHMENT_DISK = 'local';
 
     public function __construct(private readonly GowaClient $gowaClient) {}
@@ -274,6 +272,12 @@ class OutboundMessageService
             return null;
         }
 
+        if ($messageLog->transport === WhatsAppMessageLog::TRANSPORT_LEGACY_OUTBOX) {
+            return $messageLog->status === WhatsAppMessageLog::STATUS_SENT
+                ? 'Pesan telah terkirim dan tidak dapat diulang.'
+                : 'Log ini diimpor dari outbox sebelum fitur retry aman aktif. Pengiriman ulang diblokir untuk mencegah pesan ganda.';
+        }
+
         if ($messageLog->retry_block_reason) {
             return $messageLog->retry_block_reason;
         }
@@ -465,7 +469,7 @@ class OutboundMessageService
             'recipient_type' => $this->nullableString($options['recipient_type'] ?? null)
                 ?? (str_ends_with($recipientJid, '@g.us') ? 'group' : 'individual'),
             'status' => $initialStatus,
-            'transport' => self::TRANSPORT_GOWA,
+            'transport' => WhatsAppMessageLog::TRANSPORT_GOWA,
             'payload_encrypted' => $this->encryptPayload($payload),
             'source_type' => $this->nullableString($options['source_type'] ?? null),
             'source_id' => isset($options['source_id']) && $options['source_id'] !== null

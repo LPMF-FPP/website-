@@ -1306,6 +1306,8 @@ class WhatsAppHubController extends Controller
             ? $this->outboundMessageService->sanitizeAuditPreview($message->batch?->message_preview)
             : null;
 
+        $isLegacyOutbox = $message->transport === WhatsAppMessageLog::TRANSPORT_LEGACY_OUTBOX;
+
         $response = [
             'id' => $message->id,
             'batch_id' => $message->batch_id,
@@ -1316,10 +1318,10 @@ class WhatsAppHubController extends Controller
             'status' => $message->status,
             'message_preview' => $storedPreview ?? $historicalPreview,
             'message_preview_source' => $storedPreview !== null
-                ? 'stored_payload'
+                ? ($isLegacyOutbox ? 'historical_outbox' : 'stored_payload')
                 : ($historicalPreview !== null ? 'historical_batch' : null),
-            'is_legacy_log' => $message->transport === null
-                && (! is_string($message->payload_encrypted) || $message->payload_encrypted === ''),
+            'is_legacy_log' => $isLegacyOutbox || ($message->transport === null
+                && (! is_string($message->payload_encrypted) || $message->payload_encrypted === '')),
             'error_message' => $this->safeLogError($message->error_message),
             'attempt_count' => $message->attempt_count,
             'attempts_count' => $message->attempts_count ?? $message->attempt_count,

@@ -665,8 +665,11 @@ class DeliveryController extends Controller
     /**
      * Kirim notifikasi WhatsApp "Siap Diambil" ke penyidik
      */
-    public function sendPickupNotification(TestRequest $request, \App\Services\WhatsApp\NotificationService $notificationService)
-    {
+    public function sendPickupNotification(
+        TestRequest $request,
+        \App\Services\WhatsApp\NotificationService $notificationService,
+        \App\Services\WhatsApp\MilestoneNotificationService $milestoneNotificationService
+    ) {
         if (! in_array($request->status, ['ready_for_delivery', 'completed'])) {
             return back()->with('error', 'Notifikasi hanya dapat dikirim untuk permintaan yang siap diserahkan.');
         }
@@ -698,22 +701,19 @@ class DeliveryController extends Controller
             return back()->with('error', 'Template pesan notifikasi tidak ditemukan.');
         }
 
-        $outbox = \App\Models\WhatsappOutbox::updateOrCreate(
-            [
-                'test_request_id' => $request->id,
-                'milestone_key' => 'READY_FOR_PICKUP',
-            ],
-            [
-                'to_phone_e164' => \App\Support\PhoneNormalizer::toE164($phone),
-                'to_jid' => $jid,
-                'message_text' => $message,
-                'status' => 'queued',
-                'attempts' => 0,
-                'last_error' => null,
-            ]
-        );
-
-        \App\Jobs\SendWhatsAppNotificationJob::dispatch($outbox->id);
+        try {
+            $milestoneNotificationService->queue(
+                $request->id,
+                'READY_FOR_PICKUP',
+                $phone,
+                $jid,
+                (string) $request->investigator->name,
+                $message,
+                forceNewDelivery: true
+            );
+        } catch (\LogicException $exception) {
+            return back()->with('error', $exception->getMessage());
+        }
 
         return back()->with('success', 'Notifikasi "Siap Diambil" berhasil dikirim ke '.$request->investigator->name.'.');
     }

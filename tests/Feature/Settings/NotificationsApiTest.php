@@ -6,6 +6,7 @@ use App\Models\User;
 use Database\Seeders\SystemSettingSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Queue;
 use Tests\TestCase;
 
 class NotificationsApiTest extends TestCase
@@ -64,5 +65,26 @@ class NotificationsApiTest extends TestCase
 
         $response->assertStatus(200)
             ->assertJsonPath('status', 'delivered');
+    }
+
+    public function test_notification_test_endpoint_queues_whatsapp_in_the_central_log(): void
+    {
+        Queue::fake();
+        $user = User::factory()->create(['role' => 'admin']);
+
+        $response = $this->actingAs($user)->postJson('/api/settings/notifications/test', [
+            'channel' => 'whatsapp',
+            'target' => '08123456789',
+            'message' => 'Tes log WhatsApp',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('status', 'queued')
+            ->assertJsonPath('message', 'Pesan uji WhatsApp telah diantrikan.');
+        $this->assertDatabaseHas('whatsapp_message_logs', [
+            'source_label' => 'Pesan uji pengaturan',
+            'status' => 'pending',
+            'recipient_jid' => '628123456789@s.whatsapp.net',
+        ]);
     }
 }

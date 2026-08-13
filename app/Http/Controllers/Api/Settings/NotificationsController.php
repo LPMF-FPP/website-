@@ -51,7 +51,7 @@ class NotificationsController extends Controller
             $data['message']
         );
 
-        $status = $result['status'] === 'delivered' ? 200 : 422;
+        $status = in_array($result['status'], ['delivered', 'queued'], true) ? 200 : 422;
 
         return response()->json($result, $status);
     }

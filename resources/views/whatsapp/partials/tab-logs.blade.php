@@ -35,10 +35,13 @@
                             </div>
                             <div x-show="message.message_preview" class="mt-3 rounded-md border border-primary-100 bg-primary-50/60 px-3 py-2 text-sm text-gray-700 dark:border-primary-900/50 dark:bg-primary-900/10 dark:text-gray-200">
                                 <p class="text-xs font-semibold uppercase tracking-wide text-primary-700 dark:text-primary-300"
-                                   x-text="message.message_preview_source === 'historical_batch' ? 'Pratinjau batch historis' : 'Isi pesan tersimpan'"></p>
+                                   x-text="message.message_preview_source === 'historical_batch' ? 'Pratinjau batch historis' : (message.message_preview_source === 'historical_outbox' ? 'Pratinjau outbox historis' : 'Isi pesan tersimpan')"></p>
                                 <p class="mt-1 whitespace-pre-wrap break-words" x-text="message.message_preview"></p>
                                 <p x-show="message.message_preview_source === 'historical_batch'" class="mt-2 text-xs text-gray-500 dark:text-gray-400">
                                     Pratinjau ini berasal dari batch lama; payload per pesan tidak tersimpan.
+                                </p>
+                                <p x-show="message.message_preview_source === 'historical_outbox'" class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                    Pratinjau ini diimpor dari outbox lama; pengiriman ulang tetap diblokir.
                                 </p>
                             </div>
                             <p x-show="!message.message_preview" class="mt-3 text-xs text-gray-500 dark:text-gray-400">

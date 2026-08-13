@@ -3,18 +3,17 @@
 namespace App\Observers;
 
 use App\Enums\SampleStatus;
-use App\Jobs\SendWhatsAppNotificationJob;
 use App\Models\Sample;
-use App\Models\WhatsappOutbox;
+use App\Services\WhatsApp\MilestoneNotificationService;
 use App\Services\WhatsApp\NotificationService;
 use App\Support\ActivityLogger;
-use App\Support\PhoneNormalizer;
 use Illuminate\Support\Arr;
 
 class SampleObserver
 {
     public function __construct(
-        private NotificationService $notificationService
+        private NotificationService $notificationService,
+        private MilestoneNotificationService $milestoneNotificationService
     ) {}
 
     public function created(Sample $sample): void
@@ -130,21 +129,14 @@ class SampleObserver
             return;
         }
 
-        $outbox = WhatsappOutbox::updateOrCreate(
-            [
-                'test_request_id' => $testRequest->id,
-                'milestone_key' => $milestone,
-            ],
-            [
-                'to_phone_e164' => PhoneNormalizer::toE164($phone),
-                'to_jid' => $jid,
-                'message_text' => $message,
-                'status' => 'queued',
-                'attempts' => 0,
-            ]
+        $this->milestoneNotificationService->queue(
+            $testRequest->id,
+            $milestone,
+            $phone,
+            $jid,
+            (string) $testRequest->investigator->name,
+            $message
         );
-
-        SendWhatsAppNotificationJob::dispatch($outbox->id);
     }
 
     private function mapStatusToMilestone(string $status): ?string

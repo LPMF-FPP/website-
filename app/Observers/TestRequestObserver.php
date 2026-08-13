@@ -2,10 +2,9 @@
 
 namespace App\Observers;
 
-use App\Jobs\SendWhatsAppNotificationJob;
 use App\Models\TestRequest;
-use App\Models\WhatsappOutbox;
 use App\Services\NumberingService;
+use App\Services\WhatsApp\MilestoneNotificationService;
 use App\Services\WhatsApp\NotificationService;
 use App\Support\ActivityLogger;
 use Illuminate\Support\Arr;
@@ -14,6 +13,7 @@ class TestRequestObserver
 {
     public function __construct(
         private NotificationService $notificationService,
+        private MilestoneNotificationService $milestoneNotificationService,
         private NumberingService $numberingService
     ) {}
 
@@ -173,20 +173,13 @@ class TestRequestObserver
             return;
         }
 
-        $outbox = WhatsappOutbox::updateOrCreate(
-            [
-                'test_request_id' => $testRequest->id,
-                'milestone_key' => $milestone,
-            ],
-            [
-                'to_phone_e164' => \App\Support\PhoneNormalizer::toE164($phone),
-                'to_jid' => $jid,
-                'message_text' => $message,
-                'status' => 'queued',
-                'attempts' => 0,
-            ]
+        $this->milestoneNotificationService->queue(
+            $testRequest->id,
+            $milestone,
+            $phone,
+            $jid,
+            (string) $testRequest->investigator->name,
+            $message
         );
-
-        SendWhatsAppNotificationJob::dispatch($outbox->id);
     }
 }

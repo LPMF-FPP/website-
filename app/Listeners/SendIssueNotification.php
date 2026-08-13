@@ -3,14 +3,15 @@
 namespace App\Listeners;
 
 use App\Events\NumberIssued;
-use App\Services\WhatsAppService;
+use App\Services\WhatsApp\OutboundMessageService;
+use App\Support\PhoneNormalizer;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class SendIssueNotification implements ShouldQueue
 {
-    public function __construct(protected WhatsAppService $whatsapp) {}
+    public function __construct(protected OutboundMessageService $outboundMessageService) {}
 
     public function handle(NumberIssued $event): void
     {
@@ -50,14 +51,16 @@ class SendIssueNotification implements ShouldQueue
                 return;
             }
 
-            if ($this->whatsapp->isConfigured()) {
-                $this->whatsapp->send($recipient, $message);
-            } else {
-                Log::warning('[LIMS] WhatsApp service not configured', [
-                    'message' => $message,
-                    'recipient' => $recipient,
-                ]);
-            }
+            $this->outboundMessageService->queueText(
+                PhoneNormalizer::toJid(PhoneNormalizer::toE164((string) $recipient)),
+                $message,
+                [
+                    'recipient_name' => (string) $recipient,
+                    'source_type' => NumberIssued::class,
+                    'source_label' => 'Notifikasi nomor terbit',
+                    'idempotency_key' => 'number-issued:'.strtolower($event->scope).':'.$event->number.':'.PhoneNormalizer::toCanonicalDigits((string) $recipient),
+                ]
+            );
         }
     }
 }

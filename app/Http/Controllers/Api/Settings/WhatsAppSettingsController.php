@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api\Settings;
 
 use App\Http\Controllers\Controller;
-use App\Jobs\SendWhatsAppNotificationJob;
 use App\Models\WhatsappOutbox;
 use App\Services\WhatsApp\GowaClient;
+use App\Services\WhatsApp\MilestoneNotificationService;
 use App\Services\WhatsApp\NotificationService;
 use App\Services\WhatsApp\TemplateService;
 use Illuminate\Http\JsonResponse;
@@ -17,6 +17,7 @@ class WhatsAppSettingsController extends Controller
     public function __construct(
         private NotificationService $notificationService,
         private GowaClient $client,
+        private MilestoneNotificationService $milestoneNotificationService,
         private TemplateService $templateService
     ) {}
 
@@ -142,17 +143,14 @@ class WhatsAppSettingsController extends Controller
         $jid = $this->notificationService->formatJID($phone);
 
         try {
-            $outbox = WhatsappOutbox::create([
-                'test_request_id' => null,
-                'milestone_key' => 'TEST',
-                'to_phone_e164' => \App\Support\PhoneNormalizer::toE164($phone),
-                'to_jid' => $jid,
-                'message_text' => $message,
-                'status' => 'queued',
-                'attempts' => 0,
-            ]);
-
-            SendWhatsAppNotificationJob::dispatch($outbox->id);
+            $outbox = $this->milestoneNotificationService->queue(
+                null,
+                'TEST',
+                $phone,
+                $jid,
+                $phone,
+                $message
+            );
 
             return response()->json([
                 'message' => 'Test message queued successfully',

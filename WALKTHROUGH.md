@@ -159,6 +159,7 @@ WhatsApp service berjalan di container Docker terpisah.
 - **Keandalan Reminder:** Reminder terjadwal menggunakan job unik dan key idempotensi per penerima untuk mencegah pengiriman ganda saat scheduler atau worker tumpang tindih.
 - **Navigasi Log:** Tab Log WhatsApp kini mendukung pagination dengan state halaman pada URL, sehingga pesan gagal historis tetap dapat ditemukan dan ditinjau.
 - **Kejelasan Log Historis:** Pesan gagal sebelum rilis retry aman kini menampilkan pratinjau batch yang masih tersedia dan alasan eksplisit mengapa payload lama tidak dapat diulang. Pesan baru menampilkan pratinjau payload tersimpan dengan redaksi action code QMH dan kredensial.
+- **Cakupan Milestone & Dokumen:** Notifikasi Berita Acara Penerimaan, Berita Acara Penyerahan, siap diambil, penolakan, pesan uji, dan nomor terbit kini membuat envelope audit sebelum worker GOWA berjalan. Riwayat `whatsapp_outbox` sebelumnya diimpor sekali ke Log dengan pratinjau aman dan retry tetap diblokir agar tidak mengirim ulang pesan historis.
 
 ### v2.6.1 (27 Juli 2026) - Integritas Form Sampel & Remediasi Dependency
 
