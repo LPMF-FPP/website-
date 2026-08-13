@@ -6,6 +6,7 @@ namespace Tests\Feature\WhatsApp;
 
 use App\Jobs\SendPersistedWhatsAppMessage;
 use App\Models\User;
+use App\Models\WhatsAppMessageBatch;
 use App\Models\WhatsAppMessageLog;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Crypt;
@@ -110,6 +111,102 @@ class WhatsAppHubOutboundRetryTest extends TestCase
             ->assertJsonPath('messages.current_page', 2)
             ->assertJsonPath('messages.last_page', 2)
             ->assertJsonCount(1, 'messages.data');
+    }
+
+    public function test_log_endpoint_returns_a_safe_preview_from_the_stored_payload(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        $message = $this->retryableMessage();
+
+        $this->actingAs($user)
+            ->getJson(route('whatsapp.logs'))
+            ->assertOk()
+            ->assertJsonPath('messages.data.0.id', $message->id)
+            ->assertJsonPath('messages.data.0.message_preview', 'Payload tersimpan')
+            ->assertJsonPath('messages.data.0.message_preview_source', 'stored_payload')
+            ->assertJsonMissing(['payload_encrypted' => $message->payload_encrypted]);
+    }
+
+    public function test_legacy_failed_log_uses_its_batch_preview_and_explains_retry_is_unavailable(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        $batch = WhatsAppMessageBatch::query()->create([
+            'type' => 'reminder',
+            'title' => 'Pengingat historis',
+            'message_preview' => 'Pesan pengingat historis',
+            'total_recipients' => 1,
+        ]);
+        $message = WhatsAppMessageLog::query()->create([
+            'batch_id' => $batch->id,
+            'recipient_jid' => '628123456789@g.us',
+            'recipient_name' => 'Grup Pengingat',
+            'recipient_type' => 'group',
+            'status' => WhatsAppMessageLog::STATUS_FAILED,
+        ]);
+
+        $this->actingAs($user)
+            ->getJson(route('whatsapp.logs'))
+            ->assertOk()
+            ->assertJsonPath('messages.data.0.id', $message->id)
+            ->assertJsonPath('messages.data.0.message_preview', 'Pesan pengingat historis')
+            ->assertJsonPath('messages.data.0.message_preview_source', 'historical_batch')
+            ->assertJsonPath('messages.data.0.is_legacy_log', true)
+            ->assertJsonPath('messages.data.0.retry_available', false)
+            ->assertJsonPath('messages.data.0.retry_block_reason', 'Log ini dibuat sebelum fitur retry aman aktif. Payload asli tidak tersedia; kirim ulang dari sumber pesan untuk membuat log baru yang dapat diulang bila gagal.');
+    }
+
+    public function test_qmh_action_codes_are_redacted_from_message_previews(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        $message = $this->retryableMessage([
+            'payload_encrypted' => Crypt::encryptString(json_encode([
+                'kind' => 'text',
+                'recipient_jid' => '628123456789@s.whatsapp.net',
+                'message' => '/qmh 42 approve SECRET-CODE',
+                'mentions' => [],
+            ], JSON_THROW_ON_ERROR)),
+        ]);
+
+        $response = $this->actingAs($user)->getJson(route('whatsapp.logs'))->assertOk();
+
+        $this->assertSame('/qmh 42 approve [REDACTED]', $response->json('messages.data.0.message_preview'));
+        $this->assertStringNotContainsString('SECRET-CODE', json_encode($response->json(), JSON_THROW_ON_ERROR));
+    }
+
+    public function test_file_without_a_caption_uses_a_generic_preview(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        $message = $this->retryableMessage([
+            'payload_encrypted' => Crypt::encryptString(json_encode([
+                'kind' => 'file',
+                'recipient_jid' => '628123456789@s.whatsapp.net',
+                'caption' => '',
+            ], JSON_THROW_ON_ERROR)),
+        ]);
+
+        $this->actingAs($user)
+            ->getJson(route('whatsapp.logs'))
+            ->assertOk()
+            ->assertJsonPath('messages.data.0.id', $message->id)
+            ->assertJsonPath('messages.data.0.message_preview', 'Lampiran dikirim tanpa pesan tambahan.');
+    }
+
+    public function test_credentials_are_redacted_from_message_previews(): void
+    {
+        $user = User::factory()->create(['role' => 'admin']);
+        $message = $this->retryableMessage([
+            'payload_encrypted' => Crypt::encryptString(json_encode([
+                'kind' => 'text',
+                'recipient_jid' => '628123456789@s.whatsapp.net',
+                'message' => 'api_key=super-secret-value',
+                'mentions' => [],
+            ], JSON_THROW_ON_ERROR)),
+        ]);
+
+        $response = $this->actingAs($user)->getJson(route('whatsapp.logs'))->assertOk();
+
+        $this->assertSame('api_key=[REDACTED]', $response->json('messages.data.0.message_preview'));
+        $this->assertStringNotContainsString('super-secret-value', json_encode($response->json(), JSON_THROW_ON_ERROR));
     }
 
     private function retryableMessage(array $overrides = []): WhatsAppMessageLog

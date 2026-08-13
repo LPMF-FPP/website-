@@ -29,12 +29,25 @@
                             </div>
                             <p class="mt-1 break-all text-xs text-gray-500 dark:text-gray-400" x-text="message.recipient_jid"></p>
                             <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
-                                <span x-show="message.source_label" x-text="message.source_label"></span>
+                                <span x-text="message.source_label || (message.is_legacy_log ? 'Log historis' : 'Pesan WhatsApp')"></span>
                                 <span x-text="'Percobaan: ' + (message.attempt_count || 0)"></span>
                                 <span x-text="message.created_at ? new Date(message.created_at).toLocaleString() : '-'"></span>
                             </div>
+                            <div x-show="message.message_preview" class="mt-3 rounded-md border border-primary-100 bg-primary-50/60 px-3 py-2 text-sm text-gray-700 dark:border-primary-900/50 dark:bg-primary-900/10 dark:text-gray-200">
+                                <p class="text-xs font-semibold uppercase tracking-wide text-primary-700 dark:text-primary-300"
+                                   x-text="message.message_preview_source === 'historical_batch' ? 'Pratinjau batch historis' : 'Isi pesan tersimpan'"></p>
+                                <p class="mt-1 whitespace-pre-wrap break-words" x-text="message.message_preview"></p>
+                                <p x-show="message.message_preview_source === 'historical_batch'" class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                                    Pratinjau ini berasal dari batch lama; payload per pesan tidak tersimpan.
+                                </p>
+                            </div>
+                            <p x-show="!message.message_preview" class="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                                Pratinjau isi pesan tidak tersedia untuk log ini.
+                            </p>
                             <p x-show="message.error_message" class="mt-2 text-sm text-red-700 dark:text-red-300" x-text="message.error_message"></p>
-                            <p x-show="!message.retry_available && message.retry_block_reason" class="mt-2 text-xs text-gray-500 dark:text-gray-400" x-text="message.retry_block_reason"></p>
+                            <p x-show="!message.retry_available && message.retry_block_reason" class="mt-2 text-xs text-amber-700 dark:text-amber-300"
+                               :id="'retry-reason-' + message.id"
+                               x-text="message.retry_block_reason"></p>
                         </div>
 
                         <div class="flex shrink-0 flex-wrap gap-2">
@@ -48,8 +61,9 @@
                                     class="inline-flex min-h-9 items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-medium text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:focus:ring-offset-gray-800"
                                     :disabled="!message.retry_available || retryingMessageIds[message.id]"
                                     :title="message.retry_available ? 'Kirim ulang payload yang tersimpan' : message.retry_block_reason"
+                                    :aria-describedby="message.retry_available ? null : 'retry-reason-' + message.id"
                                     @click="retryMessage(message)">
-                                <span x-text="retryingMessageIds[message.id] ? 'Mengantrikan...' : 'Coba ulang'"></span>
+                                <span x-text="retryingMessageIds[message.id] ? 'Mengantrikan...' : (message.retry_available ? 'Coba ulang' : 'Tidak dapat diulang')"></span>
                             </button>
                         </div>
                     </div>

@@ -158,6 +158,7 @@ WhatsApp service berjalan di container Docker terpisah.
 - **Audit & Proteksi Aksi:** Setiap permintaan retry dicatat ke activity log, dibatasi rate limit, dan endpoint retry tidak menerima nomor, isi pesan, atau lampiran baru dari browser.
 - **Keandalan Reminder:** Reminder terjadwal menggunakan job unik dan key idempotensi per penerima untuk mencegah pengiriman ganda saat scheduler atau worker tumpang tindih.
 - **Navigasi Log:** Tab Log WhatsApp kini mendukung pagination dengan state halaman pada URL, sehingga pesan gagal historis tetap dapat ditemukan dan ditinjau.
+- **Kejelasan Log Historis:** Pesan gagal sebelum rilis retry aman kini menampilkan pratinjau batch yang masih tersedia dan alasan eksplisit mengapa payload lama tidak dapat diulang. Pesan baru menampilkan pratinjau payload tersimpan dengan redaksi action code QMH dan kredensial.
 
 ### v2.6.1 (27 Juli 2026) - Integritas Form Sampel & Remediasi Dependency
 

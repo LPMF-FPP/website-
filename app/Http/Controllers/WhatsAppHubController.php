@@ -683,6 +683,7 @@ class WhatsAppHubController extends Controller
     public function getLogs(Request $request): JsonResponse
     {
         $messages = WhatsAppMessageLog::query()
+            ->with('batch:id,message_preview')
             ->withCount('attempts')
             ->orderBy('created_at', 'desc')
             ->paginate(25, ['*'], 'logs_page');
@@ -697,7 +698,10 @@ class WhatsAppHubController extends Controller
     public function getLogDetail(WhatsAppMessageBatch $batch): JsonResponse
     {
         $logs = $batch->logs()
-            ->with(['attempts' => fn ($query) => $query->orderByDesc('attempt_number')])
+            ->with([
+                'batch:id,message_preview',
+                'attempts' => fn ($query) => $query->orderByDesc('attempt_number'),
+            ])
             ->paginate(50);
 
         $logs->getCollection()->transform(function (WhatsAppMessageLog $message): array {
@@ -720,6 +724,11 @@ class WhatsAppHubController extends Controller
 
     public function getMessageAttempts(WhatsAppMessageLog $messageLog): JsonResponse
     {
+        $messageLog->loadMissing([
+            'batch:id,message_preview',
+            'attempts' => fn ($query) => $query->orderByDesc('attempt_number'),
+        ]);
+
         return response()->json([
             'message' => $this->messageLogResponse($messageLog, true),
         ]);
@@ -1292,6 +1301,11 @@ class WhatsAppHubController extends Controller
      */
     private function messageLogResponse(WhatsAppMessageLog $message, bool $includeAttempts = false): array
     {
+        $storedPreview = $this->outboundMessageService->auditPreview($message);
+        $historicalPreview = $storedPreview === null
+            ? $this->outboundMessageService->sanitizeAuditPreview($message->batch?->message_preview)
+            : null;
+
         $response = [
             'id' => $message->id,
             'batch_id' => $message->batch_id,
@@ -1300,6 +1314,12 @@ class WhatsAppHubController extends Controller
             'recipient_type' => $message->recipient_type,
             'source_label' => $message->source_label,
             'status' => $message->status,
+            'message_preview' => $storedPreview ?? $historicalPreview,
+            'message_preview_source' => $storedPreview !== null
+                ? 'stored_payload'
+                : ($historicalPreview !== null ? 'historical_batch' : null),
+            'is_legacy_log' => $message->transport === null
+                && (! is_string($message->payload_encrypted) || $message->payload_encrypted === ''),
             'error_message' => $this->safeLogError($message->error_message),
             'attempt_count' => $message->attempt_count,
             'attempts_count' => $message->attempts_count ?? $message->attempt_count,

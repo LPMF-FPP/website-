@@ -278,6 +278,13 @@ class OutboundMessageService
             return $messageLog->retry_block_reason;
         }
 
+        if ($messageLog->status === WhatsAppMessageLog::STATUS_FAILED
+            && (! is_string($messageLog->payload_encrypted) || $messageLog->payload_encrypted === '')) {
+            return $messageLog->transport === null
+                ? 'Log ini dibuat sebelum fitur retry aman aktif. Payload asli tidak tersedia; kirim ulang dari sumber pesan untuk membuat log baru yang dapat diulang bila gagal.'
+                : 'Payload pesan tersimpan tidak tersedia. Pengiriman ulang diblokir untuk mencegah isi pesan berubah atau terkirim ganda.';
+        }
+
         return match ($messageLog->status) {
             WhatsAppMessageLog::STATUS_SENT => 'Pesan telah terkirim dan tidak dapat diulang.',
             WhatsAppMessageLog::STATUS_SENDING => 'Pengiriman sedang berlangsung.',
@@ -286,6 +293,53 @@ class OutboundMessageService
             WhatsAppMessageLog::STATUS_FAILED => 'Riwayat lama tidak menyimpan payload untuk pengulangan.',
             default => 'Pesan belum dapat diulang.',
         };
+    }
+
+    /**
+     * Returns a redacted, display-safe preview without exposing the encrypted payload itself.
+     */
+    public function auditPreview(WhatsAppMessageLog $messageLog): ?string
+    {
+        $payload = $this->decryptPayload($messageLog);
+        if ($payload === null) {
+            return null;
+        }
+
+        $preview = match ($payload['kind'] ?? null) {
+            'text' => is_scalar($payload['message'] ?? null) ? (string) $payload['message'] : null,
+            'file' => filled($payload['caption'] ?? null)
+                ? (string) $payload['caption']
+                : 'Lampiran dikirim tanpa pesan tambahan.',
+            default => null,
+        };
+
+        return $this->sanitizeAuditPreview($preview);
+    }
+
+    public function sanitizeAuditPreview(?string $preview): ?string
+    {
+        $preview = trim((string) $preview);
+        if ($preview === '') {
+            return null;
+        }
+
+        $preview = preg_replace(
+            '/(\/qmh\s+(?:\d+\s+)?(?:approve|reject)\s+)\S+/i',
+            '$1[REDACTED]',
+            $preview
+        ) ?? $preview;
+        $preview = preg_replace(
+            '/(\baction[\s_-]*code\s*[:=]?\s*)[A-Z0-9_-]{6,}\b/i',
+            '$1[REDACTED]',
+            $preview
+        ) ?? $preview;
+        $preview = preg_replace(
+            '/(\b(?:password|api[\s_-]*key|basic[\s_-]*pass|secret|token)\s*[:=]\s*)\S+/i',
+            '$1[REDACTED]',
+            $preview
+        ) ?? $preview;
+
+        return mb_strimwidth($preview, 0, 500, '...');
     }
 
     public function syncBatchStats(?int $batchId): void
