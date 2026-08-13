@@ -2,8 +2,9 @@
 
 namespace Tests\Feature\WhatsApp;
 
-use App\Jobs\SendWhatsAppMessage;
+use App\Jobs\SendPersistedWhatsAppMessage;
 use App\Models\ConsolidatedReport;
+use App\Models\WhatsAppMessageLog;
 use App\Services\ConsolidatedReportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
@@ -55,11 +56,11 @@ class ConsolidatedReportPdfAttachmentNotificationTest extends TestCase
 
         $this->assertSame(1, $dispatched);
 
-        Queue::assertPushed(SendWhatsAppMessage::class, function (SendWhatsAppMessage $job) {
-            return $job->attachmentPath !== null
-                && is_string($job->attachmentPath)
-                && str_ends_with($job->attachmentPath, '.pdf')
-                && $job->attachmentFilename === 'laporan-monthly-20260201.pdf';
-        });
+        Queue::assertPushed(SendPersistedWhatsAppMessage::class, 1);
+
+        $messageLog = WhatsAppMessageLog::query()->firstOrFail();
+        $this->assertSame('laporan-monthly-20260201.pdf', $messageLog->attachment_filename);
+        $this->assertNotEmpty($messageLog->attachment_path);
+        Storage::disk('local')->assertExists($messageLog->attachment_path);
     }
 }

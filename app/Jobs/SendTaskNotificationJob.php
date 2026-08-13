@@ -3,8 +3,8 @@
 namespace App\Jobs;
 
 use App\Models\StaffTask;
-use App\Services\WhatsApp\GowaClient;
 use App\Services\WhatsApp\NotificationService;
+use App\Services\WhatsApp\OutboundMessageService;
 use App\Services\WhatsApp\TemplateService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -12,21 +12,24 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class SendTaskNotificationJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 3;
+    public int $tries = 1;
 
-    public int $backoff = 60;
+    public string $deliveryKey;
 
     public function __construct(
         public int $taskId,
         public string $eventType = 'assigned'
-    ) {}
+    ) {
+        $this->deliveryKey = (string) Str::uuid();
+    }
 
-    public function handle(GowaClient $client, NotificationService $notificationService): void
+    public function handle(OutboundMessageService $outboundMessageService, NotificationService $notificationService): void
     {
         $task = StaffTask::with(['assignee', 'assigner', 'testRequest'])->find($this->taskId);
 
@@ -53,7 +56,13 @@ class SendTaskNotificationJob implements ShouldQueue
         $jid = $notificationService->formatJID($assignee->phone);
 
         try {
-            $result = $client->sendMessage($jid, $message);
+            $result = $outboundMessageService->sendText($jid, $message, [
+                'recipient_name' => $assignee->name,
+                'source_type' => StaffTask::class,
+                'source_id' => $task->id,
+                'source_label' => 'Notifikasi tugas',
+                'idempotency_key' => 'staff-task-delivery:'.$this->deliveryKey,
+            ]);
 
             if ($result['success']) {
                 $task->update([
@@ -70,7 +79,6 @@ class SendTaskNotificationJob implements ShouldQueue
             Log::error("SendTaskNotificationJob: Exception sending notification for task {$this->taskId}", [
                 'error' => $e->getMessage(),
             ]);
-            throw $e;
         }
     }
 

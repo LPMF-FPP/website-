@@ -36,5 +36,13 @@ class RouteServiceProvider extends ServiceProvider
 
             return Limit::perMinute(30)->by($key);
         });
+
+        RateLimiter::for('whatsapp-retry', function (Request $request) {
+            $key = $request->user()?->getAuthIdentifier()
+                ? 'whatsapp-retry:user:'.$request->user()->getAuthIdentifier()
+                : 'whatsapp-retry:ip:'.$request->ip();
+
+            return Limit::perMinute(5)->by($key);
+        });
     }
 }

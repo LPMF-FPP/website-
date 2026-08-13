@@ -4,13 +4,13 @@ namespace App\Services\Monitoring;
 
 use App\Models\MonitoringAlert;
 use App\Models\MonitoringSensor;
-use App\Services\WhatsApp\GowaClient;
+use App\Services\WhatsApp\OutboundMessageService;
 use Illuminate\Support\Facades\Log;
 
 class AlertService
 {
     public function __construct(
-        protected GowaClient $whatsapp
+        protected OutboundMessageService $outboundMessageService
     ) {}
 
     public function checkThresholds(MonitoringSensor $sensor, float $value): void
@@ -76,7 +76,13 @@ class AlertService
         $adminNumber = settings('notifications.whatsapp.admin_number', '6285956592404');
 
         try {
-            $this->whatsapp->sendMessage($adminNumber.'@s.whatsapp.net', $message);
+            $this->outboundMessageService->sendText($adminNumber.'@s.whatsapp.net', $message, [
+                'recipient_name' => (string) $adminNumber,
+                'source_type' => MonitoringAlert::class,
+                'source_id' => $alert->id,
+                'source_label' => 'Peringatan monitoring',
+                'idempotency_key' => 'monitoring-alert:'.$alert->id,
+            ]);
         } catch (\Exception $e) {
             Log::error('Failed to send monitoring alert: '.$e->getMessage());
         }

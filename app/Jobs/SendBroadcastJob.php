@@ -5,9 +5,8 @@ namespace App\Jobs;
 use App\Models\WhatsappBroadcast;
 use App\Models\WhatsappBroadcastRecipient;
 use App\Models\WhatsAppMessageBatch;
-use App\Models\WhatsAppMessageLog;
-use App\Services\WhatsApp\GowaClient;
 use App\Services\WhatsApp\NotificationService;
+use App\Services\WhatsApp\OutboundMessageService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -28,7 +27,7 @@ class SendBroadcastJob implements ShouldQueue
         public bool $mentionAll = false
     ) {}
 
-    public function handle(GowaClient $client, NotificationService $notificationService): void
+    public function handle(OutboundMessageService $outboundMessageService, NotificationService $notificationService): void
     {
         $broadcast = WhatsappBroadcast::find($this->broadcastId);
 
@@ -64,9 +63,6 @@ class SendBroadcastJob implements ShouldQueue
             ->get();
 
         $errors = [];
-        $batchSent = 0;
-        $batchFailed = 0;
-
         foreach ($recipients as $recipient) {
             // Check if broadcast was cancelled during sending
             $broadcast->refresh();
@@ -75,7 +71,6 @@ class SendBroadcastJob implements ShouldQueue
                 break;
             }
 
-            $status = 'pending';
             $errorMsg = null;
             $msgId = null;
             $jid = '';
@@ -89,22 +84,27 @@ class SendBroadcastJob implements ShouldQueue
                     $mentions[] = '@everyone';
                 }
 
-                $result = $client->sendMessage($jid, $broadcast->message, $mentions);
+                $result = $outboundMessageService->sendText($jid, $broadcast->message, [
+                    'batch_id' => $batch->id,
+                    'recipient_name' => $recipient->name,
+                    'recipient_type' => $recipient->recipient_type,
+                    'source_type' => WhatsappBroadcast::class,
+                    'source_id' => $broadcast->id,
+                    'source_label' => 'Broadcast WhatsApp',
+                    'mentions' => $mentions,
+                    'idempotency_key' => 'whatsapp-broadcast:'.$broadcast->id.':recipient:'.$recipient->id,
+                ]);
 
                 if ($result['success']) {
-                    $status = 'sent';
                     $msgId = $result['message_id'] ?? '';
 
                     $recipient->markAsSent($msgId);
                     $broadcast->incrementSentCount();
-                    $batchSent++;
                 } else {
-                    $status = 'failed';
                     $errorMsg = $result['error'] ?? 'Unknown error';
 
                     $recipient->markAsFailed($errorMsg);
                     $broadcast->incrementFailedCount();
-                    $batchFailed++;
                     $errors[] = "{$recipient->name}: {$errorMsg}";
                 }
 
@@ -112,29 +112,16 @@ class SendBroadcastJob implements ShouldQueue
                 usleep(1000000); // 1s
 
             } catch (\Exception $e) {
-                $status = 'failed';
                 $errorMsg = $e->getMessage();
 
                 $recipient->markAsFailed($e->getMessage());
                 $broadcast->incrementFailedCount();
-                $batchFailed++;
                 $errors[] = "{$recipient->name}: {$e->getMessage()}";
                 Log::error("SendBroadcastJob: Error sending to {$recipient->phone}", [
                     'error' => $e->getMessage(),
                 ]);
             }
 
-            // Create Hub Log
-            WhatsAppMessageLog::create([
-                'batch_id' => $batch->id,
-                'recipient_jid' => $jid ?: $recipient->phone,
-                'recipient_name' => $recipient->name,
-                'recipient_type' => $recipient->recipient_type, // investigator/user
-                'status' => $status,
-                'error_message' => $errorMsg,
-                'message_id' => $msgId,
-                'sent_at' => $status === 'sent' ? now() : null,
-            ]);
         }
 
         // Update broadcast status
@@ -147,12 +134,7 @@ class SendBroadcastJob implements ShouldQueue
             ]);
         }
 
-        // Update Batch status
-        $batch->update([
-            'sent_count' => $batchSent,
-            'failed_count' => $batchFailed,
-            'completed_at' => now(),
-        ]);
+        $outboundMessageService->syncBatchStats($batch->id);
 
         Log::info("SendBroadcastJob: Broadcast {$this->broadcastId} completed", [
             'sent' => $broadcast->sent_count,

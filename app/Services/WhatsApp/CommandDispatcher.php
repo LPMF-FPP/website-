@@ -2,6 +2,7 @@
 
 namespace App\Services\WhatsApp;
 
+use App\Models\WhatsappCommandLog;
 use App\Services\WhatsApp\Commands\HelpCommand;
 use App\Services\WhatsApp\Commands\QmhWorkflowCommand;
 use App\Services\WhatsApp\Commands\ResiCommand;
@@ -25,7 +26,7 @@ class CommandDispatcher
     ];
 
     public function __construct(
-        private GowaClient $client,
+        private OutboundMessageService $outboundMessageService,
         private TemplateService $templateService,
         private WhitelistService $whitelistService,
         private ResiCommand $resiCommand,
@@ -51,7 +52,7 @@ class CommandDispatcher
         ];
     }
 
-    public function handle(string $fromJid, string $message): array
+    public function handle(string $fromJid, string $message, ?int $commandLogId = null): array
     {
         $message = trim($message);
 
@@ -76,7 +77,7 @@ class CommandDispatcher
             $response = $this->templateService->render('command', 'UNKNOWN_COMMAND', [
                 'command' => $command,
             ]);
-            $this->sendReply($fromJid, $response);
+            $this->sendReply($fromJid, $response, $commandLogId);
 
             return [
                 'command' => $command,
@@ -89,7 +90,7 @@ class CommandDispatcher
         // Access Control Check
         if (! $this->isAllowed($fromJid, $command)) {
             $response = $this->templateService->get('command', 'ACCESS_DENIED');
-            $this->sendReply($fromJid, $response);
+            $this->sendReply($fromJid, $response, $commandLogId);
 
             return [
                 'command' => $command,
@@ -102,7 +103,7 @@ class CommandDispatcher
         // Execute command
         try {
             $response = $handler->execute($fromJid, $params);
-            $this->sendReply($fromJid, $response);
+            $this->sendReply($fromJid, $response, $commandLogId);
 
             return [
                 'command' => $command,
@@ -118,7 +119,7 @@ class CommandDispatcher
             ]);
 
             $response = $this->templateService->get('command', 'COMMAND_ERROR');
-            $this->sendReply($fromJid, $response);
+            $this->sendReply($fromJid, $response, $commandLogId);
 
             return [
                 'command' => $command,
@@ -161,13 +162,19 @@ class CommandDispatcher
         return $this->whitelistService->isAllowed($fromJid);
     }
 
-    private function sendReply(string $toJid, string $message): void
+    private function sendReply(string $toJid, string $message, ?int $commandLogId): void
     {
         if (trim($message) === '') {
             return;
         }
 
-        $this->client->sendMessage($toJid, $message);
+        $this->outboundMessageService->sendText($toJid, $message, [
+            'recipient_name' => $toJid,
+            'source_type' => $commandLogId ? WhatsappCommandLog::class : null,
+            'source_id' => $commandLogId,
+            'source_label' => 'Balasan command WhatsApp',
+            'idempotency_key' => $commandLogId ? 'whatsapp-command-reply:'.$commandLogId : null,
+        ]);
     }
 
     private function redactParamsForLogging(string $command, array $params): array

@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v2.6.1
+# WALKTHROUGH - LPMF LIMS v2.6.2
 
 > **Single Source of Truth** — Pedoman terupdate terhadap codebase Laboratory Information Management System.
 
@@ -148,6 +148,16 @@ WhatsApp service berjalan di container Docker terpisah.
 ---
 
 ## 📰 Recent Changes (v2.6.x)
+
+### v2.6.2 (13 Agustus 2026) - Audit Outbound WhatsApp & Retry Aman
+
+- **Log Outbound Lengkap:** Seluruh pengiriman melalui GOWA kini dicatat per pesan, termasuk milestone, broadcast, reminder, notifikasi tugas, workflow QMH, laporan gabungan, alert inventori/monitoring, balasan command, dan pesan uji Hub.
+- **Riwayat Attempt & Status Aman:** Setiap pengiriman menyimpan envelope sebelum request provider dan riwayat percobaan dengan klasifikasi `sent`, `failed`, `unknown`, atau `blocked`. Detail error provider yang sensitif tidak ditampilkan di tab Log.
+- **Retry Terkendali:** Admin `manage-settings` dapat mengulang hanya pesan dengan kegagalan provider yang terkonfirmasi. Timeout, koneksi terputus, dan status tidak pasti tetap diblokir agar tidak berisiko mengirim pesan ganda.
+- **Lampiran Privat:** PDF atau lampiran yang dikirim dari file sementara disalin lebih dahulu ke storage privat, sehingga retry dapat memakai snapshot yang sama setelah file sumber dibersihkan.
+- **Audit & Proteksi Aksi:** Setiap permintaan retry dicatat ke activity log, dibatasi rate limit, dan endpoint retry tidak menerima nomor, isi pesan, atau lampiran baru dari browser.
+- **Keandalan Reminder:** Reminder terjadwal menggunakan job unik dan key idempotensi per penerima untuk mencegah pengiriman ganda saat scheduler atau worker tumpang tindih.
+- **Navigasi Log:** Tab Log WhatsApp kini mendukung pagination dengan state halaman pada URL, sehingga pesan gagal historis tetap dapat ditemukan dan ditinjau.
 
 ### v2.6.1 (27 Juli 2026) - Integritas Form Sampel & Remediasi Dependency
 

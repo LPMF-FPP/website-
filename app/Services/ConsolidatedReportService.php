@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services;
 
-use App\Jobs\SendWhatsAppMessage;
 use App\Models\ConsolidatedReport;
 use App\Models\CustomerSurvey;
 use App\Models\Sample;
@@ -13,6 +12,7 @@ use App\Models\TestResult;
 use App\Models\WhatsAppMessageBatch;
 use App\Models\WhatsAppMessageLog;
 use App\Repositories\SettingsRepository;
+use App\Services\WhatsApp\OutboundMessageService;
 use App\Services\WhatsApp\TemplateService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -34,7 +34,8 @@ class ConsolidatedReportService
         private readonly ActiveSubstanceService $activeSubstanceService,
         private readonly IkuService $ikuService,
         private readonly SettingsRepository $settings,
-        private readonly TemplateService $templateService
+        private readonly TemplateService $templateService,
+        private readonly OutboundMessageService $outboundMessageService
     ) {}
 
     /**
@@ -796,25 +797,30 @@ class ConsolidatedReportService
                 'created_by' => $report->generated_by,
             ]);
 
-            WhatsAppMessageLog::create([
-                'batch_id' => $batch->id,
-                'recipient_jid' => $normalizedJid,
-                'recipient_name' => $normalizedPhone,
-                'recipient_type' => 'individual',
-                'status' => 'pending',
-            ]);
-
             $attachmentPath = $this->resolvePdfAbsolutePath($report);
             $attachmentFilename = $attachmentPath ? basename((string) $report->pdf_path) : null;
 
-            // Dispatch job (dengan attachment PDF jika tersedia)
-            SendWhatsAppMessage::dispatch(
-                $normalizedPhone,
-                $message,
-                $batch->id,
-                $attachmentPath,
-                $attachmentFilename
-            );
+            if ($attachmentPath) {
+                $this->outboundMessageService->queueFile($normalizedJid, $attachmentPath, $message, $attachmentFilename, [
+                    'batch_id' => $batch->id,
+                    'recipient_name' => $normalizedPhone,
+                    'recipient_type' => 'individual',
+                    'source_type' => ConsolidatedReport::class,
+                    'source_id' => $report->id,
+                    'source_label' => 'Notifikasi laporan gabungan',
+                    'idempotency_key' => $force ? null : 'consolidated-report:'.$report->id.':'.$normalizedJid,
+                ]);
+            } else {
+                $this->outboundMessageService->queueText($normalizedJid, $message, [
+                    'batch_id' => $batch->id,
+                    'recipient_name' => $normalizedPhone,
+                    'recipient_type' => 'individual',
+                    'source_type' => ConsolidatedReport::class,
+                    'source_id' => $report->id,
+                    'source_label' => 'Notifikasi laporan gabungan',
+                    'idempotency_key' => $force ? null : 'consolidated-report:'.$report->id.':'.$normalizedJid,
+                ]);
+            }
 
             Log::info("Consolidated report notification queued for {$normalizedPhone}");
 
@@ -838,14 +844,17 @@ class ConsolidatedReportService
             return false;
         }
 
-        return WhatsAppMessageBatch::query()
-            ->where('type', 'consolidated_report_notification')
+        return WhatsAppMessageLog::query()
             ->where('source_type', ConsolidatedReport::class)
             ->whereIn('source_id', $reportIds->all())
-            ->whereHas('logs', function ($query) use ($recipientJid) {
-                $query->where('recipient_jid', $recipientJid)
-                    ->whereIn('status', ['pending', 'processing', 'sent']);
-            })
+            ->where('recipient_jid', $recipientJid)
+            ->whereIn('status', [
+                WhatsAppMessageLog::STATUS_PREPARING,
+                WhatsAppMessageLog::STATUS_PENDING,
+                WhatsAppMessageLog::STATUS_SENDING,
+                WhatsAppMessageLog::STATUS_SENT,
+                WhatsAppMessageLog::STATUS_UNKNOWN,
+            ])
             ->exists();
     }
 

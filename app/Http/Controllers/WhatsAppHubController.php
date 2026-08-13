@@ -18,8 +18,10 @@ use App\Models\WhatsappWhitelist;
 use App\Services\AI\AiCommsService;
 use App\Services\WhatsApp\GowaClient;
 use App\Services\WhatsApp\NotificationService;
+use App\Services\WhatsApp\OutboundMessageService;
 use App\Services\WhatsApp\TemplateService;
 use App\Services\WhatsApp\WhitelistService;
+use App\Support\ActivityLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -35,14 +37,18 @@ class WhatsAppHubController extends Controller
 
     private TemplateService $templateService;
 
+    private OutboundMessageService $outboundMessageService;
+
     public function __construct(
         GowaClient $gowaClient,
         NotificationService $notificationService,
-        TemplateService $templateService
+        TemplateService $templateService,
+        OutboundMessageService $outboundMessageService
     ) {
         $this->gowaClient = $gowaClient;
         $this->notificationService = $notificationService;
         $this->templateService = $templateService;
+        $this->outboundMessageService = $outboundMessageService;
     }
 
     public function index(): View
@@ -660,7 +666,7 @@ class WhatsAppHubController extends Controller
 
     public function triggerReminder(Reminder $reminder): JsonResponse
     {
-        \App\Jobs\SendReminderJob::dispatch($reminder);
+        \App\Jobs\SendReminderJob::dispatch($reminder->id);
 
         return response()->json(['message' => 'Reminder triggered']);
     }
@@ -676,18 +682,80 @@ class WhatsAppHubController extends Controller
 
     public function getLogs(Request $request): JsonResponse
     {
-        $batches = WhatsAppMessageBatch::with(['creator', 'logs'])
+        $messages = WhatsAppMessageLog::query()
+            ->withCount('attempts')
             ->orderBy('created_at', 'desc')
-            ->paginate(15);
+            ->paginate(25, ['*'], 'logs_page');
 
-        return response()->json(['logs' => $batches]);
+        $messages->getCollection()->transform(function (WhatsAppMessageLog $message): array {
+            return $this->messageLogResponse($message);
+        });
+
+        return response()->json(['messages' => $messages]);
     }
 
     public function getLogDetail(WhatsAppMessageBatch $batch): JsonResponse
     {
-        $logs = $batch->logs()->paginate(50);
+        $logs = $batch->logs()
+            ->with(['attempts' => fn ($query) => $query->orderByDesc('attempt_number')])
+            ->paginate(50);
 
-        return response()->json(['batch' => $batch, 'messages' => $logs]);
+        $logs->getCollection()->transform(function (WhatsAppMessageLog $message): array {
+            return $this->messageLogResponse($message, true);
+        });
+
+        return response()->json([
+            'batch' => [
+                'id' => $batch->id,
+                'type' => $batch->type,
+                'title' => $batch->title,
+                'total_recipients' => $batch->total_recipients,
+                'sent_count' => $batch->sent_count,
+                'failed_count' => $batch->failed_count,
+                'created_at' => $batch->created_at?->toISOString(),
+            ],
+            'messages' => $logs,
+        ]);
+    }
+
+    public function getMessageAttempts(WhatsAppMessageLog $messageLog): JsonResponse
+    {
+        return response()->json([
+            'message' => $this->messageLogResponse($messageLog, true),
+        ]);
+    }
+
+    public function retryMessage(Request $request, WhatsAppMessageLog $messageLog): JsonResponse
+    {
+        if ($request->except('_token') !== []) {
+            $this->auditRetryRequest($request, $messageLog, false, 'payload_not_allowed');
+
+            return response()->json([
+                'message' => 'Pengiriman ulang tidak menerima nomor, isi pesan, atau lampiran dari browser.',
+            ], 422);
+        }
+
+        $before = [
+            'status' => $messageLog->status,
+            'attempt_count' => $messageLog->attempt_count,
+        ];
+        $queued = $this->outboundMessageService->retry($messageLog);
+        $messageLog->refresh();
+
+        $this->auditRetryRequest($request, $messageLog, $queued, null, $before);
+
+        if (! $queued) {
+            return response()->json([
+                'message' => 'Pesan tidak dapat dikirim ulang.',
+                'retry_block_reason' => $this->outboundMessageService->retryBlockReason($messageLog),
+                'message_log' => $this->messageLogResponse($messageLog),
+            ], 409);
+        }
+
+        return response()->json([
+            'message' => 'Pengiriman ulang telah diantrikan.',
+            'message_log' => $this->messageLogResponse($messageLog),
+        ], 202);
     }
 
     // --- Inventory Alerts ---
@@ -1049,9 +1117,16 @@ class WhatsAppHubController extends Controller
             'message' => 'required|string',
         ]);
 
-        $result = $this->gowaClient->sendMessage($validated['phone'], $validated['message']);
+        $result = $this->outboundMessageService->sendText(
+            $this->notificationService->formatJID($validated['phone']),
+            $validated['message'],
+            [
+                'recipient_name' => $validated['phone'],
+                'source_label' => 'Pesan uji Hub WhatsApp',
+            ]
+        );
 
-        return response()->json($result, $result['success'] ? 200 : 500);
+        return response()->json($result, ($result['success'] ?? false) ? 200 : 502);
     }
 
     public function sendTestAi(Request $request, AiCommsService $aiService): JsonResponse
@@ -1210,5 +1285,102 @@ class WhatsAppHubController extends Controller
         krsort($normalized, SORT_NUMERIC);
 
         return $normalized;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function messageLogResponse(WhatsAppMessageLog $message, bool $includeAttempts = false): array
+    {
+        $response = [
+            'id' => $message->id,
+            'batch_id' => $message->batch_id,
+            'recipient_jid' => $message->recipient_jid,
+            'recipient_name' => $message->recipient_name,
+            'recipient_type' => $message->recipient_type,
+            'source_label' => $message->source_label,
+            'status' => $message->status,
+            'error_message' => $this->safeLogError($message->error_message),
+            'attempt_count' => $message->attempt_count,
+            'attempts_count' => $message->attempts_count ?? $message->attempt_count,
+            'sent_at' => $message->sent_at?->toISOString(),
+            'created_at' => $message->created_at?->toISOString(),
+            'retry_available' => $message->canRetry() && $this->outboundMessageService->retryBlockReason($message) === null,
+            'retry_block_reason' => $this->outboundMessageService->retryBlockReason($message),
+        ];
+
+        if ($includeAttempts) {
+            $response['attempts'] = $message->attempts->map(fn ($attempt) => [
+                'attempt_number' => $attempt->attempt_number,
+                'status' => $attempt->status,
+                'error_message' => $this->safeLogError($attempt->error_message),
+                'started_at' => $attempt->started_at?->toISOString(),
+                'completed_at' => $attempt->completed_at?->toISOString(),
+            ])->values();
+        }
+
+        return $response;
+    }
+
+    private function safeLogError(?string $error): ?string
+    {
+        $error = trim((string) $error);
+        if ($error === '') {
+            return null;
+        }
+
+        $safePrefixes = [
+            'Provider WhatsApp',
+            'Koneksi ke provider WhatsApp',
+            'Status pengiriman',
+            'Worker berhenti',
+            'Payload pengiriman',
+            'Jenis payload',
+            'Snapshot lampiran',
+            'Lampiran sumber',
+            'File tidak dapat',
+            'Ukuran file',
+            'Tipe file',
+            'Gagal membuka file',
+        ];
+
+        foreach ($safePrefixes as $prefix) {
+            if (str_starts_with($error, $prefix)) {
+                return mb_strimwidth($error, 0, 300, '...');
+            }
+        }
+
+        return 'Pengiriman gagal. Detail provider tidak ditampilkan.';
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $before
+     */
+    private function auditRetryRequest(
+        Request $request,
+        WhatsAppMessageLog $messageLog,
+        bool $queued,
+        ?string $reason = null,
+        ?array $before = null
+    ): void {
+        ActivityLogger::log(
+            'WHATSAPP_OUTBOUND_RETRY_REQUESTED',
+            null,
+            $messageLog,
+            $before ?? [
+                'status' => $messageLog->status,
+                'attempt_count' => $messageLog->attempt_count,
+            ],
+            [
+                'status' => $messageLog->status,
+                'attempt_count' => $messageLog->attempt_count,
+            ],
+            array_filter([
+                'queued' => $queued,
+                'reason' => $reason,
+            ], static fn ($value): bool => $value !== null),
+            $request->user()?->id,
+            $request
+        );
     }
 }

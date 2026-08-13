@@ -6,14 +6,14 @@ use App\Models\InventoryAlertLog;
 use App\Models\InventoryBalance;
 use App\Models\InventoryItem;
 use App\Models\InventoryLot;
-use App\Services\WhatsApp\GowaClient;
+use App\Services\WhatsApp\OutboundMessageService;
 use App\Services\WhatsApp\WhitelistService;
 use Illuminate\Support\Facades\Log;
 
 class InventoryAlertService
 {
     public function __construct(
-        protected GowaClient $whatsapp,
+        protected OutboundMessageService $outboundMessageService,
         protected WhitelistService $whitelistService
     ) {}
 
@@ -56,21 +56,25 @@ class InventoryAlertService
         $message .= "Min Stock: {$item->min_stock} {$item->uom}\n";
         $message .= 'Time: '.now()->format('Y-m-d H:i:s');
 
-        $result = $this->sendNotification($message);
-
         try {
-            InventoryAlertLog::create([
+            $alertLog = InventoryAlertLog::create([
                 'alert_type' => 'LOW_STOCK',
                 'item_id' => $item->id,
                 'lot_id' => null,
                 'message' => $message,
-                'recipients' => $result['recipients'],
-                'sent_to' => $result['sent_to'],
-                'failed_to' => $result['failed_to'],
+                'recipients' => [],
+                'sent_to' => [],
+                'failed_to' => [],
                 'meta' => [
                     'current_balance' => (float) $currentBalance,
                     'min_stock' => (float) $item->min_stock,
                 ],
+            ]);
+            $result = $this->sendNotification($message, InventoryAlertLog::class, $alertLog->id);
+            $alertLog->update([
+                'recipients' => $result['recipients'],
+                'sent_to' => $result['sent_to'],
+                'failed_to' => $result['failed_to'],
             ]);
         } catch (\Throwable $e) {
             Log::error('Failed to store inventory alert log: '.$e->getMessage());
@@ -90,21 +94,25 @@ class InventoryAlertService
         $message .= 'Days Remaining: '.(int) $daysUntil." days\n";
         $message .= 'Time: '.now()->format('Y-m-d H:i:s');
 
-        $result = $this->sendNotification($message);
-
         try {
-            InventoryAlertLog::create([
+            $alertLog = InventoryAlertLog::create([
                 'alert_type' => 'EXPIRY',
                 'item_id' => $item?->id,
                 'lot_id' => $lot->id,
                 'message' => $message,
-                'recipients' => $result['recipients'],
-                'sent_to' => $result['sent_to'],
-                'failed_to' => $result['failed_to'],
+                'recipients' => [],
+                'sent_to' => [],
+                'failed_to' => [],
                 'meta' => [
                     'expiry_date' => $expiryDate,
                     'days_remaining' => (int) $daysUntil,
                 ],
+            ]);
+            $result = $this->sendNotification($message, InventoryAlertLog::class, $alertLog->id);
+            $alertLog->update([
+                'recipients' => $result['recipients'],
+                'sent_to' => $result['sent_to'],
+                'failed_to' => $result['failed_to'],
             ]);
         } catch (\Throwable $e) {
             Log::error('Failed to store inventory alert log: '.$e->getMessage());
@@ -114,7 +122,7 @@ class InventoryAlertService
     /**
      * @return array{recipients: array<int,string>, sent_to: array<int,string>, failed_to: array<int,string>}
      */
-    protected function sendNotification(string $message): array
+    protected function sendNotification(string $message, string $sourceType, int $sourceId): array
     {
         $recipients = $this->whitelistService->getInventoryAlertPhoneNumbers();
 
@@ -123,7 +131,13 @@ class InventoryAlertService
 
         foreach ($recipients as $adminNumber) {
             try {
-                $result = $this->whatsapp->sendMessage($adminNumber.'@s.whatsapp.net', $message);
+                $result = $this->outboundMessageService->sendText($adminNumber.'@s.whatsapp.net', $message, [
+                    'recipient_name' => $adminNumber,
+                    'source_type' => $sourceType,
+                    'source_id' => $sourceId,
+                    'source_label' => 'Peringatan inventori',
+                    'idempotency_key' => 'inventory-alert:'.$sourceId.':'.$adminNumber,
+                ]);
 
                 if (($result['success'] ?? false) === true) {
                     $sentTo[] = $adminNumber;

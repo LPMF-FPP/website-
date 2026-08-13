@@ -5,8 +5,8 @@ namespace App\Jobs;
 use App\Models\QmhDocumentRevision;
 use App\Models\StaffTask;
 use App\Services\Quality\QmhRevisionDownloadService;
-use App\Services\WhatsApp\GowaClient;
 use App\Services\WhatsApp\NotificationService;
+use App\Services\WhatsApp\OutboundMessageService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -19,12 +19,7 @@ class SendQmhWorkflowTaskNotificationJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 4;
-
-    /**
-     * @var array<int, int>
-     */
-    public array $backoff = [30, 120, 300];
+    public int $tries = 1;
 
     public function __construct(
         public int $taskId,
@@ -32,7 +27,7 @@ class SendQmhWorkflowTaskNotificationJob implements ShouldQueue
     ) {}
 
     public function handle(
-        GowaClient $client,
+        OutboundMessageService $outboundMessageService,
         NotificationService $notificationService,
         QmhRevisionDownloadService $downloadService
     ): void {
@@ -78,12 +73,26 @@ class SendQmhWorkflowTaskNotificationJob implements ShouldQueue
             $attachmentPath = $this->prepareAttachment($revision, $downloadService);
 
             if ($attachmentPath !== null) {
-                $sendFile = $client->sendFile($jid, $attachmentPath, $caption, $attachmentFilename);
+                $sendFile = $outboundMessageService->sendFile($jid, $attachmentPath, $caption, $attachmentFilename, [
+                    'recipient_name' => $assignee->name,
+                    'source_type' => StaffTask::class,
+                    'source_id' => $task->id,
+                    'source_label' => 'Notifikasi workflow QMH',
+                    'idempotency_key' => $this->deliveryKey($task->id, 'attachment'),
+                ]);
 
                 if ($sendFile['success'] ?? false) {
                     $task->update([
                         'notification_sent' => true,
                         'notification_sent_at' => now(),
+                    ]);
+
+                    return;
+                }
+
+                if (($sendFile['state'] ?? null) === 'unknown') {
+                    Log::warning('QMH WA attachment delivery is uncertain; text fallback suppressed', [
+                        'task_id' => $task->id,
                     ]);
 
                     return;
@@ -96,7 +105,13 @@ class SendQmhWorkflowTaskNotificationJob implements ShouldQueue
                 ]);
             }
 
-            $sendText = $client->sendMessage($jid, $message);
+            $sendText = $outboundMessageService->sendText($jid, $message, [
+                'recipient_name' => $assignee->name,
+                'source_type' => StaffTask::class,
+                'source_id' => $task->id,
+                'source_label' => 'Notifikasi workflow QMH',
+                'idempotency_key' => $this->deliveryKey($task->id, 'text'),
+            ]);
             if ($sendText['success'] ?? false) {
                 $task->update([
                     'notification_sent' => true,
@@ -190,5 +205,14 @@ class SendQmhWorkflowTaskNotificationJob implements ShouldQueue
         }
 
         return $pdfPath;
+    }
+
+    private function deliveryKey(int $taskId, string $kind): string
+    {
+        return hash_hmac(
+            'sha256',
+            implode('|', ['qmh-workflow-task', $taskId, $kind, $this->actionCode]),
+            (string) config('app.key')
+        );
     }
 }

@@ -4,21 +4,20 @@ namespace App\Services\Reminders;
 
 use App\Models\Reminder;
 use App\Models\WhatsAppMessageBatch;
-use App\Models\WhatsAppMessageLog;
 use App\Services\Reminders\Handlers\CountdownHandler;
 use App\Services\Reminders\Handlers\TemperatureReminderHandler;
-use App\Services\WhatsApp\GowaClient;
+use App\Services\WhatsApp\OutboundMessageService;
 use Illuminate\Support\Facades\Log;
 
 class ReminderService
 {
     public function __construct(
-        protected GowaClient $gowaClient,
+        protected OutboundMessageService $outboundMessageService,
         protected CountdownHandler $countdownHandler,
         protected TemperatureReminderHandler $tempHandler
     ) {}
 
-    public function process(Reminder $reminder): void
+    public function process(Reminder $reminder, string $deliveryKey): void
     {
         Log::info("Processing reminder: {$reminder->name} (ID: {$reminder->id})");
 
@@ -46,16 +45,10 @@ class ReminderService
             'started_at' => now(),
         ]);
 
-        $sentCount = 0;
-        $failedCount = 0;
-
         // 4. Send Message
         foreach ($recipients as $recipient) {
             $target = $recipient->recipient_value;
             $isGroup = $recipient->recipient_type === 'group';
-            $errorMsg = null;
-            $msgId = null;
-            $status = 'pending';
 
             // Format JID
             if (! $isGroup && ! str_contains($target, '@')) {
@@ -76,46 +69,32 @@ class ReminderService
                     $mentions[] = '@everyone'; // or whatever keyword GOWA supports, assuming GowaClient handles translation or pass direct
                 }
 
-                $result = $this->gowaClient->sendMessage($target, $message, $mentions);
+                $result = $this->outboundMessageService->sendText($target, $message, [
+                    'batch_id' => $batch->id,
+                    'recipient_name' => $target,
+                    'recipient_type' => $recipient->recipient_type,
+                    'source_type' => Reminder::class,
+                    'source_id' => $reminder->id,
+                    'source_label' => 'Pengingat WhatsApp',
+                    'mentions' => $mentions,
+                    'idempotency_key' => 'whatsapp-reminder:'.$reminder->id.':'.$deliveryKey.':recipient:'.$recipient->id,
+                ]);
 
                 if ($result['success']) {
-                    $status = 'sent';
-                    $msgId = $result['message_id'];
-                    $sentCount++;
                     Log::info("Reminder sent to {$target}");
                 } else {
-                    $status = 'failed';
                     $errorMsg = $result['error'] ?? 'Unknown error';
-                    $failedCount++;
                     Log::error("Failed to send reminder to {$target}: {$errorMsg}");
                 }
 
             } catch (\Exception $e) {
-                $status = 'failed';
-                $errorMsg = $e->getMessage();
-                $failedCount++;
                 Log::error("Exception sending reminder to {$target}: {$e->getMessage()}");
             }
 
-            // Create Log
-            WhatsAppMessageLog::create([
-                'batch_id' => $batch->id,
-                'recipient_jid' => $target,
-                'recipient_name' => $target, // We don't have name stored in recipient table, use value
-                'recipient_type' => $recipient->recipient_type,
-                'status' => $status,
-                'error_message' => $errorMsg,
-                'message_id' => $msgId,
-                'sent_at' => $status === 'sent' ? now() : null,
-            ]);
         }
 
-        // 5. Update Batch and Reminder
-        $batch->update([
-            'sent_count' => $sentCount,
-            'failed_count' => $failedCount,
-            'completed_at' => now(),
-        ]);
+        // 5. Update batch from the envelope states and preserve reminder schedule bookkeeping.
+        $this->outboundMessageService->syncBatchStats($batch->id);
 
         $reminder->update(['last_run_at' => now()]);
     }

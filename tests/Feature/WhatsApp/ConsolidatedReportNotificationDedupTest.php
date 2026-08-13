@@ -2,7 +2,7 @@
 
 namespace Tests\Feature\WhatsApp;
 
-use App\Jobs\SendWhatsAppMessage;
+use App\Jobs\SendPersistedWhatsAppMessage;
 use App\Models\ConsolidatedReport;
 use App\Services\ConsolidatedReportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -76,7 +76,7 @@ class ConsolidatedReportNotificationDedupTest extends TestCase
         $this->assertSame(0, $secondDispatch);
         $this->assertSame(0, $thirdDispatch);
 
-        Queue::assertPushed(SendWhatsAppMessage::class, 1);
+        Queue::assertPushed(SendPersistedWhatsAppMessage::class, 1);
         $this->assertDatabaseCount('whatsapp_message_batches', 1);
         $this->assertDatabaseHas('whatsapp_message_logs', [
             'recipient_jid' => '6285956592404@s.whatsapp.net',

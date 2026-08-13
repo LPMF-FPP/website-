@@ -5,9 +5,8 @@ namespace App\Services\Quality;
 use App\Models\QmhRapat;
 use App\Models\User;
 use App\Models\WhatsAppMessageBatch;
-use App\Models\WhatsAppMessageLog;
-use App\Services\WhatsApp\GowaClient;
 use App\Services\WhatsApp\NotificationService;
+use App\Services\WhatsApp\OutboundMessageService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -15,7 +14,7 @@ use InvalidArgumentException;
 class QmhRapatWhatsappService
 {
     public function __construct(
-        private readonly GowaClient $gowaClient,
+        private readonly OutboundMessageService $outboundMessageService,
         private readonly NotificationService $notificationService,
     ) {}
 
@@ -66,38 +65,27 @@ class QmhRapatWhatsappService
             'created_by' => $actor->id,
         ]);
 
-        $log = WhatsAppMessageLog::query()->create([
-            'batch_id' => $batch->id,
-            'recipient_jid' => $recipientJid,
-            'recipient_name' => $recipientLabel,
-            'recipient_type' => $recipientType,
-            'status' => 'pending',
-        ]);
-
         $pdfPath = null;
         try {
             $pdfPath = $this->writeTempPdf($this->renderSummaryPdf($rapat));
 
-            $result = $this->gowaClient->sendFile(
+            $result = $this->outboundMessageService->sendFile(
                 $recipientJid,
                 $pdfPath,
                 $caption,
-                $this->buildFilename($rapat)
+                $this->buildFilename($rapat),
+                [
+                    'batch_id' => $batch->id,
+                    'recipient_name' => $recipientLabel,
+                    'recipient_type' => $recipientType,
+                    'source_type' => QmhRapat::class,
+                    'source_id' => $rapat->id,
+                    'source_label' => 'Ringkasan rapat QMH',
+                ]
             );
 
             $isSuccess = (bool) ($result['success'] ?? false);
-            $log->update([
-                'status' => $isSuccess ? 'sent' : 'failed',
-                'message_id' => $result['message_id'] ?? null,
-                'error_message' => $isSuccess ? null : ((string) ($result['error'] ?? 'Gagal mengirim file WhatsApp.')),
-                'sent_at' => $isSuccess ? now() : null,
-            ]);
-
-            $batch->update([
-                'sent_count' => $isSuccess ? 1 : 0,
-                'failed_count' => $isSuccess ? 0 : 1,
-                'completed_at' => now(),
-            ]);
+            $this->outboundMessageService->syncBatchStats($batch->id);
 
             if (! $isSuccess) {
                 return [

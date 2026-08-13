@@ -7,12 +7,12 @@ use Illuminate\Support\Facades\Log;
 
 class GowaClient
 {
-    private const DEFAULT_MAX_FILE_BYTES = 5_242_880; // 5 MB
+    public const DEFAULT_MAX_FILE_BYTES = 5_242_880; // 5 MB
 
     /**
      * @var array<int, string>
      */
-    private const ALLOWED_FILE_MIME_TYPES = [
+    public const ALLOWED_FILE_MIME_TYPES = [
         'application/pdf',
         'image/png',
         'image/jpeg',
@@ -77,40 +77,46 @@ class GowaClient
 
             if ($response->successful()) {
                 $data = $response->json();
+                $data = is_array($data) ? $data : [];
+                $messageId = $data['results']['message_id'] ?? $data['message_id'] ?? $data['id'] ?? null;
+                if (! is_scalar($messageId) && $messageId !== null) {
+                    $messageId = null;
+                }
                 Log::info('WhatsApp message sent successfully', [
                     'to' => $phone,
-                    'message_id' => $data['results']['message_id'] ?? $data['message_id'] ?? $data['id'] ?? null,
+                    'message_id' => $messageId,
                     'has_mentions' => ! empty($mentions),
                 ]);
 
                 return [
                     'success' => true,
-                    'message_id' => $data['results']['message_id'] ?? $data['message_id'] ?? $data['id'] ?? null,
-                    'data' => $data,
+                    'outcome' => 'sent',
+                    'status' => $response->status(),
+                    'message_id' => $messageId,
                 ];
             }
 
             Log::error('WhatsApp GOWA send failed', [
                 'to' => $phone,
                 'status' => $response->status(),
-                'error' => $response->body(),
             ]);
 
             return [
                 'success' => false,
-                'error' => $response->body(),
+                'outcome' => 'failed',
+                'error' => $this->safeProviderError($response->status()),
                 'status' => $response->status(),
             ];
 
         } catch (\Throwable $e) {
             Log::error('WhatsApp GOWA client error', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
             ]);
 
             return [
                 'success' => false,
-                'error' => $e->getMessage(),
+                'outcome' => 'unknown',
+                'error' => 'Koneksi ke provider WhatsApp terputus; status pengiriman tidak dapat dipastikan.',
             ];
         }
     }
@@ -122,7 +128,7 @@ class GowaClient
                 'success' => false,
                 'status' => 0,
                 'error' => 'File tidak dapat dibaca.',
-                'retryable' => false,
+                'outcome' => 'blocked',
             ];
         }
 
@@ -132,7 +138,7 @@ class GowaClient
                 'success' => false,
                 'status' => 0,
                 'error' => 'Ukuran file melebihi batas maksimum pengiriman.',
-                'retryable' => false,
+                'outcome' => 'blocked',
             ];
         }
 
@@ -142,17 +148,12 @@ class GowaClient
                 'success' => false,
                 'status' => 0,
                 'error' => 'Tipe file tidak diizinkan untuk pengiriman WhatsApp.',
-                'retryable' => false,
+                'outcome' => 'blocked',
             ];
         }
 
         try {
-            $http = Http::timeout(45)
-                ->retry(3, function (int $attempt): int {
-                    $base = 200 * (2 ** max(0, $attempt - 1));
-
-                    return min(5000, $base + random_int(0, 250));
-                }, throw: false);
+            $http = Http::timeout(45);
 
             if ($this->basicUser && $this->basicPass) {
                 $http = $http->withBasicAuth($this->basicUser, $this->basicPass);
@@ -174,24 +175,30 @@ class GowaClient
                     'success' => false,
                     'status' => 0,
                     'error' => 'Gagal membuka file attachment.',
-                    'retryable' => false,
+                    'outcome' => 'blocked',
                 ];
             }
 
-            $response = $http
-                ->attach('file', $resource, $name)
-                ->post("{$this->baseUrl}/send/file", [
-                    'phone' => $phone,
-                    'caption' => $captionText,
-                ]);
-
-            if (is_resource($resource)) {
-                fclose($resource);
+            try {
+                $response = $http
+                    ->attach('file', $resource, $name)
+                    ->post("{$this->baseUrl}/send/file", [
+                        'phone' => $phone,
+                        'caption' => $captionText,
+                    ]);
+            } finally {
+                if (is_resource($resource)) {
+                    fclose($resource);
+                }
             }
 
             $status = $response->status();
             $data = $response->json();
+            $data = is_array($data) ? $data : [];
             $messageId = $data['results']['message_id'] ?? $data['message_id'] ?? $data['id'] ?? null;
+            if (! is_scalar($messageId) && $messageId !== null) {
+                $messageId = null;
+            }
 
             if ($response->successful()) {
                 Log::info('WhatsApp file sent successfully', [
@@ -202,9 +209,9 @@ class GowaClient
 
                 return [
                     'success' => true,
+                    'outcome' => 'sent',
                     'status' => $status,
                     'message_id' => $messageId,
-                    'data' => $data,
                 ];
             }
 
@@ -212,15 +219,14 @@ class GowaClient
                 'to' => $phone,
                 'filename' => $name,
                 'status' => $status,
-                'error' => $response->body(),
             ]);
 
             return [
                 'success' => false,
+                'outcome' => 'failed',
                 'status' => $status,
-                'error' => $response->body(),
+                'error' => $this->safeProviderError($status),
                 'message_id' => $messageId,
-                'retryable' => $this->isRetryableStatus($status),
             ];
         } catch (\Throwable $e) {
             Log::error('WhatsApp GOWA send file exception', [
@@ -229,9 +235,8 @@ class GowaClient
 
             return [
                 'success' => false,
-                'status' => 0,
-                'error' => $e->getMessage(),
-                'retryable' => true,
+                'outcome' => 'unknown',
+                'error' => 'Koneksi ke provider WhatsApp terputus; status pengiriman tidak dapat dipastikan.',
             ];
         }
     }
@@ -239,11 +244,6 @@ class GowaClient
     private function extractPhoneFromJid(string $jid): string
     {
         return str_replace('@s.whatsapp.net', '', $jid);
-    }
-
-    private function isRetryableStatus(int $status): bool
-    {
-        return in_array($status, [408, 429], true) || $status >= 500;
     }
 
     private function resolveMaxFileBytes(): int
@@ -259,6 +259,11 @@ class GowaClient
         $detected = $finfo->file($filePath);
 
         return is_string($detected) ? $detected : 'application/octet-stream';
+    }
+
+    private function safeProviderError(int $status): string
+    {
+        return "Provider WhatsApp menolak pengiriman (HTTP {$status}).";
     }
 
     public function checkHealth(): array

@@ -84,7 +84,7 @@ class ReminderController extends Controller
     {
         // $this->authorize('reminders.edit');
 
-        \App\Jobs\SendReminderJob::dispatch($reminder);
+        \App\Jobs\SendReminderJob::dispatch($reminder->id);
 
         return back()->with('success', 'Reminder triggered successfully (queued).');
     }

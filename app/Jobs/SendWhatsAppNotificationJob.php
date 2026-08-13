@@ -2,8 +2,9 @@
 
 namespace App\Jobs;
 
+use App\Models\WhatsAppMessageLog;
 use App\Models\WhatsappOutbox;
-use App\Services\WhatsApp\GowaClient;
+use App\Services\WhatsApp\OutboundMessageService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -15,9 +16,7 @@ class SendWhatsAppNotificationJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public int $tries = 5;
-
-    public int $backoff = 60;
+    public int $tries = 1;
 
     public int $timeout = 120;
 
@@ -25,7 +24,7 @@ class SendWhatsAppNotificationJob implements ShouldQueue
         public int $outboxId
     ) {}
 
-    public function handle(GowaClient $client): void
+    public function handle(OutboundMessageService $outboundMessageService): void
     {
         $outbox = WhatsappOutbox::find($this->outboxId);
 
@@ -41,50 +40,50 @@ class SendWhatsAppNotificationJob implements ShouldQueue
             return;
         }
 
-        $outbox->increment('attempts');
-
         try {
-            $result = $client->sendMessage($outbox->to_jid, $outbox->message_text);
+            $result = $outboundMessageService->sendText((string) $outbox->to_jid, (string) $outbox->message_text, [
+                'recipient_name' => $outbox->to_phone_e164,
+                'source_type' => WhatsappOutbox::class,
+                'source_id' => $outbox->id,
+                'source_label' => 'Notifikasi milestone',
+                'idempotency_key' => 'whatsapp-outbox:'.$outbox->id,
+            ]);
+            $messageLog = isset($result['message_log_id'])
+                ? WhatsAppMessageLog::query()->find((int) $result['message_log_id'])
+                : null;
 
-            if ($result['success']) {
+            if (($result['success'] ?? false) === true) {
                 $outbox->status = 'sent';
-                $outbox->provider_message_id = $result['message_id'];
+                $outbox->provider_message_id = $result['message_id'] ?? null;
                 $outbox->last_error = null;
+                $outbox->attempts = $messageLog?->attempt_count ?? $outbox->attempts;
                 $outbox->save();
 
                 Log::info('WhatsApp message sent successfully', [
                     'outbox_id' => $this->outboxId,
-                    'message_id' => $result['message_id'],
+                    'message_id' => $result['message_id'] ?? null,
                 ]);
-            } else {
-                throw new \RuntimeException($result['error'] ?? 'Unknown error');
+
+                return;
             }
 
-        } catch (\Throwable $e) {
+            // The legacy outbox cannot represent `unknown`; the central envelope remains authoritative.
             $outbox->status = 'failed';
-            $outbox->last_error = $e->getMessage();
+            $outbox->last_error = $result['error'] ?? 'Status pengiriman tidak dapat dipastikan.';
+            $outbox->attempts = $messageLog?->attempt_count ?? $outbox->attempts;
             $outbox->save();
 
-            Log::error('WhatsApp message send failed', [
+            Log::warning('WhatsApp message was not sent', [
                 'outbox_id' => $this->outboxId,
-                'attempt' => $outbox->attempts,
-                'error' => $e->getMessage(),
-            ]);
-
-            if ($outbox->attempts < $this->tries) {
-                return; // suppress throw during tests
-            }
-
-            Log::error('WhatsApp message failed after max retries', [
-                'outbox_id' => $this->outboxId,
+                'state' => $result['state'] ?? null,
                 'attempts' => $outbox->attempts,
             ]);
+        } catch (\Throwable $e) {
+            Log::error('WhatsApp message envelope processing failed', [
+                'outbox_id' => $this->outboxId,
+                'error' => $e->getMessage(),
+            ]);
         }
-    }
-
-    public function backoff(): array
-    {
-        return [60, 120, 240, 480, 960];
     }
 
     public function failed(\Throwable $exception): void
@@ -93,7 +92,7 @@ class SendWhatsAppNotificationJob implements ShouldQueue
 
         if ($outbox) {
             $outbox->status = 'failed';
-            $outbox->last_error = $exception->getMessage();
+            $outbox->last_error = 'Worker gagal sebelum status pengiriman dapat dipastikan.';
             $outbox->save();
         }
 

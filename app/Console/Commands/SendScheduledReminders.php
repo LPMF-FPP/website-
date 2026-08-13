@@ -53,12 +53,13 @@ class SendScheduledReminders extends Command
         }
 
         $this->info("Found {$reminders->count()} reminders due.");
+        $deliveryKey = 'scheduled:'.now()->toDateString();
 
         foreach ($reminders as $reminder) {
             $this->info("Dispatching reminder: {$reminder->name}");
 
-            // Dispatch job
-            SendReminderJob::dispatch($reminder);
+            // One daily run per reminder is unique even while last_run_at is still pending.
+            SendReminderJob::dispatch($reminder->id, $deliveryKey);
 
             // Log it
             Log::info("Dispatched SendReminderJob for reminder ID: {$reminder->id}");

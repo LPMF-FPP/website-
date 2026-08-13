@@ -600,6 +600,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Logs
         Route::get('/logs', [\App\Http\Controllers\WhatsAppHubController::class, 'getLogs'])->name('logs');
         Route::get('/logs/{batch}', [\App\Http\Controllers\WhatsAppHubController::class, 'getLogDetail'])->name('logs.detail');
+        Route::get('/logs/messages/{messageLog}/attempts', [\App\Http\Controllers\WhatsAppHubController::class, 'getMessageAttempts'])
+            ->name('logs.messages.attempts');
+        Route::post('/logs/messages/{messageLog}/retry', [\App\Http\Controllers\WhatsAppHubController::class, 'retryMessage'])
+            ->middleware('throttle:whatsapp-retry')
+            ->name('logs.messages.retry');
 
         // Inventory Alerts
         Route::get('/inventory-alerts', [\App\Http\Controllers\WhatsAppHubController::class, 'getInventoryAlerts'])->name('inventory-alerts');

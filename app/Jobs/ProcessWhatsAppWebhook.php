@@ -43,7 +43,7 @@ class ProcessWhatsAppWebhook implements ShouldQueue
                 return;
             }
 
-            $result = $dispatcher->handle($this->from, $this->message);
+            $result = $dispatcher->handle($this->from, $this->message, $log->id);
 
             // Only update command-related fields, preserve original params
             $updates = [

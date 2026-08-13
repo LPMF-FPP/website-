@@ -9,7 +9,7 @@ use App\Models\InventoryLocation;
 use App\Models\SystemSetting;
 use App\Models\WhatsappWhitelist;
 use App\Services\Inventory\InventoryAlertService;
-use App\Services\WhatsApp\GowaClient;
+use App\Services\WhatsApp\OutboundMessageService;
 use App\Services\WhatsApp\WhitelistService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Mockery;
@@ -53,8 +53,8 @@ class InventoryAlertServiceTest extends TestCase
         ];
 
         $sent = [];
-        $gowa = Mockery::mock(GowaClient::class);
-        $gowa->shouldReceive('sendMessage')
+        $outbound = Mockery::mock(OutboundMessageService::class);
+        $outbound->shouldReceive('sendText')
             ->times(count($expectedJids))
             ->andReturnUsing(function (string $jid, string $message) use (&$sent): array {
                 $sent[] = $jid;
@@ -63,7 +63,7 @@ class InventoryAlertServiceTest extends TestCase
                 return ['success' => true];
             });
 
-        $service = new InventoryAlertService($gowa, $whitelist);
+        $service = new InventoryAlertService($outbound, $whitelist);
         $service->checkLowStock();
 
         $this->assertSame(1, InventoryAlertLog::query()->count());
@@ -116,8 +116,8 @@ class InventoryAlertServiceTest extends TestCase
         ];
 
         $sent = [];
-        $gowa = Mockery::mock(GowaClient::class);
-        $gowa->shouldReceive('sendMessage')
+        $outbound = Mockery::mock(OutboundMessageService::class);
+        $outbound->shouldReceive('sendText')
             ->andReturnUsing(function (string $jid, string $message) use (&$sent): array {
                 $sent[] = $jid;
                 $this->assertStringContainsString('*LOW STOCK ALERT*', $message);
@@ -125,7 +125,7 @@ class InventoryAlertServiceTest extends TestCase
                 return ['success' => true];
             });
 
-        $service = new InventoryAlertService($gowa, $whitelist);
+        $service = new InventoryAlertService($outbound, $whitelist);
         $service->checkLowStock();
 
         $this->assertSame(1, InventoryAlertLog::query()->count());

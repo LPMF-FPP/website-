@@ -216,7 +216,7 @@
                 tasksData: { tasks: { data: [] }, stats: {}, users: [] },
                 broadcastsData: { broadcasts: { data: [] }, statuses: {} },
                 remindersData: { reminders: [] },
-                logsData: { logs: { data: [] } },
+                logsData: { messages: { data: [] } },
                 inventoryAlertsData: { expiry_days: 30, low_stock: [], expiring: [], recipients: [], history: { data: [] } },
                 settingsData: null,
 
@@ -224,9 +224,11 @@
                 savingInventoryAlertRecipientIds: {},
 
                 // Logs Tab State
-                expandedBatch: null,
-                batchDetails: {},
-                loadingDetails: false,
+                expandedMessage: null,
+                messageAttempts: {},
+                loadingMessageAttempts: false,
+                retryingMessageIds: {},
+                logsPage: 1,
 
                 // Settings Tab State
                 activeSettingsTab: 'quick-test',
@@ -307,6 +309,11 @@
                         this.activeTab = tab;
                     }
 
+                    const logsPage = Number(urlParams.get('logs_page'));
+                    if (Number.isInteger(logsPage) && logsPage > 0) {
+                        this.logsPage = logsPage;
+                    }
+
                     window.addEventListener('reminder-saved', () => {
                         this.loadTabData('reminders');
                     });
@@ -332,6 +339,17 @@
                     // Update URL without reload
                     const url = new URL(window.location);
                     url.searchParams.set('tab', tab);
+
+                    if (tab === 'logs') {
+                        const requestedLogsPage = Number(params.logsPage ?? this.logsPage);
+                        this.logsPage = Number.isInteger(requestedLogsPage) && requestedLogsPage > 0
+                            ? requestedLogsPage
+                            : 1;
+                        url.searchParams.set('logs_page', this.logsPage);
+                    } else {
+                        url.searchParams.delete('logs_page');
+                    }
+
                     window.history.pushState({}, '', url);
 
                     try {
@@ -361,6 +379,10 @@
 
                             query.set('filter', filter);
                             query.set('status', status);
+                        }
+
+                        if (tab === 'logs') {
+                            query.set('logs_page', this.logsPage);
                         }
 
                         const requestUrl = query.toString() !== '' ? `${endpoint}?${query.toString()}` : endpoint;
@@ -520,20 +542,87 @@
                 },
 
                 // --- Logs Functions ---
-                async toggleBatch(id) {
-                    if (this.expandedBatch === id) {
-                        this.expandedBatch = null;
+                loadLogsPage(page) {
+                    const requestedPage = Number(page);
+                    const lastPage = Number(this.logsData?.messages?.last_page || 1);
+
+                    if (!Number.isInteger(requestedPage) || requestedPage < 1 || requestedPage > lastPage) {
                         return;
                     }
-                    this.expandedBatch = id;
-                    if (!this.batchDetails[id]) {
-                        this.loadingDetails = true;
+
+                    this.expandedMessage = null;
+                    this.loadTabData('logs', { logsPage: requestedPage });
+                },
+
+                messageStatusClass(status) {
+                    return {
+                        sent: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200',
+                        failed: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200',
+                        unknown: 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200',
+                        blocked: 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+                        sending: 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
+                        preparing: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+                        pending: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+                    }[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
+                },
+
+                async toggleMessage(id) {
+                    if (this.expandedMessage === id) {
+                        this.expandedMessage = null;
+                        return;
+                    }
+                    this.expandedMessage = id;
+                    if (!this.messageAttempts[id]) {
+                        this.loadingMessageAttempts = true;
                         try {
-                            const res = await fetch(`/whatsapp/logs/${id}`);
+                            const url = '{{ route("whatsapp.logs.messages.attempts", ["messageLog" => "__ID__"]) }}'.replace('__ID__', id);
+                            const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                            if (!res.ok) throw new Error(`Gagal memuat percobaan (${res.status})`);
                             const data = await res.json();
-                            this.batchDetails[id] = data.messages.data;
+                            this.messageAttempts[id] = data.message;
                         } catch (e) { console.error(e); }
-                        finally { this.loadingDetails = false; }
+                        finally { this.loadingMessageAttempts = false; }
+                    }
+                },
+
+                async retryMessage(message) {
+                    if (!message?.retry_available || this.retryingMessageIds[message.id]) return;
+                    if (!confirm('Kirim ulang pesan ini menggunakan payload tersimpan?')) return;
+
+                    this.retryingMessageIds = { ...this.retryingMessageIds, [message.id]: true };
+                    try {
+                        const url = '{{ route("whatsapp.logs.messages.retry", ["messageLog" => "__ID__"]) }}'.replace('__ID__', message.id);
+                        const res = await fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json',
+                            },
+                        });
+                        const data = await res.json().catch(() => null);
+                        if (!res.ok) {
+                            alert(data?.retry_block_reason || data?.message || 'Pesan tidak dapat dikirim ulang.');
+                            if (data?.message_log) this.replaceLoggedMessage(data.message_log);
+                            return;
+                        }
+
+                        if (data?.message_log) this.replaceLoggedMessage(data.message_log);
+                        this.messageAttempts[message.id] = null;
+                    } catch (e) {
+                        console.error(e);
+                        alert('Terjadi kesalahan saat mengantrikan pengiriman ulang.');
+                    } finally {
+                        const next = { ...this.retryingMessageIds };
+                        delete next[message.id];
+                        this.retryingMessageIds = next;
+                    }
+                },
+
+                replaceLoggedMessage(updatedMessage) {
+                    const messages = this.logsData?.messages?.data || [];
+                    const index = messages.findIndex(message => message.id === updatedMessage.id);
+                    if (index >= 0) {
+                        messages.splice(index, 1, updatedMessage);
                     }
                 },
 

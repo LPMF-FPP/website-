@@ -2,9 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Models\WhatsAppMessageBatch;
-use App\Models\WhatsAppMessageLog;
-use App\Services\WhatsApp\GowaClient;
+use App\Services\WhatsApp\OutboundMessageService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -26,73 +24,40 @@ class SendWhatsAppMessage implements ShouldQueue
         public string $message,
         public ?int $batchId = null,
         public ?string $attachmentPath = null,
-        public ?string $attachmentFilename = null
-    ) {}
+        public ?string $attachmentFilename = null,
+        ?string $idempotencyKey = null
+    ) {
+        $this->idempotencyKey = $idempotencyKey;
+    }
+
+    public ?string $idempotencyKey;
 
     /**
      * Execute the job.
      */
-    public function handle(GowaClient $client): void
+    public function handle(OutboundMessageService $outboundMessageService): void
     {
         $phone = $this->normalizePhone($this->phone);
         $jid = $phone.'@s.whatsapp.net';
 
         Log::info("Job sending WA to {$phone}");
 
-        $log = null;
-        if ($this->batchId) {
-            $log = WhatsAppMessageLog::query()
-                ->where('batch_id', $this->batchId)
-                ->where('recipient_jid', $jid)
-                ->latest('id')
-                ->first();
-
-            if ($log?->status === 'sent') {
-                $this->syncBatchStats($this->batchId);
-
-                return;
-            }
-
-            if (! $log) {
-                $log = WhatsAppMessageLog::create([
-                    'batch_id' => $this->batchId,
-                    'recipient_jid' => $jid,
-                    'recipient_name' => $phone,
-                    'recipient_type' => 'individual',
-                    'status' => 'pending',
-                ]);
-            }
-
-            $claimed = WhatsAppMessageLog::query()
-                ->whereKey($log->id)
-                ->whereIn('status', ['pending', 'failed'])
-                ->update([
-                    'status' => 'processing',
-                    'error_message' => null,
-                ]);
-
-            if ($claimed === 0) {
-                return;
-            }
-
-            $log->refresh();
-        }
-
         try {
             if (is_string($this->attachmentPath) && trim($this->attachmentPath) !== '') {
-                $result = $client->sendFile($jid, $this->attachmentPath, $this->message, $this->attachmentFilename);
+                $outboundMessageService->sendFile($jid, $this->attachmentPath, $this->message, $this->attachmentFilename, [
+                    'batch_id' => $this->batchId,
+                    'recipient_name' => $phone,
+                    'recipient_type' => 'individual',
+                    'source_label' => 'Notifikasi laporan gabungan',
+                    'idempotency_key' => $this->idempotencyKey,
+                ]);
             } else {
-                $result = $client->sendMessage($jid, $this->message);
-            }
-
-            $isSent = (bool) ($result['success'] ?? false);
-
-            if ($log) {
-                $log->update([
-                    'status' => $isSent ? 'sent' : 'failed',
-                    'message_id' => $result['message_id'] ?? null,
-                    'error_message' => $isSent ? null : ($result['error'] ?? 'Unknown error'),
-                    'sent_at' => $isSent ? now() : null,
+                $outboundMessageService->sendText($jid, $this->message, [
+                    'batch_id' => $this->batchId,
+                    'recipient_name' => $phone,
+                    'recipient_type' => 'individual',
+                    'source_label' => 'Notifikasi laporan gabungan',
+                    'idempotency_key' => $this->idempotencyKey,
                 ]);
             }
         } catch (\Throwable $e) {
@@ -102,16 +67,7 @@ class SendWhatsAppMessage implements ShouldQueue
                 'error' => $e->getMessage(),
             ]);
 
-            if ($log) {
-                $log->update([
-                    'status' => 'failed',
-                    'error_message' => $e->getMessage(),
-                ]);
-            }
-        }
-
-        if ($this->batchId) {
-            $this->syncBatchStats($this->batchId);
+            // OutboundMessageService owns the durable state when persistence succeeds.
         }
     }
 
@@ -123,28 +79,5 @@ class SendWhatsAppMessage implements ShouldQueue
         }
 
         return $phone;
-    }
-
-    private function syncBatchStats(int $batchId): void
-    {
-        $batch = WhatsAppMessageBatch::find($batchId);
-        if (! $batch) {
-            return;
-        }
-
-        $sentCount = WhatsAppMessageLog::query()
-            ->where('batch_id', $batchId)
-            ->where('status', 'sent')
-            ->count();
-        $failedCount = WhatsAppMessageLog::query()
-            ->where('batch_id', $batchId)
-            ->where('status', 'failed')
-            ->count();
-
-        $batch->update([
-            'sent_count' => $sentCount,
-            'failed_count' => $failedCount,
-            'completed_at' => ($sentCount + $failedCount) >= (int) $batch->total_recipients ? now() : $batch->completed_at,
-        ]);
     }
 }
