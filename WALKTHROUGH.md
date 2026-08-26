@@ -149,6 +149,12 @@ WhatsApp service berjalan di container Docker terpisah.
 
 ## 📰 Recent Changes (v2.6.x)
 
+### v2.6.3 (26 Agustus 2026) - Deploy Hardening & Verifikasi Host SSH
+
+- **Verifikasi Host SSH:** Skrip deploy tidak lagi menghapus atau menambahkan entri `known_hosts` secara otomatis. Deployment hanya berjalan bila fingerprint SHA256 yang sudah diverifikasi cocok dengan entri host tepercaya.
+- **Preflight Aman:** Koneksi SSH kini menggunakan verifikasi host key yang ketat sebelum maintenance mode atau sinkronisasi artefak dimulai. Kegagalan preflight menghentikan deployment tanpa mengubah server.
+- **Health Check Rilis:** Deployment membutuhkan health endpoint yang dikonfigurasi dan melaporkan kegagalan health check setelah aplikasi kembali aktif.
+
 ### v2.6.2 (13 Agustus 2026) - Audit Outbound WhatsApp & Retry Aman
 
 - **Log Outbound Lengkap:** Seluruh pengiriman melalui GOWA kini dicatat per pesan, termasuk milestone, broadcast, reminder, notifikasi tugas, workflow QMH, laporan gabungan, alert inventori/monitoring, balasan command, dan pesan uji Hub.
