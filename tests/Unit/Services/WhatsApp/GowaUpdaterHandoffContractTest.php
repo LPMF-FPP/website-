@@ -7,26 +7,35 @@ function gowaUpdaterGatewayMigration(): string
     return file_get_contents(base_path('database/migrations/2026_08_28_000001_create_gowa_updater_gateway.php')) ?: '';
 }
 
-it('keeps unauthorized root claims behind the explicit submit role grant', function (): void {
-    $sql = gowaUpdaterGatewayMigration();
+function gowaUpdaterGatewaySql(): string
+{
+    return file_get_contents(base_path('ops/gowa-updater/gateway.sql')) ?: '';
+}
 
-    expect($sql)->toContain("RAISE EXCEPTION 'claim_unauthorized'")
+function gowaUpdaterDispatchMigration(): string
+{
+    return file_get_contents(base_path('database/migrations/2026_08_27_000004_create_gowa_update_dispatch_claims.php')) ?: '';
+}
+
+it('keeps unauthorized root claims behind the explicit submit role grant', function (): void {
+    $sql = gowaUpdaterGatewaySql();
+
+    expect($sql)->toContain("IF session_user <> 'lpmf_gowa_submit'")
         ->and($sql)->toContain('REVOKE ALL ON FUNCTION updater_gateway.consume_dispatch')
-        ->and($sql)->toContain('GRANT EXECUTE ON FUNCTION updater_gateway.consume_dispatch')
         ->and($sql)->not->toContain('GRANT EXECUTE ON FUNCTION updater_gateway.consume_dispatch(uuid, uuid, bigint, text, text) TO PUBLIC');
 });
 
 it('binds replay and payload validation to the durable claim nonce', function (): void {
-    $sql = gowaUpdaterGatewayMigration();
+    $sql = gowaUpdaterDispatchMigration().'\n'.gowaUpdaterGatewaySql();
 
-    expect($sql)->toContain('claim_nonce uuid NOT NULL UNIQUE')
+    expect($sql)->toContain("\$table->uuid('claim_nonce')->unique()")
         ->and($sql)->toContain('v_claim.consumed_at IS NOT NULL')
-        ->and($sql)->toContain('v_claim.claim_nonce IS DISTINCT FROM coalesce(p_claim_nonce, v_claim.claim_nonce)')
-        ->and($sql)->toContain('v_claim.payload_hash IS DISTINCT FROM coalesce(p_payload_hash, v_claim.payload_hash)');
+        ->and($sql)->toContain('v_claim.claim_nonce <> p_claim_nonce')
+        ->and($sql)->toContain('v_claim.payload_hash <> p_payload_hash');
 });
 
 it('requires the current fence and an unexpired lease before root consumption', function (): void {
-    $sql = gowaUpdaterGatewayMigration();
+    $sql = gowaUpdaterGatewaySql();
 
     expect($sql)->toContain('v_claim.fencing_token <> (SELECT current_fence')
         ->and($sql)->toContain('v_claim.lease_expires_at <= clock_timestamp()')
@@ -34,7 +43,7 @@ it('requires the current fence and an unexpired lease before root consumption', 
 });
 
 it('revalidates the release and revocation generations captured by the application', function (): void {
-    $sql = gowaUpdaterGatewayMigration();
+    $sql = gowaUpdaterGatewaySql();
 
     expect($sql)->toContain("coalesce(v_operation.feature_snapshot->>'revocation_generation', '') = ''")
         ->and($sql)->toContain("v_operation.feature_snapshot->>'revocation_generation'")
@@ -42,7 +51,7 @@ it('revalidates the release and revocation generations captured by the applicati
 });
 
 it('binds root consumption to the operation release and canonical payload hash', function (): void {
-    $sql = gowaUpdaterGatewayMigration();
+    $sql = gowaUpdaterGatewaySql();
 
     expect($sql)->toContain('v_claim.release_id <> v_operation.release_id')
         ->and($sql)->toContain('v_claim.payload_hash <> v_hash')
