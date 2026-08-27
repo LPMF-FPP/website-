@@ -21,10 +21,10 @@ it('creates one deterministic pending request before starting the unit', functio
     $bin = $root.'/bin';
     $manifest = $root.'/capability.json';
     mkdir($bin, 0700, true);
-    file_put_contents($manifest, '{"fully_implemented":true,"contract":"reconcile-first-v1","capability_version":"1"}');
+    file_put_contents($manifest, '{"fully_implemented":true,"production_ready":true,"contract":"reconcile-first-v1","capability_version":"1"}');
     file_put_contents($bin.'/systemctl', "#!/usr/bin/env bash\nprintf '%s' \"\$*\" > \"$root/systemctl.args\"\n");
     chmod($bin.'/systemctl', 0700);
-    file_put_contents($bin.'/psql', "#!/usr/bin/env bash\nprintf '%s\\n' '{\"replayed\":false,\"payload\":{\"operation_id\":\"00000000-0000-4000-8000-000000000000\",\"claim_nonce\":\"00000000-0000-4000-8000-000000000001\",\"fencing_token\":1,\"release_id\":\"release-a\",\"digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"},\"payload_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}'\n");
+    file_put_contents($bin.'/psql', "#!/usr/bin/env bash\nprintf '%s\\n' '{\"replayed\":false,\"payload\":{\"operation_id\":\"00000000-0000-4000-8000-000000000000\",\"scope\":\"gowa\",\"claim_nonce\":\"00000000-0000-4000-8000-000000000001\",\"fencing_token\":1,\"release_id\":\"release-a\",\"digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"catalog_generation\":\"generation-1\",\"revocation_generation\":\"revocation-1\"},\"payload_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}'\n");
     chmod($bin.'/psql', 0700);
     $operationDirectory = $root.'/requests/00000000-0000-4000-8000-000000000000';
     mkdir($operationDirectory, 0700, true);

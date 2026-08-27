@@ -38,7 +38,8 @@ final class GowaUpdateReconciler
             return;
         }
 
-        foreach (glob($root.'/*/*.json') ?: [] as $path) {
+        $paths = array_merge(glob($root.'/*/*.json') ?: [], glob($root.'/*/*/*.json') ?: []);
+        foreach (array_unique($paths) as $path) {
             $pathRealPath = realpath($path);
             if ($pathRealPath === false || ! str_starts_with($pathRealPath, $rootRealPath.'/')) {
                 continue;

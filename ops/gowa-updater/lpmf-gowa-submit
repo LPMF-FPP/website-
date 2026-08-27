@@ -18,7 +18,7 @@ if [[ "${GOWA_UPDATER_ENABLED:-0}" != "1" || "${GOWA_UPDATER_NO_SOCKET_GATE:-0}"
   exit 78
 fi
 for binary in jq psql; do command -v "$binary" >/dev/null || exit 78; done
-jq -e 'select(.fully_implemented == true and .contract == "reconcile-first-v1" and .capability_version == "1")' "$capability_manifest" >/dev/null || exit 78
+jq -e 'select(.fully_implemented == true and .production_ready == true and .contract == "reconcile-first-v1" and .capability_version == "1")' "$capability_manifest" >/dev/null || exit 78
 
 [[ -d "$request_root" && ! -L "$request_root" ]] || exit 78
 install -d -m 0700 -- "$operation_dir"
@@ -33,9 +33,11 @@ umask 077
 request_json="${operation_dir}/request.json"
 database_name="${GOWA_UPDATER_DATABASE:-${DB_DATABASE:-lpmf}}"
 submit_role="${GOWA_UPDATER_SUBMIT_ROLE:-lpmf_gowa_submit}"
-claim_json="$(psql --no-password --no-psqlrc --quiet --tuples-only --no-align --dbname "$database_name" --username "$submit_role" -v ON_ERROR_STOP=1 -c "select updater_gateway.claim_dispatch('${operation_id}'::uuid, 'gowa-maintenance')::text" | tr -d '\n')" || exit 78
-jq -e --arg id "$operation_id" 'select(.payload.operation_id == $id and .payload.claim_nonce and (.payload.fencing_token|type) == "number" and .payload.release_id and .payload.digest and (.payload_hash|type) == "string")' <<<"$claim_json" >/dev/null || exit 78
-printf '%s\n' "$(jq -c '.payload + {action:"update", fence:.payload.fencing_token, payload_hash:.payload_hash}' <<<"$claim_json")" > "$request_json"
+claim_json="$(psql --no-password --no-psqlrc --quiet --tuples-only --no-align --dbname "$database_name" --username "$submit_role" -v ON_ERROR_STOP=1 -c "select updater_gateway.claim_dispatch('${operation_id}'::uuid, 'gowa-maintenance')::text" 2>/dev/null | tr -d '\n')" || exit 78
+jq -e --arg id "$operation_id" 'select(.replayed == false and .payload.operation_id == $id and (.payload.scope == "gowa") and (.payload.claim_nonce|type) == "string" and (.payload.fencing_token|type) == "number" and (.payload.fencing_token >= 1) and (.payload.release_id|type) == "string" and (.payload.release_id|test("^[A-Za-z0-9._:-]+$")) and (.payload.digest|test("^sha256:[0-9a-f]{64}$")) and (.payload.catalog_generation|type) == "string" and (.payload.revocation_generation|type) == "string" and (.payload_hash|type) == "string" and (.payload_hash|test("^[0-9a-f]{64}$")))' <<<"$claim_json" >/dev/null || exit 78
+printf '%s\n' "$(jq -c '.payload + {action:"update", fence:.payload.fencing_token, payload_hash:.payload_hash}' <<<"$claim_json")" > "$tmp"
+chmod 0600 "$tmp"
+mv -f -- "$tmp" "$request_json"
 [[ -r "$request_json" && ! -L "$request_json" ]] || exit 78
 if ! mv -n -- "$request_json" "$pending"; then
   rm -f -- "$tmp"

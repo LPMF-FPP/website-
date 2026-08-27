@@ -4,8 +4,8 @@ set -euo pipefail
 PATH='/usr/bin:/bin:/usr/local/bin'
 export PATH
 
-if [[ $# -eq 1 && "$1" == "--capabilities" ]]; then
-  printf '%s\n' '{"contract":"reconcile-first-v1","fully_implemented":false,"capability_version":"1"}'
+if [[ $# -eq 1 && "$1" == '--capabilities' ]]; then
+  printf '%s\n' '{"contract":"reconcile-first-v1","fully_implemented":true,"capability_version":"1","stage":"local-only","production_ready":false}'
   exit 0
 fi
 if [[ $# -ne 1 || ! "$1" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$ ]]; then
@@ -14,10 +14,6 @@ fi
 
 operation_id="${1,,}"
 [[ "${GOWA_UPDATER_ENABLED:-0}" == 1 && "${GOWA_UPDATER_NO_SOCKET_GATE:-0}" == 1 ]] || exit 78
-
-# The checked-in artifact is a safety stub until the root/database claim,
-# signed evidence, rollback, and no-socket staging gates are installed.
-exit 78
 
 capability_manifest="${GOWA_UPDATER_CAPABILITY_MANIFEST:-/etc/lpmf/gowa-updater/capability.json}"
 catalog="${GOWA_UPDATER_CATALOG:-/etc/lpmf/gowa-updater/catalog.json}"
@@ -31,86 +27,174 @@ signing_key="${GOWA_UPDATER_EVIDENCE_SIGNING_KEY:-/etc/lpmf/gowa-updater/evidenc
 rollback_manifest="${GOWA_UPDATER_ROLLBACK_MANIFEST:-/etc/lpmf/gowa-updater/rollback-manifest.json}"
 request="${request_root}/${operation_id}/request.pending"
 consumed="${request_root}/${operation_id}/request.consumed"
-phase_dir="${evidence_root}/${operation_id}/phases"
+operation_evidence="${evidence_root}/${operation_id}"
+phase_dir="${operation_evidence}/phases"
 
-for binary in jq sha256sum flock; do command -v "$binary" >/dev/null || exit 78; done
-[[ -r "$capability_manifest" && ! -L "$capability_manifest" ]] || exit 78
-[[ -r "$catalog" && ! -L "$catalog" ]] || exit 78
-[[ -r "$envelope" && ! -L "$envelope" ]] || exit 78
-[[ -r "$authority" && ! -L "$authority" ]] || exit 78
-[[ -r "$request" && ! -L "$request" ]] || exit 78
+for binary in jq sha256sum flock openssl base64 timeout; do
+  command -v "$binary" >/dev/null || exit 78
+done
+for path in "$capability_manifest" "$catalog" "$envelope" "$authority" "$request" "$signing_key" "$rollback_manifest"; do
+  [[ -r "$path" && ! -L "$path" ]] || exit 78
+done
 [[ -f "$gate" && ! -L "$gate" ]] || exit 78
-[[ -r "$signing_key" && ! -L "$signing_key" ]] || exit 78
-[[ -r "$rollback_manifest" && ! -L "$rollback_manifest" ]] || exit 78
-jq -e 'select(.contract == "reconcile-first-v1" and .fully_implemented == true and .capability_version == "1")' "$capability_manifest" >/dev/null || exit 78
-jq -e 'select(.schema_version == 1 and .signature_valid == true)' "$catalog" >/dev/null || exit 78
+[[ "$(jq -e -r 'select(.contract == "reconcile-first-v1" and .fully_implemented == true and .production_ready == true and .capability_version == "1") | true' "$capability_manifest")" == true ]] || exit 78
+[[ "$(jq -e -r 'select(.schema_version == 1 and .signature_valid == true and (.generation|type) == "string") | true' "$catalog")" == true ]] || exit 78
+[[ "$(jq -e -r 'select(.schema_version == 1 and .previous_image and .project and .service and .working_directory and .compose_files and .image_override and .network_mode and .restart_policy and (.mounts|type) == "array") | true' "$rollback_manifest")" == true ]] || exit 78
 
-request_json="$(jq -e -c --arg id "$operation_id" 'select(.operation_id == $id and .action == "update" and (.fence|type) == "number")' "$request")" || exit 78
-authority_json="$(jq -e -c --arg id "$operation_id" 'select(.operation_id == $id and .revoked != true and (.fence|type) == "number")' "$authority")" || exit 78
-fence="$(jq -r '.fence' <<<"$request_json")"
-[[ "$fence" == "$(jq -r '.fence' <<<"$authority_json")" ]] || exit 78
-claim_nonce="$(jq -e -r '.claim_nonce' <<<"$request_json")" || exit 78
-payload_hash="$(jq -e -r '.payload_hash' <<<"$request_json")" || exit 78
-database_name="${GOWA_UPDATER_DATABASE:-${DB_DATABASE:-lpmf}}"
-submit_role="${GOWA_UPDATER_SUBMIT_ROLE:-lpmf_gowa_submit}"
-psql_bin="${GOWA_UPDATER_PSQL_BIN:-/usr/bin/psql}"
-[[ -x "$psql_bin" ]] || exit 78
-"$psql_bin" --no-password --no-psqlrc --quiet --tuples-only --no-align --dbname "$database_name" --username "$submit_role" -v ON_ERROR_STOP=1 -c "select updater_gateway.consume_dispatch('${operation_id}'::uuid, '${claim_nonce}'::uuid, ${fence}::bigint, '$(jq -r '.release_id' <<<"$request_json")', '${payload_hash}')::text" >/dev/null || exit 78
-release_id="$(jq -r '.release_id' <<<"$request_json")"
-image="$(jq -e -r --arg id "$release_id" '.releases[] | select(.release_id == $id and .approved == true and .revoked == false) | .image' "$catalog")" || exit 78
-digest="$(jq -e -r --arg id "$release_id" '.releases[] | select(.release_id == $id and .approved == true and .revoked == false) | .digest' "$catalog")" || exit 78
-[[ "$image" == *@sha256:* && "$image" == *@"$digest" && "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || exit 78
+request_json="$(jq -e -c --arg id "$operation_id" 'select(.operation_id == $id and .action == "update" and (.scope == "gowa") and (.fence|type) == "number" and (.fence >= 1) and (.claim_nonce|type) == "string" and (.payload_hash|type) == "string" and (.release_id|type) == "string")' "$request")" || exit 78
+fence="$(jq -e -r '.fence' <<<"$request_json")"
+claim_nonce="$(jq -e -r '.claim_nonce' <<<"$request_json")"
+release_id="$(jq -e -r '.release_id' <<<"$request_json")"
+payload_hash="$(jq -e -r '.payload_hash' <<<"$request_json")"
+[[ "$claim_nonce" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$ ]] || exit 78
+[[ "$payload_hash" =~ ^[0-9a-f]{64}$ && "$release_id" =~ ^[A-Za-z0-9._:-]+$ ]] || exit 78
 
+authority_json="$(jq -e -c --arg id "$operation_id" --arg fence "$fence" 'select(.operation_id == $id and .revoked != true and (.fence|type) == "number" and (.fence|tostring) == $fence)' "$authority")" || exit 78
 project="$(jq -e -r '.project' "$envelope")"
 service="$(jq -e -r '.service' "$envelope")"
 working_directory="$(jq -e -r '.working_directory' "$envelope")"
-compose_file="$(jq -e -r '.compose_files | if length == 1 then .[0] else empty end' "$envelope")"
+compose_file_count="$(jq -e -r '.compose_files | length' "$envelope")"
+compose_file="$(jq -e -r '.compose_files | if length == 1 then .[0] else empty end' "$envelope")" || exit 78
 override_file="$(jq -e -r '.image_override' "$envelope")"
-[[ "$project" == go-whatsapp-web-multidevice && "$service" == whatsapp_go ]] || exit 78
-[[ "$working_directory" == /* && -d "$working_directory" && "$compose_file" == /* && -r "$compose_file" ]] || exit 78
+network_mode="$(jq -e -r '.network_mode' "$envelope")"
+restart_policy="$(jq -e -r '.restart_policy' "$envelope")"
+[[ "$project" == 'go-whatsapp-web-multidevice' && "$service" == 'whatsapp_go' && "$compose_file_count" == 1 ]] || exit 78
+[[ "$working_directory" == /* && -d "$working_directory" && "$compose_file" == /* && -r "$compose_file" && ! -L "$compose_file" ]] || exit 78
 [[ "$override_file" == /* && -r "$override_file" && ! -L "$override_file" ]] || exit 78
+[[ "$network_mode" == 'host' && "$restart_policy" == 'unless-stopped' ]] || exit 78
 [[ "$(jq -e -r '.required_socket_absent' "$envelope")" == true ]] || exit 78
+
+image="$(jq -e -r --arg id "$release_id" '.releases | map(select(.release_id == $id and .approved == true and .revoked == false)) | if length == 1 then .[0].image else empty end' "$catalog")" || exit 78
+digest="$(jq -e -r --arg id "$release_id" '.releases | map(select(.release_id == $id and .approved == true and .revoked == false)) | if length == 1 then .[0].digest else empty end' "$catalog")" || exit 78
+catalog_generation="$(jq -e -r '.generation' "$catalog")"
+revocation_generation="$(jq -e -r --arg id "$release_id" '.releases[] | select(.release_id == $id) | .revocation_generation' "$catalog")" || exit 78
+[[ "$image" =~ ^.+@sha256:[0-9a-f]{64}$ && "$digest" =~ ^sha256:[0-9a-f]{64}$ && "$image" == *@"$digest" ]] || exit 78
 [[ "$(jq -e -r --arg service "$service" '.services[$service].image' "$override_file")" == "$image" ]] || exit 78
-previous_image="$(jq -e -r '.previous_image' "$rollback_manifest")" || exit 78
+
+previous_image="$(jq -e -r '.previous_image' "$rollback_manifest")"
+previous_digest="${previous_image##*@}"
 [[ "$previous_image" =~ ^.+@sha256:[0-9a-f]{64}$ ]] || exit 78
+[[ "$(jq -e -r '.project' "$rollback_manifest")" == "$project" && "$(jq -e -r '.service' "$rollback_manifest")" == "$service" ]] || exit 78
+[[ "$(jq -e -r '.working_directory' "$rollback_manifest")" == "$working_directory" && "$(jq -e -r '.compose_files|length' "$rollback_manifest")" == 1 ]] || exit 78
+[[ "$(jq -e -r '.compose_files[0]' "$rollback_manifest")" == "$compose_file" && "$(jq -e -r '.image_override' "$rollback_manifest")" == "$override_file" ]] || exit 78
+[[ "$(jq -e -r '.network_mode' "$rollback_manifest")" == "$network_mode" && "$(jq -e -r '.restart_policy' "$rollback_manifest")" == "$restart_policy" ]] || exit 78
 
 docker_bin="${GOWA_UPDATER_DOCKER_BIN:-/usr/bin/docker}"
-[[ -x "$docker_bin" ]] || exit 78
-resolved="$("$docker_bin" compose --project-name "$project" -f "$compose_file" -f "$override_file" config --format json)" || exit 78
-jq -e --arg service "$service" --arg image "$image" '(.services[$service].image == $image) and (.services[$service].network_mode == "host") and (.services[$service].restart == "unless-stopped") and (([.. | strings] | any(test("/var/run/docker.sock"))) | not)' <<<"$resolved" >/dev/null || exit 78
+psql_bin="${GOWA_UPDATER_PSQL_BIN:-/usr/bin/psql}"
+[[ -x "$docker_bin" && -x "$psql_bin" ]] || exit 78
 
-mkdir -p "$phase_dir" "${evidence_root}/${operation_id}"
+install -d -m 0700 -- "$operation_evidence" "$phase_dir" "$(dirname "$lock_path")"
 exec 9>"$lock_path"
 flock -n 9 || exit 75
-[[ ! -e "$consumed" ]] || exit 0
-printf '%s\n' "$(jq -cn --arg id "$operation_id" --arg fence "$fence" --arg digest "$digest" '{operation_id:$id,fence:($fence|tonumber),target_digest:$digest,phase:"mutation_prepared"}')" > "${phase_dir}/mutation_prepared"
-[[ "${GOWA_UPDATER_MUTATION_ENABLED:-0}" == 1 ]] || exit 78
-mv -- "$request" "$consumed"
-printf '%s\n' "$(jq -cn --arg id "$operation_id" --arg fence "$fence" --arg digest "$digest" '{operation_id:$id,fence:($fence|tonumber),target_digest:$digest,phase:"mutation_started"}')" > "${phase_dir}/mutation_started"
-rollback() {
-  rollback_override="${phase_dir}/rollback-compose.json"
-  jq -cn --arg service "$service" --arg image "$previous_image" '{services:{($service):{image:$image}}}' > "$rollback_override"
-  "$docker_bin" compose --project-name "$project" -f "$compose_file" -f "$rollback_override" pull "$service" || return 1
-  "$docker_bin" compose --project-name "$project" -f "$compose_file" -f "$rollback_override" up --no-deps --wait "$service" || return 1
-  printf '%s\n' "$(jq -cn --arg id "$operation_id" --arg fence "$fence" --arg image "$previous_image" '{operation_id:$id,fence:($fence|tonumber),rollback_image:$image,phase:"rollback_observed"}')" > "${phase_dir}/rollback_observed"
+[[ ! -e "$consumed" ]] || exit 75
+
+resolved="$($docker_bin compose --project-name "$project" -f "$compose_file" -f "$override_file" config --format json)" || exit 78
+jq -e --arg service "$service" --arg image "$image" --arg restart "$restart_policy" '(.services[$service].image == $image) and (.services[$service].network_mode == "host") and (.services[$service].restart == $restart) and (([.. | strings] | any(test("/var/run/docker.sock"))) | not)' <<<"$resolved" >/dev/null || exit 78
+
+atomic_write() {
+  local destination="$1"
+  local content="$2"
+  local temporary="${destination}.tmp.$$"
+  umask 077
+  printf '%s\n' "$content" > "$temporary"
+  chmod 0600 "$temporary"
+  mv -f -- "$temporary" "$destination"
 }
-if ! "$docker_bin" compose --project-name "$project" -f "$compose_file" -f "$override_file" pull "$service"; then
-  rollback || exit 70
+
+write_phase() {
+  local phase="$1"
+  local observed_identity="${2:-unknown}"
+  local phase_json
+  phase_json="$(jq -cn --arg id "$operation_id" --arg fence "$fence" --arg request_hash "$payload_hash" --arg target "$image" --arg previous "$previous_image" --arg identity "$observed_identity" --arg phase "$phase" '{operation_id:$id,fence:($fence|tonumber),request_hash:$request_hash,target_image:$target,expected_previous_image:$previous,container_identity:$identity,phase:$phase,occurred_at:(now|todateiso8601)}')"
+  atomic_write "$phase_dir/$phase" "$phase_json"
+}
+
+compose_ps=""
+container_id=""
+inspect_json=""
+observe_container() {
+  local compose_override="$override_file"
+  local expected_image="$image"
+  if [[ "${1:-target}" == rollback ]]; then
+    compose_override="$rollback_override"
+    expected_image="$previous_image"
+  fi
+  compose_ps="$($docker_bin compose --project-name "$project" -f "$compose_file" -f "$compose_override" ps --format json "$service" 2>/dev/null)" || return 1
+  container_id="$(jq -e -r 'if type == "array" then .[0].ID // .[0].Id // empty else .ID // .Id // empty end' <<<"$compose_ps")" || return 1
+  [[ "$container_id" =~ ^[0-9a-fA-F]{12,64}$ ]] || return 1
+  inspect_json="$($docker_bin inspect "$container_id" 2>/dev/null)" || return 1
+  jq -e 'type == "array" and length == 1' <<<"$inspect_json" >/dev/null || return 1
+  jq -e --arg service "$service" --arg image "$expected_image" --arg network "$network_mode" --arg restart "$restart_policy" '
+    .[0].Config.Labels["com.docker.compose.project"] == "go-whatsapp-web-multidevice"
+    and .[0].Config.Labels["com.docker.compose.service"] == $service
+    and .[0].Config.Image == $image
+    and .[0].HostConfig.NetworkMode == $network
+    and .[0].HostConfig.RestartPolicy.Name == $restart
+    and ((.[0].Mounts // []) | map(select(.Destination == "/var/run/docker.sock")) | length == 0)
+  ' <<<"$inspect_json" >/dev/null || return 1
+  jq -e --argjson expected "$(jq -c '.mounts' "$rollback_manifest")" '.[0].Mounts | map({Type,Source,Destination,RW}) | sort_by(.Destination) == ($expected | map({Type,Source,Destination,RW}) | sort_by(.Destination))' <<<"$inspect_json" >/dev/null || return 1
+  return 0
+}
+
+container_identity() {
+  jq -e -r '.[0].Id + ":" + (.[0].Image // "unknown")' <<<"$inspect_json"
+}
+
+emit_evidence() {
+  local sequence="$1"
+  local code="$2"
+  local identity="$3"
+  local passed="$4"
+  local snapshot_hash
+  local payload
+  local signature_file="${operation_evidence}/signature.tmp.$$"
+  local payload_file="${operation_evidence}/payload.tmp.$$"
+  install -d -m 0700 "${operation_evidence}/${fence}"
+  snapshot_hash="$(printf '%s' "${operation_id}:${fence}:${identity}:${image}:${network_mode}:${restart_policy}" | sha256sum | cut -d ' ' -f 1)"
+  payload="$(jq -cn --arg id "$operation_id" --arg fence "$fence" --arg seq "$sequence" --arg plane root --arg code "$code" --arg snapshot "$snapshot_hash" --arg identity "$identity" --arg digest "${evidence_digest:-$digest}" --arg generation "$catalog_generation" --arg policy '1' --arg passed "$passed" '{contract:"gowa-evidence-v1",operation_id:$id,fencing_token:($fence|tonumber),sequence:($seq|tonumber),plane:$plane,code:$code,occurred_at:(now|todateiso8601),snapshot_hash:$snapshot,container_identity:$identity,target_digest:$digest,catalog_generation:$generation,attestation:{plane:$plane,policy_version:$policy,snapshot_hash:$snapshot,container_identity:$identity,passed:($passed == "true"),observed_at:(now|todateiso8601)}}')"
+  umask 077
+  printf '%s' "$payload" > "$payload_file"
+  openssl pkeyutl -sign -rawin -inkey "$signing_key" -in "$payload_file" -out "$signature_file" >/dev/null 2>&1 || { rm -f -- "$payload_file" "$signature_file"; return 1; }
+  local signature
+  signature="$(base64 -w0 "$signature_file")"
+  atomic_write "${operation_evidence}/${fence}/${sequence}-${code}.json" "$(jq -cn --argjson payload "$payload" --arg signature "$signature" '{schema_version:1,payload:$payload,signature:$signature}')"
+  rm -f -- "$payload_file" "$signature_file"
+}
+
+write_phase mutation_prepared unknown
+consume_json="$($psql_bin --no-password --no-psqlrc --quiet --tuples-only --no-align --dbname "${GOWA_UPDATER_DATABASE:-${DB_DATABASE:-lpmf}}" --username "${GOWA_UPDATER_SUBMIT_ROLE:-lpmf_gowa_submit}" -v ON_ERROR_STOP=1 -c "select updater_gateway.consume_dispatch('${operation_id}'::uuid, '${claim_nonce}'::uuid, ${fence}::bigint, '${release_id}', '${payload_hash}')::text" 2>/dev/null | tr -d '\n')" || exit 78
+jq -e --arg id "$operation_id" --arg nonce "$claim_nonce" --arg release "$release_id" --arg digest "$digest" --arg generation "$catalog_generation" --arg revocation "$revocation_generation" --arg hash "$payload_hash" --arg fence "$fence" 'select(.replayed == false and .payload.operation_id == $id and .payload.claim_nonce == $nonce and .payload.release_id == $release and .payload.digest == $digest and .payload.catalog_generation == $generation and .payload.revocation_generation == $revocation and (.payload.fencing_token|tostring) == $fence and .payload_hash == $hash)' <<<"$consume_json" >/dev/null || exit 78
+mv -n -- "$request" "$consumed" || exit 78
+[[ -e "$consumed" && ! -L "$consumed" && ! -e "$request" ]] || exit 78
+
+rollback() {
+  write_phase rollback_started unknown
+  rollback_override="${phase_dir}/rollback-compose.json"
+  atomic_write "$rollback_override" "$(jq -cn --arg service "$service" --arg image "$previous_image" '{services:{($service):{image:$image}}}')"
+  rollback_ok=true
+  timeout --foreground "${GOWA_UPDATER_PULL_TIMEOUT:-600}" "$docker_bin" compose --project-name "$project" -f "$compose_file" -f "$rollback_override" pull "$service" >/dev/null 2>&1 || rollback_ok=false
+  timeout --foreground "${GOWA_UPDATER_UP_TIMEOUT:-600}" "$docker_bin" compose --project-name "$project" -f "$compose_file" -f "$rollback_override" up --no-deps --wait "$service" >/dev/null 2>&1 || rollback_ok=false
+  if "$rollback_ok" && observe_container rollback; then
+    identity="$(container_identity)"
+    write_phase rollback_observed "$identity"
+    evidence_digest="$previous_digest"
+    emit_evidence 1 rollback_observed "$identity" true || exit 78
+    exit 70
+  fi
+  write_phase rollback_degraded unknown
+  emit_evidence 1 rollback_degraded unknown false || exit 78
   exit 70
+}
+
+write_phase mutation_started unknown
+if ! timeout --foreground "${GOWA_UPDATER_PULL_TIMEOUT:-600}" "$docker_bin" compose --project-name "$project" -f "$compose_file" -f "$override_file" pull "$service" >/dev/null 2>&1; then
+  rollback
 fi
-if ! "$docker_bin" compose --project-name "$project" -f "$compose_file" -f "$override_file" up --no-deps --wait "$service"; then
-  rollback || exit 70
-  exit 70
+if ! timeout --foreground "${GOWA_UPDATER_UP_TIMEOUT:-600}" "$docker_bin" compose --project-name "$project" -f "$compose_file" -f "$override_file" up --no-deps --wait "$service" >/dev/null 2>&1; then
+  rollback
 fi
-printf '%s\n' "$(jq -cn --arg id "$operation_id" --arg fence "$fence" --arg digest "$digest" '{operation_id:$id,fence:($fence|tonumber),target_digest:$digest,phase:"mutation_observed"}')" > "${phase_dir}/mutation_observed"
-payload_file="${evidence_root}/${operation_id}/evidence.payload"
-signature_file="${evidence_root}/${operation_id}/evidence.signature"
-snapshot_input="${operation_id}:${fence}:${digest}"
-snapshot_hash="$(printf '%s' "$snapshot_input" | sha256sum | cut -d ' ' -f 1)"
-canonical="$(jq -cn --arg id "$operation_id" --arg fence "$fence" --arg digest "$digest" --arg snapshot "$snapshot_hash" '{contract:"gowa-evidence-v1",operation_id:$id,fencing_token:($fence|tonumber),sequence:1,plane:"root",code:"mutation_observed",occurred_at:(now|todateiso8601),snapshot_hash:$snapshot,container_identity:$digest}')"
-printf '%s' "$canonical" > "$payload_file"
-openssl pkeyutl -sign -rawin -inkey "$signing_key" -in "$payload_file" -out "$signature_file" >/dev/null 2>&1 || exit 78
-signature="$(base64 -w0 "$signature_file")"
-jq -cn --argjson payload "$canonical" --arg signature "$signature" '{schema_version:1,payload:$payload,signature:$signature}' > "${evidence_root}/${operation_id}/${fence}-1.json"
-rm -f -- "$payload_file" "$signature_file"
+observe_container || { write_phase mutation_failed unknown; exit 70; }
+identity="$(container_identity)"
+write_phase mutation_observed "$identity"
+emit_evidence 1 mutation_observed "$identity" true || exit 78
 exit 0

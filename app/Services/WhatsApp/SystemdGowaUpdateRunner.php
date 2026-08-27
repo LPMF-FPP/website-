@@ -56,6 +56,7 @@ final class SystemdGowaUpdateRunner implements GowaUpdateRunner
         $manifest = json_decode((string) file_get_contents($manifestPath), true);
         if (! is_array($manifest)
             || ($manifest['fully_implemented'] ?? false) !== true
+            || ($manifest['production_ready'] ?? false) !== true
             || ($manifest['contract'] ?? null) !== 'reconcile-first-v1'
             || ($manifest['capability_version'] ?? null) !== (string) config('gowa-updater.required_capability_version', '1')) {
             return false;
@@ -82,6 +83,7 @@ final class SystemdGowaUpdateRunner implements GowaUpdateRunner
         return $status === 0
             && is_array($capability)
             && ($capability['contract'] ?? null) === 'reconcile-first-v1'
-            && ($capability['fully_implemented'] ?? false) === true;
+            && ($capability['fully_implemented'] ?? false) === true
+            && ($capability['production_ready'] ?? false) === true;
     }
 }

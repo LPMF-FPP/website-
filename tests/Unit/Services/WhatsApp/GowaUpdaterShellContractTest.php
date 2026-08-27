@@ -5,7 +5,8 @@ it('reports the runner contract while refusing execution without installed gates
     $capabilities = shell_exec('bash '.escapeshellarg($runner).' --capabilities');
     expect(json_decode((string) $capabilities, true))->toMatchArray([
         'contract' => 'reconcile-first-v1',
-        'fully_implemented' => false,
+        'fully_implemented' => true,
+        'production_ready' => false,
         'capability_version' => '1',
     ]);
 
