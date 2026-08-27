@@ -25,10 +25,10 @@
   "$defs": {
     "release": {
       "type": "object",
-      "required": ["release_id", "version", "image", "digest", "approved", "revoked"],
+      "required": ["release_id", "version", "image", "digest", "approved", "revoked", "revocation_generation"],
       "properties": {
         "release_id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]+$"},
-        "version": {"type": "string", "minLength": 1},
+        "version": {"type": "string", "pattern": "^[A-Za-z0-9._+:-]{1,128}$"},
         "image": {"type": "string", "pattern": "^.+@sha256:[a-f0-9]{64}$"},
         "digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
         "approved": {"const": true},

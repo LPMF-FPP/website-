@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "previous_image": "aldinokemal2104/go-whatsapp-web-multidevice@sha256:2649acd2db195b23695b36b034ce92812e2204de721c17e9a105c461030833bb",
+  "project": "go-whatsapp-web-multidevice",
+  "service": "whatsapp_go"
+}

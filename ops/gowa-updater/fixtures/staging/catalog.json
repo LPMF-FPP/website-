@@ -9,25 +9,16 @@
   "signature": {
     "algorithm": "ed25519",
     "key_id": "staging-fixture-key",
-    "value": "AAAAAAAAAAAAAAAA"
+    "value": "go3Clbh8BtOOhnUFVkB4lyuOJ8N/ICBCTWTtsQJpj8XMZuRpnM78EPYNl7rjnIZ3891g4NZNlydozk9I5GhtBA=="
   },
   "releases": [
     {
-      "release_id": "staging-release-1",
-      "version": "1.0.0-staging",
-      "image": "registry.example.test/gowa@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "release_id": "gowa-v9-2-2",
+      "version": "v9.2.2",
+      "image": "registry.example.test/gowa@sha256:d4411a6e3f197ffc830ac5be9a055dec5756e8199cacd028d989f8ae657435fc",
+      "digest": "sha256:d4411a6e3f197ffc830ac5be9a055dec5756e8199cacd028d989f8ae657435fc",
       "approved": true,
       "revoked": false,
-      "revocation_generation": "staging-revocation-1"
-    },
-    {
-      "release_id": "staging-release-revoked",
-      "version": "0.9.0-staging",
-      "image": "registry.example.test/gowa@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      "digest": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-      "approved": true,
-      "revoked": true,
       "revocation_generation": "staging-revocation-1"
     }
   ]

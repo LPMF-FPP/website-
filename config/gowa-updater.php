@@ -4,6 +4,7 @@ return [
     'enabled' => (bool) env('GOWA_UPDATER_ENABLED', false),
     'no_socket_gate' => (bool) env('GOWA_UPDATER_NO_SOCKET_GATE', false),
     'catalog_path' => env('GOWA_UPDATER_CATALOG_PATH', '/etc/lpmf/gowa-updater/catalog.json'),
+    'catalog_public_key_path' => env('GOWA_UPDATER_CATALOG_PUBLIC_KEY_PATH', '/etc/lpmf/gowa-updater/catalog.pub'),
     'submit_helper' => env('GOWA_UPDATER_SUBMIT_HELPER', '/usr/local/sbin/lpmf-gowa-submit'),
     'runner_path' => env('GOWA_UPDATER_RUNNER_PATH', '/usr/local/libexec/lpmf-gowa-runner'),
     'capability_manifest' => env('GOWA_UPDATER_CAPABILITY_MANIFEST', '/etc/lpmf/gowa-updater/capability.json'),

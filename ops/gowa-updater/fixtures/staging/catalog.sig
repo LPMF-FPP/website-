@@ -1,1 +1,1 @@
-fixture-only-signature-no-secret
+go3Clbh8BtOOhnUFVkB4lyuOJ8N/ICBCTWTtsQJpj8XMZuRpnM78EPYNl7rjnIZ3891g4NZNlydozk9I5GhtBA==
