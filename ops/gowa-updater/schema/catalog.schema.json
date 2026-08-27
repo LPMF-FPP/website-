@@ -1,10 +1,24 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
-  "required": ["schema_version", "generation", "signature_valid", "releases"],
+  "required": ["schema_version", "signature_valid", "generation", "revocation_generation", "approved_registry", "approved_repository", "platform", "signature", "releases"],
   "properties": {
     "schema_version": {"const": 1},
-    "generation": {"type": "string", "minLength": 1},
+    "generation": {"type": "string", "pattern": "^[A-Za-z0-9._:-]{1,128}$"},
+    "revocation_generation": {"type": "string", "pattern": "^[A-Za-z0-9._:-]{1,128}$"},
+    "approved_registry": {"type": "string", "pattern": "^[A-Za-z0-9.-]{1,255}$"},
+    "approved_repository": {"type": "string", "pattern": "^[A-Za-z0-9._/-]{1,255}$"},
+    "platform": {"const": "linux/amd64"},
+    "signature": {
+      "type": "object",
+      "required": ["algorithm", "key_id", "value"],
+      "properties": {
+        "algorithm": {"const": "ed25519"},
+        "key_id": {"type": "string", "pattern": "^[A-Za-z0-9._:-]{1,128}$"},
+        "value": {"type": "string", "pattern": "^[A-Za-z0-9+/=]{16,}$"}
+      },
+      "additionalProperties": false
+    },
     "signature_valid": {"const": true},
     "releases": {"type": "array", "items": {"$ref": "#/$defs/release"}}
   },
@@ -18,7 +32,8 @@
         "image": {"type": "string", "pattern": "^.+@sha256:[a-f0-9]{64}$"},
         "digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
         "approved": {"const": true},
-        "revoked": {"const": false}
+        "revoked": {"type": "boolean"},
+        "revocation_generation": {"type": "string", "pattern": "^[A-Za-z0-9._:-]{1,128}$"}
       },
       "additionalProperties": false
     }

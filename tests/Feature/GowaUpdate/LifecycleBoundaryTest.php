@@ -42,7 +42,7 @@ function bindGowaLifecycleFakes(bool $available = true): void
             return $this->available;
         }
 
-        public function dispatch(string $operationId): bool
+        public function dispatch(array $claim): bool
         {
             return $this->available;
         }
@@ -115,7 +115,7 @@ it('moves a queued operation to a safe terminal failure when dispatch fails', fu
     ]);
     GowaUpdateScope::query()->whereKey('gowa')->update(['active_operation_id' => $operation->id]);
 
-    (new DispatchGowaUpdateJob($operation->id))->handle(app(GowaUpdateService::class), app(GowaUpdateRunner::class));
+    (new DispatchGowaUpdateJob($operation->id))->handle(app(GowaUpdateService::class), app(\App\Services\WhatsApp\GowaUpdateClaimService::class), app(GowaUpdateRunner::class));
 
     expect($operation->fresh()->status)->toBe('failed')
         ->and(GowaUpdateScope::query()->whereKey('gowa')->value('active_operation_id'))->toBeNull();

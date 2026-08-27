@@ -6,6 +6,7 @@ namespace App\Jobs;
 
 use App\Contracts\WhatsApp\GowaUpdateRunner;
 use App\Models\GowaUpdateOperation;
+use App\Services\WhatsApp\GowaUpdateClaimService;
 use App\Services\WhatsApp\GowaUpdateService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -24,7 +25,7 @@ final class DispatchGowaUpdateJob implements ShouldQueue
         $this->onConnection('gowa-maintenance')->onQueue('gowa-maintenance');
     }
 
-    public function handle(GowaUpdateService $service, GowaUpdateRunner $runner): void
+    public function handle(GowaUpdateService $service, GowaUpdateClaimService $claims, GowaUpdateRunner $runner): void
     {
         try {
             $operation = GowaUpdateOperation::query()->find($this->operationId);
@@ -32,8 +33,17 @@ final class DispatchGowaUpdateJob implements ShouldQueue
                 return;
             }
 
-            if (! $runner->dispatch($operation->id)) {
+            $claim = $claims->claim($operation);
+            if ($claim['replayed'] ?? false) {
+                return;
+            }
+            if (! $runner->dispatch($claim)) {
                 $service->fail($operation, 'privileged_runner_unavailable');
+            }
+        } catch (\RuntimeException $exception) {
+            $operation = GowaUpdateOperation::query()->find($this->operationId);
+            if ($operation !== null) {
+                $service->fail($operation, $exception->getMessage());
             }
         } catch (\Throwable) {
             $operation = GowaUpdateOperation::query()->find($this->operationId);

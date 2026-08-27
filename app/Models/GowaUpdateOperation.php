@@ -64,6 +64,11 @@ class GowaUpdateOperation extends Model
         return $this->hasMany(GowaUpdateAttestation::class, 'operation_id');
     }
 
+    public function dispatchClaim(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(GowaUpdateDispatchClaim::class, 'operation_id');
+    }
+
     public function isTerminal(): bool
     {
         return in_array($this->status, self::TERMINAL_STATUSES, true);

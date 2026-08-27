@@ -8,5 +8,6 @@ interface GowaUpdateRunner
 {
     public function available(): bool;
 
-    public function dispatch(string $operationId): bool;
+    /** @param array<string, scalar|null> $claim */
+    public function dispatch(array $claim): bool;
 }

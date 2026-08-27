@@ -2,9 +2,15 @@
   "schema_version": 1,
   "signature_valid": false,
   "generation": "REPLACE_WITH_MONOTONIC_GENERATION",
+  "revocation_generation": "REPLACE_WITH_REVOCATION_GENERATION",
   "approved_registry": "REPLACE_WITH_APPROVED_REGISTRY",
   "approved_repository": "REPLACE_WITH_APPROVED_REPOSITORY",
   "platform": "linux/amd64",
+  "signature": {
+    "algorithm": "ed25519",
+    "key_id": "REPLACE_WITH_CATALOG_KEY_ID",
+    "value": "REPLACE_WITH_BASE64_SIGNATURE"
+  },
   "releases": [
     {
       "release_id": "REPLACE_WITH_OPAQUE_RELEASE_ID",
@@ -12,7 +18,8 @@
       "image": "REPLACE_WITH_APPROVED_REPOSITORY@sha256:REPLACE_WITH_DIGEST",
       "digest": "sha256:REPLACE_WITH_DIGEST",
       "approved": false,
-      "revoked": false
+       "revoked": false,
+       "revocation_generation": "REPLACE_WITH_REVOCATION_GENERATION"
     }
   ]
 }

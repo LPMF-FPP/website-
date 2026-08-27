@@ -24,9 +24,11 @@ final class SystemdGowaUpdateRunner implements GowaUpdateRunner
             && $this->verifiedCapability();
     }
 
-    public function dispatch(string $operationId): bool
+    /** @param array<string, scalar|null> $claim */
+    public function dispatch(array $claim): bool
     {
-        if (! $this->available() || ! preg_match('/^[0-9a-f-]{36}$/i', $operationId)) {
+        $operationId = $claim['operation_id'] ?? null;
+        if (! $this->available() || ! is_string($operationId) || ! preg_match('/^[0-9a-f-]{36}$/i', $operationId)) {
             return false;
         }
 
