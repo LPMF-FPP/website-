@@ -49,6 +49,13 @@ request_json="$(jq -e -c --arg id "$operation_id" 'select(.operation_id == $id a
 authority_json="$(jq -e -c --arg id "$operation_id" 'select(.operation_id == $id and .revoked != true and (.fence|type) == "number")' "$authority")" || exit 78
 fence="$(jq -r '.fence' <<<"$request_json")"
 [[ "$fence" == "$(jq -r '.fence' <<<"$authority_json")" ]] || exit 78
+claim_nonce="$(jq -e -r '.claim_nonce' <<<"$request_json")" || exit 78
+payload_hash="$(jq -e -r '.payload_hash' <<<"$request_json")" || exit 78
+database_name="${GOWA_UPDATER_DATABASE:-${DB_DATABASE:-lpmf}}"
+submit_role="${GOWA_UPDATER_SUBMIT_ROLE:-lpmf_gowa_submit}"
+psql_bin="${GOWA_UPDATER_PSQL_BIN:-/usr/bin/psql}"
+[[ -x "$psql_bin" ]] || exit 78
+"$psql_bin" --no-password --no-psqlrc --quiet --tuples-only --no-align --dbname "$database_name" --username "$submit_role" -v ON_ERROR_STOP=1 -c "select updater_gateway.consume_dispatch('${operation_id}'::uuid, '${claim_nonce}'::uuid, ${fence}::bigint, '$(jq -r '.release_id' <<<"$request_json")', '${payload_hash}')::text" >/dev/null || exit 78
 release_id="$(jq -r '.release_id' <<<"$request_json")"
 image="$(jq -e -r --arg id "$release_id" '.releases[] | select(.release_id == $id and .approved == true and .revoked == false) | .image' "$catalog")" || exit 78
 digest="$(jq -e -r --arg id "$release_id" '.releases[] | select(.release_id == $id and .approved == true and .revoked == false) | .digest' "$catalog")" || exit 78

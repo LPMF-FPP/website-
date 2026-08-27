@@ -131,7 +131,10 @@ final class GowaUpdateService
                     'lease_expires_at' => now()->addMinutes(10),
                     'requested_by' => $userId,
                     'retry_of_id' => $retryOfId,
-                    'feature_snapshot' => ['catalog_generation' => $this->catalog->generation()],
+                    'feature_snapshot' => [
+                        'catalog_generation' => $this->catalog->generation(),
+                        'revocation_generation' => (string) ($release['revocation_generation'] ?? 'initial'),
+                    ],
                 ]);
                 $scope->update(['active_operation_id' => $operation->id]);
                 $this->event($operation, null, 'queued', 'request_accepted');
