@@ -24,6 +24,8 @@ it('creates one deterministic pending request before starting the unit', functio
     file_put_contents($manifest, '{"fully_implemented":true,"contract":"reconcile-first-v1","capability_version":"1"}');
     file_put_contents($bin.'/systemctl', "#!/usr/bin/env bash\nprintf '%s' \"\$*\" > \"$root/systemctl.args\"\n");
     chmod($bin.'/systemctl', 0700);
+    file_put_contents($bin.'/psql', "#!/usr/bin/env bash\nprintf '%s\\n' '{\"replayed\":false,\"payload\":{\"operation_id\":\"00000000-0000-4000-8000-000000000000\",\"claim_nonce\":\"00000000-0000-4000-8000-000000000001\",\"fencing_token\":1,\"release_id\":\"release-a\",\"digest\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"},\"payload_hash\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}'\n");
+    chmod($bin.'/psql', 0700);
     $operationDirectory = $root.'/requests/00000000-0000-4000-8000-000000000000';
     mkdir($operationDirectory, 0700, true);
     file_put_contents($operationDirectory.'/request.json', json_encode([
@@ -44,6 +46,7 @@ it('creates one deterministic pending request before starting the unit', functio
         ->and(file_get_contents($root.'/systemctl.args'))->toContain('lpmf-gowa-update@00000000-0000-4000-8000-000000000000.service');
 
     unlink($bin.'/systemctl');
+    unlink($bin.'/psql');
     unlink($manifest);
     unlink($root.'/systemctl.args');
     unlink($root.'/requests/00000000-0000-4000-8000-000000000000/request.pending');

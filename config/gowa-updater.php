@@ -15,4 +15,6 @@ return [
     'lease_minutes' => (int) env('GOWA_UPDATER_LEASE_MINUTES', 10),
     'policy_version' => env('GOWA_UPDATER_POLICY_VERSION', '1'),
     'required_capability_version' => env('GOWA_UPDATER_REQUIRED_CAPABILITY_VERSION', '1'),
+    'database_name' => env('GOWA_UPDATER_DATABASE', env('DB_DATABASE')),
+    'submit_role' => env('GOWA_UPDATER_SUBMIT_ROLE', 'lpmf_gowa_submit'),
 ];

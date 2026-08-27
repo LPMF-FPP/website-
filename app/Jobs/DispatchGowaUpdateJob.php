@@ -33,7 +33,7 @@ final class DispatchGowaUpdateJob implements ShouldQueue
                 return;
             }
 
-            $claim = $claims->claim($operation);
+            $claim = $claims->requestRootClaim($operation);
             if ($claim['replayed'] ?? false) {
                 return;
             }
