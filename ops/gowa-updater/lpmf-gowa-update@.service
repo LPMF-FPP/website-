@@ -1,0 +1,34 @@
+[Unit]
+Description=LPMF GOWA update operation %i
+After=network-online.target
+ConditionPathExists=/etc/lpmf/gowa-updater/enabled
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+WorkingDirectory=/var/lib/lpmf/gowa-updater
+ExecStart=/usr/local/libexec/lpmf-gowa-runner %i
+TimeoutStartSec=15min
+TimeoutStopSec=30s
+KillMode=control-group
+Restart=no
+PrivateTmp=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateDevices=yes
+CapabilityBoundingSet=
+RestrictNamespaces=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+RestrictFileSystems=ext4 xfs tmpfs proc sysfs cgroup2
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+SystemCallArchitectures=native
+ReadWritePaths=/var/lib/lpmf/gowa-updater /run/lpmf/gowa-updater /var/run/docker.sock

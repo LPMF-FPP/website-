@@ -31,6 +31,9 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(\App\Services\NumberingService::class);
+        $this->app->bind(\App\Contracts\WhatsApp\GowaReleaseCatalog::class, \App\Services\WhatsApp\FileGowaReleaseCatalog::class);
+        $this->app->bind(\App\Contracts\WhatsApp\GowaRuntimeProbe::class, \App\Services\WhatsApp\FileGowaRuntimeProbe::class);
+        $this->app->bind(\App\Contracts\WhatsApp\GowaUpdateRunner::class, \App\Services\WhatsApp\SystemdGowaUpdateRunner::class);
 
         if ($this->app->environment('local') && class_exists(\Laravel\Telescope\TelescopeServiceProvider::class)) {
             $this->app->register(\Laravel\Telescope\TelescopeServiceProvider::class);
@@ -119,6 +122,9 @@ class AppServiceProvider extends ServiceProvider
             // Allow admin and supervisor to view Pulse dashboard
             return in_array($user->role ?? null, ['admin', 'supervisor'], true);
         });
+
+        Gate::define('gowa-updater-enabled', fn (): bool => (bool) config('gowa-updater.enabled', false)
+            && (bool) config('gowa-updater.no_socket_gate', false));
 
         // Register dynamic permission gates from database
         $this->registerPermissionGates();

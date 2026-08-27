@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schema_version", "previous_image", "project", "service"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "previous_image": {"type": "string", "pattern": "^.+@sha256:[a-f0-9]{64}$"},
+    "project": {"const": "go-whatsapp-web-multidevice"},
+    "service": {"const": "whatsapp_go"}
+  },
+  "additionalProperties": false
+}

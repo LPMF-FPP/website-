@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+root="${GOWA_UPDATER_EVIDENCE_ROOT:-/var/lib/lpmf/gowa-updater/evidence}"
+[[ -d "$root" ]] || exit 0
+find "$root" -type f -name '*.json' -size +10M -print -quit | grep -q . && exit 1 || true

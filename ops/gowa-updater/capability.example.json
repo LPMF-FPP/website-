@@ -1,0 +1,8 @@
+{
+  "schema_version": 1,
+  "capability_version": "0",
+  "contract": "reconcile-first-v1",
+  "fully_implemented": false,
+  "runner_sha256": "REPLACE_WITH_VERIFIED_INSTALL_HASH",
+  "verified_at": null
+}

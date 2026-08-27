@@ -1,0 +1,12 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Contracts\WhatsApp;
+
+interface GowaUpdateRunner
+{
+    public function available(): bool;
+
+    public function dispatch(string $operationId): bool;
+}

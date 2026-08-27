@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["schema_version", "payload", "signature"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "signature": {"type": "string", "minLength": 1, "pattern": "^[A-Za-z0-9+/=]+$"},
+    "payload": {
+      "type": "object",
+      "required": ["contract", "operation_id", "fencing_token", "sequence", "plane", "code", "occurred_at", "snapshot_hash", "container_identity"],
+      "properties": {
+        "contract": {"const": "gowa-evidence-v1"},
+        "operation_id": {"type": "string", "format": "uuid"},
+        "fencing_token": {"type": "integer", "minimum": 1},
+        "sequence": {"type": "integer", "minimum": 1},
+        "plane": {"enum": ["root", "runtime"]},
+        "code": {"type": "string", "pattern": "^[a-z0-9_]{1,64}$"},
+        "occurred_at": {"type": "string", "format": "date-time"},
+        "snapshot_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "container_identity": {"type": "string", "minLength": 1, "maxLength": 255}
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

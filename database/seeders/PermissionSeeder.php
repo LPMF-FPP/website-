@@ -117,6 +117,13 @@ class PermissionSeeder extends Seeder
         // Reminders
         ['name' => 'reminders.view', 'display_name' => 'Lihat Reminders', 'module' => 'reminders', 'action' => 'view'],
         ['name' => 'reminders.edit', 'display_name' => 'Edit Reminders', 'module' => 'reminders', 'action' => 'edit'],
+
+        // GOWA updater, intentionally separate from manage-settings
+        ['name' => 'gowa-update.status', 'display_name' => 'Lihat Status Pembaruan GOWA', 'module' => 'gowa-update', 'action' => 'status'],
+        ['name' => 'gowa-update.detail', 'display_name' => 'Lihat Detail Pembaruan GOWA', 'module' => 'gowa-update', 'action' => 'detail'],
+        ['name' => 'gowa-update.request', 'display_name' => 'Minta Pembaruan GOWA', 'module' => 'gowa-update', 'action' => 'request'],
+        ['name' => 'gowa-update.retry', 'display_name' => 'Ulangi Pembaruan GOWA', 'module' => 'gowa-update', 'action' => 'retry'],
+        ['name' => 'gowa-update.audit', 'display_name' => 'Lihat Audit Pembaruan GOWA', 'module' => 'gowa-update', 'action' => 'audit'],
     ];
 
     /**

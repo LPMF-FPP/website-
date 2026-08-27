@@ -393,7 +393,7 @@ class GowaClient
 
             return [
                 'success' => false,
-                'error' => $response->body(),
+                'error' => $this->safeProviderError($response->status()),
                 'status' => $response->status(),
                 'devices' => [],
             ];
@@ -405,7 +405,7 @@ class GowaClient
 
             return [
                 'success' => false,
-                'error' => $e->getMessage(),
+                'error' => 'Koneksi ke provider WhatsApp terputus.',
                 'devices' => [],
             ];
         }

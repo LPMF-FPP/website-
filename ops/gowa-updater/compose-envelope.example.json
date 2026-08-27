@@ -1,0 +1,10 @@
+{
+  "project": "go-whatsapp-web-multidevice",
+  "service": "whatsapp_go",
+  "working_directory": "/home/home-owner/go-whatsapp-web-multidevice",
+  "compose_files": ["/home/home-owner/go-whatsapp-web-multidevice/docker-compose.yml"],
+  "image_override": "REPLACE_WITH_ROOT_OWNED_DIGEST_OVERRIDE",
+  "network_mode": "host",
+  "restart_policy": "unless-stopped",
+  "required_socket_absent": true
+}

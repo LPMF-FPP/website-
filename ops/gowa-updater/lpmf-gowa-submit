@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 || ! "$1" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$ ]]; then
+  exit 64
+fi
+
+operation_id="${1,,}"
+request_root="${GOWA_UPDATER_REQUEST_ROOT:-/var/lib/lpmf/gowa-updater/requests}"
+unit="lpmf-gowa-update@${operation_id}.service"
+operation_dir="${request_root}/${operation_id}"
+pending="${operation_dir}/request.pending"
+consumed="${operation_dir}/request.consumed"
+tmp="${operation_dir}/request.tmp.$$"
+
+capability_manifest="${GOWA_UPDATER_CAPABILITY_MANIFEST:-/etc/lpmf/gowa-updater/capability.json}"
+if [[ "${GOWA_UPDATER_ENABLED:-0}" != "1" || "${GOWA_UPDATER_NO_SOCKET_GATE:-0}" != "1" || ! -r "$capability_manifest" || -L "$capability_manifest" ]]; then
+  exit 78
+fi
+command -v jq >/dev/null || exit 78
+jq -e 'select(.fully_implemented == true and .contract == "reconcile-first-v1" and .capability_version == "1")' "$capability_manifest" >/dev/null || exit 78
+
+[[ -d "$request_root" && ! -L "$request_root" ]] || exit 78
+[[ -d "$operation_dir" && ! -L "$operation_dir" ]] || exit 78
+if [[ -e "$consumed" ]]; then
+  exit 0
+fi
+if [[ -e "$pending" ]]; then
+  exit 75
+fi
+umask 077
+request_json="${operation_dir}/request.json"
+[[ -r "$request_json" && ! -L "$request_json" ]] || exit 78
+jq -e --arg id "$operation_id" 'select(.operation_id == $id and .action == "update")' "$request_json" >/dev/null || exit 78
+if ! mv -n -- "$request_json" "$pending"; then
+  rm -f -- "$tmp"
+  exit 75
+fi
+if [[ -e "$tmp" || ! -e "$pending" ]]; then
+  rm -f -- "$tmp"
+  exit 75
+fi
+[[ -e "$pending" && ! -L "$pending" ]] || exit 75
+systemctl start --no-block "$unit"

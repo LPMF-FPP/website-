@@ -567,6 +567,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/overview', [\App\Http\Controllers\WhatsAppHubController::class, 'getOverviewData'])->name('overview');
         Route::get('/connection', [\App\Http\Controllers\WhatsAppHubController::class, 'getConnectionStatus'])->name('connection');
 
+        Route::prefix('updates')->name('updates.')->middleware('audit.gowa-update')->group(function () {
+            Route::get('/status', [\App\Http\Controllers\GowaUpdateController::class, 'status'])->middleware('permission:gowa-update.status')->name('status');
+            Route::get('/{operation}', [\App\Http\Controllers\GowaUpdateController::class, 'detail'])->middleware('permission:gowa-update.detail')->whereUuid('operation')->name('detail');
+            Route::get('/{operation}/audit', [\App\Http\Controllers\GowaUpdateController::class, 'audit'])->middleware('permission:gowa-update.audit')->whereUuid('operation')->name('audit');
+            Route::post('/', [\App\Http\Controllers\GowaUpdateController::class, 'requestUpdate'])->middleware(['permission:gowa-update.request', 'throttle:gowa-update'])->name('request');
+            Route::post('/{operation}/retry', [\App\Http\Controllers\GowaUpdateController::class, 'retry'])->middleware(['permission:gowa-update.retry', 'throttle:gowa-update'])->whereUuid('operation')->name('retry');
+        });
+
         // Tasks
         Route::prefix('tasks')->name('tasks.')->group(function () {
             Route::get('/', [\App\Http\Controllers\WhatsAppHubController::class, 'getTasks'])->name('index');

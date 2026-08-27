@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+catalog="${1:-ops/gowa-updater/catalog.example.json}"
+envelope="${2:-ops/gowa-updater/compose-envelope.example.json}"
+
+[[ -r "$catalog" && -r "$envelope" ]] || { printf '%s\n' 'catalog and envelope are required' >&2; exit 64; }
+command -v jq >/dev/null || { printf '%s\n' 'jq is required' >&2; exit 78; }
+if jq -e '.. | strings | select(test("/var/run/docker.sock"))' "$envelope" >/dev/null; then
+  printf '%s\n' 'raw Docker socket must be absent before enablement' >&2
+  exit 78
+fi
+if jq -e '.. | strings | select(test("REPLACE_WITH"))' "$catalog" >/dev/null || jq -e '.. | strings | select(test("REPLACE_WITH"))' "$envelope" >/dev/null; then
+  printf '%s\n' 'example artifacts are not installable' >&2
+  exit 78
+fi
+if [[ "${GOWA_UPDATER_INSTALL_ROOT:-0}" != 1 || "$(id -u)" != 0 ]]; then
+  printf '%s\n' 'Validated only. Root-owned installation requires explicit local operator invocation.'
+  exit 78
+fi
+install_root="${GOWA_UPDATER_INSTALL_PATH:-/etc/lpmf/gowa-updater}"
+install -d -o root -g root -m 0750 "$install_root"
+install -o root -g root -m 0640 "$catalog" "${install_root}/catalog.json"
+install -o root -g root -m 0640 "$envelope" "${install_root}/compose-envelope.json"
+printf '%s\n' 'Artifacts installed disabled. No feature flag or preflight gate was enabled.'
+printf '%s\n' 'Preflight passed. Installation remains disabled until root-owned deployment gates are run.'

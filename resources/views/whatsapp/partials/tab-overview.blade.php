@@ -1,4 +1,53 @@
 <div class="space-y-6">
+    <section class="bg-slate-900 text-white rounded-lg border border-slate-700 p-5 sm:p-6" aria-labelledby="gowa-update-heading">
+        <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div class="max-w-2xl">
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-300">Pemeliharaan GOWA</p>
+                <h2 id="gowa-update-heading" class="mt-2 text-xl font-semibold">Versi dan pembaruan terverifikasi</h2>
+                <p class="mt-2 text-sm leading-6 text-slate-300">Pembaruan hanya tersedia jika rilis, runtime, dan jalur pemeliharaan telah lulus pemeriksaan. Kredensial dan sesi perangkat tidak dikirim dari halaman ini.</p>
+            </div>
+            <div class="min-w-0 lg:w-80">
+                <template x-if="!overviewData?.gowa_update">
+                    <p class="rounded-md bg-slate-800 px-4 py-3 text-sm text-slate-300">Status pembaruan belum tersedia.</p>
+                </template>
+                <template x-if="overviewData?.gowa_update && !overviewData.gowa_update.available">
+                    <p class="rounded-md bg-amber-950/60 px-4 py-3 text-sm text-amber-200">Pembaruan dinonaktifkan sampai pemeriksaan operasional selesai.</p>
+                </template>
+                <template x-if="overviewData?.gowa_update?.available">
+                    <div class="space-y-3 rounded-md bg-slate-800 px-4 py-3">
+                        <p class="text-sm text-slate-300">Runtime: <span class="font-medium text-white" x-text="overviewData.gowa_update.runtime?.version || 'Tidak diketahui'"></span></p>
+                        <label class="block text-sm text-slate-300" for="gowa-release-id">Rilis disetujui</label>
+                        <select id="gowa-release-id" x-model="selectedGowaRelease" class="mt-1 block min-h-11 w-full min-w-0 rounded-md border-slate-600 bg-slate-900 text-sm text-white focus:border-primary-400 focus:ring-primary-400">
+                            <option value="">Pilih rilis</option>
+                            <template x-for="release in overviewData.gowa_update.releases || []" :key="release.release_id">
+                                <option :value="release.release_id" x-text="release.version || release.release_id"></option>
+                            </template>
+                        </select>
+                        <label class="flex min-h-11 items-center gap-3 text-sm text-slate-300" for="gowa-confirm">
+                            <input id="gowa-confirm" type="checkbox" x-model="gowaUpdateConfirmed" class="h-4 w-4 rounded border-slate-500 bg-slate-900 text-primary-500 focus:ring-primary-400">
+                            <span>Saya mengonfirmasi pembaruan terkontrol.</span>
+                        </label>
+                        <button type="button" @click="requestGowaUpdate()" :disabled="!selectedGowaRelease || gowaUpdateSubmitting" class="min-h-11 w-full rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-300 disabled:cursor-not-allowed disabled:opacity-50">
+                            <span x-text="gowaUpdateSubmitting ? 'Mengirim permintaan...' : 'Ajukan pembaruan' "></span>
+                        </button>
+                        <p x-show="gowaUpdateMessage" class="text-sm text-slate-300" x-text="gowaUpdateMessage" role="status"></p>
+                    </div>
+                </template>
+            </div>
+        </div>
+        <template x-if="overviewData?.gowa_update?.latest_operation">
+            <div class="mt-5 border-t border-slate-700 pt-4" aria-live="polite">
+                <p class="text-sm text-slate-300">Operasi terakhir: <span class="font-semibold text-white" x-text="gowaStatusLabel(overviewData.gowa_update.latest_operation.status)"></span></p>
+                <p class="mt-1 text-xs text-slate-400" x-text="overviewData.gowa_update.latest_operation.message_key || 'Menunggu rekonsiliasi status.'"></p>
+                <p x-show="overviewData.gowa_update.latest_operation.stale" class="mt-2 text-sm text-amber-200">Status operasi tidak diperbarui pada batas waktu yang diharapkan. Rekonsiliasi akan menentukan hasilnya.</p>
+                <div x-show="['failed', 'rolled_back', 'degraded'].includes(overviewData.gowa_update.latest_operation.status)" class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <p class="text-sm text-slate-300">Periksa layanan dan log operasional sebelum mencoba ulang.</p>
+                    <button type="button" @click="retryGowaUpdate()" :disabled="gowaUpdateSubmitting" class="min-h-11 rounded-md border border-slate-500 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-300 disabled:cursor-not-allowed disabled:opacity-50">Ajukan percobaan ulang</button>
+                </div>
+            </div>
+        </template>
+    </section>
+
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg border border-gray-200 dark:border-gray-700">

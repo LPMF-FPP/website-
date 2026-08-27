@@ -17,6 +17,7 @@ use App\Models\WhatsAppMessageLog;
 use App\Models\WhatsappWhitelist;
 use App\Services\AI\AiCommsService;
 use App\Services\WhatsApp\GowaClient;
+use App\Services\WhatsApp\GowaUpdateService;
 use App\Services\WhatsApp\NotificationService;
 use App\Services\WhatsApp\OutboundMessageService;
 use App\Services\WhatsApp\TemplateService;
@@ -39,16 +40,20 @@ class WhatsAppHubController extends Controller
 
     private OutboundMessageService $outboundMessageService;
 
+    private GowaUpdateService $gowaUpdateService;
+
     public function __construct(
         GowaClient $gowaClient,
         NotificationService $notificationService,
         TemplateService $templateService,
-        OutboundMessageService $outboundMessageService
+        OutboundMessageService $outboundMessageService,
+        GowaUpdateService $gowaUpdateService
     ) {
         $this->gowaClient = $gowaClient;
         $this->notificationService = $notificationService;
         $this->templateService = $templateService;
         $this->outboundMessageService = $outboundMessageService;
+        $this->gowaUpdateService = $gowaUpdateService;
     }
 
     public function index(): View
@@ -65,7 +70,7 @@ class WhatsAppHubController extends Controller
 
     // --- Overview ---
 
-    public function getOverviewData(): JsonResponse
+    public function getOverviewData(Request $request): JsonResponse
     {
         $today = now()->startOfDay();
 
@@ -83,6 +88,9 @@ class WhatsAppHubController extends Controller
         return response()->json([
             'stats' => $stats,
             'recent_activity' => $this->getRecentActivity(),
+            'gowa_update' => $request?->user()?->hasPermission('gowa-update.status')
+                ? $this->gowaUpdateService->status()
+                : ['available' => false, 'reason' => 'unavailable'],
         ]);
     }
 
@@ -356,6 +364,12 @@ class WhatsAppHubController extends Controller
         }
 
         $baseUrl = rtrim($request->input('base_url'), '/');
+        $configuredBaseUrl = rtrim((string) settings('notifications.whatsapp.base_url', env('WHATSAPP_API_URL', 'http://localhost:3000')), '/');
+        if (! hash_equals($configuredBaseUrl, $baseUrl)) {
+            return response()->json([
+                'message' => 'URL GOWA harus sama dengan endpoint yang tersimpan.',
+            ], 422);
+        }
         $basicUser = $request->input('basic_user');
         $basicPass = $request->input('basic_pass');
 

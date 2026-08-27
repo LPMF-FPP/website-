@@ -212,7 +212,11 @@
                 ],
                 
                 // Data for tabs
-                overviewData: { stats: { sent_today: 0, pending_tasks: 0, scheduled: 0, failed_today: 0 }, recent_activity: [] },
+                overviewData: { stats: { sent_today: 0, pending_tasks: 0, scheduled: 0, failed_today: 0 }, recent_activity: [], gowa_update: null },
+                selectedGowaRelease: '',
+                gowaUpdateSubmitting: false,
+                gowaUpdateConfirmed: false,
+                gowaUpdateMessage: '',
                 tasksData: { tasks: { data: [] }, stats: {}, users: [] },
                 broadcastsData: { broadcasts: { data: [] }, statuses: {} },
                 remindersData: { reminders: [] },
@@ -319,6 +323,9 @@
                     });
 
                     this.loadTabData(this.activeTab);
+                    setInterval(() => {
+                        if (this.activeTab === 'overview') this.loadTabData('overview');
+                    }, 30000);
 
                     // Initialize settings form when settingsData is loaded
                     this.$watch('settingsData', (val) => {
@@ -332,6 +339,60 @@
                     this.activeTab = 'settings';
                     this.activeSettingsTab = subtabId;
                     this.loadTabData('settings');
+                },
+
+                gowaStatusLabel(status) {
+                    return {
+                        queued: 'Menunggu antrean', preparing: 'Menyiapkan pembaruan', updating: 'Memperbarui layanan',
+                        verifying: 'Memverifikasi hasil', reconciling: 'Merekonsiliasi status', succeeded: 'Berhasil',
+                        failed: 'Gagal sebelum penggantian', rolled_back: 'Dikembalikan ke versi sebelumnya', degraded: 'Memerlukan penanganan operator',
+                    }[status] || 'Status tidak diketahui';
+                },
+
+                async requestGowaUpdate() {
+                    if (!this.selectedGowaRelease || !this.gowaUpdateConfirmed || this.gowaUpdateSubmitting) return;
+                    this.gowaUpdateSubmitting = true;
+                    this.gowaUpdateMessage = '';
+                    try {
+                        const response = await fetch('{{ route("whatsapp.updates.request") }}', {
+                            method: 'POST',
+                            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                            body: JSON.stringify({ release_id: this.selectedGowaRelease, action_uuid: crypto.randomUUID(), confirmation: this.gowaUpdateConfirmed }),
+                        });
+                        const payload = await response.json();
+                        if (!response.ok) throw new Error(payload.message || 'Permintaan ditolak.');
+                        this.gowaUpdateMessage = payload.message || 'Permintaan pembaruan diterima.';
+                        this.gowaUpdateConfirmed = false;
+                        await this.loadTabData('overview');
+                    } catch (error) {
+                        this.gowaUpdateMessage = error.message || 'Pembaruan belum dapat dimulai.';
+                    } finally {
+                        this.gowaUpdateSubmitting = false;
+                    }
+                },
+
+                async retryGowaUpdate() {
+                    const operationId = this.overviewData?.gowa_update?.latest_operation?.id;
+                    if (!operationId || this.gowaUpdateSubmitting) return;
+                    if (!window.confirm('Ajukan percobaan ulang setelah memastikan layanan berada dalam kondisi quiescent?')) return;
+                    this.gowaUpdateSubmitting = true;
+                    this.gowaUpdateMessage = '';
+                    try {
+                        const url = '{{ route("whatsapp.updates.retry", ["operation" => "__ID__"]) }}'.replace('__ID__', operationId);
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                            body: JSON.stringify({ confirmation: true }),
+                        });
+                        const payload = await response.json();
+                        if (!response.ok) throw new Error(payload.message || 'Percobaan ulang ditolak.');
+                        this.gowaUpdateMessage = payload.message || 'Percobaan ulang diterima.';
+                        await this.loadTabData('overview');
+                    } catch (error) {
+                        this.gowaUpdateMessage = error.message || 'Percobaan ulang belum dapat dimulai.';
+                    } finally {
+                        this.gowaUpdateSubmitting = false;
+                    }
                 },
 
                 async loadTabData(tab, params = {}) {
