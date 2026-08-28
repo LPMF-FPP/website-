@@ -2,6 +2,7 @@
 Description=LPMF GOWA maintenance queue worker
 After=network-online.target postgresql.service
 Wants=network-online.target
+ConditionPathExists=/etc/lpmf/gowa-updater/worker-enabled
 
 [Service]
 Type=simple
