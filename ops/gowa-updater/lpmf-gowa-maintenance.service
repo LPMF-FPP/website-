@@ -8,7 +8,7 @@ ConditionPathExists=/etc/lpmf/gowa-updater/worker-enabled
 Type=simple
 User=lpmf-gowa-maintenance
 Group=lpmf-gowa-maintenance
-SupplementaryGroups=
+SupplementaryGroups=www-data
 WorkingDirectory=/var/www/lis
 ExecStart=/usr/bin/php /var/www/lis/artisan queue:work gowa-maintenance --queue=gowa-maintenance --tries=1 --timeout=900 --sleep=1 --no-interaction
 Restart=always
