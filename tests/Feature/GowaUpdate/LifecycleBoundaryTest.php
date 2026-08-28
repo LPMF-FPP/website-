@@ -90,8 +90,8 @@ it('rejects a second active operation and clears stale operations safely', funct
     $first->update(['lease_expires_at' => now()->subMinute()]);
     app(\App\Services\WhatsApp\GowaUpdateReconciler::class)->reconcile();
 
-    expect($first->fresh()->status)->toBe('degraded')
-        ->and(GowaUpdateScope::query()->whereKey('gowa')->value('active_operation_id'))->toBeNull();
+    expect($first->fresh()->status)->toBe('reconciling')
+        ->and(GowaUpdateScope::query()->whereKey('gowa')->value('active_operation_id'))->toBe($first->id);
 });
 
 it('moves a queued operation to a safe terminal failure when dispatch fails', function (): void {
@@ -115,7 +115,7 @@ it('moves a queued operation to a safe terminal failure when dispatch fails', fu
     ]);
     GowaUpdateScope::query()->whereKey('gowa')->update(['active_operation_id' => $operation->id]);
 
-    (new DispatchGowaUpdateJob($operation->id))->handle(app(GowaUpdateService::class), app(\App\Services\WhatsApp\GowaUpdateClaimService::class), app(GowaUpdateRunner::class));
+    (new DispatchGowaUpdateJob($operation->id))->handle(app(GowaUpdateService::class), app(GowaUpdateRunner::class));
 
     expect($operation->fresh()->status)->toBe('failed')
         ->and(GowaUpdateScope::query()->whereKey('gowa')->value('active_operation_id'))->toBeNull();

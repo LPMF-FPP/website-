@@ -16,16 +16,34 @@ final class GowaUpdateController extends Controller
 {
     public function __construct(private readonly GowaUpdateService $service) {}
 
-    public function status(): JsonResponse
+    public function status(Request $request): JsonResponse
     {
-        return response()->json(['data' => $this->service->status(), 'message' => 'Status pembaruan GOWA tersedia.']);
+        $data = $this->service->status();
+        $permissions = [
+            'can_request' => $request->user()?->hasPermission('gowa-update.request') === true,
+            'can_retry' => $request->user()?->hasPermission('gowa-update.retry') === true,
+            'can_detail' => $request->user()?->hasPermission('gowa-update.detail') === true,
+        ];
+        if ($data['latest_operation'] !== null) {
+            $operation = GowaUpdateOperation::query()->find($data['latest_operation']['id']);
+            $data['latest_operation'] = $operation === null ? null : $this->service->operationProjection($operation, $permissions);
+        }
+        $data['can_request'] = $permissions['can_request'];
+        $data['can_retry'] = $permissions['can_retry'] && (bool) ($data['latest_operation']['can_retry'] ?? false);
+        $data['can_detail'] = $permissions['can_detail'];
+
+        return response()->json(['data' => $data, 'message' => 'Status pembaruan GOWA tersedia.']);
     }
 
-    public function detail(GowaUpdateOperation $operation): JsonResponse
+    public function detail(Request $request, GowaUpdateOperation $operation): JsonResponse
     {
         $this->ensureGowaScope($operation);
 
-        return response()->json(['data' => $operation->safeProjection(), 'message' => 'Detail operasi tersedia.']);
+        return response()->json(['data' => $this->service->operationProjection($operation, [
+            'can_request' => $request->user()?->hasPermission('gowa-update.request') === true,
+            'can_retry' => $request->user()?->hasPermission('gowa-update.retry') === true,
+            'can_detail' => true,
+        ]), 'message' => 'Detail operasi tersedia.']);
     }
 
     public function requestUpdate(RequestGowaUpdate $request): JsonResponse

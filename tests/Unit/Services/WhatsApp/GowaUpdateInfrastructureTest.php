@@ -142,6 +142,44 @@ it('fails closed when the privileged runner gate is not enabled', function (): v
         ->and($runner->dispatch(['operation_id' => '00000000-0000-4000-8000-000000000000']))->toBeFalse();
 });
 
+it('activates the systemd runner with temporary verified capabilities and a fake sudo helper', function (): void {
+    $root = sys_get_temp_dir().'/gowa-runner-'.bin2hex(random_bytes(5));
+    mkdir($root, 0700, true);
+    $runnerPath = $root.'/runner';
+    $manifestPath = $root.'/capability.json';
+    $helperPath = $root.'/submit-helper';
+    $sudoPath = $root.'/sudo';
+
+    try {
+        file_put_contents($runnerPath, "#!/usr/bin/env bash\nif [[ \"\${1:-}\" == --capabilities ]]; then printf '%s\\n' '{\"contract\":\"reconcile-first-v1\",\"fully_implemented\":true,\"production_ready\":true,\"capability_version\":\"1\"}'; exit 0; fi\nexit 64\n");
+        chmod($runnerPath, 0700);
+        file_put_contents($manifestPath, json_encode([
+            'fully_implemented' => true,
+            'production_ready' => true,
+            'contract' => 'reconcile-first-v1',
+            'capability_version' => '1',
+            'runner_sha256' => hash_file('sha256', $runnerPath),
+        ], JSON_THROW_ON_ERROR));
+        file_put_contents($helperPath, "#!/usr/bin/env bash\nprintf '%s' \"\$*\" > ".escapeshellarg($root.'/helper.args')."\n");
+        chmod($helperPath, 0700);
+        file_put_contents($sudoPath, "#!/usr/bin/env bash\nprintf '%s' \"\$*\" > ".escapeshellarg($root.'/sudo.args')."\n");
+        chmod($sudoPath, 0700);
+
+        $runner = new SystemdGowaUpdateRunner(true, true, $helperPath, $runnerPath, $manifestPath, $sudoPath);
+
+        expect($runner->available())->toBeTrue()
+            ->and($runner->dispatch(['operation_id' => '00000000-0000-4000-8000-000000000000']))->toBeTrue()
+            ->and(file_get_contents($root.'/sudo.args'))->toContain('-n '.$helperPath.' 00000000-0000-4000-8000-000000000000');
+    } finally {
+        foreach ([$runnerPath, $manifestPath, $helperPath, $sudoPath, $root.'/helper.args', $root.'/sudo.args'] as $path) {
+            if (is_file($path)) {
+                unlink($path);
+            }
+        }
+        rmdir($root);
+    }
+});
+
 it('rejects a catalog without signed immutable fields', function (): void {
     $path = tempnam(sys_get_temp_dir(), 'gowa-catalog-invalid-');
     file_put_contents($path, json_encode(['schema_version' => 1, 'signature_valid' => true, 'generation' => 'generation-1', 'releases' => []], JSON_THROW_ON_ERROR));

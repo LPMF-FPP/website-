@@ -16,5 +16,17 @@ it('does not expose secret-bearing snapshots in the operation projection', funct
 
     expect(json_encode($operation->safeProjection(), JSON_THROW_ON_ERROR))
         ->not->toContain('must-not-appear')
-        ->not->toContain('password');
+        ->not->toContain('password')
+        ->and($operation->safeProjection()['message'])->toBe('Hasil pembaruan belum dapat dipastikan. Hubungi administrator sistem untuk pemeriksaan manual.');
+});
+
+it('normalizes unknown persisted failure codes before projection', function (): void {
+    $operation = new GowaUpdateOperation([
+        'id' => (string) str()->uuid(),
+        'scope' => 'gowa',
+        'failure_code' => 'raw-database-error-with-sensitive-context',
+    ]);
+
+    expect($operation->safeProjection()['failure_code'])->toBe('unexpected_failure')
+        ->and($operation->safeFailureMessage())->toBe('Hasil pembaruan belum dapat dipastikan. Hubungi administrator sistem untuk pemeriksaan manual.');
 });

@@ -5,7 +5,28 @@ PATH='/usr/bin:/bin:/usr/local/bin'
 export PATH
 
 if [[ $# -eq 1 && "$1" == '--capabilities' ]]; then
-  printf '%s\n' '{"contract":"reconcile-first-v1","fully_implemented":true,"capability_version":"1","stage":"local-only","production_ready":false}'
+  capability_manifest="${GOWA_UPDATER_CAPABILITY_MANIFEST:-/etc/lpmf/gowa-updater/capability.json}"
+  catalog="${GOWA_UPDATER_CATALOG:-/etc/lpmf/gowa-updater/catalog.json}"
+  envelope="${GOWA_UPDATER_ENVELOPE:-/etc/lpmf/gowa-updater/compose-envelope.json}"
+  authority="${GOWA_UPDATER_AUTHORITY_PATH:-/etc/lpmf/gowa-updater/authority.json}"
+  rollback_manifest="${GOWA_UPDATER_ROLLBACK_MANIFEST:-/etc/lpmf/gowa-updater/rollback-manifest.json}"
+  gate="${GOWA_UPDATER_PREFLIGHT_GATE:-/etc/lpmf/gowa-updater/preflight.pass}"
+  signing_key="${GOWA_UPDATER_EVIDENCE_SIGNING_KEY:-/etc/lpmf/gowa-updater/evidence.key}"
+  enabled_marker="${GOWA_UPDATER_ENABLED_MARKER:-/etc/lpmf/gowa-updater/enabled}"
+  worker_service="${GOWA_UPDATER_WORKER_SERVICE:-/etc/systemd/system/lpmf-gowa-maintenance.service}"
+  update_service="${GOWA_UPDATER_UPDATE_SERVICE:-/etc/systemd/system/lpmf-gowa-update@.service}"
+  sudoers="${GOWA_UPDATER_SUDOERS:-/etc/sudoers.d/lpmf-gowa-updater}"
+  submit_helper="${GOWA_UPDATER_SUBMIT_HELPER:-/usr/local/sbin/lpmf-gowa-submit}"
+  runner_path="${GOWA_UPDATER_RUNNER_PATH:-/usr/local/libexec/lpmf-gowa-runner}"
+  production_ready=false
+  if [[ "${GOWA_UPDATER_ENABLED:-0}" == 1 && "${GOWA_UPDATER_NO_SOCKET_GATE:-0}" == 1 ]] \
+    && [[ -r "$capability_manifest" && -r "$catalog" && -r "$envelope" && -r "$authority" && -r "$rollback_manifest" && -r "$signing_key" && -f "$gate" && -f "$enabled_marker" ]] \
+    && [[ -r "$worker_service" && -r "$update_service" && -r "$sudoers" && -x "$submit_helper" && -x "$runner_path" ]] \
+    && jq -e 'select(.contract == "reconcile-first-v1" and .fully_implemented == true and .production_ready == true and .capability_version == "1")' "$capability_manifest" >/dev/null \
+    && jq -e 'select(.required_socket_absent == true)' "$envelope" >/dev/null; then
+    production_ready=true
+  fi
+  printf '%s\n' "{\"contract\":\"reconcile-first-v1\",\"fully_implemented\":true,\"capability_version\":\"1\",\"stage\":\"local-only\",\"production_ready\":${production_ready}}"
   exit 0
 fi
 if [[ $# -ne 1 || ! "$1" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$ ]]; then
@@ -20,9 +41,10 @@ catalog="${GOWA_UPDATER_CATALOG:-/etc/lpmf/gowa-updater/catalog.json}"
 envelope="${GOWA_UPDATER_ENVELOPE:-/etc/lpmf/gowa-updater/compose-envelope.json}"
 request_root="${GOWA_UPDATER_REQUEST_ROOT:-/var/lib/lpmf/gowa-updater/requests}"
 evidence_root="${GOWA_UPDATER_EVIDENCE_ROOT:-/var/lib/lpmf/gowa-updater/evidence}"
-authority="${GOWA_UPDATER_AUTHORITY_PATH:-/run/lpmf/gowa-updater/authority.json}"
+authority="${GOWA_UPDATER_AUTHORITY_PATH:-/etc/lpmf/gowa-updater/authority.json}"
 lock_path="${GOWA_UPDATER_LOCK_PATH:-/run/lpmf/gowa-updater/update.lock}"
 gate="${GOWA_UPDATER_PREFLIGHT_GATE:-/etc/lpmf/gowa-updater/preflight.pass}"
+enabled_marker="${GOWA_UPDATER_ENABLED_MARKER:-/etc/lpmf/gowa-updater/enabled}"
 signing_key="${GOWA_UPDATER_EVIDENCE_SIGNING_KEY:-/etc/lpmf/gowa-updater/evidence.key}"
 rollback_manifest="${GOWA_UPDATER_ROLLBACK_MANIFEST:-/etc/lpmf/gowa-updater/rollback-manifest.json}"
 request="${request_root}/${operation_id}/request.pending"
@@ -33,10 +55,15 @@ phase_dir="${operation_evidence}/phases"
 for binary in jq sha256sum flock openssl base64 timeout; do
   command -v "$binary" >/dev/null || exit 78
 done
-for path in "$capability_manifest" "$catalog" "$envelope" "$authority" "$request" "$signing_key" "$rollback_manifest"; do
+for path in "$capability_manifest" "$catalog" "$envelope" "$authority" "$signing_key" "$rollback_manifest"; do
   [[ -r "$path" && ! -L "$path" ]] || exit 78
 done
 [[ -f "$gate" && ! -L "$gate" ]] || exit 78
+[[ -f "$enabled_marker" && ! -L "$enabled_marker" ]] || exit 78
+if [[ -e "$consumed" && ! -e "$request" ]]; then
+  exit 0
+fi
+[[ -r "$request" && ! -L "$request" ]] || exit 78
 [[ "$(jq -e -r 'select(.contract == "reconcile-first-v1" and .fully_implemented == true and .production_ready == true and .capability_version == "1") | true' "$capability_manifest")" == true ]] || exit 78
 [[ "$(jq -e -r 'select(.schema_version == 1 and .signature_valid == true and (.generation|type) == "string") | true' "$catalog")" == true ]] || exit 78
 [[ "$(jq -e -r 'select(.schema_version == 1 and .previous_image and .project and .service and .working_directory and .compose_files and .image_override and .network_mode and .restart_policy and (.mounts|type) == "array") | true' "$rollback_manifest")" == true ]] || exit 78
@@ -86,7 +113,7 @@ psql_bin="${GOWA_UPDATER_PSQL_BIN:-/usr/bin/psql}"
 install -d -m 0700 -- "$operation_evidence" "$phase_dir" "$(dirname "$lock_path")"
 exec 9>"$lock_path"
 flock -n 9 || exit 75
-[[ ! -e "$consumed" ]] || exit 75
+consumed_already=false
 
 resolved="$($docker_bin compose --project-name "$project" -f "$compose_file" -f "$override_file" config --format json)" || exit 78
 jq -e --arg service "$service" --arg image "$image" --arg restart "$restart_policy" '(.services[$service].image == $image) and (.services[$service].network_mode == "host") and (.services[$service].restart == $restart) and (([.. | strings] | any(test("/var/run/docker.sock"))) | not)' <<<"$resolved" >/dev/null || exit 78
@@ -151,7 +178,7 @@ emit_evidence() {
   local payload_file="${operation_evidence}/payload.tmp.$$"
   install -d -m 0700 "${operation_evidence}/${fence}"
   snapshot_hash="$(printf '%s' "${operation_id}:${fence}:${identity}:${image}:${network_mode}:${restart_policy}" | sha256sum | cut -d ' ' -f 1)"
-  payload="$(jq -cn --arg id "$operation_id" --arg fence "$fence" --arg seq "$sequence" --arg plane root --arg code "$code" --arg snapshot "$snapshot_hash" --arg identity "$identity" --arg digest "${evidence_digest:-$digest}" --arg generation "$catalog_generation" --arg policy '1' --arg passed "$passed" '{contract:"gowa-evidence-v1",operation_id:$id,fencing_token:($fence|tonumber),sequence:($seq|tonumber),plane:$plane,code:$code,occurred_at:(now|todateiso8601),snapshot_hash:$snapshot,container_identity:$identity,target_digest:$digest,catalog_generation:$generation,attestation:{plane:$plane,policy_version:$policy,snapshot_hash:$snapshot,container_identity:$identity,passed:($passed == "true"),observed_at:(now|todateiso8601)}}')"
+  payload="$(jq -S -cn --arg id "$operation_id" --arg fence "$fence" --arg seq "$sequence" --arg plane root --arg code "$code" --arg snapshot "$snapshot_hash" --arg identity "$identity" --arg digest "${evidence_digest:-$digest}" --arg generation "$catalog_generation" --arg policy '1' --arg passed "$passed" '{contract:"gowa-evidence-v1",operation_id:$id,fencing_token:($fence|tonumber),sequence:($seq|tonumber),plane:$plane,code:$code,occurred_at:(now|todateiso8601),snapshot_hash:$snapshot,container_identity:$identity,target_digest:$digest,catalog_generation:$generation,attestation:(if $code == "mutation_observed" or $code == "rollback_observed" or $code == "rollback_degraded" then {plane:$plane,policy_version:$policy,snapshot_hash:$snapshot,container_identity:$identity,passed:($passed == "true"),observed_at:(now|todateiso8601)} else null end)}')"
   umask 077
   printf '%s' "$payload" > "$payload_file"
   openssl pkeyutl -sign -rawin -inkey "$signing_key" -in "$payload_file" -out "$signature_file" >/dev/null 2>&1 || { rm -f -- "$payload_file" "$signature_file"; return 1; }
@@ -162,10 +189,19 @@ emit_evidence() {
 }
 
 write_phase mutation_prepared unknown
-consume_json="$($psql_bin --no-password --no-psqlrc --quiet --tuples-only --no-align --dbname "${GOWA_UPDATER_DATABASE:-${DB_DATABASE:-lpmf}}" --username "${GOWA_UPDATER_SUBMIT_ROLE:-lpmf_gowa_submit}" -v ON_ERROR_STOP=1 -c "select updater_gateway.consume_dispatch('${operation_id}'::uuid, '${claim_nonce}'::uuid, ${fence}::bigint, '${release_id}', '${payload_hash}')::text" 2>/dev/null | tr -d '\n')" || exit 78
-jq -e --arg id "$operation_id" --arg nonce "$claim_nonce" --arg release "$release_id" --arg digest "$digest" --arg generation "$catalog_generation" --arg revocation "$revocation_generation" --arg hash "$payload_hash" --arg fence "$fence" 'select(.replayed == false and .payload.operation_id == $id and .payload.claim_nonce == $nonce and .payload.release_id == $release and .payload.digest == $digest and .payload.catalog_generation == $generation and .payload.revocation_generation == $revocation and (.payload.fencing_token|tostring) == $fence and .payload_hash == $hash)' <<<"$consume_json" >/dev/null || exit 78
-mv -n -- "$request" "$consumed" || exit 78
-[[ -e "$consumed" && ! -L "$consumed" && ! -e "$request" ]] || exit 78
+if [[ "$consumed_already" == false ]]; then
+  consume_json="$($psql_bin --no-password --no-psqlrc --quiet --tuples-only --no-align --dbname "${GOWA_UPDATER_DATABASE:-${DB_DATABASE:-lpmf}}" --username "${GOWA_UPDATER_SUBMIT_ROLE:-lpmf_gowa_submit}" -v ON_ERROR_STOP=1 -c "select updater_gateway.consume_dispatch('${operation_id}'::uuid, '${claim_nonce}'::uuid, ${fence}::bigint, '${release_id}', '${payload_hash}')::text" 2>/dev/null | tr -d '\n')" || exit 78
+  jq -e --arg id "$operation_id" --arg nonce "$claim_nonce" --arg release "$release_id" --arg digest "$digest" --arg generation "$catalog_generation" --arg revocation "$revocation_generation" --arg hash "$payload_hash" --arg fence "$fence" 'select((.replayed == false or .replayed == true) and .payload.operation_id == $id and .payload.claim_nonce == $nonce and .payload.release_id == $release and .payload.digest == $digest and .payload.catalog_generation == $generation and .payload.revocation_generation == $revocation and (.payload.fencing_token|tostring) == $fence and .payload_hash == $hash)' <<<"$consume_json" >/dev/null || exit 78
+  mv -n -- "$request" "$consumed" || exit 78
+  [[ -e "$consumed" && ! -L "$consumed" && ! -e "$request" ]] || exit 78
+fi
+
+evidence_sequence=0
+emit_next_evidence() {
+  evidence_sequence=$((evidence_sequence + 1))
+  emit_evidence "$evidence_sequence" "$1" "$2" "$3"
+}
+emit_next_evidence mutation_prepared unknown true || exit 78
 
 rollback() {
   write_phase rollback_started unknown
@@ -178,15 +214,16 @@ rollback() {
     identity="$(container_identity)"
     write_phase rollback_observed "$identity"
     evidence_digest="$previous_digest"
-    emit_evidence 1 rollback_observed "$identity" true || exit 78
+    emit_next_evidence rollback_observed "$identity" true || exit 78
     exit 70
   fi
   write_phase rollback_degraded unknown
-  emit_evidence 1 rollback_degraded unknown false || exit 78
+  emit_next_evidence rollback_degraded unknown false || exit 78
   exit 70
 }
 
 write_phase mutation_started unknown
+emit_next_evidence mutation_started unknown true || exit 78
 if ! timeout --foreground "${GOWA_UPDATER_PULL_TIMEOUT:-600}" "$docker_bin" compose --project-name "$project" -f "$compose_file" -f "$override_file" pull "$service" >/dev/null 2>&1; then
   rollback
 fi
@@ -196,5 +233,5 @@ fi
 observe_container || { write_phase mutation_failed unknown; exit 70; }
 identity="$(container_identity)"
 write_phase mutation_observed "$identity"
-emit_evidence 1 mutation_observed "$identity" true || exit 78
+emit_next_evidence mutation_observed "$identity" true || exit 78
 exit 0

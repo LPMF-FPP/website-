@@ -1,2 +1,5 @@
 # Installed by operations, not read from the application tree.
-Cmnd_Alias LPMF_GOWA_SUBMIT = /usr/local/sbin/lpmf-gowa-submit [0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]-[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]-[1-5][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]-[89abAB][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]-[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]
+Defaults:lpmf-gowa-maintenance env_reset, !setenv, env_keep -= *
+Defaults!LPMF_GOWA_SUBMIT secure_path="/usr/sbin:/usr/bin:/sbin:/bin"
+Cmnd_Alias LPMF_GOWA_SUBMIT = /usr/local/sbin/lpmf-gowa-submit [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[1-5][0-9a-f][0-9a-f][0-9a-f]-[89ab][0-9a-f][0-9a-f][0-9a-f]-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]
+lpmf-gowa-maintenance ALL=(root) NOPASSWD: LPMF_GOWA_SUBMIT

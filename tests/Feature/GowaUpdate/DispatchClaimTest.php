@@ -75,6 +75,33 @@ it('creates a root-facing request containing only the operation UUID', function 
         ->and(json_encode($first, JSON_THROW_ON_ERROR))->not->toContain('password')->not->toContain('secret');
 });
 
+it('lets the submit helper remain the sole claim producer for queued dispatch', function (): void {
+    Queue::fake();
+    bindGowaClaimFakes();
+    $user = User::factory()->create();
+    $operation = app(GowaUpdateService::class)->create('release-a', '00000000-0000-4000-8000-000000000025', $user->id);
+    $runner = new class implements GowaUpdateRunner
+    {
+        public array $claims = [];
+
+        public function available(): bool
+        {
+            return true;
+        }
+
+        public function dispatch(array $claim): bool
+        {
+            $this->claims[] = $claim;
+
+            return true;
+        }
+    };
+    (new \App\Jobs\DispatchGowaUpdateJob($operation->id))->handle(app(GowaUpdateService::class), $runner);
+
+    expect($runner->claims)->toBe([['operation_id' => $operation->id]])
+        ->and($operation->fresh()->status)->toBe('queued');
+});
+
 it('rejects a claim after the scope fence or lease no longer matches', function (): void {
     Queue::fake();
     bindGowaClaimFakes();

@@ -31,4 +31,4 @@ ProtectKernelModules=yes
 ProtectControlGroups=yes
 ProtectClock=yes
 SystemCallArchitectures=native
-ReadWritePaths=/var/lib/lpmf/gowa-updater /run/lpmf/gowa-updater /var/run/docker.sock
+ReadWritePaths=/var/lib/lpmf/gowa-updater /run/lpmf/gowa-updater

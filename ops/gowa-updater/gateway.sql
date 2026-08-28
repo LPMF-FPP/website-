@@ -2,6 +2,24 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE SCHEMA IF NOT EXISTS updater_gateway;
 REVOKE ALL ON SCHEMA updater_gateway FROM PUBLIC;
+CREATE TABLE IF NOT EXISTS updater_gateway.dispatch_claims (
+    operation_id uuid PRIMARY KEY,
+    scope text NOT NULL,
+    release_id text NOT NULL,
+    fencing_token bigint NOT NULL,
+    claim_nonce uuid UNIQUE NOT NULL,
+    owner text NOT NULL,
+    catalog_generation text NOT NULL,
+    revocation_generation text NOT NULL,
+    claim_payload jsonb NOT NULL,
+    payload_hash text NOT NULL,
+    claimed_at timestamptz NOT NULL,
+    lease_expires_at timestamptz NOT NULL,
+    consumed_at timestamptz,
+    created_at timestamptz NOT NULL,
+    updated_at timestamptz NOT NULL
+);
+REVOKE ALL ON TABLE updater_gateway.dispatch_claims FROM PUBLIC;
 
 CREATE OR REPLACE FUNCTION updater_gateway.claim_dispatch(p_operation_id uuid, p_owner text)
 RETURNS jsonb
@@ -146,3 +164,36 @@ $function$;
 
 REVOKE ALL ON FUNCTION updater_gateway.claim_dispatch(uuid, text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION updater_gateway.consume_dispatch(uuid, uuid, bigint, text, text) FROM PUBLIC;
+GRANT USAGE ON SCHEMA updater_gateway TO lpmf_gowa_submit;
+GRANT EXECUTE ON FUNCTION updater_gateway.claim_dispatch(uuid, text) TO lpmf_gowa_submit;
+GRANT EXECUTE ON FUNCTION updater_gateway.consume_dispatch(uuid, uuid, bigint, text, text) TO lpmf_gowa_submit;
+
+CREATE OR REPLACE FUNCTION updater_gateway.assert_installation(p_submit_role name, p_owner_role name, p_app_role name)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, updater_gateway
+AS $function$
+BEGIN
+    IF EXISTS (
+            SELECT 1
+            FROM pg_namespace n
+            CROSS JOIN LATERAL aclexplode(COALESCE(n.nspacl, acldefault('n', n.nspowner))) acl
+            WHERE n.nspname = 'updater_gateway'
+              AND acl.grantee = 0
+              AND acl.privilege_type IN ('USAGE', 'CREATE')
+        )
+        OR has_schema_privilege(p_submit_role, 'updater_gateway', 'CREATE')
+              OR NOT has_function_privilege(p_submit_role, 'updater_gateway.claim_dispatch(uuid,text)', 'EXECUTE')
+        OR NOT has_function_privilege(p_submit_role, 'updater_gateway.consume_dispatch(uuid,uuid,bigint,text,text)', 'EXECUTE')
+              OR pg_get_userbyid((SELECT nspowner FROM pg_namespace WHERE nspname = 'updater_gateway')) <> p_owner_role::text
+              OR pg_get_userbyid((SELECT relowner FROM pg_class WHERE oid = 'updater_gateway.dispatch_claims'::regclass)) <> p_owner_role::text
+              OR pg_get_userbyid((SELECT proowner FROM pg_proc WHERE pronamespace = 'updater_gateway'::regnamespace AND proname = 'claim_dispatch' AND oidvectortypes(proargtypes) = 'uuid, text')) <> p_owner_role::text
+              OR pg_get_userbyid((SELECT proowner FROM pg_proc WHERE pronamespace = 'updater_gateway'::regnamespace AND proname = 'consume_dispatch' AND oidvectortypes(proargtypes) = 'uuid, uuid, bigint, text, text')) <> p_owner_role::text
+              OR has_function_privilege(p_app_role, 'updater_gateway.claim_dispatch(uuid,text)', 'EXECUTE')
+              OR has_function_privilege(p_app_role, 'updater_gateway.consume_dispatch(uuid,uuid,bigint,text,text)', 'EXECUTE') THEN
+        RAISE EXCEPTION 'gateway_privileges_rejected';
+    END IF;
+END
+$function$;
+REVOKE ALL ON FUNCTION updater_gateway.assert_installation(name, name, name) FROM PUBLIC;

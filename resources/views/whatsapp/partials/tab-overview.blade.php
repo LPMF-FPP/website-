@@ -27,7 +27,7 @@
                             <input id="gowa-confirm" type="checkbox" x-model="gowaUpdateConfirmed" class="h-4 w-4 rounded border-slate-500 bg-slate-900 text-primary-500 focus:ring-primary-400">
                             <span>Saya mengonfirmasi pembaruan terkontrol.</span>
                         </label>
-                        <button type="button" @click="requestGowaUpdate()" :disabled="!selectedGowaRelease || gowaUpdateSubmitting" class="min-h-11 w-full rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-300 disabled:cursor-not-allowed disabled:opacity-50">
+                        <button type="button" @click="requestGowaUpdate()" :disabled="!selectedGowaRelease || !gowaUpdateConfirmed || gowaUpdateSubmitting || !overviewData.gowa_update.can_request" class="min-h-11 w-full rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-300 disabled:cursor-not-allowed disabled:opacity-50">
                             <span x-text="gowaUpdateSubmitting ? 'Mengirim permintaan...' : 'Ajukan pembaruan' "></span>
                         </button>
                         <p x-show="gowaUpdateMessage" class="text-sm text-slate-300" x-text="gowaUpdateMessage" role="status"></p>
@@ -38,11 +38,11 @@
         <template x-if="overviewData?.gowa_update?.latest_operation">
             <div class="mt-5 border-t border-slate-700 pt-4" aria-live="polite">
                 <p class="text-sm text-slate-300">Operasi terakhir: <span class="font-semibold text-white" x-text="gowaStatusLabel(overviewData.gowa_update.latest_operation.status)"></span></p>
-                <p class="mt-1 text-xs text-slate-400" x-text="overviewData.gowa_update.latest_operation.message_key || 'Menunggu rekonsiliasi status.'"></p>
+                <p class="mt-1 text-xs text-slate-400" x-text="overviewData.gowa_update.latest_operation.message || 'Menunggu rekonsiliasi status.'"></p>
                 <p x-show="overviewData.gowa_update.latest_operation.stale" class="mt-2 text-sm text-amber-200">Status operasi tidak diperbarui pada batas waktu yang diharapkan. Rekonsiliasi akan menentukan hasilnya.</p>
                 <div x-show="['failed', 'rolled_back', 'degraded'].includes(overviewData.gowa_update.latest_operation.status)" class="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
                     <p class="text-sm text-slate-300">Periksa layanan dan log operasional sebelum mencoba ulang.</p>
-                    <button type="button" @click="retryGowaUpdate()" :disabled="gowaUpdateSubmitting" class="min-h-11 rounded-md border border-slate-500 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-300 disabled:cursor-not-allowed disabled:opacity-50">Ajukan percobaan ulang</button>
+                    <button type="button" @click="retryGowaUpdate()" :disabled="gowaUpdateSubmitting || !overviewData.gowa_update.can_retry" class="min-h-11 rounded-md border border-slate-500 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-primary-300 disabled:cursor-not-allowed disabled:opacity-50">Ajukan percobaan ulang</button>
                 </div>
             </div>
         </template>

@@ -6,6 +6,7 @@ namespace App\Services\WhatsApp;
 
 use App\Contracts\WhatsApp\GowaReleaseCatalog;
 use App\Contracts\WhatsApp\GowaRuntimeProbe;
+use App\Contracts\WhatsApp\GowaUpdateQuiescence;
 use App\Contracts\WhatsApp\GowaUpdateRunner;
 use App\Jobs\DispatchGowaUpdateJob;
 use App\Models\GowaUpdateAttestation;
@@ -49,6 +50,16 @@ final class GowaUpdateService
             $latestOperation = null;
         }
 
+        $latestProjection = null;
+        if (is_array($latestOperation) && is_string($latestOperation['id'] ?? null)) {
+            try {
+                $operation = GowaUpdateOperation::query()->find($latestOperation['id']);
+                $latestProjection = $operation === null ? null : $this->operationProjection($operation);
+            } catch (\Throwable) {
+                $latestProjection = null;
+            }
+        }
+
         return [
             'available' => $runnerAvailable && $runtimeFresh && $catalogGeneration !== null,
             'reason' => $runnerAvailable ? ($runtimeFresh ? ($catalogGeneration !== null ? null : 'catalog_unavailable') : 'runtime_evidence_stale') : 'privileged_runner_unavailable',
@@ -59,8 +70,31 @@ final class GowaUpdateService
                 'version' => $release['version'] ?? null,
                 'digest' => $release['digest'],
             ], $releases),
-            'latest_operation' => $latestOperation,
+            'latest_operation' => $latestProjection,
         ];
+    }
+
+    /** @return array<string, mixed> */
+    public function operationProjection(GowaUpdateOperation $operation, array $capabilities = []): array
+    {
+        $projection = $operation->safeProjection();
+        $quiescence = $operation->isTerminal() ? $this->quiescence($operation) : [
+            'quiescent' => false,
+            'systemd' => false,
+            'lock' => false,
+            'request' => false,
+            'evidence' => false,
+        ];
+
+        return array_merge($projection, [
+            'quiescence' => $quiescence,
+            'quiescent' => $quiescence['quiescent'],
+            'can_request' => (bool) ($capabilities['can_request'] ?? false),
+            'can_retry' => (bool) ($capabilities['can_retry'] ?? true)
+                && $operation->isTerminal()
+                && $quiescence['quiescent'],
+            'can_detail' => (bool) ($capabilities['can_detail'] ?? false),
+        ]);
     }
 
     public function create(string $releaseId, string $actionUuid, int $userId, ?string $retryOfId = null): GowaUpdateOperation
@@ -202,14 +236,11 @@ final class GowaUpdateService
             ]);
             $this->event($locked, $from, 'reconciling', 'execution_lease_expired');
 
-            $locked->update([
-                'status' => 'degraded',
-                'checkpoint' => 'terminal',
-                'failure_code' => 'reconciliation_failed',
-                'failure_message_key' => 'gowa_update.reconciliation_failed',
-            ]);
-            GowaUpdateScope::query()->whereKey($locked->scope)->update(['active_operation_id' => null]);
-            $this->event($locked, 'reconciling', 'degraded', 'reconciliation_failed');
+            if ($this->canCommitOutcome($locked, 'succeeded')) {
+                $this->commitVerifiedOutcome($locked, 'succeeded');
+            } elseif ($this->canCommitOutcome($locked, 'degraded')) {
+                $this->commitVerifiedOutcome($locked, 'degraded');
+            }
         });
     }
 
@@ -218,7 +249,8 @@ final class GowaUpdateService
         if ($previous->scope !== GowaUpdateOperation::SCOPE
             || ! $previous->isTerminal()
             || GowaUpdateOperation::query()->where('scope', GowaUpdateOperation::SCOPE)->whereIn('status', GowaUpdateOperation::ACTIVE_STATUSES)->exists()
-            || ! $this->runtimeReadyForUpdate()) {
+            || ! $this->runtimeReadyForUpdate()
+            || ! $this->quiescence($previous)['quiescent']) {
             throw new RuntimeException('operation_not_retryable');
         }
 
@@ -233,9 +265,17 @@ final class GowaUpdateService
                 return;
             }
             $from = $locked->status;
-            $locked->update(['status' => 'failed', 'failure_code' => $code, 'failure_message_key' => 'gowa_update.'.$code, 'checkpoint' => 'terminal']);
+            $safeCode = GowaUpdateOperation::safeFailureCode($code);
+            $locked->update([
+                'status' => 'failed',
+                'failure_code' => $safeCode,
+                'failure_message_key' => 'gowa_update.'.$safeCode,
+                'checkpoint' => 'terminal',
+                'heartbeat_at' => now(),
+                'lease_expires_at' => null,
+            ]);
             GowaUpdateScope::query()->whereKey($locked->scope)->update(['active_operation_id' => null]);
-            $this->event($locked, $from, 'failed', $code);
+            $this->event($locked, $from, 'failed', $safeCode);
         });
     }
 
@@ -269,11 +309,27 @@ final class GowaUpdateService
                 throw new RuntimeException('evidence_sequence_gap');
             }
 
-            $operation->update(['feature_snapshot' => array_merge($operation->feature_snapshot ?? [], [
-                'last_evidence_sequence' => array_merge($snapshot['last_evidence_sequence'] ?? [], [$plane => $sequence]),
-                'last_evidence_code' => $evidence['code'],
-            ])]);
-            $this->event($operation, $operation->status, $operation->status, $evidence['code']);
+            $from = $operation->status;
+            $to = match ($evidence['code']) {
+                'mutation_prepared' => 'preparing',
+                'mutation_started' => 'updating',
+                'mutation_observed' => 'verifying',
+                default => $operation->status,
+            };
+            if (! $this->evidenceTransitionAllowed($from, $to)) {
+                throw new RuntimeException('evidence_transition_rejected');
+            }
+            $operation->update([
+                'status' => $to,
+                'checkpoint' => $evidence['code'],
+                'heartbeat_at' => now(),
+                'lease_expires_at' => now()->addMinutes((int) config('gowa-updater.lease_minutes', 10)),
+                'feature_snapshot' => array_merge($operation->feature_snapshot ?? [], [
+                    'last_evidence_sequence' => array_merge($snapshot['last_evidence_sequence'] ?? [], [$plane => $sequence]),
+                    'last_evidence_code' => $evidence['code'],
+                ]),
+            ]);
+            $this->event($operation, $from, $to, $evidence['code']);
         });
     }
 
@@ -332,7 +388,7 @@ final class GowaUpdateService
 
     public function commitVerifiedOutcome(GowaUpdateOperation $operation, string $terminalStatus): void
     {
-        if (! in_array($terminalStatus, ['succeeded', 'rolled_back'], true)) {
+        if (! in_array($terminalStatus, ['succeeded', 'rolled_back', 'degraded'], true)) {
             throw new RuntimeException('invalid_terminal_outcome');
         }
 
@@ -346,21 +402,70 @@ final class GowaUpdateService
             $root = $attestations->firstWhere('plane', 'root');
             $runtime = $attestations->firstWhere('plane', 'runtime');
             $valid = $root !== null && $runtime !== null
-                && $root->passed && $runtime->passed
                 && $root->policy_version === $runtime->policy_version
                 && $root->snapshot_hash === $runtime->snapshot_hash
                 && $root->container_identity === $runtime->container_identity
                 && $root->observed_at?->greaterThanOrEqualTo(now()->subMinutes(5))
                 && $runtime->observed_at?->greaterThanOrEqualTo(now()->subMinutes(5));
+            $valid = $valid && ($terminalStatus === 'degraded'
+                ? ! $root->passed && ! $runtime->passed
+                : $root->passed && $runtime->passed);
             if (! $valid) {
                 throw new RuntimeException('attestation_mismatch');
             }
 
+            if (($terminalStatus === 'succeeded' && ! in_array($locked->status, ['verifying', 'reconciling'], true))
+                || ($terminalStatus === 'rolled_back' && ! in_array($locked->status, ['updating', 'verifying', 'reconciling'], true))
+                || ($terminalStatus === 'degraded' && ! in_array($locked->status, ['preparing', 'updating', 'verifying', 'reconciling'], true))) {
+                throw new RuntimeException('invalid_terminal_transition');
+            }
+
             $from = $locked->status;
-            $locked->update(['status' => $terminalStatus, 'checkpoint' => 'terminal']);
+            $locked->update([
+                'status' => $terminalStatus,
+                'checkpoint' => 'terminal',
+                'heartbeat_at' => now(),
+                'lease_expires_at' => null,
+            ]);
             GowaUpdateScope::query()->whereKey($locked->scope)->update(['active_operation_id' => null]);
             $this->event($locked, $from, $terminalStatus, 'verified_terminal_outcome');
         });
+    }
+
+    /** @param array<string, mixed> $evidence */
+    public function recordRuntimeAttestation(array $evidence): void
+    {
+        if (($evidence['attestation']['passed'] ?? true) === false && is_array($evidence['attestation'] ?? null)) {
+            $attestation = $evidence['attestation'];
+            $this->recordAttestation([
+                'operation_id' => $evidence['operation_id'],
+                'fencing_token' => $evidence['fencing_token'],
+                'plane' => 'runtime',
+                'policy_version' => $attestation['policy_version'] ?? config('gowa-updater.policy_version', '1'),
+                'snapshot_hash' => $evidence['snapshot_hash'],
+                'container_identity' => $evidence['container_identity'],
+                'passed' => false,
+                'observed_at' => $evidence['occurred_at'],
+            ]);
+
+            return;
+        }
+
+        $runtime = $this->probe->current();
+        if (! $this->probe->isFresh($runtime)
+            || ($runtime['container_identity'] ?? null) !== ($evidence['container_identity'] ?? null)) {
+            throw new RuntimeException('attestation_mismatch');
+        }
+        $this->recordAttestation([
+            'operation_id' => $evidence['operation_id'],
+            'fencing_token' => $evidence['fencing_token'],
+            'plane' => 'runtime',
+            'policy_version' => config('gowa-updater.policy_version', '1'),
+            'snapshot_hash' => $evidence['snapshot_hash'],
+            'container_identity' => $runtime['container_identity'],
+            'passed' => true,
+            'observed_at' => now()->toIso8601String(),
+        ]);
     }
 
     private function event(GowaUpdateOperation $operation, ?string $from, string $to, string $code): void
@@ -398,6 +503,69 @@ final class GowaUpdateService
                 && preg_match('/^sha256:[0-9a-f]{64}$/', $runtime['digest']) === 1
                 && is_string($runtime['container_identity'] ?? null)
                 && $runtime['container_identity'] !== '';
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /** @return array{quiescent: bool, systemd: bool, lock: bool, request: bool, evidence: bool} */
+    private function quiescence(GowaUpdateOperation $operation): array
+    {
+        try {
+            if (! $this->runner instanceof GowaUpdateQuiescence) {
+                throw new RuntimeException('quiescence_unproven');
+            }
+
+            $proof = $this->runner->quiescence((string) $operation->id);
+            $proof['evidence'] = (bool) ($proof['evidence'] ?? false)
+                && $this->hasFreshMatchingAttestations($operation, $operation->status !== 'degraded');
+            $proof['quiescent'] = (bool) ($proof['quiescent'] ?? false) && $proof['evidence'];
+
+            return $proof;
+        } catch (\Throwable) {
+            return ['quiescent' => false, 'systemd' => false, 'lock' => false, 'request' => false, 'evidence' => false];
+        }
+    }
+
+    private function hasFreshMatchingAttestations(GowaUpdateOperation $operation, bool $requirePassed = true): bool
+    {
+        $attestations = $operation->attestations()->where('fencing_token', $operation->fencing_token)->get();
+        $root = $attestations->firstWhere('plane', 'root');
+        $runtime = $attestations->firstWhere('plane', 'runtime');
+
+        return $root !== null && $runtime !== null
+            && (! $requirePassed || ($root->passed && $runtime->passed))
+            && $root->policy_version === $runtime->policy_version
+            && $root->snapshot_hash === $runtime->snapshot_hash
+            && $root->container_identity === $runtime->container_identity
+            && $root->observed_at?->greaterThanOrEqualTo(now()->subMinutes(5))
+            && $runtime->observed_at?->greaterThanOrEqualTo(now()->subMinutes(5));
+    }
+
+    private function evidenceTransitionAllowed(string $from, string $to): bool
+    {
+        return $from === $to || match ($to) {
+            'preparing' => $from === 'queued',
+            'updating' => in_array($from, ['preparing', 'updating'], true),
+            'verifying' => in_array($from, ['updating', 'verifying', 'reconciling'], true),
+            default => false,
+        };
+    }
+
+    private function canCommitOutcome(GowaUpdateOperation $operation, string $outcome): bool
+    {
+        try {
+            $proof = $this->runner instanceof GowaUpdateQuiescence
+                ? $this->runner->quiescence((string) $operation->id)
+                : [];
+            $attestations = $operation->attestations()->where('fencing_token', $operation->fencing_token)->get();
+            $root = $attestations->firstWhere('plane', 'root');
+            $runtime = $attestations->firstWhere('plane', 'runtime');
+
+            return ($proof['quiescent'] ?? false) === true
+                && $this->hasFreshMatchingAttestations($operation, false)
+                && $root !== null && $runtime !== null
+                && ($outcome === 'succeeded' ? $root->passed && $runtime->passed : ! $root->passed && ! $runtime->passed);
         } catch (\Throwable) {
             return false;
         }

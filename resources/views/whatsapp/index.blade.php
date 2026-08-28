@@ -217,6 +217,8 @@
                 gowaUpdateSubmitting: false,
                 gowaUpdateConfirmed: false,
                 gowaUpdateMessage: '',
+                gowaOperationPolling: null,
+                gowaOperationPollAttempts: 0,
                 tasksData: { tasks: { data: [] }, stats: {}, users: [] },
                 broadcastsData: { broadcasts: { data: [] }, statuses: {} },
                 remindersData: { reminders: [] },
@@ -364,6 +366,7 @@
                         this.gowaUpdateMessage = payload.message || 'Permintaan pembaruan diterima.';
                         this.gowaUpdateConfirmed = false;
                         await this.loadTabData('overview');
+                        this.pollGowaOperation(payload.data?.id);
                     } catch (error) {
                         this.gowaUpdateMessage = error.message || 'Pembaruan belum dapat dimulai.';
                     } finally {
@@ -388,11 +391,50 @@
                         if (!response.ok) throw new Error(payload.message || 'Percobaan ulang ditolak.');
                         this.gowaUpdateMessage = payload.message || 'Percobaan ulang diterima.';
                         await this.loadTabData('overview');
+                        this.pollGowaOperation(payload.data?.id);
                     } catch (error) {
                         this.gowaUpdateMessage = error.message || 'Percobaan ulang belum dapat dimulai.';
                     } finally {
                         this.gowaUpdateSubmitting = false;
                     }
+                },
+
+                stopGowaOperationPolling() {
+                    if (this.gowaOperationPolling !== null) {
+                        clearTimeout(this.gowaOperationPolling);
+                        this.gowaOperationPolling = null;
+                    }
+                    this.gowaOperationPollAttempts = 0;
+                },
+
+                async pollGowaOperation(operationId) {
+                    if (!operationId || !/^[0-9a-f-]{36}$/i.test(operationId) || !this.overviewData?.gowa_update?.can_detail) return;
+                    this.stopGowaOperationPolling();
+                    const poll = async () => {
+                        this.gowaOperationPollAttempts += 1;
+                        try {
+                            const url = '{{ route("whatsapp.updates.detail", ["operation" => "__ID__"]) }}'.replace('__ID__', operationId);
+                            const response = await fetch(url, { headers: { Accept: 'application/json' } });
+                            if (!response.ok) throw new Error('Detail operasi belum dapat dimuat.');
+                            const payload = await response.json();
+                            const operation = payload.data;
+                            if (operation?.id !== operationId) throw new Error('Identitas operasi tidak cocok.');
+                            this.overviewData.gowa_update.latest_operation = operation;
+                            if ((['succeeded', 'failed', 'rolled_back', 'degraded'].includes(operation.status) && operation.quiescent)
+                                || this.gowaOperationPollAttempts >= 20) {
+                                this.stopGowaOperationPolling();
+                                return;
+                            }
+                        } catch (error) {
+                            this.gowaUpdateMessage = error.message || 'Detail operasi belum dapat dimuat.';
+                            if (this.gowaOperationPollAttempts >= 20) {
+                                this.stopGowaOperationPolling();
+                                return;
+                            }
+                        }
+                        this.gowaOperationPolling = setTimeout(poll, 3000);
+                    };
+                    await poll();
                 },
 
                 async loadTabData(tab, params = {}) {
@@ -463,6 +505,11 @@
                         switch(tab) {
                             case 'overview':
                                 this.overviewData = payload;
+                                const operationId = this.overviewData?.gowa_update?.latest_operation?.id;
+                                const status = this.overviewData?.gowa_update?.latest_operation?.status;
+                                if (operationId && ['queued', 'preparing', 'updating', 'verifying', 'reconciling'].includes(status)) {
+                                    this.pollGowaOperation(operationId);
+                                }
                                 break;
                             case 'tasks':
                                 this.tasksData = payload;

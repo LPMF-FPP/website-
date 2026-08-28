@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "operation_id": "REPLACE_WITH_OPERATION_UUID",
+  "fence": 0,
+  "revoked": true,
+  "installed": false
+}

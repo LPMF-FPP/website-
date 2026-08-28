@@ -39,6 +39,7 @@ final class GowaUpdateReconciler
         }
 
         $paths = array_merge(glob($root.'/*/*.json') ?: [], glob($root.'/*/*/*.json') ?: []);
+        sort($paths);
         foreach (array_unique($paths) as $path) {
             $pathRealPath = realpath($path);
             if ($pathRealPath === false || ! str_starts_with($pathRealPath, $rootRealPath.'/')) {
@@ -53,10 +54,23 @@ final class GowaUpdateReconciler
                         'fencing_token' => $payload['fencing_token'],
                     ]));
                 }
+                if (($payload['code'] ?? null) === 'rollback_degraded' && isset($payload['attestation']) && is_array($payload['attestation'])) {
+                    $this->service->recordRuntimeAttestation($payload);
+                    $this->service->commitVerifiedOutcome($this->operation($payload['operation_id']), 'degraded');
+                }
+                if (in_array($payload['code'] ?? null, ['mutation_observed', 'rollback_observed'], true)) {
+                    $this->service->recordRuntimeAttestation($payload);
+                    $this->service->commitVerifiedOutcome($this->operation($payload['operation_id']), $payload['code'] === 'rollback_observed' ? 'rolled_back' : 'succeeded');
+                }
                 unlink($path);
             } catch (RuntimeException) {
                 continue;
             }
         }
+    }
+
+    private function operation(string $id): GowaUpdateOperation
+    {
+        return GowaUpdateOperation::query()->findOrFail($id);
     }
 }

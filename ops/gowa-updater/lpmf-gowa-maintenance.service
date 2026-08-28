@@ -1,0 +1,30 @@
+[Unit]
+Description=LPMF GOWA maintenance queue worker
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=lpmf-gowa-maintenance
+Group=lpmf-gowa-maintenance
+SupplementaryGroups=
+WorkingDirectory=/var/www/lis
+ExecStart=/usr/bin/php /var/www/lis/artisan queue:work gowa-maintenance --queue=gowa-maintenance --tries=1 --timeout=900 --sleep=1 --no-interaction
+Restart=always
+RestartSec=5s
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateDevices=yes
+CapabilityBoundingSet=
+RestrictNamespaces=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/var/www/lis/storage /var/www/lis/bootstrap/cache
+
+[Install]
+WantedBy=multi-user.target

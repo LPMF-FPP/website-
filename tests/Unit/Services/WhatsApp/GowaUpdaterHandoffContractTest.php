@@ -19,10 +19,12 @@ function gowaUpdaterDispatchMigration(): string
 
 it('keeps unauthorized root claims behind the explicit submit role grant', function (): void {
     $sql = gowaUpdaterGatewaySql();
+    $installer = file_get_contents(base_path('ops/gowa-updater/install')) ?: '';
 
     expect($sql)->toContain("IF session_user <> 'lpmf_gowa_submit'")
         ->and($sql)->toContain('REVOKE ALL ON FUNCTION updater_gateway.consume_dispatch')
-        ->and($sql)->not->toContain('GRANT EXECUTE ON FUNCTION updater_gateway.consume_dispatch(uuid, uuid, bigint, text, text) TO PUBLIC');
+        ->and($sql)->not->toContain('GRANT EXECUTE ON FUNCTION updater_gateway.consume_dispatch(uuid, uuid, bigint, text, text) TO PUBLIC')
+        ->and($installer)->not->toContain('GRANT EXECUTE ON FUNCTION updater_gateway.claim_dispatch(uuid, text) TO ${gateway_app_role}');
 });
 
 it('binds replay and payload validation to the durable claim nonce', function (): void {
@@ -69,4 +71,12 @@ it('does not transport credentials or arbitrary command input across the helper 
         ->and($runner)->toContain('claim_nonce')
         ->and($runner)->not->toMatch('/DB_PASSWORD|GOWA_PASSWORD|Authorization/i')
         ->and(Str::contains($helper, 'systemctl start --no-block "$unit"'))->toBeTrue();
+});
+
+it('keeps production claim creation out of the application claim service', function (): void {
+    $service = file_get_contents(base_path('app/Services/WhatsApp/GowaUpdateClaimService.php')) ?: '';
+
+    expect($service)->toContain("if (! app()->environment('testing'))")
+        ->and($service)->not->toContain('claimViaUpdaterGateway')
+        ->and($service)->not->toContain('updater_gateway.claim_dispatch');
 });
