@@ -28,8 +28,8 @@ final class GowaUpdateClaimService
      */
     public function requestRootClaim(GowaUpdateOperation $operation, string $owner = 'gowa-maintenance'): array
     {
-        if (DB::connection()->getDriverName() === 'pgsql' && ! app()->environment('testing')) {
-            return $this->claimViaUpdaterGateway($operation, $owner);
+        if (! app()->environment('testing')) {
+            throw new RuntimeException('privileged_runner_unavailable');
         }
 
         return DB::transaction(function () use ($operation, $owner): array {
@@ -56,27 +56,5 @@ final class GowaUpdateClaimService
 
             return ['operation_id' => (string) $locked->id, 'replayed' => false];
         });
-    }
-
-    /** @return array<string, scalar|null> */
-    private function claimViaUpdaterGateway(GowaUpdateOperation $operation, string $owner): array
-    {
-        try {
-            $result = DB::selectOne(
-                'select updater_gateway.claim_dispatch(?::uuid, ?::text) as result',
-                [(string) $operation->id, $owner],
-            );
-        } catch (\Throwable $exception) {
-            $message = $exception->getMessage();
-            $code = str_contains($message, 'claim_payload_mismatch') ? 'claim_payload_mismatch' : 'claim_rejected';
-            throw new RuntimeException($code, 0, $exception);
-        }
-
-        $decoded = json_decode((string) ($result->result ?? ''), true);
-        if (! is_array($decoded) || ! is_array($decoded['payload'] ?? null)) {
-            throw new RuntimeException('claim_rejected');
-        }
-
-        return array_merge($decoded['payload'], ['replayed' => (bool) ($decoded['replayed'] ?? false)]);
     }
 }
