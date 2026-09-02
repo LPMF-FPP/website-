@@ -21,10 +21,12 @@ ssh_port="${DEPLOY_SSH_PORT:-22}"
 known_hosts_file="${DEPLOY_KNOWN_HOSTS_FILE:-$HOME/.ssh/known_hosts}"
 identity_file="${DEPLOY_SSH_IDENTITY_FILE:-$HOME/.ssh/id_ed25519_lpmf_production}"
 expected_host_key_fingerprint="${DEPLOY_HOST_KEY_FINGERPRINT:?Set DEPLOY_HOST_KEY_FINGERPRINT to a verified SHA256 host-key fingerprint}"
+ssh_keyscan_timeout="${DEPLOY_SSH_KEYSCAN_TIMEOUT:-5}"
 expected_deploy_path="${DEPLOY_EXPECTED_PATH:-/var/www/lis}"
 maintenance_mode=0
 tmp_dir=""
 pinned_known_hosts_file=""
+scanned_host_keys_file=""
 ssh_command=()
 
 cleanup() {
@@ -38,6 +40,10 @@ cleanup() {
 
     if [[ -n "$pinned_known_hosts_file" ]]; then
         rm -f -- "$pinned_known_hosts_file"
+    fi
+
+    if [[ -n "$scanned_host_keys_file" ]]; then
+        rm -f -- "$scanned_host_keys_file"
     fi
 }
 trap cleanup EXIT
@@ -77,6 +83,11 @@ if [[ ! "$expected_host_key_fingerprint" =~ ^SHA256:[A-Za-z0-9+/=]+$ ]]; then
     exit 1
 fi
 
+if [[ ! "$ssh_keyscan_timeout" =~ ^[0-9]+$ ]] || (( ssh_keyscan_timeout < 1 || ssh_keyscan_timeout > 60 )); then
+    printf 'Invalid DEPLOY_SSH_KEYSCAN_TIMEOUT: %s\n' "$ssh_keyscan_timeout" >&2
+    exit 1
+fi
+
 if [[ ! -r "$known_hosts_file" ]]; then
     printf 'Trusted known_hosts file is not readable: %s\n' "$known_hosts_file" >&2
     exit 1
@@ -106,8 +117,29 @@ while IFS= read -r candidate_key; do
 done < <(ssh-keygen -F "$known_host" -f "$known_hosts_file" 2>/dev/null)
 
 if [[ ! -s "$pinned_known_hosts_file" ]]; then
-    printf 'Trusted host-key entry does not match DEPLOY_HOST_KEY_FINGERPRINT.\n' >&2
-    exit 1
+    scanned_host_keys_file="$(mktemp)"
+    if ! ssh-keyscan -T "$ssh_keyscan_timeout" -p "$ssh_port" "$host_name" > "$scanned_host_keys_file" 2>/dev/null; then
+        printf 'Unable to scan SSH host keys for %s.\n' "$host_name" >&2
+        exit 1
+    fi
+
+    while IFS= read -r candidate_key; do
+        if [[ -z "$candidate_key" || "$candidate_key" == \#* ]]; then
+            continue
+        fi
+
+        candidate_fingerprint="$(printf '%s\n' "$candidate_key" | ssh-keygen -lf - 2>/dev/null | awk '{print $2}')"
+        if [[ "$candidate_fingerprint" == "$expected_host_key_fingerprint" ]]; then
+            printf '%s %s\n' "$known_host" "${candidate_key#* }" >> "$pinned_known_hosts_file"
+        fi
+    done < "$scanned_host_keys_file"
+
+    if [[ ! -s "$pinned_known_hosts_file" ]]; then
+        printf 'Scanned host key does not match DEPLOY_HOST_KEY_FINGERPRINT.\n' >&2
+        exit 1
+    fi
+
+    printf 'Verified the SSH host key for %s by pinned SHA256 fingerprint.\n' "$host_name"
 fi
 chmod 600 "$pinned_known_hosts_file"
 

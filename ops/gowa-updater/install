@@ -10,35 +10,50 @@ authority="${GOWA_UPDATER_AUTHORITY_SOURCE:-${script_dir}/authority.example.json
 preflight_gate="${GOWA_UPDATER_PREFLIGHT_SOURCE:-${script_dir}/preflight.pass.example}"
 catalog_public_key="${GOWA_UPDATER_CATALOG_PUBLIC_KEY_SOURCE:-${script_dir}/fixtures/staging/catalog.pub}"
 evidence_public_key="${GOWA_UPDATER_EVIDENCE_PUBLIC_KEY_SOURCE:-${script_dir}/fixtures/staging/catalog.pub}"
+override_source="${GOWA_UPDATER_OVERRIDE_SOURCE:-}"
 worker_service="${script_dir}/lpmf-gowa-maintenance.service"
 update_service="${script_dir}/lpmf-gowa-update@.service"
 sudoers="${script_dir}/sudoers.example"
 submit_helper_source="${script_dir}/lpmf-gowa-submit"
 runner_source="${script_dir}/lpmf-gowa-runner"
 gateway_sql_source="${script_dir}/gateway.sql"
+docker_bin="${GOWA_UPDATER_DOCKER_BIN:-/usr/bin/docker}"
 
 [[ -r "$catalog" && -r "$envelope" ]] || { printf '%s\n' 'catalog and envelope are required' >&2; exit 64; }
+[[ -n "${GOWA_UPDATER_ROLLBACK_SOURCE:-}" ]] || { printf '%s\n' 'An explicit current-production rollback manifest is required' >&2; exit 78; }
 command -v jq >/dev/null || { printf '%s\n' 'jq is required' >&2; exit 78; }
+if [[ "$override_source" == '' ]]; then
+    override_source="$(jq -r '.image_override // empty' "$envelope")"
+fi
+[[ "$override_source" == /* && -r "$override_source" && ! -L "$override_source" ]] || { printf '%s\n' 'root-owned compose override is required' >&2; exit 78; }
 for artifact in "$worker_service" "$update_service" "$sudoers" "$submit_helper_source" "$runner_source" "$gateway_sql_source" "$capability_manifest" "$rollback_manifest" "$authority" "$preflight_gate" "$catalog_public_key" "$evidence_public_key"; do
     [[ -r "$artifact" && ! -L "$artifact" ]] || { printf 'Missing updater artifact: %s\n' "$artifact" >&2; exit 78; }
 done
+override_stat="$(lstat -c '%u:%a' "$override_source")"
+[[ "$override_stat" == 0:* ]] || { printf '%s\n' 'compose override must be root-owned' >&2; exit 78; }
 [[ -x "$submit_helper_source" && -x "$runner_source" ]] || { printf '%s\n' 'Updater executables must be executable' >&2; exit 78; }
+[[ "$catalog_public_key" != "$evidence_public_key" ]] || { printf '%s\n' 'Catalog and evidence trust keys must be distinct' >&2; exit 78; }
 [[ "$(jq -r '.contract // empty' "$capability_manifest")" == 'reconcile-first-v1' ]] || exit 78
 [[ "$(jq -r '.production_ready // false' "$capability_manifest")" == 'false' || "${GOWA_UPDATER_PRODUCTION_READY:-0}" == 1 ]] || exit 78
 grep -Fqx 'User=lpmf-gowa-maintenance' "$worker_service" || exit 78
 grep -Fqx 'Group=lpmf-gowa-maintenance' "$worker_service" || exit 78
-grep -Fqx 'SupplementaryGroups=' "$worker_service" || exit 78
+grep -Fqx 'SupplementaryGroups=www-data' "$worker_service" || exit 78
 grep -Fqx 'ExecStart=/usr/bin/php /var/www/lis/artisan queue:work gowa-maintenance --queue=gowa-maintenance --tries=1 --timeout=900 --sleep=1 --no-interaction' "$worker_service" || exit 78
 grep -Fqx 'WorkingDirectory=/var/www/lis' "$worker_service" || exit 78
 grep -Fqx 'ConditionPathExists=/etc/lpmf/gowa-updater/enabled' "$update_service" || exit 78
 grep -Fqx 'ExecStart=/usr/local/libexec/lpmf-gowa-runner %i' "$update_service" || exit 78
+grep -Fqx 'SupplementaryGroups=lpmf-admin' "$update_service" || exit 78
 grep -Fqx 'NoNewPrivileges=yes' "$update_service" || exit 78
-grep -Fq '/var/run/docker.sock' "$update_service" && exit 78
+grep -Fq '/var/run/docker.sock' "$envelope" && exit 78
 grep -Fqx 'lpmf-gowa-maintenance ALL=(root) NOPASSWD: LPMF_GOWA_SUBMIT' "$sudoers" || exit 78
 grep -Fqx 'Defaults:lpmf-gowa-maintenance env_reset, !setenv, env_keep -= *' "$sudoers" || exit 78
 grep -Fq '/usr/local/sbin/lpmf-gowa-submit ' "$sudoers" || exit 78
 if jq -e '.. | strings | select(test("/var/run/docker.sock"))' "$envelope" >/dev/null; then
   printf '%s\n' 'raw Docker socket must be absent before enablement' >&2
+  exit 78
+fi
+if jq -e '.. | strings | select(test("REPLACE_WITH"))' "$override_source" >/dev/null; then
+  printf '%s\n' 'compose override contains placeholders' >&2
   exit 78
 fi
 if jq -e '.. | strings | select(test("REPLACE_WITH"))' "$catalog" >/dev/null || jq -e '.. | strings | select(test("REPLACE_WITH"))' "$envelope" >/dev/null || jq -e '.. | strings | select(test("REPLACE_WITH"))' "$capability_manifest" >/dev/null || jq -e '.. | strings | select(test("REPLACE_WITH"))' "$authority" >/dev/null; then
@@ -49,15 +64,46 @@ if [[ "${GOWA_UPDATER_INSTALL_ROOT:-0}" != 1 || "$(id -u)" != 0 ]]; then
   printf '%s\n' 'Validated only. Root-owned installation requires explicit local operator invocation.'
   exit 78
 fi
+[[ -x "$docker_bin" ]] || { printf '%s\n' 'Docker binary is required for production preflight' >&2; exit 78; }
+command -v setpriv >/dev/null || { printf '%s\n' 'setpriv is required for the capless runner preflight' >&2; exit 78; }
+getent group lpmf-admin >/dev/null || { printf '%s\n' 'GOWA Compose group lpmf-admin is missing' >&2; exit 78; }
+project="$(jq -e -r '.project' "$envelope")"
+service="$(jq -e -r '.service' "$envelope")"
+compose_file="$(jq -e -r '.compose_files | if length == 1 then .[0] else empty end' "$envelope")"
+override_file="$(jq -e -r '.image_override' "$envelope")"
+working_directory="$(jq -e -r '.working_directory' "$envelope")"
+compose_env_file="${GOWA_UPDATER_COMPOSE_ENV_FILE:-${working_directory}/src/.env}"
+if [[ -e "$compose_env_file" ]]; then
+    [[ -f "$compose_env_file" && ! -L "$compose_env_file" ]] || { printf '%s\n' 'Compose environment file must be a regular non-symlink file' >&2; exit 78; }
+    command -v setfacl >/dev/null || { printf '%s\n' 'setfacl is required to grant the capless runner read-only access' >&2; exit 78; }
+    setfacl -m u:root:r-- "$compose_env_file"
+    getfacl -cp "$compose_env_file" | grep -Eq '^user:root:r--$' || { printf '%s\n' 'Compose environment ACL was not applied' >&2; exit 78; }
+fi
+setpriv --reuid 0 --regid 0 --groups lpmf-admin --bounding-set=-all --inh-caps=-all --ambient-caps=-all --no-new-privs -- "$docker_bin" compose --project-name "$project" -f "$compose_file" -f "$override_file" config --format json >/dev/null || { printf '%s\n' 'Capless runner cannot read the approved Compose configuration or its environment files' >&2; exit 78; }
+resolved_config_hash="$(cd "$working_directory" && "$docker_bin" compose --project-name "$project" -f "$compose_file" -f "$override_file" config --format json | jq -S -c --arg service "$service" 'del(.services[$service].image)' | sha256sum | cut -d ' ' -f 1)" || exit 78
+fixed_config_hash="$(jq -e -r '.fixed_config_hash' "$rollback_manifest")" || exit 78
+[[ "$fixed_config_hash" =~ ^[a-f0-9]{64}$ && "$fixed_config_hash" != "$(printf '%064d' 0)" && "$fixed_config_hash" == "$resolved_config_hash" ]] || { printf '%s\n' 'Approved Compose configuration hash does not match the active manifest' >&2; exit 78; }
+runtime_ps="$(cd "$working_directory" && "$docker_bin" compose --project-name "$project" -f "$compose_file" -f "$override_file" ps --format json "$service")" || exit 78
+container_id="$(jq -e -r 'if type == "array" then .[0].ID // .[0].Id // empty else .ID // .Id // empty end' <<<"$runtime_ps")" || exit 78
+inspect_json="$("$docker_bin" inspect "$container_id")" || exit 78
+jq -e --arg project "$project" --arg service "$service" --argjson expected "$(jq -c '.mounts' "$rollback_manifest")" '.[0].Config.Labels["com.docker.compose.project"] == $project and .[0].Config.Labels["com.docker.compose.service"] == $service and .[0].HostConfig.NetworkMode == "host" and .[0].HostConfig.RestartPolicy.Name == "unless-stopped" and ((.[0].Mounts // []) | map(select(.Destination == "/var/run/docker.sock")) | length == 0) and ((.[0].Mounts // []) | map({Type,Source,Destination,RW}) | sort_by(.Destination) == ($expected | map({Type,Source,Destination,RW}) | sort_by(.Destination)))' <<<"$inspect_json" >/dev/null || { printf '%s\n' 'Active GOWA topology does not match the approved baseline' >&2; exit 78; }
 if command -v visudo >/dev/null; then
     visudo -cf "$sudoers" >/dev/null
 fi
 install_root="${GOWA_UPDATER_INSTALL_PATH:-/etc/lpmf/gowa-updater}"
 install -d -o root -g root -m 0750 "$install_root"
 install -o root -g root -m 0640 "$catalog" "${install_root}/catalog.json"
-install -o root -g root -m 0640 "$envelope" "${install_root}/compose-envelope.json"
-install -o root -g root -m 0640 "$capability_manifest" "${install_root}/capability.json"
-install -o root -g root -m 0640 "$rollback_manifest" "${install_root}/rollback-manifest.json"
+override_destination="${install_root}/compose-envelope-override.json"
+envelope_tmp="$(mktemp)"
+trap 'rm -f -- "$envelope_tmp"' EXIT
+jq --arg override "$override_destination" '.image_override = $override' "$envelope" > "$envelope_tmp"
+install -o root -g root -m 0640 "$envelope_tmp" "${install_root}/compose-envelope.json"
+install -o root -g root -m 0640 "$override_source" "$override_destination"
+install -o root -g www-data -m 0640 "$capability_manifest" "${install_root}/capability.json"
+rollback_tmp="$(mktemp)"
+trap 'rm -f -- "$envelope_tmp" "$rollback_tmp"' EXIT
+jq --arg override "$override_destination" '.image_override = $override' "$rollback_manifest" > "$rollback_tmp"
+install -o root -g root -m 0640 "$rollback_tmp" "${install_root}/rollback-manifest.json"
 install -o root -g root -m 0600 "$authority" "${install_root}/authority.json"
 install -o root -g root -m 0600 "$preflight_gate" "${install_root}/preflight.pass"
 install -o root -g root -m 0640 "$catalog_public_key" "${install_root}/catalog.pub"
@@ -69,7 +115,7 @@ gateway_submit_role="${GOWA_UPDATER_SUBMIT_ROLE:-lpmf_gowa_submit}"
 gateway_owner_role="${GOWA_UPDATER_OWNER_ROLE:-lpmf_gowa_updater_owner}"
 [[ "$gateway_app_role" =~ ^[A-Za-z_][A-Za-z0-9_]*$ && "$gateway_submit_role" =~ ^[A-Za-z_][A-Za-z0-9_]*$ && "$gateway_owner_role" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || { printf '%s\n' 'Invalid PostgreSQL role name' >&2; exit 78; }
 runuser -u postgres -- psql --no-password --no-psqlrc --quiet --dbname "$gateway_database" -v ON_ERROR_STOP=1 -f "${install_root}/gateway.sql"
-runuser -u postgres -- psql --no-password --no-psqlrc --quiet --dbname "$gateway_database" -v ON_ERROR_STOP=1 -c "ALTER SCHEMA updater_gateway OWNER TO ${gateway_owner_role}; ALTER TABLE updater_gateway.dispatch_claims OWNER TO ${gateway_owner_role}; ALTER FUNCTION updater_gateway.claim_dispatch(uuid, text) OWNER TO ${gateway_owner_role}; ALTER FUNCTION updater_gateway.consume_dispatch(uuid, uuid, bigint, text, text) OWNER TO ${gateway_owner_role}; ALTER FUNCTION updater_gateway.assert_installation(name, name, name) OWNER TO ${gateway_owner_role}; GRANT USAGE ON SCHEMA updater_gateway TO ${gateway_submit_role}; REVOKE ALL ON FUNCTION updater_gateway.claim_dispatch(uuid, text) FROM ${gateway_app_role}; GRANT EXECUTE ON FUNCTION updater_gateway.consume_dispatch(uuid, uuid, bigint, text, text) TO ${gateway_submit_role}; REVOKE ALL ON FUNCTION updater_gateway.consume_dispatch(uuid, uuid, bigint, text, text) FROM ${gateway_app_role};"
+runuser -u postgres -- psql --no-password --no-psqlrc --quiet --dbname "$gateway_database" -v ON_ERROR_STOP=1 -c "ALTER SCHEMA updater_gateway OWNER TO ${gateway_owner_role}; ALTER TABLE updater_gateway.dispatch_claims OWNER TO ${gateway_owner_role}; ALTER FUNCTION updater_gateway.claim_dispatch(uuid, text) OWNER TO ${gateway_owner_role}; ALTER FUNCTION updater_gateway.consume_dispatch(uuid, uuid, bigint, text, text) OWNER TO ${gateway_owner_role}; ALTER FUNCTION updater_gateway.assert_installation(name, name, name) OWNER TO ${gateway_owner_role}; GRANT SELECT, UPDATE ON public.gowa_update_operations, public.gowa_update_scopes TO ${gateway_owner_role}; GRANT USAGE ON SCHEMA updater_gateway TO ${gateway_submit_role}; REVOKE ALL ON FUNCTION updater_gateway.claim_dispatch(uuid, text) FROM ${gateway_app_role}; GRANT EXECUTE ON FUNCTION updater_gateway.consume_dispatch(uuid, uuid, bigint, text, text) TO ${gateway_submit_role}; REVOKE ALL ON FUNCTION updater_gateway.consume_dispatch(uuid, uuid, bigint, text, text) FROM ${gateway_app_role};"
 runuser -u postgres -- psql --no-password --no-psqlrc --quiet --dbname "$gateway_database" -v ON_ERROR_STOP=1 -c "SELECT updater_gateway.assert_installation('${gateway_submit_role}', '${gateway_owner_role}', '${gateway_app_role}')"
 install -d -o root -g root -m 0755 /usr/local/sbin /usr/local/libexec
 install -o root -g root -m 0755 "$submit_helper_source" /usr/local/sbin/lpmf-gowa-submit
@@ -83,9 +129,10 @@ install -o root -g root -m 0440 "$sudoers" "${sudoers_root}/lpmf-gowa-updater"
 if command -v systemd-analyze >/dev/null; then
     systemd-analyze verify "${systemd_root}/lpmf-gowa-maintenance.service" "${systemd_root}/lpmf-gowa-update@.service" >/dev/null
 fi
-for installed in "${install_root}/catalog.json" "${install_root}/compose-envelope.json" "${install_root}/capability.json" "${install_root}/rollback-manifest.json" "${install_root}/authority.json" "${install_root}/preflight.pass" "${install_root}/catalog.pub" "${install_root}/evidence.pub" "${install_root}/gateway.sql" "${systemd_root}/lpmf-gowa-maintenance.service" "${systemd_root}/lpmf-gowa-update@.service" "${sudoers_root}/lpmf-gowa-updater"; do
+for installed in "${install_root}/catalog.json" "${install_root}/compose-envelope.json" "${install_root}/compose-envelope-override.json" "${install_root}/rollback-manifest.json" "${install_root}/authority.json" "${install_root}/preflight.pass" "${install_root}/catalog.pub" "${install_root}/evidence.pub" "${install_root}/gateway.sql" "${systemd_root}/lpmf-gowa-maintenance.service" "${systemd_root}/lpmf-gowa-update@.service" "${sudoers_root}/lpmf-gowa-updater"; do
     [[ "$(stat -c '%U:%G:%a' "$installed")" == root:root:* ]] || { printf 'Unsafe ownership or mode: %s\n' "$installed" >&2; exit 78; }
 done
+[[ "$(stat -c '%U:%G:%a' "${install_root}/capability.json")" == root:www-data:640 ]] || { printf '%s\n' 'Unsafe ownership or mode: capability.json' >&2; exit 78; }
 [[ "$(stat -c '%a' "$sudoers_root/lpmf-gowa-updater")" == 440 ]] || exit 78
 id -u lpmf-gowa-maintenance >/dev/null 2>&1 || { printf '%s\n' 'Dedicated worker user is missing' >&2; exit 78; }
 getent group lpmf-gowa-maintenance >/dev/null || { printf '%s\n' 'Dedicated worker group is missing' >&2; exit 78; }

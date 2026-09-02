@@ -8,7 +8,10 @@ use RuntimeException;
 
 final class GowaEvidenceImporter
 {
-    public function __construct(private readonly string $publicKeyPath = '') {}
+    public function __construct(
+        private readonly string $publicKeyPath = '',
+        private readonly bool $requireRootOwnedKey = true,
+    ) {}
 
     /** @return array<string, mixed> */
     public function decode(string $path): array
@@ -23,7 +26,24 @@ final class GowaEvidenceImporter
         }
 
         try {
-            $document = json_decode((string) file_get_contents($path), true, 32, JSON_THROW_ON_ERROR);
+            $handle = fopen($path, 'rb');
+            if ($handle === false) {
+                throw new RuntimeException('evidence_unavailable');
+            }
+            $openedStat = fstat($handle);
+            if (! is_array($openedStat)
+                || ($openedStat['dev'] ?? null) !== ($stat['dev'] ?? null)
+                || ($openedStat['ino'] ?? null) !== ($stat['ino'] ?? null)
+                || ($openedStat['size'] ?? PHP_INT_MAX) > 1_048_576) {
+                fclose($handle);
+                throw new RuntimeException('evidence_rejected');
+            }
+            $contents = stream_get_contents($handle, 1_048_577);
+            fclose($handle);
+            if ($contents === false || strlen($contents) > 1_048_576) {
+                throw new RuntimeException('evidence_rejected');
+            }
+            $document = json_decode($contents, true, 32, JSON_THROW_ON_ERROR);
         } catch (\JsonException) {
             throw new RuntimeException('evidence_rejected');
         }
@@ -40,6 +60,12 @@ final class GowaEvidenceImporter
         $canonical = $this->canonicalJson($payload);
         $publicKeyPath = $this->publicKeyPath ?: (string) config('gowa-updater.evidence_public_key_path', '');
         if ($publicKeyPath === '' || ! is_readable($publicKeyPath) || is_link($publicKeyPath)) {
+            throw new RuntimeException('evidence_key_unavailable');
+        }
+        $keyStat = lstat($publicKeyPath);
+        if (! is_array($keyStat)
+            || (($keyStat['mode'] ?? 0) & 0o022) !== 0
+            || ($this->requireRootOwnedKey && ($keyStat['uid'] ?? -1) !== 0)) {
             throw new RuntimeException('evidence_key_unavailable');
         }
 

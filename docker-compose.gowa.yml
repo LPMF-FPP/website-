@@ -1,11 +1,12 @@
-# GOWA v9.0.0 — WhatsApp API Service
+# GOWA v9.2.2 - WhatsApp API Service
 # Deploy: docker compose -f docker-compose.gowa.yml up -d
 # Image : aldinokemal2104/go-whatsapp-web-multidevice (Docker Hub)
 #        : ghcr.io/aldinokemal/go-whatsapp-web-multidevice (GHCR)
 
 services:
   gowa:
-    image: aldinokemal2104/go-whatsapp-web-multidevice:latest
+    # Pin the audited release; set GOWA_IMAGE_TAG to intentionally override it.
+    image: aldinokemal2104/go-whatsapp-web-multidevice:${GOWA_IMAGE_TAG:-v9.2.2}
     container_name: gowa-whatsapp
     restart: always
     ports:
@@ -14,10 +15,12 @@ services:
       - gowa-storages:/app/storages
       - gowa-statics:/app/statics
     environment:
-      - APP_BASIC_AUTH=${GOWA_BASIC_AUTH:-admin:admin}
+      - APP_BASIC_AUTH=${GOWA_BASIC_AUTH:?Set GOWA_BASIC_AUTH before deploying GOWA}
       - APP_PORT=3000
       - APP_DEBUG=false
       - APP_UI_ENABLED=false
+      # GOWA v9.1 serves MCP from REST by default; preserve the previous API-only surface.
+      - MCP_ENABLED=false
       - APP_OS=Chrome
       - APP_BASE_PATH=
       - APP_TRUSTED_PROXIES=127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16

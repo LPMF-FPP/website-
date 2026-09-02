@@ -142,7 +142,7 @@ it('fails closed when the privileged runner gate is not enabled', function (): v
         ->and($runner->dispatch(['operation_id' => '00000000-0000-4000-8000-000000000000']))->toBeFalse();
 });
 
-it('activates the systemd runner with temporary verified capabilities and a fake sudo helper', function (): void {
+it('activates the systemd runner with a hash-pinned capability manifest and fake sudo helper', function (): void {
     $root = sys_get_temp_dir().'/gowa-runner-'.bin2hex(random_bytes(5));
     mkdir($root, 0700, true);
     $runnerPath = $root.'/runner';
@@ -195,4 +195,44 @@ it('marks missing or stale runtime evidence as not fresh', function (): void {
 
     expect($probe->current())->toBe([])
         ->and($probe->isFresh([]))->toBeFalse();
+});
+
+it('accepts only signed runtime evidence with a non-future observation time', function (): void {
+    $keyPair = sodium_crypto_sign_keypair();
+    $publicKeyPath = tempnam(sys_get_temp_dir(), 'gowa-runtime-key-');
+    $runtimePath = tempnam(sys_get_temp_dir(), 'gowa-runtime-');
+    chmod($publicKeyPath, 0600);
+    file_put_contents($publicKeyPath, base64_encode(sodium_crypto_sign_publickey($keyPair)));
+    $payload = [
+        'observed_at' => now()->toIso8601String(),
+        'container_identity' => 'container-runtime',
+        'digest' => 'sha256:'.str_repeat('a', 64),
+        'health' => true,
+    ];
+    $sort = function (array $value) use (&$sort): array {
+        foreach ($value as $key => $item) {
+            if (is_array($item)) {
+                $value[$key] = $sort($item);
+            }
+        }
+        if (! array_is_list($value)) {
+            ksort($value);
+        }
+
+        return $value;
+    };
+    $signature = base64_encode(sodium_crypto_sign_detached(
+        json_encode($sort($payload), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES),
+        sodium_crypto_sign_secretkey($keyPair),
+    ));
+    file_put_contents($runtimePath, json_encode(['schema_version' => 1, 'payload' => $payload, 'signature' => $signature], JSON_THROW_ON_ERROR));
+    chmod($runtimePath, 0600);
+
+    $probe = new FileGowaRuntimeProbe($runtimePath, $publicKeyPath, false);
+
+    expect($probe->current())->toMatchArray($payload)
+        ->and($probe->isFresh($probe->current()))->toBeTrue();
+
+    unlink($publicKeyPath);
+    unlink($runtimePath);
 });

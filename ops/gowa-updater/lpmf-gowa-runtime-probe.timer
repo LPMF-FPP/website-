@@ -1,0 +1,12 @@
+[Unit]
+Description=Refresh LPMF GOWA signed runtime evidence
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=30s
+AccuracySec=5s
+Persistent=true
+Unit=lpmf-gowa-runtime-probe.service
+
+[Install]
+WantedBy=timers.target

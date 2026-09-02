@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PATH='/usr/bin:/bin:/usr/local/bin'
+export PATH
+
+container="${GOWA_UPDATER_CONTAINER:-go-whatsapp-web-multidevice-whatsapp_go-1}"
+destination="${GOWA_UPDATER_RUNTIME_EVIDENCE:-/var/lib/lpmf/gowa-updater/runtime.json}"
+signing_key="${GOWA_UPDATER_EVIDENCE_SIGNING_KEY:-/etc/lpmf/gowa-updater/evidence.key}"
+health_url="${GOWA_UPDATER_HEALTH_URL:-http://127.0.0.1:3000/health}"
+
+for binary in docker jq openssl curl; do
+  command -v "$binary" >/dev/null || exit 78
+done
+[[ -r "$signing_key" && ! -L "$signing_key" ]] || exit 78
+
+inspect="$(docker inspect "$container")" || exit 78
+jq -e 'type == "array" and length == 1 and .[0].State.Running == true' <<<"$inspect" >/dev/null || exit 78
+jq -e '.[0].Mounts | map(select(.Destination == "/var/run/docker.sock")) | length == 0' <<<"$inspect" >/dev/null || exit 78
+curl --silent --show-error --fail --max-time 10 "$health_url" >/dev/null || exit 75
+
+identity="$(jq -e -r '.[0].Id + ":" + .[0].Image' <<<"$inspect")"
+digest="$(jq -e -r '.[0].Image' <<<"$inspect")"
+version="$(jq -e -r '.[0].Config.Image' <<<"$inspect")"
+payload="$(jq -S -cn --arg observed_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg identity "$identity" --arg digest "$digest" --arg version "$version" '{observed_at:$observed_at,container_identity:$identity,digest:$digest,health:true,version:$version}')"
+
+payload_file="$(mktemp)"
+signature_file="$(mktemp)"
+trap 'rm -f -- "$payload_file" "$signature_file"' EXIT
+printf '%s' "$payload" > "$payload_file"
+openssl pkeyutl -sign -rawin -inkey "$signing_key" -in "$payload_file" -out "$signature_file" >/dev/null 2>&1 || exit 78
+signature="$(base64 -w0 "$signature_file")"
+document="$(jq -cn --argjson payload "$payload" --arg signature "$signature" '{schema_version:1,payload:$payload,signature:$signature}')"
+
+install -d -o root -g root -m 0755 "$(dirname "$destination")"
+temporary="${destination}.tmp.$$"
+umask 022
+printf '%s\n' "$document" > "$temporary"
+chmod 0644 "$temporary"
+chown root:root "$temporary"
+mv -f -- "$temporary" "$destination"

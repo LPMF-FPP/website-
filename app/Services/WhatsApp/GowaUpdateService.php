@@ -45,7 +45,10 @@ final class GowaUpdateService
         }
 
         try {
-            $latestOperation = GowaUpdateOperation::query()->latest('created_at')->first()?->safeProjection();
+            $latestOperation = GowaUpdateOperation::query()
+                ->where('scope', GowaUpdateOperation::SCOPE)
+                ->latest('created_at')
+                ->first()?->safeProjection();
         } catch (\Throwable) {
             $latestOperation = null;
         }
@@ -53,7 +56,9 @@ final class GowaUpdateService
         $latestProjection = null;
         if (is_array($latestOperation) && is_string($latestOperation['id'] ?? null)) {
             try {
-                $operation = GowaUpdateOperation::query()->find($latestOperation['id']);
+                $operation = GowaUpdateOperation::query()
+                    ->where('scope', GowaUpdateOperation::SCOPE)
+                    ->find($latestOperation['id']);
                 $latestProjection = $operation === null ? null : $this->operationProjection($operation);
             } catch (\Throwable) {
                 $latestProjection = null;
@@ -294,7 +299,12 @@ final class GowaUpdateService
 
         DB::transaction(function () use ($evidence): void {
             $operation = GowaUpdateOperation::query()->lockForUpdate()->find($evidence['operation_id'] ?? null);
-            if ($operation === null || $operation->isTerminal() || $operation->fencing_token !== $evidence['fencing_token']) {
+            $scope = $operation === null ? null : GowaUpdateScope::query()->lockForUpdate()->find($operation->scope);
+            if ($operation === null
+                || $scope === null
+                || $scope->active_operation_id !== $operation->id
+                || $operation->isTerminal()
+                || $operation->fencing_token !== $evidence['fencing_token']) {
                 throw new RuntimeException('evidence_rejected');
             }
 
@@ -353,7 +363,12 @@ final class GowaUpdateService
 
         return DB::transaction(function () use ($attestation): GowaUpdateAttestation {
             $operation = GowaUpdateOperation::query()->lockForUpdate()->find($attestation['operation_id'] ?? null);
-            if ($operation === null || $operation->isTerminal() || $operation->fencing_token !== (int) ($attestation['fencing_token'] ?? 0)) {
+            $scope = $operation === null ? null : GowaUpdateScope::query()->lockForUpdate()->find($operation->scope);
+            if ($operation === null
+                || $scope === null
+                || $scope->active_operation_id !== $operation->id
+                || $operation->isTerminal()
+                || $operation->fencing_token !== (int) ($attestation['fencing_token'] ?? 0)) {
                 throw new RuntimeException('attestation_rejected');
             }
 
@@ -563,9 +578,15 @@ final class GowaUpdateService
             $runtime = $attestations->firstWhere('plane', 'runtime');
 
             return ($proof['quiescent'] ?? false) === true
+                && ($proof['systemd'] ?? false) === true
+                && ($proof['lock'] ?? false) === true
+                && ($proof['request'] ?? false) === true
+                && ($proof['evidence'] ?? false) === true
                 && $this->hasFreshMatchingAttestations($operation, false)
                 && $root !== null && $runtime !== null
-                && ($outcome === 'succeeded' ? $root->passed && $runtime->passed : ! $root->passed && ! $runtime->passed);
+                && ($outcome === 'succeeded' || $outcome === 'rolled_back'
+                    ? $root->passed && $runtime->passed
+                    : ! $root->passed && ! $runtime->passed);
         } catch (\Throwable) {
             return false;
         }

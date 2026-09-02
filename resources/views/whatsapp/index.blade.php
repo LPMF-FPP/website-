@@ -217,6 +217,9 @@
                 gowaUpdateSubmitting: false,
                 gowaUpdateConfirmed: false,
                 gowaUpdateMessage: '',
+                gowaUpdateChecking: false,
+                gowaUpdateCheck: null,
+                gowaUpdateCheckError: '',
                 gowaOperationPolling: null,
                 gowaOperationPollAttempts: 0,
                 tasksData: { tasks: { data: [] }, stats: {}, users: [] },
@@ -349,6 +352,28 @@
                         verifying: 'Memverifikasi hasil', reconciling: 'Merekonsiliasi status', succeeded: 'Berhasil',
                         failed: 'Gagal sebelum penggantian', rolled_back: 'Dikembalikan ke versi sebelumnya', degraded: 'Memerlukan penanganan operator',
                     }[status] || 'Status tidak diketahui';
+                },
+
+                async checkGowaUpdate() {
+                    if (this.gowaUpdateChecking) return;
+                    this.gowaUpdateChecking = true;
+                    this.gowaUpdateCheck = null;
+                    this.gowaUpdateCheckError = '';
+                    try {
+                        const response = await fetch('{{ route("whatsapp.updates.check") }}', {
+                            headers: { Accept: 'application/json' },
+                        });
+                        const payload = await response.json();
+                        if (!response.ok) throw new Error(payload.message || 'Pemeriksaan pembaruan gagal.');
+                        this.gowaUpdateCheck = payload.data;
+                        if (payload.data?.can_update && payload.data?.approved_release_id) {
+                            this.selectedGowaRelease = payload.data.approved_release_id;
+                        }
+                    } catch (error) {
+                        this.gowaUpdateCheckError = error.message || 'Pemeriksaan pembaruan gagal.';
+                    } finally {
+                        this.gowaUpdateChecking = false;
+                    }
                 },
 
                 async requestGowaUpdate() {

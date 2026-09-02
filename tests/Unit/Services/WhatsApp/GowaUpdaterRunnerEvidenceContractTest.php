@@ -22,6 +22,7 @@ function gowaRunnerFixture(string $dockerMode = 'forward-success'): array
         'signingKey' => $root.'/evidence.key',
         'publicKey' => $root.'/evidence.pub',
         'docker' => $root.'/docker',
+        'dockerState' => $root.'/docker-state',
         'psql' => $root.'/psql',
         'lock' => $root.'/update.lock',
     ];
@@ -53,6 +54,7 @@ function gowaRunnerFixture(string $dockerMode = 'forward-success'): array
     $public = sodium_crypto_sign_publickey($keyPair);
     file_put_contents($paths['signingKey'], "-----BEGIN PRIVATE KEY-----\n".chunk_split(base64_encode("\x30\x2e\x02\x01\x00\x30\x05\x06\x03\x2b\x65\x70\x04\x22\x04\x20".$seed), 64, "\n")."-----END PRIVATE KEY-----\n");
     file_put_contents($paths['publicKey'], base64_encode($public));
+    chmod($paths['publicKey'], 0600);
     chmod($paths['signingKey'], 0600);
 
     file_put_contents($paths['manifest'], json_encode([
@@ -61,10 +63,15 @@ function gowaRunnerFixture(string $dockerMode = 'forward-success'): array
         'production_ready' => true,
         'capability_version' => '1',
     ], JSON_THROW_ON_ERROR));
-    file_put_contents($paths['catalog'], json_encode([
+    $catalog = [
         'schema_version' => 1,
         'signature_valid' => true,
         'generation' => 'generation-1',
+        'revocation_generation' => 'revocation-1',
+        'approved_registry' => 'registry.example.test',
+        'approved_repository' => 'registry.example.test/gowa',
+        'platform' => 'linux/amd64',
+        'signature' => ['algorithm' => 'ed25519', 'key_id' => 'catalog-test-key', 'value' => ''],
         'releases' => [[
             'release_id' => 'release-current',
             'approved' => true,
@@ -73,7 +80,29 @@ function gowaRunnerFixture(string $dockerMode = 'forward-success'): array
             'image' => $image,
             'revocation_generation' => 'revocation-1',
         ]],
-    ], JSON_THROW_ON_ERROR));
+    ];
+    $catalogKeyPair = sodium_crypto_sign_keypair();
+    $catalogPayload = $catalog;
+    unset($catalogPayload['signature'], $catalogPayload['signature_valid']);
+    $catalogSort = function (array $value) use (&$catalogSort): array {
+        foreach ($value as $key => $item) {
+            if (is_array($item)) {
+                $value[$key] = $catalogSort($item);
+            }
+        }
+        if (! array_is_list($value)) {
+            ksort($value);
+        }
+
+        return $value;
+    };
+    $catalog['signature']['value'] = base64_encode(sodium_crypto_sign_detached(
+        json_encode($catalogSort($catalogPayload), JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES),
+        sodium_crypto_sign_secretkey($catalogKeyPair),
+    ));
+    file_put_contents($paths['catalog'], json_encode($catalog, JSON_THROW_ON_ERROR));
+    file_put_contents($paths['root'].'/catalog.pub', base64_encode(sodium_crypto_sign_publickey($catalogKeyPair)));
+    chmod($paths['root'].'/catalog.pub', 0600);
     file_put_contents($paths['envelope'], json_encode([
         'project' => 'go-whatsapp-web-multidevice',
         'service' => 'whatsapp_go',
@@ -86,6 +115,7 @@ function gowaRunnerFixture(string $dockerMode = 'forward-success'): array
     ], JSON_THROW_ON_ERROR));
     file_put_contents($paths['composeFile'], "services:\n  whatsapp_go:\n    image: placeholder\n");
     file_put_contents($paths['overrideFile'], json_encode(['services' => ['whatsapp_go' => ['image' => $image]]], JSON_THROW_ON_ERROR));
+    file_put_contents($paths['dockerState'], 'previous');
     file_put_contents($paths['authority'], json_encode([
         'operation_id' => $operationId,
         'fence' => 1,
@@ -102,6 +132,7 @@ function gowaRunnerFixture(string $dockerMode = 'forward-success'): array
         'network_mode' => 'host',
         'restart_policy' => 'unless-stopped',
         'mounts' => [],
+        'fixed_config_hash' => 'd2c28428f03bb3573f2e617cd97b373544352eff796e585f9e0896c5b0c90e57',
     ], JSON_THROW_ON_ERROR));
     file_put_contents($paths['gate'], "pass\n");
     file_put_contents($paths['enabledMarker'], "enabled\n");
@@ -110,6 +141,7 @@ function gowaRunnerFixture(string $dockerMode = 'forward-success'): array
 #!/usr/bin/env bash
 set -euo pipefail
 mode="${FAKE_DOCKER_MODE}"
+state_file="${FAKE_DOCKER_STATE:?}"
 joined=" $* "
 if [[ "$1" == "compose" && "$joined" == *" config --format json "* ]]; then
   image="registry.example.test/gowa@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
@@ -125,7 +157,9 @@ if [[ "$1" == "compose" && "$joined" == *" pull whatsapp_go "* ]]; then
   else
     [[ "$mode" == "forward-success" ]]
   fi
-  exit $?
+  status=$?
+  [[ "$status" -eq 0 && "$joined" != *"rollback-compose.json"* ]] && printf '%s' target > "$state_file"
+  exit "$status"
 fi
 if [[ "$1" == "compose" && "$joined" == *" up --no-deps --wait whatsapp_go "* ]]; then
   if [[ "$joined" == *"rollback-compose.json"* ]]; then
@@ -133,15 +167,22 @@ if [[ "$1" == "compose" && "$joined" == *" up --no-deps --wait whatsapp_go "* ]]
   else
     [[ "$mode" == "forward-success" ]]
   fi
-  exit $?
+  status=$?
+  [[ "$status" -eq 0 && "$joined" == *"rollback-compose.json"* ]] && printf '%s' rollback > "$state_file"
+  exit "$status"
 fi
 if [[ "$1" == "compose" && "$joined" == *" ps --format json whatsapp_go "* ]]; then
   if [[ "$joined" == *"rollback-compose.json"* ]]; then
     [[ "$mode" != "rollback-fail" ]] || exit 1
     printf '%s\n' '[{"ID":"bbbbbbbbbbbb"}]'
   else
-    [[ "$mode" == "forward-success" ]] || exit 1
-    printf '%s\n' '[{"ID":"aaaaaaaaaaaa"}]'
+    state="$(<"$state_file")"
+    if [[ "$state" == target ]]; then
+      [[ "$mode" == "forward-success" ]] || exit 1
+      printf '%s\n' '[{"ID":"aaaaaaaaaaaa"}]'
+    else
+      printf '%s\n' '[{"ID":"bbbbbbbbbbbb"}]'
+    fi
   fi
   exit 0
 fi
@@ -183,6 +224,7 @@ function runGowaRunner(array $fixture): array
         'GOWA_UPDATER_NO_SOCKET_GATE' => '1',
         'GOWA_UPDATER_CAPABILITY_MANIFEST' => $fixture['manifest'],
         'GOWA_UPDATER_CATALOG' => $fixture['catalog'],
+        'GOWA_UPDATER_CATALOG_PUBLIC_KEY' => $fixture['root'].'/catalog.pub',
         'GOWA_UPDATER_ENVELOPE' => $fixture['envelope'],
         'GOWA_UPDATER_REQUEST_ROOT' => $fixture['requestRoot'],
         'GOWA_UPDATER_EVIDENCE_ROOT' => $fixture['evidenceRoot'],
@@ -195,6 +237,7 @@ function runGowaRunner(array $fixture): array
         'GOWA_UPDATER_DOCKER_BIN' => $fixture['docker'],
         'GOWA_UPDATER_PSQL_BIN' => $fixture['psql'],
         'FAKE_DOCKER_MODE' => $fixture['dockerMode'],
+        'FAKE_DOCKER_STATE' => $fixture['dockerState'],
     ];
     $command = implode(' ', array_map(static fn (string $key, string $value): string => $key.'='.escapeshellarg($value), array_keys($env), $env));
     $status = 0;
@@ -215,7 +258,7 @@ it('produces runner evidence that the Laravel importer accepts', function (): vo
         $result = runGowaRunner($fixture);
         expect($result['status'])->toBe(0)->and($result['evidence'])->toHaveCount(3);
 
-        $payloads = array_map(fn (string $path): array => (new GowaEvidenceImporter($fixture['publicKey']))->decode($path), $result['evidence']);
+        $payloads = array_map(fn (string $path): array => (new GowaEvidenceImporter($fixture['publicKey'], false))->decode($path), $result['evidence']);
         expect(array_column($payloads, 'sequence'))->toBe([1, 2, 3])
             ->and(array_column($payloads, 'code'))->toBe(['mutation_prepared', 'mutation_started', 'mutation_observed'])
             ->and($payloads[2])->toMatchArray([
@@ -225,6 +268,9 @@ it('produces runner evidence that the Laravel importer accepts', function (): vo
                 'plane' => 'root',
                 'code' => 'mutation_observed',
             ]);
+        $rotatedManifest = json_decode(file_get_contents($fixture['rollbackManifest']), true, 32, JSON_THROW_ON_ERROR);
+        expect($rotatedManifest['previous_image'])->toBe($fixture['image'])
+            ->and($rotatedManifest['fixed_config_hash'])->toBe('d2c28428f03bb3573f2e617cd97b373544352eff796e585f9e0896c5b0c90e57');
     } finally {
         removeGowaRunnerFixture($fixture);
     }
@@ -257,6 +303,38 @@ it('reports degraded rollback when the previous release cannot be verified', fun
             'code' => 'rollback_degraded',
             'container_identity' => 'unknown',
         ]);
+    } finally {
+        removeGowaRunnerFixture($fixture);
+    }
+});
+
+it('rejects a rollback manifest that does not match the current runtime', function (): void {
+    $fixture = gowaRunnerFixture();
+
+    try {
+        $manifest = json_decode(file_get_contents($fixture['rollbackManifest']), true, 32, JSON_THROW_ON_ERROR);
+        $manifest['previous_image'] = 'registry.example.test/gowa@sha256:'.str_repeat('d', 64);
+        file_put_contents($fixture['rollbackManifest'], json_encode($manifest, JSON_THROW_ON_ERROR));
+
+        expect(runGowaRunner($fixture)['status'])->toBe(78)
+            ->and(glob($fixture['evidenceRoot'].'/'.$fixture['operationId'].'/*/*.json') ?: [])->toBe([])
+            ->and(is_file($fixture['requestRoot'].'/'.$fixture['operationId'].'/request.consumed'))->toBeFalse();
+    } finally {
+        removeGowaRunnerFixture($fixture);
+    }
+});
+
+it('rejects a rollback manifest when the resolved fixed configuration hash drifts', function (): void {
+    $fixture = gowaRunnerFixture();
+
+    try {
+        $manifest = json_decode(file_get_contents($fixture['rollbackManifest']), true, 32, JSON_THROW_ON_ERROR);
+        $manifest['fixed_config_hash'] = str_repeat('e', 64);
+        file_put_contents($fixture['rollbackManifest'], json_encode($manifest, JSON_THROW_ON_ERROR));
+
+        expect(runGowaRunner($fixture)['status'])->toBe(78)
+            ->and(glob($fixture['evidenceRoot'].'/'.$fixture['operationId'].'/*/*.json') ?: [])->toBe([])
+            ->and(is_file($fixture['requestRoot'].'/'.$fixture['operationId'].'/request.consumed'))->toBeFalse();
     } finally {
         removeGowaRunnerFixture($fixture);
     }

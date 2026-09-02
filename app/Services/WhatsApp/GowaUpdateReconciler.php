@@ -17,6 +17,7 @@ final class GowaUpdateReconciler
     public function reconcile(): int
     {
         $this->importEvidence();
+        $this->cleanupOrphanedRequests();
         $count = 0;
         GowaUpdateOperation::query()->whereIn('status', GowaUpdateOperation::ACTIVE_STATUSES)
             ->where('lease_expires_at', '<', now())->each(function (GowaUpdateOperation $operation) use (&$count): void {
@@ -25,6 +26,27 @@ final class GowaUpdateReconciler
             });
 
         return $count;
+    }
+
+    private function cleanupOrphanedRequests(): void
+    {
+        $root = (string) config('gowa-updater.request_root', '');
+        if ($root === '' || ! is_dir($root) || is_link($root)) {
+            return;
+        }
+
+        GowaUpdateOperation::query()
+            ->where('scope', GowaUpdateOperation::SCOPE)
+            ->whereIn('status', GowaUpdateOperation::TERMINAL_STATUSES)
+            ->latest('updated_at')
+            ->limit(256)
+            ->pluck('id')
+            ->each(function (string $operationId) use ($root): void {
+                $pending = $root.'/'.$operationId.'/request.pending';
+                if (is_file($pending) && ! is_link($pending)) {
+                    @unlink($pending);
+                }
+            });
     }
 
     private function importEvidence(): void
@@ -40,11 +62,18 @@ final class GowaUpdateReconciler
 
         $paths = array_merge(glob($root.'/*/*.json') ?: [], glob($root.'/*/*/*.json') ?: []);
         sort($paths);
-        foreach (array_unique($paths) as $path) {
+        $paths = array_slice(array_unique($paths), 0, (int) config('gowa-updater.max_evidence_files', 256));
+        $totalBytes = 0;
+        foreach ($paths as $path) {
             $pathRealPath = realpath($path);
             if ($pathRealPath === false || ! str_starts_with($pathRealPath, $rootRealPath.'/')) {
                 continue;
             }
+            $size = filesize($path);
+            if ($size === false || ($totalBytes + $size) > (int) config('gowa-updater.max_evidence_bytes', 16_777_216)) {
+                continue;
+            }
+            $totalBytes += $size;
             try {
                 $payload = $this->evidence->decode($path);
                 $this->service->recordEvidence($payload);

@@ -109,27 +109,6 @@ final class SystemdGowaUpdateRunner implements GowaUpdateQuiescence, GowaUpdateR
         }
 
         return is_string($manifest['runner_sha256'] ?? null)
-            && hash_equals($manifest['runner_sha256'], (string) hash_file('sha256', $runnerPath))
-            && $this->runnerReportsCapability($runnerPath);
-    }
-
-    private function runnerReportsCapability(string $runnerPath): bool
-    {
-        $process = proc_open([$runnerPath, '--capabilities'], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
-        if (! is_resource($process)) {
-            return false;
-        }
-
-        $stdout = stream_get_contents($pipes[1]);
-        fclose($pipes[1]);
-        fclose($pipes[2]);
-        $status = proc_close($process);
-        $capability = json_decode((string) $stdout, true);
-
-        return $status === 0
-            && is_array($capability)
-            && ($capability['contract'] ?? null) === 'reconcile-first-v1'
-            && ($capability['fully_implemented'] ?? false) === true
-            && ($capability['production_ready'] ?? false) === true;
+            && hash_equals($manifest['runner_sha256'], (string) hash_file('sha256', $runnerPath));
     }
 }

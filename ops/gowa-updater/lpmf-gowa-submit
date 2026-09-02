@@ -14,7 +14,10 @@ consumed="${operation_dir}/request.consumed"
 tmp="${operation_dir}/request.tmp.$$"
 
 capability_manifest="${GOWA_UPDATER_CAPABILITY_MANIFEST:-/etc/lpmf/gowa-updater/capability.json}"
-if [[ "${GOWA_UPDATER_ENABLED:-0}" != "1" || "${GOWA_UPDATER_NO_SOCKET_GATE:-0}" != "1" || ! -r "$capability_manifest" || -L "$capability_manifest" ]]; then
+enabled_marker="${GOWA_UPDATER_ENABLED_MARKER:-/etc/lpmf/gowa-updater/enabled}"
+preflight_gate="${GOWA_UPDATER_PREFLIGHT_GATE:-/etc/lpmf/gowa-updater/preflight.pass}"
+authority_path="${GOWA_UPDATER_AUTHORITY_PATH:-/etc/lpmf/gowa-updater/authority.json}"
+if [[ ! -f "$enabled_marker" || -L "$enabled_marker" || ! -f "$preflight_gate" || -L "$preflight_gate" || ! -r "$capability_manifest" || -L "$capability_manifest" ]]; then
   exit 78
 fi
 for binary in jq psql; do command -v "$binary" >/dev/null || exit 78; done
@@ -23,7 +26,7 @@ jq -e 'select(.fully_implemented == true and .production_ready == true and .cont
 [[ -d "$request_root" && ! -L "$request_root" ]] || exit 78
 install -d -m 0700 -- "$operation_dir"
 [[ -d "$operation_dir" && ! -L "$operation_dir" ]] || exit 78
-if [[ -e "$consumed" ]]; then
+if [[ -e "$consumed" && ! -L "$consumed" ]]; then
   exit 0
 fi
 if [[ -e "$pending" ]]; then
@@ -31,10 +34,23 @@ if [[ -e "$pending" ]]; then
 fi
 umask 077
 request_json="${operation_dir}/request.json"
-database_name="${GOWA_UPDATER_DATABASE:-${DB_DATABASE:-lpmf}}"
+database_name_file="${GOWA_UPDATER_DATABASE_FILE:-/etc/lpmf/gowa-updater/database-name}"
+database_name="${GOWA_UPDATER_DATABASE:-}"
+if [[ "$database_name" == '' && -r "$database_name_file" && ! -L "$database_name_file" ]]; then
+  database_name="$(<"$database_name_file")"
+fi
+database_name="${database_name:-lpmf}"
+[[ "$database_name" =~ ^[A-Za-z_][A-Za-z0-9_-]*$ ]] || exit 78
 submit_role="${GOWA_UPDATER_SUBMIT_ROLE:-lpmf_gowa_submit}"
 claim_json="$(psql --no-password --no-psqlrc --quiet --tuples-only --no-align --dbname "$database_name" --username "$submit_role" -v ON_ERROR_STOP=1 -c "select updater_gateway.claim_dispatch('${operation_id}'::uuid, 'gowa-maintenance')::text" 2>/dev/null | tr -d '\n')" || exit 78
 jq -e --arg id "$operation_id" 'select((.replayed == false or .replayed == true) and .payload.operation_id == $id and (.payload.scope == "gowa") and (.payload.claim_nonce|type) == "string" and (.payload.fencing_token|type) == "number" and (.payload.fencing_token >= 1) and (.payload.release_id|type) == "string" and (.payload.release_id|test("^[A-Za-z0-9._:-]+$")) and (.payload.digest|test("^sha256:[0-9a-f]{64}$")) and (.payload.catalog_generation|type) == "string" and (.payload.revocation_generation|type) == "string" and (.payload_hash|type) == "string" and (.payload_hash|test("^[0-9a-f]{64}$")))' <<<"$claim_json" >/dev/null || exit 78
+authority_tmp="${authority_path}.tmp.$$"
+jq -cn --arg id "$operation_id" --argjson fence "$(jq -r '.payload.fencing_token' <<<"$claim_json")" '{schema_version:1,operation_id:$id,fence:$fence,revoked:false,installed:true}' > "$authority_tmp"
+chmod 0600 "$authority_tmp"
+if [[ "$(id -u)" == 0 ]]; then
+  chown root:root "$authority_tmp"
+fi
+mv -f -- "$authority_tmp" "$authority_path"
 printf '%s\n' "$(jq -c '.payload + {action:"update", fence:.payload.fencing_token, payload_hash:.payload_hash}' <<<"$claim_json")" > "$tmp"
 chmod 0600 "$tmp"
 mv -f -- "$tmp" "$request_json"
