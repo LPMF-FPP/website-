@@ -52,5 +52,13 @@ class RouteServiceProvider extends ServiceProvider
 
             return Limit::perMinute(3)->by($key);
         });
+
+        RateLimiter::for('gowa-update-check', function (Request $request) {
+            $key = $request->user()?->getAuthIdentifier()
+                ? 'gowa-update-check:user:'.$request->user()->getAuthIdentifier()
+                : 'gowa-update-check:ip:'.$request->ip();
+
+            return Limit::perMinute(6)->by($key);
+        });
     }
 }

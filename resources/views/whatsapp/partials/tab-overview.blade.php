@@ -11,11 +11,37 @@
                     <p class="rounded-md bg-slate-800 px-4 py-3 text-sm text-slate-300">Status pembaruan belum tersedia.</p>
                 </template>
                 <template x-if="overviewData?.gowa_update && !overviewData.gowa_update.available">
-                    <p class="rounded-md bg-amber-950/60 px-4 py-3 text-sm text-amber-200">Pembaruan dinonaktifkan sampai pemeriksaan operasional selesai.</p>
+                    <div class="space-y-3 rounded-md bg-amber-950/60 px-4 py-3">
+                        <p class="text-sm text-amber-200">Pembaruan dinonaktifkan sampai pemeriksaan operasional selesai.</p>
+                        <button type="button" @click="checkGowaUpdate()" :disabled="gowaUpdateChecking" class="min-h-11 w-full rounded-md border border-amber-300/60 px-4 py-2 text-sm font-semibold text-amber-100 hover:bg-amber-900/60 focus:outline-none focus:ring-2 focus:ring-amber-200 disabled:cursor-not-allowed disabled:opacity-50">
+                            <span x-text="gowaUpdateChecking ? 'Memeriksa GitHub...' : 'Periksa pembaruan'" ></span>
+                        </button>
+                    </div>
                 </template>
                 <template x-if="overviewData?.gowa_update?.available">
                     <div class="space-y-3 rounded-md bg-slate-800 px-4 py-3">
                         <p class="text-sm text-slate-300">Runtime: <span class="font-medium text-white" x-text="overviewData.gowa_update.runtime?.version || 'Tidak diketahui'"></span></p>
+                        <button type="button" @click="checkGowaUpdate()" :disabled="gowaUpdateChecking" class="min-h-11 w-full rounded-md border border-slate-500 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-300 disabled:cursor-not-allowed disabled:opacity-50">
+                            <span x-text="gowaUpdateChecking ? 'Memeriksa GitHub...' : 'Periksa pembaruan'"></span>
+                        </button>
+                        <div x-show="gowaUpdateCheck || gowaUpdateCheckError" class="rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-sm" aria-live="polite">
+                            <p x-show="gowaUpdateCheckError" class="text-amber-200" x-text="gowaUpdateCheckError"></p>
+                            <template x-if="gowaUpdateCheck?.update_available && gowaUpdateCheck?.catalog_version_match">
+                                <p class="text-emerald-200"><span x-text="gowaUpdateCheck.latest_version"></span> tersedia dan cocok dengan rilis yang ada di katalog.</p>
+                            </template>
+                            <template x-if="gowaUpdateCheck?.update_available && !gowaUpdateCheck?.catalog_version_match">
+                                <p class="text-amber-200"><span x-text="gowaUpdateCheck.latest_version"></span> tersedia di GitHub, tetapi belum disetujui dalam katalog.</p>
+                            </template>
+                            <template x-if="gowaUpdateCheck?.comparison_status === 'runtime_stale'">
+                                <p class="text-amber-200">Versi runtime belum dapat diverifikasi karena bukti runtime sudah kedaluwarsa.</p>
+                            </template>
+                            <template x-if="gowaUpdateCheck?.comparison_status === 'current_version_unknown'">
+                                <p class="text-amber-200">Versi runtime tidak dikenali dalam katalog, jadi pemeriksaan tidak menyatakan sistem sudah terbaru.</p>
+                            </template>
+                            <template x-if="gowaUpdateCheck?.comparison_status === 'compared' && !gowaUpdateCheck.update_available">
+                                <p class="text-slate-300">Versi terpasang sudah merupakan versi terbaru.</p>
+                            </template>
+                        </div>
                         <label class="block text-sm text-slate-300" for="gowa-release-id">Rilis disetujui</label>
                         <select id="gowa-release-id" x-model="selectedGowaRelease" class="mt-1 block min-h-11 w-full min-w-0 rounded-md border-slate-600 bg-slate-900 text-sm text-white focus:border-primary-400 focus:ring-primary-400">
                             <option value="">Pilih rilis</option>

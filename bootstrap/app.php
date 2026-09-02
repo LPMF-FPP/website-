@@ -4,6 +4,7 @@ use App\Console\Commands\GoogleDriveHealthCommand;
 use App\Console\Commands\GoogleDriveSmokeCommand;
 use App\Console\Commands\PurgeOldFiles;
 use App\Console\Commands\QmhRefreshActionItemOverdue;
+use App\Console\Commands\ReconcileGowaUpdates;
 use App\Console\Commands\SyncGoogleDriveDocumentsCommand;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -27,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => \App\Http\Middleware\CheckPermission::class,
             'any_permission' => \App\Http\Middleware\CheckAnyPermission::class,
             'action-item.transition' => \App\Http\Middleware\CheckActionItemTransition::class,
+            'audit.gowa-update' => \App\Http\Middleware\AuditGowaUpdateRequest::class,
         ]);
 
         // Trust all proxies for HTTPS handling
@@ -57,6 +59,7 @@ return Application::configure(basePath: dirname(__DIR__))
         PurgeOldFiles::class,
         QmhRefreshActionItemOverdue::class,
         SyncGoogleDriveDocumentsCommand::class,
+        ReconcileGowaUpdates::class,
     ])
     ->withSchedule(function (): void {
         Schedule::command('lims:purge-old-files')->dailyAt('02:00');

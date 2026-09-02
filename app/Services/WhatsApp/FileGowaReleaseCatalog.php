@@ -121,10 +121,11 @@ final class FileGowaReleaseCatalog implements GowaReleaseCatalog
 
         $ids = [];
         foreach ($catalog['releases'] as $release) {
-            $releaseFields = ['release_id', 'version', 'image', 'digest', 'approved', 'revoked', 'revocation_generation'];
+            $releaseFields = ['release_id', 'version', 'image', 'digest', 'approved', 'revoked', 'revocation_generation', 'upstream_tag', 'upstream_release_url', 'upstream_commit_sha'];
+            $requiredReleaseFields = ['release_id', 'version', 'image', 'digest', 'approved', 'revoked', 'revocation_generation'];
             if (! is_array($release)
                 || array_diff(array_keys($release), $releaseFields) !== []
-                || array_diff($releaseFields, array_keys($release)) !== []
+                || array_diff($requiredReleaseFields, array_keys($release)) !== []
                 || ! $this->token($release['release_id'] ?? null, 128)
                 || ! $this->token($release['version'] ?? null, 128)
                 || ! is_string($release['digest'])
@@ -134,6 +135,9 @@ final class FileGowaReleaseCatalog implements GowaReleaseCatalog
                 || $release['approved'] !== true
                 || ! is_bool($release['revoked'])
                 || ! is_string($release['revocation_generation'])
+                || (isset($release['upstream_tag']) && (! is_string($release['upstream_tag']) || preg_match('/^v\d+\.\d+\.\d+$/', $release['upstream_tag']) !== 1))
+                || (isset($release['upstream_release_url']) && (! is_string($release['upstream_release_url']) || preg_match('#^https://github\.com/aldinokemal/go-whatsapp-web-multidevice/releases/tag/v\d+\.\d+\.\d+$#', $release['upstream_release_url']) !== 1))
+                || (isset($release['upstream_commit_sha']) && (! is_string($release['upstream_commit_sha']) || preg_match('/^[a-f0-9]{40}$/', $release['upstream_commit_sha']) !== 1))
                 || isset($ids[$release['release_id']])) {
                 return false;
             }

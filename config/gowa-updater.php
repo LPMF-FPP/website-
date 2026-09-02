@@ -25,4 +25,9 @@ return [
     'update_unit_prefix' => env('GOWA_UPDATER_UPDATE_UNIT_PREFIX', 'lpmf-gowa-update@'),
     'lock_path' => env('GOWA_UPDATER_LOCK_PATH', '/run/lpmf/gowa-updater/update.lock'),
     'request_root' => env('GOWA_UPDATER_REQUEST_ROOT', '/var/lib/lpmf/gowa-updater/requests'),
+    'max_evidence_files' => (int) env('GOWA_UPDATER_MAX_EVIDENCE_FILES', 256),
+    'max_evidence_bytes' => (int) env('GOWA_UPDATER_MAX_EVIDENCE_BYTES', 16777216),
+    'upstream_release_api' => env('GOWA_UPDATER_UPSTREAM_RELEASE_API', 'https://api.github.com/repos/aldinokemal/go-whatsapp-web-multidevice/releases/latest'),
+    'upstream_cache_seconds' => (int) env('GOWA_UPDATER_UPSTREAM_CACHE_SECONDS', 300),
+    'upstream_github_token' => env('GOWA_UPDATER_GITHUB_TOKEN'),
 ];

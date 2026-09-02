@@ -8,13 +8,18 @@ use App\Http\Requests\WhatsApp\RequestGowaUpdate;
 use App\Http\Requests\WhatsApp\RetryGowaUpdate;
 use App\Models\GowaUpdateOperation;
 use App\Services\WhatsApp\GowaUpdateService;
+use App\Services\WhatsApp\GowaUpstreamReleaseChecker;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use RuntimeException;
 
 final class GowaUpdateController extends Controller
 {
-    public function __construct(private readonly GowaUpdateService $service) {}
+    public function __construct(
+        private readonly GowaUpdateService $service,
+        private readonly GowaUpstreamReleaseChecker $releaseChecker,
+    ) {}
 
     public function status(Request $request): JsonResponse
     {
@@ -25,7 +30,7 @@ final class GowaUpdateController extends Controller
             'can_detail' => $request->user()?->hasPermission('gowa-update.detail') === true,
         ];
         if ($data['latest_operation'] !== null) {
-            $operation = GowaUpdateOperation::query()->find($data['latest_operation']['id']);
+            $operation = GowaUpdateOperation::query()->where('scope', GowaUpdateOperation::SCOPE)->find($data['latest_operation']['id']);
             $data['latest_operation'] = $operation === null ? null : $this->service->operationProjection($operation, $permissions);
         }
         $data['can_request'] = $permissions['can_request'];
@@ -33,6 +38,20 @@ final class GowaUpdateController extends Controller
         $data['can_detail'] = $permissions['can_detail'];
 
         return response()->json(['data' => $data, 'message' => 'Status pembaruan GOWA tersedia.']);
+    }
+
+    public function check(): JsonResponse
+    {
+        try {
+            $data = $this->releaseChecker->check();
+        } catch (ConnectionException|RuntimeException) {
+            return response()->json([
+                'message' => 'Pemeriksaan pembaruan gagal. Coba lagi beberapa saat.',
+                'code' => 'upstream_release_unavailable',
+            ], 503);
+        }
+
+        return response()->json(['data' => $data, 'message' => 'Pemeriksaan pembaruan selesai.']);
     }
 
     public function detail(Request $request, GowaUpdateOperation $operation): JsonResponse

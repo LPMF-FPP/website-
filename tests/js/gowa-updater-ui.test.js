@@ -25,3 +25,13 @@ test('browser update payload contains no credentials or shell inputs', () => {
     assert.match(requestBlock, /action_uuid: crypto\.randomUUID\(\)/);
     assert.doesNotMatch(requestBlock, /password|secret|docker|command|Authorization/i);
 });
+
+test('Overview exposes a read-only upstream update check with explicit result states', () => {
+    assert.match(overview, /@click="checkGowaUpdate\(\)"/);
+    assert.match(hub, /async checkGowaUpdate\(\)/);
+    assert.match(hub, /updates\.check/);
+    assert.match(overview, /gowaUpdateChecking \? 'Memeriksa GitHub/);
+    assert.match(overview, /catalog_version_match/);
+    assert.match(overview, /comparison_status === 'runtime_stale'/);
+    assert.match(overview, /comparison_status === 'current_version_unknown'/);
+});

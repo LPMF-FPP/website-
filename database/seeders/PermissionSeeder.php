@@ -215,6 +215,7 @@ class PermissionSeeder extends Seeder
             'investigators.view', 'investigators.edit', 'investigators.delete',
             'settings.view', 'settings.edit',
             'reminders.view', 'reminders.edit',
+            'gowa-update.status', 'gowa-update.detail', 'gowa-update.request', 'gowa-update.retry', 'gowa-update.audit',
             'qmh.view', 'qmh.create', 'qmh.report', 'qmh.template.manage', 'qmh.unlock.force', 'qmh.approve.attest',
             'qmh.rapat.view', 'qmh.rapat.view.all', 'qmh.rapat.create', 'qmh.rapat.create.all', 'qmh.rapat.edit', 'qmh.rapat.delete',
             'qmh.audit.view', 'qmh.audit.view.all', 'qmh.audit.create', 'qmh.audit.create.all', 'qmh.audit.edit', 'qmh.audit.delete',

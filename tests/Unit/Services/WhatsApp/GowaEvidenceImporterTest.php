@@ -20,6 +20,7 @@ it('imports signed canonical evidence and rejects tampering', function (): void 
     $keyPair = sodium_crypto_sign_keypair();
     $publicKeyPath = $directory.'/evidence.pub';
     file_put_contents($publicKeyPath, base64_encode(sodium_crypto_sign_publickey($keyPair)));
+    chmod($publicKeyPath, 0600);
 
     $payload = [
         'contract' => 'gowa-evidence-v1',
@@ -32,7 +33,7 @@ it('imports signed canonical evidence and rejects tampering', function (): void 
         'snapshot_hash' => str_repeat('a', 64),
         'container_identity' => 'sha256:'.str_repeat('b', 64),
     ];
-    $importer = new GowaEvidenceImporter($publicKeyPath);
+    $importer = new GowaEvidenceImporter($publicKeyPath, false);
     $signature = sodium_crypto_sign_detached($importer->canonicalJson($payload), sodium_crypto_sign_secretkey($keyPair));
     $path = writeGowaEvidenceFixture($directory, base64_encode($signature), $payload);
 

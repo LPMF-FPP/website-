@@ -569,6 +569,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::prefix('updates')->name('updates.')->middleware('audit.gowa-update')->group(function () {
             Route::get('/status', [\App\Http\Controllers\GowaUpdateController::class, 'status'])->middleware('permission:gowa-update.status')->name('status');
+            Route::get('/check', [\App\Http\Controllers\GowaUpdateController::class, 'check'])->middleware(['permission:gowa-update.status', 'throttle:gowa-update-check'])->name('check');
             Route::get('/{operation}', [\App\Http\Controllers\GowaUpdateController::class, 'detail'])->middleware('permission:gowa-update.detail')->whereUuid('operation')->name('detail');
             Route::get('/{operation}/audit', [\App\Http\Controllers\GowaUpdateController::class, 'audit'])->middleware('permission:gowa-update.audit')->whereUuid('operation')->name('audit');
             Route::post('/', [\App\Http\Controllers\GowaUpdateController::class, 'requestUpdate'])->middleware(['permission:gowa-update.request', 'throttle:gowa-update'])->name('request');

@@ -65,7 +65,7 @@ function gowaContractOperation(string $status = 'updating', string $checkpoint =
     $user = User::factory()->create();
     GowaUpdateScope::query()->updateOrCreate(['scope' => 'gowa'], ['current_fence' => 1]);
 
-    return GowaUpdateOperation::query()->create([
+    $operation = GowaUpdateOperation::query()->create([
         'id' => '00000000-0000-4000-8000-000000000000',
         'scope' => 'gowa',
         'release_id' => 'release-current',
@@ -81,6 +81,10 @@ function gowaContractOperation(string $status = 'updating', string $checkpoint =
         'heartbeat_at' => now()->subMinutes(20),
         'lease_expires_at' => now()->subMinutes(10),
     ]);
+
+    GowaUpdateScope::query()->whereKey('gowa')->update(['active_operation_id' => $operation->id]);
+
+    return $operation;
 }
 
 it('accepts the first evidence, replays it idempotently, and rejects a sequence gap', function (): void {
