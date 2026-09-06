@@ -143,6 +143,9 @@ set -euo pipefail
 mode="${FAKE_DOCKER_MODE}"
 state_file="${FAKE_DOCKER_STATE:?}"
 joined=" $* "
+if [[ "$1" == "image" && "$2" == "inspect" ]]; then
+  exit 0
+fi
 if [[ "$1" == "compose" && "$joined" == *" config --format json "* ]]; then
   image="registry.example.test/gowa@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
   if [[ "$joined" == *"rollback-compose.json"* ]]; then
@@ -168,6 +171,7 @@ if [[ "$1" == "compose" && "$joined" == *" up --no-deps --wait whatsapp_go "* ]]
     [[ "$mode" == "forward-success" ]]
   fi
   status=$?
+  [[ "$status" -eq 0 && "$joined" != *"rollback-compose.json"* ]] && printf '%s' target > "$state_file"
   [[ "$status" -eq 0 && "$joined" == *"rollback-compose.json"* ]] && printf '%s' rollback > "$state_file"
   exit "$status"
 fi

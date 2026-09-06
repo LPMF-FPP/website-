@@ -6,6 +6,7 @@ namespace App\Services\WhatsApp;
 
 use App\Contracts\WhatsApp\GowaUpdateQuiescence;
 use App\Contracts\WhatsApp\GowaUpdateRunner;
+use Illuminate\Support\Facades\Log;
 
 final class SystemdGowaUpdateRunner implements GowaUpdateQuiescence, GowaUpdateRunner
 {
@@ -84,11 +85,32 @@ final class SystemdGowaUpdateRunner implements GowaUpdateQuiescence, GowaUpdateR
             return false;
         }
 
-        foreach ($pipes as $pipe) {
-            fclose($pipe);
+        stream_get_contents($pipes[1]);
+        $error = stream_get_contents($pipes[2]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+
+        $exitCode = proc_close($process);
+        if ($exitCode !== 0) {
+            Log::warning('GOWA submit helper rejected dispatch.', [
+                'exit_code' => $exitCode,
+                'reason' => $this->submitFailureReason((string) $error),
+            ]);
         }
 
-        return proc_close($process) === 0;
+        return $exitCode === 0;
+    }
+
+    private function submitFailureReason(string $error): string
+    {
+        return match (true) {
+            str_contains($error, 'no new privileges') => 'no_new_privileges',
+            str_contains($error, 'effective uid is not 0') => 'setuid_unavailable',
+            str_contains($error, 'a password is required') => 'password_required',
+            str_contains($error, 'not allowed to execute') => 'sudo_policy_rejected',
+            str_contains($error, 'unable to execute') => 'helper_execution_failed',
+            default => 'submit_helper_failed',
+        };
     }
 
     private function verifiedCapability(): bool

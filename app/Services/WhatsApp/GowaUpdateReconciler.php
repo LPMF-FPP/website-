@@ -91,7 +91,7 @@ final class GowaUpdateReconciler
                     $this->service->recordRuntimeAttestation($payload);
                     $this->service->commitVerifiedOutcome($this->operation($payload['operation_id']), $payload['code'] === 'rollback_observed' ? 'rolled_back' : 'succeeded');
                 }
-                unlink($path);
+                @unlink($path);
             } catch (RuntimeException) {
                 continue;
             }
