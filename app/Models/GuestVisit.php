@@ -6,6 +6,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class GuestVisit extends Model
@@ -48,6 +49,18 @@ class GuestVisit extends Model
     public function testRequest(): BelongsTo
     {
         return $this->belongsTo(TestRequest::class);
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(GuestVisitItem::class);
+    }
+
+    public function getRequestCountAttribute(): int
+    {
+        $count = $this->items_count ?? $this->items()->count();
+
+        return $count > 0 ? $count : ($this->test_request_id ? 1 : 0);
     }
 
     public function host(): BelongsTo

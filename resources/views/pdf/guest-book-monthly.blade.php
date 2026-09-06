@@ -147,13 +147,14 @@
       <thead>
         <tr>
           <th style="width:3%;">No</th>
-          <th style="width:11%;">Tanggal</th>
-          <th style="width:20%;">Nama Tamu</th>
-          <th style="width:15%;">Keperluan</th>
-          <th style="width:16%;">Instansi / Pemilik Kasus</th>
-          <th style="width:9%;">Status</th>
-          <th style="width:13%;">Check-in</th>
-          <th style="width:13%;">Check-out</th>
+          <th style="width:10%;">Tanggal</th>
+          <th style="width:18%;">Pemilik Kasus / Tamu</th>
+          <th style="width:14%;">Keperluan</th>
+          <th style="width:15%;">Instansi / Pemilik Kasus</th>
+          <th style="width:8%;">Status</th>
+          <th style="width:8%;">Permintaan</th>
+          <th style="width:12%;">Check-in</th>
+          <th style="width:12%;">Check-out</th>
         </tr>
       </thead>
       <tbody>
@@ -176,6 +177,7 @@
             @endif
           </td>
           <td class="center">{{ $visit->isActive() ? 'Aktif' : 'Keluar' }}</td>
+          <td class="center">{{ $visit->request_count }}</td>
           <td>{{ \Carbon\Carbon::parse($visit->visit_date)->format('d/m') }} {{ substr($visit->visit_time, 0, 5) }}</td>
           <td>{{ $visit->check_out_at?->format('d/m H:i') ?? '—' }}</td>
         </tr>

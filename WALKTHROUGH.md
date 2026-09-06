@@ -149,6 +149,14 @@ WhatsApp service berjalan di container Docker terpisah.
 
 ## 📰 Recent Changes (v2.6.x)
 
+### v2.6.4 (6 September 2026) - Pengelompokan Buku Tamu & Form Submit
+
+- **Pengelompokan Buku Tamu:** Beberapa permintaan milik pemilik kasus yang sama kini dikelompokkan dalam satu sesi berdasarkan jenis aktivitas dan rentang lima jam, tanpa menghapus rincian tiap permintaan.
+- **Auto Checkout:** Kunjungan aktif yang melewati lima jam otomatis dicatat keluar oleh scheduler, dengan batas waktu dan proses idempotent.
+- **Identitas Tamu:** Auto-create tidak lagi mengklaim nama pemilik kasus sebagai identitas fisik tamu; pemilik kasus ditampilkan sebagai dasar identifikasi otomatis.
+- **Urutan Penyidik:** Daftar penyidik pada form submit diurutkan berdasarkan hierarki `BRIPDA` sampai `AKP`, lalu alfabetis berdasarkan nama.
+- **Regresi & Migrasi:** Data kunjungan lama dibackfill ke item permintaan dan ditambahkan test untuk grouping, batas sesi, idempotensi, auto checkout, permission, serta urutan pangkat.
+
 ### v2.6.3 (26 Agustus 2026) - Deploy Hardening & Verifikasi Host SSH
 
 - **Verifikasi Host SSH:** Skrip deploy tidak lagi menghapus atau menambahkan entri `known_hosts` secara otomatis. Deployment hanya berjalan bila fingerprint SHA256 yang sudah diverifikasi cocok dengan entri host tepercaya.

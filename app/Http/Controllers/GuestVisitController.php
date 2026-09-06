@@ -18,6 +18,7 @@ class GuestVisitController extends Controller
     public function index(Request $request)
     {
         $query = GuestVisit::with(['investigator', 'host'])
+            ->withCount('items')
             ->orderBy('visit_date', 'desc')
             ->orderBy('visit_time', 'desc');
 
@@ -116,7 +117,7 @@ class GuestVisitController extends Controller
     {
         $this->authorize('view', $visit);
 
-        $visit->load(['investigator', 'testRequest', 'host', 'createdBy']);
+        $visit->load(['investigator', 'testRequest', 'host', 'createdBy', 'items.testRequest', 'items.investigator']);
 
         return view('guest-book.show', compact('visit'));
     }
@@ -137,6 +138,17 @@ class GuestVisitController extends Controller
     public function update(UpdateGuestVisitRequest $request, GuestVisit $visit)
     {
         $validated = $request->validated();
+
+        $visit->loadMissing('items');
+        if ($visit->items->isNotEmpty() && (
+            (int) ($validated['investigator_id'] ?? 0) !== (int) $visit->investigator_id
+            || $validated['visit_date'] !== $visit->visit_date->toDateString()
+            || $validated['visit_time'] !== $visit->visit_time
+            || $validated['purpose'] !== $visit->purpose
+        )) {
+            return back()->with('error', 'Pemilik kasus, waktu, dan keperluan tidak dapat diubah setelah permintaan tergabung.');
+        }
+
         $sameAsOwner = $request->boolean('same_as_owner');
         $isCasePurpose = in_array($validated['purpose'], ['Permohonan Pengujian', 'Pengambilan Hasil Pengujian'], true);
 
@@ -260,7 +272,8 @@ class GuestVisitController extends Controller
             $month = now()->startOfMonth();
         }
 
-        $visits = GuestVisit::with(['investigator'])
+        $visits = GuestVisit::with(['investigator', 'items.testRequest', 'items.investigator'])
+            ->withCount('items')
             ->whereBetween('visit_date', [$month->toDateString(), $month->copy()->endOfMonth()->toDateString()])
             ->orderBy('visit_date', 'asc')
             ->orderBy('visit_time', 'asc')

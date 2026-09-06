@@ -85,7 +85,19 @@ class RequestController extends Controller
 
         // Get existing investigators for autocomplete (Polri only)
         $existingInvestigators = Investigator::where('is_polri', true)
-            ->orderBy('name')
+            ->orderByRaw("CASE UPPER(TRIM(rank))
+                WHEN 'BRIPDA' THEN 1
+                WHEN 'BRIPTU' THEN 2
+                WHEN 'BRIGADIR' THEN 3
+                WHEN 'BRIPKA' THEN 4
+                WHEN 'AIPDA' THEN 5
+                WHEN 'AIPTU' THEN 6
+                WHEN 'IPDA' THEN 7
+                WHEN 'IPTU' THEN 8
+                WHEN 'AKP' THEN 9
+                ELSE 99
+            END")
+            ->orderByRaw('LOWER(name)')
             ->get(['id', 'name', 'nrp', 'rank', 'jurisdiction', 'phone', 'address']);
 
         // Get existing non-Polri investigators for autocomplete
@@ -438,23 +450,11 @@ class RequestController extends Controller
             DB::commit();
 
             try {
-                $visit = \App\Models\GuestVisit::create([
-                    'investigator_id' => $investigator->id,
-                    'test_request_id' => $testRequest->id,
-                    'visit_date' => now()->toDateString(),
-                    'visit_time' => now()->toTimeString(),
-                    'purpose' => 'Permohonan Pengujian',
-                    'host_id' => auth()->id(),
-                    'visitor_name' => $investigator->name,
-                    'visitor_identity' => $investigator->nrp,
-                    'visitor_relation' => 'Penyidik',
-                    'visitor_phone' => $investigator->phone,
-                    'created_by' => auth()->id(),
-                ]);
-                $visit->forceFill([
-                    'nda_accepted' => true,
-                    'nda_accepted_at' => now(),
-                ])->save();
+                app(\App\Services\GuestVisitService::class)->recordRequest(
+                    $testRequest,
+                    'Permohonan Pengujian',
+                    auth()->id()
+                );
             } catch (\Throwable $e) {
                 \Illuminate\Support\Facades\Log::error('Failed to create guest visit on request store', [
                     'test_request_id' => $testRequest->id,

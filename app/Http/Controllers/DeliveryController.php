@@ -742,24 +742,11 @@ class DeliveryController extends Controller
         ]);
 
         try {
-            $investigator = $request->investigator;
-            $visit = \App\Models\GuestVisit::create([
-                'investigator_id' => $request->investigator_id,
-                'test_request_id' => $request->id,
-                'visit_date' => now()->toDateString(),
-                'visit_time' => now()->toTimeString(),
-                'purpose' => 'Pengambilan Hasil Pengujian',
-                'host_id' => auth()->id(),
-                'visitor_name' => $investigator?->name,
-                'visitor_identity' => $investigator?->nrp,
-                'visitor_relation' => $investigator ? 'Penyidik' : null,
-                'visitor_phone' => $investigator?->phone,
-                'created_by' => auth()->id(),
-            ]);
-            $visit->forceFill([
-                'nda_accepted' => true,
-                'nda_accepted_at' => now(),
-            ])->save();
+            app(\App\Services\GuestVisitService::class)->recordRequest(
+                $request,
+                'Pengambilan Hasil Pengujian',
+                auth()->id()
+            );
         } catch (\Throwable $e) {
             \Illuminate\Support\Facades\Log::error('Failed to create guest visit on delivery complete', [
                 'test_request_id' => $request->id,

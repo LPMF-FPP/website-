@@ -261,6 +261,7 @@ class DashboardController extends Controller
         try {
             $today = today()->toDateString();
             $visits = GuestVisit::with('investigator')
+                ->withCount('items')
                 ->where('visit_date', $today)
                 ->orderBy('visit_time', 'desc')
                 ->get();

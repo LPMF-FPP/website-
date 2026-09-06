@@ -70,6 +70,9 @@
                         </p>
                         <p class="truncate text-xs text-gray-500">
                             {{ $visit->purpose }}
+                            @if($visit->request_count > 0)
+                                · {{ $visit->request_count }} permintaan
+                            @endif
                             @if($visit->visitor_institution)
                                 · {{ $visit->visitor_institution }}
                             @elseif($visit->investigator?->jurisdiction ?? $visit->investigator?->institution)

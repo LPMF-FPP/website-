@@ -53,7 +53,7 @@
                     <span class="text-gray-500">Petugas</span>
                     <p class="font-medium text-gray-900">{{ $visit->host?->name ?? '-' }}</p>
                 </div>
-                @if($visit->test_request_id)
+                @if($visit->test_request_id && $visit->items->isEmpty())
                     <div>
                         <span class="text-gray-500">Permohonan</span>
                         <p>
@@ -63,8 +63,44 @@
                         </p>
                     </div>
                 @endif
+                @if($visit->request_count > 0)
+                    <div>
+                        <span class="text-gray-500">Jumlah permintaan</span>
+                        <p class="font-medium text-gray-900">{{ $visit->request_count }}</p>
+                    </div>
+                @endif
             </div>
         </div>
+
+        @if($visit->items->isNotEmpty())
+            <div class="bg-white rounded-lg shadow-sm ring-1 ring-gray-200 p-6">
+                <h3 class="text-base font-semibold text-gray-900 mb-4">Permintaan Terkait</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-100 text-sm">
+                        <thead>
+                            <tr class="text-left text-xs uppercase tracking-wider text-gray-400">
+                                <th class="py-2 pr-4">Permintaan</th>
+                                <th class="py-2 pr-4">Pemilik Kasus</th>
+                                <th class="py-2">Aktivitas</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            @foreach($visit->items as $item)
+                                <tr>
+                                    <td class="py-2 pr-4">
+                                        <a href="{{ route('requests.show', $item->test_request_id) }}" class="font-medium text-blue-600 hover:text-blue-500">
+                                            {{ $item->testRequest?->request_number ?? '#'.$item->test_request_id }}
+                                        </a>
+                                    </td>
+                                    <td class="py-2 pr-4 text-gray-700">{{ $item->investigator?->name ?? $visit->investigator?->name ?? '-' }}</td>
+                                    <td class="py-2 text-gray-600">{{ $item->activity_type === 'collection' ? 'Pengambilan hasil' : 'Penyerahan permintaan' }}</td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        @endif
 
         {{-- Pemilik Kasus (hanya keperluan kasus) --}}
         @if($isCasePurpose && $visit->investigator)

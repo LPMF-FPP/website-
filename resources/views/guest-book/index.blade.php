@@ -121,7 +121,7 @@
                     <thead>
                         <tr class="bg-gray-50/80">
                             <th class="pl-5 pr-2 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-10">#</th>
-                            <th class="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Tamu</th>
+                            <th class="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Identifikasi</th>
                             <th class="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Pemilik Kasus / Instansi</th>
                             <th class="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Keperluan</th>
                             <th class="px-3 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider w-28">Tanggal</th>
@@ -144,13 +144,14 @@
                                             {{ strtoupper(substr($visit->display_name, 0, 1)) }}
                                         </span>
                                         <div class="min-w-0">
-                                            @if($visit->isVisitorVerified())
-                                                <p class="truncate text-sm font-medium text-gray-900">{{ $visit->visitor_name }}</p>
+                                    @if($visit->isVisitorVerified())
+                                        <p class="truncate text-sm font-medium text-gray-900">{{ $visit->visitor_name }}</p>
                                                 @if($visit->visitor_relation)
                                                     <p class="text-xs text-gray-500">{{ $visit->visitor_relation }}</p>
                                                 @endif
-                                            @else
-                                                <p class="text-sm font-medium text-amber-600">Belum diverifikasi</p>
+                                    @else
+                                        <p class="text-sm font-medium text-amber-600">Berdasarkan pemilik kasus</p>
+                                        <p class="text-xs text-gray-500">Identitas tamu belum diverifikasi</p>
                                             @endif
                                         </div>
                                     </div>
@@ -169,6 +170,9 @@
                                 {{-- Keperluan --}}
                                 <td class="px-3 py-3.5">
                                     <p class="text-sm text-gray-700">{{ $visit->purpose }}</p>
+                                    @if($visit->request_count > 0)
+                                        <p class="text-xs text-gray-400">{{ $visit->request_count }} permintaan</p>
+                                    @endif
                                     @if($visit->purpose_detail)
                                         <p class="text-xs text-gray-400 truncate max-w-[160px]">{{ $visit->purpose_detail }}</p>
                                     @endif

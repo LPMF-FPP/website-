@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
-# Apply Nginx reverse proxy fix untuk GOWA v9.0.0
+# Apply Nginx reverse proxy fix untuk GOWA v9.
 # Fix: strip /gowa prefix sebelum proxy ke backend port 3000
-# Run di server production: 192.168.1.199
+# Run di server production: 192.168.1.59
 #
 set -euo pipefail
 
@@ -93,4 +93,4 @@ systemctl reload nginx
 
 echo ""
 echo "=== Fix selesai ==="
-echo "Cek: curl -s -u lpmf:lpmfjaya1 http://lpmf.web.id/gowa/app/info"
+echo "Cek: curl -s -u '<GOWA_BASIC_AUTH>' http://lpmf.web.id/gowa/app/info"
