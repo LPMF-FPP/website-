@@ -146,6 +146,25 @@ it('maps ordered evidence to lifecycle preparation, mutation, and verification s
     expect($operation->fresh()->status)->toBe('verifying');
 });
 
+it('imports the first signed preparation evidence after stale reconciliation started', function (): void {
+    $service = gowaContractService();
+    $operation = gowaContractOperation('reconciling', 'lease_expired');
+
+    $service->recordEvidence([
+        'operation_id' => $operation->id,
+        'fencing_token' => 1,
+        'sequence' => 1,
+        'code' => 'mutation_prepared',
+        'occurred_at' => '2026-08-28T00:00:00+00:00',
+        'snapshot_hash' => str_repeat('a', 64),
+        'container_identity' => 'unknown',
+        'plane' => 'root',
+    ]);
+
+    expect($operation->fresh()->status)->toBe('preparing')
+        ->and($operation->fresh()->feature_snapshot['last_evidence_sequence']['root'])->toBe(1);
+});
+
 it('commits degraded only with matching failed attestations and clears the active scope', function (): void {
     $service = gowaContractService();
     $operation = gowaContractOperation('updating', 'mutation_started');

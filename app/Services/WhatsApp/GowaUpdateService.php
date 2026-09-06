@@ -419,9 +419,12 @@ final class GowaUpdateService
             $valid = $root !== null && $runtime !== null
                 && $root->policy_version === $runtime->policy_version
                 && $root->snapshot_hash === $runtime->snapshot_hash
-                && $root->container_identity === $runtime->container_identity
-                && $root->observed_at?->greaterThanOrEqualTo(now()->subMinutes(5))
-                && $runtime->observed_at?->greaterThanOrEqualTo(now()->subMinutes(5));
+                && $root->container_identity === $runtime->container_identity;
+            if ($terminalStatus !== 'degraded') {
+                $valid = $valid
+                    && $root->observed_at?->greaterThanOrEqualTo(now()->subMinutes(5))
+                    && $runtime->observed_at?->greaterThanOrEqualTo(now()->subMinutes(5));
+            }
             $valid = $valid && ($terminalStatus === 'degraded'
                 ? ! $root->passed && ! $runtime->passed
                 : $root->passed && $runtime->passed);
@@ -560,7 +563,7 @@ final class GowaUpdateService
     private function evidenceTransitionAllowed(string $from, string $to): bool
     {
         return $from === $to || match ($to) {
-            'preparing' => $from === 'queued',
+            'preparing' => in_array($from, ['queued', 'reconciling'], true),
             'updating' => in_array($from, ['preparing', 'updating'], true),
             'verifying' => in_array($from, ['updating', 'verifying', 'reconciling'], true),
             default => false,

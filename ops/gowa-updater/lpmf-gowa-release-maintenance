@@ -1,0 +1,600 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+PATH='/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+export PATH
+
+install_root='/etc/lpmf/gowa-updater'
+catalog="${install_root}/catalog.json"
+catalog_public_key="${install_root}/catalog.pub"
+catalog_private_key="${install_root}/catalog.key"
+envelope="${install_root}/compose-envelope.json"
+rollback_manifest="${install_root}/rollback-manifest.json"
+target_override="${install_root}/compose-v9.3.0.override.yml"
+runner='/usr/local/libexec/lpmf-gowa-runner'
+container='go-whatsapp-web-multidevice-whatsapp_go-1'
+target_release_id='gowa-v9-3-0'
+target_version='v9.3.0'
+target_digest='sha256:99c93e42fd0bd87d5a6a1df5f730b6e57a69df5931cc4c6cd6e4e30f98a75514'
+target_repository='docker.io/aldinokemal2104/go-whatsapp-web-multidevice'
+target_image="${target_repository}@${target_digest}"
+target_release_url='https://github.com/aldinokemal/go-whatsapp-web-multidevice/releases/tag/v9.3.0'
+target_commit='e0b13a4f3e59cbaef38545f08cf1d5bb020458bb'
+release_api='https://api.github.com/repos/aldinokemal/go-whatsapp-web-multidevice/releases/latest'
+tag_api='https://api.github.com/repos/aldinokemal/go-whatsapp-web-multidevice/git/ref/tags/v9.3.0'
+submit_sudoers='/etc/sudoers.d/lpmf-gowa-updater'
+
+die() {
+  printf 'ERROR: %s\n' "$1" >&2
+  exit 78
+}
+
+require_root() {
+  [[ "$(id -u)" == 0 ]] || die 'root execution is required'
+}
+
+require_regular_file() {
+  [[ -f "$1" && ! -L "$1" ]] || die "unsafe or missing file: $1"
+}
+
+public_key_der() {
+  local destination="$1"
+  local raw_key
+  raw_key="$(mktemp)"
+  base64 -d "$catalog_public_key" > "$raw_key" 2>/dev/null || die 'catalog public key is invalid'
+  [[ "$(wc -c < "$raw_key")" == 32 ]] || die 'catalog public key length is invalid'
+  printf '302a300506032b6570032100' | xxd -r -p > "$destination"
+  dd if="$raw_key" bs=32 count=1 status=none >> "$destination"
+  rm -f -- "$raw_key"
+}
+
+verify_private_key() {
+  require_regular_file "$catalog_private_key"
+  [[ "$(stat -c '%U:%G' "$catalog_private_key")" == 'root:root' ]] || die 'catalog private key must be root-owned'
+  local mode
+  mode="$(stat -c '%a' "$catalog_private_key")"
+  [[ "$mode" == 600 || "$mode" == 400 ]] || die 'catalog private key mode must be 0600 or 0400'
+
+  local expected_der actual_der
+  expected_der="$(mktemp)"
+  actual_der="$(mktemp)"
+  public_key_der "$expected_der"
+  openssl pkey -in "$catalog_private_key" -pubout -outform DER -out "$actual_der" >/dev/null 2>&1 || die 'catalog private key is not a readable OpenSSL Ed25519 key'
+  cmp -s "$expected_der" "$actual_der" || die 'catalog private key does not match catalog.pub'
+  rm -f -- "$expected_der" "$actual_der"
+}
+
+verify_current_catalog() {
+  local payload payload_file signature_file public_der
+  payload_file="$(mktemp)"
+  signature_file="$(mktemp)"
+  public_der="$(mktemp)"
+  payload="$(jq -S -c 'del(.signature, .signature_valid)' "$catalog")" || die 'current catalog is invalid'
+  printf '%s' "$payload" > "$payload_file"
+  jq -e -r '.signature.value' "$catalog" | base64 -d > "$signature_file" 2>/dev/null || die 'current catalog signature is invalid'
+  public_key_der "$public_der"
+  openssl pkeyutl -verify -pubin -inkey "$public_der" -rawin -in "$payload_file" -sigfile "$signature_file" >/dev/null 2>&1 || die 'current catalog signature verification failed'
+  rm -f -- "$payload_file" "$signature_file" "$public_der"
+}
+
+verify_upstream() {
+  local release tag manifest_digest
+  release="$(curl --silent --show-error --fail --max-time 15 -H 'Accept: application/vnd.github+json' -H 'User-Agent: LPMF-LIMS-GOWA-Updater' "$release_api")" || die 'GitHub release lookup failed'
+  jq -e --arg version "$target_version" --arg url "$target_release_url" 'select(.tag_name == $version and .html_url == $url and .draft == false and .prerelease == false)' <<< "$release" >/dev/null || die 'GitHub latest release provenance changed'
+
+  tag="$(curl --silent --show-error --fail --max-time 15 -H 'Accept: application/vnd.github+json' -H 'User-Agent: LPMF-LIMS-GOWA-Updater' "$tag_api")" || die 'GitHub tag lookup failed'
+  jq -e --arg commit "$target_commit" 'select(.object.type == "commit" and .object.sha == $commit)' <<< "$tag" >/dev/null || die 'GitHub tag commit changed'
+
+  manifest_digest="$(docker manifest inspect "aldinokemal2104/go-whatsapp-web-multidevice:${target_version}" | jq -e -r '.manifests[] | select(.platform.os == "linux" and .platform.architecture == "amd64") | .digest')" || die 'registry manifest lookup failed'
+  [[ "$manifest_digest" == "$target_digest" ]] || die 'linux/amd64 image digest changed'
+  docker image inspect "$target_image" >/dev/null 2>&1 || die 'approved immutable image must be pulled before approval'
+}
+
+verify_runtime_baseline() {
+  local inspect current_image current_digest project service working_directory compose_file fixed_hash resolved_hash
+  inspect="$(docker inspect "$container")" || die 'current GOWA container is unavailable'
+  jq -e '.[0].State.Running == true and .[0].HostConfig.NetworkMode == "host" and .[0].HostConfig.RestartPolicy.Name == "unless-stopped" and ((.[0].Mounts | map(select(.Destination == "/var/run/docker.sock"))) | length == 0)' <<< "$inspect" >/dev/null || die 'current GOWA topology is not approved'
+  current_image="$(jq -e -r '.[0].Config.Image' <<< "$inspect")"
+  current_digest="$(jq -e -r '.[0].Image' <<< "$inspect")"
+  [[ "$current_image" == *@"$current_digest" ]] || die 'current runtime image is not immutable'
+  [[ "$(jq -e -r '.previous_image' "$rollback_manifest")" == "$current_image" ]] || die 'rollback manifest does not match current runtime'
+
+  project="$(jq -e -r '.project' "$envelope")"
+  service="$(jq -e -r '.service' "$envelope")"
+  working_directory="$(jq -e -r '.working_directory' "$envelope")"
+  compose_file="$(jq -e -r '.compose_files | if length == 1 then .[0] else empty end' "$envelope")"
+  [[ "$project" == 'go-whatsapp-web-multidevice' && "$service" == 'whatsapp_go' ]] || die 'compose identity changed'
+  [[ "$working_directory" == '/home/lpmf-admin/go-whatsapp-web-multidevice' ]] || die 'compose working directory changed'
+  [[ "$compose_file" == '/home/lpmf-admin/go-whatsapp-web-multidevice/docker-compose.yml' ]] || die 'compose file changed'
+
+  resolved_hash="$(cd "$working_directory" && docker compose --project-name "$project" -f "$compose_file" config --format json | jq -S -c --arg service "$service" 'del(.services[$service].image)' | sha256sum | cut -d ' ' -f 1)" || die 'compose baseline cannot be resolved'
+  fixed_hash="$(jq -e -r '.fixed_config_hash' "$rollback_manifest")"
+  [[ "$fixed_hash" == "$resolved_hash" ]] || die 'compose baseline hash changed'
+}
+
+status() {
+  require_root
+  for path in "$catalog" "$catalog_public_key" "$envelope" "$rollback_manifest" "$runner"; do
+    require_regular_file "$path"
+  done
+  verify_current_catalog
+  if [[ -f "$catalog_private_key" && ! -L "$catalog_private_key" ]]; then
+    verify_private_key
+    printf 'catalog_private_key=ready\n'
+  else
+    printf 'catalog_private_key=missing path=%s\n' "$catalog_private_key"
+  fi
+  printf 'catalog_generation=%s\n' "$(jq -e -r '.generation' "$catalog")"
+  printf 'approved_v9_3_0=%s\n' "$(jq -r --arg id "$target_release_id" 'any(.releases[]; .release_id == $id and .approved == true and .revoked == false)' "$catalog")"
+}
+
+approve() {
+  require_root
+  for binary in base64 cmp curl dd docker jq openssl sha256sum xxd; do
+    command -v "$binary" >/dev/null || die "required binary is unavailable: $binary"
+  done
+  for path in "$catalog" "$catalog_public_key" "$envelope" "$rollback_manifest" "$runner"; do
+    require_regular_file "$path"
+  done
+  verify_private_key
+  verify_current_catalog
+  verify_upstream
+  verify_runtime_baseline
+
+  local backup_dir generation current_image catalog_tmp payload_file signature_file envelope_tmp rollback_tmp override_tmp public_der
+  backup_dir="/var/backups/lpmf/gowa-release-v9.3.0-$(date -u +%Y%m%dT%H%M%SZ)"
+  install -d -o root -g root -m 0700 "$backup_dir"
+  cp -a "$catalog" "$catalog_public_key" "$envelope" "$rollback_manifest" "$backup_dir/"
+  current_image="$(docker inspect "$container" | jq -e -r '.[0].Config.Image')"
+  generation="prod-generation-$(date -u +%Y%m%dT%H%M%SZ)-v930"
+
+  catalog_tmp="$(mktemp "${install_root}/catalog.json.XXXXXX")"
+  payload_file="$(mktemp)"
+  signature_file="$(mktemp)"
+  envelope_tmp="$(mktemp "${install_root}/compose-envelope.json.XXXXXX")"
+  rollback_tmp="$(mktemp "${install_root}/rollback-manifest.json.XXXXXX")"
+  override_tmp="$(mktemp "${install_root}/compose-v9.3.0.override.yml.XXXXXX")"
+  public_der="$(mktemp)"
+  trap "rm -f -- '$catalog_tmp' '$payload_file' '$signature_file' '$envelope_tmp' '$rollback_tmp' '$override_tmp' '$public_der'" EXIT
+
+  jq --arg generation "$generation" --arg release_id "$target_release_id" --arg version "$target_version" --arg image "$target_image" --arg digest "$target_digest" --arg release_url "$target_release_url" --arg commit "$target_commit" '
+    .generation = $generation
+    | .releases = ([.releases[] | select(.release_id != $release_id)] + [{
+        release_id: $release_id,
+        version: $version,
+        image: $image,
+        digest: $digest,
+        approved: true,
+        revoked: false,
+        revocation_generation: .revocation_generation,
+        upstream_tag: $version,
+        upstream_release_url: $release_url,
+        upstream_commit_sha: $commit
+      }])
+    | .signature.value = "pending"
+  ' "$catalog" > "$catalog_tmp"
+  printf '%s' "$(jq -S -c 'del(.signature, .signature_valid)' "$catalog_tmp")" > "$payload_file"
+  openssl pkeyutl -sign -rawin -inkey "$catalog_private_key" -in "$payload_file" -out "$signature_file" >/dev/null 2>&1 || die 'catalog signing failed'
+  jq --arg signature "$(base64 -w0 "$signature_file")" '.signature.value = $signature' "$catalog_tmp" > "${catalog_tmp}.signed"
+  mv -f "${catalog_tmp}.signed" "$catalog_tmp"
+  public_key_der "$public_der"
+  printf '%s' "$(jq -S -c 'del(.signature, .signature_valid)' "$catalog_tmp")" > "$payload_file"
+  jq -e -r '.signature.value' "$catalog_tmp" | base64 -d > "$signature_file"
+  openssl pkeyutl -verify -pubin -inkey "$public_der" -rawin -in "$payload_file" -sigfile "$signature_file" >/dev/null 2>&1 || die 'new catalog signature verification failed'
+
+  printf 'services:\n  whatsapp_go:\n    image: %s\n' "$target_image" > "$override_tmp"
+  jq --arg override "$target_override" '.image_override = $override' "$envelope" > "$envelope_tmp"
+  jq --arg image "$current_image" --arg override "$target_override" --arg generation "$generation" '.previous_image = $image | .image_override = $override | .catalog_generation = $generation' "$rollback_manifest" > "$rollback_tmp"
+
+  install -o root -g root -m 0600 "$override_tmp" "$target_override"
+  install -o root -g root -m 0600 "$envelope_tmp" "$envelope"
+  install -o root -g root -m 0600 "$rollback_tmp" "$rollback_manifest"
+  install -o root -g root -m 0644 "$catalog_tmp" "$catalog"
+
+  "$runner" --capabilities | jq -e 'select(.production_ready == true)' >/dev/null || die 'runner is not production ready after approval'
+  printf 'approved_release=%s\n' "$target_release_id"
+  printf 'catalog_generation=%s\n' "$generation"
+  printf 'target_digest=%s\n' "$target_digest"
+  printf 'rollback_image=%s\n' "$current_image"
+  printf 'backup_dir=%s\n' "$backup_dir"
+}
+
+rotate_and_approve() {
+  require_root
+  for binary in base64 cmp curl dd docker flock jq openssl sha256sum xxd; do
+    command -v "$binary" >/dev/null || die "required binary is unavailable: $binary"
+  done
+  for path in "$catalog" "$catalog_public_key" "$envelope" "$rollback_manifest" "$runner"; do
+    require_regular_file "$path"
+  done
+  verify_current_catalog
+  verify_upstream
+  verify_runtime_baseline
+
+  install -d -o root -g root -m 0700 /run/lpmf/gowa-updater
+  exec 9>/run/lpmf/gowa-updater/update.lock
+  flock -n 9 || die 'another GOWA maintenance operation is active'
+
+  local backup_dir generation key_id current_image catalog_tmp payload_file signature_file envelope_tmp rollback_tmp override_tmp private_tmp public_tmp public_der
+  backup_dir="/var/backups/lpmf/gowa-release-key-rotation-v9.3.0-$(date -u +%Y%m%dT%H%M%SZ)"
+  install -d -o root -g root -m 0700 "$backup_dir"
+  cp -a "$catalog" "$catalog_public_key" "$envelope" "$rollback_manifest" "$backup_dir/"
+  current_image="$(docker inspect "$container" | jq -e -r '.[0].Config.Image')"
+  generation="prod-generation-$(date -u +%Y%m%dT%H%M%SZ)-v930"
+  key_id="lpmf-prod-catalog-$(date -u +%Y%m%d)"
+
+  catalog_tmp="$(mktemp "${install_root}/catalog.json.XXXXXX")"
+  payload_file="$(mktemp)"
+  signature_file="$(mktemp)"
+  envelope_tmp="$(mktemp "${install_root}/compose-envelope.json.XXXXXX")"
+  rollback_tmp="$(mktemp "${install_root}/rollback-manifest.json.XXXXXX")"
+  override_tmp="$(mktemp "${install_root}/compose-v9.3.0.override.yml.XXXXXX")"
+  private_tmp="$(mktemp "${install_root}/catalog.key.XXXXXX")"
+  public_tmp="$(mktemp "${install_root}/catalog.pub.XXXXXX")"
+  public_der="$(mktemp)"
+  trap "rm -f -- '$catalog_tmp' '$payload_file' '$signature_file' '$envelope_tmp' '$rollback_tmp' '$override_tmp' '$private_tmp' '$public_tmp' '$public_der'" EXIT
+
+  openssl genpkey -algorithm ED25519 -out "$private_tmp" >/dev/null 2>&1 || die 'catalog key generation failed'
+  chmod 0600 "$private_tmp"
+  openssl pkey -in "$private_tmp" -pubout -outform DER -out "$public_der" >/dev/null 2>&1 || die 'catalog public key derivation failed'
+  [[ "$(wc -c < "$public_der")" == 44 ]] || die 'generated catalog public key is invalid'
+  dd if="$public_der" bs=1 skip=12 count=32 status=none | base64 -w0 > "$public_tmp"
+  printf '\n' >> "$public_tmp"
+
+  jq --arg generation "$generation" --arg key_id "$key_id" --arg release_id "$target_release_id" --arg version "$target_version" --arg image "$target_image" --arg digest "$target_digest" --arg release_url "$target_release_url" --arg commit "$target_commit" '
+    .generation = $generation
+    | .signature.key_id = $key_id
+    | .releases = ([.releases[] | select(.release_id != $release_id)] + [{
+        release_id: $release_id,
+        version: $version,
+        image: $image,
+        digest: $digest,
+        approved: true,
+        revoked: false,
+        revocation_generation: .revocation_generation,
+        upstream_tag: $version,
+        upstream_release_url: $release_url,
+        upstream_commit_sha: $commit
+      }])
+    | .signature.value = "pending"
+  ' "$catalog" > "$catalog_tmp"
+  printf '%s' "$(jq -S -c 'del(.signature, .signature_valid)' "$catalog_tmp")" > "$payload_file"
+  openssl pkeyutl -sign -rawin -inkey "$private_tmp" -in "$payload_file" -out "$signature_file" >/dev/null 2>&1 || die 'catalog signing failed'
+  jq --arg signature "$(base64 -w0 "$signature_file")" '.signature.value = $signature' "$catalog_tmp" > "${catalog_tmp}.signed"
+  mv -f "${catalog_tmp}.signed" "$catalog_tmp"
+  printf '%s' "$(jq -S -c 'del(.signature, .signature_valid)' "$catalog_tmp")" > "$payload_file"
+  jq -e -r '.signature.value' "$catalog_tmp" | base64 -d > "$signature_file"
+  openssl pkeyutl -verify -pubin -inkey "$public_der" -rawin -in "$payload_file" -sigfile "$signature_file" >/dev/null 2>&1 || die 'rotated catalog signature verification failed'
+
+  printf 'services:\n  whatsapp_go:\n    image: %s\n' "$target_image" > "$override_tmp"
+  jq --arg override "$target_override" '.image_override = $override' "$envelope" > "$envelope_tmp"
+  jq --arg image "$current_image" --arg override "$target_override" --arg generation "$generation" '.previous_image = $image | .image_override = $override | .catalog_generation = $generation' "$rollback_manifest" > "$rollback_tmp"
+
+  install -o root -g root -m 0600 "$override_tmp" "$target_override"
+  install -o root -g root -m 0600 "$envelope_tmp" "$envelope"
+  install -o root -g root -m 0600 "$rollback_tmp" "$rollback_manifest"
+  install -o root -g root -m 0600 "$private_tmp" "$catalog_private_key"
+  install -o root -g root -m 0644 "$public_tmp" "$catalog_public_key"
+  install -o root -g root -m 0644 "$catalog_tmp" "$catalog"
+
+  "$runner" --capabilities | jq -e 'select(.production_ready == true)' >/dev/null || die 'runner is not production ready after key rotation'
+  printf 'catalog_key_rotated=true\n'
+  printf 'catalog_key_id=%s\n' "$key_id"
+  printf 'approved_release=%s\n' "$target_release_id"
+  printf 'catalog_generation=%s\n' "$generation"
+  printf 'target_digest=%s\n' "$target_digest"
+  printf 'rollback_image=%s\n' "$current_image"
+  printf 'backup_dir=%s\n' "$backup_dir"
+}
+
+repair_dispatch_permission() {
+  require_root
+  command -v visudo >/dev/null || die 'visudo is unavailable'
+  id -u lpmf-gowa-maintenance >/dev/null 2>&1 || die 'maintenance worker user is missing'
+  require_regular_file /usr/local/sbin/lpmf-gowa-submit
+
+  local temporary backup
+  temporary="$(mktemp /etc/sudoers.d/lpmf-gowa-updater.XXXXXX)"
+  backup="/var/backups/lpmf/gowa-updater-sudoers-$(date -u +%Y%m%dT%H%M%SZ)"
+  install -d -o root -g root -m 0700 "$backup"
+  if [[ -f "$submit_sudoers" && ! -L "$submit_sudoers" ]]; then
+    cp -a "$submit_sudoers" "$backup/"
+  fi
+  printf '%s\n' \
+    'Defaults:lpmf-gowa-maintenance env_reset, !setenv, env_keep -= *' \
+    'Defaults!/usr/local/sbin/lpmf-gowa-submit secure_path="/usr/sbin:/usr/bin:/sbin:/bin"' \
+    'Cmnd_Alias LPMF_GOWA_SUBMIT = /usr/local/sbin/lpmf-gowa-submit [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[1-5][0-9a-f][0-9a-f][0-9a-f]-[89ab][0-9a-f][0-9a-f][0-9a-f]-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]' \
+    'lpmf-gowa-maintenance ALL=(root) NOPASSWD: LPMF_GOWA_SUBMIT' \
+    > "$temporary"
+  chmod 0440 "$temporary"
+  visudo -cf "$temporary" >/dev/null || die 'replacement updater sudoers is invalid'
+  install -o root -g root -m 0440 "$temporary" "$submit_sudoers"
+  rm -f -- "$temporary"
+  visudo -cf "$submit_sudoers" >/dev/null || die 'installed updater sudoers is invalid'
+  runuser -u lpmf-gowa-maintenance -- sudo -n -l | grep -Fq '/usr/local/sbin/lpmf-gowa-submit' || die 'maintenance worker still lacks submit permission'
+  printf 'dispatch_permission=repaired\n'
+  printf 'worker=lpmf-gowa-maintenance\n'
+  printf 'backup_dir=%s\n' "$backup"
+}
+
+repair_worker_privilege_boundary() {
+  require_root
+  command -v systemd-analyze >/dev/null || die 'systemd-analyze is unavailable'
+   local service temporary backup matches
+  service='/etc/systemd/system/lpmf-gowa-maintenance.service'
+  require_regular_file "$service"
+  matches="$(grep -Ec '^NoNewPrivileges=(yes|no)$' "$service")"
+  [[ "$matches" == 1 ]] || die 'maintenance service NoNewPrivileges boundary is unexpected'
+  matches="$(grep -Ec '^RestrictSUIDSGID=(yes|no)$' "$service")"
+  [[ "$matches" == 1 ]] || die 'maintenance service SUID boundary is unexpected'
+  [[ "$(grep -c '^ReadWritePaths=' "$service")" == 1 ]] || die 'maintenance service writable path boundary is unexpected'
+  [[ "$(grep -c '^CapabilityBoundingSet=' "$service")" == 1 ]] || die 'maintenance service capability boundary is unexpected'
+
+  backup="/var/backups/lpmf/gowa/maintenance-service-$(date -u +%Y%m%dT%H%M%SZ)"
+  install -d -o root -g root -m 0700 "$backup"
+  cp -a "$service" "$backup/"
+   temporary="$(mktemp /etc/systemd/system/lpmf-gowa-maintenance.service.XXXXXX)"
+   sed \
+     -e 's/^NoNewPrivileges=no$/NoNewPrivileges=no/' \
+     -e 's/^RestrictSUIDSGID=no$/RestrictSUIDSGID=yes/' \
+     -e 's#^ReadWritePaths=.*#ReadWritePaths=/var/www/lis/storage /var/www/lis/bootstrap/cache /var/lib/lpmf/gowa-updater /run/lpmf/gowa-updater#' \
+     -e 's/^CapabilityBoundingSet=.*/CapabilityBoundingSet=/' \
+     "$service" > "$temporary"
+   grep -Fqx 'NoNewPrivileges=no' "$temporary" || die 'maintenance service repair failed'
+   grep -Fqx 'RestrictSUIDSGID=yes' "$temporary" || die 'maintenance service SUID repair failed'
+   grep -Fqx 'ReadWritePaths=/var/www/lis/storage /var/www/lis/bootstrap/cache /var/lib/lpmf/gowa-updater /run/lpmf/gowa-updater' "$temporary" || die 'maintenance service writable paths repair failed'
+   grep -Fqx 'CapabilityBoundingSet=' "$temporary" || die 'maintenance service capability repair failed'
+  install -o root -g root -m 0644 "$temporary" "$service"
+  rm -f -- "$temporary"
+  systemd-analyze verify "$service" /etc/systemd/system/lpmf-gowa-update@.service >/dev/null || die 'systemd unit verification failed'
+  systemctl daemon-reload
+  systemctl restart lpmf-gowa-maintenance.service
+  [[ "$(systemctl is-active lpmf-gowa-maintenance.service)" == active ]] || die 'maintenance worker failed to restart'
+  printf 'worker_privilege_boundary=repaired\n'
+  printf 'no_new_privileges=no\n'
+   printf 'restrict_suid_sgid=yes\n'
+  printf 'backup_dir=%s\n' "$backup"
+}
+
+repair_gateway() {
+  require_root
+  for binary in jq psql runuser; do
+    command -v "$binary" >/dev/null || die "required binary is unavailable: $binary"
+  done
+  local database gateway_sql app_role submit_role owner_role
+  gateway_sql="${install_root}/gateway.sql"
+  require_regular_file "$gateway_sql"
+  require_regular_file "${install_root}/database-name"
+  database="$(tr -d '\r\n' < "${install_root}/database-name")"
+  app_role='lis_user'
+  submit_role='lpmf_gowa_submit'
+  owner_role='lpmf_gowa_updater_owner'
+  [[ "$database" =~ ^[A-Za-z_][A-Za-z0-9_-]*$ ]] || die 'invalid updater database name'
+  for role in "$app_role" "$submit_role" "$owner_role"; do
+    runuser -u postgres -- psql --no-password --no-psqlrc --quiet --dbname "$database" --tuples-only --no-align -c "select 1 from pg_roles where rolname = '${role}'" | grep -Fxq 1 || die "missing PostgreSQL role: $role"
+  done
+
+  runuser -u postgres -- psql --no-password --no-psqlrc --quiet --dbname "$database" -v ON_ERROR_STOP=1 < "$gateway_sql" || die 'gateway SQL installation failed'
+  runuser -u postgres -- psql --no-password --no-psqlrc --quiet --dbname "$database" -v ON_ERROR_STOP=1 -c "ALTER SCHEMA updater_gateway OWNER TO ${owner_role}; ALTER TABLE updater_gateway.dispatch_claims OWNER TO ${owner_role}; ALTER FUNCTION updater_gateway.claim_dispatch(uuid, text) OWNER TO ${owner_role}; ALTER FUNCTION updater_gateway.consume_dispatch(uuid, uuid, bigint, text, text) OWNER TO ${owner_role}; ALTER FUNCTION updater_gateway.assert_installation(name, name, name) OWNER TO ${owner_role}; GRANT SELECT, UPDATE ON public.gowa_update_operations, public.gowa_update_scopes TO ${owner_role}; GRANT USAGE ON SCHEMA updater_gateway TO ${submit_role}; REVOKE ALL ON FUNCTION updater_gateway.claim_dispatch(uuid, text) FROM ${app_role}; GRANT EXECUTE ON FUNCTION updater_gateway.consume_dispatch(uuid, uuid, bigint, text, text) TO ${submit_role}; REVOKE ALL ON FUNCTION updater_gateway.consume_dispatch(uuid, uuid, bigint, text, text) FROM ${app_role};" || die 'gateway ownership installation failed'
+  runuser -u postgres -- psql --no-password --no-psqlrc --quiet --dbname "$database" -v ON_ERROR_STOP=1 -c "SELECT updater_gateway.assert_installation('${submit_role}', '${owner_role}', '${app_role}')" >/dev/null || die 'gateway privilege assertion failed'
+  printf 'gateway=repaired\n'
+  printf 'database=%s\n' "$database"
+  printf 'submit_role=%s\n' "$submit_role"
+}
+
+repair_database_auth() {
+  require_root
+  for binary in psql runuser; do
+    command -v "$binary" >/dev/null || die "required binary is unavailable: $binary"
+  done
+  local database submit_role map_name hba_file ident_file backup hba_tmp ident_tmp
+  database="$(tr -d '\r\n' < "${install_root}/database-name")"
+  submit_role='lpmf_gowa_submit'
+  map_name='lpmf_gowa_updater_root'
+  [[ "$database" =~ ^[A-Za-z_][A-Za-z0-9_-]*$ ]] || die 'invalid updater database name'
+  hba_file="$(runuser -u postgres -- psql --no-password --no-psqlrc --quiet --dbname "$database" --tuples-only --no-align -c 'show hba_file')"
+  ident_file="$(runuser -u postgres -- psql --no-password --no-psqlrc --quiet --dbname "$database" --tuples-only --no-align -c 'show ident_file')"
+  require_regular_file "$hba_file"
+  require_regular_file "$ident_file"
+
+  backup="/var/backups/lpmf/gowa/postgres-peer-auth-$(date -u +%Y%m%dT%H%M%SZ)"
+  install -d -o root -g root -m 0700 "$backup"
+  cp -a "$hba_file" "$ident_file" "$backup/"
+  hba_tmp="$(mktemp "${hba_file}.XXXXXX")"
+  ident_tmp="$(mktemp "${ident_file}.XXXXXX")"
+  trap "rm -f -- '$hba_tmp' '$ident_tmp'" EXIT
+
+  {
+    printf 'local %s %s peer map=%s\n' "$database" "$submit_role" "$map_name"
+    grep -Fvx "local ${database} ${submit_role} peer map=${map_name}" "$hba_file"
+  } > "$hba_tmp"
+  {
+    printf '%s root %s\n' "$map_name" "$submit_role"
+    grep -Fvx "${map_name} root ${submit_role}" "$ident_file"
+  } > "$ident_tmp"
+  install -o postgres -g postgres -m 0640 "$hba_tmp" "$hba_file"
+  install -o postgres -g postgres -m 0640 "$ident_tmp" "$ident_file"
+  runuser -u postgres -- psql --no-password --no-psqlrc --quiet --dbname "$database" -v ON_ERROR_STOP=1 -c 'select pg_reload_conf()' >/dev/null || die 'PostgreSQL configuration reload failed'
+  sleep 1
+  runuser -u postgres -- psql --no-password --no-psqlrc --quiet --dbname "$database" --tuples-only --no-align -c "select count(*) from pg_hba_file_rules where error is not null" | grep -Fxq 0 || die 'PostgreSQL HBA validation failed'
+  psql --no-password --no-psqlrc --quiet --dbname "$database" --username "$submit_role" --tuples-only --no-align -c 'select session_user' | grep -Fxq "$submit_role" || die 'updater submit peer authentication failed'
+  printf 'database_auth=repaired\n'
+  printf 'database=%s\n' "$database"
+  printf 'peer_map=%s\n' "$map_name"
+  printf 'backup_dir=%s\n' "$backup"
+}
+
+deploy_evidence_visibility_fix() {
+  require_root
+  [[ $# == 1 && "$1" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]] || die 'a lowercase operation UUID is required'
+  local operation_id source_runner source_unit capability backup runner_hash capability_tmp operation_root directory evidence_file staging_dir
+  operation_id="$1"
+  source_runner='/tmp/lpmf-gowa-runner'
+  source_unit='/tmp/lpmf-gowa-update@.service'
+  capability="${install_root}/capability.json"
+  staging_dir="$(mktemp -d /var/lib/lpmf/gowa-updater/maintenance-stage.XXXXXX)"
+  trap 'rm -rf -- "$staging_dir"' EXIT
+  [[ "$(stat -c '%u:%a' "$source_runner" 2>/dev/null || true)" == '0:755' ]] || die 'replacement runner must be root-owned mode 0755'
+  [[ "$(stat -c '%u:%a' "$source_unit" 2>/dev/null || true)" == '0:644' ]] || die 'replacement update unit must be root-owned mode 0644'
+  install -o root -g root -m 0700 /dev/null "$staging_dir/runner"
+  install -o root -g root -m 0700 /dev/null "$staging_dir/unit"
+  cp -- "$source_runner" "$staging_dir/runner"
+  cp -- "$source_unit" "$staging_dir/unit"
+  chown root:root "$staging_dir/runner" "$staging_dir/unit"
+  chmod 0700 "$staging_dir/runner" "$staging_dir/unit"
+  source_runner="$staging_dir/runner"
+  source_unit="$staging_dir/unit"
+  require_regular_file "$source_runner"
+  require_regular_file "$source_unit"
+  require_regular_file "$capability"
+  [[ "$(sha256sum "$source_runner" | cut -d ' ' -f 1)" == '7082ec4249c4a5750e3d619127b6d742c96f6f87edbc4f227893ea8e98b9d763' ]] || die 'replacement runner hash is not approved'
+  [[ "$(sha256sum "$source_unit" | cut -d ' ' -f 1)" == '927af907044599f712f0fdc7c9bca225035bed922a5af77bb6f6bbba94484721' ]] || die 'replacement update unit hash is not approved'
+  bash -n "$source_runner" || die 'replacement runner has invalid syntax'
+  grep -Fqx 'SupplementaryGroups=lpmf-admin www-data' "$source_unit" || die 'replacement update unit lacks evidence group'
+  grep -Fqx 'NoNewPrivileges=yes' "$source_unit" || die 'replacement update unit is not hardened'
+
+  backup="/var/backups/lpmf/gowa/evidence-visibility-$(date -u +%Y%m%dT%H%M%SZ)"
+  install -d -o root -g root -m 0700 "$backup"
+  cp -a "$runner" /etc/systemd/system/lpmf-gowa-update@.service "$capability" "$backup/"
+  install -o root -g root -m 0755 "$source_runner" "$runner"
+  install -o root -g root -m 0644 "$source_unit" /etc/systemd/system/lpmf-gowa-update@.service
+  runner_hash="$(sha256sum "$runner" | cut -d ' ' -f 1)"
+  capability_tmp="$(mktemp "${install_root}/capability.json.XXXXXX")"
+  jq --arg runner_hash "$runner_hash" '.runner_sha256 = $runner_hash' "$capability" > "$capability_tmp"
+  install -o root -g www-data -m 0640 "$capability_tmp" "$capability"
+  rm -f -- "$capability_tmp"
+  systemctl daemon-reload
+  systemd-analyze verify /etc/systemd/system/lpmf-gowa-update@.service >/dev/null || die 'replacement update unit verification failed'
+
+  operation_root="/var/lib/lpmf/gowa-updater/evidence/${operation_id}"
+  require_regular_file "${install_root}/evidence.pub"
+  [[ -d /var/lib/lpmf/gowa-updater/evidence && ! -L /var/lib/lpmf/gowa-updater/evidence ]] || die 'evidence root is unsafe or missing'
+  chown root:www-data /var/lib/lpmf/gowa-updater/evidence
+   chmod 0770 /var/lib/lpmf/gowa-updater/evidence
+  [[ -d "$operation_root" && ! -L "$operation_root" ]] || die 'operation evidence directory is missing'
+  chown root:www-data "$operation_root"
+   chmod 0770 "$operation_root"
+  shopt -s nullglob
+  for directory in "$operation_root"/[0-9]*; do
+    [[ -d "$directory" && ! -L "$directory" ]] || die 'unsafe evidence fence directory'
+    chown root:www-data "$directory"
+     chmod 0770 "$directory"
+    for evidence_file in "$directory"/*.json; do
+      [[ -f "$evidence_file" && ! -L "$evidence_file" ]] || die 'unsafe evidence file'
+      chown root:www-data "$evidence_file"
+      chmod 0640 "$evidence_file"
+    done
+  done
+  printf 'evidence_visibility=deployed\n'
+  printf 'operation_id=%s\n' "$operation_id"
+  printf 'runner_hash=%s\n' "$runner_hash"
+  printf 'backup_dir=%s\n' "$backup"
+}
+
+publish_current_target_evidence() {
+  require_root
+  [[ $# == 1 && "$1" =~ ^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$ ]] || die 'a lowercase operation UUID is required'
+  local operation_id request evidence_key operation_root fence_dir target_image catalog_generation inspect identity snapshot sequence payload payload_file signature_file evidence_file candidate
+  operation_id="$1"
+  request="/var/lib/lpmf/gowa-updater/requests/${operation_id}/request.consumed"
+  evidence_key="${install_root}/evidence.key"
+  operation_root="/var/lib/lpmf/gowa-updater/evidence/${operation_id}"
+  require_regular_file "$request"
+  require_regular_file "$evidence_key"
+  require_regular_file "$catalog"
+  fence_dir="${operation_root}/$(jq -e -r '.fence' "$request")"
+  [[ -d "$fence_dir" && ! -L "$fence_dir" ]] || die 'evidence fence directory is missing'
+  target_image="$(jq -e -r --arg id "$(jq -e -r '.release_id' "$request")" '.releases[] | select(.release_id == $id and .approved == true and .revoked == false) | .image' "$catalog")"
+  catalog_generation="$(jq -e -r '.generation' "$catalog")"
+  inspect="$(docker inspect "$container")" || die 'current GOWA container is unavailable'
+  jq -e --arg image "$target_image" '.[0].State.Running == true and .[0].Config.Image == $image and .[0].HostConfig.NetworkMode == "host" and .[0].HostConfig.RestartPolicy.Name == "unless-stopped" and ((.[0].Mounts | map(select(.Destination == "/var/run/docker.sock"))) | length == 0)' <<< "$inspect" >/dev/null || die 'current runtime is not the approved target'
+  identity="$(jq -e -r '.[0].Id + ":" + .[0].Image' <<< "$inspect")"
+  snapshot="$(printf '%s' "${operation_id}:$(jq -e -r '.fence' "$request"):${identity}:${target_image}:host:unless-stopped" | sha256sum | cut -d ' ' -f 1)"
+  sequence=1
+  shopt -s nullglob
+  for evidence_file in "$fence_dir"/*.json; do
+    candidate="$(basename "$evidence_file")"; candidate="${candidate%%-*}"
+    if [[ "$candidate" =~ ^[0-9]+$ && "$candidate" -ge "$sequence" ]]; then sequence=$((candidate + 1)); fi
+  done
+  payload="$(jq -S -cn --arg id "$operation_id" --argjson fence "$(jq -e -r '.fence' "$request")" --argjson sequence "$sequence" --arg snapshot "$snapshot" --arg identity "$identity" --arg digest "${target_image##*@}" --arg generation "$catalog_generation" '{contract:"gowa-evidence-v1",operation_id:$id,fencing_token:$fence,sequence:$sequence,plane:"root",code:"mutation_observed",occurred_at:(now|todateiso8601),snapshot_hash:$snapshot,container_identity:$identity,target_digest:$digest,catalog_generation:$generation,attestation:{plane:"root",policy_version:"1",snapshot_hash:$snapshot,container_identity:$identity,passed:true,observed_at:(now|todateiso8601)}}')"
+  payload_file="$(mktemp)"; signature_file="$(mktemp)"
+  trap "rm -f -- '$payload_file' '$signature_file'" EXIT
+  printf '%s' "$payload" > "$payload_file"
+  openssl pkeyutl -sign -rawin -inkey "$evidence_key" -in "$payload_file" -out "$signature_file" >/dev/null 2>&1 || die 'target attestation signing failed'
+  evidence_file="${fence_dir}/${sequence}-mutation_observed.json"
+  printf '%s\n' "$(jq -cn --argjson payload "$payload" --arg signature "$(base64 -w0 "$signature_file")" '{schema_version:1,payload:$payload,signature:$signature}')" > "$evidence_file"
+  chown root:www-data "$evidence_file"; chmod 0640 "$evidence_file"
+  printf 'target_attestation=published\noperation_id=%s\nsequence=%s\nruntime_digest=%s\n' "$operation_id" "$sequence" "${target_image##*@}"
+}
+
+sync_current_rollback_manifest() {
+  require_root
+  local inspect current_image project service working_directory compose_file resolved_hash manifest_tmp backup
+  require_regular_file "$envelope"
+  require_regular_file "$rollback_manifest"
+  inspect="$(docker inspect "$container")" || die 'current GOWA container is unavailable'
+  current_image="$(jq -e -r '.[0].Config.Image' <<< "$inspect")"
+  jq -e '.[0].State.Running == true and .[0].HostConfig.NetworkMode == "host" and .[0].HostConfig.RestartPolicy.Name == "unless-stopped" and ((.[0].Mounts | map(select(.Destination == "/var/run/docker.sock"))) | length == 0)' <<< "$inspect" >/dev/null || die 'current GOWA topology is not approved'
+  [[ "$current_image" == "$target_image" ]] || die 'current runtime is not the approved v9.3.0 target'
+  project="$(jq -e -r '.project' "$envelope")"
+  service="$(jq -e -r '.service' "$envelope")"
+  working_directory="$(jq -e -r '.working_directory' "$envelope")"
+  compose_file="$(jq -e -r '.compose_files | if length == 1 then .[0] else empty end' "$envelope")"
+  resolved_hash="$(cd "$working_directory" && docker compose --project-name "$project" -f "$compose_file" -f "$target_override" config --format json | jq -S -c --arg service "$service" 'del(.services[$service].image)' | sha256sum | cut -d ' ' -f 1)" || die 'current target compose cannot be resolved'
+  backup="/var/backups/lpmf/gowa/rollback-manifest-v930-$(date -u +%Y%m%dT%H%M%SZ)"
+  install -d -o root -g root -m 0700 "$backup"
+  cp -a "$rollback_manifest" "$backup/"
+  manifest_tmp="$(mktemp "${rollback_manifest}.XXXXXX")"
+  jq --arg image "$current_image" --arg hash "$resolved_hash" --arg generation "$(jq -e -r '.generation' "$catalog")" --arg override "$target_override" '.previous_image = $image | .fixed_config_hash = $hash | .catalog_generation = $generation | .image_override = $override' "$rollback_manifest" > "$manifest_tmp"
+  install -o root -g root -m 0600 "$manifest_tmp" "$rollback_manifest"
+  rm -f -- "$manifest_tmp"
+  printf 'rollback_manifest=synced\ncurrent_image=%s\nfixed_config_hash=%s\nbackup_dir=%s\n' "$current_image" "$resolved_hash" "$backup"
+}
+
+
+case "${1:-}" in
+  --status)
+    [[ $# == 1 ]] || die 'unexpected arguments'
+    status
+    ;;
+  --approve-v9.3.0)
+    [[ $# == 1 ]] || die 'unexpected arguments'
+    approve
+    ;;
+  --rotate-key-and-approve-v9.3.0)
+    [[ $# == 1 ]] || die 'unexpected arguments'
+    rotate_and_approve
+    ;;
+  --repair-dispatch-permission)
+    [[ $# == 1 ]] || die 'unexpected arguments'
+    repair_dispatch_permission
+    ;;
+  --repair-worker-privilege-boundary)
+    [[ $# == 1 ]] || die 'unexpected arguments'
+    repair_worker_privilege_boundary
+    ;;
+  --repair-gateway)
+    [[ $# == 1 ]] || die 'unexpected arguments'
+    repair_gateway
+    ;;
+  --repair-database-auth)
+    [[ $# == 1 ]] || die 'unexpected arguments'
+    repair_database_auth
+    ;;
+  --deploy-evidence-visibility-fix)
+    [[ $# == 2 ]] || die 'operation UUID is required'
+    deploy_evidence_visibility_fix "$2"
+    ;;
+  --publish-current-target-evidence)
+    [[ $# == 2 ]] || die 'operation UUID is required'
+    publish_current_target_evidence "$2"
+    ;;
+  --sync-current-rollback-manifest)
+    [[ $# == 1 ]] || die 'unexpected arguments'
+    sync_current_rollback_manifest
+    ;;
+  *)
+    printf 'Usage: %s --status|--approve-v9.3.0|--rotate-key-and-approve-v9.3.0|--repair-dispatch-permission|--repair-worker-privilege-boundary|--repair-gateway|--repair-database-auth|--deploy-evidence-visibility-fix UUID|--publish-current-target-evidence UUID\n' "$0" >&2
+    exit 64
+    ;;
+esac

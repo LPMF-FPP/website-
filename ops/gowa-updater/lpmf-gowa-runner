@@ -147,7 +147,12 @@ docker_bin="${GOWA_UPDATER_DOCKER_BIN:-/usr/bin/docker}"
 psql_bin="${GOWA_UPDATER_PSQL_BIN:-/usr/bin/psql}"
 [[ -x "$docker_bin" && -x "$psql_bin" ]] || exit 78
 
-install -d -m 0700 -- "$operation_evidence" "$phase_dir" "$(dirname "$lock_path")"
+  if [[ "$(id -u)" == 0 ]]; then
+    install -d -o root -g www-data -m 0770 -- "$operation_evidence"
+  else
+    install -d -m 0770 -- "$operation_evidence"
+  fi
+  install -d -m 0700 -- "$phase_dir" "$(dirname "$lock_path")"
 exec 9>"$lock_path"
 flock -n 9 || exit 75
 consumed_already=false
@@ -227,7 +232,11 @@ emit_evidence() {
   local payload
   local signature_file="${operation_evidence}/signature.tmp.$$"
   local payload_file="${operation_evidence}/payload.tmp.$$"
-  install -d -m 0700 "${operation_evidence}/${fence}"
+  if [[ "$(id -u)" == 0 ]]; then
+    install -d -o root -g www-data -m 0770 "${operation_evidence}/${fence}"
+  else
+    install -d -m 0770 "${operation_evidence}/${fence}"
+  fi
   snapshot_hash="$(printf '%s' "${operation_id}:${fence}:${identity}:${image}:${network_mode}:${restart_policy}" | sha256sum | cut -d ' ' -f 1)"
   payload="$(jq -S -cn --arg id "$operation_id" --arg fence "$fence" --arg seq "$sequence" --arg plane root --arg code "$code" --arg snapshot "$snapshot_hash" --arg identity "$identity" --arg digest "${evidence_digest:-$digest}" --arg generation "$catalog_generation" --arg policy '1' --arg passed "$passed" '{contract:"gowa-evidence-v1",operation_id:$id,fencing_token:($fence|tonumber),sequence:($seq|tonumber),plane:$plane,code:$code,occurred_at:(now|todateiso8601),snapshot_hash:$snapshot,container_identity:$identity,target_digest:$digest,catalog_generation:$generation,attestation:(if $code == "mutation_observed" or $code == "rollback_observed" or $code == "rollback_degraded" then {plane:$plane,policy_version:$policy,snapshot_hash:$snapshot,container_identity:$identity,passed:($passed == "true"),observed_at:(now|todateiso8601)} else null end)}')"
   umask 077
@@ -235,7 +244,12 @@ emit_evidence() {
   openssl pkeyutl -sign -rawin -inkey "$signing_key" -in "$payload_file" -out "$signature_file" >/dev/null 2>&1 || { rm -f -- "$payload_file" "$signature_file"; return 1; }
   local signature
   signature="$(base64 -w0 "$signature_file")"
-  atomic_write "${operation_evidence}/${fence}/${sequence}-${code}.json" "$(jq -cn --argjson payload "$payload" --arg signature "$signature" '{schema_version:1,payload:$payload,signature:$signature}')"
+  local evidence_path="${operation_evidence}/${fence}/${sequence}-${code}.json"
+  atomic_write "$evidence_path" "$(jq -cn --argjson payload "$payload" --arg signature "$signature" '{schema_version:1,payload:$payload,signature:$signature}')"
+  if [[ "$(id -u)" == 0 ]]; then
+    chgrp www-data "$evidence_path"
+  fi
+  chmod 0640 "$evidence_path"
   rm -f -- "$payload_file" "$signature_file"
 }
 
@@ -268,7 +282,9 @@ rollback() {
   rollback_override="${phase_dir}/rollback-compose.json"
   atomic_write "$rollback_override" "$(jq -cn --arg service "$service" --arg image "$previous_image" '{services:{($service):{image:$image}}}')"
   rollback_ok=true
-  timeout --foreground "${GOWA_UPDATER_PULL_TIMEOUT:-600}" "$docker_bin" compose --project-name "$project" -f "$compose_file" -f "$rollback_override" pull "$service" >/dev/null 2>&1 || rollback_ok=false
+  "$docker_bin" image inspect "$previous_image" >/dev/null 2>&1 \
+    || timeout --foreground "${GOWA_UPDATER_PULL_TIMEOUT:-600}" "$docker_bin" compose --project-name "$project" -f "$compose_file" -f "$rollback_override" pull "$service" >/dev/null 2>&1 \
+    || rollback_ok=false
   timeout --foreground "${GOWA_UPDATER_UP_TIMEOUT:-600}" "$docker_bin" compose --project-name "$project" -f "$compose_file" -f "$rollback_override" up --no-deps --wait "$service" >/dev/null 2>&1 || rollback_ok=false
   if "$rollback_ok" && observe_container rollback; then
     identity="$(container_identity)"
@@ -284,7 +300,8 @@ rollback() {
 
 write_phase mutation_started unknown
 emit_next_evidence mutation_started unknown true || exit 78
-if ! timeout --foreground "${GOWA_UPDATER_PULL_TIMEOUT:-600}" "$docker_bin" compose --project-name "$project" -f "$compose_file" -f "$override_file" pull "$service" >/dev/null 2>&1; then
+if ! "$docker_bin" image inspect "$image" >/dev/null 2>&1 \
+  && ! timeout --foreground "${GOWA_UPDATER_PULL_TIMEOUT:-600}" "$docker_bin" compose --project-name "$project" -f "$compose_file" -f "$override_file" pull "$service" >/dev/null 2>&1; then
   rollback
 fi
 if ! timeout --foreground "${GOWA_UPDATER_UP_TIMEOUT:-600}" "$docker_bin" compose --project-name "$project" -f "$compose_file" -f "$override_file" up --no-deps --wait "$service" >/dev/null 2>&1; then

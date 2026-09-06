@@ -40,6 +40,10 @@ grep -Fqx 'Group=lpmf-gowa-maintenance' "$worker_service" || exit 78
 grep -Fqx 'SupplementaryGroups=www-data' "$worker_service" || exit 78
 grep -Fqx 'ExecStart=/usr/bin/php /var/www/lis/artisan queue:work gowa-maintenance --queue=gowa-maintenance --tries=1 --timeout=900 --sleep=1 --no-interaction' "$worker_service" || exit 78
 grep -Fqx 'WorkingDirectory=/var/www/lis' "$worker_service" || exit 78
+grep -Fqx 'NoNewPrivileges=no' "$worker_service" || exit 78
+grep -Fqx 'RestrictSUIDSGID=yes' "$worker_service" || exit 78
+grep -Fqx 'ReadWritePaths=/var/www/lis/storage /var/www/lis/bootstrap/cache /var/lib/lpmf/gowa-updater /run/lpmf/gowa-updater /etc/lpmf/gowa-updater' "$worker_service" || exit 78
+grep -Fqx 'CapabilityBoundingSet=' "$worker_service" || exit 78
 grep -Fqx 'ConditionPathExists=/etc/lpmf/gowa-updater/enabled' "$update_service" || exit 78
 grep -Fqx 'ExecStart=/usr/local/libexec/lpmf-gowa-runner %i' "$update_service" || exit 78
 grep -Fqx 'SupplementaryGroups=lpmf-admin' "$update_service" || exit 78
