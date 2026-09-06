@@ -1,261 +1,250 @@
-# AGENTS.md — LPMF LIMS Coding Agent Guide
+# AGENTS.md - LPMF LIMS Agent Guide
 
-This guide is for coding agents in this repository. Prioritize correctness, patient-safety domain integrity, and existing conventions over speed.
+Panduan operasional untuk coding agent di repository ini. Utamakan integritas domain laboratorium, keamanan akses, dan perubahan kecil yang dapat diverifikasi daripada kecepatan atau refactor luas.
 
 ## Project Snapshot
 
-- Stack: Laravel 12, PHP 8.2+, Blade, Alpine.js 3, Tailwind CSS 3, Vite 7, PostgreSQL
-- Domain: forensic pharmaceutical laboratory management (government context)
-- Language policy: UI copy in Bahasa Indonesia; code identifiers in English
-- Tooling baseline: Node 20+ for audits and frontend tooling
+- Aplikasi: LPMF LIMS, sistem manajemen laboratorium farmasi forensik dalam konteks pemerintahan
+- Backend: PHP `^8.2`, Laravel `^12.0`, layered monolith
+- UI utama: Blade server-rendered, Alpine.js 3, Tailwind CSS 3, Vite 7
+- Library UI tambahan: TipTap 3; React 18 tersedia untuk area tertentu, tetapi bukan stack UI default
+- Database utama: PostgreSQL
+- Authorization: middleware/policy dan `spatie/laravel-permission`
+- Testing: Pest/PHPUnit 11, Laravel Dusk, Node test runner
+- Quality tooling: Pint, ESLint 10, Stylelint 16, axe-core, Puppeteer, audit scripts kustom
+- Bahasa: copy UI dalam Bahasa Indonesia; identifier code dalam English
+- Runtime frontend/audit: Node.js 20+
 
-## Execution Profile (Strict Core + Quick Start)
+## Instruction Priority
 
-### Strict Core (Non-Negotiable)
+1. Instruksi system, developer, dan user pada sesi aktif
+2. `AGENTS.md` ini
+3. Dokumen relevan di `docs/`, terutama `docs/project-context.md`
+4. `.github/copilot-instructions.md`
+5. Konvensi lokal pada code yang sedang disentuh
 
-- MUST follow instruction priority exactly; do not override higher-priority instructions with lower-priority guidance
-- MUST preserve domain integrity and policy/service boundaries for all workflow, inventory, and result-lifecycle changes
-- MUST use project-approved tooling flow: semantic discovery first, focused search second, minimal diff implementation third
-- MUST invoke skills by task type before implementation; do not apply Next.js/React skills on Laravel-only tasks
-- MUST verify each implementation with the smallest relevant command and iterate until passing
-- MUST protect secrets at all times; never print raw sensitive values from `.env*`, credentials, or token-like payloads
+Jika panduan berbeda, ikuti sumber dengan prioritas lebih tinggi. Jangan menganggap dokumentasi lama lebih benar daripada package/config/code aktual.
 
-### Quick Start (8-Step Runbook)
+## Required Workflow
 
--   1. Read instruction priority and relevant project docs (`AGENTS.md`, optional `.next-docs/`, optional `docs/`)
--   2. Classify task stack first: Laravel/PHP, frontend UI, UI/UX review, or Next.js/React
--   3. Load the right skill set for the classified stack before touching implementation
--   4. Discover context with `morph-mcp_warpgrep_codebase_search`, then narrow with `glob` and `grep`
--   5. Use Context7/Firecrawl when external docs or web evidence are required
--   6. Implement focused changes that preserve existing architecture and naming
--   7. Run the smallest relevant verification command and fix failures immediately
--   8. Report changed paths, verification result, and any remaining risk or follow-up
+1. Klasifikasikan task: Laravel/PHP, Blade/Alpine UI, React area, testing, review, planning, research, atau konfigurasi agent.
+2. Muat skill yang relevan sebelum implementasi. Gunakan `npx skills list` untuk project skill, `npx skills list --global` untuk global skill, lalu pastikan skill tersebut tersedia melalui `skill` tool pada sesi aktif.
+3. Mulai discovery dengan `morph-mcp_codebase_search`, lalu persempit menggunakan `glob`, `grep`, dan `read`.
+4. Baca config, route, service, policy, model, test, dan docs yang berhubungan sebelum memutuskan solusi.
+5. Implementasikan diff terkecil yang benar dan pertahankan pola area yang disentuh.
+6. Jalankan verifikasi terkecil yang relevan, perbaiki failure, lalu ulangi sampai lolos.
+7. Laporkan path yang berubah, command verifikasi, hasilnya, dan risiko yang masih tersisa.
 
-## Instruction Sources and Priority
+Jangan berhenti pada rencana jika user meminta perubahan code. Kerjakan end-to-end selama feasible.
 
-1. System/developer/user instructions in the active session
-2. This file (`AGENTS.md`)
-3. `.next-docs/` (if present, primarily for Next.js projects)
-4. `docs/` project guides (if present)
-5. `.github/copilot-instructions.md`
-6. Cursor rules, if present
+## Repository Search and Editing
 
-- Copilot rules found: `.github/copilot-instructions.md`
-- Cursor rules not found: no `.cursor/rules/` and no `.cursorrules`
+- Gunakan semantic search terlebih dahulu untuk task yang memerlukan pemahaman codebase.
+- Gunakan `glob` untuk pencarian file dan `grep` untuk pencarian isi; jangan memakai shell `find`/`grep` untuk pencarian normal.
+- Gunakan `read` untuk membuka file dan `apply_patch` untuk semua edit manual.
+- Jangan membuat patcher/script sementara untuk menulis ulang source atau CSS.
+- Jangan menyentuh perubahan worktree yang tidak terkait dan jangan merapikan file lain tanpa kebutuhan task.
+- Jangan memakai `git reset --hard`, `git checkout --`, atau command destruktif lain untuk membersihkan worktree.
+- Commit, amend, push, atau PR hanya jika diminta eksplisit.
 
-## Runtime Tooling and Search Rules
+## Architecture Rules
 
-- Start broad codebase exploration with `morph-mcp_warpgrep_codebase_search` before narrow file-level lookups
-- Use `glob` before opening files; use the `grep` tool for content search (avoid shell `grep` for normal code search)
-- Use Context7 for third-party framework/library documentation before proposing unfamiliar APIs
-- Use Firecrawl for external web research (`firecrawl_search` first, then `firecrawl_scrape` or `firecrawl_map` as needed)
-- After implementation, run the smallest relevant verification command (test/lint/build) and iterate until passing
-- Treat `.env*` and secrets as sensitive: never expose raw values in terminal output, logs, or commit content
+- Perlakukan aplikasi sebagai Laravel 12 layered monolith.
+- Controller berfungsi untuk orkestrasi; business logic non-trivial tetap di service/action/domain layer yang sudah ada.
+- Gunakan Form Request untuk validation/authorization yang reusable atau kompleks.
+- Gunakan policy, permission middleware, dan service boundary; jangan menggantinya dengan role check ad-hoc.
+- Pertahankan middleware di `bootstrap/app.php`, termasuk session-backed API behavior dan pengecualian CSRF yang sudah disengaja.
+- Gunakan named route dan `route()` untuk URL internal bila pola area mendukungnya.
+- Gunakan Eloquent relationship dan query pattern yang sudah ada; jangan interpolasi input ke raw SQL.
+- Jangan menambah global helper baru kecuali kebutuhan lintas area benar-benar konkret.
+- Jangan menambah dependency atau mengubah arsitektur frontend tanpa kebutuhan yang jelas.
 
-## BMAD / OpenCode Reality Check
+## Domain Integrity
 
-- Treat `bmad/` as the active BMAD install for this repository's OpenCode commands and agents
-- Treat `_bmad/` as legacy/compatibility material unless a specific installed skill still explicitly requires it
-- Prefer installed skills under `.opencode/skills/` when choosing what to run in OpenCode
-- `.agents/skills/` may contain newer, extra, or compatibility skills; use them when explicitly available in the current session, but do not assume every entry there is wired to the active OpenCode command surface
-- If the user asks "what next", "help me choose", or speaks to BMAD in a general way, invoke `bmad-help` first and recommend running the next skill in a fresh context window
-- Keep `docs/project-context.md` and `AGENTS.md` aligned: `AGENTS.md` is the higher-priority operational contract, while `docs/project-context.md` is the lean agent reminder file
+- Pertahankan lifecycle utama: `TestRequest -> Sample -> SampleTestProcess -> TestResult`.
+- Anggap workflow transition, numbering, inventory movement, sample disposal, delivery, LHU/result lifecycle, dan document generation sebagai area high-risk.
+- Jangan membuat shortcut state, mutasi langsung, atau jalur controller baru yang melewati service/policy/observer yang ada.
+- Perubahan high-risk harus menguji success path, invalid transition, authorization failure, dan rollback/atomicity bila relevan.
+- Endpoint export, download, PDF, label, dan dokumen bersifat sensitif; pertahankan permission, signed route, throttle, audit log, dan scope akses.
+- Alur WhatsApp/GOWA harus idempotent, auditable, retry-safe, dan tidak menghasilkan pengiriman/mutasi duplikat.
+- Integrasi Google Drive, S3, Sentry, WhatsApp, dan provider eksternal harus menggunakan fake/mock/sandbox pada test dan tidak melakukan live side effect tanpa otorisasi.
+- Jangan menjalankan migration destructive, database reset, rollback, atau `migrate:fresh` tanpa persetujuan user.
 
-## MCP Integration Playbook
+## Security and Secrets
 
-- Morph MCP: use `morph-mcp_warpgrep_codebase_search` first for semantic discovery, then narrow with `glob`/`grep`
-- Context7 MCP: always run `context7_resolve-library-id` before `context7_query-docs`; keep queries specific and avoid generic prompts
-- Context7 MCP: do not exceed 3 Context7 calls per question; use the best result if perfect coverage is unavailable
-- Firecrawl MCP: default flow is `firecrawl_search` (no scrapeOptions) -> select URL -> `firecrawl_scrape` or `firecrawl_map`
-- Firecrawl MCP: add `maxAge` when cached results are acceptable for faster research cycles
-- Next.js DevTools MCP: only for Next.js tasks; call `next-devtools_init` first and prefer `nextjs_index`/`nextjs_call` for runtime diagnostics
+- Fail closed pada authorization, validation, signature, dan workflow guard.
+- Jangan melepas middleware `auth`, `verified`, `permission`, `any_permission`, `throttle`, atau audit protection untuk mempermudah implementasi.
+- Jangan membaca atau menampilkan nilai mentah dari `.env*`, `.deploy.local`, token, cookie, credential, private key, atau payload sensitif.
+- Redact credential-like output sebagai `***REDACTED***` dan gunakan placeholder seperti `DB_PASSWORD=<provided-by-user>`.
+- Jangan mencatat credential, token, raw request body sensitif, atau data personal yang tidak diperlukan ke log.
+- Perlakukan executable tools, database write, external form submission, queue restart, dan provider call sebagai side effect; lakukan hanya dalam scope yang diminta.
 
-## Build and Run Commands
+## PHP and Laravel Style
+
+- Ikuti PSR-12 dan formatter Pint.
+- Gunakan `declare(strict_types=1);` pada file PHP baru bila konsisten dengan area sekitarnya.
+- Gunakan parameter type dan return type eksplisit untuk method non-trivial.
+- Naming: class `PascalCase`, method/property `camelCase`, database field `snake_case`.
+- Gunakan constructor injection dan `private readonly` dependency bila sesuai pola lokal.
+- Model harus eksplisit untuk `$fillable`, `$casts`, dan typed relationships bila area tersebut memakai pola ini.
+- Jangan menaruh business logic di Blade view, route closure, accessor, atau observer tanpa alasan domain yang jelas.
+- Saat mengubah kolom migration dengan `change()`, nyatakan ulang modifier yang harus dipertahankan.
+
+## Frontend Rules
+
+- Default perubahan UI adalah Blade + Alpine, bukan React atau SPA baru.
+- React hanya digunakan jika file/area yang disentuh memang React; repository ini bukan Next.js, jadi jangan memuat skill atau MCP Next.js untuk pekerjaan normal.
+- Reuse Blade component, Alpine store/data, Tailwind token, dan pattern UI yang sudah ada.
+- Copy UI harus Bahasa Indonesia dan pesan error harus spesifik serta dapat ditindaklanjuti.
+- Semua control harus semantic, keyboard-operable, memiliki visible focus state, dan touch target minimal 44px pada mobile.
+- Jangan menghapus focus outline tanpa replacement yang terlihat.
+- Sediakan empty, loading, validation, success, dan error state sesuai jenis UI.
+- Pertahankan state navigasi di URL untuk filter, tab, search, sort, dan pagination bila relevan.
+- Hormati `prefers-reduced-motion`; animasikan hanya `transform` dan `opacity`.
+- Uji layout untuk mobile dan desktop, long content, empty/dense state, serta overflow.
+- Gunakan Axios melalui `resources/js/bootstrap.js` untuk default CSRF yang aman.
+- Gunakan `Alpine.data()`/`Alpine.store()` sesuai pola registrasi aplikasi.
+
+## CSS and JavaScript Constraints
+
+- Source of truth lint: `eslint.config.cjs` dan `.stylelintrc.cjs`.
+- JavaScript: gunakan `const`, lalu `let` bila berubah; hindari `var`, `eval`, dan `new Function`.
+- Gunakan strict equality dan import yang grouped, stable, serta bebas duplikasi.
+- CSS specificity maksimal `0,4,0`, tanpa ID selector, maksimal 4 compound selector.
+- Hindari `!important` kecuali edge case terkontrol yang sesuai konvensi lokal.
+- Ikuti property ordering dan custom-property prefix yang diizinkan config Stylelint.
+- Safe Mode: `styles/pd-*.css` tidak boleh mengandung layout properties seperti `margin`, `padding`, `width`, `height`, `position`, `display`, `flex`, `grid`, `gap`, `overflow`, atau `transform`.
+- Jangan melakukan style churn atau reformat luas di luar scope task.
+
+## Skill Routing
+
+Sumber kebenaran project skill adalah output `npx skills list`. Pada audit terakhir, semua project skill berada di `.agents/skills/` dan tersedia untuk OpenCode, Codex, Gemini CLI, serta GitHub Copilot. Jangan menganggap skill global atau isi `.opencode/skills/` sebagai project skill bila tidak muncul pada command tersebut.
+
+- Routing dan bantuan BMAD: `bmad-help`.
+- Implementasi umum: `bmad-build`; unattended iteration hanya ketika diminta: `bmad-build-auto`.
+- Implementasi story: `bmad-dev-story`; `bmad-quick-dev` dan `bmad-dev-auto` hanya compatibility shim.
+- Specification dan product planning: `bmad-product-brief`, `bmad-prd`, `bmad-prfaq`, `bmad-spec`, `bmad-architecture`, `bmad-create-epics-and-stories`, dan `bmad-create-story`.
+- Skill planning lama yang masih terpasang: `bmad-create-prd`, `bmad-edit-prd`, `bmad-validate-prd`, dan `bmad-create-architecture`; gunakan hanya bila dipanggil eksplisit atau diarahkan oleh skill utama.
+- UX planning: `bmad-ux`.
+- Sprint execution: `bmad-sprint-planning`, `bmad-sprint-status`, `bmad-correct-course`, dan `bmad-retrospective`.
+- Review utama: `bmad-review` atau `bmad-code-review` sesuai artifact; lensa khusus tersedia melalui `bmad-review-adversarial-general`, `bmad-review-edge-case-hunter`, dan `bmad-review-verification-gap`.
+- Editorial review: `bmad-editorial-review`, `bmad-editorial-review-prose`, dan `bmad-editorial-review-structure`.
+- Testing dan quality architecture: `bmad-tea`, `bmad-testarch-atdd`, `bmad-testarch-automate`, `bmad-testarch-ci`, `bmad-testarch-framework`, `bmad-testarch-nfr`, `bmad-testarch-test-design`, `bmad-testarch-test-review`, dan `bmad-testarch-trace`.
+- Test learning dan E2E existing behavior: `bmad-teach-me-testing` dan `bmad-qa-generate-e2e-tests`.
+- Research utama: `bmad-deep-recon`; compatibility skill yang masih terpasang adalah `bmad-market-research`, `bmad-domain-research`, dan `bmad-technical-research`.
+- Ideation dan facilitation: `bmad-brainstorming`, `bmad-forge-idea`, `bmad-advanced-elicitation`, `bmad-party-mode`, `bmad-cis-design-thinking`, `bmad-cis-innovation-strategy`, `bmad-cis-problem-solving`, dan `bmad-cis-storytelling`.
+- Agent persona: `bmad-agent-analyst`, `bmad-agent-pm`, `bmad-agent-ux-designer`, `bmad-agent-architect`, dan `bmad-agent-dev`.
+- CIS persona: `bmad-cis-agent-brainstorming-coach`, `bmad-cis-agent-creative-problem-solver`, `bmad-cis-agent-design-thinking-coach`, `bmad-cis-agent-innovation-strategist`, `bmad-cis-agent-presentation-master`, dan `bmad-cis-agent-storyteller`.
+- Agent, workflow, dan module authoring: `bmad-agent-builder`, `bmad-workflow-builder`, `bmad-module-builder`, `bmad-customize`, dan `bmad-bmb-setup`.
+- Agent instruction maintenance: `bmad-project-context`; `bmad-generate-project-context` dan `bmad-document-project` hanya compatibility shim.
+- Evaluation dan human checkpoint: `bmad-eval-runner` dan `bmad-checkpoint-preview`.
+
+Jangan memuat banyak skill secara defensif. Pilih set minimum yang benar-benar memiliki ownership atas task.
+
+## Global Skill Routing
+
+Sumber kebenaran global skill adalah output `npx skills list --global`. Global skill melengkapi project skill, bukan menggantikannya: muat project skill pemilik workflow terlebih dahulu, lalu tambahkan global specialist hanya jika scope memerlukannya.
+
+- Laravel 11/12: `laravel-11-12-app-guidelines` untuk perubahan yang secara material dimiliki framework Laravel.
+- Frontend implementation: `frontend-design` sebagai baseline untuk UI baru atau perubahan visual; untuk redesign existing UI gunakan `redesign-existing-projects`.
+- Anti-slop UI: muat `antislop` lalu concern minimum yang relevan, yaitu `antislop-ui`, `antislop-human`, `antislop-layoutmobile`, `antislop-copywriting`, atau `antislop-code`. Ikuti pertanyaan mode DURING/AFTER dari skill dan jangan memuat semua turunannya tanpa kebutuhan.
+- UI/UX audit dan perbaikan: `ui-ux-pro-max` untuk design intelligence dan `web-design-guidelines` untuk review accessibility/interface guidelines.
+- Visual direction premium: pilih satu direction owner sesuai brief, misalnya `design-taste-frontend`, `high-end-visual-design`, `minimalist-ui`, `industrial-brutalist-ui`, atau `gpt-taste`; jangan menumpuk beberapa style skill yang saling bersaing.
+- Compatibility visual: `design-taste-frontend-v1` hanya jika exact v1 behavior dibutuhkan.
+- Design system Tailwind: `tailwind-design-system` hanya untuk component/token standardization dan setelah memastikan guidance kompatibel dengan Tailwind CSS 3 proyek ini.
+- React performance: `vercel-react-best-practices` hanya pada area React yang nyata; jangan menerapkannya pada Blade/Alpine.
+- Copy marketing: `copywriting`; tambahkan `antislop-copywriting` untuk prose hygiene bila relevan.
+- Brand dan visual assets: `brandkit` untuk brand system; `imagegen-frontend-web` atau `imagegen-frontend-mobile` untuk design reference berbasis image.
+- Image-led implementation: `image-to-code` hanya ketika task memang meminta workflow generate-reference-then-implement.
+- Stitch handoff: `stitch-design-taste` hanya untuk membuat atau memperbarui `DESIGN.md` bagi Google Stitch.
+- Output lengkap tanpa placeholder: `full-output-enforcement` hanya untuk deliverable yang memang harus exhaustive dan unabridged.
+- Skill discovery: `find-skills` ketika user mencari capability baru atau skill yang belum terpasang.
+
+Global skill yang terverifikasi berasal dari `vercel-labs/skills`, `anthropics/skills`, `vercel-labs/agent-skills`, `coreyhaines31/marketingskills`, `nextlevelbuilder/ui-ux-pro-max-skill`, `wshobson/agents`, `thienanblog/awesome-ai-agent-skills`, `Leonxlnx/taste-skill`, dan `miqdadbadjuber/anti-slop`. Jangan menebak skill lain dari nama source; gunakan hanya nama yang muncul pada inventaris global.
+
+## MCP and External Tool Routing
+
+Gunakan tool yang tersedia pada sesi, bukan asumsi berdasarkan package npm atau file konfigurasi lama.
+
+- Morph MCP: `morph-mcp_codebase_search` untuk semantic discovery lokal; setelah itu gunakan `glob`/`grep`/`read` untuk bukti presisi.
+- Morph GitHub search: gunakan `morph-mcp_github_codebase_search` untuk membaca implementation upstream tanpa clone, terutama saat dependency error atau behavior library perlu ditelusuri.
+- Context7: wajib untuk pertanyaan/API library dan framework yang version-sensitive. Jalankan `context7_resolve-library-id`, lalu `context7_query-docs`; maksimal 3 panggilan Context7 per pertanyaan.
+- Firecrawl: gunakan `firecrawl_search` untuk menemukan sumber web, `firecrawl_scrape` untuk satu URL, `firecrawl_map` untuk inventaris URL, `firecrawl_crawl` untuk beberapa halaman, dan agent research hanya untuk sintesis multi-source yang memang perlu.
+- Chrome DevTools: gunakan untuk browser verification, console/network inspection, accessibility snapshot, screenshot, Lighthouse, dan performance trace pada aplikasi yang sedang berjalan.
+- `next-devtools_*`: hanya untuk repository Next.js yang benar-benar menjalankan Next.js 16+; tidak berlaku pada aplikasi Laravel ini.
+- `@playwright/mcp` di `package.json` adalah dependency, bukan bukti bahwa Playwright MCP terhubung pada sesi. Gunakan hanya bila tool-nya benar-benar diekspos.
+- MCP resources/templates yang kosong bukan error; gunakan function tools yang tersedia langsung.
+
+Untuk library docs, pilih Context7 daripada web search. Untuk evidence web non-library, pilih Firecrawl. Untuk code lokal, jangan mengirim source proprietary ke query eksternal.
+
+## Commands
 
 ```bash
-# Safe baseline install (no lifecycle scripts)
-composer install --no-plugins --no-scripts && npm ci --ignore-scripts
+# Install dependencies tanpa lifecycle scripts yang tidak perlu
+composer install --no-plugins --no-scripts
+npm ci --ignore-scripts
+
 # Local development
 composer run dev
 php artisan serve
 npm run dev
-# Production build
+
+# Production frontend build
 npm run build
 ```
 
-## Lint and Format Commands
-
 ```bash
-# PHP format
-./vendor/bin/pint
-# JS lint (check and fix)
-npm run audit:eslint
-npx eslint "resources/js/**/*.{js,ts,vue,jsx,tsx}" --fix
-# CSS lint (check and fix)
-npm run audit:stylelint
-npx stylelint "resources/**/*.{css,scss}" "public/**/*.css" "styles/**/*.css" --fix
-```
+# Focused PHP tests
+php vendor/bin/pest tests/Feature/Path/ExampleTest.php
+php vendor/bin/pest --filter "test name"
 
-## Test Commands
-
-```bash
-# Full suites
-npm run test
-npm run test:all
+# Full/targeted suites
+composer test
 npm run test:php
-npm run test:e2e
-# Useful variants
-npm run test:php:watch
-npm run test:e2e:headed
-```
-
-## Single-Test Quick Reference
-
-```bash
-# Pest: by test name
-php vendor/bin/pest --filter "InventoryAlertServiceTest"
-# Pest: by file
-php vendor/bin/pest tests/Feature/Inventory/DashboardTest.php
-# Pest: by directory
-php vendor/bin/pest tests/Unit/Services/Quality/
-# Dusk: single browser file
-php artisan dusk tests/Browser/Auth/AuthenticationFlowTest.php
-# Dusk: method pattern
-php artisan dusk tests/Browser/Auth/AuthenticationFlowTest.php --filter "user_can_login"
-# Node test
-node --test tests/js/search.test.js
 npm run test:search
-```
+npm run test:e2e
 
-## Audit and Pre-Commit
+# Format and lint
+./vendor/bin/pint --dirty
+npm run audit:eslint
+npm run audit:stylelint
 
-```bash
+# Frontend quality gates
 npm run audit:guard
 npm run audit:critical
-npm run audit:all
 npm run audit:a11y
+npm run audit:all
 ```
 
-Recommended pre-commit gate: `npm run test && npm run audit:critical && ./vendor/bin/pint`
+Gunakan focused test terlebih dahulu. Full Pest/Dusk/audit suite dapat mahal dan memerlukan service/browser; jalankan jika scope menuntut atau user meminta.
 
-## Code Style Guidelines
+## Verification Matrix
 
-### General
+- PHP logic kecil: focused Pest test + `./vendor/bin/pint --dirty`.
+- Controller/route/auth: focused Feature test, termasuk forbidden/invalid case.
+- Workflow, inventory, numbering, result, delivery: focused domain/Feature tests dan rollback/transition coverage.
+- Blade/Alpine: relevant test + ESLint bila JS berubah + browser check untuk behavior interaktif.
+- CSS/Tailwind: Stylelint + `audit:guard`/`audit:critical` sesuai file + browser responsive check.
+- Build config/dependency/frontend entry: `npm run build`.
+- Dusk/browser flow: target Dusk test; pastikan environment browser tersedia.
+- Docs-only/agent-guidance change: periksa referensi path/command/skill, Markdown structure, dan `git diff`; tidak perlu menjalankan application tests.
 
-- Follow existing architecture and naming before introducing new patterns
-- Avoid broad refactors in feature PRs; keep diffs focused and reviewable
-- Remove dead code and unused imports in touched files
-- Preserve module/file structure unless there is a clear maintenance benefit
+Jangan menyatakan verifikasi lulus bila command tidak dijalankan. Jika environment menghalangi, sebutkan blocker secara eksplisit.
 
-### PHP / Laravel
+## Documentation
 
-- Follow PSR-12 and run `./vendor/bin/pint` on touched files
-- Prefer `declare(strict_types=1);` in new PHP files when feasible
-- Use explicit return types and typed parameters for non-trivial methods
-- Naming: classes `PascalCase`, methods/properties `camelCase`, DB fields `snake_case`
-- Keep controllers orchestration-focused; move business logic into services/actions
-- Prefer constructor injection and `private readonly` dependencies when practical
-- Use Form Requests for complex validation/authorization
-- Keep models explicit (`$fillable`, `$casts`, typed relationship methods)
-- Prefer policies/permissions over ad-hoc role checks
+- Jangan membuat file Markdown dokumentasi ad-hoc.
+- Gunakan `WALKTHROUGH.md` untuk implementation notes bila dokumentasi perubahan memang diminta.
+- File standalone yang sudah diizinkan tetap boleh dipelihara, termasuk `README.md`, checklist repo, `report/README.md`, `.github/copilot-instructions.md`, `AGENTS.md`, dan artifact BMAD di `docs/`.
+- `AGENTS.md` adalah kontrak operasional utama; `docs/project-context.md` adalah ringkasan lean. Selaraskan keduanya saat stack atau guardrail berubah material.
+- Jangan memperbarui docs untuk setiap perubahan kecil bila user tidak meminta dan behavior sudah jelas dari code/test.
 
-### JavaScript / Alpine
+## Completion Standard
 
-- Linting source of truth: `eslint.config.cjs` + `.eslintrc.cjs`
-- Avoid `eval`, `new Function`, and `var`; prefer `const` then `let`
-- Use strict equality (`===`) and explicit branching
-- Import order: builtin -> external -> internal -> relative
-- Use `Alpine.data()` / `Alpine.store()` registration patterns
-- Use Axios via `resources/js/bootstrap.js` for CSRF-safe defaults
+Sebelum selesai, pastikan:
 
-### CSS / Tailwind
-
-- Linting source of truth: `.stylelintrc.cjs`
-- Keep selector specificity <= `0,4,0`; avoid ID selectors
-- Max compound selectors: 4
-- Avoid `!important` except controlled utility edge cases
-- Animate only `transform` and `opacity`
-- Keep custom properties within approved prefixes (`pd-*`, `theme-*`, `color-*`, etc.)
-- Respect property ordering and warning-level rules in stylelint
-- Safe Mode: `styles/pd-*.css` must not contain layout properties (`margin`, `padding`, `width`, `height`, `position`, `display`, `flex`, `grid`, `gap`, `overflow`, `transform`)
-
-### Imports, Types, Naming, and Formatting
-
-- Keep imports grouped, stable, and duplicate-free
-- Prefer explicit typing/signatures in PHP and TS where already used
-- Do not introduce new global helpers unless justified and documented
-- Keep formatting automated (Pint/ESLint/Stylelint), avoid manual style churn
-
-### Error Handling and Security
-
-- Fail closed on authorization and validation failures
-- Keep middleware protections intact (`auth`, `verified`, `permission`, `throttle`)
-- Never log secrets, tokens, raw credentials, or sensitive payloads
-- Wrap external provider calls with retries/guards and structured error handling
-- Use mocks/fakes or sandbox endpoints by default for third-party integrations
-- Treat export/download endpoints as sensitive and enforce policy-scoped access
-
-## Documentation Rules
-
-- Do not create ad-hoc documentation markdown files
-- Use `WALKTHROUGH.md` for implementation notes and walkthroughs
-- Allowed standalone markdown files: `README.md`, `PRE_PULL_CHECKLIST.md`, `PRE_PUSH_CHECKLIST.md`, `report/README.md`, `.github/copilot-instructions.md`
-
-## Skill Invocation Guidance
-
-- Use `bmad-help` first when the user asks which BMAD skill to use, what phase they are in, what to do next, or wants a guided BMAD entry point
-- For Laravel feature/bugfix work, MUST load and follow `laravel-11-12-app-guidelines`
-- For broad implementation requests that should be executed end-to-end inside BMAD, prefer `bmad-quick-dev`; if a story artifact already exists and implementation should follow it strictly, prefer `bmad-dev-story`
-- For codebase investigation, bug forensics, or building a mental model before changing code, use `bmad-investigate`; for BMAD-specific project scanning/documentation, use `bmad-document-project`
-- For code review requests, prefer `bmad-code-review`; use `bmad-review-adversarial-general` or `bmad-review-edge-case-hunter` when a narrower review lens is more appropriate
-- For creating or evolving planning artifacts, route explicitly: `bmad-product-brief` -> `bmad-prd`/`bmad-create-prd` -> `bmad-create-architecture` -> `bmad-create-epics-and-stories` -> `bmad-create-story`
-- For project-level agent guidance files, use `bmad-generate-project-context`; for documentation indexing/splitting, use `bmad-index-docs` or `bmad-shard-doc`
-- For implementation readiness or course correction around BMAD artifacts, use `bmad-check-implementation-readiness` and `bmad-correct-course`
-- For testing strategy and quality planning, use `bmad-tea` and the `bmad-testarch-*` skills; use `bmad-qa-generate-e2e-tests` only when the goal is adding end-to-end coverage for existing behavior
-- For frontend implementation tasks, MUST load `frontend-design` first; keep visual language consistent with existing app patterns
-- For high-end frontend polish, visual refinement, or premium UI tuning, use `design-taste-frontend` after `frontend-design` when stronger design engineering is needed
-- If acting as `frontend-developer` subagent, first action MUST be loading `frontend-design`
-- For UI/UX review or design refinement, use `ui-ux-pro-max` and `web-design-guidelines` when relevant
-- For Next.js or React tasks only, MUST use `next-best-practices` and `vercel-react-best-practices` before implementation
-- For brainstorming, multi-perspective critique, or facilitation, use `bmad-brainstorming`, `bmad-party-mode`, and `bmad-advanced-elicitation` as optional overlays rather than default first steps
-- Keep skill usage task-scoped; do not force Next.js skills on Laravel-only tasks
-
-## Installed Skills Inventory
-
-- Active OpenCode BMAD set lives under `.opencode/skills/`; treat that directory as the primary installed surface for this repo
-- Additional BMAD library/compatibility skills also exist under `.agents/skills/`; use them only when they are exposed by the current session or explicitly requested
-- Core project skills: `laravel-11-12-app-guidelines`, `frontend-design`, `web-design-guidelines`, `tailwind-design-system`
-- BMAD routing and orchestration: `bmad-help`, `bmad-quick-dev`, `bmad-dev-story`, `bmad-code-review`, `bmad-investigate`, `bmad-party-mode`, `bmad-advanced-elicitation`
-- BMAD planning/documentation: `bmad-product-brief`, `bmad-prd`, `bmad-create-prd`, `bmad-create-architecture`, `bmad-create-epics-and-stories`, `bmad-create-story`, `bmad-document-project`, `bmad-generate-project-context`
-- BMAD QA/testing: `bmad-tea`, `bmad-testarch-atdd`, `bmad-testarch-automate`, `bmad-testarch-ci`, `bmad-testarch-framework`, `bmad-testarch-nfr`, `bmad-testarch-test-design`, `bmad-testarch-test-review`, `bmad-testarch-trace`, `bmad-qa-generate-e2e-tests`
-- UI/UX and content: `ui-ux-pro-max`, `design-taste-frontend`, `copywriting`
-- Discovery and setup: `find-skills`
-- Next/React specialized: `next-best-practices`, `vercel-react-best-practices` (use only when task stack is Next.js/React)
-
-## Web Interface Guidelines (Condensed)
-
-- MUST provide full keyboard access and visible focus states; never remove focus outlines without a replacement
-- MUST use semantic interactive elements (`button`, `a`, `label`, `input`) before ARIA workarounds
-- MUST keep touch targets usable (minimum 24px desktop, 44px mobile)
-- MUST keep forms resilient: allow paste, preserve input state, show inline errors, and focus first invalid field on submit
-- MUST keep navigation state in URL where relevant (filters, tabs, pagination) and preserve back/forward behavior
-- MUST provide confirmation or undo for destructive actions
-- MUST respect `prefers-reduced-motion` and animate only `transform`/`opacity`
-- MUST avoid layout jank: explicit media dimensions, skeletons that match final layout, and no avoidable CLS
-- MUST design for empty, sparse, dense, and error states (no dead-end screens)
-- MUST ensure accessible labeling (`aria-label` for icon-only buttons, `aria-hidden` for decorative icons)
-- MUST ensure readable contrast and avoid color-only status communication
-- MUST handle long/short user-generated content safely (`min-w-0`, wrapping, truncation where appropriate)
-- SHOULD optimize perceived performance (lazy-load below fold, preload critical assets, keep mutations responsive)
-- SHOULD validate desktop/mobile/ultra-wide layouts and prevent accidental overflow/scrollbars
-
-## Domain and Secrets Guardrails
-
-- Preserve lifecycle integrity: `TestRequest -> Sample -> SampleTestProcess -> TestResult`
-- Treat inventory mutations, numbering, and workflow transitions as high risk
-- Do not bypass service or policy layers for convenience
-- Keep WhatsApp/GOWA flows idempotent, auditable, and retry-safe
-- Deployment config lives in `.deploy.local` (gitignored)
-- Never print, commit, or request raw secrets in chat/logs/PR text
-- Use placeholders for secrets, e.g. `DB_PASSWORD=<provided-by-user>`
-- Redact credential-like output as `***REDACTED***`
+- Scope user terpenuhi tanpa perubahan samping yang tidak diminta.
+- Domain guard, authorization, middleware, dan auditability tetap utuh.
+- Tidak ada secret atau live external side effect yang bocor.
+- Verification terkecil yang relevan sudah dijalankan dan lolos, atau blocker dilaporkan.
+- Final response menyebut file berubah, verifikasi, dan residual risk secara ringkas.
