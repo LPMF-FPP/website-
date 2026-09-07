@@ -65,12 +65,12 @@
 
                     <!-- Referensi Mega Menu -->
                     <div class="relative ml-2 shrink-0 border-l border-primary-100 pl-2 dark:border-white/10" x-data="{ open: false }" @click.away="open = false">
-                        <button @click="open = !open" 
+                         <button @click="open = !open"
                                 type="button"
                                 :aria-expanded="open"
                                 aria-haspopup="menu"
                                 class="inline-flex shrink-0 items-center gap-1.5 px-3 py-2 min-h-[44px] text-sm font-medium leading-none whitespace-nowrap rounded-md transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 xl:px-2.5 xl:text-xs 2xl:px-3 2xl:text-sm
-                                {{ (request()->routeIs('tracking.*') || request()->routeIs('search.*') || request()->routeIs('statistics.*') || request()->routeIs('inventory.*') || request()->routeIs('analysts.*') || request()->routeIs('settings.*') || request()->routeIs('quality.*')) 
+                                {{ (request()->routeIs('tracking.*') || request()->routeIs('search.*') || request()->routeIs('statistics.*') || request()->routeIs('inventory.*') || request()->routeIs('analysts.*') || request()->routeIs('settings.*') || request()->routeIs('quality.*') || request()->routeIs('sahli.*'))
                                    ? 'bg-primary-50 text-primary-800 ring-1 ring-primary-200 dark:bg-accent-800 dark:text-primary-400' 
                                    : 'text-pd-body hover:bg-primary-50 hover:text-primary-900 dark:text-accent-400 dark:hover:bg-accent-800 dark:hover:text-accent-100' }}">
                             <span>Referensi</span>
@@ -116,7 +116,7 @@
                                                 </div>
                                             </a>
                                             @endcan
-                                            @can('statistik.view')
+                                             @can('statistik.view')
                                             <a href="{{ route('statistics.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150">
                                                 <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-primary-100 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400">
                                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
@@ -126,7 +126,18 @@
                                                     <p class="text-sm text-gray-500 dark:text-gray-400">Analisa data laboratorium</p>
                                                 </div>
                                             </a>
-                                            @endcan
+                                             @endcan
+                                             @can('sahli.view')
+                                             <a href="{{ route('sahli.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-primary-50 dark:hover:bg-accent-800 transition duration-150 {{ request()->routeIs('sahli.*') ? 'bg-primary-50 dark:bg-accent-800' : '' }}">
+                                                 <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-primary-100 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400">
+                                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h8M8 11h8M8 15h5M6 3h9l3 3v15H6a2 2 0 01-2-2V5a2 2 0 012-2z"></path></svg>
+                                                 </div>
+                                                 <div class="ml-4">
+                                                     <p class="text-sm font-medium text-gray-900 dark:text-white group-hover:text-primary-700 dark:group-hover:text-primary-400">Saksi Ahli</p>
+                                                     <p class="text-sm text-gray-500 dark:text-gray-400">Pantau proses BAP saksi ahli</p>
+                                                 </div>
+                                             </a>
+                                             @endcan
                                         </div>
                                     </div>
 
@@ -373,9 +384,12 @@
                             @can('pencarian.view')
                             <x-responsive-nav-link href="{{ route('search.index') }}" :active="request()->routeIs('search.*')">Pencarian</x-responsive-nav-link>
                             @endcan
-                            @can('statistik.view')
-                            <x-responsive-nav-link href="{{ route('statistics.index') }}" :active="request()->routeIs('statistics.*')">Statistik</x-responsive-nav-link>
-                            @endcan
+                             @can('statistik.view')
+                             <x-responsive-nav-link href="{{ route('statistics.index') }}" :active="request()->routeIs('statistics.*')">Statistik</x-responsive-nav-link>
+                             @endcan
+                             @can('sahli.view')
+                             <x-responsive-nav-link href="{{ route('sahli.index') }}" :active="request()->routeIs('sahli.*')">Saksi Ahli</x-responsive-nav-link>
+                             @endcan
                             @can('inventori.view')
                             <x-responsive-nav-link href="{{ route('inventory.dashboard') }}" :active="request()->routeIs('inventory.*')">Inventori</x-responsive-nav-link>
                             @endcan

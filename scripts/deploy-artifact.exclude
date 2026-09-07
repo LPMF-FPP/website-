@@ -13,6 +13,7 @@ output/
 report/
 temp/
 tests/
+database/seeders/DevSahliSeeder.php
 AGENTS.md
 CODE_REVIEW.md
 RAMS_UI_GUIDELINES.md
