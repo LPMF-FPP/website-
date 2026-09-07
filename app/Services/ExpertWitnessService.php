@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Document;
 use App\Models\ExpertWitnessRequest;
 use App\Models\Sample;
 use App\Models\TestRequest;
@@ -154,18 +155,31 @@ class ExpertWitnessService
             return [];
         }
 
-        return Sample::query()
+        $samples = Sample::query()
             ->where('test_request_id', $request->test_request_id)
             ->with('testResult', 'testProcesses')
+            ->get();
+
+        $lhuDocuments = Document::query()
+            ->where('test_request_id', $request->test_request_id)
+            ->whereIn('sample_id', $samples->pluck('id'))
+            ->whereIn('document_type', ['laporan_hasil_uji', 'lhu'])
+            ->latest()
             ->get()
-            ->map(function (Sample $sample): array {
+            ->unique('sample_id')
+            ->keyBy('sample_id');
+
+        return $samples
+            ->map(function (Sample $sample) use ($lhuDocuments): array {
                 $interpretation = $sample->testProcesses
                     ->filter(fn ($process): bool => $process->stage?->value === 'interpretation')
+                    ->filter(fn ($process): bool => $process->completed_at !== null)
                     ->sortByDesc('completed_at')
                     ->first();
+                $lhuDocument = $lhuDocuments->get($sample->id);
                 $metadata = is_array($interpretation?->metadata) ? $interpretation->metadata : [];
                 $lhuNumber = $metadata['lhu_number'] ?? $metadata['report_number'] ?? null;
-                $available = (bool) ($interpretation?->completed_at && $lhuNumber && $sample->testResult?->qc_approved);
+                $available = (bool) ($lhuDocument && $interpretation && $lhuNumber && $sample->testResult?->qc_approved);
 
                 return [
                     'lhu_number' => $lhuNumber,
@@ -173,6 +187,7 @@ class ExpertWitnessService
                     'description' => $sample->short_description ?: $sample->sample_description,
                     'result' => $available ? ($sample->testResult?->test_conclusion ?: $sample->testResult?->result_status) : null,
                     'available' => $available,
+                    'lhu_document_id' => $lhuDocument?->id,
                 ];
             })
             ->groupBy(fn (array $reference): string => $reference['lhu_number'] ?: 'LHU belum tersedia')

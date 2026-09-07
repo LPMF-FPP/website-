@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Document;
 use App\Models\ExpertWitnessDocument;
 use App\Models\ExpertWitnessRequest;
 use App\Models\Investigator;
@@ -137,6 +138,25 @@ class DevSahliSeeder extends Seeder
                 'qc_approved' => true,
                 'reviewed_at' => now()->subDays(2),
                 'reviewed_by' => $request->user_id,
+            ]
+        );
+
+        Document::updateOrCreate(
+            [
+                'test_request_id' => $request->id,
+                'sample_id' => $sample->id,
+                'document_type' => 'laporan_hasil_uji',
+            ],
+            [
+                'investigator_id' => $request->investigator_id,
+                'source' => 'generated',
+                'storage_disk' => 'public',
+                'filename' => $lhuNumber.'.pdf',
+                'original_filename' => $lhuNumber.'.pdf',
+                'file_path' => 'generated/'.$lhuNumber.'.pdf',
+                'path' => 'generated/'.$lhuNumber.'.pdf',
+                'file_size' => 0,
+                'mime_type' => 'application/pdf',
             ]
         );
 

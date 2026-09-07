@@ -3,6 +3,7 @@
 namespace Tests\Feature\Sahli;
 
 use App\Livewire\Sahli\Show;
+use App\Models\Document;
 use App\Models\ExpertWitnessRequest;
 use App\Models\Investigator;
 use App\Models\Sample;
@@ -78,6 +79,16 @@ class SahliFeatureTest extends TestCase
             'stage' => 'interpretation',
             'completed_at' => now(),
             'metadata' => ['lhu_number' => 'LHU-001'],
+        ]);
+        Document::factory()->generated()->create([
+            'investigator_id' => $testRequest->investigator_id,
+            'test_request_id' => $testRequest->id,
+            'sample_id' => $sample->id,
+            'document_type' => 'laporan_hasil_uji',
+            'filename' => 'LHU-001.pdf',
+            'original_filename' => 'LHU-001.pdf',
+            'file_path' => 'generated/LHU-001.pdf',
+            'path' => 'generated/LHU-001.pdf',
         ]);
         TestResult::create([
             'sample_id' => $sample->id,
@@ -176,6 +187,23 @@ class SahliFeatureTest extends TestCase
             'source' => ExpertWitnessRequest::SOURCE_FARMAPOL,
             'investigator_id' => $investigator->id,
         ]);
+    }
+
+    public function test_sahli_index_displays_suspect_name_for_farmapol_request(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $investigator = Investigator::factory()->create();
+        $testRequest = TestRequest::factory()->create([
+            'user_id' => $admin->id,
+            'investigator_id' => $investigator->id,
+            'suspect_name' => 'Tersangka Tampilan Sahli',
+            'has_expert_witness_request' => true,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('sahli.index'))
+            ->assertOk()
+            ->assertSee('Tersangka Tampilan Sahli');
     }
 
     public function test_livewire_milestone_action_requires_edit_permission(): void

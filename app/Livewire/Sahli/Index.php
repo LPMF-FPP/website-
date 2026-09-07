@@ -63,7 +63,7 @@ class Index extends Component
         ];
 
         $query = ExpertWitnessRequest::query()
-            ->with(['milestones', 'testRequest'])
+            ->with(['milestones', 'testRequest.suspects'])
             ->when($this->search !== '', function ($query): void {
                 $term = '%'.addcslashes($this->search, '%_').'%';
                 $query->where(function ($query) use ($term): void {
