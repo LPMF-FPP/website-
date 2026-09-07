@@ -10,5 +10,12 @@ class DatabaseSeeder extends Seeder
     {
         // Seed system settings (always needed)
         $this->call(SystemSettingSeeder::class);
+
+        if (app()->environment(['local', 'testing'])) {
+            $this->call([
+                PermissionSeeder::class,
+                DevSahliSeeder::class,
+            ]);
+        }
     }
 }

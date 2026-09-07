@@ -172,6 +172,14 @@ if (!window[APP_BOOT_KEY]) {
         }));
     });
 
+    Livewire.hook("request", ({ fail }) => {
+        fail(({ status }) => {
+            if (status >= 400) {
+                window.dispatchEvent(new CustomEvent("livewire-request-error"));
+            }
+        });
+    });
+
     Livewire.start();
 }
 

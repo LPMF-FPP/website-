@@ -22,6 +22,11 @@ class PermissionSeeder extends Seeder
         ['name' => 'permintaan.edit', 'display_name' => 'Edit Permintaan', 'module' => 'permintaan', 'action' => 'edit'],
         ['name' => 'permintaan.delete', 'display_name' => 'Hapus Permintaan', 'module' => 'permintaan', 'action' => 'delete'],
 
+        // Saksi Ahli
+        ['name' => 'sahli.view', 'display_name' => 'Lihat Saksi Ahli', 'module' => 'sahli', 'action' => 'view'],
+        ['name' => 'sahli.create', 'display_name' => 'Tambah Saksi Ahli', 'module' => 'sahli', 'action' => 'create'],
+        ['name' => 'sahli.edit', 'display_name' => 'Edit Saksi Ahli', 'module' => 'sahli', 'action' => 'edit'],
+
         // Kaji Ulang
         ['name' => 'kaji-ulang.view', 'display_name' => 'Lihat Kaji Ulang', 'module' => 'kaji-ulang', 'action' => 'view'],
         ['name' => 'kaji-ulang.create', 'display_name' => 'Tambah Kaji Ulang', 'module' => 'kaji-ulang', 'action' => 'create'],
@@ -133,6 +138,7 @@ class PermissionSeeder extends Seeder
         'investigator' => [
             'dashboard.view',
             'permintaan.view',
+            'sahli.view', 'sahli.create', 'sahli.edit',
             'kaji-ulang.view',
             'pengujian.view',
             'penyerahan.view',
@@ -145,6 +151,7 @@ class PermissionSeeder extends Seeder
         'analis' => [
             'dashboard.view',
             'permintaan.view', 'permintaan.create', 'permintaan.edit',
+            'sahli.view', 'sahli.create', 'sahli.edit',
             'kaji-ulang.view',
             'pengujian.view', 'pengujian.create', 'pengujian.edit',
             'penyerahan.view',
@@ -159,6 +166,7 @@ class PermissionSeeder extends Seeder
         'penyelia' => [
             'dashboard.view',
             'permintaan.view', 'permintaan.create', 'permintaan.edit',
+            'sahli.view', 'sahli.create', 'sahli.edit',
             'kaji-ulang.view', 'kaji-ulang.create', 'kaji-ulang.edit',
             'pengujian.view', 'pengujian.create', 'pengujian.edit', 'pengujian.delete',
             'penyerahan.view', 'penyerahan.create', 'penyerahan.edit',
@@ -179,6 +187,7 @@ class PermissionSeeder extends Seeder
         'manajer_teknis' => [
             'dashboard.view',
             'permintaan.view', 'permintaan.create', 'permintaan.edit', 'permintaan.delete',
+            'sahli.view', 'sahli.create', 'sahli.edit',
             'kaji-ulang.view', 'kaji-ulang.create', 'kaji-ulang.edit', 'kaji-ulang.delete',
             'pengujian.view', 'pengujian.create', 'pengujian.edit', 'pengujian.delete',
             'penyerahan.view', 'penyerahan.create', 'penyerahan.edit', 'penyerahan.delete',
@@ -202,6 +211,7 @@ class PermissionSeeder extends Seeder
             // Admin mendapat semua permission
             'dashboard.view',
             'permintaan.view', 'permintaan.create', 'permintaan.edit', 'permintaan.delete',
+            'sahli.view', 'sahli.create', 'sahli.edit',
             'kaji-ulang.view', 'kaji-ulang.create', 'kaji-ulang.edit', 'kaji-ulang.delete',
             'pengujian.view', 'pengujian.create', 'pengujian.edit', 'pengujian.delete',
             'penyerahan.view', 'penyerahan.create', 'penyerahan.edit', 'penyerahan.delete',
@@ -250,6 +260,7 @@ class PermissionSeeder extends Seeder
             // analyst sama dengan analis
             'dashboard.view',
             'permintaan.view', 'permintaan.create', 'permintaan.edit',
+            'sahli.view', 'sahli.create', 'sahli.edit',
             'kaji-ulang.view',
             'pengujian.view', 'pengujian.create', 'pengujian.edit',
             'penyerahan.view',
@@ -265,6 +276,7 @@ class PermissionSeeder extends Seeder
             // lab_analyst sama dengan analis
             'dashboard.view',
             'permintaan.view', 'permintaan.create', 'permintaan.edit',
+            'sahli.view', 'sahli.create', 'sahli.edit',
             'kaji-ulang.view',
             'pengujian.view', 'pengujian.create', 'pengujian.edit',
             'penyerahan.view',

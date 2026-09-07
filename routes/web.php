@@ -5,6 +5,7 @@ use App\Http\Controllers\ConsolidatedReportController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeliveryController;
 use App\Http\Controllers\EnvironmentMonitoringController;
+use App\Http\Controllers\ExpertWitnessDocumentController;
 use App\Http\Controllers\GoogleDriveOAuthController;
 use App\Http\Controllers\InstrumentLoggingController;
 use App\Http\Controllers\InvestigatorManagementController;
@@ -33,6 +34,7 @@ use App\Http\Controllers\SettingsPageController;
 use App\Http\Controllers\StaffTaskController;
 use App\Http\Controllers\StatisticsController;
 use App\Http\Controllers\TrackingController;
+use App\Models\ExpertWitnessRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -264,6 +266,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Requests
     Route::resource('requests', RequestController::class);
+
+    Route::prefix('sahli')->name('sahli.')->middleware('permission:sahli.view')->group(function () {
+        Route::view('/', 'sahli.index')->name('index');
+        Route::view('/create', 'sahli.create')->middleware('permission:sahli.create')->name('create');
+        Route::get('/{expertWitnessRequest}', function (ExpertWitnessRequest $expertWitnessRequest) {
+            return view('sahli.show', ['sahli' => $expertWitnessRequest]);
+        })->name('show')->whereNumber('expertWitnessRequest');
+        Route::get('/documents/{document}/download', [ExpertWitnessDocumentController::class, 'download'])
+            ->name('documents.download')
+            ->whereNumber('document')
+            ->middleware(['signed', 'audit.activity:DOCUMENT_DOWNLOADED,document', 'throttle:downloads']);
+    });
     Route::patch('requests/{testRequest}/verified-at', [RequestController::class, 'updateVerifiedAt'])
         ->name('requests.update-verified-at');
 

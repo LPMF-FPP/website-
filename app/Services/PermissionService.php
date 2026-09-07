@@ -150,6 +150,7 @@ class PermissionService
         $names = [
             'dashboard' => 'Dashboard',
             'permintaan' => 'Permintaan',
+            'sahli' => 'Saksi Ahli',
             'kaji-ulang' => 'Kaji Ulang',
             'pengujian' => 'Pengujian',
             'penyerahan' => 'Penyerahan',

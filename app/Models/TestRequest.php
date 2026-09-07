@@ -138,6 +138,11 @@ class TestRequest extends Model
 
     }
 
+    public function expertWitnessRequest(): HasOne
+    {
+        return $this->hasOne(ExpertWitnessRequest::class);
+    }
+
     public function samples(): HasMany
     {
 
