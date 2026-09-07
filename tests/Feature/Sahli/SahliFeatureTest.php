@@ -101,6 +101,30 @@ class SahliFeatureTest extends TestCase
             'file_path' => 'generated/LHU-001.pdf',
             'path' => 'generated/LHU-001.pdf',
         ]);
+        $uploadedResultSample = Sample::factory()->create([
+            'test_request_id' => $testRequest->id,
+            'sample_code' => 'SAMP-UPLOADED',
+            'active_substance' => 'Tramadol',
+        ]);
+        $uploadedResultSample->testProcesses()->create([
+            'stage' => 'interpretation',
+            'completed_at' => now(),
+            'metadata' => [
+                'lhu_number' => 'LHU-UPLOADED',
+                'test_result' => 'positive',
+                'detected_substance' => 'Tramadol',
+            ],
+        ]);
+        Document::factory()->create([
+            'investigator_id' => $testRequest->investigator_id,
+            'test_request_id' => $testRequest->id,
+            'sample_id' => $uploadedResultSample->id,
+            'document_type' => 'test_results',
+            'filename' => 'SAMP-UPLOADED.pdf',
+            'original_filename' => 'SAMP-UPLOADED.pdf',
+            'file_path' => 'uploads/SAMP-UPLOADED.pdf',
+            'path' => 'uploads/SAMP-UPLOADED.pdf',
+        ]);
         $unpublishedSample = Sample::factory()->create([
             'test_request_id' => $testRequest->id,
             'sample_code' => 'SAMP-002',
@@ -167,6 +191,8 @@ class SahliFeatureTest extends TestCase
         $this->assertSame('SAMP-001', $references['LHU-001'][0]['sample_code']);
         $this->assertSame('Positif: Tramadol; Negatif: Kafein', $references['LHU-001'][0]['result']);
         $this->assertTrue($references['LHU-001'][0]['available']);
+        $this->assertSame('Positif: Tramadol', $references['LHU-UPLOADED'][0]['result']);
+        $this->assertTrue($references['LHU-UPLOADED'][0]['available']);
         $this->assertNull($references['LHU-002'][0]['result']);
         $this->assertFalse($references['LHU-002'][0]['available']);
         $this->assertSame('Kesimpulan legacy', $references['LHU-LEGACY'][0]['result']);

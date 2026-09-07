@@ -160,23 +160,23 @@ class ExpertWitnessService
             ->with('testResult', 'testProcesses')
             ->get();
 
-        $lhuDocuments = Document::query()
+        $officialResultDocuments = Document::query()
             ->where('test_request_id', $request->test_request_id)
             ->whereIn('sample_id', $samples->pluck('id'))
-            ->whereIn('document_type', ['laporan_hasil_uji', 'lhu'])
+            ->whereIn('document_type', ['laporan_hasil_uji', 'laporan_hasil_uji_html', 'lhu', 'test_results'])
             ->latest()
             ->get()
             ->unique('sample_id')
             ->keyBy('sample_id');
 
         return $samples
-            ->map(function (Sample $sample) use ($lhuDocuments): array {
+            ->map(function (Sample $sample) use ($officialResultDocuments): array {
                 $interpretation = $sample->testProcesses
                     ->filter(fn ($process): bool => $process->stage?->value === 'interpretation')
                     ->filter(fn ($process): bool => $process->completed_at !== null)
                     ->sortByDesc('completed_at')
                     ->first();
-                $lhuDocument = $lhuDocuments->get($sample->id);
+                $lhuDocument = $officialResultDocuments->get($sample->id);
                 $metadata = is_array($interpretation?->metadata) ? $interpretation->metadata : [];
                 $lhuNumber = $metadata['lhu_number'] ?? $metadata['report_number'] ?? null;
                 $available = (bool) ($lhuDocument && $interpretation && $lhuNumber);
