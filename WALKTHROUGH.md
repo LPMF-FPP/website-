@@ -149,6 +149,12 @@ WhatsApp service berjalan di container Docker terpisah.
 
 ## 📰 Recent Changes (v2.6.x)
 
+### v2.6.5 (7 September 2026) - Koreksi Tampilan Sahli & LHU Existing
+
+- **Nama Tersangka di Daftar Sahli:** Halaman daftar Sahli menggunakan nama tersangka sebagai identitas utama, dengan nomor surat sebagai informasi pendukung.
+- **LHU Existing:** Referensi hasil Sahli menggunakan dokumen LHU yang sudah terbit pada permintaan dan sampel terkait tanpa bergantung pada flag QC lama yang belum ter-backfill.
+- **Regression Coverage:** Menjaga isolasi LHU per permintaan dan memastikan hasil tersedia ketika dokumen LHU resmi sudah ada.
+
 ### v2.6.4 (7 September 2026) - Saksi Ahli: Nama Tersangka & Referensi LHU
 
 - **Konteks Tersangka:** Daftar Saksi Ahli sekarang menampilkan nama tersangka sebagai identitas utama, dengan nomor surat tetap tersedia sebagai informasi pendukung.
