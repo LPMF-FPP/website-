@@ -149,6 +149,13 @@ WhatsApp service berjalan di container Docker terpisah.
 
 ## 📰 Recent Changes (v2.6.x)
 
+### v2.6.4 (7 September 2026) - Saksi Ahli: Nama Tersangka & Referensi LHU
+
+- **Konteks Tersangka:** Daftar Saksi Ahli sekarang menampilkan nama tersangka sebagai identitas utama, dengan nomor surat tetap tersedia sebagai informasi pendukung.
+- **Referensi LHU Resmi:** Detail Sahli Farmapol hanya menampilkan kode sampel, deskripsi, kesimpulan resmi, dan nomor LHU jika dokumen LHU benar-benar tersedia pada permintaan yang sama dan hasilnya sudah disetujui QC.
+- **Data Dummy Development:** Seeder dummy Sahli diperbarui dengan dokumen LHU per sampel dan tetap dibatasi ke environment `local`/`testing`; file seedernya dikecualikan dari artifact production.
+- **Regression Coverage:** Menambahkan verifikasi nama tersangka pada daftar Sahli dan isolasi referensi LHU berdasarkan permintaan terkait.
+
 ### v2.6.3 (26 Agustus 2026) - Deploy Hardening & Verifikasi Host SSH
 
 - **Verifikasi Host SSH:** Skrip deploy tidak lagi menghapus atau menambahkan entri `known_hosts` secara otomatis. Deployment hanya berjalan bila fingerprint SHA256 yang sudah diverifikasi cocok dengan entri host tepercaya.
