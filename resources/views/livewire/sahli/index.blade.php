@@ -86,8 +86,9 @@
                         </div>
                         <div class="grid gap-5 px-4 py-5 sm:px-5 lg:grid-cols-[1.05fr_1fr_.95fr_auto] lg:items-center">
                             <div class="min-w-0">
-                                <p class="truncate text-base font-bold text-pd-text">{{ $request->letter_number }}</p>
-                                <p class="mt-1 text-sm text-pd-text-muted">Surat {{ $request->letter_date?->translatedFormat('d F Y') }}</p>
+                                @php($suspectNames = $request->testRequest?->display_suspect_names ?? [])
+                                <p class="truncate text-base font-bold text-pd-text">{{ $suspectNames ? implode(', ', $suspectNames) : 'Nama tersangka belum diisi' }}</p>
+                                <p class="mt-1 truncate text-sm text-pd-text-muted">{{ $request->letter_number }} · Surat {{ $request->letter_date?->translatedFormat('d F Y') }}</p>
                             </div>
                             <div class="min-w-0">
                                 <p class="truncate font-semibold text-pd-text">{{ $request->investigator_name }}</p>

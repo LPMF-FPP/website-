@@ -179,7 +179,7 @@ class ExpertWitnessService
                 $lhuDocument = $lhuDocuments->get($sample->id);
                 $metadata = is_array($interpretation?->metadata) ? $interpretation->metadata : [];
                 $lhuNumber = $metadata['lhu_number'] ?? $metadata['report_number'] ?? null;
-                $available = (bool) ($lhuDocument && $interpretation && $lhuNumber && $sample->testResult?->qc_approved);
+                $available = (bool) ($lhuDocument && $interpretation && $lhuNumber);
 
                 return [
                     'lhu_number' => $lhuNumber,

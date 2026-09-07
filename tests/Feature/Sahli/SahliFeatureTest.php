@@ -98,7 +98,7 @@ class SahliFeatureTest extends TestCase
             'active_substances' => [],
             'test_conclusion' => 'Positif mengandung zat uji',
             'result_status' => 'positive',
-            'qc_approved' => true,
+            'qc_approved' => false,
         ]);
         Sample::factory()->create(['test_request_id' => $otherRequest->id, 'sample_code' => 'SAMP-OTHER']);
 
@@ -115,9 +115,14 @@ class SahliFeatureTest extends TestCase
         ]);
 
         $references = app(ExpertWitnessService::class)->farmapolReferences($sahli);
-
+        $this->assertDatabaseHas('documents', [
+            'test_request_id' => $testRequest->id,
+            'sample_id' => $sample->id,
+            'document_type' => 'laporan_hasil_uji',
+        ]);
         $this->assertArrayHasKey('LHU-001', $references);
         $this->assertSame('SAMP-001', $references['LHU-001'][0]['sample_code']);
+        $this->assertTrue($references['LHU-001'][0]['available']);
         $this->assertArrayNotHasKey('LHU-OTHER', $references);
     }
 
