@@ -50,7 +50,7 @@
             <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
                 <label class="min-w-0 flex-1">
                     <span class="sr-only">Cari pengajuan sahli</span>
-                    <input wire:model.live.debounce.300ms="search" type="search" placeholder="Cari nomor surat, penyidik, atau instansi" class="min-h-11 w-full rounded-lg border-gray-300 bg-gray-50 text-sm shadow-none focus:border-primary-600 focus:ring-primary-600 dark:border-accent-600 dark:bg-accent-950 dark:text-white">
+                    <input wire:model.live.debounce.300ms="search" type="search" placeholder="Cari nomor surat, tersangka, penyidik, atau instansi" class="min-h-11 w-full rounded-lg border-gray-300 bg-gray-50 text-sm shadow-none focus:border-primary-600 focus:ring-primary-600 dark:border-accent-600 dark:bg-accent-950 dark:text-white">
                 </label>
                 <label class="lg:w-44">
                     <span class="sr-only">Status pengajuan</span>
