@@ -60,6 +60,10 @@
                         <option value="all">Semua status</option>
                     </select>
                 </label>
+                <label class="lg:w-44">
+                    <span class="sr-only">Bulan acuan</span>
+                    <input wire:model.live="month" type="month" aria-label="Filter bulan acuan" class="min-h-11 w-full rounded-lg border-gray-300 bg-gray-50 text-sm shadow-none focus:border-primary-600 focus:ring-primary-600 dark:border-accent-600 dark:bg-accent-950 dark:text-white">
+                </label>
             </div>
             <div wire:loading class="mt-3 rounded-lg border border-primary-200 bg-primary-50 px-4 py-3 text-sm text-primary-800 dark:border-primary-800 dark:bg-primary-950 dark:text-primary-100" role="status">Memuat antrian Sahli...</div>
             <div x-show="requestError" x-cloak class="mt-3 flex flex-col gap-3 rounded-lg border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-800 dark:border-danger-800 dark:bg-danger-950 dark:text-danger-100 sm:flex-row sm:items-center sm:justify-between" role="alert">
@@ -86,8 +90,9 @@
                         </div>
                         <div class="grid gap-5 px-4 py-5 sm:px-5 lg:grid-cols-[1.05fr_1fr_.95fr_auto] lg:items-center">
                             <div class="min-w-0">
-                                <p class="truncate text-base font-bold text-pd-text">{{ $request->letter_number }}</p>
-                                <p class="mt-1 text-sm text-pd-text-muted">Surat {{ $request->letter_date?->translatedFormat('d F Y') }}</p>
+                                @php($suspectNames = $request->testRequest?->display_suspect_names ?? [])
+                                <p class="truncate text-base font-bold text-pd-text">{{ $suspectNames ? implode(', ', $suspectNames) : 'Nama tersangka belum diisi' }}</p>
+                                <p class="mt-1 truncate text-sm text-pd-text-muted">{{ $request->letter_number }} · Surat {{ $request->letter_date?->translatedFormat('d F Y') }}</p>
                             </div>
                             <div class="min-w-0">
                                 <p class="truncate font-semibold text-pd-text">{{ $request->investigator_name }}</p>
