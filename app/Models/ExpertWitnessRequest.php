@@ -25,7 +25,7 @@ class ExpertWitnessRequest extends Model
 
     protected $fillable = [
         'source', 'test_request_id', 'investigator_id', 'submitted_by', 'submission_token', 'letter_number',
-        'letter_date', 'investigator_name', 'investigator_institution', 'investigator_phone',
+        'letter_date', 'investigator_name', 'investigator_rank', 'investigator_institution', 'investigator_phone', 'suspect_name',
         'sprin_number', 'sprin_date', 'notes', 'submitted_at', 'completed_at',
     ];
 
