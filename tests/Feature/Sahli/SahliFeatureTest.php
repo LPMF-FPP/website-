@@ -82,6 +82,7 @@ class SahliFeatureTest extends TestCase
             'test_request_id' => $testRequest->id,
             'sample_code' => 'SAMP-001',
             'active_substance' => 'Kafein',
+            'physical_identification' => 'Deskripsi fisik pada LHU',
         ]);
         $sample->testProcesses()->create([
             'stage' => 'interpretation',
@@ -193,6 +194,7 @@ class SahliFeatureTest extends TestCase
         ]);
         $this->assertArrayHasKey('LHU-001', $references);
         $this->assertSame('SAMP-001', $references['LHU-001'][0]['sample_code']);
+        $this->assertSame('Deskripsi fisik pada LHU', $references['LHU-001'][0]['description']);
         $this->assertSame('Positif: Tramadol; Negatif: Kafein', $references['LHU-001'][0]['result']);
         $this->assertTrue($references['LHU-001'][0]['available']);
         $this->assertSame('Positif: Tramadol', $references['LHU-UPLOADED'][0]['result']);
