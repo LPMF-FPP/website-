@@ -60,6 +60,10 @@
                         <option value="all">Semua status</option>
                     </select>
                 </label>
+                <label class="lg:w-44">
+                    <span class="sr-only">Bulan acuan</span>
+                    <input wire:model.live="month" type="month" aria-label="Filter bulan acuan" class="min-h-11 w-full rounded-lg border-gray-300 bg-gray-50 text-sm shadow-none focus:border-primary-600 focus:ring-primary-600 dark:border-accent-600 dark:bg-accent-950 dark:text-white">
+                </label>
             </div>
             <div wire:loading class="mt-3 rounded-lg border border-primary-200 bg-primary-50 px-4 py-3 text-sm text-primary-800 dark:border-primary-800 dark:bg-primary-950 dark:text-primary-100" role="status">Memuat antrian Sahli...</div>
             <div x-show="requestError" x-cloak class="mt-3 flex flex-col gap-3 rounded-lg border border-danger-200 bg-danger-50 px-4 py-3 text-sm text-danger-800 dark:border-danger-800 dark:bg-danger-950 dark:text-danger-100 sm:flex-row sm:items-center sm:justify-between" role="alert">

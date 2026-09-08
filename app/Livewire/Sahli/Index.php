@@ -4,6 +4,7 @@ namespace App\Livewire\Sahli;
 
 use App\Models\ExpertWitnessRequest;
 use App\Services\ExpertWitnessService;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -16,11 +17,14 @@ class Index extends Component
 
     public string $status = 'open';
 
+    public string $month = '';
+
     public string $sortDirection = 'desc';
 
     protected $queryString = [
         'search' => ['except' => ''],
         'status' => ['except' => 'open'],
+        'month' => ['except' => ''],
         'sortDirection' => ['except' => 'desc'],
     ];
 
@@ -34,6 +38,10 @@ class Index extends Component
             $this->sortDirection = 'desc';
         }
 
+        if (! preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $this->month)) {
+            $this->month = '';
+        }
+
         $service->syncFarmapolRequests();
     }
 
@@ -43,6 +51,11 @@ class Index extends Component
     }
 
     public function updatingStatus(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingMonth(): void
     {
         $this->resetPage();
     }
@@ -74,6 +87,22 @@ class Index extends Component
             })
             ->when($this->status === 'open', fn ($query) => $query->whereNull('completed_at'))
             ->when($this->status === 'completed', fn ($query) => $query->whereNotNull('completed_at'))
+            ->when($this->month !== '', function ($query): void {
+                $start = CarbonImmutable::createFromFormat('!Y-m', $this->month)->startOfMonth();
+                $end = $start->endOfMonth();
+
+                $query->where(function ($query) use ($start, $end): void {
+                    $query
+                        ->where(function ($query) use ($start, $end): void {
+                            $query->where('source', ExpertWitnessRequest::SOURCE_FARMAPOL)
+                                ->whereHas('testRequest', fn ($query) => $query->whereBetween('created_at', [$start, $end]));
+                        })
+                        ->orWhere(function ($query) use ($start, $end): void {
+                            $query->where('source', ExpertWitnessRequest::SOURCE_EXTERNAL)
+                                ->whereBetween('submitted_at', [$start, $end]);
+                        });
+                });
+            })
             ->orderByRaw($this->dateOrderSql().' '.$this->sortDirection)
             ->orderByDesc('id');
 

@@ -61,9 +61,14 @@
                     <div class="mt-5 space-y-5">
                         @forelse($references as $lhu => $samples)
                             <div>
-                                <div class="flex items-center gap-3">
+                                <div class="flex flex-wrap items-center gap-3">
                                     <span class="h-2 w-2 rounded-full bg-primary-600"></span>
                                     <h3 class="text-sm font-bold text-pd-text">No. LHU: {{ $lhu }}</h3>
+                                    @if($lhu !== 'LHU belum tersedia')
+                                        @php($lhuKey = md5($lhu.'-number'))
+                                        <button type="button" x-on:click="copyValue(@js($lhu), '{{ $lhuKey }}')" class="inline-flex min-h-10 items-center rounded-md border border-gray-300 px-2.5 text-xs font-semibold text-gray-700 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-accent-600 dark:text-gray-100 dark:hover:bg-accent-800" aria-label="Salin nomor LHU"><span x-text="copied === '{{ $lhuKey }}' ? 'Tersalin' : 'Salin'"></span></button>
+                                        <span x-show="copied === 'failed-{{ $lhuKey }}'" class="text-xs text-danger-700" role="alert">Pilih nomor LHU lalu salin.</span>
+                                    @endif
                                 </div>
                                 <div class="mt-3 space-y-3 border-l border-primary-200 pl-5 dark:border-accent-600">
                                     @foreach($samples as $sampleIndex => $sample)
