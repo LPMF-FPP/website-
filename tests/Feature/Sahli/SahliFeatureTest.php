@@ -290,6 +290,21 @@ class SahliFeatureTest extends TestCase
             ->assertSee('Tersangka Tampilan Sahli');
     }
 
+    public function test_sahli_index_displays_external_suspect_name_from_submission(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $request = ExpertWitnessRequest::factory()->create([
+            'source' => ExpertWitnessRequest::SOURCE_EXTERNAL,
+            'submitted_by' => $admin->id,
+            'suspect_name' => 'Tersangka Lab Luar',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('sahli.index'))
+            ->assertOk()
+            ->assertSee('Tersangka Lab Luar');
+    }
+
     public function test_sahli_index_filters_by_reference_month(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

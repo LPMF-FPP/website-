@@ -91,6 +91,9 @@
                         <div class="grid gap-5 px-4 py-5 sm:px-5 lg:grid-cols-[1.05fr_1fr_.95fr_auto] lg:items-center">
                             <div class="min-w-0">
                                 @php($suspectNames = $request->testRequest?->display_suspect_names ?? [])
+                                @if(! $suspectNames && filled($request->suspect_name))
+                                    @php($suspectNames = [$request->suspect_name])
+                                @endif
                                 <p class="truncate text-base font-bold text-pd-text">{{ $suspectNames ? implode(', ', $suspectNames) : 'Nama tersangka belum diisi' }}</p>
                                 <p class="mt-1 truncate text-sm text-pd-text-muted">{{ $request->letter_number }} · Surat {{ $request->letter_date?->translatedFormat('d F Y') }}</p>
                             </div>
