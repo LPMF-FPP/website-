@@ -284,6 +284,74 @@ class SahliFeatureTest extends TestCase
             ->assertSee('Tersangka Tampilan Sahli');
     }
 
+    public function test_sahli_index_filters_by_reference_month(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $august = ExpertWitnessRequest::factory()->create([
+            'submitted_by' => $admin->id,
+            'letter_number' => 'B/AUGUST/2026',
+            'submitted_at' => '2026-08-15 10:00:00',
+        ]);
+        $september = ExpertWitnessRequest::factory()->create([
+            'submitted_by' => $admin->id,
+            'letter_number' => 'B/SEPTEMBER/2026',
+            'submitted_at' => '2026-09-15 10:00:00',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('sahli.index', ['status' => 'all', 'month' => '2026-08']))
+            ->assertOk()
+            ->assertSee($august->letter_number)
+            ->assertDontSee($september->letter_number);
+    }
+
+    public function test_sahli_index_shows_empty_state_for_month_without_requests(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        ExpertWitnessRequest::factory()->create([
+            'submitted_by' => $admin->id,
+            'submitted_at' => '2026-08-15 10:00:00',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('sahli.index', ['status' => 'all', 'month' => '2026-09']))
+            ->assertOk()
+            ->assertSee('Belum ada pengajuan Sahli yang cocok');
+    }
+
+    public function test_detail_view_exposes_copy_action_for_lhu_number(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $testRequest = TestRequest::factory()->create(['user_id' => $admin->id]);
+        $sample = Sample::factory()->create(['test_request_id' => $testRequest->id]);
+        $sample->testProcesses()->create([
+            'stage' => 'interpretation',
+            'completed_at' => now(),
+            'metadata' => [
+                'lhu_number' => 'LHU-TEST-001',
+                'test_result' => 'positive',
+                'detected_substance' => 'Tramadol',
+            ],
+        ]);
+        Document::factory()->generated()->create([
+            'investigator_id' => $testRequest->investigator_id,
+            'test_request_id' => $testRequest->id,
+            'sample_id' => $sample->id,
+            'document_type' => 'laporan_hasil_uji',
+        ]);
+        $request = ExpertWitnessRequest::factory()->create([
+            'source' => ExpertWitnessRequest::SOURCE_FARMAPOL,
+            'test_request_id' => $testRequest->id,
+            'submitted_by' => $admin->id,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('sahli.show', $request))
+            ->assertOk()
+            ->assertSee('No. LHU: LHU-TEST-001')
+            ->assertSee('Salin nomor LHU');
+    }
+
     public function test_livewire_milestone_action_requires_edit_permission(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
