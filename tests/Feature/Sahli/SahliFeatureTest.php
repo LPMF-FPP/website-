@@ -446,4 +446,28 @@ class SahliFeatureTest extends TestCase
             ->assertSee('Koreksi data pengajuan')
             ->assertSee('Simpan perubahan');
     }
+
+    public function test_sahli_detail_uses_farmapol_identity_fallbacks(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $investigator = Investigator::factory()->create(['rank' => 'AIPDA']);
+        $testRequest = TestRequest::factory()->create([
+            'user_id' => $admin->id,
+            'investigator_id' => $investigator->id,
+            'suspect_name' => 'Tersangka Farmapol',
+        ]);
+        $request = ExpertWitnessRequest::factory()->create([
+            'source' => ExpertWitnessRequest::SOURCE_FARMAPOL,
+            'test_request_id' => $testRequest->id,
+            'submitted_by' => $admin->id,
+            'investigator_rank' => null,
+            'suspect_name' => null,
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('sahli.show', $request))
+            ->assertOk()
+            ->assertSee('AIPDA')
+            ->assertSee('Tersangka Farmapol');
+    }
 }
