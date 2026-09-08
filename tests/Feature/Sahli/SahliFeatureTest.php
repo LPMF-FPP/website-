@@ -434,4 +434,16 @@ class SahliFeatureTest extends TestCase
             'investigator_rank' => 'AKP',
         ]);
     }
+
+    public function test_sahli_edit_route_renders_livewire_page(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $request = ExpertWitnessRequest::factory()->create(['submitted_by' => $admin->id]);
+
+        $this->actingAs($admin)
+            ->get(route('sahli.edit', $request))
+            ->assertOk()
+            ->assertSee('Koreksi data pengajuan')
+            ->assertSee('Simpan perubahan');
+    }
 }
