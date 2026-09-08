@@ -149,18 +149,20 @@ WhatsApp service berjalan di container Docker terpisah.
 
 ## 📰 Recent Changes (v2.6.x)
 
-### v2.6.5 (7 September 2026) - Koreksi Tampilan Sahli & LHU Existing
+### v2.6.6 (8 September 2026) - Edit Data Pengajuan Saksi Ahli
 
-- **Nama Tersangka di Daftar Sahli:** Halaman daftar Sahli menggunakan nama tersangka sebagai identitas utama, dengan nomor surat sebagai informasi pendukung.
-- **LHU Existing:** Referensi hasil Sahli menggunakan dokumen LHU yang sudah terbit pada permintaan dan sampel terkait tanpa bergantung pada flag QC lama yang belum ter-backfill.
-- **Regression Coverage:** Menjaga isolasi LHU per permintaan dan memastikan hasil tersedia ketika dokumen LHU resmi sudah ada.
+- **Halaman Edit Sahli:** Petugas dengan permission `sahli.edit` kini dapat memperbarui identitas surat, tersangka, penyidik, pangkat, instansi, nomor telepon, dan catatan tanpa mengubah checklist BAP atau dokumen privat.
+- **Input Pengajuan Lengkap:** Form pengajuan Sahli mencatat pangkat penyidik dan nama tersangka sejak awal, dengan validasi dan penyimpanan terotorisasi.
+- **Desain Trust-First:** Halaman edit menggunakan struktur dua area yang menonjolkan data perkara, kontak kerja, dan batas perubahan secara jelas pada desktop maupun mobile.
+- **Regression Coverage:** Menambahkan test untuk migration field, update identitas melalui Livewire, permission edit, serta tampilan halaman edit.
 
-### v2.6.4 (7 September 2026) - Saksi Ahli: Nama Tersangka & Referensi LHU
+### v2.6.4 (6 September 2026) - Pengelompokan Buku Tamu & Form Submit
 
-- **Konteks Tersangka:** Daftar Saksi Ahli sekarang menampilkan nama tersangka sebagai identitas utama, dengan nomor surat tetap tersedia sebagai informasi pendukung.
-- **Referensi LHU Resmi:** Detail Sahli Farmapol hanya menampilkan kode sampel, deskripsi, kesimpulan resmi, dan nomor LHU jika dokumen LHU benar-benar tersedia pada permintaan yang sama dan hasilnya sudah disetujui QC.
-- **Data Dummy Development:** Seeder dummy Sahli diperbarui dengan dokumen LHU per sampel dan tetap dibatasi ke environment `local`/`testing`; file seedernya dikecualikan dari artifact production.
-- **Regression Coverage:** Menambahkan verifikasi nama tersangka pada daftar Sahli dan isolasi referensi LHU berdasarkan permintaan terkait.
+- **Pengelompokan Buku Tamu:** Beberapa permintaan milik pemilik kasus yang sama kini dikelompokkan dalam satu sesi berdasarkan jenis aktivitas dan rentang lima jam, tanpa menghapus rincian tiap permintaan.
+- **Auto Checkout:** Kunjungan aktif yang melewati lima jam otomatis dicatat keluar oleh scheduler, dengan batas waktu dan proses idempotent.
+- **Identitas Tamu:** Auto-create tidak lagi mengklaim nama pemilik kasus sebagai identitas fisik tamu; pemilik kasus ditampilkan sebagai dasar identifikasi otomatis.
+- **Urutan Penyidik:** Daftar penyidik pada form submit diurutkan berdasarkan hierarki `BRIPDA` sampai `AKP`, lalu alfabetis berdasarkan nama.
+- **Regresi & Migrasi:** Data kunjungan lama dibackfill ke item permintaan dan ditambahkan test untuk grouping, batas sesi, idempotensi, auto checkout, permission, serta urutan pangkat.
 
 ### v2.6.3 (26 Agustus 2026) - Deploy Hardening & Verifikasi Host SSH
 

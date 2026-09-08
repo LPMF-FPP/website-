@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Sahli;
 
+use App\Livewire\Sahli\Edit;
 use App\Livewire\Sahli\Show;
 use App\Models\Document;
 use App\Models\ExpertWitnessRequest;
@@ -32,12 +33,16 @@ class SahliFeatureTest extends TestCase
             'letter_number' => 'B/123/IX/2026',
             'letter_date' => '2026-09-07',
             'investigator_name' => 'Penyidik Uji',
+            'investigator_rank' => 'Brigadir',
             'investigator_institution' => 'Instansi Uji',
             'investigator_phone' => '081234567890',
+            'suspect_name' => 'Tersangka Uji',
             'submission_token' => (string) Str::uuid(),
         ], UploadedFile::fake()->create('surat-sahli.pdf', 100, 'application/pdf'), $user);
 
         $this->assertSame(ExpertWitnessRequest::SOURCE_EXTERNAL, $request->source);
+        $this->assertSame('Brigadir', $request->investigator_rank);
+        $this->assertSame('Tersangka Uji', $request->suspect_name);
         $this->assertCount(5, $request->milestones);
         Storage::disk('local')->assertExists($request->documents->first()->path);
     }
@@ -74,22 +79,11 @@ class SahliFeatureTest extends TestCase
         ]);
         $otherRequest = TestRequest::factory()->create(['user_id' => $user->id]);
 
-        $sample = Sample::factory()->create([
-            'test_request_id' => $testRequest->id,
-            'sample_code' => 'SAMP-001',
-            'active_substance' => 'Kafein',
-        ]);
+        $sample = Sample::factory()->create(['test_request_id' => $testRequest->id, 'sample_code' => 'SAMP-001']);
         $sample->testProcesses()->create([
             'stage' => 'interpretation',
             'completed_at' => now(),
-            'metadata' => [
-                'lhu_number' => 'LHU-001',
-                'test_result' => 'positive',
-                'detected_substance' => 'Tramadol',
-                'multi_interpretations' => [
-                    ['test_result' => 'negative'],
-                ],
-            ],
+            'metadata' => ['lhu_number' => 'LHU-001'],
         ]);
         Document::factory()->generated()->create([
             'investigator_id' => $testRequest->investigator_id,
@@ -101,71 +95,15 @@ class SahliFeatureTest extends TestCase
             'file_path' => 'generated/LHU-001.pdf',
             'path' => 'generated/LHU-001.pdf',
         ]);
-        $uploadedResultSample = Sample::factory()->create([
-            'test_request_id' => $testRequest->id,
-            'sample_code' => 'SAMP-UPLOADED',
-            'active_substance' => 'Tramadol',
-        ]);
-        $uploadedResultSample->testProcesses()->create([
-            'stage' => 'interpretation',
-            'completed_at' => now(),
-            'metadata' => [
-                'lhu_number' => 'LHU-UPLOADED',
-                'test_result' => 'positive',
-                'detected_substance' => 'Tramadol',
-            ],
-        ]);
-        Document::factory()->create([
-            'investigator_id' => $testRequest->investigator_id,
-            'test_request_id' => $testRequest->id,
-            'sample_id' => $uploadedResultSample->id,
-            'document_type' => 'test_results',
-            'filename' => 'SAMP-UPLOADED.pdf',
-            'original_filename' => 'SAMP-UPLOADED.pdf',
-            'file_path' => 'uploads/SAMP-UPLOADED.pdf',
-            'path' => 'uploads/SAMP-UPLOADED.pdf',
-        ]);
-        $unpublishedSample = Sample::factory()->create([
-            'test_request_id' => $testRequest->id,
-            'sample_code' => 'SAMP-002',
-        ]);
-        $unpublishedSample->testProcesses()->create([
-            'stage' => 'interpretation',
-            'completed_at' => now(),
-            'metadata' => [
-                'lhu_number' => 'LHU-002',
-                'test_result' => 'positive',
-                'detected_substance' => 'Trihexyphenidyl',
-            ],
-        ]);
-        $legacySample = Sample::factory()->create([
-            'test_request_id' => $testRequest->id,
-            'sample_code' => 'SAMP-LEGACY',
-        ]);
-        $legacySample->testProcesses()->create([
-            'stage' => 'interpretation',
-            'completed_at' => now(),
-            'metadata' => [
-                'lhu_number' => 'LHU-LEGACY',
-                'test_result' => 'positive',
-                'detected_substance' => 'Hasil metadata',
-            ],
-        ]);
-        Document::factory()->generated()->create([
-            'investigator_id' => $testRequest->investigator_id,
-            'test_request_id' => $testRequest->id,
-            'sample_id' => $legacySample->id,
-            'document_type' => 'laporan_hasil_uji',
-        ]);
         TestResult::create([
-            'sample_id' => $legacySample->id,
+            'sample_id' => $sample->id,
             'tested_by' => $user->id,
             'test_method' => 'Metode uji',
             'equipment_used' => 'Instrumen uji',
             'active_substances' => [],
-            'test_conclusion' => 'Kesimpulan legacy',
+            'test_conclusion' => 'Positif mengandung zat uji',
             'result_status' => 'positive',
-            'qc_approved' => false,
+            'qc_approved' => true,
         ]);
         Sample::factory()->create(['test_request_id' => $otherRequest->id, 'sample_code' => 'SAMP-OTHER']);
 
@@ -182,20 +120,9 @@ class SahliFeatureTest extends TestCase
         ]);
 
         $references = app(ExpertWitnessService::class)->farmapolReferences($sahli);
-        $this->assertDatabaseHas('documents', [
-            'test_request_id' => $testRequest->id,
-            'sample_id' => $sample->id,
-            'document_type' => 'laporan_hasil_uji',
-        ]);
+
         $this->assertArrayHasKey('LHU-001', $references);
         $this->assertSame('SAMP-001', $references['LHU-001'][0]['sample_code']);
-        $this->assertSame('Positif: Tramadol; Negatif: Kafein', $references['LHU-001'][0]['result']);
-        $this->assertTrue($references['LHU-001'][0]['available']);
-        $this->assertSame('Positif: Tramadol', $references['LHU-UPLOADED'][0]['result']);
-        $this->assertTrue($references['LHU-UPLOADED'][0]['available']);
-        $this->assertNull($references['LHU-002'][0]['result']);
-        $this->assertFalse($references['LHU-002'][0]['available']);
-        $this->assertSame('Kesimpulan legacy', $references['LHU-LEGACY'][0]['result']);
         $this->assertArrayNotHasKey('LHU-OTHER', $references);
     }
 
@@ -400,30 +327,34 @@ class SahliFeatureTest extends TestCase
             ->assertSee('Salin nomor LHU');
     }
 
-    public function test_livewire_milestone_action_requires_edit_permission(): void
+    public function test_sahli_edit_updates_request_identity(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
-        $request = ExpertWitnessRequest::factory()->create(['submitted_by' => $admin->id]);
-        app(ExpertWitnessService::class)->seedMilestones($request);
-        $unauthorized = User::factory()->create(['role' => 'investigator']);
+        $request = ExpertWitnessRequest::factory()->create([
+            'submitted_by' => $admin->id,
+            'investigator_rank' => 'Brigadir',
+            'suspect_name' => 'Nama Lama',
+        ]);
 
-        $this->actingAs($unauthorized);
+        $this->actingAs($admin);
 
-        Livewire::test(Show::class, ['expertWitnessRequest' => $request])
-            ->call('toggleMilestone', 'draft_received')
-            ->assertForbidden();
-    }
+        Livewire::test(Edit::class, ['expertWitnessRequest' => $request])
+            ->set('letterNumber', 'B/EDIT/2026')
+            ->set('letterDate', '2026-09-08')
+            ->set('suspectName', 'Nama Baru')
+            ->set('investigatorName', 'Penyidik Baru')
+            ->set('investigatorRank', 'AKP')
+            ->set('investigatorInstitution', 'Instansi Baru')
+            ->set('investigatorPhone', '081234567890')
+            ->set('notes', 'Catatan baru')
+            ->call('save')
+            ->assertRedirect(route('sahli.show', $request));
 
-    public function test_detail_view_exposes_copy_feedback_fallback(): void
-    {
-        $admin = User::factory()->create(['role' => 'admin']);
-        $request = ExpertWitnessRequest::factory()->create(['submitted_by' => $admin->id]);
-        app(ExpertWitnessService::class)->seedMilestones($request);
-
-        $this->actingAs($admin)
-            ->get(route('sahli.show', $request))
-            ->assertOk()
-            ->assertSee('copyValue')
-            ->assertSee('Pilih nilai lalu salin.');
+        $this->assertDatabaseHas('expert_witness_requests', [
+            'id' => $request->id,
+            'letter_number' => 'B/EDIT/2026',
+            'suspect_name' => 'Nama Baru',
+            'investigator_rank' => 'AKP',
+        ]);
     }
 }

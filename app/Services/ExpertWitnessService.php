@@ -80,8 +80,10 @@ class ExpertWitnessService
                         'letter_number' => $data['letter_number'],
                         'letter_date' => $data['letter_date'],
                         'investigator_name' => $data['investigator_name'],
+                        'investigator_rank' => $data['investigator_rank'] ?? null,
                         'investigator_institution' => $data['investigator_institution'],
                         'investigator_phone' => $data['investigator_phone'],
+                        'suspect_name' => $data['suspect_name'] ?? null,
                         'notes' => $data['notes'] ?? null,
                         'submitted_at' => now(),
                     ]);
@@ -160,59 +162,32 @@ class ExpertWitnessService
             ->with('testResult', 'testProcesses')
             ->get();
 
-        $officialResultDocuments = Document::query()
+        $lhuDocuments = Document::query()
             ->where('test_request_id', $request->test_request_id)
             ->whereIn('sample_id', $samples->pluck('id'))
-            ->whereIn('document_type', ['laporan_hasil_uji', 'laporan_hasil_uji_html', 'lhu', 'test_results'])
+            ->whereIn('document_type', ['laporan_hasil_uji', 'lhu'])
             ->latest()
             ->get()
             ->unique('sample_id')
             ->keyBy('sample_id');
 
         return $samples
-            ->map(function (Sample $sample) use ($officialResultDocuments): array {
+            ->map(function (Sample $sample) use ($lhuDocuments): array {
                 $interpretation = $sample->testProcesses
                     ->filter(fn ($process): bool => $process->stage?->value === 'interpretation')
                     ->filter(fn ($process): bool => $process->completed_at !== null)
                     ->sortByDesc('completed_at')
                     ->first();
-                $lhuDocument = $officialResultDocuments->get($sample->id);
+                $lhuDocument = $lhuDocuments->get($sample->id);
                 $metadata = is_array($interpretation?->metadata) ? $interpretation->metadata : [];
                 $lhuNumber = $metadata['lhu_number'] ?? $metadata['report_number'] ?? null;
                 $available = (bool) ($lhuDocument && $interpretation && $lhuNumber);
-                $result = $sample->testResult?->test_conclusion ?: $sample->testResult?->result_status;
-
-                if ($available && ! $result) {
-                    $formatResult = static function (array $data, ?string $fallbackSubstance = null): ?string {
-                        $resultLabel = match ($data['test_result'] ?? null) {
-                            'positive' => 'Positif',
-                            'negative' => 'Negatif',
-                            default => null,
-                        };
-                        $detectedSubstance = $data['detected_substance']
-                            ?? $data['detection']
-                            ?? $data['hasil']
-                            ?? $fallbackSubstance;
-
-                        return $resultLabel && $detectedSubstance
-                            ? "{$resultLabel}: {$detectedSubstance}"
-                            : ($resultLabel ?: $detectedSubstance);
-                    };
-
-                    $results = [$formatResult($metadata, $sample->active_substance)];
-                    foreach ($metadata['multi_interpretations'] ?? [] as $additionalInterpretation) {
-                        if (is_array($additionalInterpretation)) {
-                            $results[] = $formatResult($additionalInterpretation, $sample->active_substance);
-                        }
-                    }
-                    $result = collect($results)->filter()->join('; ') ?: null;
-                }
 
                 return [
                     'lhu_number' => $lhuNumber,
                     'sample_code' => $sample->sample_code,
                     'description' => $sample->short_description ?: $sample->sample_description,
-                    'result' => $available ? $result : null,
+                    'result' => $available ? ($sample->testResult?->test_conclusion ?: $sample->testResult?->result_status) : null,
                     'available' => $available,
                     'lhu_document_id' => $lhuDocument?->id,
                 ];
