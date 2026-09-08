@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Sahli;
 
+use App\Livewire\Sahli\Edit;
 use App\Livewire\Sahli\Show;
 use App\Models\Document;
 use App\Models\ExpertWitnessRequest;
@@ -32,12 +33,16 @@ class SahliFeatureTest extends TestCase
             'letter_number' => 'B/123/IX/2026',
             'letter_date' => '2026-09-07',
             'investigator_name' => 'Penyidik Uji',
+            'investigator_rank' => 'Brigadir',
             'investigator_institution' => 'Instansi Uji',
             'investigator_phone' => '081234567890',
+            'suspect_name' => 'Tersangka Uji',
             'submission_token' => (string) Str::uuid(),
         ], UploadedFile::fake()->create('surat-sahli.pdf', 100, 'application/pdf'), $user);
 
         $this->assertSame(ExpertWitnessRequest::SOURCE_EXTERNAL, $request->source);
+        $this->assertSame('Brigadir', $request->investigator_rank);
+        $this->assertSame('Tersangka Uji', $request->suspect_name);
         $this->assertCount(5, $request->milestones);
         Storage::disk('local')->assertExists($request->documents->first()->path);
     }
@@ -320,5 +325,36 @@ class SahliFeatureTest extends TestCase
             ->assertOk()
             ->assertSee('No. LHU: LHU-TEST-001')
             ->assertSee('Salin nomor LHU');
+    }
+
+    public function test_sahli_edit_updates_request_identity(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $request = ExpertWitnessRequest::factory()->create([
+            'submitted_by' => $admin->id,
+            'investigator_rank' => 'Brigadir',
+            'suspect_name' => 'Nama Lama',
+        ]);
+
+        $this->actingAs($admin);
+
+        Livewire::test(Edit::class, ['expertWitnessRequest' => $request])
+            ->set('letterNumber', 'B/EDIT/2026')
+            ->set('letterDate', '2026-09-08')
+            ->set('suspectName', 'Nama Baru')
+            ->set('investigatorName', 'Penyidik Baru')
+            ->set('investigatorRank', 'AKP')
+            ->set('investigatorInstitution', 'Instansi Baru')
+            ->set('investigatorPhone', '081234567890')
+            ->set('notes', 'Catatan baru')
+            ->call('save')
+            ->assertRedirect(route('sahli.show', $request));
+
+        $this->assertDatabaseHas('expert_witness_requests', [
+            'id' => $request->id,
+            'letter_number' => 'B/EDIT/2026',
+            'suspect_name' => 'Nama Baru',
+            'investigator_rank' => 'AKP',
+        ]);
     }
 }
