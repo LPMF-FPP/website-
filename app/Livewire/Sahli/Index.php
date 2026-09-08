@@ -82,7 +82,11 @@ class Index extends Component
                 $query->where(function ($query) use ($term): void {
                     $query->where('letter_number', 'like', $term)
                         ->orWhere('investigator_name', 'like', $term)
-                        ->orWhere('investigator_institution', 'like', $term);
+                        ->orWhere('investigator_institution', 'like', $term)
+                        ->orWhereHas('testRequest', function ($query) use ($term): void {
+                            $query->where('suspect_name', 'like', $term)
+                                ->orWhereHas('suspects', fn ($query) => $query->where('name', 'like', $term));
+                        });
                 });
             })
             ->when($this->status === 'open', fn ($query) => $query->whereNull('completed_at'))

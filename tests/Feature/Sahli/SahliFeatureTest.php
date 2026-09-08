@@ -241,6 +241,27 @@ class SahliFeatureTest extends TestCase
             ->assertSee('Belum ada pengajuan Sahli yang cocok');
     }
 
+    public function test_sahli_index_searches_suspect_name(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $testRequest = TestRequest::factory()->create([
+            'user_id' => $admin->id,
+            'suspect_name' => 'Nama Tersangka Pencarian',
+            'has_expert_witness_request' => true,
+        ]);
+        $sahli = ExpertWitnessRequest::factory()->create([
+            'source' => ExpertWitnessRequest::SOURCE_FARMAPOL,
+            'test_request_id' => $testRequest->id,
+            'submitted_by' => $admin->id,
+            'letter_number' => 'B/SUSPECT-SEARCH/2026',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('sahli.index', ['status' => 'all', 'search' => 'Tersangka Pencarian']))
+            ->assertOk()
+            ->assertSee($sahli->letter_number);
+    }
+
     public function test_livewire_milestone_action_requires_edit_permission(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
