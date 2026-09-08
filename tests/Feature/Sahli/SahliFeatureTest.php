@@ -319,6 +319,54 @@ class SahliFeatureTest extends TestCase
             ->assertSee('Belum ada pengajuan Sahli yang cocok');
     }
 
+    public function test_sahli_index_searches_suspect_name(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $testRequest = TestRequest::factory()->create([
+            'user_id' => $admin->id,
+            'suspect_name' => 'Nama Tersangka Pencarian',
+            'has_expert_witness_request' => true,
+        ]);
+        $sahli = ExpertWitnessRequest::factory()->create([
+            'source' => ExpertWitnessRequest::SOURCE_FARMAPOL,
+            'test_request_id' => $testRequest->id,
+            'submitted_by' => $admin->id,
+            'letter_number' => 'B/SUSPECT-SEARCH/2026',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('sahli.index', ['status' => 'all', 'search' => 'Tersangka Pencarian']))
+            ->assertOk()
+            ->assertSee($sahli->letter_number);
+    }
+
+    public function test_livewire_milestone_action_requires_edit_permission(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $request = ExpertWitnessRequest::factory()->create(['submitted_by' => $admin->id]);
+        app(ExpertWitnessService::class)->seedMilestones($request);
+        $unauthorized = User::factory()->create(['role' => 'investigator']);
+
+        $this->actingAs($unauthorized);
+
+        Livewire::test(Show::class, ['expertWitnessRequest' => $request])
+            ->call('toggleMilestone', 'draft_received')
+            ->assertForbidden();
+    }
+
+    public function test_detail_view_exposes_copy_feedback_fallback(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $request = ExpertWitnessRequest::factory()->create(['submitted_by' => $admin->id]);
+        app(ExpertWitnessService::class)->seedMilestones($request);
+
+        $this->actingAs($admin)
+            ->get(route('sahli.show', $request))
+            ->assertOk()
+            ->assertSee('copyValue')
+            ->assertSee('Pilih nilai lalu salin.');
+    }
+
     public function test_detail_view_exposes_copy_action_for_lhu_number(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
