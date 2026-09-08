@@ -335,7 +335,7 @@ class SahliFeatureTest extends TestCase
         ]);
 
         $this->actingAs($admin)
-            ->get(route('sahli.index', ['status' => 'all', 'search' => 'Tersangka Pencarian']))
+            ->get(route('sahli.index', ['status' => 'all', 'search' => 'tersangka pencarian']))
             ->assertOk()
             ->assertSee($sahli->letter_number);
     }
