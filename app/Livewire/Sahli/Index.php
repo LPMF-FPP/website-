@@ -83,6 +83,7 @@ class Index extends Component
                     $query->whereRaw('LOWER(letter_number) LIKE LOWER(?)', [$term])
                         ->orWhereRaw('LOWER(investigator_name) LIKE LOWER(?)', [$term])
                         ->orWhereRaw('LOWER(investigator_institution) LIKE LOWER(?)', [$term])
+                        ->orWhereRaw('LOWER(suspect_name) LIKE LOWER(?)', [$term])
                         ->orWhereHas('testRequest', function ($query) use ($term): void {
                             $query->whereRaw('LOWER(suspect_name) LIKE LOWER(?)', [$term])
                                 ->orWhereHas('suspects', fn ($query) => $query->whereRaw('LOWER(name) LIKE LOWER(?)', [$term]));
