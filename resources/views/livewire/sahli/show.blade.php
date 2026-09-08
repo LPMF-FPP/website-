@@ -1,6 +1,6 @@
 <div class="space-y-6" x-data="{ copied: null, requestError: false, copyValue(value, key) { if (!navigator.clipboard) { this.copied = 'failed-' + key; return; } navigator.clipboard.writeText(value).then(() => this.copied = key).catch(() => this.copied = 'failed-' + key); } }" x-on:livewire-request-error.window="requestError = true">
     <section class="relative overflow-hidden rounded-2xl border border-primary-800 bg-primary-950 px-5 py-6 text-white shadow-pd-md sm:px-8 sm:py-7 dark:border-accent-700 dark:bg-accent-950">
-        <div class="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                <div class="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div class="min-w-0">
                 <a href="{{ route('sahli.index') }}" class="inline-flex min-h-10 items-center text-sm font-medium text-primary-100 hover:text-white hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">Kembali ke Saksi Ahli</a>
                 <div class="mt-5 flex flex-wrap items-center gap-2 text-xs font-semibold">
@@ -10,13 +10,16 @@
                 <h1 class="mt-3 truncate text-2xl font-bold tracking-tight sm:text-3xl">{{ $sahli->letter_number }}</h1>
                 <p class="mt-2 text-sm text-primary-100">{{ $sahli->investigator_name }} · {{ $sahli->investigator_institution }}</p>
             </div>
-            <div class="shrink-0 border-t border-white/15 pt-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+                    <div class="shrink-0 border-t border-white/15 pt-4 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
                 <p class="text-xs text-primary-200">Status BAP</p>
                 <p class="mt-1 text-xl font-bold">{{ $sahli->completed_at ? 'Selesai' : 'Dalam proses' }}</p>
                 <p class="mt-1 text-xs text-primary-200">{{ $sahli->milestones->whereNotNull('completed_at')->count() }} dari {{ count(\App\Models\ExpertWitnessRequest::MILESTONES) }} tahap selesai</p>
-            </div>
-        </div>
-    </section>
+                    </div>
+                </div>
+                @can('update', $sahli)
+                    <a href="{{ route('sahli.edit', $sahli) }}" class="mt-5 inline-flex min-h-11 items-center justify-center rounded-lg border border-white/30 px-4 text-sm font-semibold text-white hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">Edit data pengajuan</a>
+                @endcan
+            </section>
 
     @if(session('success'))
         <div role="status" class="rounded-lg border border-success-200 bg-success-50 px-4 py-3 text-sm text-success-800 dark:border-success-800 dark:bg-success-950 dark:text-success-100">{{ session('success') }}</div>
@@ -37,7 +40,7 @@
                     @endif
                 </div>
                 <dl class="mt-5 grid gap-x-6 gap-y-5 sm:grid-cols-2">
-                    @foreach([['Nomor surat', $sahli->letter_number, 'letter'], ['Tanggal surat', $sahli->letter_date?->format('d-m-Y'), 'letter-date'], ['Nama penyidik', $sahli->investigator_name, 'investigator'], ['Asal instansi', $sahli->investigator_institution, 'institution'], ['Nomor telepon', $sahli->investigator_phone, 'phone']] as [$label, $value, $key])
+                    @foreach([['Nomor surat', $sahli->letter_number, 'letter'], ['Tanggal surat', $sahli->letter_date?->format('d-m-Y'), 'letter-date'], ['Nama tersangka', $sahli->suspect_name, 'suspect'], ['Nama penyidik', $sahli->investigator_name, 'investigator'], ['Pangkat penyidik', $sahli->investigator_rank, 'rank'], ['Asal instansi', $sahli->investigator_institution, 'institution'], ['Nomor telepon', $sahli->investigator_phone, 'phone']] as [$label, $value, $key])
                         <div class="min-w-0">
                             <dt class="text-xs font-semibold text-pd-text-muted">{{ $label }}</dt>
                             <dd class="mt-1 flex min-w-0 items-start gap-2">

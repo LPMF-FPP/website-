@@ -21,9 +21,13 @@ class Create extends Component
 
     public string $investigatorName = '';
 
+    public string $investigatorRank = '';
+
     public string $investigatorInstitution = '';
 
     public string $investigatorPhone = '';
+
+    public string $suspectName = '';
 
     public string $notes = '';
 
@@ -43,8 +47,10 @@ class Create extends Component
             'letterNumber' => ['required', 'string', 'max:255'],
             'letterDate' => ['required', 'date'],
             'investigatorName' => ['required', 'string', 'min:3', 'max:255'],
+            'investigatorRank' => ['required', 'string', 'max:100'],
             'investigatorInstitution' => ['required', 'string', 'max:255'],
             'investigatorPhone' => ['required', 'string', 'max:30'],
+            'suspectName' => ['required', 'string', 'min:2', 'max:255'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'submissionToken' => ['required', 'uuid'],
         ]);
@@ -53,8 +59,10 @@ class Create extends Component
             'letter_number' => $data['letterNumber'],
             'letter_date' => $data['letterDate'],
             'investigator_name' => $data['investigatorName'],
+            'investigator_rank' => $data['investigatorRank'],
             'investigator_institution' => $data['investigatorInstitution'],
             'investigator_phone' => $data['investigatorPhone'],
+            'suspect_name' => $data['suspectName'],
             'notes' => $data['notes'] ?? null,
             'submission_token' => $data['submissionToken'],
         ], $this->submissionLetter, Auth::user());

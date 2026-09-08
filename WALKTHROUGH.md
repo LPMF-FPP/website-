@@ -149,6 +149,13 @@ WhatsApp service berjalan di container Docker terpisah.
 
 ## 📰 Recent Changes (v2.6.x)
 
+### v2.6.6 (8 September 2026) - Edit Data Pengajuan Saksi Ahli
+
+- **Halaman Edit Sahli:** Petugas dengan permission `sahli.edit` kini dapat memperbarui identitas surat, tersangka, penyidik, pangkat, instansi, nomor telepon, dan catatan tanpa mengubah checklist BAP atau dokumen privat.
+- **Input Pengajuan Lengkap:** Form pengajuan Sahli mencatat pangkat penyidik dan nama tersangka sejak awal, dengan validasi dan penyimpanan terotorisasi.
+- **Desain Trust-First:** Halaman edit menggunakan struktur dua area yang menonjolkan data perkara, kontak kerja, dan batas perubahan secara jelas pada desktop maupun mobile.
+- **Regression Coverage:** Menambahkan test untuk migration field, update identitas melalui Livewire, permission edit, serta tampilan halaman edit.
+
 ### v2.6.5 (7 September 2026) - Koreksi Tampilan Sahli & LHU Existing
 
 - **Nama Tersangka di Daftar Sahli:** Halaman daftar Sahli menggunakan nama tersangka sebagai identitas utama, dengan nomor surat sebagai informasi pendukung.

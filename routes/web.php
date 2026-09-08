@@ -270,6 +270,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('sahli')->name('sahli.')->middleware('permission:sahli.view')->group(function () {
         Route::view('/', 'sahli.index')->name('index');
         Route::view('/create', 'sahli.create')->middleware('permission:sahli.create')->name('create');
+        Route::get('/{expertWitnessRequest}/edit', function (ExpertWitnessRequest $expertWitnessRequest) {
+            return view('sahli.edit', ['sahli' => $expertWitnessRequest]);
+        })->name('edit')->whereNumber('expertWitnessRequest')->middleware('permission:sahli.edit');
         Route::get('/{expertWitnessRequest}', function (ExpertWitnessRequest $expertWitnessRequest) {
             return view('sahli.show', ['sahli' => $expertWitnessRequest]);
         })->name('show')->whereNumber('expertWitnessRequest');
