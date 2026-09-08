@@ -80,12 +80,12 @@ class Index extends Component
             ->when($this->search !== '', function ($query): void {
                 $term = '%'.addcslashes($this->search, '%_').'%';
                 $query->where(function ($query) use ($term): void {
-                    $query->where('letter_number', 'like', $term)
-                        ->orWhere('investigator_name', 'like', $term)
-                        ->orWhere('investigator_institution', 'like', $term)
+                    $query->whereRaw('LOWER(letter_number) LIKE LOWER(?)', [$term])
+                        ->orWhereRaw('LOWER(investigator_name) LIKE LOWER(?)', [$term])
+                        ->orWhereRaw('LOWER(investigator_institution) LIKE LOWER(?)', [$term])
                         ->orWhereHas('testRequest', function ($query) use ($term): void {
-                            $query->where('suspect_name', 'like', $term)
-                                ->orWhereHas('suspects', fn ($query) => $query->where('name', 'like', $term));
+                            $query->whereRaw('LOWER(suspect_name) LIKE LOWER(?)', [$term])
+                                ->orWhereHas('suspects', fn ($query) => $query->whereRaw('LOWER(name) LIKE LOWER(?)', [$term]));
                         });
                 });
             })
