@@ -80,8 +80,10 @@ class ExpertWitnessService
                         'letter_number' => $data['letter_number'],
                         'letter_date' => $data['letter_date'],
                         'investigator_name' => $data['investigator_name'],
+                        'investigator_rank' => $data['investigator_rank'] ?? null,
                         'investigator_institution' => $data['investigator_institution'],
                         'investigator_phone' => $data['investigator_phone'],
+                        'suspect_name' => $data['suspect_name'] ?? null,
                         'notes' => $data['notes'] ?? null,
                         'submitted_at' => now(),
                     ]);
