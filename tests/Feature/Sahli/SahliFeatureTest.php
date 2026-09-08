@@ -79,7 +79,11 @@ class SahliFeatureTest extends TestCase
         ]);
         $otherRequest = TestRequest::factory()->create(['user_id' => $user->id]);
 
-        $sample = Sample::factory()->create(['test_request_id' => $testRequest->id, 'sample_code' => 'SAMP-001']);
+        $sample = Sample::factory()->create([
+            'test_request_id' => $testRequest->id,
+            'sample_code' => 'SAMP-001',
+            'physical_identification' => 'Deskripsi fisik pada LHU',
+        ]);
         $sample->testProcesses()->create([
             'stage' => 'interpretation',
             'completed_at' => now(),
@@ -123,6 +127,7 @@ class SahliFeatureTest extends TestCase
 
         $this->assertArrayHasKey('LHU-001', $references);
         $this->assertSame('SAMP-001', $references['LHU-001'][0]['sample_code']);
+        $this->assertSame('Deskripsi fisik pada LHU', $references['LHU-001'][0]['description']);
         $this->assertArrayNotHasKey('LHU-OTHER', $references);
     }
 

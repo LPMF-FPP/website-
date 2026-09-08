@@ -186,7 +186,8 @@ class ExpertWitnessService
                 return [
                     'lhu_number' => $lhuNumber,
                     'sample_code' => $sample->sample_code,
-                    'description' => $sample->short_description ?: $sample->sample_description,
+                    'description' => $sample->physical_identification
+                        ?: ($sample->short_description ?: $sample->sample_description),
                     'result' => $available ? ($sample->testResult?->test_conclusion ?: $sample->testResult?->result_status) : null,
                     'available' => $available,
                     'lhu_document_id' => $lhuDocument?->id,
