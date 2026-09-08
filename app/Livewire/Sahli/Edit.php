@@ -28,12 +28,17 @@ class Edit extends Component
 
     public function mount(ExpertWitnessRequest $expertWitnessRequest): void
     {
-        $this->sahli = $expertWitnessRequest->load(['milestones', 'documents', 'testRequest']);
+        $this->sahli = $expertWitnessRequest->load(['milestones', 'documents', 'investigator', 'testRequest.investigator', 'testRequest.suspects']);
         $this->letterNumber = (string) ($this->sahli->letter_number ?? '');
         $this->letterDate = $this->sahli->letter_date?->format('Y-m-d') ?? '';
-        $this->suspectName = (string) ($this->sahli->suspect_name ?? '');
+        $this->suspectName = (string) ($this->sahli->suspect_name
+            ?: $this->sahli->testRequest?->display_suspect_names[0]
+            ?: '');
         $this->investigatorName = (string) ($this->sahli->investigator_name ?? '');
-        $this->investigatorRank = (string) ($this->sahli->investigator_rank ?? '');
+        $this->investigatorRank = (string) ($this->sahli->investigator_rank
+            ?: $this->sahli->investigator?->rank
+            ?: $this->sahli->testRequest?->investigator?->rank
+            ?: '');
         $this->investigatorInstitution = (string) ($this->sahli->investigator_institution ?? '');
         $this->investigatorPhone = (string) ($this->sahli->investigator_phone ?? '');
         $this->notes = (string) ($this->sahli->notes ?? '');

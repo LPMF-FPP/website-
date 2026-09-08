@@ -18,7 +18,7 @@ class Show extends Component
 
     public function mount(ExpertWitnessRequest $expertWitnessRequest): void
     {
-        $this->sahli = $expertWitnessRequest->load(['milestones.completedBy', 'documents', 'testRequest']);
+        $this->sahli = $expertWitnessRequest->load(['milestones.completedBy', 'documents', 'investigator', 'testRequest.investigator', 'testRequest.suspects']);
         $this->sprinNumber = (string) ($this->sahli->sprin_number ?? '');
         $this->sprinDate = $this->sahli->sprin_date?->format('Y-m-d') ?? '';
     }
@@ -35,7 +35,7 @@ class Show extends Component
             'sprin_number' => $this->sprinNumber,
             'sprin_date' => $this->sprinDate,
         ]);
-        $this->sahli->refresh()->load(['milestones.completedBy', 'documents', 'testRequest']);
+        $this->sahli->refresh()->load(['milestones.completedBy', 'documents', 'investigator', 'testRequest.investigator', 'testRequest.suspects']);
         session()->flash('success', 'Identitas sprin berhasil disimpan.');
     }
 
@@ -46,7 +46,7 @@ class Show extends Component
         abort_unless($milestone, 404);
 
         $service->updateMilestone($this->sahli, $code, ! (bool) $milestone->completed_at, Auth::user());
-        $this->sahli->refresh()->load(['milestones.completedBy', 'documents', 'testRequest']);
+        $this->sahli->refresh()->load(['milestones.completedBy', 'documents', 'investigator', 'testRequest.investigator', 'testRequest.suspects']);
     }
 
     public function render(): View

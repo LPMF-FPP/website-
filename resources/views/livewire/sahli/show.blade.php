@@ -40,7 +40,11 @@
                     @endif
                 </div>
                 <dl class="mt-5 grid gap-x-6 gap-y-5 sm:grid-cols-2">
-                    @foreach([['Nomor surat', $sahli->letter_number, 'letter'], ['Tanggal surat', $sahli->letter_date?->format('d-m-Y'), 'letter-date'], ['Nama tersangka', $sahli->suspect_name, 'suspect'], ['Nama penyidik', $sahli->investigator_name, 'investigator'], ['Pangkat penyidik', $sahli->investigator_rank, 'rank'], ['Asal instansi', $sahli->investigator_institution, 'institution'], ['Nomor telepon', $sahli->investigator_phone, 'phone']] as [$label, $value, $key])
+                    @php
+                        $displaySuspectName = $sahli->suspect_name ?: implode(', ', $sahli->testRequest?->display_suspect_names ?? []);
+                        $displayInvestigatorRank = $sahli->investigator_rank ?: ($sahli->investigator?->rank ?: $sahli->testRequest?->investigator?->rank);
+                    @endphp
+                    @foreach([['Nomor surat', $sahli->letter_number, 'letter'], ['Tanggal surat', $sahli->letter_date?->format('d-m-Y'), 'letter-date'], ['Nama tersangka', $displaySuspectName, 'suspect'], ['Nama penyidik', $sahli->investigator_name, 'investigator'], ['Pangkat penyidik', $displayInvestigatorRank, 'rank'], ['Asal instansi', $sahli->investigator_institution, 'institution'], ['Nomor telepon', $sahli->investigator_phone, 'phone']] as [$label, $value, $key])
                         <div class="min-w-0">
                             <dt class="text-xs font-semibold text-pd-text-muted">{{ $label }}</dt>
                             <dd class="mt-1 flex min-w-0 items-start gap-2">
