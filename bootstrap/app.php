@@ -2,6 +2,7 @@
 
 use App\Console\Commands\GoogleDriveHealthCommand;
 use App\Console\Commands\GoogleDriveSmokeCommand;
+use App\Console\Commands\AutoCheckoutGuestVisits;
 use App\Console\Commands\PurgeOldFiles;
 use App\Console\Commands\QmhRefreshActionItemOverdue;
 use App\Console\Commands\SyncGoogleDriveDocumentsCommand;
@@ -52,6 +53,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withCommands([
+        AutoCheckoutGuestVisits::class,
         GoogleDriveHealthCommand::class,
         GoogleDriveSmokeCommand::class,
         PurgeOldFiles::class,
