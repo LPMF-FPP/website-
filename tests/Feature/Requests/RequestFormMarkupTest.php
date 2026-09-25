@@ -52,6 +52,16 @@ class RequestFormMarkupTest extends TestCase
             'rank' => 'KOMPOL',
             'is_polri' => true,
         ]);
+        Investigator::factory()->create([
+            'name' => 'Eka Akbp',
+            'rank' => 'AKBP',
+            'is_polri' => true,
+        ]);
+        Investigator::factory()->create([
+            'name' => 'Fajar Kombes',
+            'rank' => 'KOMBES POL.',
+            'is_polri' => true,
+        ]);
 
         $response = $this->actingAs(User::factory()->create())
             ->get(route('requests.create'));
@@ -66,6 +76,8 @@ class RequestFormMarkupTest extends TestCase
                 'IPDA Citra Ipda',
                 'AKP Zara Akp',
                 'KOMPOL Dedi Kompol',
+                'AKBP Eka Akbp',
+                'KOMBES POL. Fajar Kombes',
             ]
         );
 
@@ -77,6 +89,7 @@ class RequestFormMarkupTest extends TestCase
         $this->assertLessThan($positions[2], $positions[1]);
         $this->assertLessThan($positions[3], $positions[2]);
         $this->assertLessThan($positions[4], $positions[3]);
+        $this->assertLessThan($positions[5], $positions[4]);
     }
 
     public function test_edit_form_contains_sample_fields(): void
