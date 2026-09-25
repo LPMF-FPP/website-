@@ -8,7 +8,8 @@ if [[ "${1:-}" == "--check-only" ]]; then
 fi
 
 if [[ "$#" -lt 2 || "$#" -gt 3 ]]; then
-    printf 'Usage: %s [--check-only] <ssh-host> <deploy-path> [git-ref]\n' "$0"
+    printf 'Usage: %s [--check-only] <ssh-host> <deploy-path> [origin/branch]\n' "$0"
+    printf 'Default deployment ref: origin/main (must contain latest origin/main).\n'
     printf 'Required: DEPLOY_HOST_KEY_FINGERPRINT=SHA256:...\n'
     printf 'Optional: DEPLOY_KNOWN_HOSTS_FILE=<path>, DEPLOY_SSH_IDENTITY_FILE=<path>, DEPLOY_SSH_PORT=22, DEPLOY_EXPECTED_PATH=/var/www/lis, DEPLOY_HEALTH_URL=https://...\n'
     exit 1
@@ -16,7 +17,7 @@ fi
 
 host="$1"
 deploy_path="$2"
-git_ref="${3:-origin/release}"
+git_ref="${3:-origin/main}"
 ssh_port="${DEPLOY_SSH_PORT:-22}"
 known_hosts_file="${DEPLOY_KNOWN_HOSTS_FILE:-$HOME/.ssh/known_hosts}"
 identity_file="${DEPLOY_SSH_IDENTITY_FILE:-$HOME/.ssh/id_ed25519_lpmf_production}"
@@ -62,6 +63,40 @@ fi
 
 if [[ "$git_ref" == -* || ! "$git_ref" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ ]]; then
     printf 'Invalid git ref: %s\n' "$git_ref" >&2
+    exit 1
+fi
+
+if [[ "$git_ref" != origin/* ]]; then
+    printf 'Deployment ref must be a pushed origin branch (for example, origin/main).\n' >&2
+    exit 1
+fi
+
+repo_root="$(git rev-parse --show-toplevel)"
+exclude_file="${repo_root}/scripts/deploy-artifact.exclude"
+
+if [[ ! -f "$exclude_file" ]]; then
+    printf 'Exclude file not found: %s\n' "$exclude_file" >&2
+    exit 1
+fi
+
+deploy_branch="${git_ref#origin/}"
+if ! git -C "$repo_root" fetch --quiet origin main "$deploy_branch"; then
+    printf 'Unable to fetch origin/main and deployment branch.\n' >&2
+    exit 1
+fi
+
+if ! git -C "$repo_root" rev-parse --verify --end-of-options 'origin/main^{commit}' >/dev/null 2>&1; then
+    printf 'The current origin/main commit is unavailable.\n' >&2
+    exit 1
+fi
+
+if ! git -C "$repo_root" rev-parse --verify --end-of-options "${git_ref}^{commit}" >/dev/null 2>&1; then
+    printf 'Deployment branch not found on origin: %s\n' "$git_ref" >&2
+    exit 1
+fi
+
+if ! git -C "$repo_root" merge-base --is-ancestor origin/main "$git_ref"; then
+    printf 'Refusing stale deployment ref %s: it does not contain the latest origin/main commit.\n' "$git_ref" >&2
     exit 1
 fi
 
@@ -159,19 +194,6 @@ fi
 health_url="${DEPLOY_HEALTH_URL:?Set DEPLOY_HEALTH_URL before running a deployment}"
 if [[ ! "$health_url" =~ ^https:// ]]; then
     printf 'DEPLOY_HEALTH_URL must use HTTPS.\n' >&2
-    exit 1
-fi
-
-repo_root="$(git rev-parse --show-toplevel)"
-exclude_file="${repo_root}/scripts/deploy-artifact.exclude"
-
-if [ ! -f "$exclude_file" ]; then
-    printf 'Exclude file not found: %s\n' "$exclude_file"
-    exit 1
-fi
-
-if ! git -C "$repo_root" rev-parse --verify --end-of-options "${git_ref}^{commit}" >/dev/null 2>&1; then
-    printf 'Git ref not found: %s\n' "$git_ref"
     exit 1
 fi
 
