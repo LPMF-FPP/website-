@@ -84,7 +84,32 @@ class RequestController extends Controller
 
         // Get existing investigators for autocomplete (Polri only)
         $existingInvestigators = Investigator::where('is_polri', true)
-            ->orderBy('name')
+            ->orderByRaw("CASE UPPER(TRIM(rank))
+                WHEN 'BHARADA' THEN 1
+                WHEN 'BHARATU' THEN 2
+                WHEN 'BHARAKA' THEN 3
+                WHEN 'BRIPDA' THEN 4
+                WHEN 'BRIPTU' THEN 5
+                WHEN 'BRIGPOL' THEN 6
+                WHEN 'BRIGADIR' THEN 6
+                WHEN 'BRIPKA' THEN 7
+                WHEN 'AIPDA' THEN 8
+                WHEN 'AIPTU' THEN 9
+                WHEN 'IPDA' THEN 10
+                WHEN 'IPTU' THEN 11
+                WHEN 'AKP' THEN 12
+                WHEN 'KOMPOL' THEN 13
+                WHEN 'AKBP' THEN 14
+                WHEN 'KOMBES' THEN 15
+                WHEN 'KOMBES POL' THEN 15
+                WHEN 'KOMBES POL.' THEN 15
+                WHEN 'BRIGJEN' THEN 16
+                WHEN 'IRJEN' THEN 17
+                WHEN 'KOMJEN' THEN 18
+                WHEN 'JENDERAL' THEN 19
+                ELSE 99
+            END")
+            ->orderByRaw('LOWER(name)')
             ->get(['id', 'name', 'nrp', 'rank', 'jurisdiction', 'phone', 'address']);
 
         // Get existing non-Polri investigators for autocomplete
