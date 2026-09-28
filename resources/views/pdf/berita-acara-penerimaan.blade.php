@@ -164,6 +164,10 @@
   <table class="meta-table">
     <tr><td class="label">Nomor Resi</td><td class="sep">:</td><td class="value nowrap"><strong>{{ $receiptNumber }}</strong></td></tr>
     <tr><td class="label">Nomor Surat Permintaan</td><td class="sep">:</td><td class="value">{{ $request->case_number ?? '-' }}</td></tr>
+    @if($request->parentTestRequest)
+      <tr><td class="label">Suplemen dari Resi</td><td class="sep">:</td><td class="value">{{ $request->parentTestRequest->receipt_number }}</td></tr>
+      <tr><td class="label">Alasan Suplemen</td><td class="sep">:</td><td class="value">{{ $request->supplement_reason }}</td></tr>
+    @endif
     @if($request->has_expert_witness_request)
       <tr><td class="label">Nomor Surat Saksi Ahli</td><td class="sep">:</td><td class="value">{{ $request->expert_witness_letter_number ?? '-' }}</td></tr>
       <tr><td class="label">Tanggal Surat Saksi Ahli</td><td class="sep">:</td><td class="value">{{ $request->expert_witness_letter_date ? $request->expert_witness_letter_date->translatedFormat('d F Y') : '-' }}</td></tr>

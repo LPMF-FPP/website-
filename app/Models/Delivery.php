@@ -18,6 +18,7 @@ class Delivery extends Model
         'notes',
         'delivery_date',
         'status',
+        'handover_cycle',
         'collected_at',
         'has_surat_pengantar',
         'surat_pengantar_number',
@@ -28,6 +29,7 @@ class Delivery extends Model
         'delivery_date' => 'datetime',
         'collected_at' => 'datetime',
         'status' => \App\Enums\DeliveryStatus::class,
+        'handover_cycle' => 'integer',
         'has_surat_pengantar' => 'boolean',
         'surat_pengantar_date' => 'date',
     ];
@@ -40,6 +42,17 @@ class Delivery extends Model
     public function items(): HasMany
     {
         return $this->hasMany(DeliveryItem::class);
+    }
+
+    public function reopenings(): HasMany
+    {
+        return $this->hasMany(DeliveryReopening::class)->orderBy('handover_cycle');
+    }
+
+    public function hasBeenCollected(): bool
+    {
+        return $this->collected_at !== null
+            || $this->status === \App\Enums\DeliveryStatus::COLLECTED;
     }
 
     public function deliveredBy(): BelongsTo

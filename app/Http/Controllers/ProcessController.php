@@ -3,12 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Concerns\ResolvesProcessStage;
+use App\Enums\DeliveryStatus;
+use App\Models\Delivery;
 use App\Models\Sample;
 use App\Models\TestRequest;
 use App\Services\LabelService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ProcessController extends Controller
@@ -30,6 +34,9 @@ class ProcessController extends Controller
             'investigator',
             'samples',
             'evidenceUnits.remainingUnits',
+            'parentTestRequest',
+            'delivery.reopenings.reopenedBy',
+            'delivery.reopenings.sample',
         ]);
 
         $this->touchRecentRequest($testRequest, $request->user());
@@ -42,6 +49,9 @@ class ProcessController extends Controller
 
         // Map process state onto the paginated items
         $rows = $this->mapSamplesWithProcessState($paginatedRaw->getCollection());
+        $rows->each(function (Sample $sample) use ($testRequest): void {
+            $sample->setAttribute('needs_additional_review', $this->isAwaitingAdditionalReview($testRequest, $sample));
+        });
         $paginatedSamples = $paginatedRaw->setCollection($rows);
 
         // Use all samples (not just current page) for stepper & readiness checks
@@ -54,6 +64,25 @@ class ProcessController extends Controller
         $currentStageKey = $this->resolveStepperStage($testRequest, $allSamples);
 
         $readyForDelivery = $this->isReadyForDelivery($testRequest, $allSamples);
+        $additionalReviewCount = in_array($testRequest->status, ['in_testing', 'analysis', 'quality_check'], true)
+            ? $allSamples->filter(fn (Sample $sample) => $this->isAwaitingAdditionalReview($testRequest, $sample))->count()
+            : 0;
+        $handoverHistory = $testRequest->delivery?->reopenings->map(function ($reopening) use ($testRequest): array {
+            $documents = \App\Models\Document::query()
+                ->whereIn('id', $reopening->superseded_document_ids ?? [])
+                ->where('document_type', 'ba_penyerahan')
+                ->get();
+
+            return [
+                'cycle' => max(1, (int) $reopening->handover_cycle - 1),
+                'reopened_at' => $reopening->reopened_at,
+                'reopened_by' => $reopening->reopenedBy?->name ?? 'Petugas',
+                'sample_code' => $reopening->sample?->sample_code ?? '-',
+                'reason' => $reopening->reason,
+                'documents' => $documents,
+                'delivery' => $testRequest->delivery,
+            ];
+        }) ?? collect();
 
         return view('process.show', [
             'testRequest' => $testRequest,
@@ -61,55 +90,101 @@ class ProcessController extends Controller
             'hasProcesses' => $hasProcesses,
             'stepper' => $this->buildStepper($currentStageKey, $allSamples),
             'readyForDelivery' => $readyForDelivery,
+            'additionalReviewCount' => $additionalReviewCount,
+            'handoverHistory' => $handoverHistory,
         ]);
+    }
+
+    private function isAwaitingAdditionalReview(TestRequest $testRequest, Sample $sample): bool
+    {
+        return in_array($testRequest->status, ['in_testing', 'analysis', 'quality_check'], true)
+            && $sample->status !== \App\Enums\SampleStatus::READY_FOR_DELIVERY->value
+            && $sample->disposal_id === null
+            && $sample->testProcesses->isEmpty();
     }
 
     public function markReadyForDelivery(TestRequest $testRequest): RedirectResponse
     {
         $requiredStages = ['preparation', 'instrumentation', 'interpretation'];
-
-        $samples = $testRequest->samples()
-            ->select('id', 'sample_code', 'test_request_id')
-            ->with(['testProcesses' => function ($q) {
-                $q->select('id', 'sample_id', 'stage', 'completed_at');
-            }])
-            ->get();
-
-        $incompleteSamples = [];
-        foreach ($samples as $sample) {
-            $completedStages = $sample->testProcesses
-                ->filter(fn ($p) => $p->completed_at !== null)
-                ->map(fn ($p) => $this->stageValue($p->stage))
-                ->filter(fn ($stage) => $stage !== null && in_array($stage, $requiredStages, true))
-                ->unique()
-                ->values()
-                ->toArray();
-
-            $missingStages = array_values(array_diff($requiredStages, $completedStages));
-
-            if (! empty($missingStages)) {
-                $label = $sample->sample_code ?: 'Sampel ID:'.$sample->id;
-                $incompleteSamples[] = $label.' (belum: '.implode(', ', $missingStages).')';
+        $incompleteSamples = DB::transaction(function () use ($testRequest, $requiredStages): array {
+            $lockedRequest = TestRequest::query()->lockForUpdate()->findOrFail($testRequest->id);
+            if (! in_array($lockedRequest->status, ['in_testing', 'analysis', 'quality_check'], true)) {
+                throw ValidationException::withMessages([
+                    'error' => 'Permintaan harus berada dalam tahap pengujian sebelum dikirim ke penyerahan.',
+                ]);
             }
-        }
 
-        if (! empty($incompleteSamples)) {
+            $samples = $lockedRequest->samples()
+                ->select('id', 'sample_code', 'test_request_id')
+                ->with(['testProcesses' => fn ($query) => $query->select('id', 'sample_id', 'stage', 'completed_at')])
+                ->lockForUpdate()
+                ->get();
+
+            $incomplete = [];
+            foreach ($samples as $sample) {
+                $completedStages = $sample->testProcesses
+                    ->filter(fn ($process) => $process->completed_at !== null)
+                    ->map(fn ($process) => $this->stageValue($process->stage))
+                    ->filter(fn ($stage) => $stage !== null && in_array($stage, $requiredStages, true))
+                    ->unique()
+                    ->values()
+                    ->toArray();
+                $missingStages = array_values(array_diff($requiredStages, $completedStages));
+
+                if ($missingStages !== []) {
+                    $label = $sample->sample_code ?: 'Sampel ID:'.$sample->id;
+                    $incomplete[] = $label.' (belum: '.implode(', ', $missingStages).')';
+                }
+            }
+
+            if ($incomplete !== []) {
+                return $incomplete;
+            }
+
+            $lockedRequest->update([
+                'status' => 'ready_for_delivery',
+                'ready_for_delivery_at' => now(),
+            ]);
+            $lockedRequest->samples()->update([
+                'status' => 'ready_for_delivery',
+                'sample_status' => 'ready_for_delivery',
+            ]);
+
+            $delivery = Delivery::query()->where('request_id', $lockedRequest->id)->lockForUpdate()->first();
+            if (! $delivery) {
+                $delivery = Delivery::query()->create([
+                    'request_id' => $lockedRequest->id,
+                    'delivered_by' => auth()->id() ?? $lockedRequest->user_id,
+                    'delivery_date' => now(),
+                    'status' => DeliveryStatus::PENDING,
+                ]);
+            } elseif (! in_array($delivery->status, [DeliveryStatus::PENDING, DeliveryStatus::REOPENED, DeliveryStatus::READY], true)) {
+                throw ValidationException::withMessages([
+                    'error' => 'Status penyerahan berubah dan tidak dapat dimulai ulang dengan aman.',
+                ]);
+            }
+
+            if ($delivery->status === DeliveryStatus::REOPENED) {
+                $delivery->status = DeliveryStatus::PENDING;
+            }
+            if ($delivery->status === DeliveryStatus::PENDING) {
+                if (! $delivery->status->canTransitionTo(DeliveryStatus::READY)) {
+                    throw ValidationException::withMessages([
+                        'error' => 'Status penyerahan tidak dapat dimulai kembali.',
+                    ]);
+                }
+                $delivery->status = DeliveryStatus::READY;
+            }
+            $delivery->save();
+
+            return [];
+        });
+
+        if ($incompleteSamples !== []) {
             return back()->withErrors([
                 'error' => 'Tidak dapat mengirim ke penyerahan. Sampel berikut belum lengkap: '.implode('; ', $incompleteSamples),
             ]);
         }
-
-        // Update test request status to ready_for_delivery
-        $testRequest->update([
-            'status' => 'ready_for_delivery',
-            'ready_for_delivery_at' => now(),
-        ]);
-
-        // Also update all samples status
-        $testRequest->samples()->update([
-            'status' => 'ready_for_delivery',
-            'sample_status' => 'ready_for_delivery',
-        ]);
 
         return redirect()
             ->route('delivery.show', $testRequest)
@@ -172,6 +247,10 @@ class ProcessController extends Controller
     {
         if (in_array($testRequest->status, ['ready_for_delivery', 'completed'], true)) {
             return 'ready_for_delivery';
+        }
+
+        if ($samples->contains(fn (Sample $sample): bool => $sample->testProcesses->isEmpty())) {
+            return 'preparation';
         }
 
         $processes = $samples->flatMap(function ($sample) {

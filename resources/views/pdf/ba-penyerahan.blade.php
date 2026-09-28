@@ -393,9 +393,16 @@
 
   <h1 class="title">Berita Acara Penyerahan</h1>
   <div style="text-align:center; margin:4px 0 8px; font-weight:700; font-size:11pt;">{{ $baPenyerahanNumber }}</div>
+  @if(($delivery?->handover_cycle ?? 1) > 1)
+    <div style="text-align:center; margin:0 0 8px; font-size:9pt; font-weight:700;">Siklus Penyerahan {{ $delivery->handover_cycle }} — menggantikan dokumen siklus sebelumnya</div>
+  @endif
 
   <table class="meta-table">
     <tr><td class="label">Nomor Resi</td><td class="sep">:</td><td class="value nowrap"><strong>{{ $req->receipt_number ?? $req->request_number }}</strong></td></tr>
+    @if($req->parentTestRequest)
+      <tr><td class="label">Suplemen dari Resi</td><td class="sep">:</td><td class="value">{{ $req->parentTestRequest->receipt_number }}</td></tr>
+      <tr><td class="label">Alasan Suplemen</td><td class="sep">:</td><td class="value">{{ $req->supplement_reason }}</td></tr>
+    @endif
     <tr><td class="label">Penerima</td><td class="sep">:</td><td class="value">{{ trim(($inv?->rank).' '.($inv?->name)) ?: '—' }} @if($inv?->nrp ?? $inv?->nip) — NRP/NIP: {{ $inv?->nrp ?? $inv?->nip }} @endif</td></tr>
     <tr><td class="label">Unit/Satuan</td><td class="sep">:</td><td class="value">{{ $inv?->jurisdiction ?? $req->unit ?? '—' }}</td></tr>
     <tr><td class="label">Nama Tersangka</td><td class="sep">:</td><td class="value">{{ $req->suspect_name ?? '—' }}</td></tr>

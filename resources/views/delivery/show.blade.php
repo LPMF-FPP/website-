@@ -36,6 +36,76 @@
             </div>
         @endif
 
+        @if($request->status === 'ready_for_delivery' && ! $delivery->hasBeenCollected() && auth()->user()?->hasAnyPermission(['penyerahan.edit', 'penyerahan.create']))
+            <section class="rounded-xl border border-amber-300 bg-amber-50 p-5" aria-labelledby="reopen-sample-heading">
+                <h2 id="reopen-sample-heading" class="text-base font-semibold text-amber-950">Perlu menambahkan sampel?</h2>
+                <p class="mt-1 text-sm text-amber-900">Hasil belum tercatat diambil. Anda dapat membuka kembali siklus pengujian. Handover lama akan tetap tersimpan sebagai riwayat dan tidak dapat dipakai untuk siklus baru.</p>
+                <a href="{{ route('delivery.reopen-additional-sample.create', $request) }}" class="mt-3 inline-flex min-h-11 items-center justify-center rounded-md bg-amber-700 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">
+                    Buka Kembali untuk Sampel Tambahan
+                </a>
+            </section>
+        @elseif($request->status === 'completed' && ! $delivery->hasBeenCollected() && auth()->user()?->hasAnyPermission(['penyerahan.edit', 'penyerahan.create']))
+            <section class="rounded-xl border border-amber-300 bg-amber-50 p-5" aria-labelledby="completed-sample-path-heading">
+                <h2 id="completed-sample-path-heading" class="text-base font-semibold text-amber-950">Status pengambilan hasil</h2>
+                <p class="mt-1 text-sm text-amber-900">Permintaan sudah ditandai selesai, tetapi belum ada catatan hasil diambil. Pilih alur sesuai kondisi fisik hasil.</p>
+                <div class="mt-3 flex flex-wrap gap-3">
+                    <a href="{{ route('delivery.reopen-additional-sample.create', $request) }}" class="inline-flex min-h-11 items-center justify-center rounded-md bg-amber-700 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">Belum Diambil — Buka Kembali</a>
+                    @if(auth()->user()?->hasPermission('penyerahan.create'))
+                        <a href="{{ route('requests.supplemental-samples.create', $request) }}" class="inline-flex min-h-11 items-center justify-center rounded-md border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700">Sudah Diambil — Buat Suplemen</a>
+                    @endif
+                </div>
+            </section>
+        @elseif($delivery->hasBeenCollected() && auth()->user()?->hasPermission('penyerahan.create'))
+            <section class="rounded-xl border border-blue-200 bg-blue-50 p-5" aria-labelledby="supplement-sample-heading">
+                <h2 id="supplement-sample-heading" class="text-base font-semibold text-blue-950">Sampel tambahan setelah hasil diambil</h2>
+                <p class="mt-1 text-sm text-blue-900">Buat permintaan suplemen tertaut dengan siklus dan dokumen tersendiri. Permintaan awal tetap selesai tanpa diubah.</p>
+                <a href="{{ route('requests.supplemental-samples.create', $request) }}" class="mt-3 inline-flex min-h-11 items-center justify-center rounded-md bg-primary-700 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-700">
+                    Buat Suplemen Tertaut
+                </a>
+            </section>
+        @endif
+
+        @if($handoverHistory->isNotEmpty())
+            <section class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm" aria-labelledby="handover-history-heading">
+                <h2 id="handover-history-heading" class="text-base font-semibold text-gray-900">Riwayat Siklus Penyerahan</h2>
+                <ul class="mt-3 space-y-3">
+                    @foreach($handoverHistory as $cycle)
+                        <li class="rounded-md border border-gray-200 p-3 text-sm">
+                            <p class="font-semibold text-gray-800">Siklus {{ $cycle['cycle'] }} disupersede</p>
+                            <p class="mt-1 text-gray-600">Sampel {{ $cycle['sample_code'] }} · Dibuka kembali {{ $cycle['reopened_at']?->format('d M Y H:i') }} oleh {{ $cycle['reopened_by'] }} · {{ $cycle['reason'] }}</p>
+                            @foreach($cycle['documents'] as $document)
+                                <a href="{{ route('delivery.handover.archive', [$delivery, $document]) }}" class="mt-2 inline-flex min-h-11 items-center gap-2 rounded-md border border-gray-300 px-3 py-2 font-medium text-primary-700 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600">
+                                    Buka BA siklus {{ $cycle['cycle'] }} · {{ $document->original_filename }}
+                                </a>
+                            @endforeach
+                        </li>
+                    @endforeach
+                </ul>
+            </section>
+        @endif
+
+        @if($request->supplementalRequests->isNotEmpty())
+            <section class="rounded-xl border border-blue-200 bg-white p-5 shadow-sm" aria-labelledby="supplemental-requests-heading">
+                <h2 id="supplemental-requests-heading" class="text-base font-semibold text-gray-900">Permintaan Suplemen Tertaut</h2>
+                <ul class="mt-3 space-y-2">
+                    @foreach($request->supplementalRequests as $supplement)
+                        <li class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-gray-200 p-3 text-sm">
+                            <span><strong>{{ $supplement->receipt_number }}</strong> · {{ $supplement->supplement_reason }}</span>
+                            <a href="{{ route('requests.show', $supplement) }}" class="inline-flex min-h-11 items-center rounded-md px-3 py-2 font-semibold text-primary-700 hover:bg-primary-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600">Buka suplemen</a>
+                        </li>
+                    @endforeach
+                </ul>
+            </section>
+        @endif
+
+        @if($request->parentTestRequest)
+            <section class="rounded-xl border border-blue-200 bg-blue-50 p-5" aria-labelledby="supplement-parent-heading">
+                <h2 id="supplement-parent-heading" class="text-base font-semibold text-blue-950">Suplemen tertaut ke permintaan awal</h2>
+                <p class="mt-1 text-sm text-blue-900">{{ $request->supplement_reason }}</p>
+                <a href="{{ route('requests.show', $request->parentTestRequest) }}" class="mt-3 inline-flex min-h-11 items-center rounded-md px-3 py-2 text-sm font-semibold text-primary-700 hover:bg-blue-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600">Lihat resi awal {{ $request->parentTestRequest->receipt_number }}</a>
+            </section>
+        @endif
+
         <div class="grid gap-6 lg:grid-cols-3">
             {{-- Left Column: Stepper (2/3 width) --}}
             <div class="lg:col-span-2 space-y-6">
@@ -311,13 +381,17 @@
                                                         <span>Klik tombol untuk menandai selesai.</span>
                                                         <form method="POST" action="{{ route('delivery.complete', $request) }}" x-data>
                                                             @csrf
+                                                            <label class="mb-2 flex items-start gap-2 text-xs text-gray-700" for="collection_confirmation">
+                                                                <input id="collection_confirmation" type="checkbox" name="collection_confirmation" value="1" required class="mt-0.5 min-h-5 min-w-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500">
+                                                                <span>Saya mengonfirmasi hasil fisik sudah diambil oleh penerima.</span>
+                                                            </label>
                                                             <button type="button"
                                                                 @click.prevent="showConfirmDialog({
                                                                     type: 'info',
                                                                     title: 'Konfirmasi Penyerahan Selesai',
-                                                                    message: 'Tandai penyerahan sebagai selesai?<br><br>Status akan berubah menjadi Selesai.',
+                                                                    message: 'Tandai penyerahan selesai dan catat bahwa hasil fisik sudah diambil?<br><br>Status akan berubah menjadi Selesai.',
                                                                     confirmButtonText: 'Ya, Selesaikan',
-                                                                    onConfirm: () => $el.closest('form')?.submit()
+                                                                    onConfirm: () => $el.closest('form')?.requestSubmit()
                                                                 })"
                                                                 class="inline-flex items-center rounded bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500">
                                                                 Tandai Selesai

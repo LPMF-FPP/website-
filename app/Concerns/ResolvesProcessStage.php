@@ -201,15 +201,24 @@ trait ResolvesProcessStage
             return false;
         }
 
-        $allProcesses = $samples->flatMap(fn (Sample $s) => $s->testProcesses);
-        $interpretationProcesses = $allProcesses->filter(
-            fn ($p) => $this->stageValue($p->stage) === TestProcessStage::INTERPRETATION->value
-        );
+        $requiredStages = [
+            TestProcessStage::PREPARATION->value,
+            TestProcessStage::INSTRUMENTATION->value,
+            TestProcessStage::INTERPRETATION->value,
+        ];
 
-        if ($interpretationProcesses->isEmpty()) {
-            return false;
-        }
+        return $samples->every(function (Sample $sample) use ($requiredStages): bool {
+            foreach ($requiredStages as $stage) {
+                $process = $sample->testProcesses->first(
+                    fn ($candidate) => $this->stageValue($candidate->stage) === $stage
+                );
 
-        return $interpretationProcesses->every(fn ($p) => $p->completed_at);
+                if (! $process || $process->completed_at === null) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
     }
 }

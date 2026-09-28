@@ -13,6 +13,12 @@
             </div>
         @endif
 
+        @if(session('info'))
+            <div class="col-span-full rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-blue-900" role="status">
+                {{ session('info') }}
+            </div>
+        @endif
+
         @if($errors->any())
             <div class="col-span-full rounded-lg border border-danger-200 bg-danger-50 px-4 py-3 text-danger-700">
                 <ul class="list-disc list-inside space-y-1 text-sm">
@@ -21,6 +27,31 @@
                     @endforeach
                 </ul>
             </div>
+        @endif
+
+        @if($testRequest->parentTestRequest)
+            <div class="col-span-full rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950" role="status">
+                Pengujian ini merupakan suplemen tertaut ke resi {{ $testRequest->parentTestRequest->receipt_number }}.
+                <a href="{{ route('requests.show', $testRequest->parentTestRequest) }}" class="ml-1 font-semibold underline underline-offset-2">Lihat permintaan awal</a>
+            </div>
+        @endif
+
+        @if($handoverHistory->isNotEmpty())
+            <section class="col-span-full rounded-lg border border-amber-200 bg-amber-50 p-5" aria-labelledby="reopened-handover-history-heading">
+                <h2 id="reopened-handover-history-heading" class="text-sm font-semibold text-amber-950">Riwayat penyerahan sebelumnya</h2>
+                <p class="mt-1 text-sm text-amber-900">Siklus sebelumnya disimpan sebagai riwayat dan tidak lagi mewakili daftar sampel yang sedang diuji.</p>
+                <ul class="mt-3 space-y-3">
+                    @foreach($handoverHistory as $cycle)
+                        <li class="rounded-md border border-amber-200 bg-white p-3 text-sm">
+                            <p class="font-semibold text-gray-800">Siklus {{ $cycle['cycle'] }} · Sampel {{ $cycle['sample_code'] }} · Dibuka kembali {{ $cycle['reopened_at']?->format('d M Y H:i') }} oleh {{ $cycle['reopened_by'] }}</p>
+                            <p class="mt-1 text-gray-600">{{ $cycle['reason'] }}</p>
+                            @foreach($cycle['documents'] as $document)
+                                <a href="{{ route('delivery.handover.archive', [$cycle['delivery'], $document]) }}" class="mt-2 inline-flex min-h-11 items-center rounded-md border border-gray-300 px-3 py-2 font-medium text-primary-700 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600">Buka BA arsip · {{ $document->original_filename }}</a>
+                            @endforeach
+                        </li>
+                    @endforeach
+                </ul>
+            </section>
         @endif
 
         @php
@@ -47,6 +78,12 @@
                     </div>
                 </div>
                 <div class="flex flex-col gap-3 border-t border-primary-100 pt-4">
+                    @if($additionalReviewCount > 0)
+                        <div class="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" role="status">
+                            <p class="font-semibold">{{ $additionalReviewCount }} sampel menunggu kaji ulang</p>
+                            <p class="mt-1">Sampel tambahan dikaji satu per satu. Sampel yang sudah diproses tidak berubah.</p>
+                        </div>
+                    @endif
                     @if($readyForDelivery)
                         <form action="{{ route('testing.ready-for-delivery', $testRequest) }}" method="POST" class="w-full"
                               x-data
@@ -57,6 +94,14 @@
                                 Kirim ke Penyerahan
                             </button>
                         </form>
+                    @endif
+                    @if(in_array($testRequest->status, ['in_testing', 'analysis', 'quality_check'], true) && auth()->user()?->hasAnyPermission(['pengujian.create', 'pengujian.edit']))
+                        <a
+                            href="{{ route('testing.additional-samples.create', $testRequest) }}"
+                            class="flex w-full items-center justify-center gap-2 rounded-md bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-900 ring-1 ring-inset ring-amber-200 transition hover:bg-amber-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600">
+                            <x-icon name="plus" size="sm" :decorative="true" />
+                            Tambah Sampel
+                        </a>
                     @endif
                     <a
                         href="{{ route('testing.index') }}"
@@ -262,6 +307,12 @@
                                                 Unduh LHU
                                             </a>
                                         </div>
+                    @elseif($sample->needs_additional_review && auth()->user()?->hasAnyPermission(['pengujian.create', 'pengujian.edit']))
+                                        <a
+                                            href="{{ route('testing.additional-samples.review', [$testRequest, $sample]) }}"
+                                            class="inline-flex min-h-11 items-center justify-center rounded-md bg-amber-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600">
+                                            Kaji Ulang Sampel
+                                        </a>
                                     @else
                                         <span class="inline-flex items-center px-3 py-2 text-sm font-semibold text-gray-400">
                                             Tidak ada proses

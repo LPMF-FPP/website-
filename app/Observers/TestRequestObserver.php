@@ -28,6 +28,8 @@ class TestRequestObserver
             [
                 'request_number' => $testRequest->request_number,
                 'receipt_number' => $testRequest->receipt_number,
+                'parent_test_request_id' => $testRequest->parent_test_request_id,
+                'supplement_reason' => $testRequest->supplement_reason,
             ]
         );
 
@@ -48,6 +50,7 @@ class TestRequestObserver
         $meta = [
             'request_number' => $testRequest->request_number,
             'receipt_number' => $testRequest->receipt_number,
+            'parent_test_request_id' => $testRequest->parent_test_request_id,
         ];
 
         if (array_key_exists('status', $changes)) {

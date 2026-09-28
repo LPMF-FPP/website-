@@ -17,7 +17,7 @@ class TestRequest extends Model
 
     protected $fillable = [
 
-        'request_number', 'receipt_number', 'investigator_id', 'user_id', 'suspect_name',
+        'request_number', 'receipt_number', 'parent_test_request_id', 'supplement_reason', 'investigator_id', 'user_id', 'suspect_name',
 
         'suspect_gender', 'suspect_age', 'suspect_address', 'case_number', 'letter_date', 'case_description', 'incident_date',
 
@@ -188,7 +188,7 @@ class TestRequest extends Model
 
     public function customerSurvey(): HasOne
     {
-        return $this->hasOne(CustomerSurvey::class);
+        return $this->hasOne(CustomerSurvey::class)->latestOfMany('handover_cycle');
     }
 
     public function getProcessingWorkingDaysAttribute(): ?int
@@ -267,5 +267,20 @@ class TestRequest extends Model
     public function delivery(): HasOne
     {
         return $this->hasOne(Delivery::class, 'request_id');
+    }
+
+    public function parentTestRequest(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_test_request_id');
+    }
+
+    public function supplementalRequests(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_test_request_id')->latest('id');
+    }
+
+    public function deliveryReopenings(): HasMany
+    {
+        return $this->hasMany(DeliveryReopening::class)->orderBy('handover_cycle');
     }
 }

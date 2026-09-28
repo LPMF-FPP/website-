@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Queue;
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
+    $this->withoutVite();
     $this->seed(SystemSettingSeeder::class);
     $this->seed(PermissionSeeder::class);
     settings_fake(['notifications.whatsapp.enabled' => false]);
@@ -316,10 +317,18 @@ it('allows delivery completion without remaining labels when survey is complete 
     ]);
 
     $this->actingAs($this->user)
-        ->post(route('delivery.complete', $request))
+        ->post(route('delivery.complete', $request), ['collection_confirmation' => '1'])
         ->assertRedirect()
         ->assertSessionHas('success', 'Penyerahan berhasil diselesaikan. Status permintaan telah diperbarui.');
 
     expect($request->fresh())
         ->status->toBe('completed');
+
+    $delivery = $request->delivery()->firstOrFail();
+    $this->assertSame(\App\Enums\DeliveryStatus::COLLECTED, $delivery->status);
+    $this->assertNotNull($delivery->collected_at);
+    $this->assertDatabaseHas('activity_logs', [
+        'action' => 'DELIVERY_COLLECTION_CONFIRMED',
+        'subject_id' => $delivery->id,
+    ]);
 });

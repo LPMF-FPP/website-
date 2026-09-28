@@ -246,7 +246,8 @@ class DocumentService
             if ($replaceExisting && $req) {
                 $query = Document::where('test_request_id', $req->id)
                     ->where('document_type', $type)
-                    ->where('source', 'generated');
+                    ->where('source', 'generated')
+                    ->whereNull('extra->superseded_at');
 
                 if ($sampleId) {
                     $query->where('sample_id', $sampleId);
@@ -391,6 +392,7 @@ class DocumentService
         return Document::where('test_request_id', $req->id)
             ->where('document_type', $type)
             ->where('source', 'generated')
+            ->whereNull('extra->superseded_at')
             ->latest()
             ->first();
     }

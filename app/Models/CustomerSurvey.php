@@ -12,6 +12,7 @@ class CustomerSurvey extends Model
 
     protected $fillable = [
         'test_request_id',
+        'handover_cycle',
         'respondent_name',
         'respondent_institution',
         'respondent_job_category',
@@ -31,6 +32,7 @@ class CustomerSurvey extends Model
         'voluntary_statement' => 'boolean',
         'submitted_at' => 'datetime',
         'score_avg' => 'decimal:2',
+        'handover_cycle' => 'integer',
     ];
 
     public function testRequest(): BelongsTo

@@ -266,6 +266,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Requests
     Route::resource('requests', RequestController::class);
+    Route::get('/requests/{testRequest}/supplemental-samples/create', [\App\Http\Controllers\SupplementalSampleController::class, 'create'])
+        ->name('requests.supplemental-samples.create')
+        ->middleware('permission:penyerahan.create');
+    Route::post('/requests/{testRequest}/supplemental-samples', [\App\Http\Controllers\SupplementalSampleController::class, 'store'])
+        ->name('requests.supplemental-samples.store')
+        ->middleware('permission:penyerahan.create');
 
     Route::prefix('sahli')->name('sahli.')->middleware('permission:sahli.view')->group(function () {
         Route::view('/', 'sahli.index')->name('index');
@@ -325,6 +331,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Pengujian (Process)
     Route::prefix('pengujian')->name('testing.')->group(function () {
         Route::get('/', [ProcessController::class, 'index'])->name('index');
+
+        Route::get('{testRequest}/sampel/tambah', [\App\Http\Controllers\AdditionalSampleController::class, 'create'])
+            ->name('additional-samples.create')
+            ->middleware('any_permission:pengujian.create|pengujian.edit');
+        Route::post('{testRequest}/sampel/tambah', [\App\Http\Controllers\AdditionalSampleController::class, 'store'])
+            ->name('additional-samples.store-new')
+            ->middleware('any_permission:pengujian.create|pengujian.edit');
+        Route::get('{testRequest}/sampel/{sample}/kaji-ulang', [SampleTestController::class, 'reviewAdditionalSample'])
+            ->name('additional-samples.review')
+            ->middleware('any_permission:pengujian.create|pengujian.edit');
+        Route::post('{testRequest}/sampel/{sample}/kaji-ulang', [SampleTestController::class, 'storeAdditionalSample'])
+            ->name('additional-samples.store')
+            ->middleware('any_permission:pengujian.create|pengujian.edit');
 
         Route::prefix('processes')->name('processes.')->group(function () {
             Route::get('{sample_process}/edit', [SampleTestProcessController::class, 'edit'])->name('edit');
@@ -431,6 +450,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Delivery
     Route::prefix('delivery')->group(function () {
         Route::get('/', [DeliveryController::class, 'index'])->name('delivery.index');
+        Route::get('/{request}/reopen-additional-sample', [DeliveryController::class, 'reopenAdditionalSampleForm'])
+            ->name('delivery.reopen-additional-sample.create')
+            ->middleware('any_permission:penyerahan.edit|penyerahan.create');
         Route::get('/{request}/investigator/edit', [DeliveryController::class, 'editInvestigator'])
             ->name('delivery.investigator.edit')
             ->middleware('permission:investigators.edit');
@@ -438,6 +460,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('delivery.investigator.update')
             ->middleware('permission:investigators.edit');
         Route::get('/{request}', [DeliveryController::class, 'show'])->name('delivery.show');
+        Route::post('/{request}/reopen-additional-sample', [DeliveryController::class, 'reopenForAdditionalSample'])
+            ->name('delivery.reopen-additional-sample.store')
+            ->middleware('any_permission:penyerahan.edit|penyerahan.create');
         Route::patch('/{delivery}/surat-pengantar', [DeliveryController::class, 'updateSuratPengantar'])
             ->name('delivery.update-surat-pengantar');
         Route::patch('/{request}/remaining-quantities', [DeliveryController::class, 'updateRemainingQuantities'])
@@ -452,6 +477,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->name('delivery.handover.generate');
         Route::get('{delivery}/handover/view', [DeliveryController::class, 'handoverView'])
             ->name('delivery.handover.view');
+        Route::get('{delivery}/handover/archive/{document}', [DeliveryController::class, 'handoverArchiveView'])
+            ->name('delivery.handover.archive')
+            ->middleware(['permission:penyerahan.view', 'audit.activity:DOCUMENT_DOWNLOADED,document', 'throttle:downloads']);
         Route::get('{delivery}/handover/download', [DeliveryController::class, 'handoverDownload'])
             ->name('delivery.handover.download');
         Route::get('{request}/handover/status', [DeliveryController::class, 'handoverStatus'])

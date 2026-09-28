@@ -31,6 +31,29 @@
                     </div>
                 @endif
 
+                @if(in_array($request->status, ['in_testing', 'analysis', 'quality_check'], true) && auth()->user()?->hasAnyPermission(['pengujian.create', 'pengujian.edit']))
+                    <div class="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950" role="status">
+                        <p class="font-semibold">Sampel tambahan pada pengujian aktif</p>
+                        <p class="mt-1">Tambahkan sampel dari halaman pengujian agar sampel baru masuk ke kaji ulang tersendiri tanpa mengubah sampel yang sudah berjalan.</p>
+                        <a href="{{ route('testing.additional-samples.create', $request) }}" class="mt-2 inline-flex min-h-11 items-center font-semibold text-amber-900 underline underline-offset-2">Tambah sampel melalui alur pengujian</a>
+                    </div>
+                @elseif(in_array($request->status, ['ready_for_delivery', 'completed'], true))
+                    <div class="mb-6 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950" role="status">
+                        <p class="font-semibold">Sampel tambahan memerlukan alur penyerahan yang sesuai</p>
+                        @if($request->delivery?->hasBeenCollected())
+                            <p class="mt-1">Hasil sudah diambil. Buat suplemen tertaut; jangan ubah daftar sampel pada permintaan historis.</p>
+                            @if(auth()->user()?->hasPermission('penyerahan.create'))
+                                <a href="{{ route('requests.supplemental-samples.create', $request) }}" class="mt-2 inline-flex min-h-11 items-center font-semibold text-blue-900 underline underline-offset-2">Buat suplemen tertaut</a>
+                            @endif
+                        @else
+                            <p class="mt-1">Jika hasil belum diambil, buka kembali siklus penyerahan secara tercatat sebelum menambahkan sampel.</p>
+                            @if(auth()->user()?->hasAnyPermission(['penyerahan.edit', 'penyerahan.create']))
+                                <a href="{{ route('delivery.reopen-additional-sample.create', $request) }}" class="mt-2 inline-flex min-h-11 items-center font-semibold text-blue-900 underline underline-offset-2">Buka kembali untuk sampel tambahan</a>
+                            @endif
+                        @endif
+                    </div>
+                @endif
+
                 {{-- Warning BA --}}
                 <div class="mb-6 bg-yellow-50 border border-yellow-200 text-yellow-900 px-4 py-3 rounded-lg flex items-start">
                     <svg class="w-5 h-5 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -492,9 +515,11 @@
                                  <div class="sample-item bg-white p-6 rounded-lg border border-gray-200 mb-4" data-index="{{ $index }}">
                                      <div class="flex items-center justify-between mb-4">
                                          <h4 class="text-md font-medium text-gray-900">Sampel #{{ $index + 1 }}</h4>
-                                         <button type="button" class="text-red-600 hover:text-red-800 text-sm font-medium remove-sample">
-                                             Hapus
-                                         </button>
+                                          @if(!in_array($request->status, ['ready_for_delivery', 'completed'], true) && $sample->testProcesses->isEmpty())
+                                              <button type="button" class="text-red-600 hover:text-red-800 text-sm font-medium remove-sample">
+                                                  Hapus
+                                              </button>
+                                          @endif
                                      </div>
  
                                      <input type="hidden" name="samples[{{ $index }}][id]" value="{{ $sample->id }}">
@@ -539,12 +564,14 @@
                             @endforeach
                         </div>
 
-                        <button type="button" id="add-sample" class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
-                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                                <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path>
-                            </svg>
-                            Tambah Sampel
-                        </button>
+                        @if(in_array($request->status, ['submitted', 'verified', 'received'], true))
+                            <button type="button" id="add-sample" class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                                <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"></path>
+                                </svg>
+                                Tambah Sampel
+                            </button>
+                        @endif
                     </div>
 
                     {{-- Action Buttons --}}
@@ -670,8 +697,10 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         let sampleIndex = {{ $request->samples->count() }};
+        const addSampleButton = document.getElementById('add-sample');
+        const samplesContainer = document.getElementById('samples-container');
 
-        document.getElementById('add-sample').addEventListener('click', function() {
+        if (addSampleButton) addSampleButton.addEventListener('click', function() {
             const container = document.getElementById('samples-container');
             // We create a fresh template string instead of cloning to avoid copying existing values/IDs messily
             // Using the same structure as the create page
@@ -726,7 +755,7 @@
             sampleIndex++;
         });
 
-        document.getElementById('samples-container').addEventListener('click', function(e) {
+        if (samplesContainer) samplesContainer.addEventListener('click', function(e) {
             if (e.target.classList.contains('remove-sample')) {
                 e.target.closest('.sample-item').remove();
             }

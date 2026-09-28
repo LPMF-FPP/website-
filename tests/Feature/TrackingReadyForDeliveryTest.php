@@ -12,6 +12,8 @@ class TrackingReadyForDeliveryTest extends TestCase
 
     public function test_ready_for_delivery_request_maps_to_penyerahan_in_public_tracking(): void
     {
+        $this->withoutVite();
+
         $request = TestRequest::factory()->create([
             'request_number' => 'REQ-TRACK-READY-001',
             'receipt_number' => 'RESI-TRACK-READY-001',

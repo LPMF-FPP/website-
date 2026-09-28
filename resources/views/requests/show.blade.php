@@ -97,6 +97,55 @@
             </div>
         </div>
 
+        @if($request->parentTestRequest)
+            <section class="rounded-lg border border-blue-200 bg-blue-50 p-5" aria-labelledby="parent-request-heading">
+                <h2 id="parent-request-heading" class="text-sm font-semibold text-blue-950">Permintaan suplemen tertaut</h2>
+                <p class="mt-1 text-sm text-blue-900">Permintaan ini merupakan suplemen dari resi {{ $request->parentTestRequest->receipt_number }}.</p>
+                <a href="{{ route('requests.show', $request->parentTestRequest) }}" class="mt-2 inline-flex min-h-11 items-center rounded-md px-3 py-2 text-sm font-semibold text-primary-700 hover:bg-blue-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600">Lihat permintaan awal</a>
+            </section>
+        @elseif($request->supplementalRequests->isNotEmpty())
+            <section class="rounded-lg border border-blue-200 bg-white p-5" aria-labelledby="supplemental-requests-heading">
+                <h2 id="supplemental-requests-heading" class="text-sm font-semibold text-gray-900">Permintaan suplemen tertaut</h2>
+                <ul class="mt-3 space-y-2">
+                    @foreach($request->supplementalRequests as $supplement)
+                        <li class="flex flex-wrap items-center justify-between gap-3 rounded-md border border-gray-200 p-3 text-sm">
+                            <span><strong>{{ $supplement->receipt_number }}</strong> · {{ $supplement->supplement_reason }}</span>
+                            <a href="{{ route('requests.show', $supplement) }}" class="inline-flex min-h-11 items-center rounded-md px-3 py-2 font-semibold text-primary-700 hover:bg-primary-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600">Buka suplemen</a>
+                        </li>
+                    @endforeach
+                </ul>
+            </section>
+        @endif
+
+        @if($request->status === 'ready_for_delivery' && ! $request->delivery?->hasBeenCollected() && auth()->user()?->hasAnyPermission(['penyerahan.edit', 'penyerahan.create']))
+            <section class="rounded-lg border border-amber-300 bg-amber-50 p-5" aria-labelledby="reopen-sample-heading">
+                <h2 id="reopen-sample-heading" class="text-sm font-semibold text-amber-950">Sampel tambahan sebelum hasil diambil</h2>
+                <p class="mt-1 text-sm text-amber-900">Buka kembali siklus penyerahan dengan alasan dan konfirmasi sebelum menambah sampel.</p>
+                <a href="{{ route('delivery.reopen-additional-sample.create', $request) }}" class="mt-3 inline-flex min-h-11 items-center justify-center rounded-md bg-amber-700 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">Buka Kembali untuk Sampel Tambahan</a>
+            </section>
+        @endif
+
+        @if($request->status === 'completed' && ! $request->delivery?->hasBeenCollected() && auth()->user()?->hasAnyPermission(['penyerahan.edit', 'penyerahan.create']))
+            <section class="rounded-lg border border-amber-300 bg-amber-50 p-5" aria-labelledby="completed-sample-heading">
+                <h2 id="completed-sample-heading" class="text-sm font-semibold text-amber-950">Status pengambilan hasil belum tercatat</h2>
+                <p class="mt-1 text-sm text-amber-900">Pilih sesuai kondisi sebenarnya. Pembukaan kembali memproses sampel pada permintaan ini; suplemen menjaga permintaan selesai dan membuat siklus tertaut.</p>
+                <div class="mt-3 flex flex-wrap gap-3">
+                    <a href="{{ route('delivery.reopen-additional-sample.create', $request) }}" class="inline-flex min-h-11 items-center justify-center rounded-md bg-amber-700 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">Belum Diambil — Buka Kembali</a>
+                    @if(auth()->user()?->hasPermission('penyerahan.create'))
+                        <a href="{{ route('requests.supplemental-samples.create', $request) }}" class="inline-flex min-h-11 items-center justify-center rounded-md border border-blue-300 bg-white px-4 py-2 text-sm font-semibold text-blue-800 hover:bg-blue-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700">Sudah Diambil — Buat Suplemen</a>
+                    @endif
+                </div>
+            </section>
+        @endif
+
+        @if($request->delivery?->hasBeenCollected() && auth()->user()?->hasPermission('penyerahan.create'))
+            <section class="rounded-lg border border-blue-200 bg-blue-50 p-5" aria-labelledby="add-supplement-heading">
+                <h2 id="add-supplement-heading" class="text-sm font-semibold text-blue-950">Tambah sampel setelah permintaan selesai</h2>
+                <p class="mt-1 text-sm text-blue-900">Sampel baru dibuat sebagai permintaan suplemen tertaut. Riwayat permintaan dan penyerahan ini tidak diubah.</p>
+                <a href="{{ route('requests.supplemental-samples.create', $request) }}" class="mt-3 inline-flex min-h-11 items-center justify-center rounded-md bg-primary-700 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-700">Buat Suplemen Sampel</a>
+            </section>
+        @endif
+
         {{-- Tanggal Verifikasi URMIN --}}
         <div class="bg-white shadow-sm sm:rounded-lg p-6 border border-gray-200">
             <div class="flex items-center justify-between">

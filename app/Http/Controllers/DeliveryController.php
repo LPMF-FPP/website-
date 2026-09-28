@@ -7,6 +7,7 @@ use App\Models\Delivery;
 use App\Models\Document;
 use App\Models\EvidenceUnit;
 use App\Models\RemainingUnit;
+use App\Models\Sample;
 use App\Models\TestRequest;
 use App\Services\DocumentService;
 use App\Support\QuantityFormatter;
@@ -145,10 +146,16 @@ class DeliveryController extends Controller
 
     public function show(TestRequest $request)
     {
+        if ($request->status === 'in_testing') {
+            return redirect()->route('testing.show', $request)
+                ->with('info', 'Permintaan sedang dibuka kembali untuk pengujian sampel tambahan.');
+        }
 
         $request->load([
 
             'investigator',
+
+            'parentTestRequest',
 
             'samples.analyst',
 
@@ -213,6 +220,24 @@ class DeliveryController extends Controller
             ]
         );
 
+        $delivery->loadMissing(['reopenings.reopenedBy', 'reopenings.sample']);
+        $request->loadMissing('supplementalRequests');
+        $handoverHistory = $delivery->reopenings->map(function ($reopening): array {
+            $documents = Document::query()
+                ->whereIn('id', $reopening->superseded_document_ids ?? [])
+                ->where('document_type', 'ba_penyerahan')
+                ->get();
+
+            return [
+                'cycle' => max(1, (int) $reopening->handover_cycle - 1),
+                'reopened_at' => $reopening->reopened_at,
+                'reopened_by' => $reopening->reopenedBy?->name ?? 'Petugas',
+                'sample_code' => $reopening->sample?->sample_code ?? '-',
+                'reason' => $reopening->reason,
+                'documents' => $documents,
+            ];
+        });
+
         // Auto-generate RemainingUnit labels for samples with leftover > 0
         app(\App\Services\LabelService::class)->ensureAutoRemainingUnitsForRequest($request, Auth::id());
 
@@ -256,9 +281,7 @@ class DeliveryController extends Controller
         $remainingLabelsRequired = $samplesNeedingRemainingLabels->isNotEmpty();
 
         // Check completion status for stepper
-        $baExists = \App\Models\Document::where('test_request_id', $request->id)
-            ->where('document_type', 'ba_penyerahan')
-            ->exists();
+        $baExists = app(DocumentService::class)->getExistingGenerated($request, 'ba_penyerahan') !== null;
 
         $labelsCount = $request->evidenceUnits->flatMap->remainingUnits->count();
         $labelsGenerated = $labelsCount > 0;
@@ -272,6 +295,7 @@ class DeliveryController extends Controller
 
         $waNotificationSent = $lastNotification !== null;
 
+        $request->setRelation('customerSurvey', $this->surveyForActiveHandoverCycle($request, $delivery));
         $survey = $request->customerSurvey;
         $surveyComplete = $survey && $survey->isComplete();
 
@@ -316,6 +340,7 @@ class DeliveryController extends Controller
             'request' => $request,
             'delivery' => $delivery,
             'lastNotification' => $lastNotification,
+            'handoverHistory' => $handoverHistory,
             'stepper' => $stepper,
 
             'stages' => [
@@ -564,14 +589,12 @@ class DeliveryController extends Controller
 
     public function surveyForm(TestRequest $request)
     {
-
         $request->loadMissing(['customerSurvey', 'investigator', 'samples']);
-
-        $survey = $request->customerSurvey;
+        $delivery = $request->delivery()->first();
+        $survey = $this->surveyForActiveHandoverCycle($request, $delivery);
         $isReadOnly = $request->status === 'completed';
 
         return view('delivery.survey', compact('request', 'survey', 'isReadOnly'));
-
     }
 
     public function submitSurvey(Request $httpRequest, TestRequest $request)
@@ -638,8 +661,13 @@ class DeliveryController extends Controller
             ->map(fn ($value) => (int) $value)
             ->avg();
 
+        $deliveryCycle = (int) (Delivery::query()->where('request_id', $request->id)->value('handover_cycle') ?? 1);
+
         CustomerSurvey::updateOrCreate(
-            ['test_request_id' => $request->id],
+            [
+                'test_request_id' => $request->id,
+                'handover_cycle' => $deliveryCycle,
+            ],
             [
                 'respondent_name' => $validatedData['respondent_name'],
                 'respondent_institution' => $validatedData['respondent_institution'],
@@ -718,8 +746,76 @@ class DeliveryController extends Controller
         return back()->with('success', 'Notifikasi "Siap Diambil" berhasil dikirim ke '.$request->investigator->name.'.');
     }
 
+    public function reopenForAdditionalSample(
+        Request $httpRequest,
+        TestRequest $request,
+        \App\Services\DeliveryReopeningService $reopeningService
+    ) {
+        abort_unless($httpRequest->user()?->hasAnyPermission(['penyerahan.edit', 'penyerahan.create']), 403);
+
+        $validated = $httpRequest->validate([
+            'supplement_reason' => ['required', 'string', 'max:2000'],
+            'confirmation' => ['accepted'],
+            'short_description' => ['required', 'string', 'max:255'],
+            'sample_form' => ['required', 'string', Rule::in(['powder', 'pill', 'liquid', 'plant', 'crystal', 'paste', 'capsule', 'other'])],
+            'sample_category' => ['required', 'string', Rule::in(['narkotika', 'prekursor', 'zat_adiktif', 'obat_keras', 'other'])],
+            'other_sample_category' => ['required_if:sample_category,other', 'nullable', 'string', Rule::in(array_keys(Sample::OTHER_SAMPLE_CATEGORIES))],
+            'sample_description' => ['nullable', 'string'],
+            'sample_weight' => ['nullable', 'numeric', 'min:0'],
+            'package_quantity' => ['required', 'integer', 'min:1'],
+            'unit' => ['required', 'string', 'max:50'],
+            'condition' => ['required', 'string', Rule::in(['baik', 'rusak', 'basah', 'kering'])],
+        ], [
+            'supplement_reason.required' => 'Alasan pembukaan kembali wajib diisi.',
+            'confirmation.accepted' => 'Konfirmasi bahwa hasil belum diambil wajib disetujui.',
+        ]);
+
+        $reopeningService->reopen(
+            $request,
+            $httpRequest->user(),
+            $validated['supplement_reason'],
+            $httpRequest->boolean('confirmation'),
+            $validated
+        );
+
+        return redirect()
+            ->route('testing.show', $request)
+            ->with('success', 'Siklus penyerahan dibuka kembali dan sampel tambahan tercatat. Kaji ulang sampel sebelum melanjutkan pengujian.');
+    }
+
+    public function reopenAdditionalSampleForm(TestRequest $request)
+    {
+        abort_unless(request()->user()?->hasAnyPermission(['penyerahan.edit', 'penyerahan.create']), 403);
+
+        $request->loadMissing(['delivery', 'investigator']);
+        if (! in_array($request->status, ['ready_for_delivery', 'completed'], true)
+            || $request->delivery?->hasBeenCollected()) {
+            return redirect()->route('delivery.show', $request)
+                ->with('error', 'Permintaan ini tidak dapat dibuka kembali. Jika hasil sudah diambil, gunakan suplemen tertaut.');
+        }
+
+        return view('requests.reopen-additional-sample', [
+            'testRequest' => $request,
+            'sampleForms' => ['powder', 'pill', 'liquid', 'plant', 'crystal', 'paste', 'capsule', 'other'],
+            'sampleCategories' => [
+                'narkotika' => 'Narkotika',
+                'prekursor' => 'Prekursor',
+                'zat_adiktif' => 'Zat Adiktif',
+                'obat_keras' => 'Obat Keras',
+                'other' => 'Lainnya',
+            ],
+            'otherSampleOptions' => Sample::OTHER_SAMPLE_CATEGORIES,
+        ]);
+    }
+
     public function markAsCompleted(Request $httpRequest, TestRequest $request)
     {
+        $httpRequest->validate([
+            'collection_confirmation' => ['accepted'],
+        ], [
+            'collection_confirmation.accepted' => 'Konfirmasi bahwa hasil fisik sudah diambil wajib disetujui.',
+        ]);
+
         // Validate that all samples are ready for delivery
         $notReadySamples = $request->samples()
             ->where('status', '!=', 'ready_for_delivery')
@@ -729,17 +825,87 @@ class DeliveryController extends Controller
             return back()->withErrors(['error' => 'Semua sampel harus siap diserahkan terlebih dahulu.']);
         }
 
-        $request->loadMissing('customerSurvey');
+        $delivery = $request->delivery()->first();
+        $activeSurvey = $this->surveyForActiveHandoverCycle($request, $delivery);
 
-        if (! $request->customerSurvey || ! $request->customerSurvey->isComplete()) {
+        if (! $activeSurvey || ! $activeSurvey->isComplete()) {
             return back()->with('error', 'Survey kepuasan wajib diisi sebelum penyerahan ditandai selesai.');
         }
 
-        // Update status to completed
-        $request->update([
-            'status' => 'completed',
-            'completed_at' => now(),
-        ]);
+        if ($request->status !== 'ready_for_delivery') {
+            return back()->with('error', 'Hanya permintaan siap diserahkan yang dapat diselesaikan.');
+        }
+
+        DB::transaction(function () use ($request, $httpRequest): void {
+            $lockedRequest = TestRequest::query()->lockForUpdate()->findOrFail($request->id);
+            if ($lockedRequest->status !== 'ready_for_delivery') {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'status' => 'Status permintaan berubah. Muat ulang halaman sebelum menyelesaikan penyerahan.',
+                ]);
+            }
+
+            $notReadySampleCount = $lockedRequest->samples()
+                ->where('status', '!=', 'ready_for_delivery')
+                ->count();
+            if ($notReadySampleCount > 0) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'status' => 'Sampel baru atau belum selesai terdeteksi. Periksa seluruh sampel sebelum menutup penyerahan.',
+                ]);
+            }
+
+            $delivery = Delivery::query()->where('request_id', $lockedRequest->id)->lockForUpdate()->first();
+            $cycle = max(1, (int) ($delivery?->handover_cycle ?? 1));
+            $activeSurvey = CustomerSurvey::query()
+                ->where('test_request_id', $lockedRequest->id)
+                ->where('handover_cycle', $cycle)
+                ->lockForUpdate()
+                ->first();
+            if (! $activeSurvey?->isComplete()) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'survey' => 'Survei untuk siklus penyerahan aktif wajib lengkap sebelum hasil diselesaikan.',
+                ]);
+            }
+
+            if (! $delivery) {
+                $delivery = Delivery::query()->create([
+                    'request_id' => $lockedRequest->id,
+                    'delivered_by' => Auth::id() ?? $lockedRequest->user_id,
+                    'delivery_date' => now(),
+                    'status' => \App\Enums\DeliveryStatus::READY,
+                ]);
+            }
+
+            $previousDeliveryStatus = $delivery->status;
+            if ($delivery->status === \App\Enums\DeliveryStatus::PENDING) {
+                $delivery->status = \App\Enums\DeliveryStatus::READY;
+            }
+
+            if (! $delivery->status->canTransitionTo(\App\Enums\DeliveryStatus::COLLECTED)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'status' => 'Status penyerahan tidak dapat ditandai selesai. Periksa siklus penyerahan yang aktif.',
+                ]);
+            }
+
+            $lockedRequest->update([
+                'status' => 'completed',
+                'completed_at' => now(),
+            ]);
+            $delivery->forceFill([
+                'status' => \App\Enums\DeliveryStatus::COLLECTED,
+                'collected_at' => now(),
+            ])->save();
+
+            \App\Support\ActivityLogger::log(
+                'DELIVERY_COLLECTION_CONFIRMED',
+                null,
+                $delivery,
+                ['status' => $previousDeliveryStatus->value],
+                ['status' => \App\Enums\DeliveryStatus::COLLECTED->value, 'collected_at' => $delivery->collected_at?->toISOString()],
+                ['test_request_id' => $lockedRequest->id, 'explicit_confirmation' => true],
+                $httpRequest->user()?->id,
+                $httpRequest
+            );
+        });
 
         try {
             $investigator = $request->investigator;
@@ -956,86 +1122,126 @@ class DeliveryController extends Controller
      */
     public function handoverGenerate(Delivery $delivery, DocumentService $docs)
     {
-        $currentSigner = Auth::user();
-        if ($currentSigner !== null) {
-            if ((int) $delivery->delivered_by !== (int) $currentSigner->id) {
-                $delivery->forceFill(['delivered_by' => $currentSigner->id])->save();
+        return DB::transaction(function () use ($delivery, $docs) {
+            $delivery = Delivery::query()->lockForUpdate()->findOrFail($delivery->id);
+            $delivery->loadMissing('request');
+            if (! in_array($delivery->request?->status, ['ready_for_delivery', 'completed'], true)
+                || $delivery->status === \App\Enums\DeliveryStatus::REOPENED) {
+                return back()->with('error', 'BA Penyerahan untuk siklus aktif hanya dapat dibuat setelah seluruh sampel siap diserahkan.');
             }
-            $delivery->setRelation('deliveredBy', $currentSigner);
-        }
 
-        $delivery->loadMissing(['request.investigator', 'request.samples', 'request.evidenceUnits.remainingUnits', 'request.user', 'deliveredBy']);
-        $req = $delivery->request;
-        $inv = $req->investigator;
-
-        // Check if document already exists to reuse number (prevent counter increment)
-        $existingDoc = $docs->getExistingGenerated($req, 'ba_penyerahan');
-
-        if ($existingDoc) {
-            // Reuse number from existing filename to avoid incrementing counter
-            // Format: {NUMBER}-ba-penyerahan.pdf
-            $filename = $existingDoc->original_filename;
-            $suffix = '-ba-penyerahan.pdf';
-
-            if (str_ends_with($filename, $suffix)) {
-                $baPenyerahanNumber = substr($filename, 0, -strlen($suffix));
-            } else {
-                // Fallback: strip extension and label
-                $baseName = pathinfo($filename, PATHINFO_FILENAME);
-                $baPenyerahanNumber = str_replace('-ba-penyerahan', '', $baseName);
-            }
-        } else {
-            // Generate NEW document number
-            $numberingService = app(\App\Services\NumberingService::class);
-            $context = [
-                'investigator_id' => $inv->id,
-                'request_number' => $req->request_number,
-            ];
-
-            // Attempt to extract sequence from request_number to synchronize BA-ST number
-            if (! empty($req->request_number)) {
-                // Try Standard {SEQ}/... or .../{SEQ}/... format
-                if (preg_match('/(?:^|[\/\-])(\d{1,5})(?:[\/\-]|$)/', $req->request_number, $m)) {
-                    $context['forced_sequence'] = (int) $m[1];
+            $currentSigner = Auth::user();
+            if ($currentSigner !== null) {
+                if ((int) $delivery->delivered_by !== (int) $currentSigner->id) {
+                    $delivery->forceFill(['delivered_by' => $currentSigner->id])->save();
                 }
+                $delivery->setRelation('deliveredBy', $currentSigner);
             }
 
-            $baPenyerahanNumber = $numberingService->issue('ba_penyerahan', $context);
-        }
+            $delivery->loadMissing(['request.investigator', 'request.parentTestRequest', 'request.samples', 'request.evidenceUnits.remainingUnits', 'request.user', 'deliveredBy']);
+            $req = $delivery->request;
+            $inv = $req->investigator;
 
-        $baPenyerahanNumber = $this->canonicalizeBaPenyerahanNumber($baPenyerahanNumber);
+            $handoverCycle = max(1, (int) $delivery->handover_cycle);
+            $existingDoc = $this->handoverDocumentForCycle($req, $docs, 'ba_penyerahan', $handoverCycle)
+                ?? $this->handoverDocumentForCycle($req, $docs, 'ba_penyerahan_html', $handoverCycle);
 
-        // Inject number into request metadata for the view to use
-        // This ensures the view displays the reused number
-        $meta = $req->metadata ?? [];
-        if (! is_array($meta)) {
-            $meta = [];
-        }
-        $meta['ba_penyerahan_number'] = $baPenyerahanNumber;
-        $req->setAttribute('metadata', $meta);
+            if ($existingDoc) {
+                // Reuse number from existing filename to avoid incrementing counter
+                // Format: {NUMBER}-ba-penyerahan.pdf
+                $filename = $existingDoc->original_filename;
+                $suffix = '-ba-penyerahan.pdf';
 
-        // Generate filesystem-safe baseName from document number
-        $base = $docs->generateDocumentBaseName('ba_penyerahan', $baPenyerahanNumber);
+                if (str_ends_with($filename, $suffix)) {
+                    $baPenyerahanNumber = substr($filename, 0, -strlen($suffix));
+                } else {
+                    // Fallback: strip extension and label
+                    $baseName = pathinfo($filename, PATHINFO_FILENAME);
+                    $baPenyerahanNumber = str_replace('-ba-penyerahan', '', $baseName);
+                }
+            } else {
+                // Generate NEW document number
+                $numberingService = app(\App\Services\NumberingService::class);
+                $context = [
+                    'investigator_id' => $inv->id,
+                    'request_number' => $req->request_number,
+                ];
 
-        // render blade BA yang sudah kamu buat
-        $html = view('pdf.ba-penyerahan', [
-            'request' => $req,
-            'delivery' => $delivery,
-            'generatedAt' => now(),
-        ])->render();
+                // Attempt to extract sequence from request_number to synchronize BA-ST number
+                if ($handoverCycle === 1 && ! empty($req->request_number)) {
+                    // Try Standard {SEQ}/... or .../{SEQ}/... format
+                    if (preg_match('/(?:^|[\/\-])(\d{1,5})(?:[\/\-]|$)/', $req->request_number, $m)) {
+                        $context['forced_sequence'] = (int) $m[1];
+                    }
+                }
 
-        // arsip HTML (replace existing to avoid duplication)
-        $docs->storeGenerated($html, 'html', $inv, $req, 'ba_penyerahan_html', $base, replaceExisting: true, syncUser: request()->user());
+                $baPenyerahanNumber = $numberingService->issue('ba_penyerahan', $context);
+            }
 
-        // HTML → PDF
-        $pdf = Pdf::loadHTML($html)->setPaper('a4')
-            ->setOption('isRemoteEnabled', true)->setOption('isHtml5ParserEnabled', true)
-            ->setOption('dpi', 96)->output();
+            $baPenyerahanNumber = $this->canonicalizeBaPenyerahanNumber($baPenyerahanNumber);
 
-        // arsip PDF (replace existing to avoid duplication)
-        $docs->storeGenerated($pdf, 'pdf', $inv, $req, 'ba_penyerahan', $base, replaceExisting: true, syncUser: request()->user());
+            // Inject number into request metadata for the view to use
+            // This ensures the view displays the reused number
+            $meta = $req->metadata ?? [];
+            if (! is_array($meta)) {
+                $meta = [];
+            }
+            $meta['ba_penyerahan_number'] = $baPenyerahanNumber;
+            $req->setAttribute('metadata', $meta);
 
-        return back()->with('success', 'BA Penyerahan dibuat & disimpan di storage publik.');
+            // Generate filesystem-safe baseName from document number
+            $base = $docs->generateDocumentBaseName('ba_penyerahan', $baPenyerahanNumber);
+
+            // render blade BA yang sudah kamu buat
+            $html = view('pdf.ba-penyerahan', [
+                'request' => $req,
+                'delivery' => $delivery,
+                'generatedAt' => now(),
+            ])->render();
+
+            // arsip HTML (replace existing to avoid duplication)
+            $htmlDocument = $docs->storeGenerated(
+                $html,
+                'html',
+                $inv,
+                $req,
+                'ba_penyerahan_html',
+                $base,
+                replaceExisting: $handoverCycle === 1 || $this->handoverDocumentForCycle($req, $docs, 'ba_penyerahan_html', $handoverCycle) !== null,
+                syncUser: request()->user()
+            );
+
+            if ($handoverCycle > 1) {
+                $htmlDocument->forceFill([
+                    'extra' => array_merge($htmlDocument->extra ?? [], ['delivery_cycle' => $handoverCycle]),
+                ])->save();
+            }
+
+            // HTML → PDF
+            $pdf = Pdf::loadHTML($html)->setPaper('a4')
+                ->setOption('isRemoteEnabled', true)->setOption('isHtml5ParserEnabled', true)
+                ->setOption('dpi', 96)->output();
+
+            // arsip PDF (replace existing to avoid duplication)
+            $pdfDocument = $docs->storeGenerated(
+                $pdf,
+                'pdf',
+                $inv,
+                $req,
+                'ba_penyerahan',
+                $base,
+                replaceExisting: $handoverCycle === 1 || $this->handoverDocumentForCycle($req, $docs, 'ba_penyerahan', $handoverCycle) !== null,
+                syncUser: request()->user()
+            );
+
+            if ($handoverCycle > 1) {
+                $pdfDocument->forceFill([
+                    'extra' => array_merge($pdfDocument->extra ?? [], ['delivery_cycle' => $handoverCycle]),
+                ])->save();
+            }
+
+            return back()->with('success', 'BA Penyerahan dibuat & disimpan di storage publik.');
+        }, attempts: 1);
     }
 
     /**
@@ -1046,7 +1252,11 @@ class DeliveryController extends Controller
      */
     public function handoverView(Delivery $delivery, DocumentService $docs)
     {
-        $delivery->loadMissing(['request.investigator', 'request.samples', 'request.evidenceUnits.remainingUnits', 'request.user', 'deliveredBy']);
+        if (! in_array($delivery->request?->status, ['ready_for_delivery', 'completed'], true)) {
+            return back()->with('error', 'Dokumen penyerahan siklus baru belum tersedia karena pengujian masih dibuka kembali.');
+        }
+
+        $delivery->loadMissing(['request.investigator', 'request.parentTestRequest', 'request.samples', 'request.evidenceUnits.remainingUnits', 'request.user', 'deliveredBy']);
         $req = $delivery->request;
         $inv = $req->investigator;
 
@@ -1108,9 +1318,42 @@ class DeliveryController extends Controller
         $req = $delivery->loadMissing(['request'])->request;
         $doc = Document::where('test_request_id', $req->id)
             ->where('document_type', 'ba_penyerahan')->where('source', 'generated')
+            ->whereNull('extra->superseded_at')
             ->latest()->firstOrFail();
 
         return response()->download(storage_path('app/public/'.$doc->path), $doc->filename, ['Content-Type' => 'application/pdf']);
+    }
+
+    public function handoverArchiveView(Delivery $delivery, Document $document, DocumentService $docs)
+    {
+        abort_unless((int) $document->test_request_id === (int) $delivery->request_id, 404);
+        abort_unless(in_array($document->document_type, ['ba_penyerahan', 'ba_penyerahan_html'], true), 404);
+        abort_unless(isset($document->extra['superseded_at']), 404);
+        abort_unless($docs->fileExists($document), 404);
+
+        return response()->file($docs->getFilePath($document), [
+            'Content-Type' => $document->mime_type ?: 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$document->filename.'"',
+        ]);
+    }
+
+    private function handoverDocumentForCycle(
+        TestRequest $request,
+        DocumentService $docs,
+        string $type,
+        int $cycle
+    ): ?Document {
+        if ($cycle === 1) {
+            return $docs->getExistingGenerated($request, $type);
+        }
+
+        return Document::query()
+            ->where('test_request_id', $request->id)
+            ->where('document_type', $type)
+            ->where('source', 'generated')
+            ->whereJsonContains('extra', ['delivery_cycle' => $cycle])
+            ->latest('id')
+            ->first();
     }
 
     public function handoverStatus(\App\Models\TestRequest $request)
@@ -1118,11 +1361,13 @@ class DeliveryController extends Controller
         // Query from documents table instead of filesystem
         $htmlDoc = \App\Models\Document::where('test_request_id', $request->id)
             ->where('document_type', 'ba_penyerahan_html')
+            ->whereNull('extra->superseded_at')
             ->latest('created_at')
             ->first();
 
         $pdfDoc = \App\Models\Document::where('test_request_id', $request->id)
             ->where('document_type', 'ba_penyerahan')
+            ->whereNull('extra->superseded_at')
             ->latest('created_at')
             ->first();
 
@@ -1159,6 +1404,16 @@ class DeliveryController extends Controller
         }
 
         return $value;
+    }
+
+    private function surveyForActiveHandoverCycle(TestRequest $request, ?Delivery $delivery): ?CustomerSurvey
+    {
+        $cycle = max(1, (int) ($delivery?->handover_cycle ?? 1));
+
+        return CustomerSurvey::query()
+            ->where('test_request_id', $request->id)
+            ->where('handover_cycle', $cycle)
+            ->first();
     }
 
     /**

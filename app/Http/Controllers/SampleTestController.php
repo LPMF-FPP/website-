@@ -4,11 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Enums\SampleStatus;
 use App\Enums\TestMethod;
-use App\Enums\TestProcessStage;
 use App\Models\Sample;
-use App\Models\SampleTestProcess;
 use App\Models\TestRequest;
 use App\Models\User;
+use App\Support\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -23,13 +22,15 @@ class SampleTestController extends Controller
         // Dengan ini, ketika data sudah berpindah ke proses berikutnya (in_testing/dst),
         // permintaan tersebut tidak akan muncul lagi di form pengujian.
         $allowedStatusesForForm = ['submitted', 'verified', 'received'];
-        $requests = TestRequest::with(['investigator:id,name'])
+        $requests = TestRequest::with(['investigator:id,name', 'parentTestRequest:id,request_number,receipt_number'])
             ->whereIn('status', $allowedStatusesForForm)
             ->orderByDesc('created_at')
             ->get();
 
+        $hasExplicitRequestId = $request->query->has('request_id');
         $selectedRequestId = $request->query('request_id');
         $selectedRequest = null;
+        $ineligibleSelectedRequest = false;
 
         if ($selectedRequestId) {
             $selectedRequest = $this->loadRequestWithSamples($selectedRequestId);
@@ -38,10 +39,16 @@ class SampleTestController extends Controller
             // kosongkan agar otomatis memilih request pertama yang valid.
             if ($selectedRequest && ! in_array($selectedRequest->status, $allowedStatusesForForm, true)) {
                 $selectedRequest = null;
+                $selectedRequestId = null;
+                $ineligibleSelectedRequest = true;
             }
         }
 
-        if (! $selectedRequest && $requests->isNotEmpty()) {
+        if ($hasExplicitRequestId && ! $selectedRequest) {
+            $ineligibleSelectedRequest = true;
+        }
+
+        if (! $selectedRequest && ! $hasExplicitRequestId && $requests->isNotEmpty()) {
             $selectedRequestId = $requests->first()->id;
             $selectedRequest = $this->loadRequestWithSamples($selectedRequestId);
         }
@@ -74,6 +81,8 @@ class SampleTestController extends Controller
             'requests' => $requests,
             'selectedRequest' => $selectedRequest,
             'selectedRequestId' => $selectedRequestId,
+            'ineligibleSelectedRequest' => $ineligibleSelectedRequest,
+            'reviewMode' => 'initial',
             'analysts' => $analysts,
             'methodOptions' => TestMethod::options(),
             'otherSampleOptions' => Sample::OTHER_SAMPLE_CATEGORIES,
@@ -89,7 +98,7 @@ class SampleTestController extends Controller
             'test_date' => ['required', 'date'],
             'samples' => ['required', 'array', 'min:1'],
             'samples.*.id' => ['required', 'exists:samples,id'],
-            'samples.*.assigned_analyst_id' => ['required', 'exists:users,id'],
+            'samples.*.assigned_analyst_id' => ['required', $this->activeAnalystRule()],
             'samples.*.test_methods' => ['required', 'array', 'min:1'],
             'samples.*.test_methods.*' => ['string', Rule::in(array_map(fn ($method) => $method->value, TestMethod::cases()))],
             'samples.*.active_substance' => ['required', 'string', 'max:255'],
@@ -111,93 +120,38 @@ class SampleTestController extends Controller
             'samples.*.test_type.required' => 'Jenis atau fokus pengujian wajib dipilih.',
         ]);
 
-        $firstSampleId = $validated['samples'][0]['id'] ?? null;
-
         DB::transaction(function () use ($validated) {
+            $testRequest = TestRequest::query()
+                ->whereKey($validated['request_id'])
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (! in_array($testRequest->status, ['submitted', 'verified', 'received'], true)) {
+                throw ValidationException::withMessages([
+                    'request_id' => 'Permintaan ini sudah berpindah tahap. Buka kembali halaman kaji ulang untuk melanjutkan dengan konteks yang benar.',
+                ]);
+            }
+
             foreach ($validated['samples'] as $index => $sampleData) {
                 $sample = Sample::where('id', $sampleData['id'])
                     ->where('test_request_id', $validated['request_id'])
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                $requestedMethods = $this->normalizeMethods($sample->requested_test_methods ?? $sample->test_methods);
-                $submittedMethods = array_values(array_unique($sampleData['test_methods']));
-                $encodedSubmittedMethods = json_encode($submittedMethods);
-
-                $missingRequested = array_diff($requestedMethods, $submittedMethods);
-
-                if (! empty($missingRequested)) {
+                if ($sample->status === SampleStatus::READY_FOR_DELIVERY->value
+                    || $sample->testProcesses()->exists()
+                    || $sample->disposal_id !== null) {
                     throw ValidationException::withMessages([
-                        "samples.$index.test_methods" => 'Metode pengujian pada permintaan tidak dapat dihapus.',
+                        "samples.$index.id" => 'Sampel ini tidak lagi memenuhi syarat untuk kaji ulang awal.',
                     ]);
                 }
 
-                $otherCategory = $sampleData['other_sample_category'] ?? null;
-
-                if ($sample->sample_type === 'other') {
-                    if (! $otherCategory) {
-                        throw ValidationException::withMessages([
-                            "samples.$index.other_sample_category" => 'Pilih kategori sampel untuk jenis lainnya.',
-                        ]);
-                    }
-                } else {
-                    $otherCategory = null;
-                }
-
-                $sample->update([
-                    'assigned_analyst_id' => $sampleData['assigned_analyst_id'],
-                    'test_methods' => $encodedSubmittedMethods,
-                    'requested_test_methods' => $sample->requested_test_methods ?: $encodedSubmittedMethods,
-                    'active_substance' => $sampleData['active_substance'],
-                    'test_type' => $sampleData['test_type'] ?? null,
-                    'physical_identification' => $sampleData['physical_identification'],
-                    'quantity' => $sampleData['quantity'],
-                    // Use unit from sample (set during request creation), not from user input
-                    'quantity_unit' => $sample->unit ?? $sampleData['quantity_unit'] ?? null,
-                    'batch_number' => $sampleData['batch_number'] ?? null,
-                    'expiry_date' => $sampleData['expiry_date'] ?? null,
-                    'test_date' => $validated['test_date'],
-                    'notes' => $sampleData['notes'] ?? null,
-                    'other_sample_category' => $otherCategory,
-                    'status' => SampleStatus::PREPARATION_PENDING,
-                ]);
-
-                // Create workflow stages. Mark the first stage as started and mark
-                // instrumentation as started when an analyst is assigned so that
-                // the UI and workflow state reflect immediate movement.
-                // Only create stages that are allowed in database: preparation, instrumentation, interpretation
-                $stages = [
-                    TestProcessStage::PREPARATION,
-                    TestProcessStage::INSTRUMENTATION,
-                    TestProcessStage::INTERPRETATION,
-                ];
-                $firstStage = $stages[0] ?? null;
-
-                foreach ($stages as $stage) {
-                    $createAttrs = [
-                        'performed_by' => $stage === TestProcessStage::INSTRUMENTATION
-                            ? $sampleData['assigned_analyst_id']
-                            : null,
-                    ];
-
-                    // If this is the first stage, set started_at immediately.
-                    if ($stage === $firstStage) {
-                        $createAttrs['started_at'] = now();
-                    }
-
-                    // If instrumentation has an assigned analyst, mark it started.
-                    if ($stage === TestProcessStage::INSTRUMENTATION && ! empty($createAttrs['performed_by'])) {
-                        $createAttrs['started_at'] = $createAttrs['started_at'] ?? now();
-                    }
-
-                    SampleTestProcess::firstOrCreate(
-                        [
-                            'sample_id' => $sample->id,
-                            'stage' => $stage->value,
-                        ],
-                        $createAttrs
-                    );
-                }
+                app(\App\Services\SampleReviewService::class)->review(
+                    $sample,
+                    $sampleData,
+                    $validated['test_date'],
+                    "samples.$index"
+                );
             }
 
             TestRequest::where('id', $validated['request_id'])
@@ -207,6 +161,79 @@ class SampleTestController extends Controller
         return redirect()
             ->route('testing.show', $validated['request_id'])
             ->with('success', 'Kaji ulang permintaan berhasil disimpan. Lanjutkan ke pengujian.');
+    }
+
+    public function reviewAdditionalSample(TestRequest $testRequest, Sample $sample)
+    {
+        abort_unless($this->isEligibleAdditionalSample($testRequest, $sample), 404);
+
+        $testRequest->loadMissing('parentTestRequest');
+        $analysts = $this->activeAnalysts();
+
+        return view('samples.test', [
+            'requests' => collect([$testRequest->load('investigator:id,name')]),
+            'selectedRequest' => $testRequest->setRelation('samples', collect([$sample->load('testProcesses')])),
+            'selectedRequestId' => $testRequest->id,
+            'analysts' => $analysts,
+            'methodOptions' => TestMethod::options(),
+            'otherSampleOptions' => Sample::OTHER_SAMPLE_CATEGORIES,
+            'existingPhysicalIdentifications' => $this->existingPhysicalIdentifications(),
+            'existingActiveSubstances' => $this->existingActiveSubstances(),
+            'reviewMode' => 'additional',
+            'ineligibleSelectedRequest' => false,
+        ]);
+    }
+
+    public function storeAdditionalSample(Request $request, TestRequest $testRequest, Sample $sample)
+    {
+        $validated = $this->validateReviewPayload($request);
+
+        if ((int) $validated['request_id'] !== (int) $testRequest->id
+            || (int) ($validated['samples'][0]['id'] ?? 0) !== (int) $sample->id
+            || count($validated['samples']) !== 1) {
+            throw ValidationException::withMessages([
+                'samples' => 'Kaji ulang sampel tambahan hanya dapat menyimpan satu sampel yang dipilih pada permintaan ini.',
+            ]);
+        }
+
+        DB::transaction(function () use ($validated, $testRequest, $sample): void {
+            $lockedRequest = TestRequest::query()->lockForUpdate()->findOrFail($testRequest->id);
+            $lockedSample = Sample::query()
+                ->whereKey($sample->id)
+                ->where('test_request_id', $lockedRequest->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if (! $this->isEligibleAdditionalSample($lockedRequest, $lockedSample)) {
+                throw ValidationException::withMessages([
+                    'samples.0.id' => 'Sampel ini sudah berubah status atau tidak lagi memenuhi syarat kaji ulang tambahan.',
+                ]);
+            }
+
+            $before = [
+                'status' => (string) $lockedSample->status,
+                'sample_status' => (string) $lockedSample->sample_status,
+            ];
+            app(\App\Services\SampleReviewService::class)->review(
+                $lockedSample,
+                $validated['samples'][0],
+                $validated['test_date'],
+                'samples.0'
+            );
+
+            ActivityLogger::log(
+                'ADDITIONAL_SAMPLE_REVIEWED',
+                null,
+                $lockedSample,
+                $before,
+                ['status' => SampleStatus::PREPARATION_PENDING->value, 'sample_status' => (string) $lockedSample->sample_status],
+                ['test_request_id' => $lockedRequest->id, 'test_date' => $validated['test_date']]
+            );
+        });
+
+        return redirect()
+            ->route('testing.show', $testRequest)
+            ->with('success', 'Kaji ulang sampel tambahan berhasil disimpan. Sampel masuk ke tahap preparasi.');
     }
 
     public function reject(Request $request, TestRequest $testRequest)
@@ -241,25 +268,79 @@ class SampleTestController extends Controller
             return null;
         }
 
-        return TestRequest::with(['samples' => function ($query) {
-            // Hanya muat sampel yang belum ready_for_delivery
+        return TestRequest::with(['parentTestRequest:id,request_number,receipt_number', 'samples' => function ($query) {
             $query->where('status', '!=', SampleStatus::READY_FOR_DELIVERY->value)
+                ->whereDoesntHave('testProcesses')
+                ->whereNull('disposal_id')
                 ->orderBy('id');
         }])->find($requestId);
     }
 
-    private function normalizeMethods($value): array
+    private function isEligibleAdditionalSample(TestRequest $testRequest, Sample $sample): bool
     {
-        if (empty($value)) {
-            return [];
-        }
+        return in_array($testRequest->status, ['in_testing', 'analysis', 'quality_check'], true)
+            && (int) $sample->test_request_id === (int) $testRequest->id
+            && $sample->status !== SampleStatus::READY_FOR_DELIVERY->value
+            && $sample->disposal_id === null
+            && ! $sample->testProcesses()->exists();
+    }
 
-        if (is_string($value)) {
-            $decoded = json_decode($value, true);
+    private function validateReviewPayload(Request $request): array
+    {
+        return $request->validate([
+            'request_id' => ['required', 'exists:test_requests,id'],
+            'test_date' => ['required', 'date'],
+            'samples' => ['required', 'array', 'min:1'],
+            'samples.*.id' => ['required', 'exists:samples,id'],
+            'samples.*.assigned_analyst_id' => ['required', $this->activeAnalystRule()],
+            'samples.*.test_methods' => ['required', 'array', 'min:1'],
+            'samples.*.test_methods.*' => ['string', Rule::in(array_map(fn ($method) => $method->value, TestMethod::cases()))],
+            'samples.*.active_substance' => ['required', 'string', 'max:255'],
+            'samples.*.physical_identification' => ['required', 'string'],
+            'samples.*.quantity' => ['required', 'numeric', 'min:0.01'],
+            'samples.*.quantity_unit' => ['nullable', 'string', 'max:50'],
+            'samples.*.batch_number' => ['required', 'string', 'max:100'],
+            'samples.*.expiry_date' => ['nullable', 'date'],
+            'samples.*.test_type' => ['required', 'string', 'max:100'],
+            'samples.*.notes' => ['nullable', 'string'],
+            'samples.*.other_sample_category' => ['nullable', 'string', Rule::in(array_keys(Sample::OTHER_SAMPLE_CATEGORIES))],
+        ], [
+            'samples.*.test_methods.required' => 'Metode pengujian wajib dipilih.',
+            'samples.*.test_methods.*.in' => 'Metode pengujian tidak valid.',
+            'samples.*.active_substance.required' => 'Zat aktif wajib diisi pada kaji ulang permintaan.',
+            'samples.*.quantity.min' => 'Jumlah sampel harus lebih dari 0.',
+            'samples.*.batch_number.required' => 'Nomor batch wajib diisi.',
+            'samples.*.test_type.required' => 'Jenis atau fokus pengujian wajib dipilih.',
+        ]);
+    }
 
-            return is_array($decoded) ? $decoded : [];
-        }
+    private function activeAnalysts()
+    {
+        return User::query()
+            ->where('is_active', true)
+            ->whereIn('role', app(\App\Support\RoleCatalog::class)->staffRoles())
+            ->orderBy('name')
+            ->get();
+    }
 
-        return is_array($value) ? $value : [];
+    private function activeAnalystRule(): \Illuminate\Validation\Rules\Exists
+    {
+        $staffRoles = app(\App\Support\RoleCatalog::class)->staffRoles();
+
+        return Rule::exists('users', 'id')->where(fn ($query) => $query
+            ->where('is_active', true)
+            ->whereIn('role', $staffRoles));
+    }
+
+    private function existingPhysicalIdentifications()
+    {
+        return Sample::query()->whereNotNull('physical_identification')->where('physical_identification', '!=', '')
+            ->distinct()->pluck('physical_identification')->sort()->values();
+    }
+
+    private function existingActiveSubstances()
+    {
+        return Sample::query()->whereNotNull('active_substance')->where('active_substance', '!=', '')
+            ->distinct()->orderBy('active_substance')->pluck('active_substance');
     }
 }

@@ -4,6 +4,10 @@
         $requestSamples = $selectedRequest?->samples ?? collect();
         $hasRequests = $requests->isNotEmpty();
         $canSubmit = $selectedRequest && $requestSamples->isNotEmpty() && $analysts->isNotEmpty();
+        $isAdditionalReview = ($reviewMode ?? 'initial') === 'additional';
+        $reviewAction = $isAdditionalReview
+            ? route('testing.additional-samples.store', [$selectedRequest, $requestSamples->first()])
+            : route('review.store');
     @endphp
 
     <x-slot name="header">
@@ -37,7 +41,13 @@
             </x-alert>
         @endif
 
-        <form id="review-form" action="{{ route('review.store') }}" method="POST" class="space-y-6" autocomplete="off" data-review-form>
+        @if ($ineligibleSelectedRequest ?? false)
+            <x-alert type="warning" title="Permintaan tidak lagi berada di antrean kaji ulang" class="rounded-lg border">
+                Permintaan yang dipilih sudah masuk tahap pengujian atau penyerahan. Tidak ada permintaan lain yang dipilih otomatis. Buka detail pengujian untuk melanjutkan sampel yang belum dikaji ulang.
+            </x-alert>
+        @endif
+
+        <form id="review-form" action="{{ $reviewAction }}" method="POST" class="space-y-6" autocomplete="off" data-review-form>
             @csrf
 
             <div class="grid gap-6 xl:grid-cols-12">
@@ -45,15 +55,23 @@
                     <section class="rounded-lg border border-primary-100 bg-gradient-to-br from-primary-50/70 via-white to-sky-50 p-5 shadow-sm">
                         <div class="flex items-start justify-between gap-3">
                             <div>
-                                <h2 class="text-base font-semibold text-primary-900">Antrian Kaji Ulang 📋</h2>
-                                <p class="mt-1 text-sm text-gray-600">Pilih permintaan, atur tanggal pengujian, lalu lengkapi data setiap sampel.</p>
+                                <h2 class="text-base font-semibold text-primary-900">{{ $isAdditionalReview ? 'Kaji Ulang Sampel Tambahan 🧪' : 'Antrian Kaji Ulang 📋' }}</h2>
+                                <p class="mt-1 text-sm text-gray-600">{{ $isAdditionalReview ? 'Lengkapi kaji ulang untuk satu sampel yang belum memiliki proses.' : 'Pilih permintaan, atur tanggal pengujian, lalu lengkapi data setiap sampel.' }}</p>
                             </div>
                             <span class="inline-flex shrink-0 items-center whitespace-nowrap rounded-full border border-primary-300 bg-primary-600 px-3 py-1 text-sm font-bold text-white shadow-sm">
-                                {{ $requests->count() }} permintaan
+                                {{ $isAdditionalReview ? '1 sampel' : $requests->count().' permintaan' }}
                             </span>
                         </div>
 
-                        @if ($hasRequests)
+                        @if ($isAdditionalReview)
+                            <input type="hidden" name="request_id" value="{{ $selectedRequestId }}">
+                            <div class="mt-5 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+                                Sampel akan diproses terpisah. Sampel lain pada permintaan dan status permintaan tidak berubah.
+                            </div>
+                            @error('request_id')
+                                <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                            @enderror
+                        @elseif ($hasRequests)
                             <div class="mt-5 space-y-4">
                                 <div>
                                     <label for="request_filter" class="block text-sm font-medium text-gray-700">Cari cepat permintaan</label>
@@ -150,6 +168,12 @@
                                     <dt class="text-gray-500">Jumlah Sampel</dt>
                                     <dd class="font-semibold text-primary-900">{{ $requestSamples->count() }} sampel</dd>
                                 </div>
+                                @if($selectedRequest->parentTestRequest)
+                                    <div class="border-t border-blue-100 pt-3">
+                                        <dt class="text-gray-500">Suplemen tertaut ke</dt>
+                                        <dd class="mt-1 font-semibold text-primary-900">{{ $selectedRequest->parentTestRequest->receipt_number }}</dd>
+                                    </div>
+                                @endif
                             </dl>
                         </section>
                     @endif
@@ -221,7 +245,7 @@
                                             : (empty($requestedMethods) ? [''] : []);
 
                                         $selectedOtherCategory = old("samples.$sampleIndex.other_sample_category", $sample->other_sample_category);
-                                        $isOtherSample = $sample->sample_type === 'other';
+                                        $isOtherSample = $sample->sample_form === 'other' || $sample->sample_type === 'other';
                                         $physicalIdentificationValue = old("samples.$sampleIndex.physical_identification", $sample->physical_identification);
 
                                         $selectedPhysicalMode = old("samples.$sampleIndex.physical_id_mode");
@@ -606,7 +630,7 @@
                         <div class="sticky bottom-4 z-10">
                             <div class="rounded-xl border border-gray-200 bg-white/95 p-4 shadow-lg backdrop-blur">
                                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                    <p class="text-sm text-gray-600">Aksi utama akan menyimpan hasil kaji ulang dan mengarahkan ke tahap pengujian.</p>
+                                    <p class="text-sm text-gray-600">{{ $isAdditionalReview ? 'Hanya sampel ini yang akan disimpan ke tahap pengujian.' : 'Aksi utama akan menyimpan hasil kaji ulang dan mengarahkan ke tahap pengujian.' }}</p>
                                     <button
                                         type="submit"
                                         data-submit-review
@@ -615,7 +639,7 @@
                                         aria-disabled="{{ $canSubmit ? 'false' : 'true' }}"
                                     >
                                         <x-icon name="loading" size="sm" class="hidden" data-submit-spinner spin :decorative="true" />
-                                        <span data-submit-label>{{ $canSubmit ? 'Simpan Kaji Ulang' : 'Lengkapi data terlebih dahulu' }}</span>
+                                        <span data-submit-label>{{ $canSubmit ? ($isAdditionalReview ? 'Simpan Kaji Ulang Sampel' : 'Simpan Kaji Ulang') : 'Lengkapi data terlebih dahulu' }}</span>
                                     </button>
                                 </div>
                             </div>
@@ -625,7 +649,7 @@
             </div>
         </form>
 
-        @if ($selectedRequest)
+        @if ($selectedRequest && ! $isAdditionalReview)
             <section class="rounded-lg border border-red-200 bg-red-50/50 p-5 shadow-sm" aria-labelledby="reject-request-title">
                 <h2 id="reject-request-title" class="text-base font-semibold text-red-700">Aksi Sekunder: Tolak Permintaan ⚠️</h2>
                 <p class="mt-1 text-sm text-red-600">Gunakan hanya jika permintaan tidak memenuhi syarat. Aksi ini tidak dapat dibatalkan.</p>

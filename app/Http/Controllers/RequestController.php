@@ -511,7 +511,7 @@ class RequestController extends Controller
     public function show(string $id)
     {
 
-        $request = TestRequest::with(['investigator', 'samples'])
+        $request = TestRequest::with(['investigator', 'samples', 'parentTestRequest', 'supplementalRequests', 'delivery'])
             ->findOrFail($id);
 
         return view('requests.show', compact('request'));
@@ -523,7 +523,7 @@ class RequestController extends Controller
      */
     public function edit(string $id)
     {
-        $request = TestRequest::with(['investigator', 'samples', 'documents', 'suspects'])->findOrFail($id);
+        $request = TestRequest::with(['investigator', 'samples.testProcesses', 'documents', 'suspects', 'delivery'])->findOrFail($id);
 
         return view('requests.edit', compact('request'));
     }
@@ -605,6 +605,49 @@ class RequestController extends Controller
 
         $validated = $request->validate($rules);
 
+        $addsSample = collect($validated['samples'] ?? [])
+            ->contains(fn (array $sampleData): bool => empty($sampleData['id']));
+
+        if ($addsSample && in_array($testRequest->status, ['in_testing', 'analysis', 'quality_check'], true)) {
+            return back()->withInput()->withErrors([
+                'samples' => 'Tambahkan sampel pengujian aktif melalui halaman detail pengujian agar sampel baru wajib dikaji ulang.',
+            ]);
+        }
+
+        if ($addsSample && in_array($testRequest->status, ['ready_for_delivery', 'completed'], true)) {
+            $message = $testRequest->delivery?->hasBeenCollected()
+                ? 'Hasil sudah diambil. Gunakan alur suplemen tertaut agar riwayat penyerahan awal tetap utuh.'
+                : 'Permintaan sudah siap atau selesai secara administratif. Buka kembali siklus penyerahan sebelum menambahkan sampel jika hasil belum diambil.';
+
+            return back()->withInput()->withErrors(['samples' => $message]);
+        }
+
+        if ($addsSample && $testRequest->status === 'rejected') {
+            return back()->withInput()->withErrors(['samples' => 'Permintaan ditolak dan tidak dapat menerima sampel tambahan.']);
+        }
+
+        if ($addsSample && $testRequest->parent_test_request_id !== null) {
+            return back()->withInput()->withErrors([
+                'samples' => 'Permintaan suplemen berisi satu sampel. Buat suplemen tertaut lain untuk sampel berikutnya.',
+            ]);
+        }
+
+        $submittedSampleIds = collect($validated['samples'])
+            ->pluck('id')
+            ->filter()
+            ->map(fn ($sampleId): int => (int) $sampleId);
+        $removedProcessedSamples = $testRequest->samples()
+            ->whereNotIn('id', $submittedSampleIds->all())
+            ->whereHas('testProcesses')
+            ->exists();
+
+        if ($removedProcessedSamples || (in_array($testRequest->status, ['ready_for_delivery', 'completed'], true)
+            && $testRequest->samples()->whereNotIn('id', $submittedSampleIds->all())->exists())) {
+            return back()->withInput()->withErrors([
+                'samples' => 'Sampel yang sudah masuk proses atau penyerahan tidak dapat dihapus dari edit permintaan.',
+            ]);
+        }
+
         $uploadedDocuments = collect([]);
         $documentsToDeleteAfterCommit = collect([]);
         $pathsToDeleteAfterCommit = collect([]);
@@ -612,6 +655,19 @@ class RequestController extends Controller
         DB::beginTransaction();
 
         try {
+            $lockedTestRequest = TestRequest::query()->lockForUpdate()->findOrFail($testRequest->id);
+            if ($lockedTestRequest->status !== $testRequest->status) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'samples' => 'Status permintaan berubah saat data diedit. Muat ulang halaman sebelum menyimpan perubahan.',
+                ]);
+            }
+
+            if ($addsSample && in_array($lockedTestRequest->status, ['in_testing', 'analysis', 'quality_check', 'ready_for_delivery', 'completed', 'rejected'], true)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'samples' => 'Sampel tambahan tidak dapat dicatat melalui edit umum pada tahap ini. Gunakan alur sampel tambahan yang sesuai.',
+                ]);
+            }
+
             // Update investigator based on type
             $inv = $testRequest->investigator;
 
@@ -1122,6 +1178,13 @@ class RequestController extends Controller
     public function destroy(string $id)
     {
         $testRequest = TestRequest::findOrFail($id);
+
+        if ($testRequest->parent_test_request_id !== null
+            || $testRequest->supplementalRequests()->exists()
+            || $testRequest->deliveryReopenings()->exists()) {
+            return back()->with('error', 'Permintaan dengan riwayat suplemen atau pembukaan kembali tidak dapat dihapus agar jejak penyerahan tetap utuh.');
+        }
+
         $anchor = \Carbon\CarbonImmutable::parse($testRequest->created_at);
 
         DB::transaction(function () use ($testRequest) {
@@ -1391,7 +1454,7 @@ class RequestController extends Controller
             }
 
             // Ambil relasi lengkap
-            $testRequest->loadMissing(['investigator', 'samples', 'user']);
+            $testRequest->loadMissing(['investigator', 'samples', 'user', 'parentTestRequest']);
             $inv = $testRequest->investigator;
 
             // Validate investigator exists

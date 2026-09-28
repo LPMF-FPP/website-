@@ -53,6 +53,8 @@ it('stores kaji ulang successfully and creates workflow stages', function (): vo
 
     $sample = Sample::factory()->create([
         'test_request_id' => $testRequest->id,
+        'sample_form' => 'pill',
+        'sample_category' => 'narkotika',
         'requested_test_methods' => json_encode(['uv_vis']),
         'test_methods' => json_encode(['uv_vis']),
         'status' => 'pending',

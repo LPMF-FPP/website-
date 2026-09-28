@@ -382,4 +382,63 @@ class HandoverPdfSignerFormatTest extends TestCase
         $this->assertStringContainsString('20 tablet', $htmlContent);
         $this->assertSame(1, substr_count($htmlContent, '30 tablet'));
     }
+
+    public function test_reopened_handover_creates_a_new_document_cycle_without_replacing_superseded_files(): void
+    {
+        /** @var User $authUser */
+        $authUser = User::factory()->create(['role' => 'admin']);
+        $investigator = Investigator::factory()->create(['name' => 'Budi Santoso', 'rank' => 'AKP']);
+        $request = TestRequest::factory()->create([
+            'investigator_id' => $investigator->id,
+            'user_id' => $authUser->id,
+            'status' => 'ready_for_delivery',
+        ]);
+        Sample::factory()->create([
+            'test_request_id' => $request->id,
+            'sample_code' => 'W002A2026',
+            'short_description' => 'Tablet siklus baru',
+        ]);
+        $delivery = Delivery::factory()->create([
+            'request_id' => $request->id,
+            'delivered_by' => $authUser->id,
+            'status' => \App\Enums\DeliveryStatus::READY,
+            'handover_cycle' => 2,
+        ]);
+
+        $oldHtml = Document::factory()->generated()->create([
+            'investigator_id' => $investigator->id,
+            'test_request_id' => $request->id,
+            'document_type' => 'ba_penyerahan_html',
+            'file_path' => 'archive/cycle-1.html',
+            'path' => 'archive/cycle-1.html',
+            'extra' => ['delivery_cycle' => 1, 'superseded_at' => now()->toISOString()],
+        ]);
+        $oldPdf = Document::factory()->generated()->create([
+            'investigator_id' => $investigator->id,
+            'test_request_id' => $request->id,
+            'document_type' => 'ba_penyerahan',
+            'file_path' => 'archive/cycle-1.pdf',
+            'path' => 'archive/cycle-1.pdf',
+            'extra' => ['delivery_cycle' => 1, 'superseded_at' => now()->toISOString()],
+        ]);
+        Storage::disk('public')->put($oldHtml->path, '<p>cycle one</p>');
+        Storage::disk('public')->put($oldPdf->path, '%PDF-cycle-one');
+
+        $this->actingAs($authUser)
+            ->post(route('delivery.handover.generate', $delivery))
+            ->assertRedirect();
+
+        $this->assertDatabaseCount('documents', 4);
+        $cycleTwoHtml = Document::query()->where('test_request_id', $request->id)
+            ->where('document_type', 'ba_penyerahan_html')->where('extra->delivery_cycle', 2)->firstOrFail();
+        $cycleTwoPdf = Document::query()->where('test_request_id', $request->id)
+            ->where('document_type', 'ba_penyerahan')->where('extra->delivery_cycle', 2)->firstOrFail();
+
+        $this->assertSame($oldHtml->id, $oldHtml->fresh()->id);
+        $this->assertSame($oldPdf->id, $oldPdf->fresh()->id);
+        Storage::disk('public')->assertExists($oldHtml->path);
+        Storage::disk('public')->assertExists($oldPdf->path);
+        Storage::disk('public')->assertExists($cycleTwoHtml->path);
+        Storage::disk('public')->assertExists($cycleTwoPdf->path);
+    }
 }
