@@ -149,20 +149,19 @@
         </div>
 
         <div class="space-y-6 lg:col-span-8">
-            <div class="rounded-lg border border-gray-100 bg-white">
-                <table class="min-w-full divide-y divide-gray-200">
+            <div class="rounded-lg border border-gray-200 bg-white shadow-sm">
+                @if($samples->isNotEmpty())
+                <table class="hidden w-full table-fixed divide-y divide-gray-200 md:table">
                     <thead class="bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-500">
                         <tr>
-                            <th class="px-4 py-3 text-left first:rounded-tl-lg">Sampel</th>
-                            <th class="px-4 py-3 text-left">Deskripsi Singkat</th>
-                            <th class="px-4 py-3 text-left">Tahapan</th>
-                            <th class="px-4 py-3 text-left">Jadwal</th>
-                            <th class="px-4 py-3 text-left">Status</th>
-                            <th class="px-4 py-3 text-right last:rounded-tr-lg">Aksi</th>
+                            <th class="w-[31%] px-4 py-3 text-left first:rounded-tl-lg">Sampel</th>
+                            <th class="w-[24%] px-4 py-3 text-left">Tahap dan jadwal</th>
+                            <th class="w-[21%] px-4 py-3 text-left">Status</th>
+                            <th class="w-44 px-4 py-3 text-right last:rounded-tr-lg">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-200 text-sm text-gray-700">
-                        @forelse($samples as $sample)
+                        @foreach($samples as $sample)
                             @php
                                 $lhuProcess = $sample->testProcesses
                                     ->filter(fn ($process) => ($process->stage?->value ?? $process->stage) === 'interpretation' && $process->completed_at)
@@ -176,25 +175,21 @@
                             <tr 
                                 class="hover:bg-gray-50/70 transition-colors duration-500" 
                                 :class="{ 'bg-green-100 ring-2 ring-green-400 ring-inset': highlightedSample === {{ $sample->id }} }">
-                                <td class="px-4 py-3 font-semibold text-gray-900">
-                                    {{ $sample->sample_code ?? '-' }}
-                                </td>
-                                <td class="px-4 py-3">
-                                    <div>{{ $sample->short_description ?? '—' }}</div>
+                                <td class="min-w-0 px-4 py-3 align-top">
+                                    <div class="font-semibold text-gray-900">{{ $sample->sample_code ?? '-' }}</div>
+                                    <div class="mt-1 break-words text-sm text-gray-600">{{ $sample->short_description ?? '-' }}</div>
                                     @if($lhuProcess && $lhuNumber)
-                                        <div class="mt-1 flex items-center gap-2 text-xs text-gray-500">
+                                        <div class="mt-2 flex min-w-0 items-center gap-2 text-xs text-gray-500">
                                             <x-icon name="document-text" size="sm" class="text-gray-400" :decorative="true" />
-                                            <span class="font-mono">{{ $lhuNumber }}</span>
+                                            <span class="min-w-0 truncate font-mono">{{ $lhuNumber }}</span>
                                         </div>
                                     @endif
                                 </td>
-                                <td class="px-4 py-3">
-                                    {{ $sample->current_stage_label }}
+                                <td class="px-4 py-3 align-top">
+                                    <div class="font-medium text-gray-800">{{ $sample->current_stage_label }}</div>
+                                    <div class="mt-1 text-xs text-gray-500">{{ optional($sample->current_schedule)->format('d M Y') ?? 'Jadwal belum ditetapkan' }}</div>
                                 </td>
-                                <td class="px-4 py-3">
-                                    {{ optional($sample->current_schedule)->format('d M Y') ?? '-' }}
-                                </td>
-                                <td class="px-4 py-3">
+                                <td class="px-4 py-3 align-top">
                                     @php
                                         $statusColor = match ($sample->current_status_key) {
                                             'completed' => 'bg-green-100 text-green-700',
@@ -206,132 +201,71 @@
                                         {{ $sample->current_status_label }}
                                     </span>
                                 </td>
-                                <td class="px-4 py-3 text-right">
-                                    @if($sample->current_process)
-                                        <div class="relative inline-block text-left" x-data="{ open: false }">
-                                            <div class="inline-flex overflow-hidden rounded-md border border-gray-200 shadow-sm">
-                                                <a
-                                                    href="{{ route('testing.processes.edit', $sample->current_process) }}"
-                                                    class="inline-flex items-center px-3 py-2 text-sm font-semibold text-primary-700 hover:bg-primary-50">
-                                                    Kerjakan
-                                                </a>
-                                                <button
-                                                    type="button"
-                                                    @click="open = !open"
-                                                    :aria-expanded="open"
-                                                    aria-label="Tampilkan menu aksi lainnya"
-                                                    class="inline-flex items-center border-l border-gray-200 px-2 text-gray-400 hover:bg-gray-50">
-                                                    <x-icon name="chevron-down" size="sm" :decorative="true" />
-                                                </button>
-                                            </div>
-
-                                            {{-- Dropdown Menu --}}
-                                            <div
-                                                x-show="open"
-                                                @click.outside="open = false"
-                                                x-transition:enter="transition ease-out duration-100"
-                                                x-transition:enter-start="transform opacity-0 scale-95"
-                                                x-transition:enter-end="transform opacity-100 scale-100"
-                                                x-transition:leave="transition ease-in duration-75"
-                                                x-transition:leave-start="transform opacity-100 scale-100"
-                                                x-transition:leave-end="transform opacity-0 scale-95"
-                                                class="absolute right-0 z-pd-overlay mt-2 w-56 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
-                                                style="display: none;">
-                                                <div class="py-1">
-                                                    @php
-                                                        $process = $sample->current_process;
-                                                        $isStarted = $process->started_at !== null;
-                                                        $isCompleted = $process->completed_at !== null;
-                                                    @endphp
-
-                                                    @if(!$isStarted)
-                                                        <button
-                                                            type="button"
-                                                            @click="$dispatch('process-start', { processId: {{ $process->id }}, sampleId: {{ $sample->id }} }); open = false"
-                                                            class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                                            <x-icon name="play" size="sm" class="text-green-600" :decorative="true" />
-                                                            Mulai Proses
-                                                        </button>
-                                                    @endif
-
-                                                    @if($isStarted && !$isCompleted)
-                                                        <button
-                                                            type="button"
-                                                            @click="$dispatch('process-complete', { processId: {{ $process->id }}, sampleId: {{ $sample->id }} }); open = false"
-                                                            class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                                            <x-icon name="check-circle" size="sm" class="text-primary-600" :decorative="true" />
-                                                            Selesaikan Proses
-                                                        </button>
-                                                    @endif
-
-                                                    @if($lhuProcess && $lhuNumber && $lhuPreviewUrl && $lhuDownloadUrl)
-                                                        <a
-                                                            href="{{ $lhuPreviewUrl }}"
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                                            <x-icon name="document-text" size="sm" class="text-primary-600" :decorative="true" />
-                                                            Buka LHU
-                                                        </a>
-                                                        <a
-                                                            href="{{ $lhuDownloadUrl }}"
-                                                            class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                                            <x-icon name="arrow-down-tray" size="sm" class="text-primary-600" :decorative="true" />
-                                                            Unduh LHU
-                                                        </a>
-                                                    @endif
-
-
-
-                                                    <button
-                                                        type="button"
-                                                        @click="$dispatch('process-quick-view', { processId: {{ $process->id }} }); open = false"
-                                                        class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                                                        <x-icon name="eye" size="sm" class="text-gray-500" :decorative="true" />
-                                                        Quick View
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    @elseif($lhuProcess && $lhuNumber && $lhuPreviewUrl && $lhuDownloadUrl)
-                                        <div class="inline-flex flex-wrap items-center justify-end gap-2">
-                                            <a
-                                                href="{{ $lhuPreviewUrl }}"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                class="inline-flex items-center gap-2 rounded-md border border-primary-200 bg-primary-50 px-3 py-2 text-sm font-semibold text-primary-700 hover:bg-primary-100">
-                                                <x-icon name="document-text" size="sm" :decorative="true" />
-                                                Buka LHU
-                                            </a>
-                                            <a
-                                                href="{{ $lhuDownloadUrl }}"
-                                                class="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
-                                                <x-icon name="arrow-down-tray" size="sm" :decorative="true" />
-                                                Unduh LHU
-                                            </a>
-                                        </div>
-                    @elseif($sample->needs_additional_review && auth()->user()?->hasAnyPermission(['pengujian.create', 'pengujian.edit']))
-                                        <a
-                                            href="{{ route('testing.additional-samples.review', [$testRequest, $sample]) }}"
-                                            class="inline-flex min-h-11 items-center justify-center rounded-md bg-amber-600 px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600">
-                                            Kaji Ulang Sampel
-                                        </a>
-                                    @else
-                                        <span class="inline-flex items-center px-3 py-2 text-sm font-semibold text-gray-400">
-                                            Tidak ada proses
-                                        </span>
-                                    @endif
+                                <td class="w-44 px-4 py-3 align-top text-right">
+                                    @include('process.partials.sample-actions')
                                 </td>
                             </tr>
-                        @empty
-                            <tr>
-                                <td colspan="6" class="px-4 py-6 text-center text-sm text-gray-500">
-                                    Belum ada sampel untuk resi ini.
-                                </td>
-                            </tr>
-                        @endforelse
+                        @endforeach
                     </tbody>
                 </table>
+
+                <div class="divide-y divide-gray-200 md:hidden">
+                    @foreach($samples as $sample)
+                        @php
+                            $lhuProcess = $sample->testProcesses
+                                ->filter(fn ($process) => ($process->stage?->value ?? $process->stage) === 'interpretation' && $process->completed_at)
+                                ->sortByDesc(fn ($process) => $process->completed_at?->timestamp ?? 0)
+                                ->first();
+                            $lhuNumber = data_get($lhuProcess?->metadata ?? [], 'lhu_number')
+                                ?? data_get($lhuProcess?->metadata ?? [], 'report_number');
+                            $lhuPreviewUrl = $lhuProcess ? route('testing.processes.lab-report', $lhuProcess) : null;
+                            $lhuDownloadUrl = $lhuProcess ? route('testing.processes.lab-report', ['sample_process' => $lhuProcess, 'download' => 1]) : null;
+                            $statusColor = match ($sample->current_status_key) {
+                                'completed' => 'bg-green-100 text-green-700',
+                                'in_progress' => 'bg-yellow-100 text-yellow-700',
+                                default => 'bg-gray-100 text-gray-600',
+                            };
+                        @endphp
+                        <article class="space-y-4 p-4" :class="{ 'bg-green-100 ring-2 ring-green-400 ring-inset': highlightedSample === {{ $sample->id }} }">
+                            <div class="flex min-w-0 items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                    <h3 class="font-semibold text-gray-900">{{ $sample->sample_code ?? '-' }}</h3>
+                                    <p class="mt-1 break-words text-sm text-gray-600">{{ $sample->short_description ?? '-' }}</p>
+                                </div>
+                                <span class="inline-flex shrink-0 items-center rounded-full px-2 py-1 text-xs font-semibold {{ $statusColor }}">
+                                    {{ $sample->current_status_label }}
+                                </span>
+                            </div>
+
+                            <dl class="grid grid-cols-2 gap-3 rounded-md bg-gray-50 p-3 text-sm">
+                                <div class="min-w-0">
+                                    <dt class="text-xs font-medium text-gray-500">Tahap aktif</dt>
+                                    <dd class="mt-1 break-words font-medium text-gray-800">{{ $sample->current_stage_label }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-xs font-medium text-gray-500">Jadwal</dt>
+                                    <dd class="mt-1 font-medium text-gray-800">{{ optional($sample->current_schedule)->format('d M Y') ?? 'Belum ditetapkan' }}</dd>
+                                </div>
+                            </dl>
+
+                            @if($lhuProcess && $lhuNumber)
+                                <div class="flex min-w-0 items-center gap-2 text-xs text-gray-500">
+                                    <x-icon name="document-text" size="sm" class="text-gray-400" :decorative="true" />
+                                    <span class="min-w-0 truncate font-mono">{{ $lhuNumber }}</span>
+                                </div>
+                            @endif
+
+                            <div aria-label="Aksi untuk sampel {{ $sample->sample_code }}">
+                                @include('process.partials.sample-actions')
+                            </div>
+                        </article>
+                    @endforeach
+                </div>
+                @else
+                    <div class="px-4 py-8 text-center text-sm text-gray-500">
+                        Belum ada sampel untuk resi ini.
+                    </div>
+                @endif
             </div>
 
             @if(!$hasProcesses)

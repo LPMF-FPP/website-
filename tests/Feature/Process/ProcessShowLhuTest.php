@@ -55,6 +55,10 @@ class ProcessShowLhuTest extends TestCase
         $response->assertSee($downloadUrl, false);
         $response->assertSee('Buka LHU', false);
         $response->assertSee('Unduh LHU', false);
+        $response->assertSee('table-fixed', false);
+        $response->assertSee('md:hidden', false);
+        $response->assertSee('aria-label="Aksi untuk sampel SAMP-LHU-PROCESS"', false);
+        $response->assertSee('min-h-11 w-full', false);
     }
 
     public function test_testing_show_hides_lhu_actions_when_no_lhu_number_exists(): void
