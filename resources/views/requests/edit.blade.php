@@ -515,7 +515,16 @@
                                  <div class="sample-item bg-white p-6 rounded-lg border border-gray-200 mb-4" data-index="{{ $index }}">
                                      <div class="flex items-center justify-between mb-4">
                                          <h4 class="text-md font-medium text-gray-900">Sampel #{{ $index + 1 }}</h4>
-                                          @if(!in_array($request->status, ['ready_for_delivery', 'completed'], true) && $sample->testProcesses->isEmpty())
+                                          @if($sample->deliveryReopening && $sample->testProcesses->isEmpty())
+                                              <label class="inline-flex min-h-11 items-center gap-2 rounded-md px-2 text-sm font-medium text-red-700 focus-within:ring-2 focus-within:ring-red-500">
+                                                  <input type="checkbox"
+                                                         name="remove_reopened_sample_ids[]"
+                                                         value="{{ $sample->id }}"
+                                                         @checked(in_array($sample->id, old('remove_reopened_sample_ids', [])))
+                                                         class="min-h-5 min-w-5 rounded border-gray-300 text-red-600 focus:ring-red-500">
+                                                  Hapus sampel salah input
+                                              </label>
+                                          @elseif(!in_array($request->status, ['ready_for_delivery', 'completed'], true) && $sample->testProcesses->isEmpty())
                                               <button type="button" class="text-red-600 hover:text-red-800 text-sm font-medium remove-sample">
                                                   Hapus
                                               </button>
@@ -563,6 +572,24 @@
                                 </div>
                             @endforeach
                         </div>
+
+                        @if($request->samples->contains(fn ($sample) => $sample->deliveryReopening && $sample->testProcesses->isEmpty()))
+                            <div class="mt-4 rounded-lg border border-red-200 bg-red-50 p-4">
+                                <p class="text-sm text-red-900">Sampel yang dipilih akan dihapus dari data aktif. Snapshot dan alasan koreksi tetap tersimpan pada riwayat pembukaan kembali; kode sampel tidak digunakan ulang.</p>
+                                <label for="reopened_sample_removal_reason" class="mt-3 block text-sm font-medium text-gray-800">Alasan penghapusan sampel salah input</label>
+                                <textarea id="reopened_sample_removal_reason"
+                                          name="reopened_sample_removal_reason"
+                                          rows="3"
+                                          maxlength="2000"
+                                          class="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500">{{ old('reopened_sample_removal_reason') }}</textarea>
+                                @error('remove_reopened_sample_ids')
+                                    <p class="mt-1 text-sm text-red-700">{{ $message }}</p>
+                                @enderror
+                                @error('reopened_sample_removal_reason')
+                                    <p class="mt-1 text-sm text-red-700">{{ $message }}</p>
+                                @enderror
+                            </div>
+                        @endif
 
                         @if(in_array($request->status, ['submitted', 'verified', 'received'], true))
                             <button type="button" id="add-sample" class="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
@@ -699,6 +726,17 @@
         let sampleIndex = {{ $request->samples->count() }};
         const addSampleButton = document.getElementById('add-sample');
         const samplesContainer = document.getElementById('samples-container');
+        const reopenedSampleRemovalCheckboxes = document.querySelectorAll('input[name="remove_reopened_sample_ids[]"]');
+        const reopenedSampleRemovalReason = document.getElementById('reopened_sample_removal_reason');
+
+        const syncReopenedSampleRemovalReason = () => {
+            if (reopenedSampleRemovalReason) {
+                reopenedSampleRemovalReason.required = Array.from(reopenedSampleRemovalCheckboxes).some((checkbox) => checkbox.checked);
+            }
+        };
+
+        reopenedSampleRemovalCheckboxes.forEach((checkbox) => checkbox.addEventListener('change', syncReopenedSampleRemovalReason));
+        syncReopenedSampleRemovalReason();
 
         if (addSampleButton) addSampleButton.addEventListener('click', function() {
             const container = document.getElementById('samples-container');

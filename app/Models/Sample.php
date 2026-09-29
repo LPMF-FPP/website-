@@ -16,6 +16,8 @@ class Sample extends Model
 {
     use HasFactory;
 
+    public bool $preserveSampleCodeSequenceOnDelete = false;
+
     public const OTHER_SAMPLE_CATEGORIES = [
 
         'obat' => 'Obat',
@@ -119,6 +121,10 @@ class Sample extends Model
         });
 
         static::deleted(function (self $model) {
+            if ($model->preserveSampleCodeSequenceOnDelete) {
+                return;
+            }
+
             // Attempt to rollback sample_code sequence
             // Only succeeds if this is the LAST number issued
             if ($model->sample_code) {

@@ -21,6 +21,7 @@ class DeliveryReopening extends Model
         'previous_ready_for_delivery_at',
         'previous_completed_at',
         'reason',
+        'sample_snapshot',
         'superseded_document_ids',
         'superseded_message_log_ids',
         'reopened_at',
@@ -33,6 +34,7 @@ class DeliveryReopening extends Model
         'previous_delivery_date' => 'datetime',
         'superseded_document_ids' => 'array',
         'superseded_message_log_ids' => 'array',
+        'sample_snapshot' => 'array',
         'reopened_at' => 'datetime',
     ];
 

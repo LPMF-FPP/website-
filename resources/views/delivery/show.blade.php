@@ -73,6 +73,9 @@
                         <li class="rounded-md border border-gray-200 p-3 text-sm">
                             <p class="font-semibold text-gray-800">Siklus {{ $cycle['cycle'] }} disupersede</p>
                             <p class="mt-1 text-gray-600">Sampel {{ $cycle['sample_code'] }} · Dibuka kembali {{ $cycle['reopened_at']?->format('d M Y H:i') }} oleh {{ $cycle['reopened_by'] }} · {{ $cycle['reason'] }}</p>
+                            @if($cycle['sample_removed'])
+                                <p class="mt-1 rounded-md bg-amber-50 p-2 text-amber-900">Sampel dihapus dari data aktif sebagai koreksi: {{ $cycle['sample_removal_reason'] }}. Snapshot audit tetap tersimpan.</p>
+                            @endif
                             @foreach($cycle['documents'] as $document)
                                 <a href="{{ route('delivery.handover.archive', [$delivery, $document]) }}" class="mt-2 inline-flex min-h-11 items-center gap-2 rounded-md border border-gray-300 px-3 py-2 font-medium text-primary-700 hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600">
                                     Buka BA siklus {{ $cycle['cycle'] }} · {{ $document->original_filename }}

@@ -520,6 +520,143 @@ class AdditionalSampleLifecycleTest extends TestCase
         $this->assertSame(2, $request->fresh()->samples()->count());
     }
 
+    public function test_request_edit_can_remove_an_unprocessed_reopened_sample_while_retaining_its_audit_snapshot(): void
+    {
+        $request = $this->makeRequest('ready_for_delivery');
+        $original = $this->makeSample($request, 'REOPEN-KEEP', SampleStatus::READY_FOR_DELIVERY->value);
+        $this->createCompletedStages($original);
+        Delivery::query()->create([
+            'request_id' => $request->id,
+            'delivered_by' => $this->admin->id,
+            'delivery_date' => now(),
+            'status' => DeliveryStatus::READY,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('delivery.reopen-additional-sample.store', $request), $this->samplePayload() + [
+                'confirmation' => '1',
+                'supplement_reason' => 'Sampel tambahan yang ternyata salah input.',
+            ])
+            ->assertRedirect(route('testing.show', $request));
+
+        $reopening = $request->fresh()->deliveryReopenings()->firstOrFail();
+        $reopenedSample = $reopening->sample;
+        $investigator = Investigator::query()->findOrFail($request->investigator_id);
+        $this->actingAs($this->admin)
+            ->get(route('requests.edit', $request))
+            ->assertOk()
+            ->assertSee('Hapus sampel salah input')
+            ->assertSee('reopened_sample_removal_reason');
+        $editPayload = [
+            'investigator_rank' => $investigator->rank,
+            'investigator_name' => $investigator->name,
+            'investigator_nrp' => $investigator->nrp,
+            'investigator_jurisdiction' => $investigator->jurisdiction,
+            'investigator_phone' => $investigator->phone,
+            'case_number' => $request->case_number,
+            'suspects' => [['name' => $request->suspect_name]],
+            'samples' => [
+                [
+                    'id' => $original->id,
+                    'short_description' => $original->short_description,
+                    'package_quantity' => $original->package_quantity,
+                    'unit' => $original->unit,
+                ],
+                [
+                    'id' => $reopenedSample->id,
+                    'short_description' => $reopenedSample->short_description,
+                    'package_quantity' => $reopenedSample->package_quantity,
+                    'unit' => $reopenedSample->unit,
+                ],
+            ],
+            'remove_reopened_sample_ids' => [$reopenedSample->id],
+        ];
+
+        $this->actingAs($this->admin)
+            ->put(route('requests.update', $request), $editPayload)
+            ->assertSessionHasErrors('reopened_sample_removal_reason');
+
+        $this->assertDatabaseHas('samples', ['id' => $reopenedSample->id]);
+
+        $this->actingAs($this->admin)
+            ->put(route('requests.update', $request), $editPayload + [
+                'reopened_sample_removal_reason' => 'Sampel tambahan dicatat karena salah input dan tidak boleh diproses.',
+            ])
+            ->assertRedirect(route('requests.show', $request));
+
+        $this->assertDatabaseMissing('samples', ['id' => $reopenedSample->id]);
+        $this->assertSame(1, $request->fresh()->samples()->count());
+        $this->assertDatabaseHas('delivery_reopenings', [
+            'id' => $reopening->id,
+            'sample_id' => null,
+        ]);
+        $snapshot = $reopening->fresh()->sample_snapshot;
+        $this->assertSame($reopenedSample->sample_code, $snapshot['sample_code']);
+        $this->assertSame('Sampel tambahan dicatat karena salah input dan tidak boleh diproses.', $snapshot['removal_reason']);
+        $this->assertSame($this->admin->id, $snapshot['removed_by']);
+        $this->assertDatabaseHas('activity_logs', [
+            'action' => 'REOPENED_SAMPLE_REMOVED_FROM_ACTIVE_RECORDS',
+            'subject_id' => $request->id,
+        ]);
+        $this->actingAs($this->admin)
+            ->get(route('testing.show', $request))
+            ->assertOk()
+            ->assertSee($reopenedSample->sample_code)
+            ->assertSee('Snapshot audit tetap tersimpan.');
+    }
+
+    public function test_request_edit_cannot_remove_a_reopened_sample_after_testing_has_started(): void
+    {
+        $request = $this->makeRequest('ready_for_delivery');
+        $original = $this->makeSample($request, 'REOPEN-PROCESSED-KEEP', SampleStatus::READY_FOR_DELIVERY->value);
+        $this->createCompletedStages($original);
+        Delivery::query()->create([
+            'request_id' => $request->id,
+            'delivered_by' => $this->admin->id,
+            'delivery_date' => now(),
+            'status' => DeliveryStatus::READY,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('delivery.reopen-additional-sample.store', $request), $this->samplePayload() + [
+                'confirmation' => '1',
+                'supplement_reason' => 'Pengujian sampel tambahan.',
+            ])
+            ->assertRedirect(route('testing.show', $request));
+
+        $reopenedSample = $request->fresh()->deliveryReopenings()->firstOrFail()->sample;
+        $this->createCompletedStages($reopenedSample);
+        $investigator = Investigator::query()->findOrFail($request->investigator_id);
+
+        $this->actingAs($this->admin)
+            ->put(route('requests.update', $request), [
+                'investigator_rank' => $investigator->rank,
+                'investigator_name' => $investigator->name,
+                'investigator_nrp' => $investigator->nrp,
+                'investigator_jurisdiction' => $investigator->jurisdiction,
+                'investigator_phone' => $investigator->phone,
+                'case_number' => $request->case_number,
+                'suspects' => [['name' => $request->suspect_name]],
+                'samples' => [[
+                    'id' => $original->id,
+                    'short_description' => $original->short_description,
+                    'package_quantity' => $original->package_quantity,
+                    'unit' => $original->unit,
+                ], [
+                    'id' => $reopenedSample->id,
+                    'short_description' => $reopenedSample->short_description,
+                    'package_quantity' => $reopenedSample->package_quantity,
+                    'unit' => $reopenedSample->unit,
+                ]],
+                'remove_reopened_sample_ids' => [$reopenedSample->id],
+                'reopened_sample_removal_reason' => 'Ditolak karena sampel sudah diproses.',
+            ])
+            ->assertSessionHasErrors('samples');
+
+        $this->assertDatabaseHas('samples', ['id' => $reopenedSample->id]);
+        $this->assertDatabaseHas('delivery_reopenings', ['sample_id' => $reopenedSample->id]);
+    }
+
     public function test_supplement_creation_requires_collection_confirmation(): void
     {
         $request = $this->makeRequest('completed');

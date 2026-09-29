@@ -14,6 +14,7 @@ use App\Services\DocumentGeneration\DocumentRenderService;
 use App\Services\DocumentService;
 use App\Services\GoogleDriveDocumentSyncService;
 use App\Services\NumberingRepairService;
+use App\Services\ReopenedSampleRemovalService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -523,7 +524,7 @@ class RequestController extends Controller
      */
     public function edit(string $id)
     {
-        $request = TestRequest::with(['investigator', 'samples.testProcesses', 'documents', 'suspects', 'delivery'])->findOrFail($id);
+        $request = TestRequest::with(['investigator', 'samples.testProcesses', 'samples.deliveryReopening', 'documents', 'suspects', 'delivery'])->findOrFail($id);
 
         return view('requests.edit', compact('request'));
     }
@@ -574,6 +575,9 @@ class RequestController extends Controller
             'samples.*.short_description' => 'required|string|max:255',
             'samples.*.package_quantity' => 'required|integer|min:1',
             'samples.*.unit' => 'required|string|max:50',
+            'remove_reopened_sample_ids' => ['sometimes', 'array'],
+            'remove_reopened_sample_ids.*' => ['integer', 'distinct', 'exists:samples,id,test_request_id,'.$testRequest->id],
+            'reopened_sample_removal_reason' => ['required_with:remove_reopened_sample_ids', 'string', 'max:2000'],
             // Suspects array
             'suspects' => 'required|array|min:1',
             'suspects.*.name' => 'required|string|max:255',
@@ -632,10 +636,24 @@ class RequestController extends Controller
             ]);
         }
 
+        $requestedReopenedSampleRemovals = collect($validated['remove_reopened_sample_ids'] ?? [])
+            ->map(fn ($sampleId): int => (int) $sampleId)
+            ->unique()
+            ->values();
+
         $submittedSampleIds = collect($validated['samples'])
             ->pluck('id')
             ->filter()
-            ->map(fn ($sampleId): int => (int) $sampleId);
+            ->map(fn ($sampleId): int => (int) $sampleId)
+            ->diff($requestedReopenedSampleRemovals)
+            ->values();
+
+        if ($requestedReopenedSampleRemovals->isNotEmpty() && $submittedSampleIds->isEmpty()) {
+            return back()->withInput()->withErrors([
+                'remove_reopened_sample_ids' => 'Permintaan harus tetap memiliki setidaknya satu sampel aktif.',
+            ]);
+        }
+
         $removedProcessedSamples = $testRequest->samples()
             ->whereNotIn('id', $submittedSampleIds->all())
             ->whereHas('testProcesses')
@@ -643,12 +661,20 @@ class RequestController extends Controller
         $removedReopenedSamples = $testRequest->samples()
             ->whereNotIn('id', $submittedSampleIds->all())
             ->whereHas('deliveryReopening')
-            ->exists();
+            ->pluck('id')
+            ->map(fn ($sampleId): int => (int) $sampleId);
+        $unapprovedReopenedSampleRemovals = $removedReopenedSamples->diff($requestedReopenedSampleRemovals);
 
-        if ($removedProcessedSamples || $removedReopenedSamples || (in_array($testRequest->status, ['ready_for_delivery', 'completed'], true)
+        if ($removedProcessedSamples || $unapprovedReopenedSampleRemovals->isNotEmpty() || (in_array($testRequest->status, ['ready_for_delivery', 'completed'], true)
             && $testRequest->samples()->whereNotIn('id', $submittedSampleIds->all())->exists())) {
             return back()->withInput()->withErrors([
-                'samples' => 'Sampel yang sudah masuk proses, penyerahan, atau riwayat pembukaan kembali tidak dapat dihapus dari edit permintaan.',
+                'samples' => 'Sampel dalam riwayat pembukaan kembali hanya dapat dihapus dari data aktif dengan memilih penghapusan beralasan. Sampel yang sudah diproses tidak dapat dihapus.',
+            ]);
+        }
+
+        if ($requestedReopenedSampleRemovals->diff($removedReopenedSamples)->isNotEmpty()) {
+            return back()->withInput()->withErrors([
+                'remove_reopened_sample_ids' => 'Pilih hanya sampel yang tercatat dalam riwayat pembukaan kembali.',
             ]);
         }
 
@@ -803,6 +829,10 @@ class RequestController extends Controller
 
             foreach ($validated['samples'] as $sampleData) {
                 if (! empty($sampleData['id'])) {
+                    if ($requestedReopenedSampleRemovals->contains((int) $sampleData['id'])) {
+                        continue;
+                    }
+
                     $sample = Sample::find($sampleData['id']);
                     if ($sample && $sample->test_request_id == $testRequest->id) {
                         $sample->update([
@@ -838,9 +868,14 @@ class RequestController extends Controller
 
             foreach ($removedSamples as $removedSample) {
                 if ($removedSample->delivery_reopening_exists) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
-                        'samples' => 'Daftar sampel berubah karena pembukaan kembali penyerahan. Muat ulang halaman sebelum menyimpan perubahan.',
-                    ]);
+                    app(ReopenedSampleRemovalService::class)->remove(
+                        $testRequest,
+                        $removedSample,
+                        $request->user(),
+                        $validated['reopened_sample_removal_reason']
+                    );
+
+                    continue;
                 }
 
                 // Ensure deleted event can access testRequest without extra queries
@@ -849,7 +884,7 @@ class RequestController extends Controller
             }
 
             // After deletions: compact sample_code numbering (skip locked samples)
-            if ($removedSamples->isNotEmpty()) {
+            if ($removedSamples->isNotEmpty() && $requestedReopenedSampleRemovals->isEmpty()) {
                 $anchor = $removedSamples->min('created_at');
                 $bucketNow = $anchor
                     ? \Carbon\CarbonImmutable::parse($anchor)
