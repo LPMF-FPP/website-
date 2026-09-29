@@ -640,11 +640,15 @@ class RequestController extends Controller
             ->whereNotIn('id', $submittedSampleIds->all())
             ->whereHas('testProcesses')
             ->exists();
+        $removedReopenedSamples = $testRequest->samples()
+            ->whereNotIn('id', $submittedSampleIds->all())
+            ->whereHas('deliveryReopening')
+            ->exists();
 
-        if ($removedProcessedSamples || (in_array($testRequest->status, ['ready_for_delivery', 'completed'], true)
+        if ($removedProcessedSamples || $removedReopenedSamples || (in_array($testRequest->status, ['ready_for_delivery', 'completed'], true)
             && $testRequest->samples()->whereNotIn('id', $submittedSampleIds->all())->exists())) {
             return back()->withInput()->withErrors([
-                'samples' => 'Sampel yang sudah masuk proses atau penyerahan tidak dapat dihapus dari edit permintaan.',
+                'samples' => 'Sampel yang sudah masuk proses, penyerahan, atau riwayat pembukaan kembali tidak dapat dihapus dari edit permintaan.',
             ]);
         }
 
@@ -828,9 +832,17 @@ class RequestController extends Controller
             // Delete samples that were removed
             $removedSamples = Sample::where('test_request_id', $testRequest->id)
                 ->whereNotIn('id', $submittedSampleIds)
+                ->withExists('deliveryReopening')
+                ->lockForUpdate()
                 ->get();
 
             foreach ($removedSamples as $removedSample) {
+                if ($removedSample->delivery_reopening_exists) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'samples' => 'Daftar sampel berubah karena pembukaan kembali penyerahan. Muat ulang halaman sebelum menyimpan perubahan.',
+                    ]);
+                }
+
                 // Ensure deleted event can access testRequest without extra queries
                 $removedSample->setRelation('testRequest', $testRequest);
                 $removedSample->delete();
@@ -891,6 +903,10 @@ class RequestController extends Controller
             return redirect()->route('requests.show', $id)
                 ->with('success', $successMessage);
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
+
+            throw $e;
         } catch (\Exception $e) {
             DB::rollBack();
 

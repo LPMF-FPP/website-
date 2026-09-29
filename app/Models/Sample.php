@@ -153,6 +153,11 @@ class Sample extends Model
 
     }
 
+    public function deliveryReopening(): HasOne
+    {
+        return $this->hasOne(DeliveryReopening::class);
+    }
+
     public function analyst(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_analyst_id');

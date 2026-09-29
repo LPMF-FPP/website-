@@ -476,6 +476,50 @@ class AdditionalSampleLifecycleTest extends TestCase
         $this->assertSame('completed', $request->fresh()->status);
     }
 
+    public function test_stale_generic_edit_cannot_delete_a_sample_created_by_delivery_reopening(): void
+    {
+        $request = $this->makeRequest('ready_for_delivery');
+        $existing = $this->makeSample($request, 'REOPEN-ORIGINAL', SampleStatus::READY_FOR_DELIVERY->value);
+        Delivery::query()->create([
+            'request_id' => $request->id,
+            'delivered_by' => $this->admin->id,
+            'delivery_date' => now(),
+            'status' => DeliveryStatus::READY,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->post(route('delivery.reopen-additional-sample.store', $request), $this->samplePayload() + [
+                'confirmation' => '1',
+                'supplement_reason' => 'Sampel tambahan untuk regresi edit stale.',
+            ])
+            ->assertRedirect(route('testing.show', $request));
+
+        $reopenedSample = $request->fresh()->deliveryReopenings()->firstOrFail()->sample;
+        $investigator = Investigator::query()->findOrFail($request->investigator_id);
+
+        $this->actingAs($this->admin)
+            ->put(route('requests.update', $request), [
+                'investigator_rank' => $investigator->rank,
+                'investigator_name' => $investigator->name,
+                'investigator_nrp' => $investigator->nrp,
+                'investigator_jurisdiction' => $investigator->jurisdiction,
+                'investigator_phone' => $investigator->phone,
+                'case_number' => $request->case_number,
+                'suspects' => [['name' => $request->suspect_name]],
+                'samples' => [[
+                    'id' => $existing->id,
+                    'short_description' => $existing->short_description,
+                    'package_quantity' => $existing->package_quantity,
+                    'unit' => $existing->unit,
+                ]],
+            ])
+            ->assertSessionHasErrors('samples');
+
+        $this->assertDatabaseHas('samples', ['id' => $reopenedSample->id]);
+        $this->assertDatabaseHas('delivery_reopenings', ['sample_id' => $reopenedSample->id]);
+        $this->assertSame(2, $request->fresh()->samples()->count());
+    }
+
     public function test_supplement_creation_requires_collection_confirmation(): void
     {
         $request = $this->makeRequest('completed');
