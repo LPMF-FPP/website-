@@ -715,11 +715,7 @@
         <script>
             (() => {
                 const reviewBaseUrl = "{{ url('/kaji-ulang-permintaan') }}";
-                const requestSelect = document.getElementById('request_id');
-
-                if (!requestSelect) {
-                    return;
-                }
+                const requestSelect = document.querySelector('select#request_id');
 
                 const loadingState = document.getElementById('review-loading-state');
                 const feedback = document.getElementById('review-feedback');
@@ -731,7 +727,7 @@
                 const rejectForm = document.querySelector('[data-reject-form]');
                 const rejectSubmit = document.querySelector('[data-reject-submit]');
 
-                const optionEntries = Array.from(requestSelect.options).map((option) => {
+                const optionEntries = requestSelect ? Array.from(requestSelect.options).map((option) => {
                     const label = option.textContent ?? '';
 
                     return {
@@ -739,7 +735,7 @@
                         value: option.value,
                         search: (option.dataset.search ?? label).toLowerCase(),
                     };
-                });
+                }) : [];
 
                 const setLoading = (isLoading, message = 'Memuat data permintaan…') => {
                     if (!loadingState) {
@@ -767,9 +763,11 @@
                     window.location.href = url.toString();
                 };
 
-                requestSelect.addEventListener('change', () => {
-                    navigateToSelectedRequest(requestSelect.value);
-                });
+                if (requestSelect) {
+                    requestSelect.addEventListener('change', () => {
+                        navigateToSelectedRequest(requestSelect.value);
+                    });
+                }
 
                 const applyRequestFilter = () => {
                     const keyword = (requestFilterInput?.value ?? '').trim().toLowerCase();
@@ -781,7 +779,7 @@
                         }
 
                         const match = keyword === '' || entry.search.includes(keyword);
-                        const keepVisible = entry.value === requestSelect.value;
+                        const keepVisible = entry.value === requestSelect?.value;
                         entry.option.hidden = !match && !keepVisible;
                     });
 

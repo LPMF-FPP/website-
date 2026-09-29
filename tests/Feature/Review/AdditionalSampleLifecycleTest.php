@@ -176,7 +176,10 @@ class AdditionalSampleLifecycleTest extends TestCase
         $this->actingAs($this->admin)
             ->get(route('testing.additional-samples.review', [$request, $sample]))
             ->assertOk()
-            ->assertSee('Kaji Ulang Sampel Tambahan');
+            ->assertSee('Kaji Ulang Sampel Tambahan')
+            ->assertSee('Input baru')
+            ->assertSee("document.querySelector('select#request_id')", false)
+            ->assertDontSee("if (!requestSelect) {\n                    return;", false);
     }
 
     public function test_collected_request_cannot_be_reopened_and_must_use_supplement(): void
