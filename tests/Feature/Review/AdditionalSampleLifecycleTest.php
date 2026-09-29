@@ -177,9 +177,21 @@ class AdditionalSampleLifecycleTest extends TestCase
             ->get(route('testing.additional-samples.review', [$request, $sample]))
             ->assertOk()
             ->assertSee('Kaji Ulang Sampel Tambahan')
+            ->assertSee('Tanggal Pengujian')
+            ->assertSee('name="test_date"', false)
+            ->assertSee('value="'.now()->toDateString().'"', false)
             ->assertSee('Input baru')
             ->assertSee("document.querySelector('select#request_id')", false)
             ->assertDontSee("if (!requestSelect) {\n                    return;", false);
+
+        $payload = $this->reviewPayload($request, $sample);
+        unset($payload['test_date']);
+
+        $this->actingAs($this->admin)
+            ->post(route('testing.additional-samples.store', [$request, $sample]), $payload)
+            ->assertSessionHasErrors([
+                'test_date' => 'Tanggal pengujian wajib diisi.',
+            ]);
     }
 
     public function test_collected_request_cannot_be_reopened_and_must_use_supplement(): void

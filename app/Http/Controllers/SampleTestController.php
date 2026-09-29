@@ -112,6 +112,8 @@ class SampleTestController extends Controller
             'samples.*.notes' => ['nullable', 'string'],
             'samples.*.other_sample_category' => ['nullable', 'string', Rule::in(array_keys(Sample::OTHER_SAMPLE_CATEGORIES))],
         ], [
+            'test_date.required' => 'Tanggal pengujian wajib diisi.',
+            'test_date.date' => 'Tanggal pengujian tidak valid.',
             'samples.*.test_methods.required' => 'Metode pengujian wajib dipilih.',
             'samples.*.test_methods.*.in' => 'Metode pengujian tidak valid.',
             'samples.*.active_substance.required' => 'Zat aktif wajib diisi pada kaji ulang permintaan.',
@@ -305,6 +307,8 @@ class SampleTestController extends Controller
             'samples.*.notes' => ['nullable', 'string'],
             'samples.*.other_sample_category' => ['nullable', 'string', Rule::in(array_keys(Sample::OTHER_SAMPLE_CATEGORIES))],
         ], [
+            'test_date.required' => 'Tanggal pengujian wajib diisi.',
+            'test_date.date' => 'Tanggal pengujian tidak valid.',
             'samples.*.test_methods.required' => 'Metode pengujian wajib dipilih.',
             'samples.*.test_methods.*.in' => 'Metode pengujian tidak valid.',
             'samples.*.active_substance.required' => 'Zat aktif wajib diisi pada kaji ulang permintaan.',

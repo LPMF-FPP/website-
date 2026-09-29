@@ -68,6 +68,20 @@
                             <div class="mt-5 rounded-md border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
                                 Sampel akan diproses terpisah. Sampel lain pada permintaan dan status permintaan tidak berubah.
                             </div>
+                            <div class="mt-4">
+                                <label for="test_date" class="block text-sm font-medium text-gray-700">Tanggal Pengujian</label>
+                                <input
+                                    id="test_date"
+                                    name="test_date"
+                                    type="date"
+                                    required
+                                    value="{{ old('test_date', now()->toDateString()) }}"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                                >
+                                @error('test_date')
+                                    <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
                             @error('request_id')
                                 <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                             @enderror
