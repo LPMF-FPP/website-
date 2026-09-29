@@ -9,19 +9,23 @@ use App\Enums\SampleStatus;
 use App\Models\CustomerSurvey;
 use App\Models\Delivery;
 use App\Models\Document;
+use App\Models\EvidenceUnit;
 use App\Models\Investigator;
+use App\Models\RemainingUnit;
 use App\Models\Sample;
 use App\Models\SampleTestProcess;
 use App\Models\TestRequest;
 use App\Models\User;
 use App\Models\WhatsAppMessageLog;
 use App\Models\WhatsappOutbox;
+use App\Services\ReopenedSampleRemovalService;
 use App\Services\WhatsApp\MilestoneNotificationService;
 use Database\Seeders\PermissionSeeder;
 use Database\Seeders\SystemSettingSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class AdditionalSampleLifecycleTest extends TestCase
@@ -541,6 +545,23 @@ class AdditionalSampleLifecycleTest extends TestCase
 
         $reopening = $request->fresh()->deliveryReopenings()->firstOrFail();
         $reopenedSample = $reopening->sample;
+        $evidenceUnit = EvidenceUnit::query()->create([
+            'request_id' => $request->id,
+            'sample_id' => $reopenedSample->id,
+            'receipt_code' => $request->receipt_number,
+            'sample_code' => $reopenedSample->sample_code,
+            'condition_received' => $reopenedSample->condition,
+            'received_by' => $this->admin->id,
+        ]);
+        $remainingUnit = RemainingUnit::query()->create([
+            'evidence_unit_id' => $evidenceUnit->id,
+            'sample_code' => $reopenedSample->sample_code,
+            'qty_remaining' => $reopenedSample->package_quantity,
+            'uom' => $reopenedSample->unit,
+            'seal_status_delivered' => 'disegel',
+            'delivered_at' => now(),
+            'delivered_by' => $this->admin->id,
+        ]);
         $investigator = Investigator::query()->findOrFail($request->investigator_id);
         $this->actingAs($this->admin)
             ->get(route('requests.edit', $request))
@@ -585,6 +606,8 @@ class AdditionalSampleLifecycleTest extends TestCase
             ->assertRedirect(route('requests.show', $request));
 
         $this->assertDatabaseMissing('samples', ['id' => $reopenedSample->id]);
+        $this->assertDatabaseMissing('evidence_units', ['id' => $evidenceUnit->id]);
+        $this->assertDatabaseMissing('remaining_units', ['id' => $remainingUnit->id]);
         $this->assertSame(1, $request->fresh()->samples()->count());
         $this->assertDatabaseHas('delivery_reopenings', [
             'id' => $reopening->id,
@@ -594,6 +617,8 @@ class AdditionalSampleLifecycleTest extends TestCase
         $this->assertSame($reopenedSample->sample_code, $snapshot['sample_code']);
         $this->assertSame('Sampel tambahan dicatat karena salah input dan tidak boleh diproses.', $snapshot['removal_reason']);
         $this->assertSame($this->admin->id, $snapshot['removed_by']);
+        $this->assertSame($evidenceUnit->id, $snapshot['removed_evidence_units'][0]['id']);
+        $this->assertSame($remainingUnit->id, $snapshot['removed_remaining_units'][0]['id']);
         $this->assertDatabaseHas('activity_logs', [
             'action' => 'REOPENED_SAMPLE_REMOVED_FROM_ACTIVE_RECORDS',
             'subject_id' => $request->id,
@@ -603,6 +628,74 @@ class AdditionalSampleLifecycleTest extends TestCase
             ->assertOk()
             ->assertSee($reopenedSample->sample_code)
             ->assertSee('Snapshot audit tetap tersimpan.');
+    }
+
+    public function test_reopened_sample_removal_rejects_printed_labels_and_physical_handover_records(): void
+    {
+        $request = $this->makeRequest('ready_for_delivery');
+        $this->makeSample($request, 'REOPEN-PRINT-KEEP', SampleStatus::READY_FOR_DELIVERY->value);
+
+        $this->actingAs($this->admin)
+            ->post(route('delivery.reopen-additional-sample.store', $request), $this->samplePayload() + [
+                'confirmation' => '1',
+                'supplement_reason' => 'Sampel tambahan yang ternyata salah input.',
+            ])
+            ->assertRedirect(route('testing.show', $request));
+
+        $reopening = $request->fresh()->deliveryReopenings()->firstOrFail();
+        $reopenedSample = $reopening->sample;
+        $evidenceUnit = EvidenceUnit::query()->create([
+            'request_id' => $request->id,
+            'sample_id' => $reopenedSample->id,
+            'sample_code' => $reopenedSample->sample_code,
+        ]);
+        $remainingUnit = RemainingUnit::query()->create([
+            'evidence_unit_id' => $evidenceUnit->id,
+            'sample_code' => $reopenedSample->sample_code,
+            'qty_remaining' => 1,
+        ]);
+        $remainingUnit->printLogs()->create([
+            'label_type' => 'remaining',
+            'printed_by' => $this->admin->id,
+            'print_reason' => 'first_print',
+            'print_format' => 'a4',
+            'print_count' => 1,
+        ]);
+
+        try {
+            app(ReopenedSampleRemovalService::class)->remove(
+                $request,
+                $reopenedSample,
+                $this->admin,
+                'Sampel salah input.'
+            );
+            $this->fail('Penghapusan seharusnya ditolak setelah label dicetak.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('remove_reopened_sample_ids', $exception->errors());
+        }
+
+        $remainingUnit->printLogs()->delete();
+        $remainingUnit->update(['handover_doc_no' => 'BA-SERAH-TERIMA']);
+
+        try {
+            app(ReopenedSampleRemovalService::class)->remove(
+                $request,
+                $reopenedSample,
+                $this->admin,
+                'Sampel salah input.'
+            );
+            $this->fail('Penghapusan seharusnya ditolak setelah serah terima fisik dicatat.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('remove_reopened_sample_ids', $exception->errors());
+        }
+
+        $this->assertDatabaseHas('samples', ['id' => $reopenedSample->id]);
+        $this->assertDatabaseHas('evidence_units', ['id' => $evidenceUnit->id]);
+        $this->assertDatabaseHas('remaining_units', ['id' => $remainingUnit->id]);
+        $this->assertDatabaseHas('delivery_reopenings', [
+            'id' => $reopening->id,
+            'sample_id' => $reopenedSample->id,
+        ]);
     }
 
     public function test_request_edit_cannot_remove_a_reopened_sample_after_testing_has_started(): void
