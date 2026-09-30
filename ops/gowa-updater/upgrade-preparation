@@ -23,7 +23,7 @@ source_root="${app_root}/ops/gowa-updater"
 declare -A expected_hashes=(
     [lpmf-gowa-runner]='835ee9c4b504e845f6ea1f2d7c138ed2dd7931cb30a8325dec14a27b7d2f55f8'
     [lpmf-gowa-submit]='e20b8761fc419320108e5b7a513991bdd78cd5fe2cd1e48e602a7c0722d2a434'
-    [lpmf-gowa-release-maintenance]='0dff9403fde947d439a9db653f8d0fcb08d09c3868447e793aa4cf9e09338026'
+    [lpmf-gowa-release-maintenance]='1c1f1dd3d4ed31b88b1adc51f9ce5a8a3a8afc99cd34510e561b2e8a78e250b0'
     [lpmf-gowa-runtime-probe]='f2dc578290253bd9aeb82073a864cbf84c164402d50c6cd5d94c1554e2569a7c'
     [lpmf-gowa-maintenance.service]='95c2e041db8dd0a8db25d16b5e88f2518e8dcd0fbec823d85e4a8c6bf6e22d60'
     [lpmf-gowa-update@.service]='927af907044599f712f0fdc7c9bca225035bed922a5af77bb6f6bbba94484721'
@@ -69,6 +69,7 @@ upgrade_paths=(
     "$sudoers_path"
     "${install_root}/capability.json"
     "${install_root}/preparation-capability.json"
+    "$database_name_file"
 )
 changes_applied=0
 
@@ -101,6 +102,10 @@ for artifact in "${upgrade_paths[@]}"; do
 done
 
 changes_applied=1
+
+chown root:root "$database_name_file"
+chmod 0600 "$database_name_file"
+[[ "$(stat -c '%U:%G:%a' "$database_name_file")" == root:root:600 ]] || die 'updater database name file ownership or mode could not be secured'
 
 install -o root -g root -m 0755 "${source_root}/lpmf-gowa-runner" /usr/local/libexec/lpmf-gowa-runner
 install -o root -g root -m 0755 "${source_root}/lpmf-gowa-submit" /usr/local/sbin/lpmf-gowa-submit

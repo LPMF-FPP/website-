@@ -110,6 +110,10 @@ it('prepares the latest immutable release without replacing the running containe
         ->and($prepareSource)->not->toContain('compose up')
         ->and($prepareSource)->not->toContain('docker stop')
         ->and($prepareSource)->not->toContain('docker rm');
+
+    expect($maintenance)->toContain('database-name')
+        ->and($maintenance)->toContain('root:root:600')
+        ->and($maintenance)->toContain('preparation_capabilities');
 });
 
 it('upgrades updater artifacts with a backup and verifies that the GOWA image is unchanged', function (): void {
@@ -119,6 +123,8 @@ it('upgrades updater artifacts with a backup and verifies that the GOWA image is
         ->and($upgrade)->toContain('rollback_on_failure')
         ->and($upgrade)->toContain('systemctl enable --now lpmf-gowa-runtime-probe.timer')
         ->and($upgrade)->toContain('GOWA container identity or image changed during updater maintenance')
+        ->and($upgrade)->toContain('chmod 0600 "$database_name_file"')
+        ->and($upgrade)->toContain('install this reviewed bootstrap as a root-owned mode-0750 file first')
         ->and($upgrade)->toContain('gowa-updater:preflight')
         ->and($upgrade)->not->toContain('docker compose up')
         ->and($upgrade)->not->toContain('docker stop')

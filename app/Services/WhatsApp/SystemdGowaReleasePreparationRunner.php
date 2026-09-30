@@ -12,6 +12,17 @@ final class SystemdGowaReleasePreparationRunner implements GowaReleasePreparatio
 {
     public function available(): bool
     {
+        $databaseNameFile = (string) config('gowa-updater.database_name_file');
+        if (! is_file($databaseNameFile) || is_link($databaseNameFile)) {
+            return false;
+        }
+        $databaseStat = lstat($databaseNameFile);
+        if (! is_array($databaseStat)
+            || ($databaseStat['uid'] ?? -1) !== 0
+            || (($databaseStat['mode'] ?? 0) & 0o777) !== 0o600) {
+            return false;
+        }
+
         if (! (bool) config('gowa-updater.enabled', false)
             || ! (bool) config('gowa-updater.no_socket_gate', false)
             || ! is_executable((string) config('gowa-updater.preparation_helper'))

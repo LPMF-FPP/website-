@@ -199,6 +199,9 @@ it('marks preparation ready only after release, catalog, and unchanged runtime m
         ->and($preparation->fresh()->catalog_generation)->toBe('generation-2')
         ->and($service->assertInstallable($preparation->id, $user->id)->safeProjection()['ready'])->toBeTrue()
         ->and(GowaUpdateOperation::query()->count())->toBe(0);
+
+    $anotherUser = User::factory()->create();
+    expect(fn () => $service->forUser($preparation->id, $anotherUser->id))->toThrow(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
 });
 
 it('fails closed if the runtime changes while release preparation is in progress', function (): void {

@@ -5,6 +5,7 @@ return [
     'no_socket_gate' => (bool) env('GOWA_UPDATER_NO_SOCKET_GATE', false),
     'preparation_helper' => env('GOWA_UPDATER_PREPARATION_HELPER', '/usr/local/sbin/lpmf-gowa-release-maintenance'),
     'preparation_capability_manifest' => env('GOWA_UPDATER_PREPARATION_CAPABILITY_MANIFEST', '/etc/lpmf/gowa-updater/preparation-capability.json'),
+    'database_name_file' => env('GOWA_UPDATER_DATABASE_FILE', '/etc/lpmf/gowa-updater/database-name'),
     'preparation_ttl_minutes' => (int) env('GOWA_UPDATER_PREPARATION_TTL_MINUTES', 30),
     'preparation_timeout_seconds' => (int) env('GOWA_UPDATER_PREPARATION_TIMEOUT_SECONDS', 780),
     'catalog_path' => env('GOWA_UPDATER_CATALOG_PATH', '/etc/lpmf/gowa-updater/catalog.json'),

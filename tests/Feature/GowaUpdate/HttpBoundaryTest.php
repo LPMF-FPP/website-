@@ -22,6 +22,10 @@ it('denies unauthenticated update reads without operation metadata', function ()
     $response = $this->getJson(route('whatsapp.updates.status'));
 
     $response->assertUnauthorized();
+
+    $this->postJson(route('whatsapp.updates.prepare'), [
+        'action_uuid' => '00000000-0000-4000-8000-000000000099',
+    ])->assertUnauthorized();
 });
 
 it('rejects an update request without explicit confirmation', function (): void {
@@ -53,6 +57,9 @@ it('keeps update routes inside the web CSRF middleware group', function (): void
     expect($prepareRoute?->gatherMiddleware())->toContain('web')
         ->and($prepareRoute?->gatherMiddleware())->toContain('throttle:gowa-update')
         ->and($prepareRoute?->gatherMiddleware())->toContain('permission:gowa-update.request');
+
+    $preparationRoute = app('router')->getRoutes()->getByName('whatsapp.updates.preparations.show');
+    expect($preparationRoute?->gatherMiddleware())->toContain('permission:gowa-update.status');
 });
 
 it('audits feature-scoped validation rejections without exposing request secrets', function (): void {

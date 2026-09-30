@@ -178,6 +178,12 @@ prepare_latest() {
   backup_dir="/var/backups/lpmf/gowa-prepare-${version}-$(date -u +%Y%m%dT%H%M%SZ)"
   install -d -o root -g root -m 0700 "$backup_dir"
   cp -a "$catalog" "$catalog_public_key" "$envelope" "$rollback_manifest" "$backup_dir/"
+  local override_preexisting=false metadata_published=false
+  if [[ -e "$override" ]]; then
+    [[ -f "$override" && ! -L "$override" ]] || die 'existing target override is unsafe'
+    cp -a "$override" "$backup_dir/$(basename "$override")"
+    override_preexisting=true
+  fi
 
   catalog_tmp="$(mktemp "${install_root}/catalog.json.XXXXXX")"
   payload_file="$(mktemp)"
@@ -219,19 +225,40 @@ prepare_latest() {
   jq -e --arg image "$image" '.services.whatsapp_go.image == $image and .services.whatsapp_go.network_mode == "host" and (([.. | strings] | any(test("/var/run/docker.sock"))) | not)' <<< "$resolved_config" >/dev/null || die 'prepared compose topology is not approved'
   fixed_hash="$(jq -S -c 'del(.services.whatsapp_go.image)' <<< "$resolved_config" | sha256sum | cut -d ' ' -f 1)"
   jq --arg image "$current_image" --arg override "$override" --arg generation "$generation" --arg hash "$fixed_hash" '.previous_image = $image | .image_override = $override | .catalog_generation = $generation | .fixed_config_hash = $hash' "$rollback_manifest" > "$rollback_tmp"
-  install -o root -g root -m 0600 "$override_tmp" "$override"
-  install -o root -g root -m 0600 "$envelope_tmp" "$envelope"
-  install -o root -g root -m 0600 "$rollback_tmp" "$rollback_manifest"
-  install -o root -g root -m 0644 "$catalog_tmp" "$catalog"
-  "$runner" --capabilities | jq -e 'select(.production_ready == true)' >/dev/null || die 'runner is not production ready after preparation'
-  write_preparation_capability true
-  "$runner" --prepare-capabilities | jq -e 'select(.preparation_ready == true)' >/dev/null || die 'preparation runner is not ready after preparation'
+  restore_prepared_metadata() {
+    [[ "$metadata_published" == true ]] || return 0
+    install -o root -g root -m 0600 "${backup_dir}/compose-envelope.json" "$envelope"
+    install -o root -g root -m 0600 "${backup_dir}/rollback-manifest.json" "$rollback_manifest"
+    install -o root -g root -m 0644 "${backup_dir}/catalog.json" "$catalog"
+    if [[ "$override_preexisting" == true ]]; then
+      install -o root -g root -m 0600 "${backup_dir}/$(basename "$override")" "$override"
+    else
+      rm -f -- "$override"
+    fi
+    metadata_published=false
+  }
+  metadata_published=true
+  install -o root -g root -m 0600 "$override_tmp" "$override" || { restore_prepared_metadata; die 'target override installation failed'; }
+  install -o root -g root -m 0600 "$envelope_tmp" "$envelope" || { restore_prepared_metadata; die 'prepared envelope installation failed'; }
+  install -o root -g root -m 0600 "$rollback_tmp" "$rollback_manifest" || { restore_prepared_metadata; die 'prepared rollback manifest installation failed'; }
+  install -o root -g root -m 0644 "$catalog_tmp" "$catalog" || { restore_prepared_metadata; die 'prepared signed catalog installation failed'; }
+  if ! "$runner" --capabilities | jq -e 'select(.production_ready == true)' >/dev/null; then
+    restore_prepared_metadata
+    die 'runner is not production ready after preparation'
+  fi
+  write_preparation_capability true || { restore_prepared_metadata; die 'preparation capability update failed'; }
+  if ! "$runner" --prepare-capabilities | jq -e 'select(.preparation_ready == true)' >/dev/null; then
+    write_preparation_capability false
+    restore_prepared_metadata
+    die 'preparation runner is not ready after preparation'
+  fi
+  metadata_published=false
 
   jq -cn --arg release_id "$release_id" --arg version "$version" --arg digest "$manifest_digest" --arg generation "$generation" --arg runtime_digest "${current_image##*@}" '{release_id:$release_id,version:$version,digest:$digest,catalog_generation:$generation,runtime_digest:$runtime_digest}'
 }
 
 preparation_capabilities() {
-  local helper_hash manifest_hash ready=false
+  local helper_hash manifest_hash ready=false database database_name_file active_operations
   helper_hash="$(sha256sum "$0" | cut -d ' ' -f 1)"
   if [[ -f "$preparation_capability" && ! -L "$preparation_capability" && -r "$preparation_capability" ]]; then
     [[ "$(stat -c '%U:%G:%a' "$preparation_capability")" == root:www-data:640 ]] || {
@@ -246,6 +273,18 @@ preparation_capabilities() {
     fi
   fi
   if [[ "$ready" == true ]]; then
+    database_name_file="${install_root}/database-name"
+    if [[ ! -f "$database_name_file" || -L "$database_name_file" || "$(stat -c '%U:%G:%a' "$database_name_file" 2>/dev/null || true)" != root:root:600 ]]; then
+      ready=false
+    else
+      database="$(tr -d '\r\n' < "$database_name_file")"
+      if [[ ! "$database" =~ ^[A-Za-z_][A-Za-z0-9_-]*$ ]]; then
+        ready=false
+      else
+        active_operations="$(runuser -u postgres -- psql --no-password --no-psqlrc --quiet --dbname "$database" --tuples-only --no-align -c "select count(*) from public.gowa_update_operations where scope = 'gowa' and status in ('queued','preparing','updating','verifying','reconciling')" 2>/dev/null || true)"
+        [[ "$active_operations" == '0' ]] || ready=false
+      fi
+    fi
     if [[ "$(systemctl is-active lpmf-gowa-maintenance.service 2>/dev/null || true)" != active ]] \
       || [[ "$(systemctl is-active lpmf-gowa-runtime-probe.timer 2>/dev/null || true)" != active ]] \
       || ! "$runner" --capabilities | jq -e 'select(.production_ready == true)' >/dev/null 2>&1 \
@@ -281,6 +320,7 @@ enable_preparation() {
   verify_current_catalog
   verify_runtime_baseline
   require_regular_file "${install_root}/database-name"
+  [[ "$(stat -c '%U:%G:%a' "${install_root}/database-name")" == root:root:600 ]] || die 'updater database name file ownership or mode is invalid'
   local database active_operations
   database="$(tr -d '\r\n' < "${install_root}/database-name")"
   [[ "$database" =~ ^[A-Za-z_][A-Za-z0-9_-]*$ ]] || die 'updater database name is invalid'
