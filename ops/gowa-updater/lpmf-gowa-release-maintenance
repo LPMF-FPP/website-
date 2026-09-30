@@ -145,7 +145,6 @@ prepare_latest() {
   active_operations="$(runuser -u postgres -- psql --no-password --no-psqlrc --quiet --dbname "$database" --tuples-only --no-align -c "select count(*) from public.gowa_update_operations where scope = 'gowa' and status in ('queued','preparing','updating','verifying','reconciling')")" || die 'active update state could not be checked'
   [[ "$active_operations" == '0' ]] || die 'an update operation is already active'
   runuser -u www-data -- /usr/bin/php /var/www/lis/artisan gowa-updater:preflight >/dev/null || die 'application GOWA preflight failed before preparation'
-  write_preparation_capability false
   release="$(curl --silent --show-error --fail --max-time 15 -H 'Accept: application/vnd.github+json' -H 'User-Agent: LPMF-LIMS-GOWA-Updater' "$release_api")" || die 'GitHub release lookup failed'
   version="$(jq -e -r '.tag_name | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))' <<< "$release")" || die 'latest GitHub release tag is invalid'
   release_url="$(jq -e -r --arg version "$version" '.html_url | select(. == ("https://github.com/aldinokemal/go-whatsapp-web-multidevice/releases/tag/" + $version))' <<< "$release")" || die 'latest GitHub release URL is invalid'
