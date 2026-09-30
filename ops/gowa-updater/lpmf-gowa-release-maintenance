@@ -181,7 +181,7 @@ prepare_latest() {
   release_id="gowa-${version//./-}"
   override="${install_root}/compose-${version}.override.yml"
   generation="prod-generation-$(date -u +%Y%m%dT%H%M%SZ)-${version//./}"
-  backup_dir="/var/backups/lpmf/gowa-prepare-${version}-$(date -u +%Y%m%dT%H%M%SZ)"
+  backup_dir="/var/backups/lpmf/gowa/prepare-${version}-$(date -u +%Y%m%dT%H%M%SZ)"
   install -d -o root -g root -m 0700 "$backup_dir"
   cp -a "$catalog" "$catalog_public_key" "$envelope" "$rollback_manifest" "$backup_dir/"
   local override_preexisting=false metadata_published=false
