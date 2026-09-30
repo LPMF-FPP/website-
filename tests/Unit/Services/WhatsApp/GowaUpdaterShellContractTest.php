@@ -113,6 +113,8 @@ it('prepares the latest immutable release without replacing the running containe
 
     expect($maintenance)->toContain('database-name')
         ->and($maintenance)->toContain('root:root:600')
+        ->and($maintenance)->toContain('--arg helper_hash')
+        ->and($maintenance)->toContain('catalog_tmp:-')
         ->and($maintenance)->toContain('preparation_capabilities');
 });
 

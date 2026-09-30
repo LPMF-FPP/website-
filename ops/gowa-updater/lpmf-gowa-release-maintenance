@@ -24,6 +24,13 @@ target_commit='e0b13a4f3e59cbaef38545f08cf1d5bb020458bb'
 release_api='https://api.github.com/repos/aldinokemal/go-whatsapp-web-multidevice/releases/latest'
 tag_api='https://api.github.com/repos/aldinokemal/go-whatsapp-web-multidevice/git/ref/tags/v9.3.0'
 submit_sudoers='/etc/sudoers.d/lpmf-gowa-updater'
+catalog_tmp=''
+payload_file=''
+signature_file=''
+public_der=''
+envelope_tmp=''
+rollback_tmp=''
+override_tmp=''
 
 die() {
   printf 'ERROR: %s\n' "$1" >&2
@@ -126,8 +133,7 @@ prepare_latest() {
   [[ "$(preparation_capabilities | jq -e -r '.preparation_ready')" == true ]] || die 'automatic preparation has not passed root preflight'
 
   local release version current_version release_url tag_api tag tag_commit repository manifest_digest release_id image override current_digest
-  local inspect current_image starting_container_identity starting_image generation backup_dir catalog_tmp payload_file signature_file public_der
-  local envelope_tmp rollback_tmp override_tmp resolved_config fixed_hash
+  local inspect current_image starting_container_identity starting_image generation backup_dir resolved_config fixed_hash
   verify_private_key
   verify_current_catalog
   verify_runtime_baseline
@@ -192,7 +198,7 @@ prepare_latest() {
   envelope_tmp="$(mktemp "${install_root}/compose-envelope.json.XXXXXX")"
   rollback_tmp="$(mktemp "${install_root}/rollback-manifest.json.XXXXXX")"
   override_tmp="$(mktemp "${install_root}/compose-override.XXXXXX")"
-  trap 'rm -f -- "$catalog_tmp" "$payload_file" "$signature_file" "$public_der" "$envelope_tmp" "$rollback_tmp" "$override_tmp"' EXIT
+  trap 'rm -f -- "${catalog_tmp:-}" "${payload_file:-}" "${signature_file:-}" "${public_der:-}" "${envelope_tmp:-}" "${rollback_tmp:-}" "${override_tmp:-}"' EXIT
 
   jq --arg generation "$generation" --arg release_id "$release_id" --arg version "$version" --arg image "$image" --arg digest "$manifest_digest" --arg release_url "$release_url" --arg commit "$tag_commit" '
     .generation = $generation
@@ -303,7 +309,7 @@ write_preparation_capability() {
   local ready="$1" temporary helper_hash
   helper_hash="$(sha256sum "$0" | cut -d ' ' -f 1)"
   temporary="$(mktemp "${preparation_capability}.XXXXXX")"
-  jq -cn --arg helper_sha256 "$helper_hash" --argjson ready "$ready" '{contract:"gowa-prepare-latest-v1",preparation_ready:$ready,helper_sha256:$helper_hash}' > "$temporary"
+  jq -cn --arg helper_hash "$helper_hash" --argjson ready "$ready" '{contract:"gowa-prepare-latest-v1",preparation_ready:$ready,helper_sha256:$helper_hash}' > "$temporary"
   install -o root -g www-data -m 0640 "$temporary" "$preparation_capability"
   rm -f -- "$temporary"
 }
