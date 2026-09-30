@@ -28,6 +28,22 @@ if [[ $# -eq 1 && "$1" == '--capabilities' ]]; then
   printf '%s\n' "{\"contract\":\"reconcile-first-v1\",\"fully_implemented\":true,\"capability_version\":\"1\",\"stage\":\"local-only\",\"production_ready\":${production_ready}}"
   exit 0
 fi
+if [[ $# -eq 1 && "$1" == '--prepare-capabilities' ]]; then
+  preparation_manifest="${GOWA_UPDATER_PREPARATION_CAPABILITY_MANIFEST:-/etc/lpmf/gowa-updater/preparation-capability.json}"
+  helper_path="${GOWA_UPDATER_PREPARATION_HELPER:-/usr/local/sbin/lpmf-gowa-release-maintenance}"
+  preparation_ready=false
+  if [[ "$(id -u)" == 0 && -r "$preparation_manifest" && -f "$preparation_manifest" && ! -L "$preparation_manifest" && -x "$helper_path" ]] \
+    && [[ "$(stat -c '%U:%G:%a' "$preparation_manifest")" == 'root:www-data:640' ]] \
+    && jq -e --arg hash "$(sha256sum "$helper_path" | cut -d ' ' -f 1)" 'select(.contract == "gowa-prepare-latest-v1" and .preparation_ready == true and .helper_sha256 == $hash)' "$preparation_manifest" >/dev/null \
+    && "$0" --capabilities | jq -e 'select(.production_ready == true)' >/dev/null \
+    && systemctl is-active --quiet lpmf-gowa-maintenance.service \
+    && systemctl is-active --quiet lpmf-gowa-runtime-probe.timer \
+    && "$helper_path" --status >/dev/null 2>&1; then
+    preparation_ready=true
+  fi
+  printf '%s\n' "{\"contract\":\"gowa-prepare-latest-v1\",\"preparation_ready\":${preparation_ready}}"
+  exit 0
+fi
 if [[ $# -ne 1 || ! "$1" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$ ]]; then
   exit 64
 fi

@@ -26,7 +26,7 @@
 
         <!-- Tab Navigation -->
         <div class="border-b border-gray-200 dark:border-gray-700 mb-6">
-            <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+            <nav class="-mb-px flex space-x-8 overflow-x-auto" aria-label="Tabs">
                 <template x-for="tab in tabs" :key="tab.id">
                     <button
                         @click="activeTab = tab.id; loadTabData(tab.id)"
@@ -213,13 +213,16 @@
                 
                 // Data for tabs
                 overviewData: { stats: { sent_today: 0, pending_tasks: 0, scheduled: 0, failed_today: 0 }, recent_activity: [], gowa_update: null },
-                selectedGowaRelease: '',
                 gowaUpdateSubmitting: false,
                 gowaUpdateConfirmed: false,
                 gowaUpdateMessage: '',
                 gowaUpdateChecking: false,
                 gowaUpdateCheck: null,
                 gowaUpdateCheckError: '',
+                gowaPreparation: null,
+                gowaPreparationSubmitting: false,
+                gowaPreparationPolling: null,
+                gowaPreparationPollAttempts: 0,
                 gowaOperationPolling: null,
                 gowaOperationPollAttempts: 0,
                 tasksData: { tasks: { data: [] }, stats: {}, users: [] },
@@ -354,11 +357,22 @@
                     }[status] || 'Status tidak diketahui';
                 },
 
+                gowaAvailabilityMessage(reason) {
+                    return {
+                        privileged_runner_unavailable: 'Jalur runner terproteksi belum siap. Hubungi administrator sistem.',
+                        runtime_evidence_stale: 'Bukti runtime sudah kedaluwarsa. Tunggu pemeriksaan runtime berikutnya.',
+                        catalog_unavailable: 'Katalog rilis belum dapat diverifikasi. Instalasi tetap dinonaktifkan.',
+                        preparation_not_ready: 'Persiapan rilis belum lulus pemeriksaan operasional.',
+                    }[reason] || 'Pemeriksaan operasional belum lulus. Instalasi tetap dinonaktifkan.';
+                },
+
                 async checkGowaUpdate() {
                     if (this.gowaUpdateChecking) return;
                     this.gowaUpdateChecking = true;
                     this.gowaUpdateCheck = null;
                     this.gowaUpdateCheckError = '';
+                    this.gowaPreparation = null;
+                    this.gowaUpdateConfirmed = false;
                     try {
                         const response = await fetch('{{ route("whatsapp.updates.check") }}', {
                             headers: { Accept: 'application/json' },
@@ -366,8 +380,17 @@
                         const payload = await response.json();
                         if (!response.ok) throw new Error(payload.message || 'Pemeriksaan pembaruan gagal.');
                         this.gowaUpdateCheck = payload.data;
-                        if (payload.data?.can_update && payload.data?.approved_release_id) {
-                            this.selectedGowaRelease = payload.data.approved_release_id;
+                        if (payload.data?.update_available
+                            && this.overviewData?.gowa_update?.available
+                            && this.overviewData?.gowa_update?.can_request) {
+                            const existingPreparation = this.overviewData.gowa_update.latest_preparation;
+                            if (existingPreparation?.ready
+                                && existingPreparation.version === payload.data.latest_version
+                                && existingPreparation.digest === payload.data.approved_digest) {
+                                this.gowaPreparation = existingPreparation;
+                            } else {
+                                void this.prepareGowaRelease();
+                            }
                         }
                     } catch (error) {
                         this.gowaUpdateCheckError = error.message || 'Pemeriksaan pembaruan gagal.';
@@ -376,18 +399,100 @@
                     }
                 },
 
+                gowaUpdateCheckIsFresh() {
+                    const checkedAt = Date.parse(this.gowaUpdateCheck?.checked_at || '');
+                    return Number.isFinite(checkedAt)
+                        && checkedAt <= Date.now()
+                        && Date.now() - checkedAt <= 60_000
+                        && this.gowaUpdateCheck?.update_available === true;
+                },
+
+                async prepareGowaRelease() {
+                    if (this.gowaPreparationSubmitting || !this.gowaUpdateCheckIsFresh()
+                        || !this.overviewData?.gowa_update?.available
+                        || !this.overviewData?.gowa_update?.can_request) return;
+                    this.gowaPreparationSubmitting = true;
+                    this.gowaUpdateMessage = '';
+                    try {
+                        const response = await fetch('{{ route("whatsapp.updates.prepare") }}', {
+                            method: 'POST',
+                            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                            body: JSON.stringify({ action_uuid: crypto.randomUUID() }),
+                        });
+                        const payload = await response.json();
+                        if (!response.ok) throw new Error(payload.message || 'Persiapan rilis gagal dimulai.');
+                        this.gowaPreparation = payload.data;
+                        await this.pollGowaPreparation(payload.data?.id);
+                    } catch (error) {
+                        this.gowaUpdateMessage = error.message || 'Persiapan rilis belum dapat dimulai.';
+                    } finally {
+                        this.gowaPreparationSubmitting = false;
+                    }
+                },
+
+                stopGowaPreparationPolling() {
+                    if (this.gowaPreparationPolling !== null) {
+                        clearTimeout(this.gowaPreparationPolling);
+                        this.gowaPreparationPolling = null;
+                    }
+                    this.gowaPreparationPollAttempts = 0;
+                },
+
+                async pollGowaPreparation(preparationId) {
+                    if (!preparationId || !/^[0-9a-f-]{36}$/i.test(preparationId)) return;
+                    this.stopGowaPreparationPolling();
+                    const poll = async () => {
+                        this.gowaPreparationPollAttempts += 1;
+                        try {
+                            const url = '{{ route("whatsapp.updates.preparations.show", ["preparation" => "__ID__"]) }}'.replace('__ID__', preparationId);
+                            const response = await fetch(url, { headers: { Accept: 'application/json' } });
+                            if (!response.ok) throw new Error('Status persiapan belum dapat dimuat.');
+                            const payload = await response.json();
+                            if (payload.data?.id !== preparationId) throw new Error('Identitas persiapan tidak cocok.');
+                            this.gowaPreparation = payload.data;
+                            if (this.gowaPreparationPollAttempts >= 280 && ['ready', 'failed'].includes(payload.data.status) === false) {
+                                this.gowaUpdateMessage = 'Persiapan masih berjalan. Status akan dimuat ulang secara otomatis.';
+                                this.stopGowaPreparationPolling();
+                                return;
+                            }
+                            if (['ready', 'failed'].includes(payload.data.status)) {
+                                this.stopGowaPreparationPolling();
+                                await this.loadTabData('overview');
+                                return;
+                            }
+                        } catch (error) {
+                            this.gowaUpdateMessage = error.message || 'Status persiapan belum dapat dimuat.';
+                            if (this.gowaPreparationPollAttempts >= 280) {
+                                this.stopGowaPreparationPolling();
+                                return;
+                            }
+                        }
+                        this.gowaPreparationPolling = setTimeout(poll, 3000);
+                    };
+                    await poll();
+                },
+
                 async requestGowaUpdate() {
-                    if (!this.selectedGowaRelease || !this.gowaUpdateConfirmed || this.gowaUpdateSubmitting) return;
+                    if (!this.gowaPreparation?.ready || !this.gowaUpdateConfirmed || this.gowaUpdateSubmitting
+                        || !this.overviewData?.gowa_update?.can_install) return;
                     this.gowaUpdateSubmitting = true;
                     this.gowaUpdateMessage = '';
                     try {
                         const response = await fetch('{{ route("whatsapp.updates.request") }}', {
                             method: 'POST',
                             headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                            body: JSON.stringify({ release_id: this.selectedGowaRelease, action_uuid: crypto.randomUUID(), confirmation: this.gowaUpdateConfirmed }),
+                            body: JSON.stringify({ preparation_id: this.gowaPreparation.id, action_uuid: crypto.randomUUID(), confirmation: this.gowaUpdateConfirmed }),
                         });
                         const payload = await response.json();
-                        if (!response.ok) throw new Error(payload.message || 'Permintaan ditolak.');
+                        if (!response.ok) {
+                            if (['release_not_latest', 'preparation_not_ready'].includes(payload.code)) {
+                                this.gowaPreparation = null;
+                                this.gowaUpdateConfirmed = false;
+                                this.gowaUpdateMessage = 'Persiapan sudah berubah atau kedaluwarsa. Periksa pembaruan kembali.';
+                                return;
+                            }
+                            throw new Error(payload.message || 'Permintaan ditolak.');
+                        }
                         this.gowaUpdateMessage = payload.message || 'Permintaan pembaruan diterima.';
                         this.gowaUpdateConfirmed = false;
                         await this.loadTabData('overview');
@@ -530,6 +635,13 @@
                         switch(tab) {
                             case 'overview':
                                 this.overviewData = payload;
+                                if (payload?.gowa_update?.latest_preparation) {
+                                    this.gowaPreparation = payload.gowa_update.latest_preparation;
+                                    if (['queued', 'preparing'].includes(this.gowaPreparation.status)
+                                        && this.gowaPreparationPolling === null) {
+                                        this.pollGowaPreparation(this.gowaPreparation.id);
+                                    }
+                                }
                                 const operationId = this.overviewData?.gowa_update?.latest_operation?.id;
                                 const status = this.overviewData?.gowa_update?.latest_operation?.status;
                                 if (operationId && ['queued', 'preparing', 'updating', 'verifying', 'reconciling'].includes(status)) {

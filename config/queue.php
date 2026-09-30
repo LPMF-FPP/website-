@@ -48,7 +48,7 @@ return [
             'connection' => env('DB_QUEUE_CONNECTION'),
             'table' => env('DB_QUEUE_TABLE', 'jobs'),
             'queue' => 'gowa-maintenance',
-            'retry_after' => 900,
+            'retry_after' => 960,
             'after_commit' => true,
         ],
 

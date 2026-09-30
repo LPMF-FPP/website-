@@ -13,9 +13,12 @@ evidence_public_key="${GOWA_UPDATER_EVIDENCE_PUBLIC_KEY_SOURCE:-${script_dir}/fi
 override_source="${GOWA_UPDATER_OVERRIDE_SOURCE:-}"
 worker_service="${script_dir}/lpmf-gowa-maintenance.service"
 update_service="${script_dir}/lpmf-gowa-update@.service"
+runtime_probe_service="${script_dir}/lpmf-gowa-runtime-probe.service"
+runtime_probe_timer="${script_dir}/lpmf-gowa-runtime-probe.timer"
 sudoers="${script_dir}/sudoers.example"
 submit_helper_source="${script_dir}/lpmf-gowa-submit"
 runner_source="${script_dir}/lpmf-gowa-runner"
+release_maintenance_source="${script_dir}/lpmf-gowa-release-maintenance"
 gateway_sql_source="${script_dir}/gateway.sql"
 docker_bin="${GOWA_UPDATER_DOCKER_BIN:-/usr/bin/docker}"
 
@@ -26,12 +29,12 @@ if [[ "$override_source" == '' ]]; then
     override_source="$(jq -r '.image_override // empty' "$envelope")"
 fi
 [[ "$override_source" == /* && -r "$override_source" && ! -L "$override_source" ]] || { printf '%s\n' 'root-owned compose override is required' >&2; exit 78; }
-for artifact in "$worker_service" "$update_service" "$sudoers" "$submit_helper_source" "$runner_source" "$gateway_sql_source" "$capability_manifest" "$rollback_manifest" "$authority" "$preflight_gate" "$catalog_public_key" "$evidence_public_key"; do
+for artifact in "$worker_service" "$update_service" "$runtime_probe_service" "$runtime_probe_timer" "$sudoers" "$submit_helper_source" "$runner_source" "$release_maintenance_source" "$script_dir/lpmf-gowa-runtime-probe" "$gateway_sql_source" "$capability_manifest" "$rollback_manifest" "$authority" "$preflight_gate" "$catalog_public_key" "$evidence_public_key"; do
     [[ -r "$artifact" && ! -L "$artifact" ]] || { printf 'Missing updater artifact: %s\n' "$artifact" >&2; exit 78; }
 done
 override_stat="$(lstat -c '%u:%a' "$override_source")"
 [[ "$override_stat" == 0:* ]] || { printf '%s\n' 'compose override must be root-owned' >&2; exit 78; }
-[[ -x "$submit_helper_source" && -x "$runner_source" ]] || { printf '%s\n' 'Updater executables must be executable' >&2; exit 78; }
+[[ -x "$submit_helper_source" && -x "$runner_source" && -x "$release_maintenance_source" && -x "$script_dir/lpmf-gowa-runtime-probe" ]] || { printf '%s\n' 'Updater executables must be executable' >&2; exit 78; }
 [[ "$catalog_public_key" != "$evidence_public_key" ]] || { printf '%s\n' 'Catalog and evidence trust keys must be distinct' >&2; exit 78; }
 [[ "$(jq -r '.contract // empty' "$capability_manifest")" == 'reconcile-first-v1' ]] || exit 78
 [[ "$(jq -r '.production_ready // false' "$capability_manifest")" == 'false' || "${GOWA_UPDATER_PRODUCTION_READY:-0}" == 1 ]] || exit 78
@@ -40,17 +43,25 @@ grep -Fqx 'Group=lpmf-gowa-maintenance' "$worker_service" || exit 78
 grep -Fqx 'SupplementaryGroups=www-data' "$worker_service" || exit 78
 grep -Fqx 'ExecStart=/usr/bin/php /var/www/lis/artisan queue:work gowa-maintenance --queue=gowa-maintenance --tries=1 --timeout=900 --sleep=1 --no-interaction' "$worker_service" || exit 78
 grep -Fqx 'WorkingDirectory=/var/www/lis' "$worker_service" || exit 78
+grep -Fqx 'RuntimeDirectory=lpmf/gowa-updater' "$worker_service" || exit 78
+grep -Fqx 'RuntimeDirectoryMode=0750' "$worker_service" || exit 78
+grep -Fqx 'RuntimeDirectoryPreserve=yes' "$worker_service" || exit 78
 grep -Fqx 'NoNewPrivileges=no' "$worker_service" || exit 78
 grep -Fqx 'RestrictSUIDSGID=yes' "$worker_service" || exit 78
-grep -Fqx 'ReadWritePaths=/var/www/lis/storage /var/www/lis/bootstrap/cache /var/lib/lpmf/gowa-updater /run/lpmf/gowa-updater /etc/lpmf/gowa-updater' "$worker_service" || exit 78
+grep -Fqx 'ReadWritePaths=/var/www/lis/storage /var/www/lis/bootstrap/cache /var/lib/lpmf/gowa-updater /run/lpmf/gowa-updater' "$worker_service" || exit 78
 grep -Fqx 'CapabilityBoundingSet=' "$worker_service" || exit 78
 grep -Fqx 'ConditionPathExists=/etc/lpmf/gowa-updater/enabled' "$update_service" || exit 78
 grep -Fqx 'ExecStart=/usr/local/libexec/lpmf-gowa-runner %i' "$update_service" || exit 78
 grep -Fqx 'SupplementaryGroups=lpmf-admin' "$update_service" || exit 78
 grep -Fqx 'NoNewPrivileges=yes' "$update_service" || exit 78
 grep -Fq '/var/run/docker.sock' "$envelope" && exit 78
-grep -Fqx 'lpmf-gowa-maintenance ALL=(root) NOPASSWD: LPMF_GOWA_SUBMIT' "$sudoers" || exit 78
+grep -Fqx 'Cmnd_Alias LPMF_GOWA_PREPARE = /usr/local/sbin/lpmf-gowa-release-maintenance --prepare-capabilities, /usr/local/sbin/lpmf-gowa-release-maintenance --prepare-latest' "$sudoers" || exit 78
+grep -Fqx 'lpmf-gowa-maintenance ALL=(root) NOPASSWD: LPMF_GOWA_SUBMIT, LPMF_GOWA_PREPARE' "$sudoers" || exit 78
+grep -Fqx 'Defaults:www-data env_reset, !setenv, env_keep -= *' "$sudoers" || exit 78
+grep -Fqx 'www-data ALL=(root) NOPASSWD: /usr/local/sbin/lpmf-gowa-release-maintenance --prepare-capabilities' "$sudoers" || exit 78
+grep -Fqx 'www-data ALL=(root) NOPASSWD: /usr/local/sbin/lpmf-gowa-release-maintenance --prepare-capabilities' "$sudoers" || exit 78
 grep -Fqx 'Defaults:lpmf-gowa-maintenance env_reset, !setenv, env_keep -= *' "$sudoers" || exit 78
+grep -Fqx 'Defaults:www-data env_reset, !setenv, env_keep -= *' "$sudoers" || exit 78
 grep -Fq '/usr/local/sbin/lpmf-gowa-submit ' "$sudoers" || exit 78
 if jq -e '.. | strings | select(test("/var/run/docker.sock"))' "$envelope" >/dev/null; then
   printf '%s\n' 'raw Docker socket must be absent before enablement' >&2
@@ -118,25 +129,44 @@ gateway_app_role="${GOWA_UPDATER_APP_ROLE:-lis_user}"
 gateway_submit_role="${GOWA_UPDATER_SUBMIT_ROLE:-lpmf_gowa_submit}"
 gateway_owner_role="${GOWA_UPDATER_OWNER_ROLE:-lpmf_gowa_updater_owner}"
 [[ "$gateway_app_role" =~ ^[A-Za-z_][A-Za-z0-9_]*$ && "$gateway_submit_role" =~ ^[A-Za-z_][A-Za-z0-9_]*$ && "$gateway_owner_role" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || { printf '%s\n' 'Invalid PostgreSQL role name' >&2; exit 78; }
+database_name_tmp="$(mktemp)"
+printf '%s\n' "$gateway_database" > "$database_name_tmp"
+install -o root -g root -m 0600 "$database_name_tmp" "${install_root}/database-name"
+rm -f -- "$database_name_tmp"
 runuser -u postgres -- psql --no-password --no-psqlrc --quiet --dbname "$gateway_database" -v ON_ERROR_STOP=1 -f "${install_root}/gateway.sql"
 runuser -u postgres -- psql --no-password --no-psqlrc --quiet --dbname "$gateway_database" -v ON_ERROR_STOP=1 -c "ALTER SCHEMA updater_gateway OWNER TO ${gateway_owner_role}; ALTER TABLE updater_gateway.dispatch_claims OWNER TO ${gateway_owner_role}; ALTER FUNCTION updater_gateway.claim_dispatch(uuid, text) OWNER TO ${gateway_owner_role}; ALTER FUNCTION updater_gateway.consume_dispatch(uuid, uuid, bigint, text, text) OWNER TO ${gateway_owner_role}; ALTER FUNCTION updater_gateway.assert_installation(name, name, name) OWNER TO ${gateway_owner_role}; GRANT SELECT, UPDATE ON public.gowa_update_operations, public.gowa_update_scopes TO ${gateway_owner_role}; GRANT USAGE ON SCHEMA updater_gateway TO ${gateway_submit_role}; REVOKE ALL ON FUNCTION updater_gateway.claim_dispatch(uuid, text) FROM ${gateway_app_role}; GRANT EXECUTE ON FUNCTION updater_gateway.consume_dispatch(uuid, uuid, bigint, text, text) TO ${gateway_submit_role}; REVOKE ALL ON FUNCTION updater_gateway.consume_dispatch(uuid, uuid, bigint, text, text) FROM ${gateway_app_role};"
 runuser -u postgres -- psql --no-password --no-psqlrc --quiet --dbname "$gateway_database" -v ON_ERROR_STOP=1 -c "SELECT updater_gateway.assert_installation('${gateway_submit_role}', '${gateway_owner_role}', '${gateway_app_role}')"
 install -d -o root -g root -m 0755 /usr/local/sbin /usr/local/libexec
 install -o root -g root -m 0755 "$submit_helper_source" /usr/local/sbin/lpmf-gowa-submit
 install -o root -g root -m 0755 "$runner_source" /usr/local/libexec/lpmf-gowa-runner
+runner_hash="$(sha256sum /usr/local/libexec/lpmf-gowa-runner | cut -d ' ' -f 1)"
+capability_tmp="$(mktemp "${install_root}/capability.json.XXXXXX")"
+jq --arg runner_hash "$runner_hash" '.runner_sha256 = $runner_hash' "${install_root}/capability.json" > "$capability_tmp"
+install -o root -g www-data -m 0640 "$capability_tmp" "${install_root}/capability.json"
+rm -f -- "$capability_tmp"
+install -o root -g root -m 0755 "$release_maintenance_source" /usr/local/sbin/lpmf-gowa-release-maintenance
+install -o root -g root -m 0755 "$script_dir/lpmf-gowa-runtime-probe" /usr/local/libexec/lpmf-gowa-runtime-probe
+preparation_capability_tmp="$(mktemp "${install_root}/preparation-capability.json.XXXXXX")"
+release_helper_hash="$(sha256sum /usr/local/sbin/lpmf-gowa-release-maintenance | cut -d ' ' -f 1)"
+jq -cn --arg helper_sha256 "$release_helper_hash" '{contract:"gowa-prepare-latest-v1",preparation_ready:false,helper_sha256:$helper_sha256}' > "$preparation_capability_tmp"
+install -o root -g www-data -m 0640 "$preparation_capability_tmp" "${install_root}/preparation-capability.json"
+rm -f -- "$preparation_capability_tmp"
 systemd_root="${GOWA_UPDATER_SYSTEMD_PATH:-/etc/systemd/system}"
 sudoers_root="${GOWA_UPDATER_SUDOERS_PATH:-/etc/sudoers.d}"
 install -d -o root -g root -m 0755 "$systemd_root" "$sudoers_root"
 install -o root -g root -m 0644 "$worker_service" "${systemd_root}/lpmf-gowa-maintenance.service"
 install -o root -g root -m 0644 "$update_service" "${systemd_root}/lpmf-gowa-update@.service"
+install -o root -g root -m 0644 "$runtime_probe_service" "${systemd_root}/lpmf-gowa-runtime-probe.service"
+install -o root -g root -m 0644 "$runtime_probe_timer" "${systemd_root}/lpmf-gowa-runtime-probe.timer"
 install -o root -g root -m 0440 "$sudoers" "${sudoers_root}/lpmf-gowa-updater"
 if command -v systemd-analyze >/dev/null; then
-    systemd-analyze verify "${systemd_root}/lpmf-gowa-maintenance.service" "${systemd_root}/lpmf-gowa-update@.service" >/dev/null
+    systemd-analyze verify "${systemd_root}/lpmf-gowa-maintenance.service" "${systemd_root}/lpmf-gowa-update@.service" "${systemd_root}/lpmf-gowa-runtime-probe.service" "${systemd_root}/lpmf-gowa-runtime-probe.timer" >/dev/null
 fi
-for installed in "${install_root}/catalog.json" "${install_root}/compose-envelope.json" "${install_root}/compose-envelope-override.json" "${install_root}/rollback-manifest.json" "${install_root}/authority.json" "${install_root}/preflight.pass" "${install_root}/catalog.pub" "${install_root}/evidence.pub" "${install_root}/gateway.sql" "${systemd_root}/lpmf-gowa-maintenance.service" "${systemd_root}/lpmf-gowa-update@.service" "${sudoers_root}/lpmf-gowa-updater"; do
+for installed in "${install_root}/catalog.json" "${install_root}/compose-envelope.json" "${install_root}/compose-envelope-override.json" "${install_root}/rollback-manifest.json" "${install_root}/authority.json" "${install_root}/preflight.pass" "${install_root}/catalog.pub" "${install_root}/evidence.pub" "${install_root}/gateway.sql" "${install_root}/database-name" "${systemd_root}/lpmf-gowa-maintenance.service" "${systemd_root}/lpmf-gowa-update@.service" "${systemd_root}/lpmf-gowa-runtime-probe.service" "${systemd_root}/lpmf-gowa-runtime-probe.timer" "${sudoers_root}/lpmf-gowa-updater" /usr/local/sbin/lpmf-gowa-release-maintenance /usr/local/libexec/lpmf-gowa-runtime-probe; do
     [[ "$(stat -c '%U:%G:%a' "$installed")" == root:root:* ]] || { printf 'Unsafe ownership or mode: %s\n' "$installed" >&2; exit 78; }
 done
 [[ "$(stat -c '%U:%G:%a' "${install_root}/capability.json")" == root:www-data:640 ]] || { printf '%s\n' 'Unsafe ownership or mode: capability.json' >&2; exit 78; }
+[[ "$(stat -c '%U:%G:%a' "${install_root}/preparation-capability.json")" == root:www-data:640 ]] || { printf '%s\n' 'Unsafe ownership or mode: preparation-capability.json' >&2; exit 78; }
 [[ "$(stat -c '%a' "$sudoers_root/lpmf-gowa-updater")" == 440 ]] || exit 78
 id -u lpmf-gowa-maintenance >/dev/null 2>&1 || { printf '%s\n' 'Dedicated worker user is missing' >&2; exit 78; }
 getent group lpmf-gowa-maintenance >/dev/null || { printf '%s\n' 'Dedicated worker group is missing' >&2; exit 78; }

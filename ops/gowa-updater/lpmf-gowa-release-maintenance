@@ -10,6 +10,7 @@ catalog_public_key="${install_root}/catalog.pub"
 catalog_private_key="${install_root}/catalog.key"
 envelope="${install_root}/compose-envelope.json"
 rollback_manifest="${install_root}/rollback-manifest.json"
+preparation_capability="${install_root}/preparation-capability.json"
 target_override="${install_root}/compose-v9.3.0.override.yml"
 runner='/usr/local/libexec/lpmf-gowa-runner'
 container='go-whatsapp-web-multidevice-whatsapp_go-1'
@@ -91,7 +92,7 @@ verify_upstream() {
 }
 
 verify_runtime_baseline() {
-  local inspect current_image current_digest project service working_directory compose_file fixed_hash resolved_hash
+  local inspect current_image current_digest project service working_directory compose_file override_file fixed_hash resolved_hash
   inspect="$(docker inspect "$container")" || die 'current GOWA container is unavailable'
   jq -e '.[0].State.Running == true and .[0].HostConfig.NetworkMode == "host" and .[0].HostConfig.RestartPolicy.Name == "unless-stopped" and ((.[0].Mounts | map(select(.Destination == "/var/run/docker.sock"))) | length == 0)' <<< "$inspect" >/dev/null || die 'current GOWA topology is not approved'
   current_image="$(jq -e -r '.[0].Config.Image' <<< "$inspect")"
@@ -103,13 +104,217 @@ verify_runtime_baseline() {
   service="$(jq -e -r '.service' "$envelope")"
   working_directory="$(jq -e -r '.working_directory' "$envelope")"
   compose_file="$(jq -e -r '.compose_files | if length == 1 then .[0] else empty end' "$envelope")"
+  override_file="$(jq -e -r '.image_override' "$envelope")"
   [[ "$project" == 'go-whatsapp-web-multidevice' && "$service" == 'whatsapp_go' ]] || die 'compose identity changed'
   [[ "$working_directory" == '/home/lpmf-admin/go-whatsapp-web-multidevice' ]] || die 'compose working directory changed'
   [[ "$compose_file" == '/home/lpmf-admin/go-whatsapp-web-multidevice/docker-compose.yml' ]] || die 'compose file changed'
+  [[ "$override_file" == /* && -r "$override_file" && ! -L "$override_file" ]] || die 'approved image override is missing or unsafe'
 
-  resolved_hash="$(cd "$working_directory" && docker compose --project-name "$project" -f "$compose_file" config --format json | jq -S -c --arg service "$service" 'del(.services[$service].image)' | sha256sum | cut -d ' ' -f 1)" || die 'compose baseline cannot be resolved'
+  resolved_hash="$(cd "$working_directory" && docker compose --project-name "$project" -f "$compose_file" -f "$override_file" config --format json | jq -S -c --arg service "$service" 'del(.services[$service].image)' | sha256sum | cut -d ' ' -f 1)" || die 'compose baseline cannot be resolved'
   fixed_hash="$(jq -e -r '.fixed_config_hash' "$rollback_manifest")"
   [[ "$fixed_hash" == "$resolved_hash" ]] || die 'compose baseline hash changed'
+}
+
+prepare_latest() {
+  require_root
+  for binary in base64 cmp curl dd docker flock jq openssl php runuser sha256sum timeout xxd; do
+    command -v "$binary" >/dev/null || die "required binary is unavailable: $binary"
+  done
+  for path in "$catalog" "$catalog_public_key" "$catalog_private_key" "$envelope" "$rollback_manifest" "$runner"; do
+    require_regular_file "$path"
+  done
+  [[ "$(preparation_capabilities | jq -e -r '.preparation_ready')" == true ]] || die 'automatic preparation has not passed root preflight'
+
+  local release version current_version release_url tag_api tag tag_commit repository manifest_digest release_id image override current_digest
+  local inspect current_image starting_container_identity starting_image generation backup_dir catalog_tmp payload_file signature_file public_der
+  local envelope_tmp rollback_tmp override_tmp resolved_config fixed_hash
+  verify_private_key
+  verify_current_catalog
+  verify_runtime_baseline
+  inspect="$(docker inspect "$container")" || die 'current GOWA container is unavailable'
+  starting_container_identity="$(jq -e -r '.[0].Id' <<< "$inspect")"
+  starting_image="$(jq -e -r '.[0].Image' <<< "$inspect")"
+  [[ -d /run/lpmf/gowa-updater && ! -L /run/lpmf/gowa-updater ]] || die 'updater runtime directory is missing'
+  exec 9>/run/lpmf/gowa-updater/prepare.lock
+  flock -n 9 || die 'another GOWA preparation is active'
+  local database active_operations
+  require_regular_file "${install_root}/database-name"
+  [[ "$(stat -c '%U:%G:%a' "${install_root}/database-name")" == root:root:600 ]] || die 'updater database name file ownership or mode is invalid'
+  database="$(tr -d '\r\n' < "${install_root}/database-name")"
+  [[ "$database" =~ ^[A-Za-z_][A-Za-z0-9_-]*$ ]] || die 'updater database name is invalid'
+  active_operations="$(runuser -u postgres -- psql --no-password --no-psqlrc --quiet --dbname "$database" --tuples-only --no-align -c "select count(*) from public.gowa_update_operations where scope = 'gowa' and status in ('queued','preparing','updating','verifying','reconciling')")" || die 'active update state could not be checked'
+  [[ "$active_operations" == '0' ]] || die 'an update operation is already active'
+  runuser -u www-data -- /usr/bin/php /var/www/lis/artisan gowa-updater:preflight >/dev/null || die 'application GOWA preflight failed before preparation'
+  write_preparation_capability false
+  release="$(curl --silent --show-error --fail --max-time 15 -H 'Accept: application/vnd.github+json' -H 'User-Agent: LPMF-LIMS-GOWA-Updater' "$release_api")" || die 'GitHub release lookup failed'
+  version="$(jq -e -r '.tag_name | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))' <<< "$release")" || die 'latest GitHub release tag is invalid'
+  release_url="$(jq -e -r --arg version "$version" '.html_url | select(. == ("https://github.com/aldinokemal/go-whatsapp-web-multidevice/releases/tag/" + $version))' <<< "$release")" || die 'latest GitHub release URL is invalid'
+  jq -e 'select(.draft == false and .prerelease == false)' <<< "$release" >/dev/null || die 'latest GitHub release is not stable'
+  tag_api="https://api.github.com/repos/aldinokemal/go-whatsapp-web-multidevice/git/ref/tags/${version}"
+  tag="$(curl --silent --show-error --fail --max-time 15 -H 'Accept: application/vnd.github+json' -H 'User-Agent: LPMF-LIMS-GOWA-Updater' "$tag_api")" || die 'GitHub tag lookup failed'
+  jq -e '.object.type == "commit" and (.object.sha | test("^[a-f0-9]{40}$"))' <<< "$tag" >/dev/null || die 'GitHub tag does not resolve directly to a commit'
+  tag_commit="$(jq -e -r '.object.sha' <<< "$tag")"
+
+  inspect="$(docker inspect "$container")" || die 'current GOWA container is unavailable'
+  current_image="$(jq -e -r '.[0].Config.Image' <<< "$inspect")"
+  jq -e '.[0].State.Running == true and .[0].HostConfig.NetworkMode == "host" and .[0].HostConfig.RestartPolicy.Name == "unless-stopped" and ((.[0].Mounts | map(select(.Destination == "/var/run/docker.sock"))) | length == 0)' <<< "$inspect" >/dev/null || die 'current GOWA runtime topology is not approved'
+  [[ "$(jq -e -r '.[0].Id' <<< "$inspect")" == "$starting_container_identity" && "$(jq -e -r '.[0].Image' <<< "$inspect")" == "$starting_image" ]] || die 'GOWA runtime changed during release preparation'
+  [[ "$current_image" =~ ^.+@sha256:[0-9a-f]{64}$ ]] || die 'current GOWA image is not immutable'
+  docker image inspect "$current_image" >/dev/null 2>&1 || die 'current rollback image is not available locally'
+  current_digest="${current_image##*@}"
+  current_version="$(jq -e -r --arg digest "$current_digest" '[.releases[] | select(.digest == $digest and .approved == true and .revoked == false) | .version] | if length == 1 then .[0] else empty end' "$catalog")" || die 'current runtime version is not in the approved catalog'
+  php -r 'exit(version_compare($argv[1], $argv[2], ">") ? 0 : 1);' "${version#v}" "${current_version#v}" || die 'latest release is not newer than the current runtime'
+
+  repository="$(jq -e -r '.approved_repository' "$catalog")"
+  [[ "$repository" == 'docker.io/aldinokemal2104/go-whatsapp-web-multidevice' ]] || die 'approved GOWA repository changed'
+  manifest_digest="$(timeout --foreground 60 docker manifest inspect "${repository#docker.io/}:${version}" | jq -e -r '[.manifests[] | select(.platform.os == "linux" and .platform.architecture == "amd64") | .digest] | unique | if length == 1 then .[0] else empty end')" || die 'linux/amd64 image digest lookup failed'
+  [[ "$manifest_digest" =~ ^sha256:[0-9a-f]{64}$ ]] || die 'linux/amd64 image digest is invalid'
+  image="${repository}@${manifest_digest}"
+  timeout --foreground 600 docker pull "$image" >/dev/null || die 'approved immutable image pull failed'
+  docker image inspect "$image" >/dev/null 2>&1 || die 'approved immutable image is not available locally after pull'
+
+  release_id="gowa-${version//./-}"
+  override="${install_root}/compose-${version}.override.yml"
+  generation="prod-generation-$(date -u +%Y%m%dT%H%M%SZ)-${version//./}"
+  backup_dir="/var/backups/lpmf/gowa-prepare-${version}-$(date -u +%Y%m%dT%H%M%SZ)"
+  install -d -o root -g root -m 0700 "$backup_dir"
+  cp -a "$catalog" "$catalog_public_key" "$envelope" "$rollback_manifest" "$backup_dir/"
+
+  catalog_tmp="$(mktemp "${install_root}/catalog.json.XXXXXX")"
+  payload_file="$(mktemp)"
+  signature_file="$(mktemp)"
+  public_der="$(mktemp)"
+  envelope_tmp="$(mktemp "${install_root}/compose-envelope.json.XXXXXX")"
+  rollback_tmp="$(mktemp "${install_root}/rollback-manifest.json.XXXXXX")"
+  override_tmp="$(mktemp "${install_root}/compose-override.XXXXXX")"
+  trap 'rm -f -- "$catalog_tmp" "$payload_file" "$signature_file" "$public_der" "$envelope_tmp" "$rollback_tmp" "$override_tmp"' EXIT
+
+  jq --arg generation "$generation" --arg release_id "$release_id" --arg version "$version" --arg image "$image" --arg digest "$manifest_digest" --arg release_url "$release_url" --arg commit "$tag_commit" '
+    .generation = $generation
+    | .releases = ([.releases[] | select(.release_id != $release_id)] + [{
+        release_id: $release_id,
+        version: $version,
+        image: $image,
+        digest: $digest,
+        approved: true,
+        revoked: false,
+        revocation_generation: .revocation_generation,
+        upstream_tag: $version,
+        upstream_release_url: $release_url,
+        upstream_commit_sha: $commit
+      }])
+    | .signature.value = "pending"
+  ' "$catalog" > "$catalog_tmp"
+  printf '%s' "$(jq -S -c 'del(.signature, .signature_valid)' "$catalog_tmp")" > "$payload_file"
+  openssl pkeyutl -sign -rawin -inkey "$catalog_private_key" -in "$payload_file" -out "$signature_file" >/dev/null 2>&1 || die 'catalog signing failed'
+  jq --arg signature "$(base64 -w0 "$signature_file")" '.signature.value = $signature' "$catalog_tmp" > "${catalog_tmp}.signed"
+  mv -f "${catalog_tmp}.signed" "$catalog_tmp"
+  public_key_der "$public_der"
+  printf '%s' "$(jq -S -c 'del(.signature, .signature_valid)' "$catalog_tmp")" > "$payload_file"
+  jq -e -r '.signature.value' "$catalog_tmp" | base64 -d > "$signature_file"
+  openssl pkeyutl -verify -pubin -inkey "$public_der" -rawin -in "$payload_file" -sigfile "$signature_file" >/dev/null 2>&1 || die 'new catalog signature verification failed'
+
+  printf 'services:\n  whatsapp_go:\n    image: %s\n' "$image" > "$override_tmp"
+  jq --arg override "$override" '.image_override = $override' "$envelope" > "$envelope_tmp"
+  resolved_config="$(cd "$(jq -e -r '.working_directory' "$envelope_tmp")" && docker compose --project-name "$(jq -e -r '.project' "$envelope_tmp")" -f "$(jq -e -r '.compose_files[0]' "$envelope_tmp")" -f "$override_tmp" config --format json)" || die 'prepared compose config cannot be resolved'
+  jq -e --arg image "$image" '.services.whatsapp_go.image == $image and .services.whatsapp_go.network_mode == "host" and (([.. | strings] | any(test("/var/run/docker.sock"))) | not)' <<< "$resolved_config" >/dev/null || die 'prepared compose topology is not approved'
+  fixed_hash="$(jq -S -c 'del(.services.whatsapp_go.image)' <<< "$resolved_config" | sha256sum | cut -d ' ' -f 1)"
+  jq --arg image "$current_image" --arg override "$override" --arg generation "$generation" --arg hash "$fixed_hash" '.previous_image = $image | .image_override = $override | .catalog_generation = $generation | .fixed_config_hash = $hash' "$rollback_manifest" > "$rollback_tmp"
+  install -o root -g root -m 0600 "$override_tmp" "$override"
+  install -o root -g root -m 0600 "$envelope_tmp" "$envelope"
+  install -o root -g root -m 0600 "$rollback_tmp" "$rollback_manifest"
+  install -o root -g root -m 0644 "$catalog_tmp" "$catalog"
+  "$runner" --capabilities | jq -e 'select(.production_ready == true)' >/dev/null || die 'runner is not production ready after preparation'
+  write_preparation_capability true
+  "$runner" --prepare-capabilities | jq -e 'select(.preparation_ready == true)' >/dev/null || die 'preparation runner is not ready after preparation'
+
+  jq -cn --arg release_id "$release_id" --arg version "$version" --arg digest "$manifest_digest" --arg generation "$generation" --arg runtime_digest "${current_image##*@}" '{release_id:$release_id,version:$version,digest:$digest,catalog_generation:$generation,runtime_digest:$runtime_digest}'
+}
+
+preparation_capabilities() {
+  local helper_hash manifest_hash ready=false
+  helper_hash="$(sha256sum "$0" | cut -d ' ' -f 1)"
+  if [[ -f "$preparation_capability" && ! -L "$preparation_capability" && -r "$preparation_capability" ]]; then
+    [[ "$(stat -c '%U:%G:%a' "$preparation_capability")" == root:www-data:640 ]] || {
+      printf '%s\n' '{"contract":"gowa-prepare-latest-v1","preparation_ready":false}'
+      return 0
+    }
+    manifest_hash="$(jq -e -r '.helper_sha256' "$preparation_capability" 2>/dev/null || true)"
+    if [[ "$(jq -r '.contract // empty' "$preparation_capability")" == 'gowa-prepare-latest-v1' \
+      && "$(jq -r '.preparation_ready // false' "$preparation_capability")" == 'true' \
+      && "$manifest_hash" == "$helper_hash" ]]; then
+      ready=true
+    fi
+  fi
+  if [[ "$ready" == true ]]; then
+    if [[ "$(systemctl is-active lpmf-gowa-maintenance.service 2>/dev/null || true)" != active ]] \
+      || [[ "$(systemctl is-active lpmf-gowa-runtime-probe.timer 2>/dev/null || true)" != active ]] \
+      || ! "$runner" --capabilities | jq -e 'select(.production_ready == true)' >/dev/null 2>&1 \
+      || ! "$0" --status >/dev/null 2>&1 \
+      || ! runuser -u www-data -- /usr/bin/php /var/www/lis/artisan gowa-updater:preflight >/dev/null 2>&1 \
+      || [[ ! -d /run/lpmf/gowa-updater ]] \
+      || [[ -L /run/lpmf/gowa-updater ]] \
+      || [[ "$(stat -c '%U:%G:%a' /run/lpmf/gowa-updater 2>/dev/null || true)" != lpmf-gowa-maintenance:lpmf-gowa-maintenance:750 ]]; then
+      ready=false
+    fi
+  fi
+  jq -cn --arg hash "$helper_hash" --argjson ready "$ready" '{contract:"gowa-prepare-latest-v1",preparation_ready:$ready,helper_sha256:$hash}'
+}
+
+write_preparation_capability() {
+  local ready="$1" temporary helper_hash
+  helper_hash="$(sha256sum "$0" | cut -d ' ' -f 1)"
+  temporary="$(mktemp "${preparation_capability}.XXXXXX")"
+  jq -cn --arg helper_sha256 "$helper_hash" --argjson ready "$ready" '{contract:"gowa-prepare-latest-v1",preparation_ready:$ready,helper_sha256:$helper_hash}' > "$temporary"
+  install -o root -g www-data -m 0640 "$temporary" "$preparation_capability"
+  rm -f -- "$temporary"
+}
+
+enable_preparation() {
+  require_root
+  for binary in docker jq runuser systemctl visudo; do
+    command -v "$binary" >/dev/null || die "required binary is unavailable: $binary"
+  done
+  for path in "$catalog" "$catalog_public_key" "$catalog_private_key" "$envelope" "$rollback_manifest" "$runner" /etc/systemd/system/lpmf-gowa-maintenance.service /etc/systemd/system/lpmf-gowa-update@.service "$submit_sudoers"; do
+    require_regular_file "$path"
+  done
+  verify_private_key
+  verify_current_catalog
+  verify_runtime_baseline
+  require_regular_file "${install_root}/database-name"
+  local database active_operations
+  database="$(tr -d '\r\n' < "${install_root}/database-name")"
+  [[ "$database" =~ ^[A-Za-z_][A-Za-z0-9_-]*$ ]] || die 'updater database name is invalid'
+  active_operations="$(runuser -u postgres -- psql --no-password --no-psqlrc --quiet --dbname "$database" --tuples-only --no-align -c "select count(*) from public.gowa_update_operations where scope = 'gowa' and status in ('queued','preparing','updating','verifying','reconciling')")" || die 'active update state could not be checked'
+  [[ "$active_operations" == '0' ]] || die 'an update operation is active'
+  [[ "$(systemctl is-active lpmf-gowa-maintenance.service)" == active ]] || die 'maintenance worker is not active'
+  [[ "$(systemctl is-active lpmf-gowa-runtime-probe.timer)" == active ]] || die 'runtime evidence timer is not active'
+  runuser -u www-data -- /usr/bin/php /var/www/lis/artisan gowa-updater:preflight >/dev/null || die 'application GOWA preflight failed'
+  [[ -d /run/lpmf/gowa-updater && ! -L /run/lpmf/gowa-updater ]] || die 'worker runtime directory is missing'
+  [[ "$(stat -c '%U:%G:%a' /run/lpmf/gowa-updater)" == lpmf-gowa-maintenance:lpmf-gowa-maintenance:750 ]] || die 'worker runtime directory ownership or mode is invalid'
+  visudo -cf "$submit_sudoers" >/dev/null || die 'updater sudoers is invalid'
+  grep -Fqx 'Cmnd_Alias LPMF_GOWA_PREPARE = /usr/local/sbin/lpmf-gowa-release-maintenance --prepare-capabilities, /usr/local/sbin/lpmf-gowa-release-maintenance --prepare-latest' "$submit_sudoers" || die 'preparation sudo boundary is missing'
+  "$runner" --capabilities | jq -e 'select(.production_ready == true)' >/dev/null || die 'update runner is not production ready'
+  [[ -x "$runner" && -x /usr/local/sbin/lpmf-gowa-submit ]] || die 'installed update helpers are unavailable'
+
+  local backup manifest_tmp helper_hash
+  backup="/var/backups/lpmf/gowa/preparation-capability-$(date -u +%Y%m%dT%H%M%SZ)"
+  install -d -o root -g root -m 0700 "$backup"
+  if [[ -f "$preparation_capability" && ! -L "$preparation_capability" ]]; then
+    cp -a "$preparation_capability" "$backup/"
+  fi
+  helper_hash="$(sha256sum "$0" | cut -d ' ' -f 1)"
+  manifest_tmp="$(mktemp "${preparation_capability}.XXXXXX")"
+  jq -cn --arg helper_hash "$helper_hash" '{contract:"gowa-prepare-latest-v1",preparation_ready:true,helper_sha256:$helper_hash,enabled_at:(now|todateiso8601)}' > "$manifest_tmp"
+  install -o root -g www-data -m 0640 "$manifest_tmp" "$preparation_capability"
+  rm -f -- "$manifest_tmp"
+  if ! "$runner" --prepare-capabilities | jq -e 'select(.preparation_ready == true)' >/dev/null; then
+    jq -cn --arg helper_hash "$helper_hash" '{contract:"gowa-prepare-latest-v1",preparation_ready:false,helper_sha256:$helper_hash}' > "$manifest_tmp"
+    install -o root -g www-data -m 0640 "$manifest_tmp" "$preparation_capability"
+    rm -f -- "$manifest_tmp"
+    die 'preparation capability verification failed'
+  fi
+  printf 'preparation_enabled=true\nhelper_sha256=%s\nbackup_dir=%s\n' "$helper_hash" "$backup"
 }
 
 status() {
@@ -302,9 +507,12 @@ repair_dispatch_permission() {
   fi
   printf '%s\n' \
     'Defaults:lpmf-gowa-maintenance env_reset, !setenv, env_keep -= *' \
+    'Defaults:www-data env_reset, !setenv, env_keep -= *' \
     'Defaults!/usr/local/sbin/lpmf-gowa-submit secure_path="/usr/sbin:/usr/bin:/sbin:/bin"' \
     'Cmnd_Alias LPMF_GOWA_SUBMIT = /usr/local/sbin/lpmf-gowa-submit [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[1-5][0-9a-f][0-9a-f][0-9a-f]-[89ab][0-9a-f][0-9a-f][0-9a-f]-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]' \
-    'lpmf-gowa-maintenance ALL=(root) NOPASSWD: LPMF_GOWA_SUBMIT' \
+    'Cmnd_Alias LPMF_GOWA_PREPARE = /usr/local/sbin/lpmf-gowa-release-maintenance --prepare-capabilities, /usr/local/sbin/lpmf-gowa-release-maintenance --prepare-latest' \
+    'lpmf-gowa-maintenance ALL=(root) NOPASSWD: LPMF_GOWA_SUBMIT, LPMF_GOWA_PREPARE' \
+    'www-data ALL=(root) NOPASSWD: /usr/local/sbin/lpmf-gowa-release-maintenance --prepare-capabilities' \
     > "$temporary"
   chmod 0440 "$temporary"
   visudo -cf "$temporary" >/dev/null || die 'replacement updater sudoers is invalid'
@@ -334,15 +542,20 @@ repair_worker_privilege_boundary() {
   install -d -o root -g root -m 0700 "$backup"
   cp -a "$service" "$backup/"
    temporary="$(mktemp /etc/systemd/system/lpmf-gowa-maintenance.service.XXXXXX)"
-   sed \
-     -e 's/^NoNewPrivileges=no$/NoNewPrivileges=no/' \
-     -e 's/^RestrictSUIDSGID=no$/RestrictSUIDSGID=yes/' \
-     -e 's#^ReadWritePaths=.*#ReadWritePaths=/var/www/lis/storage /var/www/lis/bootstrap/cache /var/lib/lpmf/gowa-updater /run/lpmf/gowa-updater#' \
-     -e 's/^CapabilityBoundingSet=.*/CapabilityBoundingSet=/' \
-     "$service" > "$temporary"
+    sed \
+      -e '/^RuntimeDirectory\(Mode\|Preserve\)\?=/d' \
+      -e 's/^NoNewPrivileges=no$/NoNewPrivileges=no/' \
+      -e 's/^RestrictSUIDSGID=no$/RestrictSUIDSGID=yes/' \
+      -e 's#^ReadWritePaths=.*#ReadWritePaths=/var/www/lis/storage /var/www/lis/bootstrap/cache /var/lib/lpmf/gowa-updater /run/lpmf/gowa-updater#' \
+      -e '/^WorkingDirectory=/a RuntimeDirectory=lpmf/gowa-updater\nRuntimeDirectoryMode=0750\nRuntimeDirectoryPreserve=yes' \
+      -e 's/^CapabilityBoundingSet=.*/CapabilityBoundingSet=/' \
+      "$service" > "$temporary"
    grep -Fqx 'NoNewPrivileges=no' "$temporary" || die 'maintenance service repair failed'
-   grep -Fqx 'RestrictSUIDSGID=yes' "$temporary" || die 'maintenance service SUID repair failed'
-   grep -Fqx 'ReadWritePaths=/var/www/lis/storage /var/www/lis/bootstrap/cache /var/lib/lpmf/gowa-updater /run/lpmf/gowa-updater' "$temporary" || die 'maintenance service writable paths repair failed'
+    grep -Fqx 'RestrictSUIDSGID=yes' "$temporary" || die 'maintenance service SUID repair failed'
+    grep -Fqx 'ReadWritePaths=/var/www/lis/storage /var/www/lis/bootstrap/cache /var/lib/lpmf/gowa-updater /run/lpmf/gowa-updater' "$temporary" || die 'maintenance service writable paths repair failed'
+    grep -Fqx 'RuntimeDirectory=lpmf/gowa-updater' "$temporary" || die 'maintenance service runtime directory repair failed'
+    grep -Fqx 'RuntimeDirectoryMode=0750' "$temporary" || die 'maintenance service runtime directory mode repair failed'
+    grep -Fqx 'RuntimeDirectoryPreserve=yes' "$temporary" || die 'maintenance service runtime directory preservation repair failed'
    grep -Fqx 'CapabilityBoundingSet=' "$temporary" || die 'maintenance service capability repair failed'
   install -o root -g root -m 0644 "$temporary" "$service"
   rm -f -- "$temporary"
@@ -560,6 +773,19 @@ case "${1:-}" in
   --approve-v9.3.0)
     [[ $# == 1 ]] || die 'unexpected arguments'
     approve
+    ;;
+  --prepare-latest)
+    [[ $# == 1 ]] || die 'unexpected arguments'
+    prepare_latest
+    ;;
+  --prepare-capabilities)
+    [[ $# == 1 ]] || die 'unexpected arguments'
+    require_root
+    preparation_capabilities
+    ;;
+  --enable-preparation)
+    [[ $# == 1 ]] || die 'unexpected arguments'
+    enable_preparation
     ;;
   --rotate-key-and-approve-v9.3.0)
     [[ $# == 1 ]] || die 'unexpected arguments'

@@ -6,7 +6,7 @@ namespace App\Http\Requests\WhatsApp;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class RequestGowaUpdate extends FormRequest
+final class RequestGowaPreparation extends FormRequest
 {
     public function authorize(): bool
     {
@@ -16,9 +16,7 @@ class RequestGowaUpdate extends FormRequest
     public function rules(): array
     {
         return [
-            'preparation_id' => ['required', 'uuid'],
             'action_uuid' => ['required', 'uuid'],
-            'confirmation' => ['accepted'],
         ];
     }
 }

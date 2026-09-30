@@ -11,6 +11,9 @@ Group=lpmf-gowa-maintenance
 SupplementaryGroups=www-data
 WorkingDirectory=/var/www/lis
 ExecStart=/usr/bin/php /var/www/lis/artisan queue:work gowa-maintenance --queue=gowa-maintenance --tries=1 --timeout=900 --sleep=1 --no-interaction
+RuntimeDirectory=lpmf/gowa-updater
+RuntimeDirectoryMode=0750
+RuntimeDirectoryPreserve=yes
 Restart=always
 RestartSec=5s
 UMask=0077

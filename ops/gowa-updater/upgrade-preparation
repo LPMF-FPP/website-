@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+app_root="${GOWA_UPDATER_APP_ROOT:-/var/www/lis}"
+install_root='/etc/lpmf/gowa-updater'
+unit_root='/etc/systemd/system'
+sudoers_path='/etc/sudoers.d/lpmf-gowa-updater'
+runtime_root='/var/lib/lpmf/gowa-updater'
+database_name_file="${install_root}/database-name"
+
+die() {
+    printf 'ERROR: %s\n' "$1" >&2
+    exit 78
+}
+
+[[ "$(id -u)" == 0 ]] || die 'root execution is required'
+for binary in docker install jq psql runuser sha256sum systemctl systemd-analyze visudo; do
+    command -v "$binary" >/dev/null || die "required binary is unavailable: $binary"
+done
+
+source_root="${app_root}/ops/gowa-updater"
+for artifact in lpmf-gowa-runner lpmf-gowa-submit lpmf-gowa-release-maintenance lpmf-gowa-runtime-probe lpmf-gowa-maintenance.service lpmf-gowa-update@.service lpmf-gowa-runtime-probe.service lpmf-gowa-runtime-probe.timer sudoers.example; do
+    [[ -f "${source_root}/${artifact}" && ! -L "${source_root}/${artifact}" ]] || die "missing or unsafe updater artifact: ${artifact}"
+done
+[[ -f "${app_root}/artisan" && -f "${install_root}/catalog.json" && -f "${install_root}/catalog.key" && -f "${install_root}/rollback-manifest.json" && -f "${install_root}/compose-envelope.json" ]] || die 'current production app or updater baseline is incomplete'
+[[ -f "$database_name_file" && ! -L "$database_name_file" ]] || die 'updater database name file is missing or unsafe'
+database="$(tr -d '\r\n' < "$database_name_file")"
+[[ "$database" =~ ^[A-Za-z_][A-Za-z0-9_-]*$ ]] || die 'updater database name is invalid'
+
+active_operations="$(runuser -u postgres -- psql --no-password --no-psqlrc --quiet --dbname "$database" --tuples-only --no-align -c "select count(*) from public.gowa_update_operations where scope = 'gowa' and status in ('queued','preparing','updating','verifying','reconciling')")" || die 'active updater operations could not be inspected'
+[[ "$active_operations" == '0' ]] || die 'an updater operation is active; refusing maintenance changes'
+
+docker_runtime_before="$(docker inspect --format '{{.Id}}:{{.Image}}:{{.Config.Image}}' go-whatsapp-web-multidevice-whatsapp_go-1)" || die 'GOWA runtime is unavailable'
+[[ "$docker_runtime_before" =~ ^[0-9a-f]{64}:sha256:[0-9a-f]{64}:.+@sha256:[0-9a-f]{64}$ ]] || die 'GOWA runtime does not use an immutable image digest'
+jq -e 'select(.production_ready == true and .fully_implemented == true and .contract == "reconcile-first-v1" and .capability_version == "1")' "${install_root}/capability.json" >/dev/null || die 'installed runner is not marked production ready'
+
+systemd-analyze verify \
+    "${source_root}/lpmf-gowa-maintenance.service" \
+    "${source_root}/lpmf-gowa-update@.service" \
+    "${source_root}/lpmf-gowa-runtime-probe.service" \
+    "${source_root}/lpmf-gowa-runtime-probe.timer" >/dev/null || die 'updater unit verification failed'
+visudo -cf "${source_root}/sudoers.example" >/dev/null || die 'updater sudoers verification failed'
+
+backup="/var/backups/lpmf/gowa/preparation-upgrade-$(date -u +%Y%m%dT%H%M%SZ)"
+install -d -o root -g root -m 0700 "$backup"
+upgrade_paths=(
+    /usr/local/libexec/lpmf-gowa-runner
+    /usr/local/sbin/lpmf-gowa-submit
+    /usr/local/sbin/lpmf-gowa-release-maintenance
+    /usr/local/libexec/lpmf-gowa-runtime-probe
+    "${unit_root}/lpmf-gowa-maintenance.service"
+    "${unit_root}/lpmf-gowa-update@.service"
+    "${unit_root}/lpmf-gowa-runtime-probe.service"
+    "${unit_root}/lpmf-gowa-runtime-probe.timer"
+    "$sudoers_path"
+    "${install_root}/capability.json"
+    "${install_root}/preparation-capability.json"
+)
+changes_applied=0
+
+rollback_on_failure() {
+    local result="$?" path relative saved
+    if [[ "$result" -ne 0 && "$changes_applied" == 1 ]]; then
+        printf '%s\n' 'Preparation upgrade failed. Restoring backed-up updater artifacts.' >&2
+        for path in "${upgrade_paths[@]}"; do
+            relative="${path#/}"
+            saved="${backup}/${relative}"
+            if [[ -f "$saved" && ! -L "$saved" ]]; then
+                install -d -o root -g root -m 0755 "$(dirname "$path")"
+                cp -a -- "$saved" "$path"
+            else
+                rm -f -- "$path"
+            fi
+        done
+        systemctl daemon-reload >/dev/null 2>&1 || true
+        systemctl restart lpmf-gowa-maintenance.service >/dev/null 2>&1 || true
+    fi
+    exit "$result"
+}
+trap rollback_on_failure EXIT
+
+for artifact in "${upgrade_paths[@]}"; do
+    [[ ! -L "$artifact" ]] || die "unsafe updater path is a symlink: ${artifact}"
+    if [[ -f "$artifact" && ! -L "$artifact" ]]; then
+        cp -a --parents "$artifact" "$backup"
+    fi
+done
+
+changes_applied=1
+
+install -o root -g root -m 0755 "${source_root}/lpmf-gowa-runner" /usr/local/libexec/lpmf-gowa-runner
+install -o root -g root -m 0755 "${source_root}/lpmf-gowa-submit" /usr/local/sbin/lpmf-gowa-submit
+install -o root -g root -m 0755 "${source_root}/lpmf-gowa-release-maintenance" /usr/local/sbin/lpmf-gowa-release-maintenance
+install -o root -g root -m 0755 "${source_root}/lpmf-gowa-runtime-probe" /usr/local/libexec/lpmf-gowa-runtime-probe
+runner_hash="$(sha256sum /usr/local/libexec/lpmf-gowa-runner | cut -d ' ' -f 1)"
+capability_tmp="$(mktemp "${install_root}/capability.json.XXXXXX")"
+jq --arg runner_hash "$runner_hash" '.runner_sha256 = $runner_hash' "${install_root}/capability.json" > "$capability_tmp"
+install -o root -g www-data -m 0640 "$capability_tmp" "${install_root}/capability.json"
+rm -f -- "$capability_tmp"
+install -o root -g root -m 0644 "${source_root}/lpmf-gowa-maintenance.service" "${unit_root}/lpmf-gowa-maintenance.service"
+install -o root -g root -m 0644 "${source_root}/lpmf-gowa-update@.service" "${unit_root}/lpmf-gowa-update@.service"
+install -o root -g root -m 0644 "${source_root}/lpmf-gowa-runtime-probe.service" "${unit_root}/lpmf-gowa-runtime-probe.service"
+install -o root -g root -m 0644 "${source_root}/lpmf-gowa-runtime-probe.timer" "${unit_root}/lpmf-gowa-runtime-probe.timer"
+install -o root -g root -m 0440 "${source_root}/sudoers.example" "$sudoers_path"
+
+helper_hash="$(sha256sum /usr/local/sbin/lpmf-gowa-release-maintenance | cut -d ' ' -f 1)"
+preparation_tmp="$(mktemp "${install_root}/preparation-capability.json.XXXXXX")"
+jq -cn --arg helper_hash "$helper_hash" '{contract:"gowa-prepare-latest-v1",preparation_ready:false,helper_sha256:$helper_hash}' > "$preparation_tmp"
+install -o root -g www-data -m 0640 "$preparation_tmp" "${install_root}/preparation-capability.json"
+rm -f -- "$preparation_tmp"
+
+visudo -cf "$sudoers_path" >/dev/null || die 'installed sudoers verification failed'
+systemd-analyze verify \
+    "${unit_root}/lpmf-gowa-maintenance.service" \
+    "${unit_root}/lpmf-gowa-update@.service" \
+    "${unit_root}/lpmf-gowa-runtime-probe.service" \
+    "${unit_root}/lpmf-gowa-runtime-probe.timer" >/dev/null || die 'installed unit verification failed'
+systemctl daemon-reload
+systemctl enable --now lpmf-gowa-runtime-probe.timer
+systemctl restart lpmf-gowa-maintenance.service
+for attempt in {1..15}; do
+    [[ "$(systemctl is-active lpmf-gowa-maintenance.service)" == active ]] && break
+    [[ "$attempt" -lt 15 ]] || die 'maintenance worker did not become active'
+    sleep 1
+done
+restart_count_before="$(systemctl show lpmf-gowa-maintenance.service -p NRestarts --value)"
+sleep 15
+restart_count_after="$(systemctl show lpmf-gowa-maintenance.service -p NRestarts --value)"
+[[ "$restart_count_before" == "$restart_count_after" ]] || die 'maintenance worker restarted after becoming active'
+[[ "$(systemctl show lpmf-gowa-maintenance.service -p ExecMainStatus --value)" == 0 ]] || die 'maintenance worker main process did not exit successfully'
+[[ -d /run/lpmf/gowa-updater && ! -L /run/lpmf/gowa-updater ]] || die 'systemd runtime directory was not created'
+[[ "$(stat -c '%U:%G:%a' /run/lpmf/gowa-updater)" == lpmf-gowa-maintenance:lpmf-gowa-maintenance:750 ]] || die 'systemd runtime directory ownership or mode is invalid'
+systemctl start lpmf-gowa-runtime-probe.service
+runuser -u www-data -- /usr/bin/php "${app_root}/artisan" gowa-updater:preflight >/dev/null || die 'application runtime and runner preflight failed'
+docker_runtime_after="$(docker inspect --format '{{.Id}}:{{.Image}}:{{.Config.Image}}' go-whatsapp-web-multidevice-whatsapp_go-1)" || die 'GOWA runtime became unavailable during updater maintenance'
+[[ "$docker_runtime_before" == "$docker_runtime_after" ]] || die 'GOWA container identity or image changed during updater maintenance'
+/usr/local/sbin/lpmf-gowa-release-maintenance --enable-preparation || die 'automatic release preparation preflight failed'
+
+printf 'preparation_upgrade=ready\nworker=%s\nruntime_directory=/run/lpmf/gowa-updater\npreparation_helper_hash=%s\nbackup_dir=%s\n' \
+    "$(systemctl is-active lpmf-gowa-maintenance.service)" "$helper_hash" "$backup"
+changes_applied=0

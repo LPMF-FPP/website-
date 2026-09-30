@@ -10,55 +10,64 @@
                 <template x-if="!overviewData?.gowa_update">
                     <p class="rounded-md bg-slate-800 px-4 py-3 text-sm text-slate-300">Status pembaruan belum tersedia.</p>
                 </template>
-                <template x-if="overviewData?.gowa_update && !overviewData.gowa_update.available">
-                    <div class="space-y-3 rounded-md bg-amber-950/60 px-4 py-3">
-                        <p class="text-sm text-amber-200">Pembaruan dinonaktifkan sampai pemeriksaan operasional selesai.</p>
-                        <button type="button" @click="checkGowaUpdate()" :disabled="gowaUpdateChecking" class="min-h-11 w-full rounded-md border border-amber-300/60 px-4 py-2 text-sm font-semibold text-amber-100 hover:bg-amber-900/60 focus:outline-none focus:ring-2 focus:ring-amber-200 disabled:cursor-not-allowed disabled:opacity-50">
-                            <span x-text="gowaUpdateChecking ? 'Memeriksa GitHub...' : 'Periksa pembaruan'" ></span>
+                <div x-show="overviewData?.gowa_update" class="space-y-3 rounded-md bg-slate-800 px-4 py-3">
+                    <p class="text-sm text-slate-300">Versi terpasang: <span class="font-medium text-white" x-text="overviewData?.gowa_update?.runtime?.version || 'Belum terverifikasi'"></span></p>
+                    <p x-show="overviewData?.gowa_update && !overviewData.gowa_update.available" class="text-sm text-amber-200" role="status" x-text="gowaAvailabilityMessage(overviewData?.gowa_update?.reason)"></p>
+                    <button type="button" @click="checkGowaUpdate()" :disabled="gowaUpdateChecking" class="min-h-11 w-full rounded-md border border-slate-500 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-300 disabled:cursor-not-allowed disabled:opacity-50">
+                        <span x-text="gowaUpdateChecking ? 'Memeriksa rilis...' : 'Periksa pembaruan'"></span>
+                    </button>
+                    <div x-show="gowaUpdateChecking || gowaUpdateCheck || gowaUpdateCheckError || gowaPreparation" class="space-y-3 rounded-md border border-slate-600 bg-slate-900 px-3 py-3 text-sm" aria-live="polite">
+                        <p x-show="gowaUpdateChecking" class="text-slate-300">Memeriksa versi terpasang dan rilis terbaru.</p>
+                        <p x-show="gowaUpdateCheckError" class="text-amber-200" x-text="gowaUpdateCheckError"></p>
+                        <p x-show="gowaUpdateCheck?.current_version" class="text-slate-300">Versi terpasang: <span class="font-medium text-white" x-text="gowaUpdateCheck?.current_version"></span></p>
+                        <p x-show="gowaUpdateCheck?.latest_version" class="text-slate-200">Rilis terbaru: <span class="font-semibold text-white" x-text="gowaUpdateCheck?.latest_version"></span></p>
+                        <template x-if="gowaUpdateCheck?.blocked_reason === 'runtime_stale'">
+                            <p class="text-amber-200">Bukti runtime sudah kedaluwarsa. Tunggu pemeriksaan runtime berikutnya.</p>
+                        </template>
+                        <template x-if="gowaUpdateCheck?.blocked_reason === 'current_version_unknown'">
+                            <p class="text-amber-200">Versi terpasang tidak dapat dicocokkan dengan katalog terverifikasi.</p>
+                        </template>
+                        <template x-if="gowaUpdateCheck?.blocked_reason === 'already_latest'">
+                            <p class="text-slate-300">GOWA sudah menggunakan rilis terbaru.</p>
+                        </template>
+                        <template x-if="gowaUpdateCheck?.blocked_reason === 'release_not_approved' && !overviewData?.gowa_update?.preparation_ready">
+                            <p class="text-amber-200">Rilis baru ditemukan. Jalur persiapan otomatis belum siap di server.</p>
+                        </template>
+                        <template x-if="gowaUpdateCheck?.update_available && overviewData?.gowa_update?.preparation_ready && !gowaPreparation">
+                            <p class="text-slate-300" role="status">Paket akan disiapkan otomatis.</p>
+                        </template>
+                        <template x-if="gowaUpdateCheck?.update_available && overviewData?.gowa_update?.preparation_ready && !overviewData?.gowa_update?.can_request">
+                            <p class="text-amber-200" role="status">Akun ini tidak memiliki izin untuk menyiapkan pembaruan.</p>
+                        </template>
+                        <template x-if="gowaPreparation && ['queued', 'preparing'].includes(gowaPreparation.status)">
+                            <div class="space-y-2">
+                                <p class="text-slate-200" role="status" x-text="gowaPreparation.status === 'queued' ? 'Menunggu persiapan paket...' : 'Memverifikasi rilis, mengunduh image, dan menyiapkan rollback. GOWA tetap berjalan.'"></p>
+                                <progress class="h-2 w-full" aria-label="Persiapan paket pembaruan"></progress>
+                            </div>
+                        </template>
+                        <template x-if="gowaPreparation?.status === 'failed'">
+                            <p class="text-amber-200" role="alert">Persiapan gagal (<span x-text="gowaPreparation.failure_code || 'preparation_failed'"></span>). Perbaiki pemeriksaan operasional lalu mulai pemeriksaan lagi.</p>
+                        </template>
+                        <template x-if="gowaPreparation?.ready">
+                            <div class="space-y-3 border-t border-slate-700 pt-3">
+                                <p class="text-emerald-200">Paket <span class="font-semibold" x-text="gowaPreparation.version"></span> siap dipasang.</p>
+                                <p class="break-all font-mono text-xs text-slate-300" x-text="gowaPreparation.digest"></p>
+                                <p class="text-xs text-slate-400">Persiapan berlaku sampai <span x-text="gowaPreparation.expires_at"></span>. GOWA belum diubah.</p>
+                                <label class="flex min-h-11 items-center gap-3 text-sm text-slate-300" for="gowa-confirm">
+                                    <input id="gowa-confirm" type="checkbox" x-model="gowaUpdateConfirmed" class="h-4 w-4 rounded border-slate-500 bg-slate-900 text-primary-500 focus:ring-primary-400">
+                                    <span>Saya mengonfirmasi pemasangan pembaruan GOWA.</span>
+                                </label>
+                            </div>
+                        </template>
+                        <template x-if="gowaPreparation?.status === 'ready' && !gowaPreparation.ready">
+                            <p class="text-amber-200" role="status">Persiapan paket kedaluwarsa. Periksa pembaruan lagi untuk menyiapkan ulang.</p>
+                        </template>
+                        <button x-show="gowaPreparation?.ready" type="button" @click="requestGowaUpdate()" :disabled="!gowaUpdateConfirmed || gowaUpdateSubmitting || !overviewData?.gowa_update?.can_install" class="min-h-11 w-full rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-300 disabled:cursor-not-allowed disabled:opacity-50">
+                            <span x-text="gowaUpdateSubmitting ? 'Mengirim permintaan...' : 'Instal pembaruan'"></span>
                         </button>
+                        <p x-show="gowaUpdateMessage" class="text-sm text-slate-200" x-text="gowaUpdateMessage" role="status"></p>
                     </div>
-                </template>
-                <template x-if="overviewData?.gowa_update?.available">
-                    <div class="space-y-3 rounded-md bg-slate-800 px-4 py-3">
-                        <p class="text-sm text-slate-300">Runtime: <span class="font-medium text-white" x-text="overviewData.gowa_update.runtime?.version || 'Tidak diketahui'"></span></p>
-                        <button type="button" @click="checkGowaUpdate()" :disabled="gowaUpdateChecking" class="min-h-11 w-full rounded-md border border-slate-500 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-300 disabled:cursor-not-allowed disabled:opacity-50">
-                            <span x-text="gowaUpdateChecking ? 'Memeriksa GitHub...' : 'Periksa pembaruan'"></span>
-                        </button>
-                        <div x-show="gowaUpdateCheck || gowaUpdateCheckError" class="rounded-md border border-slate-600 bg-slate-900 px-3 py-2 text-sm" aria-live="polite">
-                            <p x-show="gowaUpdateCheckError" class="text-amber-200" x-text="gowaUpdateCheckError"></p>
-                            <template x-if="gowaUpdateCheck?.update_available && gowaUpdateCheck?.catalog_version_match">
-                                <p class="text-emerald-200"><span x-text="gowaUpdateCheck.latest_version"></span> tersedia dan cocok dengan rilis yang ada di katalog.</p>
-                            </template>
-                            <template x-if="gowaUpdateCheck?.update_available && !gowaUpdateCheck?.catalog_version_match">
-                                <p class="text-amber-200"><span x-text="gowaUpdateCheck.latest_version"></span> tersedia di GitHub, tetapi belum disetujui dalam katalog.</p>
-                            </template>
-                            <template x-if="gowaUpdateCheck?.comparison_status === 'runtime_stale'">
-                                <p class="text-amber-200">Versi runtime belum dapat diverifikasi karena bukti runtime sudah kedaluwarsa.</p>
-                            </template>
-                            <template x-if="gowaUpdateCheck?.comparison_status === 'current_version_unknown'">
-                                <p class="text-amber-200">Versi runtime tidak dikenali dalam katalog, jadi pemeriksaan tidak menyatakan sistem sudah terbaru.</p>
-                            </template>
-                            <template x-if="gowaUpdateCheck?.comparison_status === 'compared' && !gowaUpdateCheck.update_available">
-                                <p class="text-slate-300">Versi terpasang sudah merupakan versi terbaru.</p>
-                            </template>
-                        </div>
-                        <label class="block text-sm text-slate-300" for="gowa-release-id">Rilis disetujui</label>
-                        <select id="gowa-release-id" x-model="selectedGowaRelease" class="mt-1 block min-h-11 w-full min-w-0 rounded-md border-slate-600 bg-slate-900 text-sm text-white focus:border-primary-400 focus:ring-primary-400">
-                            <option value="">Pilih rilis</option>
-                            <template x-for="release in overviewData.gowa_update.releases || []" :key="release.release_id">
-                                <option :value="release.release_id" x-text="release.version || release.release_id"></option>
-                            </template>
-                        </select>
-                        <label class="flex min-h-11 items-center gap-3 text-sm text-slate-300" for="gowa-confirm">
-                            <input id="gowa-confirm" type="checkbox" x-model="gowaUpdateConfirmed" class="h-4 w-4 rounded border-slate-500 bg-slate-900 text-primary-500 focus:ring-primary-400">
-                            <span>Saya mengonfirmasi pembaruan terkontrol.</span>
-                        </label>
-                        <button type="button" @click="requestGowaUpdate()" :disabled="!selectedGowaRelease || !gowaUpdateConfirmed || gowaUpdateSubmitting || !overviewData.gowa_update.can_request" class="min-h-11 w-full rounded-md bg-primary-600 px-4 py-2 text-sm font-semibold text-white hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-300 disabled:cursor-not-allowed disabled:opacity-50">
-                            <span x-text="gowaUpdateSubmitting ? 'Mengirim permintaan...' : 'Ajukan pembaruan' "></span>
-                        </button>
-                        <p x-show="gowaUpdateMessage" class="text-sm text-slate-300" x-text="gowaUpdateMessage" role="status"></p>
-                    </div>
-                </template>
+                </div>
             </div>
         </div>
         <template x-if="overviewData?.gowa_update?.latest_operation">

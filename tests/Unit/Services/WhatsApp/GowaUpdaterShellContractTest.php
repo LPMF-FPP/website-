@@ -28,15 +28,19 @@ it('publishes an isolated maintenance worker and exact sudo contract', function 
     $sudoers = file_get_contents(getcwd().'/ops/gowa-updater/sudoers.example');
     $installer = file_get_contents(getcwd().'/ops/gowa-updater/install');
     $gateway = file_get_contents(getcwd().'/ops/gowa-updater/gateway.sql');
+    $releaseMaintenance = file_get_contents(getcwd().'/ops/gowa-updater/lpmf-gowa-release-maintenance');
 
     expect($worker)->toContain('User=lpmf-gowa-maintenance')
         ->and($worker)->toContain('Group=lpmf-gowa-maintenance')
         ->and($worker)->toContain('SupplementaryGroups=')
         ->and($worker)->toContain('--queue=gowa-maintenance --tries=1')
+        ->and($worker)->toContain('RuntimeDirectory=lpmf/gowa-updater')
+        ->and($worker)->toContain('RuntimeDirectoryMode=0750')
+        ->and($worker)->toContain('RuntimeDirectoryPreserve=yes')
         ->and($worker)->toContain('NoNewPrivileges=no')
         ->and($worker)->toContain('RestrictSUIDSGID=yes')
         ->and($worker)->toContain('/var/lib/lpmf/gowa-updater')
-        ->and($worker)->toContain('/etc/lpmf/gowa-updater')
+        ->and($worker)->toContain('/run/lpmf/gowa-updater')
         ->and($worker)->toContain('CapabilityBoundingSet=')
         ->and($worker)->not->toContain('/var/run/docker.sock')
         ->and($updateService)->toContain('SupplementaryGroups=lpmf-admin')
@@ -45,7 +49,9 @@ it('publishes an isolated maintenance worker and exact sudo contract', function 
         ->and($updateService)->toContain('CapabilityBoundingSet=')
         ->and($updateService)->toContain('NoNewPrivileges=yes')
         ->and($updateService)->toContain('/etc/lpmf/gowa-updater')
-        ->and($sudoers)->toContain('lpmf-gowa-maintenance ALL=(root) NOPASSWD: LPMF_GOWA_SUBMIT')
+        ->and($sudoers)->toContain('NOPASSWD: LPMF_GOWA_SUBMIT, LPMF_GOWA_PREPARE')
+        ->and($sudoers)->toContain('--prepare-capabilities')
+        ->and($sudoers)->toContain('--prepare-latest')
         ->and($sudoers)->toContain('env_reset, !setenv, env_keep -= *')
         ->and($installer)->toContain('systemd-analyze verify')
         ->and($installer)->toContain('visudo -cf')
@@ -60,6 +66,7 @@ it('publishes an isolated maintenance worker and exact sudo contract', function 
         ->and($installer)->toContain('$(id -u)" != 0')
         ->and($installer)->toContain('setfacl -m u:root:r--')
         ->and($installer)->toContain('root:www-data:640')
+        ->and($installer)->toContain('preparation-capability.json')
         ->and($gateway)->toContain('REVOKE ALL ON SCHEMA updater_gateway FROM PUBLIC')
         ->and($gateway)->toContain('GRANT EXECUTE ON FUNCTION updater_gateway.claim_dispatch')
         ->and($gateway)->toContain('GRANT EXECUTE ON FUNCTION updater_gateway.consume_dispatch')
@@ -70,6 +77,11 @@ it('publishes an isolated maintenance worker and exact sudo contract', function 
         ->and($installer)->toContain('setpriv --reuid 0 --regid 0 --groups lpmf-admin --bounding-set=-all')
         ->and($installer)->toContain('id -u lpmf-gowa-maintenance')
         ->and($installer)->toContain('getent group lpmf-gowa-maintenance');
+    expect($installer)->toContain('preparation-capability.json')
+        ->and($installer)->toContain('www-data ALL=(root) NOPASSWD: /usr/local/sbin/lpmf-gowa-release-maintenance --prepare-capabilities')
+        ->and($installer)->toContain('lpmf-gowa-runtime-probe.timer')
+        ->and($releaseMaintenance)->toContain('--prepare-latest')
+        ->and($releaseMaintenance)->toContain('--enable-preparation');
 });
 
 it('keeps production readiness explicitly disabled in the shipped capability artifact', function (): void {
@@ -83,6 +95,36 @@ it('keeps production readiness explicitly disabled in the shipped capability art
     ]);
 });
 
+it('prepares the latest immutable release without replacing the running container', function (): void {
+    $maintenance = file_get_contents(getcwd().'/ops/gowa-updater/lpmf-gowa-release-maintenance');
+    $prepareStart = strpos($maintenance, 'prepare_latest() {');
+    $prepareEnd = strpos($maintenance, 'preparation_capabilities() {');
+    $prepareSource = substr($maintenance, $prepareStart, $prepareEnd - $prepareStart);
+
+    expect($prepareStart)->not->toBeFalse()
+        ->and($prepareEnd)->not->toBeFalse()
+        ->and($prepareSource)->toContain('docker pull "$image"')
+        ->and($prepareSource)->toContain('verify_current_catalog')
+        ->and($prepareSource)->toContain('verify_runtime_baseline')
+        ->and($prepareSource)->toContain('rollback_manifest')
+        ->and($prepareSource)->not->toContain('compose up')
+        ->and($prepareSource)->not->toContain('docker stop')
+        ->and($prepareSource)->not->toContain('docker rm');
+});
+
+it('upgrades updater artifacts with a backup and verifies that the GOWA image is unchanged', function (): void {
+    $upgrade = file_get_contents(getcwd().'/ops/gowa-updater/upgrade-preparation');
+
+    expect($upgrade)->toContain('backup="/var/backups/lpmf/gowa/preparation-upgrade-')
+        ->and($upgrade)->toContain('rollback_on_failure')
+        ->and($upgrade)->toContain('systemctl enable --now lpmf-gowa-runtime-probe.timer')
+        ->and($upgrade)->toContain('GOWA container identity or image changed during updater maintenance')
+        ->and($upgrade)->toContain('gowa-updater:preflight')
+        ->and($upgrade)->not->toContain('docker compose up')
+        ->and($upgrade)->not->toContain('docker stop')
+        ->and($upgrade)->not->toContain('docker rm');
+});
+
 it('ships a signed runtime probe and periodic systemd timer', function (): void {
     $probe = file_get_contents(getcwd().'/ops/gowa-updater/lpmf-gowa-runtime-probe');
     $service = file_get_contents(getcwd().'/ops/gowa-updater/lpmf-gowa-runtime-probe.service');
@@ -93,4 +135,21 @@ it('ships a signed runtime probe and periodic systemd timer', function (): void 
         ->and($service)->toContain('ExecStart=/usr/local/libexec/lpmf-gowa-runtime-probe')
         ->and($service)->toContain('/var/run/docker.sock')
         ->and($timer)->toContain('OnUnitActiveSec=30s');
+});
+
+it('prepares the latest immutable release without starting a container replacement', function (): void {
+    $maintenance = file_get_contents(getcwd().'/ops/gowa-updater/lpmf-gowa-release-maintenance');
+    $prepareStart = strpos($maintenance, 'prepare_latest() {');
+    $prepareEnd = strpos($maintenance, 'preparation_capabilities() {');
+    $preparationBlock = substr($maintenance, $prepareStart, $prepareEnd - $prepareStart);
+
+    expect($prepareStart)->not->toBeFalse()
+        ->and($prepareEnd)->not->toBeFalse()
+        ->and($preparationBlock)->toContain('docker pull "$image"')
+        ->and($preparationBlock)->toContain('verify_current_catalog')
+        ->and($preparationBlock)->toContain('verify_runtime_baseline')
+        ->and($preparationBlock)->toContain('rollback_manifest')
+        ->and($preparationBlock)->not->toContain('compose up')
+        ->and($preparationBlock)->not->toContain('docker stop')
+        ->and($preparationBlock)->not->toContain('docker rm');
 });

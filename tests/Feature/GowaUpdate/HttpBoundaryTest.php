@@ -29,7 +29,7 @@ it('rejects an update request without explicit confirmation', function (): void 
     grantGowaRequestPermission($user);
 
     $response = $this->actingAs($user)->postJson(route('whatsapp.updates.request'), [
-        'release_id' => 'approved-release',
+        'preparation_id' => '00000000-0000-4000-8000-000000000021',
         'action_uuid' => '00000000-0000-4000-8000-000000000000',
         'confirmation' => false,
     ]);
@@ -48,6 +48,11 @@ it('keeps update routes inside the web CSRF middleware group', function (): void
     expect($checkRoute?->gatherMiddleware())->toContain('web')
         ->and($checkRoute?->gatherMiddleware())->toContain('throttle:gowa-update-check')
         ->and($checkRoute?->gatherMiddleware())->toContain('permission:gowa-update.status');
+
+    $prepareRoute = app('router')->getRoutes()->getByName('whatsapp.updates.prepare');
+    expect($prepareRoute?->gatherMiddleware())->toContain('web')
+        ->and($prepareRoute?->gatherMiddleware())->toContain('throttle:gowa-update')
+        ->and($prepareRoute?->gatherMiddleware())->toContain('permission:gowa-update.request');
 });
 
 it('audits feature-scoped validation rejections without exposing request secrets', function (): void {
@@ -55,7 +60,7 @@ it('audits feature-scoped validation rejections without exposing request secrets
     grantGowaRequestPermission($user);
 
     $this->actingAs($user)->postJson(route('whatsapp.updates.request'), [
-        'release_id' => 'not allowed',
+        'preparation_id' => 'not-a-uuid',
         'action_uuid' => 'not-a-uuid',
         'confirmation' => false,
     ])->assertUnprocessable();

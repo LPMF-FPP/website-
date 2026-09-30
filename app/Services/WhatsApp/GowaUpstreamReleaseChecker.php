@@ -25,13 +25,13 @@ final class GowaUpstreamReleaseChecker
     ) {}
 
     /** @return array<string, mixed> */
-    public function check(): array
+    public function check(bool $refresh = false): array
     {
         $releases = $this->catalog->approved();
         $runtime = $this->probe->current();
         $runtimeFresh = $this->probe->isFresh($runtime);
         $currentVersion = $this->currentVersion($runtime, $releases);
-        $latest = $this->latestRelease();
+        $latest = $this->latestRelease($refresh);
         $approved = collect($releases)->first(
             fn (array $release): bool => $this->normalizeVersion($release['version'] ?? null) === $latest['normalized_version']
                 && ($release['upstream_tag'] ?? null) === $latest['version']
@@ -48,7 +48,15 @@ final class GowaUpstreamReleaseChecker
             'update_available' => $updateAvailable,
             'catalog_version_match' => is_array($approved),
             'approved_release_id' => is_array($approved) ? $approved['release_id'] : null,
+            'approved_digest' => is_array($approved) ? $approved['digest'] : null,
             'can_update' => $updateAvailable && is_array($approved),
+            'blocked_reason' => ! $runtimeFresh
+                ? 'runtime_stale'
+                : ($currentVersion === null
+                    ? 'current_version_unknown'
+                    : (! $updateAvailable
+                        ? 'already_latest'
+                        : (! is_array($approved) ? 'release_not_approved' : null))),
             'published_at' => $latest['published_at'],
             'release_url' => $latest['release_url'],
             'fetched_at' => $latest['fetched_at'],
@@ -57,12 +65,16 @@ final class GowaUpstreamReleaseChecker
     }
 
     /** @return array{version: string, normalized_version: string, published_at: string, release_url: string, fetched_at: string} */
-    private function latestRelease(): array
+    private function latestRelease(bool $refresh = false): array
     {
         $url = (string) config('gowa-updater.upstream_release_api');
         $ttl = max(30, (int) config('gowa-updater.upstream_cache_seconds', 300));
+        $cacheKey = 'gowa-updater:upstream:v2:'.sha1($url);
+        if ($refresh) {
+            Cache::forget($cacheKey);
+        }
 
-        return Cache::remember('gowa-updater:upstream:v2:'.sha1($url), $ttl, function () use ($url): array {
+        return Cache::remember($cacheKey, $ttl, function () use ($url): array {
             $parts = parse_url($url);
             if (($parts['scheme'] ?? null) !== 'https'
                 || ($parts['host'] ?? null) !== self::UPSTREAM_HOST
