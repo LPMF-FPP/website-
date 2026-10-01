@@ -8,7 +8,6 @@ use App\Http\Requests\WhatsApp\RequestGowaPreparation;
 use App\Http\Requests\WhatsApp\RequestGowaUpdate;
 use App\Http\Requests\WhatsApp\RetryGowaUpdate;
 use App\Models\GowaUpdateOperation;
-use App\Models\GowaUpdatePreparation;
 use App\Services\WhatsApp\GowaUpdatePreparationService;
 use App\Services\WhatsApp\GowaUpdateService;
 use App\Services\WhatsApp\GowaUpstreamReleaseChecker;
@@ -27,32 +26,7 @@ final class GowaUpdateController extends Controller
 
     public function status(Request $request): JsonResponse
     {
-        $data = $this->service->status();
-        $permissions = [
-            'can_request' => $request->user()?->hasPermission('gowa-update.request') === true,
-            'can_retry' => $request->user()?->hasPermission('gowa-update.retry') === true,
-            'can_detail' => $request->user()?->hasPermission('gowa-update.detail') === true,
-        ];
-        if ($data['latest_operation'] !== null) {
-            $operation = GowaUpdateOperation::query()->where('scope', GowaUpdateOperation::SCOPE)->find($data['latest_operation']['id']);
-            $data['latest_operation'] = $operation === null ? null : $this->service->operationProjection($operation, $permissions);
-        }
-        $data['can_request'] = $permissions['can_request'];
-        $data['can_retry'] = $permissions['can_retry'] && (bool) ($data['latest_operation']['can_retry'] ?? false);
-        $data['can_detail'] = $permissions['can_detail'];
-        $preparation = GowaUpdatePreparation::query()
-            ->where('requested_by', $request->user()?->id)
-            ->latest('created_at')
-            ->first();
-        $data['latest_preparation'] = $preparation?->safeProjection();
-        $runtime = $data['runtime'] ?? [];
-        $preparationMatchesRuntime = is_array($data['latest_preparation'])
-            && ($data['latest_preparation']['ready'] ?? false) === true
-            && ($runtime['digest'] ?? null) === $preparation?->runtime_digest
-            && ($runtime['container_identity'] ?? null) === $preparation?->container_identity;
-        $data['can_install'] = $permissions['can_request']
-            && (bool) $data['available']
-            && $preparationMatchesRuntime;
+        $data = $this->service->statusForUser($request->user());
 
         return response()->json(['data' => $data, 'message' => 'Status pembaruan GOWA tersedia.']);
     }

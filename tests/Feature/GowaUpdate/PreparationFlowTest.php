@@ -204,6 +204,82 @@ it('marks preparation ready only after release, catalog, and unchanged runtime m
     expect(fn () => $service->forUser($preparation->id, $anotherUser->id))->toThrow(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
 });
 
+it('shares user-scoped installation readiness between the overview and update status', function (): void {
+    $fixture = gowaPreparationFixture();
+    app()->instance(GowaReleaseCatalog::class, $fixture['catalog']);
+    app()->instance(GowaRuntimeProbe::class, $fixture['probe']);
+    app()->instance(GowaReleasePreparationRunner::class, $fixture['runner']);
+    app()->instance(GowaUpdateRunner::class, new class implements GowaUpdateRunner
+    {
+        public function available(): bool
+        {
+            return true;
+        }
+
+        public function dispatch(array $claim): bool
+        {
+            return true;
+        }
+    });
+
+    $user = User::factory()->create(['role' => 'admin', 'email_verified_at' => now()]);
+    $otherUser = User::factory()->create(['role' => 'admin', 'email_verified_at' => now()]);
+    foreach ([$user, $otherUser] as $account) {
+        foreach (['gowa-update.status', 'gowa-update.request'] as $name) {
+            $permission = Permission::firstOrCreate(['name' => $name], [
+                'display_name' => $name,
+                'module' => 'gowa-update',
+                'action' => 'test',
+            ]);
+            $account->permissions()->syncWithoutDetaching([$permission->id => ['granted' => true]]);
+        }
+    }
+
+    $preparation = GowaUpdatePreparation::query()->create([
+        'id' => '00000000-0000-4000-8000-000000000191',
+        'requested_by' => $user->id,
+        'action_uuid' => '00000000-0000-4000-8000-000000000192',
+        'idempotency_key' => $user->id.':00000000-0000-4000-8000-000000000192',
+        'status' => 'ready',
+        'requested_version' => 'v9.5.0',
+        'release_id' => 'gowa-v9-5-0',
+        'digest' => 'sha256:'.str_repeat('b', 64),
+        'catalog_generation' => 'generation-1',
+        'runtime_digest' => 'sha256:'.str_repeat('a', 64),
+        'container_identity' => 'container-v9-3-0',
+        'requested_at' => now(),
+        'prepared_at' => now(),
+        'expires_at' => now()->addMinutes(30),
+    ]);
+
+    $this->actingAs($user)->getJson(route('whatsapp.updates.status'))
+        ->assertOk()
+        ->assertJsonPath('data.can_install', true)
+        ->assertJsonPath('data.latest_preparation.id', $preparation->id);
+    $this->getJson(route('whatsapp.overview'))
+        ->assertOk()
+        ->assertJsonPath('gowa_update.can_install', true)
+        ->assertJsonPath('gowa_update.latest_preparation.ready', true);
+
+    $this->actingAs($otherUser)->getJson(route('whatsapp.overview'))
+        ->assertOk()
+        ->assertJsonPath('gowa_update.can_install', false)
+        ->assertJsonPath('gowa_update.latest_preparation', null);
+
+    $preparation->update(['expires_at' => now()->subMinute()]);
+    $this->actingAs($user)->getJson(route('whatsapp.overview'))
+        ->assertOk()
+        ->assertJsonPath('gowa_update.can_install', false)
+        ->assertJsonPath('gowa_update.latest_preparation.ready', false);
+
+    $preparation->update(['expires_at' => now()->addMinutes(30)]);
+    $fixture['probe']->runtime['container_identity'] = 'replacement-container';
+    $this->getJson(route('whatsapp.overview'))
+        ->assertOk()
+        ->assertJsonPath('gowa_update.can_install', false)
+        ->assertJsonPath('gowa_update.latest_preparation.ready', true);
+});
+
 it('fails closed if the runtime changes while release preparation is in progress', function (): void {
     $fixture = gowaPreparationFixture();
     $user = User::factory()->create();

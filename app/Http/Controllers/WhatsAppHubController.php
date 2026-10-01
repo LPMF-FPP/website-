@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\GowaUpdateOperation;
 use App\Models\InventoryAlertLog;
 use App\Models\InventoryItem;
 use App\Models\InventoryLot;
@@ -98,23 +97,7 @@ class WhatsAppHubController extends Controller
     /** @return array<string, mixed> */
     private function gowaUpdateStatusFor(Request $request): array
     {
-        $data = $this->gowaUpdateService->status();
-        $capabilities = [
-            'can_request' => $request->user()?->hasPermission('gowa-update.request') === true,
-            'can_retry' => $request->user()?->hasPermission('gowa-update.retry') === true,
-            'can_detail' => $request->user()?->hasPermission('gowa-update.detail') === true,
-        ];
-        $data['can_request'] = $capabilities['can_request'];
-        $data['can_detail'] = $capabilities['can_detail'];
-        if (is_array($data['latest_operation'] ?? null)) {
-            $operation = GowaUpdateOperation::query()->find($data['latest_operation']['id'] ?? null);
-            $data['latest_operation'] = $operation === null ? null : $this->gowaUpdateService->operationProjection($operation, $capabilities);
-            $data['can_retry'] = $capabilities['can_retry'] && (bool) ($data['latest_operation']['quiescent'] ?? false);
-        } else {
-            $data['can_retry'] = false;
-        }
-
-        return $data;
+        return $this->gowaUpdateService->statusForUser($request->user());
     }
 
     private function getRecentActivity(): Collection

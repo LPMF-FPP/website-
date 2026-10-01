@@ -13,7 +13,9 @@ use App\Jobs\DispatchGowaUpdateJob;
 use App\Models\GowaUpdateAttestation;
 use App\Models\GowaUpdateEvent;
 use App\Models\GowaUpdateOperation;
+use App\Models\GowaUpdatePreparation;
 use App\Models\GowaUpdateScope;
+use App\Models\User;
 use App\Support\ActivityLogger;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -93,6 +95,41 @@ final class GowaUpdateService
             ], $releases),
             'latest_operation' => $latestProjection,
         ];
+    }
+
+    /** @return array<string, mixed> */
+    public function statusForUser(User $user): array
+    {
+        $data = $this->status();
+        $permissions = [
+            'can_request' => $user->hasPermission('gowa-update.request'),
+            'can_retry' => $user->hasPermission('gowa-update.retry'),
+            'can_detail' => $user->hasPermission('gowa-update.detail'),
+        ];
+        if (is_array($data['latest_operation'])) {
+            $operation = GowaUpdateOperation::query()
+                ->where('scope', GowaUpdateOperation::SCOPE)
+                ->find($data['latest_operation']['id']);
+            $data['latest_operation'] = $operation === null ? null : $this->operationProjection($operation, $permissions);
+        }
+        $data['can_request'] = $permissions['can_request'];
+        $data['can_retry'] = $permissions['can_retry'] && (bool) ($data['latest_operation']['can_retry'] ?? false);
+        $data['can_detail'] = $permissions['can_detail'];
+
+        $preparation = GowaUpdatePreparation::query()
+            ->where('requested_by', $user->id)
+            ->latest('created_at')
+            ->first();
+        $data['latest_preparation'] = $preparation?->safeProjection();
+        $runtime = $data['runtime'] ?? [];
+        $preparationMatchesRuntime = ($data['latest_preparation']['ready'] ?? false) === true
+            && ($runtime['digest'] ?? null) === $preparation?->runtime_digest
+            && ($runtime['container_identity'] ?? null) === $preparation?->container_identity;
+        $data['can_install'] = $permissions['can_request']
+            && (bool) $data['available']
+            && $preparationMatchesRuntime;
+
+        return $data;
     }
 
     /** @return array<string, mixed> */
