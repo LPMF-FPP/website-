@@ -60,7 +60,7 @@ envelope="${GOWA_UPDATER_ENVELOPE:-/etc/lpmf/gowa-updater/compose-envelope.json}
 request_root="${GOWA_UPDATER_REQUEST_ROOT:-/var/lib/lpmf/gowa-updater/requests}"
 evidence_root="${GOWA_UPDATER_EVIDENCE_ROOT:-/var/lib/lpmf/gowa-updater/evidence}"
 authority="${GOWA_UPDATER_AUTHORITY_PATH:-/etc/lpmf/gowa-updater/authority.json}"
-lock_path="${GOWA_UPDATER_LOCK_PATH:-/run/lpmf/gowa-updater/update.lock}"
+lock_path="${GOWA_UPDATER_LOCK_PATH:-/var/lib/lpmf/gowa-updater/update.lock}"
 gate="${GOWA_UPDATER_PREFLIGHT_GATE:-/etc/lpmf/gowa-updater/preflight.pass}"
 enabled_marker="${GOWA_UPDATER_ENABLED_MARKER:-/etc/lpmf/gowa-updater/enabled}"
 signing_key="${GOWA_UPDATER_EVIDENCE_SIGNING_KEY:-/etc/lpmf/gowa-updater/evidence.key}"
@@ -168,7 +168,9 @@ psql_bin="${GOWA_UPDATER_PSQL_BIN:-/usr/bin/psql}"
   else
     install -d -m 0770 -- "$operation_evidence"
   fi
-  install -d -m 0700 -- "$phase_dir" "$(dirname "$lock_path")"
+  install -d -m 0700 -- "$phase_dir"
+[[ -d "$(dirname "$lock_path")" && ! -L "$(dirname "$lock_path")" ]] || exit 78
+[[ ! -L "$lock_path" ]] || exit 78
 exec 9>"$lock_path"
 flock -n 9 || exit 75
 consumed_already=false

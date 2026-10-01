@@ -461,8 +461,8 @@ rotate_and_approve() {
   verify_upstream
   verify_runtime_baseline
 
-  install -d -o root -g root -m 0700 /run/lpmf/gowa-updater
-  exec 9>/run/lpmf/gowa-updater/update.lock
+  [[ -d /var/lib/lpmf/gowa-updater && ! -L /var/lib/lpmf/gowa-updater && ! -L /var/lib/lpmf/gowa-updater/update.lock ]] || die 'unsafe updater lock path'
+  exec 9>/var/lib/lpmf/gowa-updater/update.lock
   flock -n 9 || die 'another GOWA maintenance operation is active'
 
   local backup_dir generation key_id current_image catalog_tmp payload_file signature_file envelope_tmp rollback_tmp override_tmp private_tmp public_tmp public_der

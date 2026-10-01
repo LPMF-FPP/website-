@@ -6,6 +6,7 @@ tmp="$(mktemp -d)"
 trap 'rm -rf -- "$tmp"' EXIT
 bin="$tmp/bin"
 mkdir -p "$bin" "$tmp/work" "$tmp/requests/00000000-0000-4000-8000-000000000000" "$tmp/evidence" "$tmp/run"
+chmod 0750 "$tmp/run"
 
 printf '%s\n' '{"contract":"reconcile-first-v1","fully_implemented":true,"production_ready":true,"capability_version":"1"}' > "$tmp/capability.json"
 printf '%s\n' '{"schema_version":1,"signature_valid":true,"generation":"staging-generation-1","revocation_generation":"rev-1","approved_registry":"registry.example.test","approved_repository":"registry.example.test/gowa","platform":"linux/amd64","signature":{"algorithm":"ed25519","key_id":"test-key","value":""},"releases":[{"release_id":"release-a","version":"v1","image":"registry.example.test/gowa@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","digest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","approved":true,"revoked":false,"revocation_generation":"rev-1"}]}' > "$tmp/catalog.json"
@@ -26,12 +27,17 @@ EOF
 cat > "$bin/docker" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
+state="$(dirname "$0")/../target.started"
 if [[ "$*" == *'config --format json'* ]]; then
   printf '%s\n' '{"services":{"whatsapp_go":{"image":"registry.example.test/gowa@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","network_mode":"host","restart":"unless-stopped","volumes":[]}}}'
 elif [[ "$*" == *'ps --format json'* ]]; then
   printf '%s\n' '{"ID":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"}'
 elif [[ "$1" == inspect ]]; then
-   printf '%s\n' '[{"Id":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","Image":"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd","Config":{"Image":"registry.example.test/gowa@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","Labels":{"com.docker.compose.project":"go-whatsapp-web-multidevice","com.docker.compose.service":"whatsapp_go"}},"HostConfig":{"NetworkMode":"host","RestartPolicy":{"Name":"unless-stopped"}},"Mounts":[]}]'
+   digest='cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'
+   [[ ! -f "$state" ]] || digest='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+   printf '%s\n' '[{"Id":"0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef","Image":"sha256:'"$digest"'","Config":{"Image":"registry.example.test/gowa@sha256:'"$digest"'","Labels":{"com.docker.compose.project":"go-whatsapp-web-multidevice","com.docker.compose.service":"whatsapp_go"}},"HostConfig":{"NetworkMode":"host","RestartPolicy":{"Name":"unless-stopped"}},"Mounts":[]}]'
+elif [[ "$*" == *'up --no-deps --wait'* ]]; then
+   touch "$state"
 fi
 EOF
 chmod 0700 "$bin/psql" "$bin/docker"
@@ -49,5 +55,6 @@ test -s "$tmp/evidence/00000000-0000-4000-8000-000000000000/1/1-mutation_prepare
 test -s "$tmp/evidence/00000000-0000-4000-8000-000000000000/phases/mutation_prepared"
 test -s "$tmp/evidence/00000000-0000-4000-8000-000000000000/phases/mutation_observed"
 test -f "$tmp/requests/00000000-0000-4000-8000-000000000000/request.consumed"
+[[ "$(stat -c '%a' "$tmp/run")" == 750 ]]
 
 printf '%s\n' 'runner contract passed'

@@ -120,6 +120,12 @@ trap 'rm -f -- "$envelope_tmp" "$rollback_tmp"' EXIT
 jq --arg override "$override_destination" '.image_override = $override' "$rollback_manifest" > "$rollback_tmp"
 install -o root -g root -m 0640 "$rollback_tmp" "${install_root}/rollback-manifest.json"
 install -o root -g root -m 0600 "$authority" "${install_root}/authority.json"
+lock_path='/var/lib/lpmf/gowa-updater/update.lock'
+[[ -d /var/lib/lpmf/gowa-updater && ! -L /var/lib/lpmf/gowa-updater && ! -L "$lock_path" ]] || exit 78
+if [[ ! -e "$lock_path" ]]; then
+    install -o root -g www-data -m 0640 /dev/null "$lock_path"
+fi
+[[ -f "$lock_path" && "$(stat -c '%U:%G:%a' "$lock_path")" == root:www-data:640 ]] || exit 78
 install -o root -g root -m 0600 "$preflight_gate" "${install_root}/preflight.pass"
 install -o root -g root -m 0640 "$catalog_public_key" "${install_root}/catalog.pub"
 install -o root -g root -m 0640 "$evidence_public_key" "${install_root}/evidence.pub"

@@ -7,6 +7,7 @@ unit_root='/etc/systemd/system'
 sudoers_path='/etc/sudoers.d/lpmf-gowa-updater'
 runtime_root='/var/lib/lpmf/gowa-updater'
 database_name_file="${install_root}/database-name"
+lock_path="${runtime_root}/update.lock"
 
 die() {
     printf 'ERROR: %s\n' "$1" >&2
@@ -21,9 +22,9 @@ done
 
 source_root="${app_root}/ops/gowa-updater"
 declare -A expected_hashes=(
-    [lpmf-gowa-runner]='835ee9c4b504e845f6ea1f2d7c138ed2dd7931cb30a8325dec14a27b7d2f55f8'
+    [lpmf-gowa-runner]='607c019707d93cc547649c1b7913e5bc08f155abbc1fc025acc143d12f1670fb'
     [lpmf-gowa-submit]='e20b8761fc419320108e5b7a513991bdd78cd5fe2cd1e48e602a7c0722d2a434'
-    [lpmf-gowa-release-maintenance]='ee096355d02d3268bec94a4832ae5e78be27cc1cac2e5bbddf5d015d160894f4'
+    [lpmf-gowa-release-maintenance]='e4a52dabcca7bcad04ff0f74abac4cf72e990f0503e4e25650ccad932617444b'
     [lpmf-gowa-runtime-probe]='f2dc578290253bd9aeb82073a864cbf84c164402d50c6cd5d94c1554e2569a7c'
     [lpmf-gowa-maintenance.service]='c6cff90833234b0fee29ed8bae420a3018e7b8ea6506a60da2e968b04d3c4363'
     [lpmf-gowa-update@.service]='927af907044599f712f0fdc7c9bca225035bed922a5af77bb6f6bbba94484721'
@@ -70,6 +71,7 @@ upgrade_paths=(
     "${install_root}/capability.json"
     "${install_root}/preparation-capability.json"
     "$database_name_file"
+    "$lock_path"
 )
 changes_applied=0
 
@@ -102,6 +104,12 @@ for artifact in "${upgrade_paths[@]}"; do
 done
 
 changes_applied=1
+
+[[ -d "$runtime_root" && ! -L "$runtime_root" && ! -L "$lock_path" ]] || die 'unsafe updater lock path'
+if [[ ! -e "$lock_path" ]]; then
+    install -o root -g www-data -m 0640 /dev/null "$lock_path"
+fi
+[[ -f "$lock_path" && "$(stat -c '%U:%G:%a' "$lock_path")" == root:www-data:640 ]] || die 'updater lock ownership or mode is invalid'
 
 chown root:root "$database_name_file"
 chmod 0600 "$database_name_file"

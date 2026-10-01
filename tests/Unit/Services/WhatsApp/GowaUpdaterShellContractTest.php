@@ -15,6 +15,15 @@ it('reports the runner contract while refusing execution without installed gates
     expect($status)->toBe(78);
 });
 
+it('runs the signed update contract without chmod on the shared lock directory', function (): void {
+    $output = [];
+    $status = 0;
+    exec('bash '.escapeshellarg(getcwd().'/ops/gowa-updater/tests/runner-contract.bash').' 2>&1', $output, $status);
+
+    expect($status)->toBe(0)
+        ->and(implode("\n", $output))->toContain('runner contract passed');
+});
+
 it('keeps example installation disabled and rejects placeholder catalog data', function (): void {
     $installer = getcwd().'/ops/gowa-updater/install';
     $status = 0;
