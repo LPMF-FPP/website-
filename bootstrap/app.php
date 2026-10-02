@@ -1,11 +1,12 @@
 <?php
 
+use App\Console\Commands\AutoCheckoutGuestVisits;
 use App\Console\Commands\GoogleDriveHealthCommand;
 use App\Console\Commands\GoogleDriveSmokeCommand;
-use App\Console\Commands\AutoCheckoutGuestVisits;
 use App\Console\Commands\PurgeOldFiles;
 use App\Console\Commands\QmhRefreshActionItemOverdue;
 use App\Console\Commands\ReconcileGowaUpdates;
+use App\Console\Commands\ReconcileIkuPeriod;
 use App\Console\Commands\SyncGoogleDriveDocumentsCommand;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -62,6 +63,7 @@ return Application::configure(basePath: dirname(__DIR__))
         QmhRefreshActionItemOverdue::class,
         SyncGoogleDriveDocumentsCommand::class,
         ReconcileGowaUpdates::class,
+        ReconcileIkuPeriod::class,
     ])
     ->withSchedule(function (): void {
         Schedule::command('lims:purge-old-files')->dailyAt('02:00');

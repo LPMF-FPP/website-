@@ -252,8 +252,12 @@ class IkuService
                 $query->whereBetween('completed_at', [$start, $end])
                     ->orWhere(function ($q) use ($start, $end) {
                         $q->whereNull('completed_at')
-                            ->whereBetween('updated_at', [$start, $end])
-                            ->whereIn('status', ['completed', 'ready_for_delivery', 'delivered']);
+                            ->whereBetween('ready_for_delivery_at', [$start, $end]);
+                    })
+                    ->orWhere(function ($q) use ($start, $end) {
+                        $q->whereNull('completed_at')
+                            ->whereNull('ready_for_delivery_at')
+                            ->whereBetween('updated_at', [$start, $end]);
                     });
             })
             ->count();

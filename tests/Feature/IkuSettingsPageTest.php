@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\SystemSetting;
+use App\Models\TestRequest;
 use App\Models\User;
 use App\Services\IkuService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -396,4 +397,38 @@ test('iku quarterly target divides annual target by 4', function () {
     // The report period, not the dashboard setting, selects the quarterly target.
     expect($result['raw_counts']['D'])->toBe(50);
     expect($result['weights'])->toBe(IkuService::DEFAULT_WEIGHTS);
+});
+
+test('request work count prefers event timestamps and falls back only when both events are absent', function () {
+    TestRequest::factory()->create([
+        'status' => 'ready_for_delivery',
+        'created_at' => '2026-07-10 08:00:00',
+        'submitted_at' => '2026-07-10 08:00:00',
+        'completed_at' => null,
+        'ready_for_delivery_at' => '2026-08-10 08:00:00',
+        'updated_at' => '2026-10-01 08:00:00',
+    ]);
+    TestRequest::factory()->create([
+        'status' => 'completed',
+        'created_at' => '2026-07-12 08:00:00',
+        'submitted_at' => '2026-07-12 08:00:00',
+        'completed_at' => null,
+        'ready_for_delivery_at' => null,
+        'updated_at' => '2026-08-12 08:00:00',
+    ]);
+    TestRequest::factory()->create([
+        'status' => 'ready_for_delivery',
+        'created_at' => '2026-06-10 08:00:00',
+        'submitted_at' => '2026-06-10 08:00:00',
+        'completed_at' => null,
+        'ready_for_delivery_at' => '2026-06-20 08:00:00',
+        'updated_at' => '2026-08-15 08:00:00',
+    ]);
+
+    $result = app(IkuService::class)->computeForPeriod(
+        \Carbon\Carbon::parse('2026-07-01'),
+        \Carbon\Carbon::parse('2026-09-30')
+    );
+
+    expect($result['raw_counts']['A'])->toBe(2);
 });

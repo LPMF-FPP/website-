@@ -434,6 +434,9 @@ class ConsolidatedReportControllerTest extends TestCase
         $html = view('pdf.consolidated-report', ['report' => $report])->render();
 
         $this->assertArrayHasKey('dashboard_appendix', $report->report_data);
+        $this->assertSame(2, $report->report_data['metadata']['snapshot_version']);
+        $this->assertSame(64, strlen($report->report_data['metadata']['calculation_fingerprint']));
+        $this->assertStringContainsString("reports/consolidated/{$report->id}/", $report->pdf_path);
         $this->assertStringContainsString('Lampiran Statistik Dashboard', $html);
         $this->assertNotNull($capturedReport);
         $this->assertArrayHasKey('dashboard_appendix', $capturedReport->report_data);
