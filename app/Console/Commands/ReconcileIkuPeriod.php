@@ -126,9 +126,19 @@ class ReconcileIkuPeriod extends Command
             'testing_completed_at' => Sample::whereIn('sample_status', [
                 'ready_for_delivery', 'interpretation_done', 'tested', 'completed',
             ])->whereBetween('testing_completed_at', [$start, $end])->count(),
-            'updated_at_fallback' => Sample::whereIn('sample_status', [
+            'interpretation_process_completed_at' => Sample::whereIn('sample_status', [
                 'ready_for_delivery', 'interpretation_done', 'tested', 'completed',
-            ])->whereNull('testing_completed_at')->whereBetween('updated_at', [$start, $end])->count(),
+            ])->whereNull('testing_completed_at')->whereHas('testProcesses', function ($query) use ($start, $end): void {
+                $query->where('stage', 'interpretation')->whereBetween('completed_at', [$start, $end]);
+            })->count(),
+            'updated_at_legacy_fallback' => Sample::whereIn('sample_status', [
+                'ready_for_delivery', 'interpretation_done', 'tested', 'completed',
+            ])->whereNull('testing_completed_at')
+                ->whereDoesntHave('testProcesses', function ($query): void {
+                    $query->where('stage', 'interpretation')->whereNotNull('completed_at');
+                })
+                ->whereBetween('updated_at', [$start, $end])
+                ->count(),
         ];
 
         $lhuByType = Document::whereIn('document_type', ['laporan_hasil_uji', 'lhu'])

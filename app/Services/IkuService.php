@@ -284,8 +284,17 @@ class IkuService
         ])
             ->where(function ($query) use ($start, $end) {
                 $query->whereBetween('testing_completed_at', [$start, $end])
+                    ->orWhereHas('testProcesses', function ($processQuery) use ($start, $end): void {
+                        $processQuery->where('stage', 'interpretation')
+                            ->whereNull('samples.testing_completed_at')
+                            ->whereBetween('completed_at', [$start, $end]);
+                    })
                     ->orWhere(function ($q) use ($start, $end) {
                         $q->whereNull('testing_completed_at')
+                            ->whereDoesntHave('testProcesses', function ($processQuery): void {
+                                $processQuery->where('stage', 'interpretation')
+                                    ->whereNotNull('completed_at');
+                            })
                             ->whereBetween('updated_at', [$start, $end]);
                     });
             })

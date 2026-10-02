@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Models\Sample;
+use App\Models\SampleTestProcess;
 use App\Models\SystemSetting;
 use App\Models\TestRequest;
 use App\Models\User;
@@ -431,4 +433,49 @@ test('request work count prefers event timestamps and falls back only when both 
     );
 
     expect($result['raw_counts']['A'])->toBe(2);
+});
+
+test('sample work count prefers interpretation events and uses updated time only for legacy records', function () {
+    $eventRequest = TestRequest::factory()->create();
+    $eventSample = Sample::factory()->create([
+        'test_request_id' => $eventRequest->id,
+        'sample_status' => 'ready_for_delivery',
+        'testing_completed_at' => null,
+        'updated_at' => '2026-10-01 08:00:00',
+    ]);
+    SampleTestProcess::query()->create([
+        'sample_id' => $eventSample->id,
+        'stage' => 'interpretation',
+        'started_at' => '2026-08-19 08:00:00',
+        'completed_at' => '2026-08-20 08:00:00',
+    ]);
+
+    $legacyRequest = TestRequest::factory()->create();
+    Sample::factory()->create([
+        'test_request_id' => $legacyRequest->id,
+        'sample_status' => 'tested',
+        'testing_completed_at' => null,
+        'updated_at' => '2026-08-21 08:00:00',
+    ]);
+
+    $outOfPeriodRequest = TestRequest::factory()->create();
+    $outOfPeriodSample = Sample::factory()->create([
+        'test_request_id' => $outOfPeriodRequest->id,
+        'sample_status' => 'tested',
+        'testing_completed_at' => null,
+        'updated_at' => '2026-08-22 08:00:00',
+    ]);
+    SampleTestProcess::query()->create([
+        'sample_id' => $outOfPeriodSample->id,
+        'stage' => 'interpretation',
+        'started_at' => '2026-06-19 08:00:00',
+        'completed_at' => '2026-06-20 08:00:00',
+    ]);
+
+    $result = app(IkuService::class)->computeForPeriod(
+        \Carbon\Carbon::parse('2026-07-01'),
+        \Carbon\Carbon::parse('2026-09-30')
+    );
+
+    expect($result['raw_counts']['C'])->toBe(2);
 });
