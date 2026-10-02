@@ -52,10 +52,10 @@
         </div>
 
         {{-- Main Content: Sidebar + Content Area --}}
-        <div class="flex gap-6" x-show="!client.state.pageLoading && !client.state.loadError" x-cloak>
+        <div class="flex flex-col gap-6 md:flex-row" x-show="!client.state.pageLoading && !client.state.loadError" x-cloak>
             
             {{-- Sidebar Navigation --}}
-            <div class="w-80 flex-shrink-0">
+            <div class="w-full flex-shrink-0 md:w-80">
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                     <h3 class="text-sm font-semibold text-gray-700 mb-3 px-3">Bagian</h3>
                     <nav class="space-y-2" role="tablist" aria-label="Bagian Pengaturan">

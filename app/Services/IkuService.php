@@ -88,13 +88,15 @@ class IkuService
      *     iku_value: float,
      *     iku_category: string,
      *     components: array{R: float, P: float, L: float, S: float},
+     *     actual_ratios: array{R: float|null, P: float|null, L: float|null, S: float|null},
      *     indexes: array{registration: float, lab_exam: float, report: float, survey: float},
      *     raw_counts: array{A: int, B: int, C: int, D: int, E: int, F: int},
      *     weights: array{registration: int, lab_exam: int, report: int, survey: int},
+     *     target_configured: bool,
      *     period: array{start: string, end: string}
      * }
      */
-    public function computeForPeriod(Carbon $start, Carbon $end): array
+    public function computeForPeriod(Carbon $start, Carbon $end, ?string $periodMode = null): array
     {
         $config = $this->getConfig();
         $weights = $config['weights'];
@@ -106,7 +108,7 @@ class IkuService
         $C = $this->getCount($sources['C'], $start, $end);
         $D = $this->getTargetSamples($start->year, $config['target_samples_by_year']);
 
-        if ($config['period_mode'] === 'quarterly') {
+        if ($D > 0 && ($periodMode ?? $config['period_mode']) === 'quarterly') {
             $D = (int) max(1, floor($D / 4));
         }
 
@@ -118,6 +120,12 @@ class IkuService
         $P = $this->safeRatio($C, $D);
         $L = $this->safeRatio($E, $A);
         $S = $this->safeRatio($F, $A);
+        $actualRatios = [
+            'R' => $this->actualRatio($A, $B),
+            'P' => $this->actualRatio($C, $D),
+            'L' => $this->actualRatio($E, $A),
+            'S' => $this->actualRatio($F, $A),
+        ];
 
         // Calculate component indexes: Index_i = (Nilai_i * Bobot_i) / 20
         // Nilai_i is the ratio (0-1) scaled to 0-5 for calculation
@@ -138,6 +146,10 @@ class IkuService
                 'L' => round($L, 4),
                 'S' => round($S, 4),
             ],
+            'actual_ratios' => array_map(
+                static fn (?float $ratio): ?float => $ratio === null ? null : round($ratio, 4),
+                $actualRatios
+            ),
             'indexes' => [
                 'registration' => round($indexRegistration, 4),
                 'lab_exam' => round($indexLabExam, 4),
@@ -153,6 +165,7 @@ class IkuService
                 'F' => $F,
             ],
             'weights' => $weights,
+            'target_configured' => $D > 0,
             'period' => [
                 'start' => $start->toDateString(),
                 'end' => $end->toDateString(),
@@ -194,7 +207,7 @@ class IkuService
         $start = $now->copy()->startOfQuarter();
         $end = $now->copy()->endOfQuarter();
 
-        $result = $this->computeForPeriod($start, $end);
+        $result = $this->computeForPeriod($start, $end, 'quarterly');
         $result['quarter'] = $quarter;
         $result['quarter_label'] = "Triwulan {$quarter} ".$now->year;
 
@@ -207,7 +220,7 @@ class IkuService
     private function getCount(string $source, Carbon $start, Carbon $end): int
     {
         return match ($source) {
-            'requests_submitted_count' => $this->getRequestsSubmittedCount($start, $end),
+            'requests_submitted_count' => $this->countRequestsSubmittedForPeriod($start, $end),
             'requests_completed_count' => $this->getRequestsCompletedCount($start, $end),
             'lhu_issued_count' => $this->getLhuIssuedCount($start, $end),
             'samples_completed_count' => $this->getSamplesCompletedCount($start, $end),
@@ -215,13 +228,20 @@ class IkuService
         };
     }
 
-    private function getRequestsSubmittedCount(Carbon $start, Carbon $end): int
+    public function countRequestsSubmittedForPeriod(Carbon $start, Carbon $end): int
     {
         return TestRequest::whereBetween('submitted_at', [$start, $end])
             ->orWhere(function ($query) use ($start, $end) {
                 $query->whereNull('submitted_at')
                     ->whereBetween('created_at', [$start, $end]);
             })
+            ->count();
+    }
+
+    public function countRequestsHandedOverForPeriod(Carbon $start, Carbon $end): int
+    {
+        return TestRequest::whereIn('status', ['completed', 'delivered'])
+            ->whereBetween('completed_at', [$start, $end])
             ->count();
     }
 
@@ -268,6 +288,16 @@ class IkuService
             ->count();
     }
 
+    public function countSamplesCompletedForPeriod(Carbon $start, Carbon $end): int
+    {
+        return $this->getSamplesCompletedCount($start, $end);
+    }
+
+    public function getAnnualSampleTarget(int $year): int
+    {
+        return $this->getTargetSamples($year, $this->getConfig()['target_samples_by_year']);
+    }
+
     private function getSurveyCount(Carbon $start, Carbon $end): int
     {
         return CustomerSurvey::whereBetween('submitted_at', [$start, $end])->count();
@@ -283,7 +313,14 @@ class IkuService
             $targetsByYear = self::DEFAULT_TARGET_SAMPLES_BY_YEAR;
         }
 
-        return (int) ($targetsByYear[(string) $year] ?? $targetsByYear[array_key_last($targetsByYear)] ?? 500);
+        if (array_is_list($targetsByYear)) {
+            $targetsByYear = collect($targetsByYear)
+                ->filter(fn ($target): bool => is_array($target) && isset($target['year'], $target['target']))
+                ->mapWithKeys(fn (array $target): array => [(string) $target['year'] => (int) $target['target']])
+                ->all();
+        }
+
+        return (int) ($targetsByYear[(string) $year] ?? 0);
     }
 
     /**
@@ -299,6 +336,11 @@ class IkuService
 
         // Clamp to [0, 1] to handle data mismatches
         return max(0.0, min(1.0, $ratio));
+    }
+
+    private function actualRatio(int $numerator, int $denominator): ?float
+    {
+        return $denominator === 0 ? null : $numerator / $denominator;
     }
 
     /**

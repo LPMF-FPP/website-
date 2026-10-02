@@ -77,9 +77,9 @@
                                     </svg>
                                 </div>
                                 <div class="ml-4">
-                                    <p class="text-sm font-medium text-gray-600">Sampel Tahun Ini</p>
-                                    <p class="text-2xl font-semibold text-gray-900">{{ $samples_this_year }}</p>
-                                    <p class="text-xs text-gray-500">Target IKU: 200/tahun</p>
+                                    <p class="text-sm font-medium text-gray-600">Sampel Selesai Diuji Tahun Ini</p>
+                                    <p class="text-2xl font-semibold text-gray-900">{{ $ikuSamplesThisYear }}</p>
+                                    <p class="text-xs text-gray-500">Target IKU: {{ $ikuAnnualTarget > 0 ? $ikuAnnualTarget.'/tahun' : 'belum ditetapkan' }}</p>
                                 </div>
                             </div>
                         </div>
@@ -128,6 +128,7 @@
                                 <p data-chart-error="userOrigin" class="mt-4 text-sm text-red-600 text-center hidden">
                                     Data tidak dapat dimuat. Silakan coba lagi.
                                 </p>
+                                <p data-chart-empty="userOrigin" role="status" aria-live="polite" class="mt-4 text-sm text-gray-600 text-center hidden">Belum ada data asal pengguna untuk periode ini.</p>
                             </div>
                         </div>
                     </div>
@@ -147,6 +148,7 @@
                                 <p data-chart-error="activeSubstances" class="mt-4 text-sm text-red-600 text-center hidden">
                                     Data tidak dapat dimuat. Silakan coba lagi.
                                 </p>
+                                <p data-chart-empty="activeSubstances" role="status" aria-live="polite" class="mt-4 text-sm text-gray-600 text-center hidden">Belum ada data zat aktif untuk periode ini.</p>
                             </div>
                             <div class="mt-4 text-center text-sm text-gray-600">
                                 <p id="topActiveSubstancesText">Memuat data zat aktif...</p>
@@ -171,6 +173,7 @@
                                 <p data-chart-error="suspectGender" class="mt-4 text-sm text-red-600 text-center hidden">
                                     Data tidak dapat dimuat. Silakan coba lagi.
                                 </p>
+                                <p data-chart-empty="suspectGender" role="status" aria-live="polite" class="mt-4 text-sm text-gray-600 text-center hidden">Belum ada data gender tersangka untuk periode ini.</p>
                             </div>
                         </div>
                     </div>
@@ -190,6 +193,7 @@
                                 <p data-chart-error="suspectAge" class="mt-4 text-sm text-red-600 text-center hidden">
                                     Data tidak dapat dimuat. Silakan coba lagi.
                                 </p>
+                                <p data-chart-empty="suspectAge" role="status" aria-live="polite" class="mt-4 text-sm text-gray-600 text-center hidden">Belum ada data umur tersangka untuk periode ini.</p>
                             </div>
                         </div>
                     </div>
@@ -217,7 +221,7 @@
                     <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg h-full">
                         <div class="p-6 flex flex-col h-full">
                             <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-lg font-semibold text-gray-900">📊 Sampel vs Target IKU</h3>
+                                <h3 class="text-lg font-semibold text-gray-900">Sampel Selesai Diuji vs Target IKU</h3>
                                 <button onclick="exportChart('monthly_samples')"
                                         class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
                                     📥 Export
@@ -233,10 +237,10 @@
                                 <h4 class="font-medium text-blue-900 mb-2">📋 Informasi IKU</h4>
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-blue-800 text-sm">
                                     <div>
-                                        <strong>Target Tahunan:</strong> 200 sampel
+                                        <strong>Target Tahunan:</strong> {{ $ikuAnnualTarget > 0 ? $ikuAnnualTarget.' sampel' : 'belum ditetapkan' }}
                                     </div>
                                     <div>
-                                        <strong>Rata-rata:</strong> 16.7 sampel/bulan
+                                        <strong>Rata-rata:</strong> {{ $ikuAnnualTarget > 0 ? number_format($ikuAnnualTarget / 12, 1, ',', '.').' sampel/bulan' : 'belum ditetapkan' }}
                                     </div>
                                     <div id="samplesProgress">
                                         <strong>Progress:</strong> <span id="currentProgress">Loading...</span>
@@ -266,7 +270,7 @@
                                     <tr>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Permintaan Pengujian</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $requests_this_month }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ \App\Models\TestRequest::whereYear('created_at', now()->year)->count() }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $requests_this_year }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">32/bulan</td>
                                         <td class="px-6 py-4 whitespace-nowrap">
                                             <span class="px-2 py-1 text-xs font-semibold rounded-full bg-{{ $requests_this_month >= 32 ? 'green' : 'yellow' }}-100 text-{{ $requests_this_month >= 32 ? 'green' : 'yellow' }}-800">
@@ -275,14 +279,12 @@
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Jumlah Sampel</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ \App\Models\Sample::whereYear('created_at', now()->year)->whereMonth('created_at', now()->month)->count() }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $samples_this_year }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">200/tahun (IKU)</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Sampel Selesai Diuji</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $ikuSamplesThisMonth }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $ikuSamplesThisYear }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $ikuAnnualTarget > 0 ? $ikuAnnualTarget.'/tahun (IKU)' : 'Belum ditetapkan' }}</td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-{{ $samples_this_year >= 160 ? 'green' : 'yellow' }}-100 text-{{ $samples_this_year >= 160 ? 'green' : 'yellow' }}-800">
-                                                {{ $samples_this_year >= 160 ? 'Mendekati Target' : 'Perlu Peningkatan' }}
-                                            </span>
+                                            {{ $ikuSampleTargetStatus }}
                                         </td>
                                     </tr>
                                 </tbody>
@@ -320,6 +322,7 @@
             if (element) {
                 element.classList.add('hidden');
             }
+            document.querySelector(`[data-chart-empty="${chartKey}"]`)?.classList.add('hidden');
         }
 
         function showChartError(chartKey, message) {
@@ -327,6 +330,16 @@
             if (element) {
                 element.textContent = message;
                 element.classList.remove('hidden');
+            }
+            document.querySelector(`[data-chart-empty="${chartKey}"]`)?.classList.add('hidden');
+        }
+
+        function showChartEmpty(chartKey) {
+            document.querySelector(`[data-chart-error="${chartKey}"]`)?.classList.add('hidden');
+            document.querySelector(`[data-chart-empty="${chartKey}"]`)?.classList.remove('hidden');
+            if (charts[chartKey]) {
+                charts[chartKey].destroy();
+                delete charts[chartKey];
             }
         }
 
@@ -368,7 +381,8 @@
                 .then(data => {
                     // Check if data is empty
                     if (!data.labels || data.labels.length === 0) {
-                        throw new Error('No data available');
+                        showChartEmpty('userOrigin');
+                        return;
                     }
 
                     const ctx = document.getElementById('userOriginChart').getContext('2d');
@@ -450,7 +464,9 @@
                 .then(data => {
                     // Check if data is empty
                     if (!data.labels || data.labels.length === 0) {
-                        throw new Error('No data available');
+                        updateActiveSubstancesText(data);
+                        showChartEmpty('activeSubstances');
+                        return;
                     }
 
                     // Update the text below chart based on fetched data
@@ -564,7 +580,8 @@
                 .then(data => {
                     // Check if data is empty
                     if (!data.labels || data.labels.length === 0) {
-                        throw new Error('No data available');
+                        showChartEmpty('suspectGender');
+                        return;
                     }
 
                     const ctx = document.getElementById('suspectGenderChart').getContext('2d');
@@ -647,7 +664,8 @@
                     // Check if data is empty (all zeros)
                     const hasData = data.data && data.data.some(v => v > 0);
                     if (!data.labels || data.labels.length === 0 || !hasData) {
-                        throw new Error('No data available');
+                        showChartEmpty('suspectAge');
+                        return;
                     }
 
                     const ctx = document.getElementById('suspectAgeChart').getContext('2d');
@@ -750,7 +768,8 @@
                 .then(data => {
                     // Check if data has valid structure
                     if (!data.labels || data.labels.length === 0) {
-                        throw new Error('No data available');
+                        showChartEmpty('suspectAge');
+                        return;
                     }
 
                     const ctx = document.getElementById('monthlyRequestsChart').getContext('2d');
@@ -844,13 +863,15 @@
                         charts.monthlySamples.destroy();
                     }
 
-                    const totalActual = data.datasets[0].data.reduce((a, b) => a + b, 0);
-                    const yearlyTarget = data.targetInfo ? data.targetInfo.yearly_target : 200;
-                    const progressPercentage = Math.round((totalActual / yearlyTarget) * 100);
+                    const totalActual = data.targetInfo?.current_total ?? 0;
+                    const yearlyTarget = data.targetInfo?.yearly_target ?? 0;
+                    const progressPercentage = yearlyTarget > 0 ? Math.round((totalActual / yearlyTarget) * 100) : null;
 
                     const progressElement = document.getElementById('currentProgress');
                     if (progressElement) {
-                        progressElement.textContent = `${totalActual}/${yearlyTarget} sampel (${progressPercentage}%)`;
+                        progressElement.textContent = yearlyTarget > 0
+                            ? `${totalActual}/${yearlyTarget} sampel (${progressPercentage}%)`
+                            : 'Target tahun ini belum ditetapkan.';
                     }
 
                     charts.monthlySamples = new Chart(ctx, {
@@ -860,10 +881,9 @@
                             scales: {
                                 y: {
                                     beginAtZero: true,
-                                    max: 30,
                                     title: {
                                         display: true,
-                                        text: 'Jumlah Sampel per Bulan',
+                                        text: 'Sampel Selesai Diuji per Bulan',
                                         font: {
                                             weight: 'bold'
                                         }
@@ -895,11 +915,11 @@
                                             label += context.parsed.y + ' sampel';
 
                                             if (context.datasetIndex === 0) {
-                                                const monthlyTarget = data.targetInfo ? data.targetInfo.monthly_average : 16.7;
+                                                const monthlyTarget = data.datasets[1].data[context.dataIndex] ?? 0;
                                                 const difference = context.parsed.y - monthlyTarget;
-                                                const status = difference >= 0 ?
-                                                    `(+${difference.toFixed(1)} dari rata-rata)` :
-                                                    `(${difference.toFixed(1)} dari rata-rata)`;
+                                                const status = monthlyTarget > 0
+                                                    ? (difference >= 0 ? `(+${difference.toFixed(1)} dari target)` : `(${difference.toFixed(1)} dari target)`)
+                                                    : '(target belum ditetapkan)';
                                                 label += ' ' + status;
                                             }
 
@@ -907,7 +927,9 @@
                                         },
                                         afterBody: function(context) {
                                             if (context[0].datasetIndex === 0) {
-                                                return `Total tahun ini: ${totalActual} sampel\nTarget IKU: ${yearlyTarget} sampel/tahun\nProgress: ${progressPercentage}%`;
+                                                const progress = progressPercentage === null ? 'Target belum ditetapkan' : `Progress: ${progressPercentage}%`;
+                                                const target = yearlyTarget > 0 ? `${yearlyTarget} sampel/tahun` : 'belum ditetapkan';
+                                                return `Total sampel selesai diuji tahun ini: ${totalActual}\nTarget IKU: ${target}\n${progress}`;
                                             }
                                             return '';
                                         }

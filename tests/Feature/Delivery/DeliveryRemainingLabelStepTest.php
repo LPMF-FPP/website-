@@ -7,6 +7,7 @@ use App\Models\Document;
 use App\Models\EvidenceUnit;
 use App\Models\RemainingUnit;
 use App\Models\Sample;
+use App\Models\SystemSetting;
 use App\Models\TestRequest;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
@@ -331,4 +332,31 @@ it('allows delivery completion without remaining labels when survey is complete 
         'action' => 'DELIVERY_COLLECTION_CONFIRMED',
         'subject_id' => $delivery->id,
     ]);
+});
+
+it('allows delivery completion without a survey when survey collection is disabled', function (): void {
+    SystemSetting::updateOrCreate(
+        ['key' => 'iku.survey_required_for_delivery'],
+        ['value' => false]
+    );
+    settings_forget_cache();
+
+    $request = TestRequest::factory()->create(['status' => 'ready_for_delivery']);
+
+    Sample::factory()->create([
+        'test_request_id' => $request->id,
+        'status' => 'ready_for_delivery',
+        'sample_code' => 'SAMP-SURVEY-OPSIONAL',
+        'package_quantity' => 0,
+        'quantity' => 0,
+    ]);
+
+    createHandoverDocument($request);
+
+    $this->actingAs($this->user)
+        ->post(route('delivery.complete', $request))
+        ->assertRedirect()
+        ->assertSessionHas('success', 'Penyerahan berhasil diselesaikan. Status permintaan telah diperbarui.');
+
+    expect($request->fresh()->status)->toBe('completed');
 });

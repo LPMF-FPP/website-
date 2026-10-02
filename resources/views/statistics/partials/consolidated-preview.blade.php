@@ -4,17 +4,19 @@
         <div>
             <h4 class="text-lg font-medium text-gray-900" x-text="previewData.period_label"></h4>
             <p class="text-sm text-gray-500">Preview Laporan sebelum digenerate menjadi PDF.</p>
+            <p x-show="previewData.is_provisional" class="mt-1 text-sm font-medium text-amber-800">Pratinjau sementara. Laporan resmi baru dapat diterbitkan setelah triwulan berakhir.</p>
+            <p x-show="errorMessage" role="alert" class="mt-1 text-sm text-red-700" x-text="errorMessage"></p>
         </div>
         <div class="space-x-3">
             <button @click="step = 'form'" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
                 ← Kembali Edit
             </button>
-            <button @click="generateReport()" :disabled="loading" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50">
+            <button @click="generateReport()" :disabled="loading || previewData.is_provisional" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50">
                 <svg x-show="loading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <span x-text="loading ? 'Generating...' : '✅ Finalisasi & Generate PDF'"></span>
+                <span x-text="loading ? 'Memproses…' : 'Finalisasi & Terbitkan PDF'"></span>
             </button>
         </div>
     </div>
@@ -78,7 +80,7 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td class="border border-black p-2">Permintaan Masuk</td>
+                            <td class="border border-black p-2">Permintaan Diajukan</td>
                             <td class="border border-black p-2 text-center font-bold" x-text="previewData.statistics.total_requests_received"></td>
                             <td class="border border-black p-2 text-center text-gray-600" x-text="previewData.comparison.changes.total_requests_received.previous"></td>
                             <td class="border border-black p-2 text-center" :class="previewData.comparison.changes.total_requests_received.diff >= 0 ? 'text-green-600' : 'text-red-600'">
@@ -88,7 +90,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td class="border border-black p-2">Permintaan Selesai</td>
+                            <td class="border border-black p-2">Permintaan diserahkan</td>
                             <td class="border border-black p-2 text-center font-bold" x-text="previewData.statistics.total_requests_completed"></td>
                             <td class="border border-black p-2 text-center text-gray-600" x-text="previewData.comparison.changes.total_requests_completed.previous"></td>
                             <td class="border border-black p-2 text-center" :class="previewData.comparison.changes.total_requests_completed.diff >= 0 ? 'text-green-600' : 'text-red-600'">
@@ -108,7 +110,7 @@
                             </td>
                         </tr>
                         <tr>
-                            <td class="border border-black p-2">Sampel Diuji</td>
+                            <td class="border border-black p-2">Sampel Selesai Diuji</td>
                             <td class="border border-black p-2 text-center font-bold" x-text="previewData.statistics.total_samples_tested"></td>
                             <td class="border border-black p-2 text-center text-gray-600" x-text="previewData.comparison.changes.total_samples_tested.previous"></td>
                             <td class="border border-black p-2 text-center" :class="previewData.comparison.changes.total_samples_tested.diff >= 0 ? 'text-green-600' : 'text-red-600'">
@@ -118,13 +120,13 @@
                             </td>
                         </tr>
                         <tr>
-                            <td class="border border-black p-2">LHU Terbit</td>
-                            <td class="border border-black p-2 text-center font-bold" x-text="previewData.statistics.total_lhu_issued"></td>
-                            <td class="border border-black p-2 text-center text-gray-600" x-text="previewData.comparison.changes.total_lhu_issued.previous"></td>
-                            <td class="border border-black p-2 text-center" :class="previewData.comparison.changes.total_lhu_issued.diff >= 0 ? 'text-green-600' : 'text-red-600'">
-                                <span x-text="previewData.comparison.changes.total_lhu_issued.diff > 0 ? '+' : ''"></span>
-                                <span x-text="previewData.comparison.changes.total_lhu_issued.diff"></span>
-                                (<span x-text="previewData.comparison.changes.total_lhu_issued.diff_percent"></span>%)
+                            <td class="border border-black p-2">Sampel pada permintaan siap diserahkan</td>
+                            <td class="border border-black p-2 text-center font-bold" x-text="previewData.statistics.total_samples_ready_for_delivery"></td>
+                            <td class="border border-black p-2 text-center text-gray-600" x-text="previewData.comparison.changes.total_samples_ready_for_delivery.previous"></td>
+                            <td class="border border-black p-2 text-center" :class="previewData.comparison.changes.total_samples_ready_for_delivery.diff >= 0 ? 'text-green-600' : 'text-red-600'">
+                                <span x-text="previewData.comparison.changes.total_samples_ready_for_delivery.diff > 0 ? '+' : ''"></span>
+                                <span x-text="previewData.comparison.changes.total_samples_ready_for_delivery.diff"></span>
+                                (<span x-text="previewData.comparison.changes.total_samples_ready_for_delivery.diff_percent"></span>%)
                             </td>
                         </tr>
                     </tbody>
@@ -180,7 +182,7 @@
                     <h3 class="font-bold mb-2 text-sm">III. KECEPATAN PENGERJAAN</h3>
                     <div class="border border-black p-3 text-xs bg-white h-full">
                         <p class="mb-2"><strong>Rata-rata Waktu Pengerjaan:</strong> <span x-text="previewData.processing_time.avg_days"></span> hari</p>
-                        <p class="mb-3"><strong>Total Permintaan Selesai:</strong> <span x-text="previewData.processing_time.total"></span></p>
+                        <p class="mb-3"><strong>Total permintaan sampai siap diserahkan:</strong> <span x-text="previewData.processing_time.total"></span></p>
                         <p class="mb-2 font-bold">Breakdown:</p>
                         <ul class="list-disc pl-5">
                             <template x-for="item in previewData.processing_time.categories">
@@ -295,13 +297,20 @@
                             </div>
                         </div>
                     </div>
+                    <p x-show="previewData.iku.target_configured === false" class="mb-3 border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                        Target sampel untuk tahun ini belum ditetapkan. Nilai komponen pemeriksaan belum dapat dinilai.
+                    </p>
+                    <p class="mb-3 text-xs text-gray-600">Rasio aktual dapat melebihi 100%. Rasio yang digunakan dalam skor dibatasi maksimal 100% sesuai formula IKU.</p>
                     
-                    <table class="w-full border-collapse border border-black text-sm">
+                    <div class="overflow-x-auto">
+                    <table class="w-full min-w-[760px] border-collapse border border-black text-sm">
                         <thead>
                             <tr class="bg-gray-100">
                                 <th class="border border-black p-2 text-left">Komponen</th>
                                 <th class="border border-black p-2 text-center">Bobot</th>
-                                <th class="border border-black p-2 text-center">Nilai Indeks</th>
+                                <th class="border border-black p-2 text-center">Rasio Aktual</th>
+                                <th class="border border-black p-2 text-center">Rasio Skor</th>
+                                <th class="border border-black p-2 text-center">Kontribusi Indeks</th>
                                 <th class="border border-black p-2 text-center">Data Mentah</th>
                             </tr>
                         </thead>
@@ -309,6 +318,8 @@
                             <tr>
                                 <td class="border border-black p-2">Registrasi Permohonan (R)</td>
                                 <td class="border border-black p-2 text-center" x-text="previewData.iku.weights.registration + '%'"></td>
+                                <td class="border border-black p-2 text-center" x-text="previewData.iku.actual_ratios?.R === null || previewData.iku.actual_ratios?.R === undefined ? 'Tidak tersedia' : (previewData.iku.actual_ratios.R * 100).toFixed(1) + '%' "></td>
+                                <td class="border border-black p-2 text-center" x-text="(previewData.iku.components.R * 100).toFixed(1) + '%' "></td>
                                 <td class="border border-black p-2 text-center" x-text="previewData.iku.indexes.registration"></td>
                                 <td class="border border-black p-2 text-center text-xs">
                                     <span x-text="previewData.iku.raw_counts.A"></span>/<span x-text="previewData.iku.raw_counts.B"></span>
@@ -317,22 +328,28 @@
                             <tr>
                                 <td class="border border-black p-2">Pemeriksaan Laboratorium (P)</td>
                                 <td class="border border-black p-2 text-center" x-text="previewData.iku.weights.lab_exam + '%'"></td>
+                                <td class="border border-black p-2 text-center" x-text="previewData.iku.actual_ratios?.P === null || previewData.iku.actual_ratios?.P === undefined ? 'Tidak tersedia' : (previewData.iku.actual_ratios.P * 100).toFixed(1) + '%' "></td>
+                                <td class="border border-black p-2 text-center" x-text="(previewData.iku.components.P * 100).toFixed(1) + '%' "></td>
                                 <td class="border border-black p-2 text-center" x-text="previewData.iku.indexes.lab_exam"></td>
                                 <td class="border border-black p-2 text-center text-xs">
                                     <span x-text="previewData.iku.raw_counts.C"></span>/<span x-text="previewData.iku.raw_counts.D"></span>
                                 </td>
                             </tr>
                             <tr>
-                                <td class="border border-black p-2">Laporan Hasil (L)</td>
+                                <td class="border border-black p-2">Dokumen LHU (L)</td>
                                 <td class="border border-black p-2 text-center" x-text="previewData.iku.weights.report + '%'"></td>
+                                <td class="border border-black p-2 text-center" x-text="previewData.iku.actual_ratios?.L === null || previewData.iku.actual_ratios?.L === undefined ? 'Tidak tersedia' : (previewData.iku.actual_ratios.L * 100).toFixed(1) + '%' "></td>
+                                <td class="border border-black p-2 text-center" x-text="(previewData.iku.components.L * 100).toFixed(1) + '%' "></td>
                                 <td class="border border-black p-2 text-center" x-text="previewData.iku.indexes.report"></td>
                                 <td class="border border-black p-2 text-center text-xs">
                                     <span x-text="previewData.iku.raw_counts.E"></span>/<span x-text="previewData.iku.raw_counts.A"></span>
                                 </td>
                             </tr>
                             <tr>
-                                <td class="border border-black p-2">Survei Kepuasan (S)</td>
+                                <td class="border border-black p-2">Partisipasi Survei (S)</td>
                                 <td class="border border-black p-2 text-center" x-text="previewData.iku.weights.survey + '%'"></td>
+                                <td class="border border-black p-2 text-center" x-text="previewData.iku.actual_ratios?.S === null || previewData.iku.actual_ratios?.S === undefined ? 'Tidak tersedia' : (previewData.iku.actual_ratios.S * 100).toFixed(1) + '%' "></td>
+                                <td class="border border-black p-2 text-center" x-text="(previewData.iku.components.S * 100).toFixed(1) + '%' "></td>
                                 <td class="border border-black p-2 text-center" x-text="previewData.iku.indexes.survey"></td>
                                 <td class="border border-black p-2 text-center text-xs">
                                     <span x-text="previewData.iku.raw_counts.F"></span>/<span x-text="previewData.iku.raw_counts.A"></span>
@@ -340,6 +357,7 @@
                             </tr>
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </template>
 
@@ -384,7 +402,7 @@
 
                 <div class="grid grid-cols-2 gap-3">
                     <template x-for="chart in (previewData.dashboard_appendix.charts || [])" :key="chart.title">
-                    <div class="page-break-inside-avoid rounded-md border border-slate-300 bg-white p-3 shadow-sm" :class="['Permintaan per Bulan', 'Sampel vs Target IKU'].includes(chart.title) ? 'col-span-2' : ''">
+                    <div class="page-break-inside-avoid rounded-md border border-slate-300 bg-white p-3 shadow-sm" :class="['requests_by_month', 'sample_test_completion_vs_target'].includes(chart.key) || ['Permintaan per Bulan', 'Sampel vs Target IKU', 'Sampel Selesai Diuji vs Target IKU'].includes(chart.title) ? 'col-span-2' : ''">
                         <div class="mb-3 flex items-center justify-between gap-2">
                             <h4 class="text-xs font-bold uppercase tracking-wide text-slate-800" x-text="chart.title"></h4>
                             <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-600" x-text="chart.total + ' total'"></span>
@@ -427,7 +445,7 @@
                             </div>
                         </template>
 
-                        <template x-if="chart.title === 'Permintaan per Bulan'">
+                        <template x-if="chart.key === 'requests_by_month' || chart.title === 'Permintaan per Bulan'">
                             <div class="text-[10px]">
                                 <div class="relative w-full rounded border border-slate-200 bg-slate-50 p-2" style="height: 180px;">
                                     <svg viewBox="0 0 356 188" class="absolute inset-0 h-full w-full">
@@ -444,28 +462,29 @@
                                 </div>
                                 <div class="mt-2 flex items-center justify-between gap-2 text-[10px] text-slate-600">
                                     <span><span class="inline-block h-2 w-4 rounded-sm bg-blue-700"></span> Masuk</span>
-                                    <span><span class="inline-block h-2 w-4 rounded-sm bg-emerald-600"></span> Selesai</span>
+                                    <span><span class="inline-block h-2 w-4 rounded-sm bg-emerald-600"></span> Diserahkan</span>
                                     <span class="font-bold" x-text="chart.total + ' permintaan'"></span>
                                 </div>
                             </div>
                         </template>
 
-                        <template x-if="chart.title === 'Sampel vs Target IKU'">
+                        <template x-if="chart.key === 'sample_test_completion_vs_target' || ['Sampel vs Target IKU', 'Sampel Selesai Diuji vs Target IKU'].includes(chart.title)">
                             <div class="text-[10px]">
                                 <div class="relative w-full rounded border border-slate-200 bg-slate-50 p-2" style="height: 180px;">
                                     <svg viewBox="0 0 356 188" class="absolute inset-0 h-full w-full">
                                         <line x1="28" y1="156" x2="328" y2="156" stroke="#cbd5e1" stroke-width="1" />
                                         <line x1="28" y1="96" x2="328" y2="96" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="3 3" />
                                         <polyline :points="linePoints(chart.rows, 'samples', 300, 118, 28, 28, ['samples', 'target'])" fill="none" stroke="#059669" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
-                                        <polyline :points="linePoints(chart.rows, 'target', 300, 118, 28, 28, ['samples', 'target'])" fill="none" stroke="#dc2626" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" />
+                                        <polyline x-show="chart.target?.yearly > 0" :points="linePoints(chart.rows, 'target', 300, 118, 28, 28, ['samples', 'target'])" fill="none" stroke="#dc2626" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 4" />
                                         <g x-html="lineSvgLabels(chart.rows, 'samples', '#059669', 18, 300, 118, 28, 28, ['samples', 'target'])"></g>
-                                        <g x-html="lineSvgEndpointLabel(chart.rows, 'target', '#dc2626', -18, 300, 118, 28, 28, ['samples', 'target'], 'right')"></g>
+                                        <g x-show="chart.target?.yearly > 0" x-html="lineSvgEndpointLabel(chart.rows, 'target', '#dc2626', -18, 300, 118, 28, 28, ['samples', 'target'], 'right')"></g>
                                     </svg>
                                 </div>
                                 <div class="mt-2 flex items-center justify-between gap-2 text-[10px] text-slate-600">
                                     <span><span class="inline-block h-2 w-4 rounded-sm bg-emerald-600"></span> Aktual</span>
-                                    <span><span class="inline-block h-2 w-4 rounded-sm bg-red-600"></span> Target</span>
-                                    <span class="font-bold" x-text="chart.total + '/' + (chart.target?.yearly ?? 200) + ' sampel'"></span>
+                                    <span x-show="chart.target?.yearly > 0"><span class="inline-block h-2 w-4 rounded-sm bg-red-600"></span> Target</span>
+                                    <span x-show="!chart.target?.yearly" class="font-semibold text-amber-800">Target belum ditetapkan</span>
+                                    <span class="font-bold" x-text="'Uji selesai 12 bulan: ' + chart.total + (chart.target?.yearly > 0 ? ' / target ' + chart.target.yearly : '')"></span>
                                 </div>
                             </div>
                         </template>

@@ -827,18 +827,21 @@ class DeliveryController extends Controller
             return back()->withErrors(['error' => 'Semua sampel harus siap diserahkan terlebih dahulu.']);
         }
 
-        $delivery = $request->delivery()->first();
-        $activeSurvey = $this->surveyForActiveHandoverCycle($request, $delivery);
+        $surveyRequired = app(\App\Services\IkuService::class)->getConfig()['survey_required_for_delivery'];
+        if ($surveyRequired) {
+            $delivery = $request->delivery()->first();
+            $activeSurvey = $this->surveyForActiveHandoverCycle($request, $delivery);
 
-        if (! $activeSurvey || ! $activeSurvey->isComplete()) {
-            return back()->with('error', 'Survey kepuasan wajib diisi sebelum penyerahan ditandai selesai.');
+            if (! $activeSurvey || ! $activeSurvey->isComplete()) {
+                return back()->with('error', 'Survei kepuasan wajib diisi sebelum penyerahan ditandai selesai.');
+            }
         }
 
         if ($request->status !== 'ready_for_delivery') {
             return back()->with('error', 'Hanya permintaan siap diserahkan yang dapat diselesaikan.');
         }
 
-        DB::transaction(function () use ($request, $httpRequest): void {
+        DB::transaction(function () use ($request, $httpRequest, $surveyRequired): void {
             $lockedRequest = TestRequest::query()->lockForUpdate()->findOrFail($request->id);
             if ($lockedRequest->status !== 'ready_for_delivery') {
                 throw \Illuminate\Validation\ValidationException::withMessages([
@@ -856,16 +859,18 @@ class DeliveryController extends Controller
             }
 
             $delivery = Delivery::query()->where('request_id', $lockedRequest->id)->lockForUpdate()->first();
-            $cycle = max(1, (int) ($delivery?->handover_cycle ?? 1));
-            $activeSurvey = CustomerSurvey::query()
-                ->where('test_request_id', $lockedRequest->id)
-                ->where('handover_cycle', $cycle)
-                ->lockForUpdate()
-                ->first();
-            if (! $activeSurvey?->isComplete()) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'survey' => 'Survei untuk siklus penyerahan aktif wajib lengkap sebelum hasil diselesaikan.',
-                ]);
+            if ($surveyRequired) {
+                $cycle = max(1, (int) ($delivery?->handover_cycle ?? 1));
+                $activeSurvey = CustomerSurvey::query()
+                    ->where('test_request_id', $lockedRequest->id)
+                    ->where('handover_cycle', $cycle)
+                    ->lockForUpdate()
+                    ->first();
+                if (! $activeSurvey?->isComplete()) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'survey' => 'Survei untuk siklus penyerahan aktif wajib lengkap sebelum hasil diselesaikan.',
+                    ]);
+                }
             }
 
             if (! $delivery) {

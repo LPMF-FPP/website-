@@ -138,7 +138,10 @@
     <!-- Judul -->
     <div class="title">
         <h1>Laporan Gabungan Periodik</h1>
-        <p>Periode: {{ $report->period_label }}</p>
+        <p>Periode: {{ $report->period_label }}@if($report->revision_number > 1) · Revisi {{ $report->revision_number }} dari laporan #{{ $report->revision_of_id }}@endif</p>
+        @if($report->revision_reason)
+            <p>Alasan revisi: {{ $report->revision_reason }}</p>
+        @endif
     </div>
 
     <!-- Narasi Pembuka -->
@@ -164,25 +167,29 @@
                     $changes = $report->comparison_data['changes'] ?? [];
                     
                     $metrics = [
-                        'total_requests_received' => 'Permintaan Masuk',
-                        'total_requests_completed' => 'Permintaan Selesai',
+                        'total_requests_received' => 'Permintaan Diajukan',
+                        'total_requests_completed' => 'Permintaan Diserahkan',
                         'total_samples_received' => 'Sampel Diterima',
                         'total_samples_tested' => 'Sampel yang Telah Diuji',
-                        'total_lhu_issued' => 'LHU Terbit',
+                        'total_samples_ready_for_delivery' => 'Sampel pada permintaan siap diserahkan',
                     ];
                 @endphp
 
                 @foreach($metrics as $key => $label)
+                    @php
+                        $metricChanges = $changes[$key] ?? ($key === 'total_samples_ready_for_delivery' ? ($changes['total_lhu_issued'] ?? null) : null);
+                        $metricValue = $stats[$key] ?? ($key === 'total_samples_ready_for_delivery' ? ($stats['total_lhu_issued'] ?? 0) : 0);
+                    @endphp
                     <tr>
                         <td>{{ $label }}</td>
-                        <td class="text-center font-bold">{{ $stats[$key] ?? 0 }}</td>
-                        <td class="text-center">{{ $changes[$key]['previous'] ?? '-' }}</td>
+                        <td class="text-center font-bold">{{ $metricValue }}</td>
+                        <td class="text-center">{{ $metricChanges['previous'] ?? '-' }}</td>
                         <td class="text-center">
-                            @if(isset($changes[$key]))
-                                @php $diff = $changes[$key]['diff']; @endphp
+                            @if($metricChanges)
+                                @php $diff = $metricChanges['diff']; @endphp
                                 <span class="{{ $diff >= 0 ? 'text-green' : 'text-red' }}">
                                     {{ $diff > 0 ? '+' : '' }}{{ $diff }} 
-                                    ({{ $changes[$key]['diff_percent'] }}%)
+                                    ({{ $metricChanges['diff_percent'] }}%)
                                 </span>
                             @else
                                 -
@@ -262,7 +269,7 @@
                     <div class="section-title">III. Kecepatan Pengerjaan</div>
                     <div class="compact-box">
                         <p><strong>Rata-rata Waktu Pengerjaan:</strong> {{ $report->report_data['processing_time']['avg_days'] }} hari</p>
-                        <p><strong>Total Permintaan Selesai:</strong> {{ $report->report_data['processing_time']['total'] }}</p>
+                        <p><strong>Total permintaan sampai siap diserahkan:</strong> {{ $report->report_data['processing_time']['total'] }}</p>
                         <p class="font-bold">Breakdown:</p>
                         <ul>
                             @foreach($report->report_data['processing_time']['categories'] as $item)
@@ -371,38 +378,61 @@
             </table>
         </div>
 
-        <table class="data-table">
+        @if(($report->report_data['iku']['target_configured'] ?? true) === false)
+            <p style="font-size: 8pt; margin: 0 0 6px;">Target sampel untuk tahun ini belum ditetapkan. Nilai IKU belum lengkap.</p>
+        @endif
+        <p style="font-size: 8pt; margin: 0 0 6px;">Rasio aktual dapat melebihi 100%. Nilai yang dipakai dalam skor dibatasi maksimal 100% sesuai formula IKU.</p>
+        <table class="data-table" style="font-size: 8pt;">
             <thead>
                 <tr>
                     <th>Komponen</th>
                     <th>Bobot</th>
-                    <th>Nilai Indeks</th>
+                    <th>Rasio Aktual</th>
+                    <th>Rasio Skor</th>
+                    <th>Kontribusi Indeks</th>
                     <th>Data Mentah (Realisasi/Target)</th>
                 </tr>
             </thead>
             <tbody>
-                @php $iku = $report->report_data['iku']; @endphp
+                @php
+                    $iku = $report->report_data['iku'];
+                    $actualRatio = static function (string $key, int $numerator, int $denominator) use ($iku): ?float {
+                        if (array_key_exists($key, $iku['actual_ratios'] ?? [])) {
+                            return $iku['actual_ratios'][$key];
+                        }
+
+                        return $denominator > 0 ? $numerator / $denominator : null;
+                    };
+                @endphp
                 <tr>
                     <td>Registrasi Permohonan (R)</td>
                     <td class="text-center">{{ $iku['weights']['registration'] }}%</td>
+                    <td class="text-center">{{ ($ratio = $actualRatio('R', $iku['raw_counts']['A'], $iku['raw_counts']['B'])) !== null ? number_format($ratio * 100, 1, ',', '.') . '%' : 'Tidak tersedia' }}</td>
+                    <td class="text-center">{{ number_format($iku['components']['R'] * 100, 1, ',', '.') }}%</td>
                     <td class="text-center">{{ $iku['indexes']['registration'] }}</td>
                     <td class="text-center">{{ $iku['raw_counts']['A'] }} / {{ $iku['raw_counts']['B'] }}</td>
                 </tr>
                 <tr>
                     <td>Pemeriksaan Laboratorium (P)</td>
                     <td class="text-center">{{ $iku['weights']['lab_exam'] }}%</td>
+                    <td class="text-center">{{ ($ratio = $actualRatio('P', $iku['raw_counts']['C'], $iku['raw_counts']['D'])) !== null ? number_format($ratio * 100, 1, ',', '.') . '%' : 'Tidak tersedia' }}</td>
+                    <td class="text-center">{{ number_format($iku['components']['P'] * 100, 1, ',', '.') }}%</td>
                     <td class="text-center">{{ $iku['indexes']['lab_exam'] }}</td>
                     <td class="text-center">{{ $iku['raw_counts']['C'] }} / {{ $iku['raw_counts']['D'] }}</td>
                 </tr>
                 <tr>
-                    <td>Laporan Hasil (L)</td>
+                    <td>Dokumen LHU (L)</td>
                     <td class="text-center">{{ $iku['weights']['report'] }}%</td>
+                    <td class="text-center">{{ ($ratio = $actualRatio('L', $iku['raw_counts']['E'], $iku['raw_counts']['A'])) !== null ? number_format($ratio * 100, 1, ',', '.') . '%' : 'Tidak tersedia' }}</td>
+                    <td class="text-center">{{ number_format($iku['components']['L'] * 100, 1, ',', '.') }}%</td>
                     <td class="text-center">{{ $iku['indexes']['report'] }}</td>
                     <td class="text-center">{{ $iku['raw_counts']['E'] }} / {{ $iku['raw_counts']['A'] }}</td>
                 </tr>
                 <tr>
-                    <td>Survei Kepuasan (S)</td>
+                    <td>Partisipasi Survei (S)</td>
                     <td class="text-center">{{ $iku['weights']['survey'] }}%</td>
+                    <td class="text-center">{{ ($ratio = $actualRatio('S', $iku['raw_counts']['F'], $iku['raw_counts']['A'])) !== null ? number_format($ratio * 100, 1, ',', '.') . '%' : 'Tidak tersedia' }}</td>
+                    <td class="text-center">{{ number_format($iku['components']['S'] * 100, 1, ',', '.') }}%</td>
                     <td class="text-center">{{ $iku['indexes']['survey'] }}</td>
                     <td class="text-center">{{ $iku['raw_counts']['F'] }} / {{ $iku['raw_counts']['A'] }}</td>
                 </tr>
@@ -419,8 +449,12 @@
         $summaryTable = array_values(array_filter(is_array($appendix['summary_table'] ?? null) ? $appendix['summary_table'] : [], 'is_array'));
         $appendixCharts = array_values(array_filter(is_array($appendix['charts'] ?? null) ? $appendix['charts'] : [], 'is_array'));
         $chartColors = ['#1d4ed8', '#dc2626', '#059669', '#d97706', '#7c3aed', '#db2777', '#0891b2', '#65a30d'];
-        $compactCharts = array_values(array_filter($appendixCharts, fn ($chart) => ! in_array($chart['title'] ?? '', ['Permintaan per Bulan', 'Sampel vs Target IKU'], true)));
-        $lineCharts = array_values(array_filter($appendixCharts, fn ($chart) => in_array($chart['title'] ?? '', ['Permintaan per Bulan', 'Sampel vs Target IKU'], true)));
+        $lineChartKeys = ['requests_by_month', 'sample_test_completion_vs_target'];
+        $lineChartTitles = ['Permintaan per Bulan', 'Sampel vs Target IKU', 'Sampel Selesai Diuji vs Target IKU'];
+        $isLineChart = fn ($chart) => in_array($chart['key'] ?? '', $lineChartKeys, true)
+            || in_array($chart['title'] ?? '', $lineChartTitles, true);
+        $compactCharts = array_values(array_filter($appendixCharts, fn ($chart) => ! $isLineChart($chart)));
+        $lineCharts = array_values(array_filter($appendixCharts, $isLineChart));
         $topRows = fn ($rows, int $limit = 6): array => array_slice(array_values(array_filter(is_array($rows) ? $rows : [], 'is_array')), 0, $limit);
         $topRowsWithOther = function ($rows, int $limit = 5): array {
             $safeRows = array_values(array_filter(is_array($rows) ? $rows : [], 'is_array'));
@@ -460,7 +494,7 @@
 
             return rtrim(rtrim(number_format($number, 1, '.', ''), '0'), '.');
         };
-        $lineChartDataUri = function (array $rows, string $firstKey, string $secondKey, string $firstColor, string $secondColor, string $firstLabel, string $secondLabel) use ($formatChartValue, $maxValueForKeys): string {
+        $lineChartDataUri = function (array $rows, string $firstKey, string $secondKey, string $firstColor, string $secondColor, string $firstLabel, string $secondLabel, bool $includeSecondSeries = true) use ($formatChartValue, $maxValueForKeys): string {
             $safeRows = array_values(array_filter($rows, 'is_array'));
             $width = 720;
             $height = 220;
@@ -470,7 +504,7 @@
             $bottom = 44;
             $plotWidth = $width - $left - $right;
             $plotHeight = $height - $top - $bottom;
-            $max = $maxValueForKeys($safeRows, [$firstKey, $secondKey]);
+            $max = $maxValueForKeys($safeRows, $includeSecondSeries ? [$firstKey, $secondKey] : [$firstKey]);
             $step = count($safeRows) > 1 ? $plotWidth / (count($safeRows) - 1) : $plotWidth;
             $escape = fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 
@@ -488,7 +522,7 @@
             };
 
             $firstPoints = $pointsFor($firstKey);
-            $secondPoints = $pointsFor($secondKey);
+            $secondPoints = $includeSecondSeries ? $pointsFor($secondKey) : [];
             $pointsAttribute = fn (array $points): string => collect($points)->map(fn ($point) => $point['x'].','.$point['y'])->implode(' ');
 
             $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="'.$width.'" height="'.$height.'" viewBox="0 0 '.$width.' '.$height.'">';
@@ -502,7 +536,9 @@
             }
 
             $svg .= '<polyline points="'.$pointsAttribute($firstPoints).'" fill="none" stroke="'.$firstColor.'" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>';
-            $svg .= '<polyline points="'.$pointsAttribute($secondPoints).'" fill="none" stroke="'.$secondColor.'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="8 6"/>';
+            if ($includeSecondSeries) {
+                $svg .= '<polyline points="'.$pointsAttribute($secondPoints).'" fill="none" stroke="'.$secondColor.'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="8 6"/>';
+            }
 
             foreach ($firstPoints as $index => $point) {
                 $svg .= '<circle cx="'.$point['x'].'" cy="'.$point['y'].'" r="4" fill="'.$firstColor.'"/>';
@@ -519,7 +555,9 @@
             }
 
             $svg .= '<rect x="'.$left.'" y="4" width="10" height="10" fill="'.$firstColor.'"/><text x="'.($left + 15).'" y="13" font-size="10" fill="#111827">'.$escape($firstLabel).'</text>';
-            $svg .= '<rect x="'.($left + 92).'" y="4" width="10" height="10" fill="'.$secondColor.'"/><text x="'.($left + 107).'" y="13" font-size="10" fill="#111827">'.$escape($secondLabel).'</text>';
+            if ($includeSecondSeries) {
+                $svg .= '<rect x="'.($left + 92).'" y="4" width="10" height="10" fill="'.$secondColor.'"/><text x="'.($left + 107).'" y="13" font-size="10" fill="#111827">'.$escape($secondLabel).'</text>';
+            }
             $svg .= '</svg>';
 
             return 'data:image/svg+xml;base64,'.base64_encode($svg);
@@ -623,16 +661,21 @@
                     <div class="muted" style="text-align: center; padding: 10px; border: 1px dashed #aaa;">Tidak ada data pada periode ini.</div>
                 @else
                     @php
-                        $firstKey = $chartTitle === 'Permintaan per Bulan' ? 'requests' : 'samples';
-                        $secondKey = $chartTitle === 'Permintaan per Bulan' ? 'completed' : 'target';
-                        $firstColor = $chartTitle === 'Permintaan per Bulan' ? '#1d4ed8' : '#059669';
-                        $secondColor = $chartTitle === 'Permintaan per Bulan' ? '#059669' : '#dc2626';
-                        $firstLabel = $chartTitle === 'Permintaan per Bulan' ? 'Masuk' : 'Aktual';
-                        $secondLabel = $chartTitle === 'Permintaan per Bulan' ? 'Selesai' : 'Target';
-                        $lineChartSrc = $lineChartDataUri($trendRows, $firstKey, $secondKey, $firstColor, $secondColor, $firstLabel, $secondLabel);
+                        $isRequestsChart = ($chart['key'] ?? null) === 'requests_by_month' || $chartTitle === 'Permintaan per Bulan';
+                        $firstKey = $isRequestsChart ? 'requests' : 'samples';
+                        $secondKey = $isRequestsChart ? 'completed' : 'target';
+                        $firstColor = $isRequestsChart ? '#1d4ed8' : '#059669';
+                        $secondColor = $isRequestsChart ? '#059669' : '#dc2626';
+                        $firstLabel = $isRequestsChart ? 'Diajukan' : 'Sampel diuji';
+                        $secondLabel = $isRequestsChart ? 'Diserahkan' : 'Target';
+                        $includeSecondSeries = $isRequestsChart
+                            || (($chart['target']['yearly'] ?? null) !== null
+                                ? $chart['target']['yearly'] > 0
+                                : collect($trendRows)->contains(fn ($row) => (float) ($row['target'] ?? 0) > 0));
+                        $lineChartSrc = $lineChartDataUri($trendRows, $firstKey, $secondKey, $firstColor, $secondColor, $firstLabel, $secondLabel, $includeSecondSeries);
                     @endphp
                     <img class="line-chart-image" src="{{ $lineChartSrc }}" alt="Line chart {{ $chartTitle }}">
-                    <div class="legend-row"><span class="legend-dot" style="background: {{ $firstColor }};"></span>{{ $firstLabel }} <span class="legend-dot" style="background: {{ $secondColor }}; margin-left: 8px;"></span>{{ $secondLabel }} <strong style="float: right;">{{ $chart['total'] ?? 0 }} total</strong></div>
+                    <div class="legend-row"><span class="legend-dot" style="background: {{ $firstColor }};"></span>{{ $firstLabel }} @if($includeSecondSeries)<span class="legend-dot" style="background: {{ $secondColor }}; margin-left: 8px;"></span>{{ $secondLabel }}@else<span> · Target belum ditetapkan</span>@endif <strong style="float: right;">{{ $chart['total'] ?? 0 }} total</strong></div>
                 @endif
             </div>
         @endforeach

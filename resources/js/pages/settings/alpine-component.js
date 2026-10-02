@@ -737,6 +737,7 @@ export function registerSettingsComponent() {
                 this.client.state.form.iku.target_samples_by_year[
                     String(year)
                 ] = target;
+                this.ikuConfigDirty = true;
 
                 // Reset input fields
                 this.ikuNewYear = new Date().getFullYear() + 1;
@@ -748,6 +749,7 @@ export function registerSettingsComponent() {
                     delete this.client.state.form.iku.target_samples_by_year[
                         year
                     ];
+                    this.ikuConfigDirty = true;
                 }
             },
 
@@ -798,6 +800,8 @@ export function registerSettingsComponent() {
                                 ...response.iku,
                             };
                         }
+                        this.ikuConfigDirty = false;
+                        await this.refreshIkuPreview();
                     } else {
                         throw new Error(
                             response.error || "Gagal menyimpan pengaturan IKU.",

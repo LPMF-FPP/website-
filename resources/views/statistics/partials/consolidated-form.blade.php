@@ -33,9 +33,9 @@
                 this.endDate = this.formatDate(new Date(year, month, 0));
             }
         } else if (this.periodType === 'monthly') {
-            // Current month
-            this.startDate = this.formatDate(new Date(year, month, 1));
-            this.endDate = this.formatDate(new Date(year, month + 1, 0));
+            const completedMonthEnd = new Date(year, month, 0);
+            this.startDate = this.formatDate(new Date(completedMonthEnd.getFullYear(), completedMonthEnd.getMonth(), 1));
+            this.endDate = this.formatDate(completedMonthEnd);
         } else if (this.periodType === 'quarterly') {
             // Current quarter
             const quarter = Math.floor(month / 3);
@@ -83,12 +83,14 @@
             period_start: this.startDate,
             period_end: this.endDate,
             signers: this.signers,
-            narratives: this.previewData.narratives
+            narratives: this.previewData.narratives,
+            calculation_fingerprint: this.previewData.calculation_fingerprint
         })
         .then(response => {
             this.successMessage = response.data.message;
             this.downloadUrl = response.data.data.download_url;
             this.step = 'success';
+            window.loadHistory?.();
         })
         .catch(error => {
             this.errorMessage = error.response?.data?.message || 'Gagal generate laporan.';

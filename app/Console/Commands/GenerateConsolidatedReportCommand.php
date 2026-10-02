@@ -2,11 +2,13 @@
 
 namespace App\Console\Commands;
 
+use App\Models\ConsolidatedReport;
 use App\Models\SystemSetting;
 use App\Services\ConsolidatedReportService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 class GenerateConsolidatedReportCommand extends Command
 {
@@ -56,11 +58,20 @@ class GenerateConsolidatedReportCommand extends Command
             // Manual trigger logic (simplified for testing)
             $now = Carbon::now('Asia/Jakarta');
             // If manual type provided, we assume current period context
-            $reportsToGenerate[] = [
-                'type' => $manualType,
-                'start' => $now->copy()->startOfMonth(),
-                'end' => $now->copy()->endOfMonth(),
-            ];
+            if ($manualType === 'quarterly') {
+                $quarterStart = $now->copy()->startOfQuarter()->subQuarter();
+                $reportsToGenerate[] = [
+                    'type' => 'quarterly',
+                    'start' => $quarterStart,
+                    'end' => $quarterStart->copy()->endOfQuarter(),
+                ];
+            } else {
+                $reportsToGenerate[] = [
+                    'type' => $manualType,
+                    'start' => $now->copy()->startOfMonth(),
+                    'end' => $now->copy()->endOfMonth(),
+                ];
+            }
         } else {
             // Automatic logic based on date
             $reportsToGenerate = $this->reportService->shouldAutoGenerate();
@@ -97,6 +108,36 @@ class GenerateConsolidatedReportCommand extends Command
                     $this->info('Notification dispatched to admin.');
                 }
 
+            } catch (ConflictHttpException $e) {
+                if (! $force) {
+                    $this->warn($e->getMessage());
+
+                    continue;
+                }
+
+                $baseReport = ConsolidatedReport::query()
+                    ->where('period_type', $config['type'])
+                    ->whereDate('period_start', Carbon::parse($config['start'])->toDateString())
+                    ->whereDate('period_end', Carbon::parse($config['end'])->toDateString())
+                    ->whereNull('revision_of_id')
+                    ->first();
+
+                if (! $baseReport) {
+                    $this->error('Laporan dasar untuk revisi paksa tidak ditemukan.');
+
+                    continue;
+                }
+
+                $revision = $this->reportService->revise(
+                    $baseReport,
+                    'Revisi dibuat atas permintaan operator melalui opsi --force.',
+                    null
+                );
+                $this->info("Report revision generated successfully: ID {$revision->id}");
+                $notifiedCount = $this->reportService->sendGenerationNotification($revision);
+                if ($notifiedCount > 0) {
+                    $this->info('Notification dispatched to admin.');
+                }
             } catch (\Exception $e) {
                 // Ignore unique constraint violation if not force
                 if (str_contains($e->getMessage(), 'unique_period') && ! $force) {

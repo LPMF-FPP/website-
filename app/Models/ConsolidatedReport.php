@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ConsolidatedReport extends Model
@@ -25,6 +26,9 @@ class ConsolidatedReport extends Model
         'is_auto_generated',
         'pdf_path',
         'pdf_size',
+        'revision_of_id',
+        'revision_number',
+        'revision_reason',
     ];
 
     protected $casts = [
@@ -36,6 +40,7 @@ class ConsolidatedReport extends Model
         'signers' => 'array',
         'generated_at' => 'datetime',
         'is_auto_generated' => 'boolean',
+        'revision_number' => 'integer',
     ];
 
     /**
@@ -49,6 +54,16 @@ class ConsolidatedReport extends Model
     public function generatedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'generated_by');
+    }
+
+    public function revisedFrom(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'revision_of_id');
+    }
+
+    public function revisions(): HasMany
+    {
+        return $this->hasMany(self::class, 'revision_of_id');
     }
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Settings;
 
+use App\Services\IkuService;
 use Illuminate\Foundation\Http\FormRequest;
 
 class IkuSettingsRequest extends FormRequest
@@ -18,7 +19,7 @@ class IkuSettingsRequest extends FormRequest
         return [
             'enabled' => ['sometimes', 'boolean'],
             'period_mode' => ['sometimes', 'string', 'in:monthly,yearly,quarterly'],
-            'weights' => ['sometimes', 'array'],
+            'weights' => ['sometimes', 'array:registration,lab_exam,report,survey'],
             'weights.registration' => ['sometimes', 'integer', 'min:0', 'max:100'],
             'weights.lab_exam' => ['sometimes', 'integer', 'min:0', 'max:100'],
             'weights.report' => ['sometimes', 'integer', 'min:0', 'max:100'],
@@ -35,24 +36,39 @@ class IkuSettingsRequest extends FormRequest
     }
 
     /**
-     * Custom validation: weights must sum to 100 if all are provided.
+     * Validate the final saved weights, including untouched values in partial updates.
      */
     public function withValidator($validator): void
     {
         $validator->after(function ($validator) {
             $weights = $this->input('weights');
             if (is_array($weights)) {
-                $sum = (int) ($weights['registration'] ?? 0)
-                    + (int) ($weights['lab_exam'] ?? 0)
-                    + (int) ($weights['report'] ?? 0)
-                    + (int) ($weights['survey'] ?? 0);
+                $weightFields = ['weights.registration', 'weights.lab_exam', 'weights.report', 'weights.survey'];
+                foreach ($weightFields as $field) {
+                    if ($validator->errors()->has($field)) {
+                        return;
+                    }
+                }
 
-                // Only validate sum if all weights are provided
-                if (
-                    isset($weights['registration'], $weights['lab_exam'], $weights['report'], $weights['survey'])
-                    && $sum !== 100
-                ) {
+                $effectiveWeights = array_merge(app(IkuService::class)->getConfig()['weights'], $weights);
+                $effectiveWeights = array_intersect_key(
+                    $effectiveWeights,
+                    array_fill_keys(['registration', 'lab_exam', 'report', 'survey'], true)
+                );
+
+                if (array_sum($effectiveWeights) !== 100) {
                     $validator->errors()->add('weights', 'Total bobot harus sama dengan 100%.');
+                }
+            }
+
+            $targets = $this->input('target_samples_by_year');
+            if (is_array($targets)) {
+                foreach (array_keys($targets) as $year) {
+                    if (! preg_match('/^\d{4}$/D', (string) $year) || (int) $year < 2020 || (int) $year > 2099) {
+                        $validator->errors()->add('target_samples_by_year', 'Tahun target harus berada dalam rentang 2020 sampai 2099.');
+
+                        return;
+                    }
                 }
             }
         });

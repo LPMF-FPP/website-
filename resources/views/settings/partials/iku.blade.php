@@ -105,7 +105,7 @@
                     </div>
                 </div>
                 <div class="border-l-4 border-amber-500 pl-3">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Survei Kepuasan</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Partisipasi Survei</label>
                     <div class="relative">
                         <input type="number" min="0" max="100" step="1"
                                x-model.number="client.state.form.iku.weights.survey" @input="ikuConfigDirty = true"
@@ -128,7 +128,7 @@
         {{-- Target Samples Configuration --}}
         <div class="border-t border-gray-100 pt-4">
             <h3 class="text-sm font-semibold text-gray-800 mb-3">Target Sampel per Tahun</h3>
-            <p class="text-xs text-gray-500 mb-4">Nilai D (target sampel dikerjakan) untuk perhitungan komponen Pemeriksaan Lab</p>
+            <p class="text-xs text-gray-500 mb-4">D adalah target sampel tahunan. Untuk perhitungan triwulan, target dibagi 4.</p>
             
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
@@ -194,6 +194,8 @@
             </label>
         </div>
 
+        </div>
+
         {{-- Save Button --}}
         <div class="flex justify-end pt-4 border-t border-gray-100">
             <button type="button" @click="saveIkuSettings()"
@@ -205,7 +207,6 @@
                 </svg>
                 <span x-text="client.state.loadingSections?.iku ? 'Menyimpan...' : 'Simpan Bagian Ini'"></span>
             </button>
-        </div>
         </div>
     </div>
 </div>
@@ -237,8 +238,10 @@
         <svg class="h-5 w-5 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
         </svg>
-        <span class="text-sm text-amber-700">Konfigurasi telah berubah. Klik <strong>Refresh</strong> untuk memperbarui preview.</span>
+        <span class="text-sm text-amber-700">Perubahan belum disimpan. Pratinjau masih memakai konfigurasi tersimpan; simpan perubahan untuk melihat hasilnya.</span>
     </div>
+
+    <div x-show="ikuPreview.error" x-cloak role="alert" class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" x-text="ikuPreview.error"></div>
 
     <div x-show="ikuPreview.data" x-cloak class="space-y-4">
         {{-- IKU Value Display --}}
@@ -253,26 +256,33 @@
                 </div>
             </div>
         </div>
+        <p x-show="ikuPreview.data?.target_configured === false" class="mt-2 text-sm text-amber-800">Target IKU untuk tahun pada pratinjau belum ditetapkan. Nilai IKU belum lengkap; tetapkan target sebelum menggunakannya.</p>
+
+        <p class="text-xs text-gray-600">Persentase komponen menunjukkan rasio untuk skor, yang dibatasi maksimal 100%.</p>
 
         {{-- Component Breakdown --}}
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div class="p-3 bg-gray-50 rounded-lg">
                 <div class="text-xs text-gray-500 uppercase">Registrasi (R)</div>
+                <div class="text-xs text-gray-500" x-text="ikuPreview.data?.actual_ratios?.R === null || ikuPreview.data?.actual_ratios?.R === undefined ? 'Aktual: Tidak tersedia' : 'Aktual: ' + (ikuPreview.data.actual_ratios.R * 100).toFixed(1) + '%' "></div>
                 <div class="text-lg font-semibold text-gray-800 font-mono tabular-nums" x-text="((ikuPreview.data?.components?.R ?? 0) * 100).toFixed(1) + '%'"></div>
                 <div class="text-xs text-gray-500">Index: <span class="font-mono tabular-nums" x-text="(ikuPreview.data?.indexes?.registration ?? 0).toFixed(2)"></span></div>
             </div>
             <div class="p-3 bg-gray-50 rounded-lg">
                 <div class="text-xs text-gray-500 uppercase">Pem. Lab (P)</div>
+                <div class="text-xs text-gray-500" x-text="ikuPreview.data?.actual_ratios?.P === null || ikuPreview.data?.actual_ratios?.P === undefined ? 'Aktual: Tidak tersedia' : 'Aktual: ' + (ikuPreview.data.actual_ratios.P * 100).toFixed(1) + '%' "></div>
                 <div class="text-lg font-semibold text-gray-800 font-mono tabular-nums" x-text="((ikuPreview.data?.components?.P ?? 0) * 100).toFixed(1) + '%'"></div>
                 <div class="text-xs text-gray-500">Index: <span class="font-mono tabular-nums" x-text="(ikuPreview.data?.indexes?.lab_exam ?? 0).toFixed(2)"></span></div>
             </div>
             <div class="p-3 bg-gray-50 rounded-lg">
                 <div class="text-xs text-gray-500 uppercase">Laporan (L)</div>
+                <div class="text-xs text-gray-500" x-text="ikuPreview.data?.actual_ratios?.L === null || ikuPreview.data?.actual_ratios?.L === undefined ? 'Aktual: Tidak tersedia' : 'Aktual: ' + (ikuPreview.data.actual_ratios.L * 100).toFixed(1) + '%' "></div>
                 <div class="text-lg font-semibold text-gray-800 font-mono tabular-nums" x-text="((ikuPreview.data?.components?.L ?? 0) * 100).toFixed(1) + '%'"></div>
                 <div class="text-xs text-gray-500">Index: <span class="font-mono tabular-nums" x-text="(ikuPreview.data?.indexes?.report ?? 0).toFixed(2)"></span></div>
             </div>
             <div class="p-3 bg-gray-50 rounded-lg">
-                <div class="text-xs text-gray-500 uppercase">Survey (S)</div>
+                <div class="text-xs text-gray-500 uppercase">Partisipasi Survei (S)</div>
+                <div class="text-xs text-gray-500" x-text="ikuPreview.data?.actual_ratios?.S === null || ikuPreview.data?.actual_ratios?.S === undefined ? 'Aktual: Tidak tersedia' : 'Aktual: ' + (ikuPreview.data.actual_ratios.S * 100).toFixed(1) + '%' "></div>
                 <div class="text-lg font-semibold text-gray-800 font-mono tabular-nums" x-text="((ikuPreview.data?.components?.S ?? 0) * 100).toFixed(1) + '%'"></div>
                 <div class="text-xs text-gray-500">Index: <span class="font-mono tabular-nums" x-text="(ikuPreview.data?.indexes?.survey ?? 0).toFixed(2)"></span></div>
             </div>
@@ -294,7 +304,7 @@
                     <span class="font-bold text-blue-600 w-6">A</span>
                     <div>
                         <div class="font-medium text-gray-800 font-mono tabular-nums" x-text="ikuPreview.data?.raw_counts?.A ?? 0"></div>
-                        <div class="text-xs text-gray-500">Jumlah permohonan dikerjakan (completed/ready_for_delivery)</div>
+                        <div class="text-xs text-gray-500">Permohonan berstatus selesai, siap diserahkan, atau sudah diserahkan</div>
                     </div>
                 </div>
                 <div class="flex items-start gap-2 p-2 bg-white rounded border border-gray-200">
@@ -315,21 +325,21 @@
                     <span class="font-bold text-green-600 w-6">D</span>
                     <div>
                         <div class="font-medium text-gray-800 font-mono tabular-nums" x-text="ikuPreview.data?.raw_counts?.D ?? 0"></div>
-                        <div class="text-xs text-gray-500">Target sampel per tahun (dari konfigurasi)</div>
+                        <div class="text-xs text-gray-500">Target tahunan dari konfigurasi; target triwulan dibagi 4</div>
                     </div>
                 </div>
                 <div class="flex items-start gap-2 p-2 bg-white rounded border border-gray-200">
                     <span class="font-bold text-blue-600 w-6">E</span>
                     <div>
                         <div class="font-medium text-gray-800 font-mono tabular-nums" x-text="ikuPreview.data?.raw_counts?.E ?? 0"></div>
-                        <div class="text-xs text-gray-500">Jumlah LHU diterbitkan</div>
+                        <div class="text-xs text-gray-500">Dokumen LHU yang dibuat pada periode ini</div>
                     </div>
                 </div>
                 <div class="flex items-start gap-2 p-2 bg-white rounded border border-gray-200">
                     <span class="font-bold text-blue-600 w-6">F</span>
                     <div>
                         <div class="font-medium text-gray-800 font-mono tabular-nums" x-text="ikuPreview.data?.raw_counts?.F ?? 0"></div>
-                        <div class="text-xs text-gray-500">Jumlah survey kepuasan diterima</div>
+                        <div class="text-xs text-gray-500">Jumlah survei yang diterima pada periode ini</div>
                     </div>
                 </div>
             </div>
@@ -352,22 +362,20 @@
                     </div>
                     <div class="bg-white p-2 rounded">
                         <span class="font-bold">S</span> = F / A × 100%
-                        <div class="text-gray-500">Survey Kepuasan</div>
+                        <div class="text-gray-500">Partisipasi Survei</div>
                     </div>
                 </div>
                 <div class="mt-2 text-xs text-blue-700">
-                    <strong>IKU</strong> = (R × Bobot_R + P × Bobot_P + L × Bobot_L + S × Bobot_S) × 5 &nbsp;→&nbsp; Skala 0-5
+                    <strong>IKU</strong> = 5 × [(R × Bobot_R + P × Bobot_P + L × Bobot_L + S × Bobot_S) / 100] &nbsp;→&nbsp; Skala 0–5
                 </div>
+                <div class="mt-1 text-xs text-blue-700">Rasio aktual dapat melebihi 100%; rasio untuk skor dibatasi maksimal 100%.</div>
             </div>
 
             {{-- Category Scale --}}
             <div class="mt-3 text-xs text-gray-600">
                 <strong>Kategori:</strong> 
-                A (Sangat Baik: 4.51-5) | 
-                B (Baik: 3.51-4.50) | 
-                C (Cukup: 2.51-3.50) | 
-                D (Kurang: 1.51-2.50) | 
-                E (Sangat Kurang: ≤1.50)
+                    A (≥4,50) | B (≥3,50 dan &lt;4,50) | C (≥2,50 dan &lt;3,50) |
+                    D (≥1,50 dan &lt;2,50) | E (≥0,50 dan &lt;1,50) | F (&lt;0,50)
             </div>
             </div>
         </details>
@@ -416,4 +424,3 @@
 
     <div x-show="surveyExport.error" x-cloak class="text-sm text-red-600" x-text="surveyExport.error"></div>
 </div>
-

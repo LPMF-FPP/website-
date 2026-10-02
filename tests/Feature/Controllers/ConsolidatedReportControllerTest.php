@@ -10,6 +10,7 @@ use App\Models\TestRequest;
 use App\Models\User;
 use App\Services\ConsolidatedReportService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -18,6 +19,12 @@ use Tests\TestCase;
 class ConsolidatedReportControllerTest extends TestCase
 {
     use RefreshDatabase;
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
+    }
 
     public function test_index_passes_default_signers_to_view()
     {
@@ -30,6 +37,9 @@ class ConsolidatedReportControllerTest extends TestCase
         \Illuminate\Support\Facades\Gate::shouldReceive('authorize')
             ->with('statistik.export', [])
             ->andReturn(true);
+        \Illuminate\Support\Facades\Gate::shouldReceive('forUser')->andReturnSelf();
+        \Illuminate\Support\Facades\Gate::shouldReceive('check')->andReturn(true);
+        \Illuminate\Support\Facades\Gate::shouldReceive('any')->andReturn(true);
 
         // Mock Service
         $this->mock(ConsolidatedReportService::class, function ($mock) {
@@ -56,6 +66,9 @@ class ConsolidatedReportControllerTest extends TestCase
         \Illuminate\Support\Facades\Gate::shouldReceive('authorize')
             ->with('statistik.export', [])
             ->andReturn(true);
+        \Illuminate\Support\Facades\Gate::shouldReceive('forUser')->andReturnSelf();
+        \Illuminate\Support\Facades\Gate::shouldReceive('check')->andReturn(true);
+        \Illuminate\Support\Facades\Gate::shouldReceive('any')->andReturn(true);
 
         $oldSigners = [['role' => 'old_role', 'name' => 'Old Name']];
         SystemSetting::create(['key' => 'consolidated_report.default_signers', 'value' => $oldSigners]);
@@ -111,6 +124,7 @@ class ConsolidatedReportControllerTest extends TestCase
             'period_type' => 'monthly',
             'period_start' => '2023-01-01',
             'period_end' => '2023-01-31',
+            'calculation_fingerprint' => str_repeat('a', 64),
             'signers' => [
                 [
                     'role' => 'Pembuat',
@@ -206,6 +220,163 @@ class ConsolidatedReportControllerTest extends TestCase
             ->assertJsonPath('data.dashboard_appendix.charts.1.rows.1.label', 'Metamfetamin');
     }
 
+    public function test_quarterly_iku_uses_explicit_target_and_shared_tested_sample_count(): void
+    {
+        Carbon::setTestNow('2026-10-02 12:00:00');
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        \Illuminate\Support\Facades\Gate::shouldReceive('authorize')
+            ->with('statistik.export', [])
+            ->andReturn(true);
+
+        SystemSetting::updateOrCreate(['key' => 'iku.period_mode'], ['value' => 'monthly']);
+        SystemSetting::updateOrCreate(['key' => 'iku.target_samples_by_year'], ['value' => ['2026' => 200]]);
+        settings_forget_cache();
+
+        $investigator = Investigator::factory()->create();
+        $request = TestRequest::factory()->create([
+            'investigator_id' => $investigator->id,
+            'created_at' => '2026-07-10 08:00:00',
+            'submitted_at' => '2026-07-10 08:00:00',
+            'completed_at' => '2026-08-10 08:00:00',
+            'ready_for_delivery_at' => '2026-08-10 08:00:00',
+            'status' => 'ready_for_delivery',
+        ]);
+        Sample::factory()->create([
+            'test_request_id' => $request->id,
+            'created_at' => '2026-07-10 08:30:00',
+            'testing_completed_at' => '2026-08-05 08:30:00',
+            'sample_status' => 'tested',
+        ]);
+
+        $response = $this->postJson(route('consolidated-reports.preview'), [
+            'period_type' => 'quarterly',
+            'period_start' => '2026-07-01',
+            'period_end' => '2026-09-30',
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('data.iku.raw_counts.A', 1)
+            ->assertJsonPath('data.iku.raw_counts.B', 1)
+            ->assertJsonPath('data.statistics.total_requests_received', 1)
+            ->assertJsonPath('data.iku.raw_counts.C', 1)
+            ->assertJsonPath('data.iku.raw_counts.D', 50)
+            ->assertJsonPath('data.iku.target_configured', true)
+            ->assertJsonPath('data.statistics.total_samples_tested', 1)
+            ->assertJsonPath('data.statistics.total_samples_ready_for_delivery', 1)
+            ->assertJsonPath('data.iku.weights.registration', 10)
+            ->assertJsonPath('data.iku.weights.lab_exam', 40)
+            ->assertJsonPath('data.iku.weights.report', 40)
+            ->assertJsonPath('data.iku.weights.survey', 10)
+            ->assertJsonPath('data.iku.iku_value', 0.54)
+            ->assertJsonPath('data.iku.iku_category', 'E')
+            ->assertJsonPath('data.iku.actual_ratios.P', 0.02);
+
+        Carbon::setTestNow();
+    }
+
+    public function test_open_quarter_is_previewable_but_cannot_be_published(): void
+    {
+        Carbon::setTestNow('2026-10-02 12:00:00');
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        \Illuminate\Support\Facades\Gate::shouldReceive('authorize')
+            ->with('statistik.export', [])
+            ->andReturn(true);
+        \Illuminate\Support\Facades\Gate::shouldReceive('forUser')->andReturnSelf();
+        \Illuminate\Support\Facades\Gate::shouldReceive('check')->andReturn(true);
+        \Illuminate\Support\Facades\Gate::shouldReceive('any')->andReturn(true);
+
+        $preview = $this->postJson(route('consolidated-reports.preview'), [
+            'period_type' => 'quarterly',
+            'period_start' => '2026-10-01',
+            'period_end' => '2026-12-31',
+        ]);
+
+        $preview->assertOk()
+            ->assertJsonPath('data.is_provisional', true);
+
+        $this->postJson(route('consolidated-reports.store'), [
+            'period_type' => 'quarterly',
+            'period_start' => '2026-10-01',
+            'period_end' => '2026-12-31',
+            'calculation_fingerprint' => $preview->json('data.calculation_fingerprint'),
+            'narratives' => ['opening' => '', 'closing' => ''],
+            'signers' => $this->validSigners(),
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('period_end');
+
+        Carbon::setTestNow();
+    }
+
+    public function test_quarterly_preview_rejects_partial_calendar_quarter(): void
+    {
+        Carbon::setTestNow('2026-10-02 12:00:00');
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        \Illuminate\Support\Facades\Gate::shouldReceive('authorize')
+            ->with('statistik.export', [])
+            ->andReturn(true);
+
+        $this->postJson(route('consolidated-reports.preview'), [
+            'period_type' => 'quarterly',
+            'period_start' => '2026-07-02',
+            'period_end' => '2026-09-30',
+        ])->assertUnprocessable()
+            ->assertJsonValidationErrors('period_start');
+
+        Carbon::setTestNow();
+    }
+
+    public function test_finalization_rejects_changed_source_data_since_preview(): void
+    {
+        Carbon::setTestNow('2026-10-02 12:00:00');
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        \Illuminate\Support\Facades\Gate::shouldReceive('authorize')
+            ->with('statistik.export', [])
+            ->andReturn(true);
+        \Illuminate\Support\Facades\Gate::shouldReceive('forUser')->andReturnSelf();
+        \Illuminate\Support\Facades\Gate::shouldReceive('check')->andReturn(true);
+        \Illuminate\Support\Facades\Gate::shouldReceive('any')->andReturn(true);
+
+        $preview = $this->postJson(route('consolidated-reports.preview'), [
+            'period_type' => 'quarterly',
+            'period_start' => '2026-07-01',
+            'period_end' => '2026-09-30',
+        ]);
+        $preview->assertOk();
+
+        $request = TestRequest::factory()->create([
+            'created_at' => '2026-08-10 08:00:00',
+            'submitted_at' => '2026-08-10 08:00:00',
+            'status' => 'submitted',
+        ]);
+        Sample::factory()->create([
+            'test_request_id' => $request->id,
+            'created_at' => '2026-08-10 08:30:00',
+            'testing_completed_at' => '2026-08-20 08:30:00',
+            'sample_status' => 'tested',
+        ]);
+
+        $this->postJson(route('consolidated-reports.store'), [
+            'period_type' => 'quarterly',
+            'period_start' => '2026-07-01',
+            'period_end' => '2026-09-30',
+            'calculation_fingerprint' => $preview->json('data.calculation_fingerprint'),
+            'narratives' => ['opening' => '', 'closing' => ''],
+            'signers' => $this->validSigners(),
+        ])->assertStatus(409)
+            ->assertJsonPath('success', false);
+
+        expect(ConsolidatedReport::query()->count())->toBe(0);
+        Carbon::setTestNow();
+    }
+
     public function test_store_persists_dashboard_appendix_and_pdf_view_receives_it(): void
     {
         Storage::fake('local');
@@ -227,6 +398,11 @@ class ConsolidatedReportControllerTest extends TestCase
         ], true);
 
         $this->seedDashboardAppendixData();
+        $preview = app(ConsolidatedReportService::class)->getPreviewData(
+            'monthly',
+            Carbon::parse('2026-01-01'),
+            Carbon::parse('2026-01-31')
+        );
 
         $capturedReport = null;
         $mockPdf = \Mockery::mock(\Barryvdh\DomPDF\PDF::class);
@@ -247,6 +423,7 @@ class ConsolidatedReportControllerTest extends TestCase
             'period_type' => 'monthly',
             'period_start' => '2026-01-01',
             'period_end' => '2026-01-31',
+            'calculation_fingerprint' => $preview['calculation_fingerprint'],
             'narratives' => ['opening' => 'Pembuka', 'closing' => 'Penutup'],
             'signers' => $this->validSigners(),
         ]);

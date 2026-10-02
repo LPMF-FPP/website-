@@ -9,6 +9,7 @@ use App\Services\ConsolidatedReportService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class ConsolidatedReportController extends Controller
 {
@@ -73,6 +74,17 @@ class ConsolidatedReportController extends Controller
                     'download_url' => $report->download_url,
                 ],
             ], 201);
+        } catch (\Symfony\Component\HttpKernel\Exception\ConflictHttpException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 409);
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Periksa kembali periode dan data yang dikirim.',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             \Log::error('Report generation failed: '.$e->getMessage());
 
@@ -81,6 +93,32 @@ class ConsolidatedReportController extends Controller
                 'message' => 'Gagal membuat laporan: '.$e->getMessage(),
             ], 500);
         }
+    }
+
+    public function revise(Request $request, ConsolidatedReport $report)
+    {
+        $this->authorize('statistik.export');
+
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'min:10', 'max:2000'],
+        ], [
+            'reason.required' => 'Tuliskan alasan koreksi laporan.',
+            'reason.min' => 'Alasan revisi minimal 10 karakter.',
+            'reason.max' => 'Alasan revisi maksimal 2.000 karakter.',
+        ]);
+
+        $revision = $this->reportService->revise($report, $validated['reason'], (int) $request->user()->id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Revisi laporan berhasil diterbitkan.',
+            'data' => [
+                'id' => $revision->id,
+                'period_label' => $revision->period_label,
+                'revision_number' => $revision->revision_number,
+                'download_url' => $revision->download_url,
+            ],
+        ], 201);
     }
 
     public function download(ConsolidatedReport $report)
@@ -103,6 +141,13 @@ class ConsolidatedReportController extends Controller
     {
         $this->authorize('statistik.export');
 
+        if ($report->revision_number > 1 || $report->revisions()->exists()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Laporan yang sudah menjadi bagian dari riwayat revisi tidak dapat dihapus.',
+            ], 409);
+        }
+
         $report->delete();
 
         return response()->json([
@@ -116,6 +161,7 @@ class ConsolidatedReportController extends Controller
         $this->authorize('statistik.export');
 
         $reports = ConsolidatedReport::with('generatedBy')
+            ->withCount('revisions')
             ->orderByDesc('generated_at')
             ->paginate(10);
 

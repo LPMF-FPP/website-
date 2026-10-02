@@ -9,6 +9,7 @@ use App\Models\TestRequest;
 use App\Models\User;
 use App\Services\ActiveSubstanceService;
 use App\Services\ConsolidatedReportService;
+use App\Services\IkuService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,12 +20,16 @@ class StatisticsController extends Controller
 
     protected ConsolidatedReportService $reportService;
 
+    protected IkuService $ikuService;
+
     public function __construct(
         ActiveSubstanceService $activeSubstanceService,
-        ConsolidatedReportService $reportService
+        ConsolidatedReportService $reportService,
+        IkuService $ikuService
     ) {
         $this->activeSubstanceService = $activeSubstanceService;
         $this->reportService = $reportService;
+        $this->ikuService = $ikuService;
     }
 
     public function index()
@@ -38,12 +43,33 @@ class StatisticsController extends Controller
             // 1. Statistik Utama untuk Cards
             $mainStats = [
                 'total_users' => User::count(),
-                'requests_this_month' => TestRequest::whereMonth('created_at', now()->month)
-                    ->whereYear('created_at', now()->year)->count(),
+                'requests_this_month' => $this->ikuService->countRequestsSubmittedForPeriod(
+                    now()->copy()->startOfMonth(),
+                    now()->copy()->endOfDay()
+                ),
+                'requests_this_year' => $this->ikuService->countRequestsSubmittedForPeriod(
+                    now()->copy()->startOfYear(),
+                    now()->copy()->endOfDay()
+                ),
                 'samples_this_year' => Sample::whereYear('created_at', now()->year)->count(),
                 'active_substances_detected' => $activeSubstanceBreakdown['unique_total'], // Tampilkan jumlah unik zat aktif
                 'total_detections' => $activeSubstanceBreakdown['total'], // Tambahan untuk info deteksi total
             ];
+            $ikuAnnualTarget = $this->ikuService->getAnnualSampleTarget(now()->year);
+            $ikuSamplesThisMonth = $this->ikuService->countSamplesCompletedForPeriod(
+                now()->copy()->startOfMonth(),
+                now()->copy()->endOfDay()
+            );
+            $ikuSamplesThisYear = $this->ikuService->countSamplesCompletedForPeriod(
+                now()->copy()->startOfYear(),
+                now()->copy()->endOfDay()
+            );
+            $ikuSampleTargetStatus = match (true) {
+                $ikuAnnualTarget < 1 => 'Target belum ditetapkan',
+                $ikuSamplesThisYear > $ikuAnnualTarget => 'Melampaui Target',
+                $ikuSamplesThisYear >= $ikuAnnualTarget => 'Target Tercapai',
+                default => 'Belum Tercapai',
+            };
 
             // 2. Statistik Bulanan (12 bulan terakhir)
             $monthlyStats = $this->getMonthlyStatistics();
@@ -84,6 +110,7 @@ class StatisticsController extends Controller
                 // Data untuk cards (sesuai dengan yang diperlukan di view)
                 'total_users' => $mainStats['total_users'],
                 'requests_this_month' => $mainStats['requests_this_month'],
+                'requests_this_year' => $mainStats['requests_this_year'],
                 'samples_this_year' => $mainStats['samples_this_year'],
                 'active_substances_detected' => $mainStats['active_substances_detected'],
 
@@ -98,6 +125,10 @@ class StatisticsController extends Controller
                 'surveyStats' => $surveyStats,
                 'activeSubstanceBreakdown' => $activeSubstanceBreakdown,
                 'defaultSigners' => $defaultSigners,
+                'ikuAnnualTarget' => $ikuAnnualTarget,
+                'ikuSamplesThisMonth' => $ikuSamplesThisMonth,
+                'ikuSamplesThisYear' => $ikuSamplesThisYear,
+                'ikuSampleTargetStatus' => $ikuSampleTargetStatus,
             ]);
 
         } catch (\Exception $e) {
@@ -110,9 +141,20 @@ class StatisticsController extends Controller
 
             return view('statistics.index', [
                 'total_users' => User::count(),
-                'requests_this_month' => TestRequest::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count(),
+                'requests_this_month' => $this->ikuService->countRequestsSubmittedForPeriod(
+                    now()->copy()->startOfMonth(),
+                    now()->copy()->endOfDay()
+                ),
+                'requests_this_year' => $this->ikuService->countRequestsSubmittedForPeriod(
+                    now()->copy()->startOfYear(),
+                    now()->copy()->endOfDay()
+                ),
                 'samples_this_year' => Sample::whereYear('created_at', now()->year)->count(),
                 'active_substances_detected' => 0,
+                'ikuAnnualTarget' => 0,
+                'ikuSamplesThisMonth' => 0,
+                'ikuSamplesThisYear' => 0,
+                'ikuSampleTargetStatus' => 'Target belum ditetapkan',
                 'mainStats' => [
                     'total_users' => User::count(),
                     'requests_this_month' => TestRequest::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count(),
@@ -154,12 +196,14 @@ class StatisticsController extends Controller
             $months->push([
                 'month' => $date->format('M Y'),
                 'month_short' => $date->format('M'),
-                'requests' => TestRequest::whereYear('created_at', $date->year)
-                    ->whereMonth('created_at', $date->month)
-                    ->count(),
-                'completed' => TestRequest::whereYear('completed_at', $date->year)
-                    ->whereMonth('completed_at', $date->month)
-                    ->count(),
+                'requests' => $this->ikuService->countRequestsSubmittedForPeriod(
+                    $date->copy()->startOfMonth(),
+                    $date->copy()->endOfMonth()->min(now()->endOfDay())
+                ),
+                'completed' => $this->ikuService->countRequestsHandedOverForPeriod(
+                    $date->copy()->startOfMonth(),
+                    $date->copy()->endOfMonth()->min(now()->endOfDay())
+                ),
                 'samples' => Sample::whereYear('created_at', $date->year)
                     ->whereMonth('created_at', $date->month)
                     ->count(),
@@ -240,8 +284,14 @@ class StatisticsController extends Controller
 
                 $last7Days->push([
                     'date' => $date->format('M j'),
-                    'requests' => TestRequest::whereDate('created_at', $date)->count(),
-                    'completed' => TestRequest::whereDate('completed_at', $date)->count(),
+                    'requests' => $this->ikuService->countRequestsSubmittedForPeriod(
+                        $date->copy()->startOfDay(),
+                        $date->copy()->endOfDay()
+                    ),
+                    'completed' => $this->ikuService->countRequestsHandedOverForPeriod(
+                        $date->copy()->startOfDay(),
+                        $date->copy()->endOfDay()
+                    ),
                 ]);
             }
 
@@ -383,13 +433,15 @@ class StatisticsController extends Controller
             $date = now()->subMonths($i);
             $months[] = $date->format('M Y');
 
-            $requestsCount = TestRequest::whereYear('created_at', $date->year)
-                ->whereMonth('created_at', $date->month)
-                ->count();
+            $requestsCount = $this->ikuService->countRequestsSubmittedForPeriod(
+                $date->copy()->startOfMonth(),
+                $date->copy()->endOfMonth()->min(now()->endOfDay())
+            );
 
-            $completedCount = TestRequest::whereYear('completed_at', $date->year)
-                ->whereMonth('completed_at', $date->month)
-                ->count();
+            $completedCount = $this->ikuService->countRequestsHandedOverForPeriod(
+                $date->copy()->startOfMonth(),
+                $date->copy()->endOfMonth()->min(now()->endOfDay())
+            );
 
             $requestsData[] = $requestsCount;
             $completedData[] = $completedCount;
@@ -399,7 +451,7 @@ class StatisticsController extends Controller
             'labels' => $months,
             'datasets' => [
                 [
-                    'label' => 'Permintaan Masuk',
+                    'label' => 'Permintaan Diajukan',
                     'data' => $requestsData,
                     'borderColor' => '#3B82F6',
                     'backgroundColor' => 'rgba(59, 130, 246, 0.1)',
@@ -407,7 +459,7 @@ class StatisticsController extends Controller
                     'tension' => 0.4,
                 ],
                 [
-                    'label' => 'Permintaan Selesai',
+                    'label' => 'Permintaan Diserahkan',
                     'data' => $completedData,
                     'borderColor' => '#10B981',
                     'backgroundColor' => 'rgba(16, 185, 129, 0.1)',
@@ -424,27 +476,28 @@ class StatisticsController extends Controller
         $samplesData = [];
         $targetData = [];
 
-        $yearlyTarget = 200;
-        $monthlyTarget = round($yearlyTarget / 12, 1);
-
+        $currentYear = now()->year;
+        $yearlyTarget = $this->ikuService->getAnnualSampleTarget($currentYear);
         // Use same pattern as getMonthlyRequestsData() - 12 months back
         for ($i = 11; $i >= 0; $i--) {
             $date = now()->subMonths($i);
             $months[] = $date->format('M Y');
 
-            $samplesCount = Sample::whereYear('created_at', $date->year)
-                ->whereMonth('created_at', $date->month)
-                ->count();
+            $monthStart = $date->copy()->startOfMonth();
+            $monthEnd = $date->copy()->endOfMonth()->min(now()->endOfDay());
+            $samplesCount = $this->ikuService->countSamplesCompletedForPeriod($monthStart, $monthEnd);
+            $monthlyTarget = round($this->ikuService->getAnnualSampleTarget($date->year) / 12, 1);
 
             $samplesData[] = $samplesCount;
-            $targetData[] = $monthlyTarget;
+            $targetData[] = $monthlyTarget > 0 ? $monthlyTarget : null;
+
         }
 
         return response()->json([
             'labels' => $months,
             'datasets' => [
                 [
-                    'label' => 'Sampel Diuji',
+                    'label' => 'Sampel Selesai Diuji',
                     'type' => 'bar',
                     'data' => $samplesData,
                     'backgroundColor' => '#10B981',
@@ -452,7 +505,7 @@ class StatisticsController extends Controller
                     'borderWidth' => 2,
                 ],
                 [
-                    'label' => 'Target Rata-rata ('.$monthlyTarget.' per bulan)',
+                    'label' => $yearlyTarget > 0 ? 'Target bulanan IKU' : 'Target belum ditetapkan',
                     'type' => 'line',
                     'data' => $targetData,
                     'borderColor' => '#DC2626',
@@ -466,7 +519,10 @@ class StatisticsController extends Controller
             'targetInfo' => [
                 'yearly_target' => $yearlyTarget,
                 'monthly_average' => $monthlyTarget,
-                'current_total' => array_sum($samplesData),
+                'current_total' => $this->ikuService->countSamplesCompletedForPeriod(
+                    now()->copy()->startOfYear(),
+                    now()->copy()->endOfDay()
+                ),
             ],
         ]);
     }

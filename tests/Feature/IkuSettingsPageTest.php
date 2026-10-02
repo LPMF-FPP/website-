@@ -359,13 +359,24 @@ test('iku settings accepts quarterly period mode', function () {
         ->assertJsonPath('iku.period_mode', 'quarterly');
 });
 
+test('partial weight updates are checked against the saved total', function () {
+    $user = User::factory()->create(['role' => 'admin']);
+
+    $this->actingAs($user)
+        ->putJson('/api/settings/iku', [
+            'weights' => ['registration' => 20],
+        ])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('weights');
+});
+
 test('iku quarterly target divides annual target by 4', function () {
     $user = User::factory()->create(['role' => 'admin']);
 
     // Set target for current year using exact keys IkuService expects
     SystemSetting::updateOrCreate(
         ['key' => 'iku.period_mode'],
-        ['value' => 'quarterly']
+        ['value' => 'monthly']
     );
 
     SystemSetting::updateOrCreate(
@@ -376,8 +387,13 @@ test('iku quarterly target divides annual target by 4', function () {
     settings_forget_cache();
 
     $service = app(IkuService::class);
-    $result = $service->computeForCurrentQuarter();
+    $result = $service->computeForPeriod(
+        \Carbon\Carbon::parse(date('Y').'-07-01'),
+        \Carbon\Carbon::parse(date('Y').'-09-30'),
+        'quarterly'
+    );
 
-    // D = target samples. Should be 200 / 4 = 50 for quarterly
+    // The report period, not the dashboard setting, selects the quarterly target.
     expect($result['raw_counts']['D'])->toBe(50);
+    expect($result['weights'])->toBe(IkuService::DEFAULT_WEIGHTS);
 });
