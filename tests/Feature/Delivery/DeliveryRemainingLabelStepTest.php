@@ -354,7 +354,7 @@ it('allows delivery completion without a survey when survey collection is disabl
     createHandoverDocument($request);
 
     $this->actingAs($this->user)
-        ->post(route('delivery.complete', $request))
+        ->post(route('delivery.complete', $request), ['collection_confirmation' => '1'])
         ->assertRedirect()
         ->assertSessionHas('success', 'Penyerahan berhasil diselesaikan. Status permintaan telah diperbarui.');
 
