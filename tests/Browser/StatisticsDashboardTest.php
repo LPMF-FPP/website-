@@ -2,6 +2,9 @@
 
 namespace Tests\Browser;
 
+use App\Models\Investigator;
+use App\Models\Sample;
+use App\Models\TestRequest;
 use App\Models\User;
 use Database\Seeders\PermissionSeeder;
 use Laravel\Dusk\Browser;
@@ -45,6 +48,39 @@ class StatisticsDashboardTest extends DuskTestCase
 
             $this->assertNotSame($light[0]['title'], $dark[0]['title']);
             $this->assertNotSame($light[0]['surface'], $dark[0]['surface']);
+        });
+    }
+
+    public function test_populated_charts_render_and_remain_available_after_theme_changes(): void
+    {
+        $viewer = User::factory()->create(['role' => 'penyelia']);
+        $investigator = Investigator::factory()->create(['jurisdiction' => 'WILAYAH UJI REGRESI']);
+        $request = TestRequest::factory()->create(['investigator_id' => $investigator->id]);
+        Sample::factory()->create(['test_request_id' => $request->id]);
+
+        $this->browse(function (Browser $browser) use ($viewer): void {
+            $browser->loginAs($viewer)
+                ->visit(route('statistics.index'))
+                ->waitFor('#userOriginChart:not(.hidden)')
+                ->waitFor('#monthlyRequestsChart:not(.hidden)')
+                ->waitFor('#monthlySamplesChart:not(.hidden)')
+                ->assertEnabled('[data-chart-export="userOrigin"]')
+                ->assertEnabled('[data-chart-export="monthlyRequests"]')
+                ->assertEnabled('[data-chart-export="monthlySamples"]');
+
+            foreach (['light', 'dark', 'light'] as $theme) {
+                $browser->script('window.__setTheme("'.$theme.'");');
+                $browser->pause(450);
+                $state = $browser->script('return { theme: document.documentElement.classList.contains("dark") ? "dark" : "light", color: charts.userOrigin.options.plugins.legend.labels.color, counts: [charts.userOrigin.data.datasets[0].data[0], charts.monthlyRequests.data.datasets[0].data.reduce((sum, value) => sum + value, 0), charts.monthlySamples.data.datasets[0].data.reduce((sum, value) => sum + value, 0)] };');
+                $this->assertSame($theme, $state[0]['theme']);
+                $this->assertSame($theme === 'dark' ? '#e2e8f0' : '#334155', $state[0]['color']);
+                $this->assertSame([1, 1, 1], $state[0]['counts']);
+                $browser->assertVisible('#userOriginChart')
+                    ->assertVisible('#monthlyRequestsChart')
+                    ->assertVisible('#monthlySamplesChart')
+                    ->assertNotVisible('[data-chart-error="userOrigin"]')
+                    ->assertEnabled('[data-chart-export="userOrigin"]');
+            }
         });
     }
 }

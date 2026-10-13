@@ -353,17 +353,18 @@
             Chart.defaults.plugins.legend.position = 'bottom';
 
             Object.values(charts).forEach((chart) => {
-                chart.options.color = theme.text;
-                Object.values(chart.options.scales || {}).forEach((scale) => {
-                    scale.ticks = { ...scale.ticks, color: theme.text };
-                    scale.grid = { ...scale.grid, color: theme.grid };
+                const options = chart.config.options;
+                options.color = theme.text;
+                Object.values(options.scales || {}).forEach((scale) => {
+                    scale.ticks = scale.ticks || {};
+                    scale.grid = scale.grid || {};
+                    scale.ticks.color = theme.text;
+                    scale.grid.color = theme.grid;
                 });
-                chart.options.plugins = chart.options.plugins || {};
-                chart.options.plugins.legend = chart.options.plugins.legend || {};
-                chart.options.plugins.legend.labels = {
-                    ...chart.options.plugins.legend.labels,
-                    color: theme.text,
-                };
+                options.plugins = options.plugins || {};
+                options.plugins.legend = options.plugins.legend || {};
+                options.plugins.legend.labels = options.plugins.legend.labels || {};
+                options.plugins.legend.labels.color = theme.text;
                 chart.data.datasets.forEach((dataset) => {
                     if (dataset.borderColor === '#ffffff' || dataset.borderColor === '#1e293b') {
                         dataset.borderColor = theme.surface;
