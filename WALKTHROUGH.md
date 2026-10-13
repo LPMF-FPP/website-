@@ -1,4 +1,4 @@
-# WALKTHROUGH - LPMF LIMS v2.6.2
+# WALKTHROUGH - LPMF LIMS v2.7.0
 
 > **Single Source of Truth** — Pedoman terupdate terhadap codebase Laboratory Information Management System.
 
@@ -147,7 +147,27 @@ WhatsApp service berjalan di container Docker terpisah.
 
 ---
 
-## 📰 Recent Changes (v2.6.x)
+## 📰 Recent Changes (v2.7.x / v2.6.x)
+
+### v2.7.0 (13 Oktober 2026) - Inventori Desktop, Pemusnahan Sampel & Statistik
+
+- **Navigasi Inventori:** Tautan dikelompokkan menjadi Ikhtisar, Data, Transaksi, Pemeriksaan, dan Sampel sesuai izin pengguna, dengan dukungan keyboard serta tema terang dan gelap.
+- **Transaksi Stok:** Penerimaan, pengeluaran, transfer, dan disposal bahan memiliki tinjauan sebelum simpan, validasi lokasi dan lot, serta pembatasan jumlah berdasarkan stok tersedia. Perubahan ledger dan saldo diproses secara atomik.
+- **Identitas dan Akses:** Kode barang, identitas lot per barang, arsip master, serta akses lihat dan transaksi untuk lokasi terbatas dikelola secara terpisah. Hak tindakan Inventori tersedia pada pengaturan izin pengguna.
+- **Pencatatan Stok Awal:** Mode mutasi dimulai dalam keadaan nonaktif. Pencatatan stok awal, bukti kesiapan, dan persetujuan independen diperlukan sebelum transaksi rutin dapat diaktifkan. Pemeriksaan stok berkala menggunakan manifest dan snapshot untuk mendeteksi perubahan yang memerlukan hitung ulang.
+- **Integritas PostgreSQL:** Ledger bersifat append-only, saldo dan bentuk transaksi dilindungi constraint, serta tersedia pemeriksaan integritas dan preflight untuk data legacy. Data yang tidak memenuhi prasyarat menghentikan migrasi tanpa penggabungan otomatis.
+- **Pemusnahan Sampel:** Alur terpisah mempertahankan aturan retensi, manifest yang ditinjau, otorisasi, dan audit. Bukti foto menggunakan akses privat, dengan perintah pemindahan dan rekonsiliasi untuk file legacy.
+- **Statistik:** Dashboard memisahkan status memuat, kosong, dan gagal, menyediakan retry dan ringkasan grafik aksesibel, serta mengikuti tema aplikasi. Tab mengikuti URL; akses membutuhkan `statistik.view`, sedangkan laporan dan unduh PNG membutuhkan `statistik.export`.
+- **Target Kinerja:** Target bulanan dan tahunan dipusatkan pada konfigurasi Statistik dan digunakan pula dalam laporan gabungan.
+- **WhatsApp/GOWA:** Pemeriksaan versi upstream memiliki refresh dan alasan penghalang pembaruan. Pengiriman ulang notifikasi penyerahan dengan status tidak pasti memerlukan konfirmasi verifikasi penerima dan dicatat sebagai pengiriman baru.
+- **Referensi Commit:** `b6c6717540d630b78ccd12af9cc1f83bb1d20b60` — perubahan Inventori, pemusnahan sampel, Statistik, WhatsApp/GOWA, dan verifikasi rilis.
+
+### v2.6.7 (25 September 2026) - Perbaikan Identitas Sahli & Urutan Penyidik
+
+- **Identitas Saksi Ahli:** Nama tersangka eksternal dan fallback identitas Farmapol ditampilkan pada pengajuan Sahli; deskripsi fisik menggunakan data LHU.
+- **Pencarian dan Filter:** Pencarian nama tersangka tidak membedakan huruf besar dan kecil, disertai filter bulan dan aksi salin nomor LHU.
+- **Form Permintaan:** Daftar penyidik diurutkan menurut pangkat kepolisian agar pemilihan lebih mudah.
+- **Referensi Commit:** `85aaf89`, `7a0c8c9`, `013b644`, `40b1eaa`, `92ff14a`, `016a451`, `f52e0de`, dan `6d445d4`.
 
 ### v2.6.6 (8 September 2026) - Edit Data Pengajuan Saksi Ahli
 
