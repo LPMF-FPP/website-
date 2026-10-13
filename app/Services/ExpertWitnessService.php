@@ -186,6 +186,8 @@ class ExpertWitnessService
                 return [
                     'lhu_number' => $lhuNumber,
                     'sample_code' => $sample->sample_code,
+                    'batch_number' => $sample->batch_number,
+                    'expiry_date' => $sample->expiry_date?->format('d-m-Y'),
                     'description' => $sample->physical_identification
                         ?: ($sample->short_description ?: $sample->sample_description),
                     'result' => $available

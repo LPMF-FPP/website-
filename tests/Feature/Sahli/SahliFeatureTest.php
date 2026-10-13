@@ -83,6 +83,8 @@ class SahliFeatureTest extends TestCase
             'test_request_id' => $testRequest->id,
             'sample_code' => 'SAMP-001',
             'physical_identification' => 'Deskripsi fisik pada LHU',
+            'batch_number' => 'BATCH-UJI-001',
+            'expiry_date' => '2027-12-31',
         ]);
         $sample->testProcesses()->create([
             'stage' => 'interpretation',
@@ -127,6 +129,13 @@ class SahliFeatureTest extends TestCase
 
         $this->assertArrayHasKey('LHU-001', $references);
         $this->assertSame('SAMP-001', $references['LHU-001'][0]['sample_code']);
+        $this->assertSame('BATCH-UJI-001', $references['LHU-001'][0]['batch_number']);
+        $this->assertSame('31-12-2027', $references['LHU-001'][0]['expiry_date']);
+        Livewire::actingAs($user)->test(Show::class, ['expertWitnessRequest' => $sahli])
+            ->assertSee('Nomor batch')
+            ->assertSee('BATCH-UJI-001')
+            ->assertSee('Tanggal kedaluwarsa')
+            ->assertSee('31-12-2027');
         $this->assertSame('Deskripsi fisik pada LHU', $references['LHU-001'][0]['description']);
         $this->assertSame('Positif mengandung zat uji', $references['LHU-001'][0]['result']);
         $this->assertArrayNotHasKey('LHU-OTHER', $references);

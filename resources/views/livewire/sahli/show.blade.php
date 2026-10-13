@@ -81,12 +81,12 @@
                                     @foreach($samples as $sampleIndex => $sample)
                                         <div class="border-b border-primary-100 py-4 last:border-b-0 dark:border-accent-700">
                                             <div class="grid gap-4 sm:grid-cols-2">
-                                                @foreach([['Kode sampel', $sample['sample_code'], 'code'], ['Deskripsi sampel', $sample['description'], 'description'], ['Hasil pengujian', $sample['result'], 'result']] as [$label, $value, $field])
+                                                @foreach([['Kode sampel', $sample['sample_code'], 'code'], ['Nomor batch', $sample['batch_number'], 'batch'], ['Tanggal kedaluwarsa', $sample['expiry_date'], 'expiry'], ['Deskripsi sampel', $sample['description'], 'description'], ['Hasil pengujian', $sample['result'], 'result']] as [$label, $value, $field])
                                                     @php($key = md5($lhu.'-'.$sampleIndex.'-'.$field))
                                                     <div class="min-w-0 {{ $field === 'description' ? 'sm:col-span-2' : '' }}">
                                                         <p class="text-xs font-semibold text-pd-text-muted">{{ $label }}</p>
                                                         <div class="mt-1 flex min-w-0 items-start gap-2">
-                                                            <p class="min-w-0 flex-1 break-words text-sm font-medium text-pd-text">{{ $value ?: 'Belum tersedia sebagai hasil resmi' }}</p>
+                                                            <p class="min-w-0 flex-1 break-words text-sm font-medium text-pd-text">{{ $value ?: ($field === 'result' ? 'Belum tersedia sebagai hasil resmi' : 'Belum diisi') }}</p>
                                                             @if($value)
                                                                 <button type="button" x-on:click="copyValue(@js($value), '{{ $key }}')" class="inline-flex min-h-10 shrink-0 items-center rounded-md border border-gray-300 px-2.5 text-xs font-semibold text-gray-700 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 dark:border-accent-600 dark:text-gray-100 dark:hover:bg-accent-800" aria-label="Salin {{ strtolower($label) }}"><span x-text="copied === '{{ $key }}' ? 'Tersalin' : 'Salin'"></span></button>
                                                                 <span x-show="copied === 'failed-{{ $key }}'" class="text-xs text-danger-700" role="alert">Pilih nilai lalu salin.</span>
