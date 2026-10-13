@@ -128,7 +128,72 @@ class SahliFeatureTest extends TestCase
         $this->assertArrayHasKey('LHU-001', $references);
         $this->assertSame('SAMP-001', $references['LHU-001'][0]['sample_code']);
         $this->assertSame('Deskripsi fisik pada LHU', $references['LHU-001'][0]['description']);
+        $this->assertSame('Positif mengandung zat uji', $references['LHU-001'][0]['result']);
         $this->assertArrayNotHasKey('LHU-OTHER', $references);
+    }
+
+    public function test_farmapol_reference_displays_published_interpretation_without_a_test_result_record(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        foreach (['positive' => 'Positif', 'negative' => 'Negatif'] as $status => $label) {
+            $request = TestRequest::factory()->create();
+            $sample = Sample::factory()->create(['test_request_id' => $request->id]);
+            $sample->testProcesses()->create([
+                'stage' => 'interpretation',
+                'completed_at' => now(),
+                'metadata' => ['lhu_number' => 'LHU-'.$sample->id, 'test_result' => $status, 'detected_substance' => 'Zat uji resmi'],
+            ]);
+            Document::factory()->generated()->create([
+                'test_request_id' => $request->id,
+                'sample_id' => $sample->id,
+                'document_type' => 'laporan_hasil_uji',
+            ]);
+            $sahli = ExpertWitnessRequest::factory()->create([
+                'source' => ExpertWitnessRequest::SOURCE_FARMAPOL,
+                'test_request_id' => $request->id,
+            ]);
+
+            $references = app(ExpertWitnessService::class)->farmapolReferences($sahli);
+            $this->assertNull($sample->testResult);
+            $this->assertTrue($references['LHU-'.$sample->id][0]['available']);
+            $this->assertSame($label.' — Zat uji resmi', $references['LHU-'.$sample->id][0]['result']);
+            Livewire::actingAs($admin)->test(Show::class, ['expertWitnessRequest' => $sahli])
+                ->assertSee($label.' — Zat uji resmi');
+        }
+    }
+
+    public function test_farmapol_reference_does_not_publish_draft_or_unlinked_interpretation_results(): void
+    {
+        $request = TestRequest::factory()->create();
+        $otherRequest = TestRequest::factory()->create();
+        $sahli = ExpertWitnessRequest::factory()->create([
+            'source' => ExpertWitnessRequest::SOURCE_FARMAPOL,
+            'test_request_id' => $request->id,
+        ]);
+
+        foreach (['draft', 'missing_document', 'other_request_document'] as $scenario) {
+            $sample = Sample::factory()->create(['test_request_id' => $request->id]);
+            $sample->testProcesses()->create([
+                'stage' => 'interpretation',
+                'completed_at' => $scenario === 'draft' ? null : now(),
+                'metadata' => ['lhu_number' => 'LHU-'.$sample->id, 'test_result' => 'positive', 'detected_substance' => 'Zat belum resmi'],
+            ]);
+            if ($scenario !== 'missing_document') {
+                Document::factory()->generated()->create([
+                    'test_request_id' => $scenario === 'other_request_document' ? $otherRequest->id : $request->id,
+                    'sample_id' => $sample->id,
+                    'document_type' => 'laporan_hasil_uji',
+                ]);
+            }
+        }
+
+        $references = collect(app(ExpertWitnessService::class)->farmapolReferences($sahli))->flatten(1);
+        $this->assertCount(3, $references);
+        foreach ($references as $reference) {
+            $this->assertFalse($reference['available']);
+            $this->assertNull($reference['result']);
+        }
     }
 
     public function test_milestone_completion_marks_request_complete_only_after_all_five_steps(): void

@@ -188,12 +188,33 @@ class ExpertWitnessService
                     'sample_code' => $sample->sample_code,
                     'description' => $sample->physical_identification
                         ?: ($sample->short_description ?: $sample->sample_description),
-                    'result' => $available ? ($sample->testResult?->test_conclusion ?: $sample->testResult?->result_status) : null,
+                    'result' => $available
+                        ? ($sample->testResult?->test_conclusion ?: $sample->testResult?->result_status ?: $this->interpretationResult($metadata))
+                        : null,
                     'available' => $available,
                     'lhu_document_id' => $lhuDocument?->id,
                 ];
             })
             ->groupBy(fn (array $reference): string => $reference['lhu_number'] ?: 'LHU belum tersedia')
             ->toArray();
+    }
+
+    private function interpretationResult(array $metadata): ?string
+    {
+        $label = match ($metadata['test_result'] ?? null) {
+            'positive' => 'Positif',
+            'negative' => 'Negatif',
+            default => null,
+        };
+
+        if ($label === null) {
+            return null;
+        }
+
+        $substance = is_string($metadata['detected_substance'] ?? null)
+            ? trim($metadata['detected_substance'])
+            : '';
+
+        return $substance !== '' ? $label.' — '.$substance : $label;
     }
 }
