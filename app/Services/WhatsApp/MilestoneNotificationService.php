@@ -21,9 +21,10 @@ class MilestoneNotificationService
         string $recipientJid,
         string $recipientName,
         string $message,
-        bool $forceNewDelivery = false
+        bool $forceNewDelivery = false,
+        bool $recipientVerifiedAfterUnknown = false
     ): WhatsappOutbox {
-        return DB::transaction(function () use ($testRequestId, $milestone, $phone, $recipientJid, $recipientName, $message, $forceNewDelivery): WhatsappOutbox {
+        return DB::transaction(function () use ($testRequestId, $milestone, $phone, $recipientJid, $recipientName, $message, $forceNewDelivery, $recipientVerifiedAfterUnknown): WhatsappOutbox {
             $attributes = [
                 'test_request_id' => $testRequestId,
                 'milestone_key' => $milestone,
@@ -51,6 +52,7 @@ class MilestoneNotificationService
 
             $messageLog = $this->latestMessageLogFor($outbox);
             $createsSuccessor = false;
+            $verifiedUnknownStatus = false;
             if ($forceNewDelivery && $messageLog !== null) {
                 if ($this->isInFlight($messageLog)) {
                     $this->syncOutbox($outbox, $messageLog);
@@ -59,7 +61,12 @@ class MilestoneNotificationService
                 }
 
                 if ($messageLog->status === WhatsAppMessageLog::STATUS_UNKNOWN) {
-                    throw new \LogicException('Status pengiriman sebelumnya tidak pasti. Verifikasi penerima sebelum membuat pengiriman baru.');
+                    if (! $recipientVerifiedAfterUnknown) {
+                        throw new \LogicException('Status pengiriman sebelumnya tidak pasti. Verifikasi penerima sebelum membuat pengiriman baru.');
+                    }
+
+                    $createsSuccessor = true;
+                    $verifiedUnknownStatus = true;
                 }
 
                 if ($messageLog->status === WhatsAppMessageLog::STATUS_FAILED) {
@@ -89,7 +96,7 @@ class MilestoneNotificationService
             }
 
             if ($createNewDelivery || $messageLog !== null) {
-                $this->queueExisting($outbox, $recipientName, $messageLog, $createsSuccessor);
+                $this->queueExisting($outbox, $recipientName, $messageLog, $createsSuccessor, $verifiedUnknownStatus);
             }
 
             return $outbox->fresh();
@@ -100,7 +107,8 @@ class MilestoneNotificationService
         WhatsappOutbox $outbox,
         ?string $recipientName = null,
         ?WhatsAppMessageLog $messageLog = null,
-        bool $forceNewDelivery = false
+        bool $forceNewDelivery = false,
+        bool $recipientVerifiedAfterUnknown = false
     ): WhatsAppMessageLog {
         $existing = $messageLog ?? $this->latestMessageLogFor($outbox);
         if (! $forceNewDelivery && $existing !== null) {
@@ -117,7 +125,7 @@ class MilestoneNotificationService
                 'recipient_type' => str_ends_with((string) $outbox->to_jid, '@g.us') ? 'group' : 'individual',
                 'source_type' => WhatsappOutbox::class,
                 'source_id' => $outbox->id,
-                'source_label' => $this->sourceLabel((string) $outbox->milestone_key),
+                'source_label' => $this->sourceLabel((string) $outbox->milestone_key).($recipientVerifiedAfterUnknown ? ' (pengiriman baru setelah verifikasi penerima)' : ''),
                 'idempotency_key' => $forceNewDelivery
                     ? 'whatsapp-outbox:'.$outbox->id.':'.Str::uuid()
                     : 'whatsapp-outbox:'.$outbox->id,

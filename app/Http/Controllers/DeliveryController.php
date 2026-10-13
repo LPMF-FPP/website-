@@ -270,6 +270,14 @@ class DeliveryController extends Controller
             ->latest()
             ->first();
 
+        $lastNotificationLog = $lastNotification
+            ? \App\Models\WhatsAppMessageLog::query()
+                ->where('source_type', \App\Models\WhatsappOutbox::class)
+                ->where('source_id', $lastNotification->id)
+                ->latest('id')
+                ->first()
+            : null;
+
         $waNotificationSent = $lastNotification !== null;
 
         $survey = $request->customerSurvey;
@@ -316,6 +324,7 @@ class DeliveryController extends Controller
             'request' => $request,
             'delivery' => $delivery,
             'lastNotification' => $lastNotification,
+            'notificationStatusUnknown' => $lastNotificationLog?->status === \App\Models\WhatsAppMessageLog::STATUS_UNKNOWN,
             'stepper' => $stepper,
 
             'stages' => [
@@ -709,7 +718,8 @@ class DeliveryController extends Controller
                 $jid,
                 (string) $request->investigator->name,
                 $message,
-                forceNewDelivery: true
+                forceNewDelivery: true,
+                recipientVerifiedAfterUnknown: request()->boolean('recipient_verified_after_unknown')
             );
         } catch (\LogicException $exception) {
             return back()->with('error', $exception->getMessage());

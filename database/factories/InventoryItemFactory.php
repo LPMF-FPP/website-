@@ -17,6 +17,7 @@ class InventoryItemFactory extends Factory
     public function definition(): array
     {
         return [
+            'item_code' => strtoupper(fake()->unique()->bothify('ITM-####??')),
             'item_type' => fake()->randomElement(array_keys(\App\Models\InventoryItem::ITEM_TYPES)),
             'name' => fake()->unique()->words(3, true),
             'brand' => fake()->company(),
@@ -28,7 +29,6 @@ class InventoryItemFactory extends Factory
             'hazard_class' => fake()->optional()->word(),
             'storage_condition' => fake()->randomElement(array_keys(\App\Models\InventoryItem::STORAGE_CONDITIONS)),
             'min_stock' => fake()->numberBetween(1, 100),
-            'is_active' => true,
         ];
     }
 }

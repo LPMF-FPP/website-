@@ -157,7 +157,7 @@
                                             </a>
                                             @endcan
 
-                                            @can('inventori.view')
+                                            @if(auth()->user()?->hasPermission('inventori.view'))
                                             <a href="{{ route('inventory.dashboard') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/30 transition duration-150">
                                                 <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-amber-100 text-amber-600 dark:bg-amber-900/50 dark:text-amber-400">
                                                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
@@ -167,8 +167,11 @@
                                                     <p class="text-sm text-gray-500 dark:text-gray-400">Manajemen stok reagen</p>
                                                 </div>
                                             </a>
-                                            @endcan
+                                            @endif
 
+                                            @if(auth()->user()?->hasPermission('sample-disposal.view'))
+                                                <a href="{{ route('inventory.disposal.index') }}" class="group flex min-h-11 items-center rounded-lg p-3 -m-3 text-sm font-medium semantic-text hover:bg-primary-50 dark:hover:bg-slate-800">Pemusnahan Sampel</a>
+                                            @endif
                                             @can('qmh.view')
                                             <a href="{{ route('quality.index') }}" class="group flex items-start p-3 -m-3 rounded-lg hover:bg-teal-50 dark:hover:bg-teal-900/30 transition duration-150 {{ request()->routeIs('quality.*') ? 'bg-teal-50 dark:bg-teal-900/20 rounded-lg' : '' }}">
                                                 <div class="shrink-0 flex items-center justify-center h-10 w-10 rounded-md bg-teal-100 text-teal-600 dark:bg-teal-900/50 dark:text-teal-400">
@@ -390,9 +393,12 @@
                              @can('sahli.view')
                              <x-responsive-nav-link href="{{ route('sahli.index') }}" :active="request()->routeIs('sahli.*')">Saksi Ahli</x-responsive-nav-link>
                              @endcan
-                            @can('inventori.view')
+                            @if(auth()->user()?->hasPermission('inventori.view'))
                             <x-responsive-nav-link href="{{ route('inventory.dashboard') }}" :active="request()->routeIs('inventory.*')">Inventori</x-responsive-nav-link>
-                            @endcan
+                            @endif
+                            @if(auth()->user()?->hasPermission('sample-disposal.view'))
+                                <x-responsive-nav-link href="{{ route('inventory.disposal.index') }}" :active="request()->routeIs('inventory.disposal.*')">Pemusnahan Sampel</x-responsive-nav-link>
+                            @endif
                             @can('qmh.view')
                             <x-responsive-nav-link href="{{ route('quality.index') }}" :active="request()->routeIs('quality.*')">Dashboard QMH</x-responsive-nav-link>
                             @endcan

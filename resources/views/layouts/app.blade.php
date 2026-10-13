@@ -53,6 +53,9 @@
                     <div class="container mx-auto max-w-7xl py-4 px-4 sm:px-6 lg:px-8">
                         {{ $header }}
                     </div>
+                    @if(request()->routeIs('inventory.*'))
+                        @include('components.inventory.navigation')
+                    @endif
                 </header>
             @endisset
         @endif

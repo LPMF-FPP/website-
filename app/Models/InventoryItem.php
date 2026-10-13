@@ -5,12 +5,23 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use RuntimeException;
 
 class InventoryItem extends Model
 {
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        static::deleting(function (self $item): void {
+            if ($item->hasHistoricalRecords()) {
+                throw new RuntimeException('Item dengan riwayat stok, lot, mutasi, atau audit tidak dapat dihapus. Arsipkan item.');
+            }
+        });
+    }
+
     protected $fillable = [
+        'item_code',
         'item_type',
         'name',
         'brand',
@@ -22,7 +33,6 @@ class InventoryItem extends Model
         'hazard_class',
         'storage_condition',
         'min_stock',
-        'is_active',
     ];
 
     protected $casts = [
@@ -57,9 +67,28 @@ class InventoryItem extends Model
         return $this->hasMany(InventoryMovement::class, 'item_id');
     }
 
+    public function identityEvents(): HasMany
+    {
+        return $this->hasMany(InventoryItemIdentityEvent::class, 'inventory_item_id');
+    }
+
+    public function lifecycleEvents(): HasMany
+    {
+        return $this->hasMany(InventoryItemLifecycleEvent::class, 'inventory_item_id');
+    }
+
     public function balances(): HasMany
     {
         return $this->hasMany(InventoryBalance::class, 'item_id');
+    }
+
+    public function hasHistoricalRecords(): bool
+    {
+        return $this->balances()->exists()
+            || $this->lots()->exists()
+            || $this->movements()->exists()
+            || $this->identityEvents()->exists()
+            || $this->lifecycleEvents()->exists();
     }
 
     /**
@@ -75,6 +104,10 @@ class InventoryItem extends Model
      */
     public function getTotalOnHandAttribute(): float
     {
+        if ($this->relationLoaded('balances')) {
+            return (float) $this->balances->sum('on_hand_qty');
+        }
+
         return (float) $this->balances()->sum('on_hand_qty');
     }
 

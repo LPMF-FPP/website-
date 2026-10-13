@@ -43,7 +43,7 @@ final class GowaUpdateController extends Controller
     public function check(): JsonResponse
     {
         try {
-            $data = $this->releaseChecker->check();
+            $data = $this->releaseChecker->check(true);
         } catch (ConnectionException|RuntimeException) {
             return response()->json([
                 'message' => 'Pemeriksaan pembaruan gagal. Coba lagi beberapa saat.',
@@ -72,7 +72,7 @@ final class GowaUpdateController extends Controller
         } catch (RuntimeException $exception) {
             $code = $this->safeCode($exception->getMessage());
 
-            return response()->json(['message' => 'Pembaruan GOWA belum dapat dimulai.', 'code' => $code], $code === 'privileged_runner_unavailable' ? 503 : 409);
+            return response()->json(['message' => 'Pembaruan GOWA belum dapat dimulai.', 'code' => $code], in_array($code, ['privileged_runner_unavailable', 'upstream_release_unavailable'], true) ? 503 : 409);
         }
 
         return response()->json(['data' => $operation->safeProjection(), 'message' => 'Pembaruan GOWA masuk antrean.'], 202);
@@ -114,8 +114,8 @@ final class GowaUpdateController extends Controller
     private function safeCode(string $code): string
     {
         return in_array($code, [
-            'release_not_allowed', 'update_already_active', 'idempotency_payload_mismatch',
-            'privileged_runner_unavailable', 'runtime_evidence_unavailable', 'operation_not_retryable',
+            'release_not_allowed', 'release_not_latest', 'upstream_release_unavailable', 'update_already_active', 'idempotency_payload_mismatch',
+            'privileged_runner_unavailable', 'runtime_evidence_unavailable', 'preparation_not_ready', 'operation_not_retryable',
         ], true) ? $code : 'update_unavailable';
     }
 }

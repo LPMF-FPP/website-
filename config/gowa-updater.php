@@ -3,6 +3,7 @@
 return [
     'enabled' => (bool) env('GOWA_UPDATER_ENABLED', false),
     'no_socket_gate' => (bool) env('GOWA_UPDATER_NO_SOCKET_GATE', false),
+    'preparation_ready' => false,
     'catalog_path' => env('GOWA_UPDATER_CATALOG_PATH', '/etc/lpmf/gowa-updater/catalog.json'),
     'catalog_public_key_path' => env('GOWA_UPDATER_CATALOG_PUBLIC_KEY_PATH', '/etc/lpmf/gowa-updater/catalog.pub'),
     'submit_helper' => env('GOWA_UPDATER_SUBMIT_HELPER', '/usr/local/sbin/lpmf-gowa-submit'),

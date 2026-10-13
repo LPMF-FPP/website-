@@ -587,7 +587,7 @@ class ConsolidatedReportService
                     'total' => collect($monthlySamples)->sum('samples'),
                     'target' => [
                         'yearly' => 200,
-                        'monthly_average' => round(200 / 12, 1),
+                        'monthly_average' => round((int) config('statistics.targets.annual_samples', 200) / 12, 1),
                     ],
                 ],
             ],
@@ -638,7 +638,7 @@ class ConsolidatedReportService
     private function getMonthlySamplesAppendix(Carbon $end): array
     {
         $rows = [];
-        $monthlyTarget = round(200 / 12, 1);
+        $monthlyTarget = round((int) config('statistics.targets.annual_samples', 200) / 12, 1);
 
         for ($i = 11; $i >= 0; $i--) {
             $date = $end->copy()->startOfMonth()->subMonths($i);

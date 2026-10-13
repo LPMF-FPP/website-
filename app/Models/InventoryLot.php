@@ -33,6 +33,16 @@ class InventoryLot extends Model
         'DISPOSED' => 'Dibuang',
     ];
 
+    public static function canonicalLotNumber(string $lotNumber): string
+    {
+        return trim($lotNumber, ' ');
+    }
+
+    public static function canonicalLotNumberSql(): string
+    {
+        return "BTRIM(lot_no, ' ')";
+    }
+
     public function item(): BelongsTo
     {
         return $this->belongsTo(InventoryItem::class, 'item_id');

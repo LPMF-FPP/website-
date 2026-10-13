@@ -5,9 +5,10 @@ import test from 'node:test';
 const overview = fs.readFileSync(new URL('../../resources/views/whatsapp/partials/tab-overview.blade.php', import.meta.url), 'utf8');
 const hub = fs.readFileSync(new URL('../../resources/views/whatsapp/index.blade.php', import.meta.url), 'utf8');
 
-test('GOWA update controls require explicit confirmation and server capability flags', () => {
-    assert.match(overview, /:disabled="!selectedGowaRelease \|\| !gowaUpdateConfirmed/);
-    assert.match(overview, /!overviewData\.gowa_update\.can_request/);
+test('GOWA overview explains operational blockers and does not offer install before preparation is ready', () => {
+    assert.match(overview, /gowaAvailabilityMessage\(overviewData\.gowa_update\.reason\)/);
+    assert.match(overview, /Persiapan paket otomatis belum tersedia/);
+    assert.doesNotMatch(overview, /Instal pembaruan/);
     assert.match(overview, /!overviewData\.gowa_update\.can_retry/);
 });
 
@@ -19,19 +20,19 @@ test('Overview polls the operation detail endpoint by UUID with a bounded interv
     assert.match(hub, /operation\?\.id !== operationId/);
 });
 
-test('browser update payload contains no credentials or shell inputs', () => {
-    const requestBlock = hub.slice(hub.indexOf('async requestGowaUpdate()'), hub.indexOf('async retryGowaUpdate()'));
-    assert.match(requestBlock, /release_id: this\.selectedGowaRelease/);
-    assert.match(requestBlock, /action_uuid: crypto\.randomUUID\(\)/);
-    assert.doesNotMatch(requestBlock, /password|secret|docker|command|Authorization/i);
+test('browser only performs a read-only check until preparation is available', () => {
+    assert.match(hub, /async checkGowaUpdate\(\)/);
+    assert.match(hub, /updates\.check/);
+    assert.doesNotMatch(hub, /async requestGowaUpdate\(\)/);
+    assert.doesNotMatch(hub, /updates\.request/);
 });
 
 test('Overview exposes a read-only upstream update check with explicit result states', () => {
     assert.match(overview, /@click="checkGowaUpdate\(\)"/);
     assert.match(hub, /async checkGowaUpdate\(\)/);
     assert.match(hub, /updates\.check/);
-    assert.match(overview, /gowaUpdateChecking \? 'Memeriksa GitHub/);
-    assert.match(overview, /catalog_version_match/);
-    assert.match(overview, /comparison_status === 'runtime_stale'/);
-    assert.match(overview, /comparison_status === 'current_version_unknown'/);
+    assert.match(overview, /gowaUpdateChecking \? 'Memeriksa rilis/);
+    assert.match(overview, /blocked_reason === 'runtime_stale'/);
+    assert.match(overview, /blocked_reason === 'current_version_unknown'/);
+    assert.match(overview, /blocked_reason === 'release_not_approved'/);
 });

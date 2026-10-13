@@ -3,6 +3,7 @@
 namespace Tests\Feature\Inventory;
 
 use App\Models\User;
+use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -10,9 +11,16 @@ class DashboardIndexTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->seed(PermissionSeeder::class);
+    }
+
     public function test_low_stock_items_have_trend_data()
     {
         $user = User::factory()->create();
+        $user->grantPermission('inventori.view');
 
         // Create item with low stock
         $item = \App\Models\InventoryItem::factory()->create([
@@ -23,6 +31,7 @@ class DashboardIndexTest extends TestCase
         // Balance 0
         \App\Models\InventoryBalance::factory()->create([
             'item_id' => $item->id,
+            'location_id' => \App\Models\InventoryLocation::factory()->create(['is_restricted' => false])->id,
             'on_hand_qty' => 0,
         ]);
 
@@ -30,6 +39,7 @@ class DashboardIndexTest extends TestCase
         // 10 * 2 = 20. Usage = 25
         \App\Models\InventoryMovement::factory()->create([
             'item_id' => $item->id,
+            'from_location_id' => \App\Models\InventoryLocation::factory()->create(['is_restricted' => false])->id,
             'movement_type' => 'ISSUE',
             'qty' => 25,
             'uom' => 'PCS',
@@ -51,8 +61,9 @@ class DashboardIndexTest extends TestCase
     public function test_ajax_overview_eager_loads_relations()
     {
         $user = User::factory()->create();
+        $user->grantPermission('inventori.view');
         $item = \App\Models\InventoryItem::factory()->create();
-        $location = \App\Models\InventoryLocation::factory()->create(['name' => 'Loc A']);
+        $location = \App\Models\InventoryLocation::factory()->create(['name' => 'Loc A', 'is_restricted' => false]);
         $lot = \App\Models\InventoryLot::factory()->create(['item_id' => $item->id, 'expiry_date' => now()->addDays(10), 'status' => 'ACTIVE']);
 
         \App\Models\InventoryBalance::factory()->create([

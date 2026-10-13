@@ -233,4 +233,43 @@ class ReadyForPickupNotificationTest extends TestCase
         $this->assertSame($outbox->id, $newLog->source_id);
         Queue::assertPushed(SendPersistedWhatsAppMessage::class, 1);
     }
+
+    public function test_unknown_pickup_notification_requires_recipient_confirmation_before_a_new_envelope(): void
+    {
+        Queue::fake();
+
+        /** @var User $user */
+        $user = User::factory()->createOne(['role' => 'admin']);
+        $investigator = Investigator::factory()->create(['phone' => '08123456789']);
+        $testRequest = TestRequest::factory()->create([
+            'investigator_id' => $investigator->id,
+            'status' => 'ready_for_delivery',
+        ]);
+
+        $this->actingAs($user)->post(route('delivery.send-notification', $testRequest))->assertSessionHas('success');
+
+        $messageLog = WhatsAppMessageLog::query()->firstOrFail();
+        $messageLog->update(['status' => WhatsAppMessageLog::STATUS_UNKNOWN]);
+
+        $this->actingAs($user)
+            ->get(route('delivery.show', $testRequest))
+            ->assertOk()
+            ->assertSee('Saya sudah menghubungi penerima dan memastikan notifikasi sebelumnya belum diterima.');
+
+        $this->actingAs($user)
+            ->post(route('delivery.send-notification', $testRequest))
+            ->assertSessionHas('error', 'Status pengiriman sebelumnya tidak pasti. Verifikasi penerima sebelum membuat pengiriman baru.');
+
+        $this->assertDatabaseCount('whatsapp_message_logs', 1);
+
+        $this->actingAs($user)
+            ->post(route('delivery.send-notification', $testRequest), ['recipient_verified_after_unknown' => '1'])
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseCount('whatsapp_message_logs', 2);
+        $successor = WhatsAppMessageLog::query()->latest('id')->firstOrFail();
+        $this->assertSame(WhatsAppMessageLog::STATUS_PENDING, $successor->status);
+        $this->assertSame('Notifikasi siap diambil (pengiriman baru setelah verifikasi penerima)', $successor->source_label);
+        Queue::assertPushed(SendPersistedWhatsAppMessage::class, 2);
+    }
 }

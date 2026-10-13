@@ -4,6 +4,7 @@ namespace App\Services\WhatsApp\Commands;
 
 use App\Models\InventoryItem;
 use App\Models\InventoryLocation;
+use App\Models\InventoryLotTrackingPolicy;
 use App\Models\User;
 use App\Services\InventoryMovementService;
 use App\Services\WhatsApp\WhitelistService;
@@ -36,24 +37,30 @@ class StockTransactionCommand
                 $stok = $item->balances_sum_on_hand_qty ?? 0;
                 $response .= "• {$item->name}: {$stok} {$item->uom}\n";
             }
-            $response .= "\nKetik `/stok {masuk/keluar} {nama} {jml}` untuk transaksi.";
+            $response .= "\nKetik `/stok masuk untracked {nama} {jml}` atau `/stok keluar untracked {nama} {jml}` untuk item tanpa lot.";
 
             return $response;
         }
 
-        if (count($params) < 3) {
-            return "⚠️ Format salah.\nGunakan: /stok {masuk/keluar} {nama_barang} {jumlah}\nContoh: /stok masuk alkohol 5";
-        }
-
         $type = strtolower($params[0]);
-        $itemName = $params[1];
-        $qty = floatval($params[2]);
-
         if (! in_array($type, ['masuk', 'keluar', 'in', 'out'])) {
             return "⚠️ Tipe transaksi harus 'masuk' atau 'keluar'.";
         }
 
         $isIn = in_array($type, ['masuk', 'in']);
+        if ($isIn) {
+            if (count($params) < 4 || strtolower($params[1]) !== 'untracked') {
+                return 'Penerimaan lewat WhatsApp hanya tersedia dengan mode lot eksplisit `untracked`. Gunakan: /stok masuk untracked {nama_barang} {jumlah}. Untuk lot-tracked, gunakan formulir Penerimaan Stok.';
+            }
+            $itemName = $params[2];
+            $qty = floatval($params[3]);
+        } else {
+            if (count($params) < 4 || strtolower($params[1]) !== 'untracked') {
+                return 'Pengeluaran lewat WhatsApp hanya tersedia dengan mode lot eksplisit `untracked`. Gunakan: /stok keluar untracked {nama_barang} {jumlah}. Untuk lot-tracked, gunakan formulir Pengeluaran Stok.';
+            }
+            $itemName = $params[2];
+            $qty = floatval($params[3]);
+        }
 
         $needle = strtolower($itemName);
 
@@ -68,6 +75,25 @@ class StockTransactionCommand
 
         $fromPhone = $this->whitelistService->normalizePhoneNumber($fromJid);
         $performedBy = $this->resolvePerformedByUserId($fromPhone);
+        $actor = $performedBy === null ? null : User::query()->find($performedBy);
+
+        if (! $actor || ! $actor->is_active) {
+            return '⚠️ Akun aplikasi untuk nomor ini tidak aktif atau tidak dapat diverifikasi.';
+        }
+
+        $policy = InventoryLotTrackingPolicy::query()->where('item_type', $item->item_type)->first();
+        if (! $policy
+            || ! in_array($policy->lot_tracking_mode, [InventoryLotTrackingPolicy::LOT_TRACKED, InventoryLotTrackingPolicy::UNTRACKED], true)
+            || trim((string) $policy->evidence_reference) === ''
+            || $policy->decided_by_user_id === null
+            || $policy->decided_at === null) {
+            return 'Kebijakan lot item belum disetujui; hubungi administrator inventori.';
+        }
+        if ($policy->lot_tracking_mode === InventoryLotTrackingPolicy::LOT_TRACKED) {
+            return $isIn
+                ? 'Penerimaan lot-tracked harus memakai formulir Penerimaan Stok agar lot dipilih secara eksplisit.'
+                : 'Pengeluaran lot-tracked harus memakai formulir Pengeluaran Stok agar satu lot dipilih secara eksplisit.';
+        }
 
         try {
             $locationId = $this->resolveLocationId($item->id, $isIn);
@@ -81,25 +107,27 @@ class StockTransactionCommand
                 $movement = $this->movementService->receipt([
                     'item_id' => $item->id,
                     'lot_id' => null,
+                    'lot_mode' => 'untracked',
                     'location_id' => $locationId,
                     'qty' => $qty,
                     'uom' => $item->uom,
                     'reference_type' => 'MANUAL',
-                    'performed_by' => $performedBy,
+                    'performed_by' => $actor->id,
                     'notes' => $notes,
-                ]);
+                ], $actor);
                 $action = 'Penerimaan';
             } else {
                 $movement = $this->movementService->issue([
                     'item_id' => $item->id,
                     'lot_id' => null,
+                    'lot_mode' => 'untracked',
                     'location_id' => $locationId,
                     'qty' => $qty,
                     'uom' => $item->uom,
                     'reference_type' => 'MANUAL',
-                    'performed_by' => $performedBy,
+                    'performed_by' => $actor->id,
                     'notes' => $notes,
-                ]);
+                ], $actor);
                 $action = 'Pengeluaran';
             }
 

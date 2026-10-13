@@ -8,7 +8,7 @@
     <div class="space-y-4">
         @foreach($lowStockItems->take(5) as $item)
             <x-bullet-graph
-                :label="$item->name"
+                :label="($item->item_code ?? 'Kode belum ditetapkan') . ' · ' . $item->name"
                 :actual="$item->total_on_hand"
                 :min="$item->min_stock"
                 :uom="$item->uom"

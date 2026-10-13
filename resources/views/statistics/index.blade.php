@@ -1,103 +1,114 @@
 <x-app-layout>
     <x-slot name="header">
         <x-page-header
-            title="📊 Statistik dan Rekap Data"
+            title="Statistik dan rekap data"
+            class="statistics-page-header"
             :breadcrumbs="[[ 'label' => 'Statistik' ]]"
         />
     </x-slot>
 
-    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6" x-data="{
-        activeTab: new URLSearchParams(window.location.search).get('tab') || 'dashboard',
-        loading: false,
+    <div class="statistics-dashboard space-y-6" x-data="{
+        activeTab: @js($activeTab),
+        canExport: @js($canExportStatistics),
+        popStateListener: null,
+        init() {
+            this.popStateListener = () => {
+                const requestedTab = new URLSearchParams(window.location.search).get('tab');
+                this.activeTab = requestedTab === 'reports' && this.canExport ? 'reports' : 'dashboard';
+                if (this.activeTab === 'dashboard') window.dispatchEvent(new Event('statistics:dashboard-selected'));
+            };
+            window.addEventListener('popstate', this.popStateListener);
+        },
+        destroy() {
+            window.removeEventListener('popstate', this.popStateListener);
+        },
         switchTab(tab) {
+            if (tab === 'reports' && !this.canExport) return;
             this.activeTab = tab;
             const url = new URL(window.location);
             url.searchParams.set('tab', tab);
             window.history.pushState({}, '', url);
+            if (tab === 'dashboard') window.dispatchEvent(new Event('statistics:dashboard-selected'));
         }
     }">
 
         <!-- Tab Navigation -->
-        <div class="border-b border-gray-200 bg-white rounded-t-lg px-4 pt-4">
-            <nav class="-mb-px flex space-x-8" aria-label="Tabs">
-                <button @click="switchTab('dashboard')"
-                    :class="activeTab === 'dashboard'
-                        ? 'border-indigo-500 text-indigo-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                    class="group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm">
-                    <svg class="-ml-0.5 mr-2 h-5 w-5" :class="activeTab === 'dashboard' ? 'text-indigo-500' : 'text-gray-400 group-hover:text-gray-500'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div class="statistics-tabs inline-flex flex-wrap gap-1 rounded-lg border border-sem semantic-surface p-1" role="group" aria-label="Tampilan statistik">
+                <button type="button" @click="switchTab('dashboard')" :aria-pressed="activeTab === 'dashboard'"
+                    :class="activeTab === 'dashboard' ? 'bg-primary-800 text-white dark:bg-primary-300 dark:text-slate-900' : 'text-gray-700 hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-700'"
+                    class="inline-flex min-h-11 items-center rounded-md px-4 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-700 focus-visible:ring-offset-2 dark:focus-visible:ring-primary-300 dark:focus-visible:ring-offset-slate-900">
+                    <svg aria-hidden="true" class="-ml-0.5 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
-                    <span>Dashboard</span>
+                    <span>Ringkasan</span>
                 </button>
 
-@can('statistik.export')
-                <button @click="switchTab('reports')"
-                    :class="activeTab === 'reports'
-                        ? 'border-indigo-500 text-indigo-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
-                    class="group inline-flex items-center py-4 px-1 border-b-2 font-medium text-sm">
-                    <svg class="-ml-0.5 mr-2 h-5 w-5" :class="activeTab === 'reports' ? 'text-indigo-500' : 'text-gray-400 group-hover:text-gray-500'" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+@if($canExportStatistics)
+                <button type="button" @click="switchTab('reports')" :aria-pressed="activeTab === 'reports'"
+                    :class="activeTab === 'reports' ? 'bg-primary-800 text-white dark:bg-primary-300 dark:text-slate-900' : 'text-gray-700 hover:bg-gray-100 dark:text-slate-200 dark:hover:bg-slate-700'"
+                    class="inline-flex min-h-11 items-center rounded-md px-4 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-700 focus-visible:ring-offset-2 dark:focus-visible:ring-primary-300 dark:focus-visible:ring-offset-slate-900">
+                    <svg aria-hidden="true" class="-ml-0.5 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     <span>Laporan Periodik</span>
                 </button>
-                @endcan
-            </nav>
+                @endif
         </div>
 
         <!-- Dashboard Content -->
-        <div x-show="activeTab === 'dashboard'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0">
+        <div id="statistics-dashboard-panel" x-show="activeTab === 'dashboard'" role="region" aria-label="Ringkasan statistik">
             
             <div class="space-y-6">
                 <!-- Summary Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                        <div class="p-6">
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                    <div class="rounded-lg border border-sem semantic-surface p-5">
+                        <div>
                             <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-green-500 text-white">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="text-primary-800 dark:text-primary-300">
+                                    <svg aria-hidden="true" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                                     </svg>
                                 </div>
                                 <div class="ml-4">
-                                    <p class="text-sm font-medium text-gray-600">Permintaan Bulan Ini</p>
-                                    <p class="text-2xl font-semibold text-gray-900">{{ $requests_this_month }}</p>
+                                    <p class="text-sm font-medium text-gray-700 dark:text-slate-300">Permintaan bulan ini</p>
+                                    <p class="text-2xl font-semibold tabular-nums text-gray-900 dark:text-slate-100">{{ $requests_this_month }}</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                        <div class="p-6">
+                    <div class="rounded-lg border border-sem semantic-surface p-5">
+                        <div>
                             <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-yellow-500 text-white">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="text-primary-800 dark:text-primary-300">
+                                    <svg aria-hidden="true" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 7.172V5L8 4z"></path>
                                     </svg>
                                 </div>
                                 <div class="ml-4">
-                                    <p class="text-sm font-medium text-gray-600">Sampel Tahun Ini</p>
-                                    <p class="text-2xl font-semibold text-gray-900">{{ $samples_this_year }}</p>
-                                    <p class="text-xs text-gray-500">Target IKU: 200/tahun</p>
+                                    <p class="text-sm font-medium text-gray-700 dark:text-slate-300">Sampel tahun ini</p>
+                                    <p class="text-2xl font-semibold tabular-nums text-gray-900 dark:text-slate-100">{{ $samples_this_year }}</p>
+                                    <p class="text-xs text-gray-600 dark:text-slate-300">Acuan IKU: {{ config('statistics.targets.annual_samples') }} per tahun</p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                        <div class="p-6">
+                    <div class="rounded-lg border border-sem semantic-surface p-5">
+                        <div>
                             <div class="flex items-center">
-                                <div class="p-3 rounded-full bg-red-500 text-white">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div class="text-primary-800 dark:text-primary-300">
+                                    <svg aria-hidden="true" class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>
                                     </svg>
                                 </div>
                                 <div class="ml-4">
-                                    <p class="text-sm font-medium text-gray-600">Zat Aktif Terdeteksi</p>
-                                    <p class="text-2xl font-semibold text-gray-900">{{ $active_substances_detected }}</p>
-                                    @if ($activeSubstanceBreakdown['fallback'] ?? false)
-                                        <p class="text-xs text-yellow-600 mt-1">Menampilkan data simulasi karena belum ada input permintaan.</p>
+                                    <p class="text-sm font-medium text-gray-700 dark:text-slate-300">Zat aktif terdeteksi</p>
+                                    <p class="text-2xl font-semibold tabular-nums text-gray-900 dark:text-slate-100">{{ $active_substances_detected }}</p>
+                                    @if(($activeSubstanceBreakdown['fallback'] ?? false) && ! empty($activeSubstanceBreakdown['labels']))
+                                        <p class="mt-1 text-xs text-gray-600 dark:text-slate-300">Menampilkan data contoh, bukan hasil permintaan aktual.</p>
+                                    @elseif(empty($activeSubstanceBreakdown['labels']))
+                                        <p class="mt-1 text-xs text-gray-600 dark:text-slate-300">Belum ada data zat aktif tercatat.</p>
                                     @endif
                                 </div>
                             </div>
@@ -105,200 +116,171 @@
                     </div>
                 </div>
 
-                <!-- Charts Grid with Responsive Layout -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <template x-if="loading">
-                        <div class="md:col-span-2 lg:col-span-3">
-                            <x-skeleton-table :columns="3" :rows="6" />
+                <!-- Charts -->
+                <div class="grid grid-cols-1 gap-6 xl:grid-cols-2">
+                    <section class="rounded-lg border border-sem semantic-surface p-5" aria-labelledby="user-origin-title">
+                        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                        <h3 id="user-origin-title" class="text-lg font-semibold semantic-text">Permintaan menurut wilayah penyidik</h3>
+                            @if($canExportStatistics)
+                                <button type="button" data-chart-export="userOrigin" disabled onclick="exportChart('user_origin')" aria-label="Unduh grafik wilayah penyidik dalam format PNG" class="btn btn-outline min-h-11 px-3 text-sm dark:border-primary-300 dark:text-primary-300 dark:hover:bg-slate-700 dark:focus:ring-primary-300 disabled:cursor-not-allowed disabled:opacity-60">Unduh PNG</button>
+                            @endif
                         </div>
-                    </template>
+                        <div class="relative flex min-h-[320px] items-center justify-center">
+                            <canvas id="userOriginChart" class="hidden" role="img" aria-label="Diagram permintaan menurut wilayah penyidik" aria-describedby="userOriginChartSummary"></canvas>
+                            <p id="userOriginChartSummary" class="sr-only"></p>
+                            <p data-chart-loading="userOrigin" role="status" aria-live="polite" class="text-sm semantic-text-muted">Memuat data wilayah penyidik.</p>
+                            <p data-chart-empty="userOrigin" role="status" aria-live="polite" class="hidden text-center text-sm semantic-text-muted">Belum ada permintaan dengan data wilayah penyidik.</p>
+                            <div data-chart-error="userOrigin" role="alert" aria-live="assertive" class="inventory-status-danger hidden rounded-md p-3 text-sm"><span data-chart-error-text>Grafik wilayah penyidik gagal dimuat.</span> <button type="button" onclick="refreshCharts()" class="ml-2 min-h-11 font-semibold underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-800 dark:focus-visible:ring-red-300">Coba lagi</button></div>
+                        </div>
+                    </section>
 
-                    <!-- 1. Asal User (Pie Chart) -->
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg h-full">
-                        <div class="p-6 flex flex-col h-full">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-lg font-semibold text-gray-900">🏢 Asal User</h3>
-                                <button onclick="exportChart('user_origin')"
-                                        class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
-                                    📥 Export
-                                </button>
-                            </div>
-                            <div class="relative flex-1 min-h-[400px]">
-                                <canvas id="userOriginChart"></canvas>
-                                <p data-chart-error="userOrigin" class="mt-4 text-sm text-red-600 text-center hidden">
-                                    Data tidak dapat dimuat. Silakan coba lagi.
-                                </p>
-                            </div>
+                    <section class="rounded-lg border border-sem semantic-surface p-5" aria-labelledby="active-substances-title">
+                        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                            <h3 id="active-substances-title" class="text-lg font-semibold semantic-text">Jenis zat aktif</h3>
+                            @if($canExportStatistics)
+                                <button type="button" data-chart-export="activeSubstances" disabled onclick="exportChart('active_substances')" aria-label="Unduh grafik zat aktif dalam format PNG" class="btn btn-outline min-h-11 px-3 text-sm dark:border-primary-300 dark:text-primary-300 dark:hover:bg-slate-700 dark:focus:ring-primary-300 disabled:cursor-not-allowed disabled:opacity-60">Unduh PNG</button>
+                            @endif
                         </div>
-                    </div>
+                        <div class="relative flex min-h-[320px] items-center justify-center">
+                            <canvas id="activeSubstancesChart" class="hidden" role="img" aria-label="Diagram jenis zat aktif yang tercatat" aria-describedby="activeSubstancesChartSummary"></canvas>
+                            <p id="activeSubstancesChartSummary" class="sr-only"></p>
+                            <p data-chart-loading="activeSubstances" role="status" aria-live="polite" class="text-sm semantic-text-muted">Memuat data zat aktif.</p>
+                            <p data-chart-empty="activeSubstances" role="status" aria-live="polite" class="hidden text-center text-sm semantic-text-muted">Belum ada catatan zat aktif dari permintaan atau hasil pengujian.</p>
+                            <div data-chart-error="activeSubstances" role="alert" aria-live="assertive" class="inventory-status-danger hidden rounded-md p-3 text-sm"><span data-chart-error-text>Grafik zat aktif gagal dimuat.</span> <button type="button" onclick="refreshCharts()" class="ml-2 min-h-11 font-semibold underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-800 dark:focus-visible:ring-red-300">Coba lagi</button></div>
+                        </div>
+                        <p id="topActiveSubstancesText" role="status" aria-live="polite" class="mt-3 text-center text-sm semantic-text-muted"></p>
+                        <p id="activeSubstancesSource" class="mt-1 hidden text-center text-xs semantic-text-muted">Sumber: catatan zat aktif pada sampel atau hasil pengujian.</p>
+                    </section>
 
-                    <!-- 2. Zat Aktif (Doughnut Chart) -->
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg h-full">
-                        <div class="p-6 flex flex-col h-full">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-lg font-semibold text-gray-900">🧪 Jenis Zat Aktif</h3>
-                                <button onclick="exportChart('active_substances')"
-                                        class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
-                                    📥 Export
-                                </button>
-                            </div>
-                            <div class="relative flex-1 min-h-[400px]">
-                                <canvas id="activeSubstancesChart"></canvas>
-                                <p data-chart-error="activeSubstances" class="mt-4 text-sm text-red-600 text-center hidden">
-                                    Data tidak dapat dimuat. Silakan coba lagi.
-                                </p>
-                            </div>
-                            <div class="mt-4 text-center text-sm text-gray-600">
-                                <p id="topActiveSubstancesText">Memuat data zat aktif...</p>
-                                <p id="activeSubstancesSource" class="text-xs text-gray-400 mt-1 hidden">Sumber: data permintaan pengujian terbaru.</p>
-                                <p id="activeSubstancesFallback" class="text-xs text-yellow-600 mt-2 hidden">Menampilkan data simulasi karena belum ada input baru.</p>
-                            </div>
+                    <section class="rounded-lg border border-sem semantic-surface p-5" aria-labelledby="suspect-gender-title">
+                        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                            <h3 id="suspect-gender-title" class="text-lg font-semibold semantic-text">Jenis kelamin tersangka</h3>
+                            @if($canExportStatistics)
+                                <button type="button" data-chart-export="suspectGender" disabled onclick="exportChart('suspect_gender')" aria-label="Unduh grafik jenis kelamin tersangka dalam format PNG" class="btn btn-outline min-h-11 px-3 text-sm dark:border-primary-300 dark:text-primary-300 dark:hover:bg-slate-700 dark:focus:ring-primary-300 disabled:cursor-not-allowed disabled:opacity-60">Unduh PNG</button>
+                            @endif
                         </div>
-                    </div>
+                        <div class="relative flex min-h-[320px] items-center justify-center">
+                            <canvas id="suspectGenderChart" class="hidden" role="img" aria-label="Diagram jenis kelamin tersangka" aria-describedby="suspectGenderChartSummary"></canvas>
+                            <p id="suspectGenderChartSummary" class="sr-only"></p>
+                            <p data-chart-loading="suspectGender" role="status" aria-live="polite" class="text-sm semantic-text-muted">Memuat data jenis kelamin.</p>
+                            <p data-chart-empty="suspectGender" role="status" aria-live="polite" class="hidden text-center text-sm semantic-text-muted">Belum ada data jenis kelamin pada permintaan.</p>
+                            <div data-chart-error="suspectGender" role="alert" aria-live="assertive" class="inventory-status-danger hidden rounded-md p-3 text-sm"><span data-chart-error-text>Grafik jenis kelamin gagal dimuat.</span> <button type="button" onclick="refreshCharts()" class="ml-2 min-h-11 font-semibold underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-800 dark:focus-visible:ring-red-300">Coba lagi</button></div>
+                        </div>
+                    </section>
 
-                    <!-- 3. Gender Tersangka (Pie Chart) -->
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg h-full">
-                        <div class="p-6 flex flex-col h-full">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-lg font-semibold text-gray-900">👥 Gender Tersangka</h3>
-                                <button onclick="exportChart('suspect_gender')"
-                                        class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
-                                    📥 Export
-                                </button>
-                            </div>
-                            <div class="relative flex-1 min-h-[400px]">
-                                <canvas id="suspectGenderChart"></canvas>
-                                <p data-chart-error="suspectGender" class="mt-4 text-sm text-red-600 text-center hidden">
-                                    Data tidak dapat dimuat. Silakan coba lagi.
-                                </p>
-                            </div>
+                    <section class="rounded-lg border border-sem semantic-surface p-5" aria-labelledby="suspect-age-title">
+                        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                            <h3 id="suspect-age-title" class="text-lg font-semibold semantic-text">Rentang umur tersangka</h3>
+                            @if($canExportStatistics)
+                                <button type="button" data-chart-export="suspectAge" disabled onclick="exportChart('suspect_age')" aria-label="Unduh grafik rentang umur tersangka dalam format PNG" class="btn btn-outline min-h-11 px-3 text-sm dark:border-primary-300 dark:text-primary-300 dark:hover:bg-slate-700 dark:focus:ring-primary-300 disabled:cursor-not-allowed disabled:opacity-60">Unduh PNG</button>
+                            @endif
                         </div>
-                    </div>
+                        <div class="relative flex min-h-[320px] items-center justify-center">
+                            <canvas id="suspectAgeChart" class="hidden" role="img" aria-label="Diagram rentang umur tersangka" aria-describedby="suspectAgeChartSummary"></canvas>
+                            <p id="suspectAgeChartSummary" class="sr-only"></p>
+                            <p data-chart-loading="suspectAge" role="status" aria-live="polite" class="text-sm semantic-text-muted">Memuat data umur.</p>
+                            <p data-chart-empty="suspectAge" role="status" aria-live="polite" class="hidden text-center text-sm semantic-text-muted">Belum ada data umur pada permintaan.</p>
+                            <div data-chart-error="suspectAge" role="alert" aria-live="assertive" class="inventory-status-danger hidden rounded-md p-3 text-sm"><span data-chart-error-text>Grafik rentang umur gagal dimuat.</span> <button type="button" onclick="refreshCharts()" class="ml-2 min-h-11 font-semibold underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-800 dark:focus-visible:ring-red-300">Coba lagi</button></div>
+                        </div>
+                    </section>
 
-                    <!-- 4. Umur Tersangka (Bar Chart) -->
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg h-full">
-                        <div class="p-6 flex flex-col h-full">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-lg font-semibold text-gray-900">📊 Rentang Umur Tersangka</h3>
-                                <button onclick="exportChart('suspect_age')"
-                                        class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
-                                    📥 Export
-                                </button>
-                            </div>
-                            <div class="relative flex-1 min-h-[400px]">
-                                <canvas id="suspectAgeChart"></canvas>
-                                <p data-chart-error="suspectAge" class="mt-4 text-sm text-red-600 text-center hidden">
-                                    Data tidak dapat dimuat. Silakan coba lagi.
-                                </p>
-                            </div>
+                    <section class="rounded-lg border border-sem semantic-surface p-5 xl:col-span-2" aria-labelledby="monthly-requests-title">
+                        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                            <h3 id="monthly-requests-title" class="text-lg font-semibold semantic-text">Permintaan per bulan</h3>
+                            @if($canExportStatistics)
+                                <button type="button" data-chart-export="monthlyRequests" disabled onclick="exportChart('monthly_requests')" aria-label="Unduh grafik permintaan bulanan dalam format PNG" class="btn btn-outline min-h-11 px-3 text-sm dark:border-primary-300 dark:text-primary-300 dark:hover:bg-slate-700 dark:focus:ring-primary-300 disabled:cursor-not-allowed disabled:opacity-60">Unduh PNG</button>
+                            @endif
                         </div>
-                    </div>
+                        <div class="relative flex min-h-[320px] items-center justify-center">
+                            <canvas id="monthlyRequestsChart" class="hidden" role="img" aria-label="Grafik permintaan masuk dan selesai per bulan" aria-describedby="monthlyRequestsChartSummary"></canvas>
+                            <p id="monthlyRequestsChartSummary" class="sr-only"></p>
+                            <p data-chart-loading="monthlyRequests" role="status" aria-live="polite" class="text-sm semantic-text-muted">Memuat tren permintaan bulanan.</p>
+                            <p data-chart-empty="monthlyRequests" role="status" aria-live="polite" class="hidden text-center text-sm semantic-text-muted">Belum ada permintaan pada periode grafik.</p>
+                            <div data-chart-error="monthlyRequests" role="alert" aria-live="assertive" class="inventory-status-danger hidden rounded-md p-3 text-sm"><span data-chart-error-text>Grafik permintaan bulanan gagal dimuat.</span> <button type="button" onclick="refreshCharts()" class="ml-2 min-h-11 font-semibold underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-800 dark:focus-visible:ring-red-300">Coba lagi</button></div>
+                        </div>
+                    </section>
 
-                    <!-- 5. Permintaan per Bulan (Line Chart) -->
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg h-full">
-                        <div class="p-6 flex flex-col h-full">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-lg font-semibold text-gray-900">📈 Permintaan per Bulan</h3>
-                                <button onclick="exportChart('monthly_requests')"
-                                        class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
-                                    📥 Export
-                                </button>
+                    <section class="rounded-lg border border-sem semantic-surface p-5 xl:col-span-2" aria-labelledby="monthly-samples-title">
+                        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <h3 id="monthly-samples-title" class="text-lg font-semibold semantic-text">Sampel dibanding target IKU</h3>
+                                <p id="currentProgress" role="status" aria-live="polite" class="mt-1 text-sm semantic-text-muted">Memuat progres sampel.</p>
                             </div>
-                            <div class="relative flex-1 min-h-[400px]">
-                                <canvas id="monthlyRequestsChart"></canvas>
-                                <p data-chart-error="monthlyRequests" class="mt-4 text-sm text-red-600 text-center hidden">
-                                    Data tidak dapat dimuat. Silakan coba lagi.
-                                </p>
-                            </div>
+                            @if($canExportStatistics)
+                                <button type="button" data-chart-export="monthlySamples" disabled onclick="exportChart('monthly_samples')" aria-label="Unduh grafik sampel bulanan dalam format PNG" class="btn btn-outline min-h-11 px-3 text-sm dark:border-primary-300 dark:text-primary-300 dark:hover:bg-slate-700 dark:focus:ring-primary-300 disabled:cursor-not-allowed disabled:opacity-60">Unduh PNG</button>
+                            @endif
                         </div>
-                    </div>
-
-                    <!-- 6. Sampel per Bulan vs Target IKU -->
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg h-full">
-                        <div class="p-6 flex flex-col h-full">
-                            <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-lg font-semibold text-gray-900">📊 Sampel vs Target IKU</h3>
-                                <button onclick="exportChart('monthly_samples')"
-                                        class="text-sm bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded">
-                                    📥 Export
-                                </button>
-                            </div>
-                            <div class="relative flex-1 min-h-[400px]">
-                                <canvas id="monthlySamplesChart"></canvas>
-                                <p data-chart-error="monthlySamples" class="mt-4 text-sm text-red-600 text-center hidden">
-                                    Data tidak dapat dimuat. Silakan coba lagi.
-                                </p>
-                            </div>
-                            <div class="mt-4 bg-blue-50 p-4 rounded-lg">
-                                <h4 class="font-medium text-blue-900 mb-2">📋 Informasi IKU</h4>
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-blue-800 text-sm">
-                                    <div>
-                                        <strong>Target Tahunan:</strong> 200 sampel
-                                    </div>
-                                    <div>
-                                        <strong>Rata-rata:</strong> 16.7 sampel/bulan
-                                    </div>
-                                    <div id="samplesProgress">
-                                        <strong>Progress:</strong> <span id="currentProgress">Loading...</span>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="relative flex min-h-[320px] items-center justify-center">
+                            <canvas id="monthlySamplesChart" class="hidden" role="img" aria-label="Grafik jumlah sampel per bulan dibanding target" aria-describedby="monthlySamplesChartSummary"></canvas>
+                            <p id="monthlySamplesChartSummary" class="sr-only"></p>
+                            <p data-chart-loading="monthlySamples" role="status" aria-live="polite" class="text-sm semantic-text-muted">Memuat tren sampel bulanan.</p>
+                            <p data-chart-empty="monthlySamples" role="status" aria-live="polite" class="hidden text-center text-sm semantic-text-muted">Belum ada sampel tercatat pada periode grafik.</p>
+                            <div data-chart-error="monthlySamples" role="alert" aria-live="assertive" class="inventory-status-danger hidden rounded-md p-3 text-sm"><span data-chart-error-text>Grafik sampel bulanan gagal dimuat.</span> <button type="button" onclick="refreshCharts()" class="ml-2 min-h-11 font-semibold underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-800 dark:focus-visible:ring-red-300">Coba lagi</button></div>
                         </div>
-                    </div>
+                    </section>
                 </div>
 
                 <!-- Data Summary Table -->
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">📋 Ringkasan Data</h3>
+                @php
+                    $monthlyRequestsTarget = (int) config('statistics.targets.monthly_requests', 32);
+                    $annualSamplesTarget = (int) config('statistics.targets.annual_samples', 200);
+                    $requestStatus = $requests_this_month === 0
+                        ? 'Belum ada permintaan'
+                        : ($requests_this_month >= $monthlyRequestsTarget ? 'Target tercapai' : 'Di bawah acuan');
+                    $sampleStatus = $samples_this_year === 0
+                        ? 'Belum ada sampel'
+                        : ($samples_this_year >= $annualSamplesTarget ? 'Target tercapai' : 'Di bawah acuan');
+                @endphp
+                <section class="rounded-lg border border-sem semantic-surface p-5" aria-labelledby="statistics-summary-title">
+                        <h3 id="statistics-summary-title" class="mb-4 text-lg font-semibold semantic-text">Ringkasan data</h3>
                         <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50">
+                            <table class="min-w-full divide-y semantic-border semantic-text">
+                                <caption class="sr-only">Ringkasan permintaan pengujian dan sampel, bulan dan tahun berjalan</caption>
+                                <thead class="semantic-bg text-left text-xs font-semibold uppercase tracking-wide semantic-text-muted">
                                     <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bulan Ini</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tahun Ini</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Target/Rata-rata</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th scope="col" class="px-4 py-3">Kategori</th>
+                                        <th scope="col" class="px-4 py-3 text-right">Bulan ini</th>
+                                        <th scope="col" class="px-4 py-3 text-right">Tahun ini</th>
+                                        <th scope="col" class="px-4 py-3">Acuan</th>
+                                        <th scope="col" class="px-4 py-3">Status</th>
                                     </tr>
                                 </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
+                                <tbody class="divide-y semantic-border">
                                     <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Permintaan Pengujian</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $requests_this_month }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ \App\Models\TestRequest::whereYear('created_at', now()->year)->count() }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">32/bulan</td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-{{ $requests_this_month >= 32 ? 'green' : 'yellow' }}-100 text-{{ $requests_this_month >= 32 ? 'green' : 'yellow' }}-800">
-                                                {{ $requests_this_month >= 32 ? 'Di Atas Target' : 'Normal' }}
+                                        <th scope="row" class="px-4 py-3 text-left text-sm font-medium">Permintaan pengujian</th>
+                                        <td class="px-4 py-3 text-right tabular-nums">{{ $requests_this_month }}</td>
+                                        <td class="px-4 py-3 text-right tabular-nums">{{ $requests_this_year }}</td>
+                                        <td class="px-4 py-3">{{ $monthlyRequestsTarget }} per bulan</td>
+                                        <td class="px-4 py-3">
+                                            <span class="{{ $requests_this_month >= $monthlyRequestsTarget && $requests_this_month > 0 ? 'inventory-status-success' : ($requests_this_month === 0 ? 'inventory-status-neutral' : 'inventory-status-warning') }} inline-flex rounded px-2 py-1 text-xs font-semibold">
+                                                {{ $requestStatus }}
                                             </span>
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">Jumlah Sampel</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ \App\Models\Sample::whereYear('created_at', now()->year)->whereMonth('created_at', now()->month)->count() }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $samples_this_year }}</td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">200/tahun (IKU)</td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-{{ $samples_this_year >= 160 ? 'green' : 'yellow' }}-100 text-{{ $samples_this_year >= 160 ? 'green' : 'yellow' }}-800">
-                                                {{ $samples_this_year >= 160 ? 'Mendekati Target' : 'Perlu Peningkatan' }}
+                                        <th scope="row" class="px-4 py-3 text-left text-sm font-medium">Sampel</th>
+                                        <td class="px-4 py-3 text-right tabular-nums">{{ $samples_this_month }}</td>
+                                        <td class="px-4 py-3 text-right tabular-nums">{{ $samples_this_year }}</td>
+                                        <td class="px-4 py-3">{{ $annualSamplesTarget }} per tahun, IKU</td>
+                                        <td class="px-4 py-3">
+                                            <span class="{{ $samples_this_year >= $annualSamplesTarget && $samples_this_year > 0 ? 'inventory-status-success' : ($samples_this_year === 0 ? 'inventory-status-neutral' : 'inventory-status-warning') }} inline-flex rounded px-2 py-1 text-xs font-semibold">
+                                                {{ $sampleStatus }}
                                             </span>
                                         </td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-                </div>
+                </section>
             </div>
         </div>
 
         <!-- Consolidated Reports Tab Content -->
-        @can('statistik.export')
-        <div x-show="activeTab === 'reports'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" style="display: none;">
+        @if($canExportStatistics)
+        <div id="statistics-reports-panel" x-show="activeTab === 'reports'" role="region" aria-label="Laporan periodik" style="display: none;">
             @include('statistics.partials.consolidated-form')
         </div>
-        @endcan
+        @endif
 
     </div>
 
@@ -309,43 +291,112 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
 
     <script>
-        Chart.defaults.responsive = true;
-        Chart.defaults.maintainAspectRatio = false;
-        Chart.defaults.plugins.legend.position = 'bottom';
+        const charts = {};
+        let chartsLoaded = false;
+        const chartCanvasIds = {
+            userOrigin: 'userOriginChart',
+            activeSubstances: 'activeSubstancesChart',
+            suspectGender: 'suspectGenderChart',
+            suspectAge: 'suspectAgeChart',
+            monthlyRequests: 'monthlyRequestsChart',
+            monthlySamples: 'monthlySamplesChart',
+        };
 
-        let charts = {};
+        function statisticsChartColors() {
+            const dark = document.documentElement.classList.contains('dark')
+                || document.documentElement.dataset.theme === 'dark';
 
-        function hideChartError(chartKey) {
-            const element = document.querySelector(`[data-chart-error="${chartKey}"]`);
-            if (element) {
-                element.classList.add('hidden');
-            }
+            return {
+                text: dark ? '#e2e8f0' : '#334155',
+                grid: dark ? 'rgba(148, 163, 184, 0.2)' : 'rgba(100, 116, 139, 0.2)',
+                surface: dark ? '#1e293b' : '#ffffff',
+            };
         }
 
-        function showChartError(chartKey, message) {
-            const element = document.querySelector(`[data-chart-error="${chartKey}"]`);
-            if (element) {
-                element.textContent = message;
-                element.classList.remove('hidden');
+        function setChartState(chartKey, state, message = '') {
+            const canvas = document.getElementById(chartCanvasIds[chartKey]);
+            const exportButton = document.querySelector(`[data-chart-export="${chartKey}"]`);
+            if (state !== 'ready' && charts[chartKey]) {
+                charts[chartKey].destroy();
+                delete charts[chartKey];
             }
+            if (state !== 'ready') {
+                const summary = document.getElementById(`${chartCanvasIds[chartKey]}Summary`);
+                if (summary) summary.textContent = '';
+            }
+            canvas?.classList.toggle('hidden', state !== 'ready');
+
+            ['loading', 'empty', 'error'].forEach((stateName) => {
+                const element = document.querySelector(`[data-chart-${stateName}="${chartKey}"]`);
+                if (!element) return;
+                element.classList.toggle('hidden', state !== stateName);
+                const messageElement = element.querySelector('[data-chart-error-text]');
+                if (state === stateName && message && messageElement) messageElement.textContent = message;
+            });
+
+            if (exportButton) exportButton.disabled = state !== 'ready';
+            if (state === 'ready') applyStatisticsChartTheme();
         }
+
+        function setChartSummary(chartKey, summaryText) {
+            const summary = document.getElementById(`${chartCanvasIds[chartKey]}Summary`);
+            if (summary) summary.textContent = summaryText;
+        }
+
+        function applyStatisticsChartTheme() {
+            if (typeof Chart === 'undefined') return;
+            const theme = statisticsChartColors();
+            Chart.defaults.color = theme.text;
+            Chart.defaults.borderColor = theme.grid;
+            Chart.defaults.responsive = true;
+            Chart.defaults.maintainAspectRatio = false;
+            Chart.defaults.plugins.legend.position = 'bottom';
+
+            Object.values(charts).forEach((chart) => {
+                chart.options.color = theme.text;
+                Object.values(chart.options.scales || {}).forEach((scale) => {
+                    scale.ticks = { ...scale.ticks, color: theme.text };
+                    scale.grid = { ...scale.grid, color: theme.grid };
+                });
+                chart.options.plugins = chart.options.plugins || {};
+                chart.options.plugins.legend = chart.options.plugins.legend || {};
+                chart.options.plugins.legend.labels = {
+                    ...chart.options.plugins.legend.labels,
+                    color: theme.text,
+                };
+                chart.data.datasets.forEach((dataset) => {
+                    if (dataset.borderColor === '#ffffff' || dataset.borderColor === '#1e293b') {
+                        dataset.borderColor = theme.surface;
+                    }
+                });
+                chart.update('none');
+            });
+        }
+
+        applyStatisticsChartTheme();
+        window.addEventListener('theme:change', applyStatisticsChartTheme);
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Only load charts if dashboard tab is active or when switching to it
             const urlParams = new URLSearchParams(window.location.search);
             const tab = urlParams.get('tab') || 'dashboard';
-            
+
             if (tab === 'dashboard') {
                 loadAllCharts();
             }
-            
-            // Listen for tab changes if using custom events, or just check visibility
-            // Since we're using x-data for tabs, we might need to hook into that or just load them once
-            // For simplicity, we load them on init as before, they are hidden but exist
-            // Optimization: Load only when visible could be better but might need refactoring
         });
+
+        window.addEventListener('statistics:dashboard-selected', loadAllCharts);
         
         function loadAllCharts() {
+            if (chartsLoaded) return;
+            chartsLoaded = true;
+
+            if (typeof Chart === 'undefined') {
+                Object.keys(chartCanvasIds).forEach((chartKey) => setChartState(chartKey, 'error', 'Pustaka grafik gagal dimuat. Muat ulang halaman untuk mencoba kembali.'));
+
+                return;
+            }
+
             loadUserOriginChart();
             loadActiveSubstancesChart();
             loadSuspectGenderChart();
@@ -356,7 +407,7 @@
 
         // 1. User Origin Pie Chart
         function loadUserOriginChart() {
-            hideChartError('userOrigin');
+            setChartState('userOrigin', 'loading');
 
             fetch('{{ route("statistics.data") }}?type=user_origin')
                 .then(response => {
@@ -366,10 +417,12 @@
                     return response.json();
                 })
                 .then(data => {
-                    // Check if data is empty
                     if (!data.labels || data.labels.length === 0) {
-                        throw new Error('No data available');
+                        setChartState('userOrigin', 'empty', 'Belum ada permintaan dengan data wilayah penyidik.');
+
+                        return;
                     }
+                    setChartSummary('userOrigin', `Permintaan menurut wilayah penyidik: ${data.labels.map((label, index) => `${label}, ${data.data[index]} permintaan`).join('; ')}.`);
 
                     const ctx = document.getElementById('userOriginChart').getContext('2d');
 
@@ -385,7 +438,7 @@
                                 data: data.data,
                                 backgroundColor: data.colors,
                                 borderWidth: 2,
-                                borderColor: '#ffffff',
+                                borderColor: statisticsChartColors().surface,
                                 hoverBorderWidth: 4,
                                 hoverOffset: 10
                             }]
@@ -421,8 +474,9 @@
                                 }
                             }
                         },
-                        plugins: [ChartDataLabels]
+                        plugins: typeof ChartDataLabels === 'undefined' ? [] : [ChartDataLabels]
                     });
+                    setChartState('userOrigin', 'ready');
                 })
                 .catch(error => {
                     console.error('Error loading user origin chart:', error);
@@ -432,13 +486,13 @@
                         delete charts.userOrigin;
                     }
 
-                    showChartError('userOrigin', 'Data tidak dapat dimuat. Silakan coba lagi.');
+                    setChartState('userOrigin', 'error', 'Grafik wilayah penyidik gagal dimuat. Coba muat ulang halaman.');
                 });
         }
 
         // 2. Active Substances Doughnut Chart
         function loadActiveSubstancesChart() {
-            hideChartError('activeSubstances');
+            setChartState('activeSubstances', 'loading');
 
             fetch('{{ route("statistics.data") }}?type=active_substances')
                 .then(response => {
@@ -448,13 +502,13 @@
                     return response.json();
                 })
                 .then(data => {
-                    // Check if data is empty
-                    if (!data.labels || data.labels.length === 0) {
-                        throw new Error('No data available');
-                    }
-
-                    // Update the text below chart based on fetched data
                     updateActiveSubstancesText(data);
+                    if (!data.labels || data.labels.length === 0) {
+                        setChartState('activeSubstances', 'empty', 'Belum ada catatan zat aktif dari permintaan atau hasil pengujian.');
+
+                        return;
+                    }
+                    setChartSummary('activeSubstances', `Zat aktif tercatat: ${data.labels.map((label, index) => `${label}, ${data.data[index]} catatan`).join('; ')}.`);
 
                     const ctx = document.getElementById('activeSubstancesChart').getContext('2d');
 
@@ -470,7 +524,7 @@
                                 data: data.data,
                                 backgroundColor: data.colors,
                                 borderWidth: 3,
-                                borderColor: '#ffffff',
+                                borderColor: statisticsChartColors().surface,
                                 hoverBorderWidth: 5,
                                 hoverOffset: 15
                             }]
@@ -484,7 +538,7 @@
                                 tooltip: {
                                     callbacks: {
                                         label: function(context) {
-                                            return context.label + ': ' + context.parsed + ' sampels (' + data.percentages[context.dataIndex] + '%)';
+                                            return context.label + ': ' + context.parsed + ' sampel (' + data.percentages[context.dataIndex] + '%)';
                                         }
                                     }
                                 },
@@ -501,8 +555,9 @@
                                 }
                             }
                         },
-                        plugins: [ChartDataLabels]
+                        plugins: typeof ChartDataLabels === 'undefined' ? [] : [ChartDataLabels]
                     });
+                    setChartState('activeSubstances', 'ready');
                 })
                 .catch(error => {
                     console.error('Error loading active substances chart:', error);
@@ -515,7 +570,7 @@
                     // Update text to show no data
                     updateActiveSubstancesText(null);
 
-                    showChartError('activeSubstances', 'Data tidak dapat dimuat. Silakan coba lagi.');
+                    setChartState('activeSubstances', 'error', 'Grafik zat aktif gagal dimuat. Coba muat ulang halaman.');
                 });
         }
 
@@ -523,14 +578,12 @@
         function updateActiveSubstancesText(data) {
             const textEl = document.getElementById('topActiveSubstancesText');
             const sourceEl = document.getElementById('activeSubstancesSource');
-            const fallbackEl = document.getElementById('activeSubstancesFallback');
 
             if (!textEl) return;
 
             if (!data || !data.labels || data.labels.length === 0) {
-                textEl.textContent = 'Belum ada data zat aktif dari permintaan pengujian.';
+                textEl.textContent = 'Belum ada catatan zat aktif dari permintaan atau hasil pengujian.';
                 if (sourceEl) sourceEl.classList.add('hidden');
-                if (fallbackEl) fallbackEl.classList.add('hidden');
                 return;
             }
 
@@ -539,20 +592,11 @@
             textEl.textContent = 'Zat aktif terbanyak: ' + top3;
 
             if (sourceEl) sourceEl.classList.remove('hidden');
-
-            // Show fallback warning if using fallback data
-            if (fallbackEl) {
-                if (data.fallback) {
-                    fallbackEl.classList.remove('hidden');
-                } else {
-                    fallbackEl.classList.add('hidden');
-                }
-            }
         }
 
         // 3. Suspect Gender Pie Chart
         function loadSuspectGenderChart() {
-            hideChartError('suspectGender');
+            setChartState('suspectGender', 'loading');
 
             fetch('{{ route("statistics.data") }}?type=suspect_gender')
                 .then(response => {
@@ -562,10 +606,12 @@
                     return response.json();
                 })
                 .then(data => {
-                    // Check if data is empty
                     if (!data.labels || data.labels.length === 0) {
-                        throw new Error('No data available');
+                        setChartState('suspectGender', 'empty', 'Belum ada data jenis kelamin pada permintaan.');
+
+                        return;
                     }
+                    setChartSummary('suspectGender', `Jenis kelamin tersangka: ${data.labels.map((label, index) => `${label}, ${data.data[index]} orang`).join('; ')}.`);
 
                     const ctx = document.getElementById('suspectGenderChart').getContext('2d');
 
@@ -581,7 +627,7 @@
                                 data: data.data,
                                 backgroundColor: data.colors,
                                 borderWidth: 2,
-                                borderColor: '#ffffff',
+                                borderColor: statisticsChartColors().surface,
                                 hoverBorderWidth: 4,
                                 hoverOffset: 10
                             }]
@@ -617,8 +663,9 @@
                                 }
                             }
                         },
-                        plugins: [ChartDataLabels]
+                        plugins: typeof ChartDataLabels === 'undefined' ? [] : [ChartDataLabels]
                     });
+                    setChartState('suspectGender', 'ready');
                 })
                 .catch(error => {
                     console.error('Error loading suspect gender chart:', error);
@@ -628,13 +675,13 @@
                         delete charts.suspectGender;
                     }
 
-                    showChartError('suspectGender', 'Data tidak dapat dimuat. Silakan coba lagi.');
+                    setChartState('suspectGender', 'error', 'Grafik jenis kelamin gagal dimuat. Coba muat ulang halaman.');
                 });
         }
 
         // 4. Suspect Age Bar Chart
         function loadSuspectAgeChart() {
-            hideChartError('suspectAge');
+            setChartState('suspectAge', 'loading');
 
             fetch('{{ route("statistics.data") }}?type=suspect_age')
                 .then(response => {
@@ -644,11 +691,13 @@
                     return response.json();
                 })
                 .then(data => {
-                    // Check if data is empty (all zeros)
                     const hasData = data.data && data.data.some(v => v > 0);
                     if (!data.labels || data.labels.length === 0 || !hasData) {
-                        throw new Error('No data available');
+                        setChartState('suspectAge', 'empty', 'Belum ada data umur tersangka pada permintaan.');
+
+                        return;
                     }
+                    setChartSummary('suspectAge', `Rentang umur tersangka: ${data.labels.map((label, index) => `${label} tahun, ${data.data[index]} orang`).join('; ')}.`);
 
                     const ctx = document.getElementById('suspectAgeChart').getContext('2d');
 
@@ -710,7 +759,7 @@
                                 datalabels: {
                                     anchor: 'end',
                                     align: 'top',
-                                    color: '#374151',
+                                    color: statisticsChartColors().text,
                                     font: {
                                         weight: 'bold',
                                         size: 11
@@ -721,8 +770,9 @@
                                 }
                             }
                         },
-                        plugins: [ChartDataLabels]
+                        plugins: typeof ChartDataLabels === 'undefined' ? [] : [ChartDataLabels]
                     });
+                    setChartState('suspectAge', 'ready');
                 })
                 .catch(error => {
                     console.error('Error loading suspect age chart:', error);
@@ -732,13 +782,13 @@
                         delete charts.suspectAge;
                     }
 
-                    showChartError('suspectAge', 'Data tidak dapat dimuat. Silakan coba lagi.');
+                    setChartState('suspectAge', 'error', 'Grafik rentang umur gagal dimuat. Coba muat ulang halaman.');
                 });
         }
 
         // 5. Monthly Requests Line Chart
         function loadMonthlyRequestsChart() {
-            hideChartError('monthlyRequests');
+            setChartState('monthlyRequests', 'loading');
 
             fetch('{{ route("statistics.data") }}?type=monthly_requests')
                 .then(response => {
@@ -748,10 +798,13 @@
                     return response.json();
                 })
                 .then(data => {
-                    // Check if data has valid structure
-                    if (!data.labels || data.labels.length === 0) {
-                        throw new Error('No data available');
+                    const hasRequests = (data.datasets || []).some(dataset => (dataset.data || []).some(value => Number(value) > 0));
+                    if (!data.labels || data.labels.length === 0 || !hasRequests) {
+                        setChartState('monthlyRequests', 'empty', 'Belum ada permintaan tercatat pada periode grafik.');
+
+                        return;
                     }
+                    setChartSummary('monthlyRequests', `Permintaan bulanan: ${data.labels.map((label, index) => `${label}, masuk ${data.datasets[0]?.data[index] ?? 0}, selesai ${data.datasets[1]?.data[index] ?? 0}`).join('; ')}.`);
 
                     const ctx = document.getElementById('monthlyRequestsChart').getContext('2d');
 
@@ -808,6 +861,7 @@
                             }
                         }
                     });
+                    setChartState('monthlyRequests', 'ready');
                 })
                 .catch(error => {
                     console.error('Error loading monthly requests chart:', error);
@@ -817,13 +871,13 @@
                         delete charts.monthlyRequests;
                     }
 
-                    showChartError('monthlyRequests', 'Data tidak dapat dimuat. Silakan coba lagi.');
+                    setChartState('monthlyRequests', 'error', 'Grafik permintaan bulanan gagal dimuat. Coba muat ulang halaman.');
                 });
         }
 
         // 6. Monthly Samples Mixed Chart
         function loadMonthlySamplesChart() {
-            hideChartError('monthlySamples');
+            setChartState('monthlySamples', 'loading');
 
             fetch('{{ route("statistics.data") }}?type=monthly_samples')
                 .then(response => {
@@ -833,25 +887,31 @@
                     return response.json();
                 })
                 .then(data => {
-                    // Check if data has valid structure
                     if (!data.labels || data.labels.length === 0 || !data.datasets || data.datasets.length === 0) {
-                        throw new Error('No data available');
-                    }
+                        setChartState('monthlySamples', 'empty', 'Belum ada data sampel bulanan.');
 
-                    const ctx = document.getElementById('monthlySamplesChart').getContext('2d');
-
-                    if (charts.monthlySamples) {
-                        charts.monthlySamples.destroy();
+                        return;
                     }
 
                     const totalActual = data.datasets[0].data.reduce((a, b) => a + b, 0);
-                    const yearlyTarget = data.targetInfo ? data.targetInfo.yearly_target : 200;
+                    const yearlyTarget = Number(data.targetInfo?.yearly_target || @js(config('statistics.targets.annual_samples')));
+                    const monthlyTarget = Number(data.targetInfo?.monthly_average || (yearlyTarget / 12));
                     const progressPercentage = Math.round((totalActual / yearlyTarget) * 100);
 
                     const progressElement = document.getElementById('currentProgress');
                     if (progressElement) {
-                        progressElement.textContent = `${totalActual}/${yearlyTarget} sampel (${progressPercentage}%)`;
+                        progressElement.textContent = `${totalActual}/${yearlyTarget} sampel (${progressPercentage}%) dari acuan tahunan.`;
                     }
+
+                    if (totalActual === 0) {
+                        setChartState('monthlySamples', 'empty', 'Belum ada sampel tercatat pada periode grafik.');
+
+                        return;
+                    }
+                    setChartSummary('monthlySamples', `Jumlah sampel per bulan: ${data.labels.map((label, index) => `${label}, ${data.datasets[0].data[index] ?? 0} sampel, acuan rata-rata ${monthlyTarget}`).join('; ')}. Total ${totalActual} sampel dari acuan tahunan ${yearlyTarget}.`);
+
+                    const ctx = document.getElementById('monthlySamplesChart').getContext('2d');
+                    if (charts.monthlySamples) charts.monthlySamples.destroy();
 
                     charts.monthlySamples = new Chart(ctx, {
                         type: 'bar',
@@ -860,7 +920,7 @@
                             scales: {
                                 y: {
                                     beginAtZero: true,
-                                    max: 30,
+                                    max: Math.max(30, Math.ceil(Math.max(...data.datasets[0].data, monthlyTarget) * 1.1)),
                                     title: {
                                         display: true,
                                         text: 'Jumlah Sampel per Bulan',
@@ -895,7 +955,6 @@
                                             label += context.parsed.y + ' sampel';
 
                                             if (context.datasetIndex === 0) {
-                                                const monthlyTarget = data.targetInfo ? data.targetInfo.monthly_average : 16.7;
                                                 const difference = context.parsed.y - monthlyTarget;
                                                 const status = difference >= 0 ?
                                                     `(+${difference.toFixed(1)} dari rata-rata)` :
@@ -919,6 +978,7 @@
                             }
                         }
                     });
+                    setChartState('monthlySamples', 'ready');
                 })
                 .catch(error => {
                     console.error('Error loading monthly samples chart:', error);
@@ -928,18 +988,31 @@
                         delete charts.monthlySamples;
                     }
 
-                    showChartError('monthlySamples', 'Data tidak dapat dimuat. Silakan coba lagi.');
+                    setChartState('monthlySamples', 'error', 'Grafik sampel bulanan gagal dimuat. Coba muat ulang halaman.');
 
                     const progressElement = document.getElementById('currentProgress');
                     if (progressElement) {
-                        progressElement.textContent = 'Data tidak tersedia.';
+                        progressElement.textContent = 'Progres sampel tidak dapat dimuat.';
                     }
                 });
         }
 
         function exportChart(type) {
-            const url = '{{ route("statistics.export") }}?type=' + type;
-            window.open(url, '_blank');
+            const chartKeys = {
+                user_origin: 'userOrigin',
+                active_substances: 'activeSubstances',
+                suspect_gender: 'suspectGender',
+                suspect_age: 'suspectAge',
+                monthly_requests: 'monthlyRequests',
+                monthly_samples: 'monthlySamples',
+            };
+            const chart = charts[chartKeys[type]];
+            if (!chart) return;
+
+            const link = document.createElement('a');
+            link.href = chart.toBase64Image('image/png', 1);
+            link.download = `statistik-${type}-${new Date().toISOString().slice(0, 10)}.png`;
+            link.click();
         }
 
         function refreshCharts() {

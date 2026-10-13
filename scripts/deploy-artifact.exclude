@@ -1,4 +1,5 @@
 .github/
+.agents/
 .vscode/
 .intelephense/
 .opencode/
@@ -14,6 +15,9 @@ report/
 temp/
 tests/
 database/seeders/DevSahliSeeder.php
+database/seeders/InventoryFeatureTestUsersSeeder.php
+database/seeders/InventoryFeatureDemoDataSeeder.php
+reviews/
 AGENTS.md
 CODE_REVIEW.md
 RAMS_UI_GUIDELINES.md

@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\Permission;
 use App\Models\RolePermission;
 use App\Models\User;
+use App\Models\UserPermission;
 use App\Services\PermissionService;
 use App\Services\Settings\SettingsWriter;
 use App\Support\ActivityLogger;
@@ -112,6 +113,10 @@ class AnalystController extends Controller
         // Get permission data for UI
         $permissionsData = $this->permissionService->getPermissionsForUI($analyst);
         $allModules = $this->permissionService->getAllModules();
+        $inventoryActionLabels = collect($allModules['inventori'] ?? [])
+            ->reject(fn (string $action): bool => in_array($action, ['view', 'create', 'edit', 'delete'], true))
+            ->mapWithKeys(fn (string $action): array => [$action => $this->permissionService->getActionDisplayName($action)])
+            ->all();
 
         return view('analysts.show', [
             'analyst' => $analyst,
@@ -120,6 +125,7 @@ class AnalystController extends Controller
             'recentLogs' => $recentLogs,
             'permissionsData' => $permissionsData,
             'allModules' => $allModules,
+            'inventoryActionLabels' => $inventoryActionLabels,
         ]);
     }
 
@@ -209,10 +215,23 @@ class AnalystController extends Controller
             return back()->with('success', 'Peran pengguna tidak berubah.');
         }
 
-        $analyst->update(['role' => $validated['role']]);
+        DB::transaction(function () use ($request, $analyst, $validated): void {
+            $userIds = collect([$request->user()->id, $analyst->id])->unique()->sort()->values();
+            $lockedUsers = User::query()
+                ->whereIn('id', $userIds)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
 
-        // Reset permissions to new role defaults
-        $analyst->resetPermissionsToRole();
+            $lockedAnalyst = $lockedUsers->get($analyst->id);
+            if (! $lockedAnalyst) {
+                abort(404);
+            }
+
+            $lockedAnalyst->update(['role' => $validated['role']]);
+            $this->permissionService->resetToRoleDefaults($lockedAnalyst, $lockedUsers->get($request->user()->id));
+        });
 
         ActivityLogger::log(
             'USER_ROLE_CHANGED',
@@ -259,8 +278,22 @@ class AnalystController extends Controller
         }
 
         DB::transaction(function () use ($newRole, $cloneFrom, $request): void {
+            User::query()
+                ->whereKey($request->user()->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $permissionIds = Permission::query()
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->pluck('id');
+
             $permissionIds = RolePermission::query()
                 ->where('role', $cloneFrom)
+                ->whereIn('permission_id', $permissionIds)
+                ->orderBy('role')
+                ->orderBy('permission_id')
+                ->lockForUpdate()
                 ->pluck('permission_id')
                 ->all();
 
@@ -331,13 +364,52 @@ class AnalystController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($currentRole, $newRole, $request): void {
-            $permissionIds = RolePermission::query()
+        $affectedUserIds = DB::transaction(function () use ($currentRole, $newRole, $request): array {
+            $userIds = collect([$request->user()->id])
+                ->merge(User::query()->where('role', $currentRole)->orderBy('id')->pluck('id'))
+                ->unique()
+                ->sort()
+                ->values();
+
+            $lockedUsers = User::query()
+                ->whereIn('id', $userIds)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            $affectedUserIds = $lockedUsers
+                ->filter(fn (User $user): bool => $user->role === $currentRole)
+                ->keys()
+                ->values();
+
+            $permissionIds = Permission::query()
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->pluck('id');
+
+            $rolePermissionRows = RolePermission::query()
+                ->whereIn('role', [$currentRole, $newRole])
+                ->whereIn('permission_id', $permissionIds)
+                ->orderBy('role')
+                ->orderBy('permission_id')
+                ->lockForUpdate()
+                ->get();
+
+            UserPermission::query()
+                ->whereIn('user_id', $affectedUserIds)
+                ->whereIn('permission_id', $permissionIds)
+                ->orderBy('user_id')
+                ->orderBy('permission_id')
+                ->lockForUpdate()
+                ->get();
+
+            $rolePermissionIds = $rolePermissionRows
                 ->where('role', $currentRole)
                 ->pluck('permission_id')
                 ->all();
 
-            foreach ($permissionIds as $permissionId) {
+            foreach ($rolePermissionIds as $permissionId) {
                 RolePermission::query()->firstOrCreate([
                     'role' => $newRole,
                     'permission_id' => $permissionId,
@@ -345,7 +417,9 @@ class AnalystController extends Controller
             }
 
             RolePermission::query()->where('role', $currentRole)->delete();
-            User::query()->where('role', $currentRole)->update(['role' => $newRole]);
+            foreach ($affectedUserIds as $userId) {
+                $lockedUsers->get($userId)?->update(['role' => $newRole]);
+            }
 
             $updatedRoles = collect($this->roleCatalog->staffRoles())
                 ->map(fn (string $roleName) => $roleName === $currentRole ? $newRole : $roleName)
@@ -359,7 +433,14 @@ class AnalystController extends Controller
                     'available_roles' => $updatedRoles,
                 ],
             ], 'USER_ROLE_TYPE_UPDATED', $request->user());
+
+            return $affectedUserIds->all();
         });
+
+        User::query()
+            ->whereIn('id', $affectedUserIds)
+            ->get()
+            ->each(fn (User $user) => $user->clearPermissionCache());
 
         return back()->with('success', 'Role berhasil diubah menjadi: '.Str::of($newRole)->replace('_', ' ')->title());
     }
@@ -387,14 +468,40 @@ class AnalystController extends Controller
             ]);
         }
 
-        $usersUsingRole = User::query()->where('role', $targetRole)->count();
-        if ($usersUsingRole > 0) {
-            return back()->withErrors([
-                'role_name' => 'Role tidak dapat dihapus karena masih digunakan oleh '.$usersUsingRole.' pengguna. Ubah role pengguna terlebih dahulu.',
-            ]);
-        }
+        $usersUsingRole = DB::transaction(function () use ($targetRole, $request): int {
+            $userIds = collect([$request->user()->id])
+                ->merge(User::query()->where('role', $targetRole)->orderBy('id')->pluck('id'))
+                ->unique()
+                ->sort()
+                ->values();
 
-        DB::transaction(function () use ($targetRole, $request): void {
+            $lockedUsers = User::query()
+                ->whereIn('id', $userIds)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+
+            $users = $lockedUsers
+                ->where('role', $targetRole)
+                ->values();
+
+            if ($users->isNotEmpty()) {
+                return $users->count();
+            }
+
+            $permissionIds = Permission::query()
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->pluck('id');
+
+            RolePermission::query()
+                ->where('role', $targetRole)
+                ->whereIn('permission_id', $permissionIds)
+                ->orderBy('role')
+                ->orderBy('permission_id')
+                ->lockForUpdate()
+                ->get();
+
             RolePermission::query()->where('role', $targetRole)->delete();
 
             $updatedRoles = collect($this->roleCatalog->staffRoles())
@@ -407,7 +514,15 @@ class AnalystController extends Controller
                     'available_roles' => $updatedRoles,
                 ],
             ], 'USER_ROLE_TYPE_DELETED', $request->user());
+
+            return 0;
         });
+
+        if ($usersUsingRole > 0) {
+            return back()->withErrors([
+                'role_name' => 'Role tidak dapat dihapus karena masih digunakan oleh '.$usersUsingRole.' pengguna. Ubah role pengguna terlebih dahulu.',
+            ]);
+        }
 
         return back()->with('success', 'Role berhasil dihapus: '.Str::of($targetRole)->replace('_', ' ')->title());
     }
@@ -423,6 +538,24 @@ class AnalystController extends Controller
             'permissions.*' => ['boolean'],
         ]);
 
+        $submittedPermissionIds = array_keys($validated['permissions']);
+        $permissionIds = collect($submittedPermissionIds)
+            ->filter(fn ($permissionId): bool => ctype_digit((string) $permissionId))
+            ->map(fn ($permissionId): int => (int) $permissionId)
+            ->unique()
+            ->values();
+
+        if ($permissionIds->count() !== count($submittedPermissionIds)
+            || Permission::query()->whereIn('id', $permissionIds)->count() !== $permissionIds->count()) {
+            return back()->withErrors(['permissions' => 'Daftar permission tidak valid. Muat ulang halaman lalu coba kembali.']);
+        }
+
+        $validatedPermissions = collect($validated['permissions'])
+            ->mapWithKeys(fn ($granted, $permissionId): array => [
+                (int) $permissionId => in_array($granted, [true, 1, '1'], true),
+            ])
+            ->all();
+
         // Get current permissions before update for logging
         $beforePermissions = $analyst->getAllPermissions()
             ->filter(fn ($p) => $p['is_custom'])
@@ -430,7 +563,7 @@ class AnalystController extends Controller
             ->toArray();
 
         // Sync permissions
-        $this->permissionService->syncUserPermissions($analyst, $validated['permissions']);
+        $this->permissionService->syncUserPermissions($analyst, $validatedPermissions, $request->user());
 
         // Get updated permissions for logging
         $afterPermissions = $analyst->getAllPermissions()
@@ -442,7 +575,7 @@ class AnalystController extends Controller
         $granted = [];
         $revoked = [];
 
-        foreach ($validated['permissions'] as $permissionId => $isGranted) {
+        foreach ($validatedPermissions as $permissionId => $isGranted) {
             $permission = Permission::find($permissionId);
             if ($permission) {
                 if ($isGranted) {
@@ -483,7 +616,7 @@ class AnalystController extends Controller
             ->toArray();
 
         // Reset to role defaults
-        $analyst->resetPermissionsToRole();
+        $this->permissionService->resetToRoleDefaults($analyst, $request->user());
 
         if (! empty($beforePermissions)) {
             ActivityLogger::log(
@@ -609,7 +742,36 @@ class AnalystController extends Controller
 
         if ($changes !== []) {
             $before = Arr::only($analyst->getOriginal(), array_keys($changes));
-            $analyst->save();
+            $roleChanged = array_key_exists('role', $changes);
+
+            if ($roleChanged) {
+                DB::transaction(function () use ($request, $analyst, $changes): void {
+                    $userIds = collect([$request->user()->id, $analyst->id])
+                        ->unique()
+                        ->sort()
+                        ->values();
+
+                    $lockedUsers = User::query()
+                        ->whereIn('id', $userIds)
+                        ->orderBy('id')
+                        ->lockForUpdate()
+                        ->get()
+                        ->keyBy('id');
+
+                    $lockedAnalyst = $lockedUsers->get($analyst->id);
+                    if (! $lockedAnalyst) {
+                        abort(404);
+                    }
+
+                    $lockedAnalyst->fill($changes);
+                    $lockedAnalyst->save();
+                    $this->permissionService->resetToRoleDefaults($lockedAnalyst, $lockedUsers->get($request->user()->id));
+                });
+
+                $analyst->refresh();
+            } else {
+                $analyst->save();
+            }
 
             $logChanges = Arr::except($changes, ['password', 'remember_token']);
             $logBefore = Arr::except($before, ['password', 'remember_token']);

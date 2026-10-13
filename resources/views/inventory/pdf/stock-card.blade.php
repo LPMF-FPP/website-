@@ -2,14 +2,14 @@
     use Carbon\Carbon;
     Carbon::setLocale('id');
     $now = $generatedAt ?? now();
-    $openingBalance = !empty($stockCard) ? ($stockCard[0]['running_balance'] - $stockCard[0]['change']) : 0;
-    $closingBalance = !empty($stockCard) ? end($stockCard)['running_balance'] : 0;
+    $openingBalance = $report['opening_balance'];
+    $closingBalance = $report['closing_balance'];
 @endphp
 <!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<title>Kartu Stok — {{ $item->name }}</title>
+<title>Kartu Stok: {{ $item->item_code ?? 'Kode belum ditetapkan' }} · {{ $item->name }}</title>
 <style>
     /* DOMPDF-safe styles - Optimized for single page */
     @page { 
@@ -114,7 +114,10 @@
         padding: 2px 2px;
         border: 1px solid #d1d5db;
         vertical-align: middle;
+        word-wrap: break-word;
     }
+    .stock-table thead { display: table-header-group; }
+    .stock-table tr { page-break-inside: avoid; }
     .stock-table tr:nth-child(even) {
         background-color: #f9fafb;
     }
@@ -174,7 +177,7 @@
     <table class="info-table">
         <tr>
             <td class="info-label">Item:</td>
-            <td class="info-value"><strong>{{ $item->name }}</strong> ({{ $item->item_type_label ?? $item->item_type }})</td>
+            <td class="info-value"><strong>{{ $item->item_code ?? 'Kode belum ditetapkan' }} · {{ $item->name }}</strong> ({{ $item->uom }}; {{ $item->item_type_label ?? $item->item_type }})</td>
             <td class="info-label">Lot:</td>
             <td class="info-value">{{ $lot->lot_no ?? 'Semua' }}</td>
             <td class="info-label">Lokasi:</td>
@@ -192,42 +195,37 @@
                 @endif
             </td>
             <td class="info-label">Cetak:</td>
-            <td class="info-value">{{ $now->format('d/m/Y H:i') }}</td>
+            <td class="info-value">{{ $now->timezone($report['timezone'])->format('d/m/Y H:i') }} {{ $report['timezone'] }}</td>
         </tr>
     </table>
     
     <!-- Balance Summary -->
     @php
-        $totalIn = 0;
-        $totalOut = 0;
-        foreach ($stockCard as $row) {
-            if ($row['change'] > 0) {
-                $totalIn += $row['change'];
-            } else {
-                $totalOut += abs($row['change']);
-            }
-        }
+        $totalIn = $report['total_in'];
+        $totalOut = $report['total_out'];
     @endphp
     <table class="balance-summary">
         <tr>
             <td>
                 <div class="balance-label">SALDO AWAL</div>
-                <div class="balance-value balance-opening">{{ number_format($openingBalance, 2) }}</div>
+                <div class="balance-value balance-opening">{{ \App\Services\InventoryStockCardService::formatQuantity($openingBalance) }} {{ $item->uom }}</div>
             </td>
             <td>
                 <div class="balance-label">TOTAL MASUK</div>
-                <div class="balance-value text-green">+ {{ number_format($totalIn, 2) }}</div>
+                <div class="balance-value text-green">+ {{ \App\Services\InventoryStockCardService::formatQuantity($totalIn) }} {{ $item->uom }}</div>
             </td>
             <td>
                 <div class="balance-label">TOTAL KELUAR</div>
-                <div class="balance-value text-red">- {{ number_format($totalOut, 2) }}</div>
+                <div class="balance-value text-red">- {{ \App\Services\InventoryStockCardService::formatQuantity($totalOut) }} {{ $item->uom }}</div>
             </td>
             <td>
                 <div class="balance-label">SALDO AKHIR</div>
-                <div class="balance-value balance-closing">{{ number_format($closingBalance, 2) }}</div>
+                <div class="balance-value balance-closing">{{ \App\Services\InventoryStockCardService::formatQuantity($closingBalance) }} {{ $item->uom }}</div>
             </td>
         </tr>
     </table>
+    <p>{{ $report['historical'] ? 'Ini adalah jumlah stok pada akhir periode, bukan jumlah saat ini.' : 'Jumlah dihitung dari barang masuk, keluar, dan perubahan lain selama periode yang dipilih.' }}</p>
+    @if(!empty($filters['search']))<p>Pencarian baris: {{ $filters['search'] }}. Total tetap untuk seluruh periode.</p>@endif
     
     <!-- Stock Card Table -->
     @if(!empty($stockCard))
@@ -265,25 +263,25 @@
                 @endphp
                 <tr>
                     <td class="text-center">{{ $index + 1 }}</td>
-                    <td>{{ $movement->performed_at->format('d/m/y H:i') }}</td>
+                    <td>{{ $movement->performed_at->timezone($report['timezone'])->format('d M Y H:i') }}</td>
                     <td>
                         <span class="badge {{ $badgeClass }}">
-                            {{ $movement->movement_type }}
+                            {{ $movement->movement_type_label }}
                         </span>
                     </td>
-                    <td>{{ Str::limit($movement->lot?->lot_no ?? '-', 12) }}</td>
-                    <td class="text-gray">{{ Str::limit($movement->fromLocation?->name ?? '-', 12) }}</td>
-                    <td class="text-gray">{{ Str::limit($movement->toLocation?->name ?? '-', 12) }}</td>
+                    <td>{{ $movement->lot?->lot_no ?? '-' }}</td>
+                    <td class="text-gray">{{ $movement->fromLocation?->name ?? '-' }}</td>
+                    <td class="text-gray">{{ $movement->toLocation?->name ?? '-' }}</td>
                     <td class="text-right font-mono {{ $change > 0 ? 'text-green font-bold' : '' }}">
-                        {{ $change > 0 ? number_format($change, 2) : '' }}
+                        {{ $change > 0 ? \App\Services\InventoryStockCardService::formatQuantity($change) : '' }}
                     </td>
                     <td class="text-right font-mono {{ $change < 0 ? 'text-red font-bold' : '' }}">
-                        {{ $change < 0 ? number_format(abs($change), 2) : '' }}
+                        {{ $change < 0 ? \App\Services\InventoryStockCardService::formatQuantity(ltrim($change, '-')) : '' }}
                     </td>
                     <td class="text-right font-mono font-bold">
-                        {{ number_format($balance, 2) }}
+                        {{ \App\Services\InventoryStockCardService::formatQuantity($balance) }}
                     </td>
-                    <td class="text-gray">{{ Str::limit($movement->notes ?? $movement->reason_code ?? '', 25) }}</td>
+                    <td class="text-gray">{{ $movement->notes ?? ($movement->reference_type ?? '') }}</td>
                 </tr>
             @endforeach
         </tbody>
@@ -296,8 +294,8 @@
     
     <!-- Footer -->
     <div class="footer">
-        <span class="footer-left">{{ $item->name }} | {{ $lot->lot_no ?? 'Semua Lot' }}</span>
-        <span class="footer-right">{{ $generatedBy->name ?? 'System' }} | {{ $now->format('d/m/Y H:i') }}</span>
+        <span class="footer-left">{{ $item->item_code ?? 'Kode belum ditetapkan' }} · {{ $item->name }} | {{ $lot->lot_no ?? 'Semua Lot' }}</span>
+        <span class="footer-right">{{ $generatedBy->name ?? 'System' }} | {{ $now->timezone($report['timezone'])->format('d/m/Y H:i') }} {{ $report['timezone'] }}</span>
     </div>
 
 </body>

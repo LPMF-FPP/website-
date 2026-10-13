@@ -213,9 +213,7 @@
                 
                 // Data for tabs
                 overviewData: { stats: { sent_today: 0, pending_tasks: 0, scheduled: 0, failed_today: 0 }, recent_activity: [], gowa_update: null },
-                selectedGowaRelease: '',
                 gowaUpdateSubmitting: false,
-                gowaUpdateConfirmed: false,
                 gowaUpdateMessage: '',
                 gowaUpdateChecking: false,
                 gowaUpdateCheck: null,
@@ -354,6 +352,15 @@
                     }[status] || 'Status tidak diketahui';
                 },
 
+                gowaAvailabilityMessage(reason) {
+                    return {
+                        privileged_runner_unavailable: 'Worker pembaruan belum siap. Instalasi dinonaktifkan sampai pemeriksaan sistem lulus.',
+                        runtime_evidence_stale: 'Bukti runtime sudah kedaluwarsa. Tunggu pemeriksaan runtime berikutnya.',
+                        catalog_unavailable: 'Katalog rilis tidak dapat diverifikasi. Instalasi dinonaktifkan.',
+                        preparation_not_ready: 'Persiapan paket otomatis belum tersedia. Instalasi dinonaktifkan.',
+                    }[reason] || 'Pemeriksaan operasional belum lulus. Instalasi dinonaktifkan.';
+                },
+
                 async checkGowaUpdate() {
                     if (this.gowaUpdateChecking) return;
                     this.gowaUpdateChecking = true;
@@ -366,36 +373,10 @@
                         const payload = await response.json();
                         if (!response.ok) throw new Error(payload.message || 'Pemeriksaan pembaruan gagal.');
                         this.gowaUpdateCheck = payload.data;
-                        if (payload.data?.can_update && payload.data?.approved_release_id) {
-                            this.selectedGowaRelease = payload.data.approved_release_id;
-                        }
                     } catch (error) {
                         this.gowaUpdateCheckError = error.message || 'Pemeriksaan pembaruan gagal.';
                     } finally {
                         this.gowaUpdateChecking = false;
-                    }
-                },
-
-                async requestGowaUpdate() {
-                    if (!this.selectedGowaRelease || !this.gowaUpdateConfirmed || this.gowaUpdateSubmitting) return;
-                    this.gowaUpdateSubmitting = true;
-                    this.gowaUpdateMessage = '';
-                    try {
-                        const response = await fetch('{{ route("whatsapp.updates.request") }}', {
-                            method: 'POST',
-                            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                            body: JSON.stringify({ release_id: this.selectedGowaRelease, action_uuid: crypto.randomUUID(), confirmation: this.gowaUpdateConfirmed }),
-                        });
-                        const payload = await response.json();
-                        if (!response.ok) throw new Error(payload.message || 'Permintaan ditolak.');
-                        this.gowaUpdateMessage = payload.message || 'Permintaan pembaruan diterima.';
-                        this.gowaUpdateConfirmed = false;
-                        await this.loadTabData('overview');
-                        this.pollGowaOperation(payload.data?.id);
-                    } catch (error) {
-                        this.gowaUpdateMessage = error.message || 'Pembaruan belum dapat dimulai.';
-                    } finally {
-                        this.gowaUpdateSubmitting = false;
                     }
                 },
 

@@ -29,10 +29,13 @@ class SampleDisposalTest extends TestCase
         parent::setUp();
 
         Storage::fake('public');
+        Storage::fake('local');
         $this->seed(PermissionSeeder::class);
         $this->user = User::factory()->create();
         $this->user->grantPermission('inventori.view');
         $this->user->grantPermission('inventori.edit');
+        $this->user->grantPermission('sample-disposal.view');
+        $this->user->grantPermission('sample-disposal.execute');
     }
 
     // ============================================
@@ -337,21 +340,20 @@ class SampleDisposalTest extends TestCase
             'is_active' => true,
         ]);
 
-        $response = $this->actingAs($this->user)
-            ->post(route('inventory.disposal.store'), [
-                'sample_ids' => $samples->pluck('id')->toArray(),
-                'method' => 'bakar',
-                'executor_name' => 'Pelaksana Manual',
-                'executor_role' => 'Ketua Tim Pemusnahan',
-                'executor_identity' => 'NRP: 99880011',
-                'witnesses' => [
-                    ['user_id' => $witness->id, 'name' => '', 'role' => '', 'identity' => 'NRP: 99887766'],
-                ],
-                'approver_name' => 'Kombes Manual',
-                'approver_role' => 'KBP',
-                'approver_identity' => 'NRP: 77889900',
-                'notes' => 'Pemusnahan berjalan lancar',
-            ]);
+        $response = $this->postReviewedBatch([
+            'sample_ids' => $samples->pluck('id')->toArray(),
+            'method' => 'bakar',
+            'executor_name' => 'Pelaksana Manual',
+            'executor_role' => 'Ketua Tim Pemusnahan',
+            'executor_identity' => 'NRP: 99880011',
+            'witnesses' => [
+                ['user_id' => $witness->id, 'name' => '', 'role' => '', 'identity' => 'NRP: 99887766'],
+            ],
+            'approver_name' => 'Kombes Manual',
+            'approver_role' => 'KBP',
+            'approver_identity' => 'NRP: 77889900',
+            'notes' => 'Pemusnahan berjalan lancar',
+        ]);
 
         $response->assertRedirect();
 
@@ -386,14 +388,13 @@ class SampleDisposalTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->actingAs($this->user)
-            ->post(route('inventory.disposal.store'), [
-                'sample_ids' => [$sample->id],
-                'method' => 'hancur',
-                'witnesses' => [
-                    ['user_id' => $witness->id, 'name' => '', 'role' => ''],
-                ],
-            ]);
+        $this->postReviewedBatch([
+            'sample_ids' => [$sample->id],
+            'method' => 'hancur',
+            'witnesses' => [
+                ['user_id' => $witness->id, 'name' => '', 'role' => ''],
+            ],
+        ]);
 
         $disposal = SampleDisposal::latest()->first();
 
@@ -407,18 +408,17 @@ class SampleDisposalTest extends TestCase
     {
         $sample = $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-DOC-0001');
 
-        $response = $this->actingAs($this->user)
-            ->post(route('inventory.disposal.store'), [
-                'sample_ids' => [$sample->id],
-                'method' => 'bakar',
-                'witnesses' => [
-                    ['user_id' => '', 'name' => 'Saksi Dokumentasi', 'role' => 'Pengawas'],
-                ],
-                'documentation_photos' => [
-                    UploadedFile::fake()->image('dok-1.jpg'),
-                    UploadedFile::fake()->image('dok-2.png'),
-                ],
-            ]);
+        $response = $this->postReviewedBatch([
+            'sample_ids' => [$sample->id],
+            'method' => 'bakar',
+            'witnesses' => [
+                ['user_id' => '', 'name' => 'Saksi Dokumentasi', 'role' => 'Pengawas'],
+            ],
+            'documentation_photos' => [
+                UploadedFile::fake()->image('dok-1.jpg'),
+                UploadedFile::fake()->image('dok-2.png'),
+            ],
+        ]);
 
         $response->assertRedirect();
 
@@ -428,7 +428,7 @@ class SampleDisposalTest extends TestCase
         $this->assertCount(2, $disposal->documentation_photos ?? []);
 
         foreach ($disposal->documentation_photos as $photo) {
-            Storage::disk('public')->assertExists($photo['path']);
+            Storage::disk($photo['disk'])->assertExists($photo['path']);
         }
     }
 
@@ -436,11 +436,10 @@ class SampleDisposalTest extends TestCase
     {
         $sample = $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-2025-0030');
 
-        $response = $this->actingAs($this->user)
-            ->post(route('inventory.disposal.store'), [
-                'sample_ids' => [$sample->id],
-                'method' => 'bakar',
-            ]);
+        $response = $this->postReviewedBatch([
+            'sample_ids' => [$sample->id],
+            'method' => 'bakar',
+        ]);
 
         $response->assertSessionHasErrors(['witnesses']);
     }
@@ -452,15 +451,14 @@ class SampleDisposalTest extends TestCase
             $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-2025-0041'),
         ]);
 
-        $response = $this->actingAs($this->user)
-            ->post(route('inventory.disposal.store'), [
-                'sample_ids' => $samples->pluck('id')->toArray(),
-                'method' => 'hancur',
-                'witnesses' => [
-                    ['user_id' => '', 'name' => 'Saksi Eksternal', 'role' => 'Perwakilan Penyidik', 'identity' => 'NRP: 12345678'],
-                    ['user_id' => '', 'name' => 'Saksi Kedua', 'role' => 'Pengawas', 'identity' => 'NRP: 87654321'],
-                ],
-            ]);
+        $response = $this->postReviewedBatch([
+            'sample_ids' => $samples->pluck('id')->toArray(),
+            'method' => 'hancur',
+            'witnesses' => [
+                ['user_id' => '', 'name' => 'Saksi Eksternal', 'role' => 'Perwakilan Penyidik', 'identity' => 'NRP: 12345678'],
+                ['user_id' => '', 'name' => 'Saksi Kedua', 'role' => 'Pengawas', 'identity' => 'NRP: 87654321'],
+            ],
+        ]);
 
         $response->assertRedirect();
 
@@ -483,14 +481,13 @@ class SampleDisposalTest extends TestCase
             'is_active' => false,
         ]);
 
-        $response = $this->actingAs($this->user)
-            ->post(route('inventory.disposal.store'), [
-                'sample_ids' => [$sample->id],
-                'method' => 'bakar',
-                'witnesses' => [
-                    ['user_id' => $inactiveWitness->id, 'name' => '', 'role' => ''],
-                ],
-            ]);
+        $response = $this->postReviewedBatch([
+            'sample_ids' => [$sample->id],
+            'method' => 'bakar',
+            'witnesses' => [
+                ['user_id' => $inactiveWitness->id, 'name' => '', 'role' => ''],
+            ],
+        ]);
 
         $response->assertSessionHasErrors('witnesses.0.user_id');
     }
@@ -505,14 +502,13 @@ class SampleDisposalTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->actingAs($this->user)
-            ->post(route('inventory.disposal.store'), [
-                'sample_ids' => [$sample->id],
-                'method' => 'bakar',
-                'witnesses' => [
-                    ['user_id' => $witness->id, 'name' => '', 'role' => ''],
-                ],
-            ]);
+        $this->postReviewedBatch([
+            'sample_ids' => [$sample->id],
+            'method' => 'bakar',
+            'witnesses' => [
+                ['user_id' => $witness->id, 'name' => '', 'role' => ''],
+            ],
+        ]);
 
         $disposal = SampleDisposal::latest()->first();
         $this->assertNotNull($disposal);
@@ -720,7 +716,7 @@ class SampleDisposalTest extends TestCase
         $this->assertFalse(Sample::eligibleForDisposal()->get()->contains($sample));
     }
 
-    public function test_disposal_index_requires_inventory_view_permission(): void
+    public function test_disposal_index_requires_sample_view_permission(): void
     {
         $user = User::factory()->create();
 
@@ -732,10 +728,12 @@ class SampleDisposalTest extends TestCase
         $response->assertSessionHas('error');
     }
 
-    public function test_disposal_store_requires_inventory_edit_permission(): void
+    public function test_disposal_store_requires_sample_execute_permission(): void
     {
         $user = User::factory()->create();
         $user->grantPermission('inventori.view');
+        $user->grantPermission('inventori.edit');
+        $user->grantPermission('sample-disposal.view');
         $sample = $this->createEligibleSampleForDisposal(lhuNumber: 'LHU-2025-0100');
 
         $response = $this->from(route('inventory.disposal.index'))
@@ -750,6 +748,17 @@ class SampleDisposalTest extends TestCase
 
         $response->assertRedirect(route('inventory.disposal.index'));
         $response->assertSessionHas('error');
+    }
+
+    private function postReviewedBatch(array $data): \Illuminate\Testing\TestResponse
+    {
+        $preview = $this->actingAs($this->user)->get(route('inventory.disposal.create', ['sample_ids' => $data['sample_ids']]));
+        $preview->assertOk();
+
+        return $this->post(route('inventory.disposal.store'), [
+            'review_token' => $preview->viewData('reviewToken'), 'review_confirmed' => '1',
+            'approver_name' => 'Approver Pengujian', 'approver_role' => 'Pengawas', ...$data,
+        ]);
     }
 
     private function createEligibleSampleForDisposal(

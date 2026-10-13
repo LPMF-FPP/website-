@@ -33,6 +33,9 @@ class SampleDisposal extends Model
         'approver_identity',
         'documentation_photos',
         'created_by',
+        'review_id',
+        'manifest_snapshot',
+        'execution_fingerprint',
     ];
 
     protected $casts = [
@@ -40,7 +43,43 @@ class SampleDisposal extends Model
         'method' => SampleDisposalMethod::class,
         'witness_entries' => 'array',
         'documentation_photos' => 'array',
+        'manifest_snapshot' => 'array',
     ];
+
+    protected static function booted(): void
+    {
+        static::updating(function (self $disposal): void {
+            $auditFields = ['executed_at', 'method', 'witness_name', 'witness_role', 'witness_user_id', 'witness_entries', 'notes', 'executed_by', 'executed_by_name', 'executed_by_role', 'executed_by_identity', 'approver_name', 'approver_role', 'approver_identity', 'documentation_photos', 'created_by', 'batch_number'];
+            if ($disposal->isDirty(['review_id', 'manifest_snapshot', 'execution_fingerprint'])
+                || ($disposal->getOriginal('manifest_snapshot') !== null && $disposal->isDirty($auditFields))) {
+                throw new \RuntimeException('Manifest pemusnahan yang sudah dicatat tidak dapat diubah.');
+            }
+        });
+    }
+
+    public function getManifestRowsAttribute(): array
+    {
+        if (is_array($this->manifest_snapshot['samples'] ?? null)) {
+            return $this->manifest_snapshot['samples'];
+        }
+
+        return $this->samples->map(function ($sample): array {
+            $process = $sample->testProcesses->first(fn ($process) => $process->stage === \App\Enums\TestProcessStage::INTERPRETATION && $process->completed_at !== null);
+
+            return ['sample_id' => $sample->id, 'sample_code' => $sample->sample_code,
+                'description' => $sample->short_description ?? $sample->sample_form,
+                'request_number' => $sample->testRequest?->request_number, 'case_number' => $sample->testRequest?->case_number,
+                'case_date' => $sample->testRequest?->case_date, 'suspect_name' => $sample->testRequest?->suspect_name,
+                'lhu_number' => $process?->metadata['lhu_number'] ?? '-', 'completed_at' => $process?->completed_at?->toDateTimeString(), 'age_days' => null];
+        })->all();
+    }
+
+    public function getRecordedExecutedAtAttribute(): \Carbon\CarbonImmutable
+    {
+        $timezone = $this->manifest_snapshot['timezone'] ?? config('app.timezone');
+
+        return \Carbon\CarbonImmutable::parse($this->getRawOriginal('executed_at'), $timezone)->setTimezone($timezone);
+    }
 
     public function samples(): HasMany
     {
@@ -89,6 +128,13 @@ class SampleDisposal extends Model
 
     public function getSampleCountAttribute(): int
     {
+        if ($this->manifest_snapshot !== null) {
+            return count($this->manifest_rows);
+        }
+        if (array_key_exists('samples_count', $this->attributes)) {
+            return (int) $this->attributes['samples_count'];
+        }
+
         return $this->samples()->count();
     }
 
@@ -131,18 +177,24 @@ class SampleDisposal extends Model
             ->filter(fn ($photo) => is_array($photo) && ! empty($photo['path']))
             ->map(function (array $photo): array {
                 $path = ltrim((string) $photo['path'], '/');
+                $disk = ($photo['disk'] ?? 'public') === 'local' ? 'local' : 'public';
+                $storagePath = $disk === 'public' ? app(\App\Services\SampleDisposalFileService::class)->privateDestination($path) : null;
+                if ($storagePath !== null) {
+                    $disk = 'local';
+                }
+                $storagePath ??= $path;
 
                 return [
                     'path' => $path,
                     'original_name' => trim((string) ($photo['original_name'] ?? basename($path))),
                     'mime_type' => trim((string) ($photo['mime_type'] ?? 'image/jpeg')),
                     'size' => (int) ($photo['size'] ?? 0),
-                    'exists' => Storage::disk('public')->exists($path),
+                    'exists' => Storage::disk($disk)->exists($storagePath),
                     'url' => route('inventory.disposal.documentation.file', [
                         'disposal' => $this,
                         'photo' => rawurlencode($path),
                     ]),
-                    'absolute_path' => Storage::disk('public')->path($path),
+                    'absolute_path' => Storage::disk($disk)->path($storagePath),
                 ];
             })
             ->values()

@@ -471,9 +471,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Statistics
     Route::prefix('statistics')->group(function () {
-        Route::get('/', [StatisticsController::class, 'index'])->name('statistics.index');
-        Route::get('/data', [StatisticsController::class, 'data'])->name('statistics.data');
-        Route::get('/export', [StatisticsController::class, 'export'])->name('statistics.export');
+        Route::get('/', [StatisticsController::class, 'index'])
+            ->middleware('permission:statistik.view')
+            ->name('statistics.index');
+        Route::get('/data', [StatisticsController::class, 'data'])
+            ->middleware('permission:statistik.view')
+            ->name('statistics.data');
 
         // Consolidated Reports
         Route::prefix('reports')->name('consolidated-reports.')->group(function () {
@@ -699,49 +702,199 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 // Inventory Module Routes
 Route::prefix('referensi/inventori')->name('inventory.')->middleware(['auth', 'verified'])->group(function () {
-    Route::get('/', [App\Http\Controllers\Inventory\DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/', [App\Http\Controllers\Inventory\DashboardController::class, 'index'])
+        ->middleware('permission:inventori.view')
+        ->name('dashboard');
+
+    Route::get('alerts', [App\Http\Controllers\Inventory\DashboardController::class, 'alerts'])
+        ->middleware('permission:inventori.view')
+        ->name('alerts.index');
 
     // Items CRUD
-    Route::resource('items', App\Http\Controllers\Inventory\ItemController::class);
-    Route::get('items/{item}/lots', [App\Http\Controllers\Inventory\LotController::class, 'index'])->name('items.lots');
-    Route::post('lots', [App\Http\Controllers\Inventory\LotController::class, 'store'])->name('lots.store');
+    Route::get('items', [App\Http\Controllers\Inventory\ItemController::class, 'index'])
+        ->middleware('permission:inventori.view')
+        ->name('items.index');
+    Route::get('items/create', [App\Http\Controllers\Inventory\ItemController::class, 'create'])
+        ->middleware('permission:inventori.create')
+        ->name('items.create');
+    Route::post('items', [App\Http\Controllers\Inventory\ItemController::class, 'store'])
+        ->middleware('permission:inventori.create')
+        ->name('items.store');
+    Route::get('items/{item}/edit', [App\Http\Controllers\Inventory\ItemController::class, 'edit'])
+        ->middleware(['permission:inventori.view', 'permission:inventori.edit'])
+        ->name('items.edit');
+    Route::match(['put', 'patch'], 'items/{item}', [App\Http\Controllers\Inventory\ItemController::class, 'update'])
+        ->middleware(['permission:inventori.view', 'permission:inventori.edit'])
+        ->name('items.update');
+    Route::post('items/{item}/archive', [App\Http\Controllers\Inventory\ItemController::class, 'archive'])
+        ->middleware(['permission:inventori.view', 'permission:inventori.edit'])
+        ->name('items.archive');
+    Route::post('items/{item}/restore', [App\Http\Controllers\Inventory\ItemController::class, 'restore'])
+        ->middleware(['permission:inventori.view', 'permission:inventori.edit'])
+        ->name('items.restore');
+    Route::get('items/{item}', [App\Http\Controllers\Inventory\ItemController::class, 'show'])
+        ->middleware(['permission:inventori.view', 'permission:inventori.edit'])
+        ->name('items.show');
+    Route::delete('items/{item}', [App\Http\Controllers\Inventory\ItemController::class, 'destroy'])
+        ->middleware('permission:inventori.delete')
+        ->name('items.destroy');
+
+    Route::get('items/{item}/lots', [App\Http\Controllers\Inventory\LotController::class, 'index'])
+        ->middleware('permission:inventori.view')
+        ->name('items.lots');
+    Route::post('lots', [App\Http\Controllers\Inventory\LotController::class, 'store'])
+        ->middleware('permission:inventori.create')
+        ->name('lots.store');
 
     // Locations CRUD
-    Route::resource('locations', App\Http\Controllers\Inventory\LocationController::class)->except(['show', 'destroy']);
+    Route::get('locations', [App\Http\Controllers\Inventory\LocationController::class, 'index'])
+        ->middleware('any_permission:inventori.view|inventori.location-access.manage')
+        ->name('locations.index');
+    Route::get('locations/create', [App\Http\Controllers\Inventory\LocationController::class, 'create'])
+        ->middleware('permission:inventori.create')
+        ->name('locations.create');
+    Route::post('locations', [App\Http\Controllers\Inventory\LocationController::class, 'store'])
+        ->middleware('permission:inventori.create')
+        ->name('locations.store');
+    Route::get('locations/{location}/edit', [App\Http\Controllers\Inventory\LocationController::class, 'edit'])
+        ->middleware(['permission:inventori.view', 'permission:inventori.edit'])
+        ->name('locations.edit');
+    Route::match(['put', 'patch'], 'locations/{location}', [App\Http\Controllers\Inventory\LocationController::class, 'update'])
+        ->middleware(['permission:inventori.view', 'permission:inventori.edit'])
+        ->name('locations.update');
+    Route::get('locations/{location}/access', [App\Http\Controllers\Inventory\LocationController::class, 'access'])
+        ->middleware('permission:inventori.location-access.manage')
+        ->name('locations.access');
+    Route::put('locations/{location}/access', [App\Http\Controllers\Inventory\LocationController::class, 'updateAccess'])
+        ->middleware('permission:inventori.location-access.manage')
+        ->name('locations.access.update');
+
+    Route::get('opening-baseline', [App\Http\Controllers\Inventory\InventoryOpeningBaselineController::class, 'index'])
+        ->middleware(['permission:inventori.view', 'any_permission:inventori.stocktake.submit|inventori.stocktake.approve|inventori.readiness.inventory-admin.accept|inventori.readiness.system-owner.accept'])
+        ->name('opening-baseline.index');
+    Route::get('opening-baseline/readiness', [App\Http\Controllers\Inventory\InventoryOpeningBaselineController::class, 'readiness'])
+        ->middleware(['permission:inventori.view', 'any_permission:inventori.readiness.inventory-admin.accept|inventori.readiness.system-owner.accept|inventori.mutation.activate|inventori.mutation.disable|inventori.stocktake.approve'])
+        ->name('opening-baseline.readiness');
+    Route::post('opening-baseline', [App\Http\Controllers\Inventory\InventoryOpeningBaselineController::class, 'generate'])
+        ->middleware(['permission:inventori.view', 'permission:inventori.stocktake.submit'])
+        ->name('opening-baseline.generate');
+    Route::post('opening-baseline/start', [App\Http\Controllers\Inventory\InventoryOpeningBaselineController::class, 'start'])
+        ->middleware(['permission:inventori.view', 'permission:inventori.stocktake.submit', 'permission:inventori.location-access.manage'])
+        ->name('opening-baseline.start');
+    Route::put('opening-baseline/{baseline}/lines/{line}', [App\Http\Controllers\Inventory\InventoryOpeningBaselineController::class, 'capture'])
+        ->middleware(['permission:inventori.view', 'permission:inventori.stocktake.submit'])
+        ->name('opening-baseline.lines.capture');
+    Route::post('opening-baseline/{baseline}/submit', [App\Http\Controllers\Inventory\InventoryOpeningBaselineController::class, 'submit'])
+        ->middleware(['permission:inventori.view', 'permission:inventori.stocktake.submit'])
+        ->name('opening-baseline.submit');
+    Route::post('opening-baseline/{baseline}/decision', [App\Http\Controllers\Inventory\InventoryOpeningBaselineController::class, 'decide'])
+        ->middleware(['permission:inventori.view', 'permission:inventori.stocktake.approve'])
+        ->name('opening-baseline.decision');
+    Route::post('opening-baseline/readiness', [App\Http\Controllers\Inventory\InventoryOpeningBaselineController::class, 'readinessEvidence'])
+        ->middleware(['permission:inventori.view', 'any_permission:inventori.readiness.inventory-admin.accept|inventori.readiness.system-owner.accept'])
+        ->name('opening-baseline.readiness.evidence');
+    Route::post('opening-baseline/activate', [App\Http\Controllers\Inventory\InventoryOpeningBaselineController::class, 'activate'])
+        ->middleware(['permission:inventori.view', 'permission:inventori.mutation.activate'])
+        ->name('opening-baseline.activate');
+    Route::post('opening-baseline/disable', [App\Http\Controllers\Inventory\InventoryOpeningBaselineController::class, 'disable'])
+        ->middleware(['permission:inventori.view', 'permission:inventori.mutation.disable'])
+        ->name('opening-baseline.disable');
+    Route::get('cycle-counts', [App\Http\Controllers\Inventory\InventoryCycleCountController::class, 'index'])
+        ->middleware(['permission:inventori.view', 'any_permission:inventori.stocktake.submit|inventori.stocktake.approve'])
+        ->name('cycle-counts.index');
+    Route::post('cycle-counts', [App\Http\Controllers\Inventory\InventoryCycleCountController::class, 'create'])
+        ->middleware(['permission:inventori.view', 'permission:inventori.stocktake.submit'])
+        ->name('cycle-counts.create');
+    Route::get('cycle-counts/{cycleCount}', [App\Http\Controllers\Inventory\InventoryCycleCountController::class, 'show'])
+        ->middleware(['permission:inventori.view', 'any_permission:inventori.stocktake.submit|inventori.stocktake.approve'])
+        ->name('cycle-counts.show');
+    Route::post('cycle-counts/{cycleCount}/tuples', [App\Http\Controllers\Inventory\InventoryCycleCountController::class, 'addTuple'])
+        ->middleware(['permission:inventori.view', 'permission:inventori.stocktake.submit'])
+        ->name('cycle-counts.tuples.store');
+    Route::delete('cycle-counts/{cycleCount}/tuples/{line}', [App\Http\Controllers\Inventory\InventoryCycleCountController::class, 'removeTuple'])
+        ->middleware(['permission:inventori.view', 'permission:inventori.stocktake.submit'])
+        ->name('cycle-counts.tuples.destroy');
+    Route::put('cycle-counts/{cycleCount}/tuples/{line}', [App\Http\Controllers\Inventory\InventoryCycleCountController::class, 'capture'])
+        ->middleware(['permission:inventori.view', 'permission:inventori.stocktake.submit'])
+        ->name('cycle-counts.lines.capture');
+    Route::post('cycle-counts/{cycleCount}/submit', [App\Http\Controllers\Inventory\InventoryCycleCountController::class, 'submit'])
+        ->middleware(['permission:inventori.view', 'permission:inventori.stocktake.submit'])
+        ->name('cycle-counts.submit');
+    Route::post('cycle-counts/{cycleCount}/decision', [App\Http\Controllers\Inventory\InventoryCycleCountController::class, 'decide'])
+        ->middleware(['permission:inventori.view', 'permission:inventori.stocktake.approve'])
+        ->name('cycle-counts.decision');
+    Route::get('opening-baseline/{baseline}', [App\Http\Controllers\Inventory\InventoryOpeningBaselineController::class, 'show'])
+        ->middleware(['permission:inventori.view', 'any_permission:inventori.stocktake.submit|inventori.stocktake.approve'])
+        ->name('opening-baseline.show');
+    Route::get('kebijakan-pelacakan-lot', [App\Http\Controllers\Inventory\InventoryLotTrackingPolicyController::class, 'index'])
+        ->middleware(['permission:inventori.view', 'permission:inventori.location-access.manage'])
+        ->name('baseline.policies');
+    Route::put('kebijakan-pelacakan-lot', [App\Http\Controllers\Inventory\InventoryLotTrackingPolicyController::class, 'update'])
+        ->middleware(['permission:inventori.view', 'permission:inventori.location-access.manage'])
+        ->name('baseline.policies.update');
 
     // Stock Card
-    Route::get('kartu-stok', [App\Http\Controllers\Inventory\StockCardController::class, 'index'])->name('stock-card');
-    Route::get('kartu-stok/cetak', [App\Http\Controllers\Inventory\StockCardController::class, 'print'])->name('stock-card.print');
+    Route::get('kartu-stok', [App\Http\Controllers\Inventory\StockCardController::class, 'index'])
+        ->middleware('permission:inventori.view')
+        ->name('stock-card');
+    Route::get('kartu-stok/cetak', [App\Http\Controllers\Inventory\StockCardController::class, 'print'])
+        ->middleware('permission:inventori.view')
+        ->name('stock-card.print');
 
     // Transactions
     Route::prefix('transaksi')->name('transaction.')->group(function () {
-        Route::get('receipt', [App\Http\Controllers\Inventory\TransactionController::class, 'receiptForm'])->name('receipt');
-        Route::post('receipt', [App\Http\Controllers\Inventory\TransactionController::class, 'receiptSubmit']);
-        Route::get('issue', [App\Http\Controllers\Inventory\TransactionController::class, 'issueForm'])->name('issue');
-        Route::post('issue', [App\Http\Controllers\Inventory\TransactionController::class, 'issueSubmit']);
-        Route::get('transfer', [App\Http\Controllers\Inventory\TransactionController::class, 'transferForm'])->name('transfer');
-        Route::post('transfer', [App\Http\Controllers\Inventory\TransactionController::class, 'transferSubmit']);
-        Route::get('stocktake', [App\Http\Controllers\Inventory\TransactionController::class, 'stocktakeForm'])->name('stocktake');
-        Route::post('stocktake', [App\Http\Controllers\Inventory\TransactionController::class, 'stocktakeSubmit']);
-        Route::get('dispose', [App\Http\Controllers\Inventory\TransactionController::class, 'disposeForm'])->name('dispose');
-        Route::post('dispose', [App\Http\Controllers\Inventory\TransactionController::class, 'disposeSubmit']);
+        Route::get('receipt', [App\Http\Controllers\Inventory\TransactionController::class, 'receiptForm'])
+            ->middleware('permission:inventori.receipt.create')
+            ->name('receipt');
+        Route::post('receipt', [App\Http\Controllers\Inventory\TransactionController::class, 'receiptSubmit'])
+            ->middleware('permission:inventori.receipt.create');
+        Route::get('issue', [App\Http\Controllers\Inventory\TransactionController::class, 'issueForm'])
+            ->middleware('permission:inventori.issue.create')
+            ->name('issue');
+        Route::post('issue', [App\Http\Controllers\Inventory\TransactionController::class, 'issueSubmit'])
+            ->middleware('permission:inventori.issue.create');
+        Route::get('transfer', [App\Http\Controllers\Inventory\TransactionController::class, 'transferForm'])
+            ->middleware('permission:inventori.transfer.create')
+            ->name('transfer');
+        Route::post('transfer', [App\Http\Controllers\Inventory\TransactionController::class, 'transferSubmit'])
+            ->middleware('permission:inventori.transfer.create');
+        Route::get('stocktake', [App\Http\Controllers\Inventory\TransactionController::class, 'stocktakeForm'])
+            ->middleware(['permission:inventori.view', 'permission:inventori.stocktake.submit'])
+            ->name('stocktake');
+        Route::post('stocktake', [App\Http\Controllers\Inventory\TransactionController::class, 'stocktakeSubmit'])
+            ->middleware('permission:inventori.stocktake.submit');
+        Route::get('dispose', [App\Http\Controllers\Inventory\TransactionController::class, 'disposeForm'])
+            ->middleware('permission:inventori.material-disposal.create')
+            ->name('dispose');
+        Route::post('dispose', [App\Http\Controllers\Inventory\TransactionController::class, 'disposeSubmit'])
+            ->middleware('permission:inventori.material-disposal.create');
     });
 
     // AJAX helpers
-    Route::get('ajax/lots', [App\Http\Controllers\Inventory\TransactionController::class, 'getLotsForItem'])->name('ajax.lots');
-    Route::get('ajax/balance', [App\Http\Controllers\Inventory\TransactionController::class, 'getBalanceForSelection'])->name('ajax.balance');
-    Route::get('ajax/search', [App\Http\Controllers\Inventory\DashboardController::class, 'ajaxSearch'])->name('ajax.search');
-    Route::get('ajax/overview', [App\Http\Controllers\Inventory\DashboardController::class, 'ajaxOverview'])->name('ajax.overview');
-    Route::get('ajax/fast-moving', [App\Http\Controllers\Inventory\DashboardController::class, 'ajaxFastMoving'])->name('ajax.fast-moving');
+    Route::get('ajax/lots', [App\Http\Controllers\Inventory\TransactionController::class, 'getLotsForItem'])
+        ->middleware('any_permission:inventori.view|inventori.receipt.create|inventori.issue.create|inventori.transfer.create|inventori.stocktake.submit|inventori.material-disposal.create')
+        ->name('ajax.lots');
+    Route::get('ajax/balance', [App\Http\Controllers\Inventory\TransactionController::class, 'getBalanceForSelection'])
+        ->middleware('any_permission:inventori.view|inventori.receipt.create|inventori.issue.create|inventori.transfer.create|inventori.stocktake.submit|inventori.material-disposal.create')
+        ->name('ajax.balance');
+    Route::get('ajax/search', [App\Http\Controllers\Inventory\DashboardController::class, 'ajaxSearch'])
+        ->middleware('permission:inventori.view')
+        ->name('ajax.search');
+    Route::get('ajax/overview', [App\Http\Controllers\Inventory\DashboardController::class, 'ajaxOverview'])
+        ->middleware('permission:inventori.view')
+        ->name('ajax.overview');
+    Route::get('ajax/fast-moving', [App\Http\Controllers\Inventory\DashboardController::class, 'ajaxFastMoving'])
+        ->middleware('permission:inventori.view')
+        ->name('ajax.fast-moving');
 
     // Sample Disposal (Pemusnahan Sisa Sampel)
-    Route::prefix('disposal')->name('disposal.')->middleware('permission:inventori.view')->group(function () {
+    Route::prefix('disposal')->name('disposal.')->middleware('permission:sample-disposal.view')->group(function () {
         Route::get('/', [App\Http\Controllers\Inventory\SampleDisposalController::class, 'index'])->name('index');
         Route::get('/create', [App\Http\Controllers\Inventory\SampleDisposalController::class, 'create'])
-            ->middleware('permission:inventori.edit')
+            ->middleware('permission:sample-disposal.execute')
             ->name('create');
         Route::post('/', [App\Http\Controllers\Inventory\SampleDisposalController::class, 'store'])
-            ->middleware('permission:inventori.edit')
+            ->middleware('permission:sample-disposal.execute')
             ->name('store');
         Route::get('/{disposal}', [App\Http\Controllers\Inventory\SampleDisposalController::class, 'show'])->name('show');
         Route::get('/{disposal}/documentation/{photo}', [App\Http\Controllers\Inventory\SampleDisposalController::class, 'documentationFile'])

@@ -25,6 +25,7 @@ final class GowaUpdateService
         private readonly GowaReleaseCatalog $catalog,
         private readonly GowaUpdateRunner $runner,
         private readonly GowaRuntimeProbe $probe,
+        private readonly ?GowaUpstreamReleaseChecker $releaseChecker = null,
     ) {}
 
     public function status(): array
@@ -43,6 +44,7 @@ final class GowaUpdateService
         } catch (\Throwable) {
             $runnerAvailable = false;
         }
+        $preparationReady = (bool) config('gowa-updater.preparation_ready', false);
 
         try {
             $latestOperation = GowaUpdateOperation::query()
@@ -66,8 +68,15 @@ final class GowaUpdateService
         }
 
         return [
-            'available' => $runnerAvailable && $runtimeFresh && $catalogGeneration !== null,
-            'reason' => $runnerAvailable ? ($runtimeFresh ? ($catalogGeneration !== null ? null : 'catalog_unavailable') : 'runtime_evidence_stale') : 'privileged_runner_unavailable',
+            'available' => $runnerAvailable && $runtimeFresh && $catalogGeneration !== null && $preparationReady,
+            'preparation_ready' => $preparationReady,
+            'reason' => ! $runnerAvailable
+                ? 'privileged_runner_unavailable'
+                : (! $runtimeFresh
+                    ? 'runtime_evidence_stale'
+                    : ($catalogGeneration === null
+                        ? 'catalog_unavailable'
+                        : (! $preparationReady ? 'preparation_not_ready' : null))),
             'catalog_generation' => $catalogGeneration,
             'runtime' => $this->safeRuntime($runtime),
             'releases' => array_map(static fn (array $release): array => [
@@ -106,6 +115,10 @@ final class GowaUpdateService
     {
         $idempotencyKey = $userId.':'.$actionUuid;
 
+        if (! app()->environment('testing') && ! (bool) config('gowa-updater.preparation_ready', false)) {
+            throw new RuntimeException('preparation_not_ready');
+        }
+
         $existing = GowaUpdateOperation::query()->where('idempotency_key', $idempotencyKey)->first();
         if ($existing !== null) {
             if ($existing->release_id !== $releaseId) {
@@ -114,6 +127,8 @@ final class GowaUpdateService
 
             return $existing;
         }
+
+        $this->assertLatestApprovedRelease($releaseId);
 
         if (! $this->runner->available()) {
             throw new RuntimeException('privileged_runner_unavailable');
@@ -145,6 +160,13 @@ final class GowaUpdateService
 
                 if (! $this->runtimeReadyForUpdate()) {
                     throw new RuntimeException('runtime_evidence_unavailable');
+                }
+
+                $currentRelease = $this->catalog->find($release['release_id']);
+                if ($currentRelease === null
+                    || $currentRelease['digest'] !== $release['digest']
+                    || $this->catalog->generation() === null) {
+                    throw new RuntimeException('release_not_latest');
                 }
 
                 $scope = GowaUpdateScope::query()->whereKey(GowaUpdateOperation::SCOPE)->lockForUpdate()->firstOrFail();
@@ -523,6 +545,24 @@ final class GowaUpdateService
                 && $runtime['container_identity'] !== '';
         } catch (\Throwable) {
             return false;
+        }
+    }
+
+    private function assertLatestApprovedRelease(string $releaseId): void
+    {
+        if (app()->environment('testing')) {
+            return;
+        }
+
+        try {
+            $check = ($this->releaseChecker ?? app(GowaUpstreamReleaseChecker::class))->check(true);
+        } catch (\Throwable $exception) {
+            throw new RuntimeException('upstream_release_unavailable', 0, $exception);
+        }
+
+        if (($check['can_update'] ?? false) !== true
+            || ($check['approved_release_id'] ?? null) !== $releaseId) {
+            throw new RuntimeException('release_not_latest');
         }
     }
 

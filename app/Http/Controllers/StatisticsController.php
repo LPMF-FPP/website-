@@ -27,19 +27,28 @@ class StatisticsController extends Controller
         $this->reportService = $reportService;
     }
 
-    public function index()
+    public function index(Request $request)
     {
+        $canExportStatistics = $request->user()->hasPermission('statistik.export');
+        $requestedTab = $request->query('tab', 'dashboard');
+        if (! in_array($requestedTab, ['dashboard', 'reports'], true)
+            || ($requestedTab === 'reports' && ! $canExportStatistics)) {
+            return redirect()->route('statistics.index', ['tab' => 'dashboard']);
+        }
+
         try {
             $activeSubstanceBreakdown = $this->activeSubstanceService->breakdown(0);
 
             // Get default signers for the consolidated report form
             $defaultSigners = $this->reportService->getDefaultSigners();
+            $requestsThisYear = TestRequest::whereYear('created_at', now()->year)->count();
 
             // 1. Statistik Utama untuk Cards
             $mainStats = [
                 'total_users' => User::count(),
                 'requests_this_month' => TestRequest::whereMonth('created_at', now()->month)
                     ->whereYear('created_at', now()->year)->count(),
+                'requests_this_year' => $requestsThisYear,
                 'samples_this_year' => Sample::whereYear('created_at', now()->year)->count(),
                 'active_substances_detected' => $activeSubstanceBreakdown['unique_total'], // Tampilkan jumlah unik zat aktif
                 'total_detections' => $activeSubstanceBreakdown['total'], // Tambahan untuk info deteksi total
@@ -84,6 +93,9 @@ class StatisticsController extends Controller
                 // Data untuk cards (sesuai dengan yang diperlukan di view)
                 'total_users' => $mainStats['total_users'],
                 'requests_this_month' => $mainStats['requests_this_month'],
+                'requests_this_year' => $mainStats['requests_this_year'],
+                'samples_this_month' => Sample::whereYear('created_at', now()->year)
+                    ->whereMonth('created_at', now()->month)->count(),
                 'samples_this_year' => $mainStats['samples_this_year'],
                 'active_substances_detected' => $mainStats['active_substances_detected'],
 
@@ -98,6 +110,8 @@ class StatisticsController extends Controller
                 'surveyStats' => $surveyStats,
                 'activeSubstanceBreakdown' => $activeSubstanceBreakdown,
                 'defaultSigners' => $defaultSigners,
+                'activeTab' => $requestedTab,
+                'canExportStatistics' => $canExportStatistics,
             ]);
 
         } catch (\Exception $e) {
@@ -111,11 +125,14 @@ class StatisticsController extends Controller
             return view('statistics.index', [
                 'total_users' => User::count(),
                 'requests_this_month' => TestRequest::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count(),
+                'requests_this_year' => TestRequest::whereYear('created_at', now()->year)->count(),
+                'samples_this_month' => Sample::whereYear('created_at', now()->year)->whereMonth('created_at', now()->month)->count(),
                 'samples_this_year' => Sample::whereYear('created_at', now()->year)->count(),
                 'active_substances_detected' => 0,
                 'mainStats' => [
                     'total_users' => User::count(),
                     'requests_this_month' => TestRequest::whereMonth('created_at', now()->month)->whereYear('created_at', now()->year)->count(),
+                    'requests_this_year' => TestRequest::whereYear('created_at', now()->year)->count(),
                     'samples_this_year' => Sample::whereYear('created_at', now()->year)->count(),
                     'active_substances_detected' => 0,
                     'total_detections' => 0,
@@ -140,6 +157,9 @@ class StatisticsController extends Controller
                     'ratings_breakdown' => [],
                 ],
                 'activeSubstanceBreakdown' => $fallbackActiveSubstance,
+                'defaultSigners' => ConsolidatedReportService::DEFAULT_SIGNERS_STRUCTURE,
+                'activeTab' => $requestedTab,
+                'canExportStatistics' => $canExportStatistics,
             ]);
         }
     }
@@ -152,8 +172,8 @@ class StatisticsController extends Controller
             $date = Carbon::now()->subMonths($i);
 
             $months->push([
-                'month' => $date->format('M Y'),
-                'month_short' => $date->format('M'),
+                'month' => $date->locale('id')->translatedFormat('M Y'),
+                'month_short' => $date->locale('id')->translatedFormat('M'),
                 'requests' => TestRequest::whereYear('created_at', $date->year)
                     ->whereMonth('created_at', $date->month)
                     ->count(),
@@ -290,7 +310,10 @@ class StatisticsController extends Controller
      */
     public function data(Request $request)
     {
-        $type = $request->get('type');
+        $validated = $request->validate([
+            'type' => ['required', 'in:user_origin,active_substances,monthly_requests,monthly_samples,suspect_gender,suspect_age'],
+        ]);
+        $type = $validated['type'];
 
         try {
             switch ($type) {
@@ -318,7 +341,7 @@ class StatisticsController extends Controller
         } catch (\Exception $e) {
             \Log::error('Statistics data error: '.$e->getMessage());
 
-            return response()->json(['error' => 'Unable to load data', 'message' => $e->getMessage()], 500);
+            return response()->json(['error' => 'Data statistik gagal dimuat. Coba lagi.'], 500);
         }
     }
 
@@ -381,7 +404,7 @@ class StatisticsController extends Controller
 
         for ($i = 11; $i >= 0; $i--) {
             $date = now()->subMonths($i);
-            $months[] = $date->format('M Y');
+            $months[] = $date->locale('id')->translatedFormat('M Y');
 
             $requestsCount = TestRequest::whereYear('created_at', $date->year)
                 ->whereMonth('created_at', $date->month)
@@ -424,13 +447,13 @@ class StatisticsController extends Controller
         $samplesData = [];
         $targetData = [];
 
-        $yearlyTarget = 200;
+        $yearlyTarget = (int) config('statistics.targets.annual_samples', 200);
         $monthlyTarget = round($yearlyTarget / 12, 1);
 
         // Use same pattern as getMonthlyRequestsData() - 12 months back
         for ($i = 11; $i >= 0; $i--) {
             $date = now()->subMonths($i);
-            $months[] = $date->format('M Y');
+            $months[] = $date->locale('id')->translatedFormat('M Y');
 
             $samplesCount = Sample::whereYear('created_at', $date->year)
                 ->whereMonth('created_at', $date->month)
@@ -574,11 +597,5 @@ class StatisticsController extends Controller
             'backgroundColor' => '#10B981',
             'borderColor' => '#ffffff',
         ]);
-    }
-
-    public function export(Request $request)
-    {
-        // Export implementation
-        return response()->json(['message' => 'Export functionality coming soon']);
     }
 }

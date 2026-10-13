@@ -23,10 +23,16 @@
             </div>
         @endif
 
+        <div role="status" class="mb-6 rounded border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
+            <p class="font-semibold">Form pemeriksaan stok lama sudah dinonaktifkan.</p>
+            <p class="mt-1">Gunakan pencatatan stok awal atau pemeriksaan sebagian stok. Mengisi tabel di halaman ini tidak akan mengubah jumlah stok.</p>
+            <a href="{{ route('inventory.opening-baseline.index') }}" class="mt-2 inline-flex min-h-11 items-center font-medium text-primary-700 underline">Buka Pencatatan Stok Awal</a>
+        </div>
+
         <div class="card">
             <div class="mb-6">
-                <h3 class="text-lg font-semibold text-gray-900">Penghitungan Stok Fisik</h3>
-                <p class="text-sm text-gray-600">Masukkan hasil penghitungan fisik. Sistem akan membuat penyesuaian otomatis untuk variance.</p>
+                <h3 class="text-lg font-semibold text-gray-900">Pemeriksaan Jumlah Stok</h3>
+                <p class="text-sm text-gray-600">Halaman lama ini hanya disimpan untuk kebutuhan sistem. Gunakan pencatatan stok awal di atas.</p>
             </div>
 
             <form method="POST" action="{{ route('inventory.transaction.stocktake') }}" id="stocktake-form">
@@ -39,9 +45,9 @@
                                 <th class="px-3 py-3 text-left text-xs font-semibold text-gray-600">Item</th>
                                 <th class="px-3 py-3 text-left text-xs font-semibold text-gray-600">Lot</th>
                                 <th class="px-3 py-3 text-left text-xs font-semibold text-gray-600">Lokasi</th>
-                                <th class="px-3 py-3 text-right text-xs font-semibold text-gray-600">Stok Sistem</th>
+                                <th class="px-3 py-3 text-right text-xs font-semibold text-gray-600">Jumlah di Catatan</th>
                                 <th class="px-3 py-3 text-right text-xs font-semibold text-gray-600">Stok Fisik</th>
-                                <th class="px-3 py-3 text-right text-xs font-semibold text-gray-600">Variance</th>
+                                <th class="px-3 py-3 text-right text-xs font-semibold text-gray-600">Selisih</th>
                                 <th class="px-3 py-3"></th>
                             </tr>
                         </thead>
@@ -51,7 +57,7 @@
                                     <select name="rows[0][item_id]" class="item-select w-full text-sm rounded-md border-gray-300" required>
                                         <option value="">Pilih item...</option>
                                         @foreach($items as $item)
-                                            <option value="{{ $item->id }}" data-uom="{{ $item->uom }}">{{ $item->name }}</option>
+                                            <option value="{{ $item->id }}" data-uom="{{ $item->uom }}">{{ $item->item_code ?? 'Kode belum ditetapkan' }} · {{ $item->name }} ({{ $item->uom }})</option>
                                         @endforeach
                                     </select>
                                 </td>
@@ -93,8 +99,8 @@
 
                 <div class="mt-6 flex justify-end gap-3 border-t pt-4">
                     <a href="{{ route('inventory.dashboard') }}" class="px-4 py-2 text-gray-700 hover:text-gray-900">Batal</a>
-                    <button type="submit" class="px-6 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 font-medium">
-                        📊 Simpan Stock Opname
+                    <button type="submit" disabled class="px-6 py-2 rounded-md bg-gray-300 font-medium text-gray-600 cursor-not-allowed">
+                        Simpan (nonaktif)
                     </button>
                 </div>
             </form>
@@ -105,7 +111,7 @@
     <script>
         let rowCount = 1;
         const locationsHtml = `@foreach($locations as $location)<option value="{{ $location->id }}">{{ $location->name }}</option>@endforeach`;
-        const itemsHtml = `@foreach($items as $item)<option value="{{ $item->id }}" data-uom="{{ $item->uom }}">{{ $item->name }}</option>@endforeach`;
+        const itemsHtml = `@foreach($items as $item)<option value="{{ $item->id }}" data-uom="{{ $item->uom }}">{{ $item->item_code ?? 'Kode belum ditetapkan' }} · {{ $item->name }} ({{ $item->uom }})</option>@endforeach`;
 
         function attachRowEvents(row) {
             const itemSelect = row.querySelector('.item-select');
@@ -126,7 +132,7 @@
                     return;
                 }
 
-                fetch(`{{ url('referensi/inventori/ajax/balance') }}?item_id=${itemId}&lot_id=${lotId}&location_id=${locationId}`)
+                fetch(`{{ url('referensi/inventori/ajax/balance') }}?context=stocktake&item_id=${itemId}&lot_id=${lotId}&location_id=${locationId}`)
                     .then(r => r.json())
                     .then(data => {
                         systemQty.textContent = data.on_hand_qty.toFixed(2);
@@ -154,9 +160,9 @@
                 const itemId = this.value;
                 lotSelect.innerHTML = '<option value="">Tanpa lot</option>';
                 
-                if (!itemId) return;
+                if (!itemId || !locationSelect.value) return;
                 
-                fetch(`{{ url('referensi/inventori/ajax/lots') }}?item_id=${itemId}`)
+                fetch(`{{ url('referensi/inventori/ajax/lots') }}?context=stocktake&item_id=${encodeURIComponent(itemId)}&location_id=${encodeURIComponent(locationSelect.value)}`)
                     .then(r => r.json())
                     .then(lots => {
                         lots.forEach(lot => {
@@ -170,7 +176,13 @@
             });
 
             lotSelect.addEventListener('change', updateSystemQty);
-            locationSelect.addEventListener('change', updateSystemQty);
+            locationSelect.addEventListener('change', function() {
+                if (itemSelect.value) {
+                    itemSelect.dispatchEvent(new Event('change'));
+                } else {
+                    updateSystemQty();
+                }
+            });
             countedQty.addEventListener('input', updateVariance);
             
             removeBtn.addEventListener('click', function() {

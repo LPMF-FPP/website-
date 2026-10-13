@@ -225,6 +225,12 @@
                                                         </div>
                                                         <form action="{{ route('delivery.send-notification', $request) }}" method="POST">
                                                             @csrf
+                                                            @if($notificationStatusUnknown)
+                                                                <label class="mb-2 flex max-w-sm items-start gap-2 text-xs text-amber-800" for="recipient_verified_after_unknown">
+                                                                    <input id="recipient_verified_after_unknown" name="recipient_verified_after_unknown" type="checkbox" value="1" required class="mt-0.5 rounded border-amber-400 text-amber-600 focus:ring-amber-500">
+                                                                    <span>Saya sudah menghubungi penerima dan memastikan notifikasi sebelumnya belum diterima.</span>
+                                                                </label>
+                                                            @endif
                                                             <button type="submit" 
                                                                 class="inline-flex items-center rounded px-3 py-2 text-sm font-semibold shadow-sm transition {{ $lastNotification ? 'bg-white text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50' : 'bg-blue-600 text-white hover:bg-blue-500' }}">
                                                                 {{ $lastNotification ? 'Kirim Ulang' : 'Kirim Notifikasi' }}

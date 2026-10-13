@@ -16,14 +16,14 @@ $classes = 'btn font-medium transition-all duration-200 ease-in-out';
 
 // Variant classes with medical color palette
 $classes .= match($variant) {
-    'primary' => ' btn-primary text-white font-semibold tracking-wide',
+    'primary' => ' btn-primary font-semibold tracking-wide',
     'secondary' => ' btn-secondary text-accent-900 font-medium tracking-normal',
     'outline' => ' btn-outline text-primary-600 font-medium tracking-normal',
     'success' => ' btn-success text-white font-semibold tracking-wide',
     'warning' => ' btn-warning text-white font-semibold tracking-wide',
     'danger' => ' btn-danger text-white font-semibold tracking-wide',
     'ghost' => ' btn-ghost text-primary-700 font-medium tracking-normal',
-    default => ' btn-primary text-white font-semibold tracking-wide'
+    default => ' btn-primary font-semibold tracking-wide'
 };
 
 // Size classes with typography scaling
@@ -41,13 +41,18 @@ if ($block) {
 }
 
 // Loading state
-if ($loading) {
-    $classes .= ' opacity-75 cursor-not-allowed';
+if ($disabled || $loading) {
+    $classes .= ' cursor-not-allowed pointer-events-none';
 }
 @endphp
 
 @if($href)
-    <a href="{{ $href }}" {{ $attributes->merge(['class' => $classes]) }}>
+    <a
+        @if(! $disabled && ! $loading) href="{{ $href }}" @endif
+        @if($disabled || $loading) aria-disabled="true" tabindex="-1" @endif
+        @if($loading) aria-busy="true" @endif
+        {{ $attributes->merge(['class' => $classes]) }}
+    >
         <span class="inline-flex items-center gap-2">
             @if($icon && $iconPosition === 'left')
                 @if($loading)
@@ -72,6 +77,7 @@ if ($loading) {
     <button
         type="{{ $type }}"
         @if($disabled || $loading) disabled @endif
+        @if($loading) aria-busy="true" @endif
         {{ $attributes->merge(['class' => $classes]) }}
     >
         <span class="inline-flex items-center gap-2">

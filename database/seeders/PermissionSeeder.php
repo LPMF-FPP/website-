@@ -71,8 +71,22 @@ class PermissionSeeder extends Seeder
         ['name' => 'inventori.create', 'display_name' => 'Tambah Inventori', 'module' => 'inventori', 'action' => 'create'],
         ['name' => 'inventori.edit', 'display_name' => 'Edit Inventori', 'module' => 'inventori', 'action' => 'edit'],
         ['name' => 'inventori.delete', 'display_name' => 'Hapus Inventori', 'module' => 'inventori', 'action' => 'delete'],
+        ['name' => 'inventori.receipt.create', 'display_name' => 'Catat Penerimaan Inventori', 'module' => 'inventori', 'action' => 'receipt.create'],
+        ['name' => 'inventori.issue.create', 'display_name' => 'Catat Pengeluaran Inventori', 'module' => 'inventori', 'action' => 'issue.create'],
+        ['name' => 'inventori.transfer.create', 'display_name' => 'Catat Transfer Inventori', 'module' => 'inventori', 'action' => 'transfer.create'],
+        ['name' => 'inventori.stocktake.submit', 'display_name' => 'Ajukan Stok Opname', 'module' => 'inventori', 'action' => 'stocktake.submit'],
+        ['name' => 'inventori.stocktake.approve', 'display_name' => 'Setujui Selisih Stok Opname', 'module' => 'inventori', 'action' => 'stocktake.approve'],
+        ['name' => 'inventori.material-disposal.create', 'display_name' => 'Catat Disposal Bahan Inventori', 'module' => 'inventori', 'action' => 'material-disposal.create'],
+        ['name' => 'inventori.location-access.manage', 'display_name' => 'Kelola Akses Lokasi Inventori', 'module' => 'inventori', 'action' => 'location-access.manage'],
+        ['name' => 'inventori.mutation.activate', 'display_name' => 'Aktifkan Mutasi Inventori', 'module' => 'inventori', 'action' => 'mutation.activate'],
+        ['name' => 'inventori.mutation.disable', 'display_name' => 'Nonaktifkan Mutasi Inventori Darurat', 'module' => 'inventori', 'action' => 'mutation.disable'],
+        ['name' => 'inventori.readiness.inventory-admin.accept', 'display_name' => 'Terima Bukti Kesiapan sebagai Administrator Inventori', 'module' => 'inventori', 'action' => 'readiness.inventory-admin.accept'],
+        ['name' => 'inventori.readiness.system-owner.accept', 'display_name' => 'Terima Bukti Kesiapan sebagai Pemilik Sistem', 'module' => 'inventori', 'action' => 'readiness.system-owner.accept'],
 
         // Changelogs
+        ['name' => 'sample-disposal.view', 'display_name' => 'Lihat Pemusnahan Sampel', 'module' => 'sample-disposal', 'action' => 'view'],
+        ['name' => 'sample-disposal.execute', 'display_name' => 'Eksekusi Pemusnahan Sampel', 'module' => 'sample-disposal', 'action' => 'execute'],
+
         ['name' => 'changelogs.view', 'display_name' => 'Lihat Changelogs', 'module' => 'changelogs', 'action' => 'view'],
 
         // Manajemen Staff

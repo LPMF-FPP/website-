@@ -13,7 +13,23 @@
     --pd-sem-color-text-subtle: #64748b; /* accent-500 */
     --pd-sem-color-primary: #10b981; /* primary-500 */
     --pd-sem-color-primary-hover: #059669; /* primary-600 */
-    --pd-sem-color-focus-ring: rgb(16 185 129 / 45%);
+    --pd-sem-color-primary-action: #047857; /* primary-700 */
+    --pd-sem-color-primary-action-hover: #065f46; /* primary-800 */
+    --pd-sem-color-primary-action-active: #064e3b; /* primary-900 */
+    --pd-sem-color-primary-action-disabled: #065f46; /* primary-800 */
+    --pd-sem-color-primary-action-text: #fff;
+    --pd-sem-color-primary-action-focus: #047857;
+    --pd-sem-color-status-success-bg: #dcfce7;
+    --pd-sem-color-status-success-text: #166534;
+    --pd-sem-color-status-warning-bg: #fef9c3;
+    --pd-sem-color-status-warning-text: #854d0e;
+    --pd-sem-color-status-danger-bg: #fee2e2;
+    --pd-sem-color-status-danger-text: #991b1b;
+    --pd-sem-color-status-info-bg: #dbeafe;
+    --pd-sem-color-status-info-text: #1e40af;
+    --pd-sem-color-status-neutral-bg: #f3f4f6;
+    --pd-sem-color-status-neutral-text: #374151;
+    --pd-sem-color-focus-ring: #047857;
     --pd-sem-color-danger: #ef4444;
     --pd-sem-color-warning: #f59e0b;
     --pd-sem-color-success: #10b981;
@@ -68,7 +84,23 @@
     --pd-sem-color-text-subtle: #94a3b8; /* accent-400 (was accent-500) */
     --pd-sem-color-primary: #10b981; /* reuse green */
     --pd-sem-color-primary-hover: #34d399; /* lighter tint */
-    --pd-sem-color-focus-ring: rgb(16 185 129 / 55%);
+    --pd-sem-color-primary-action: #10b981; /* primary-500 */
+    --pd-sem-color-primary-action-hover: #34d399; /* primary-400 */
+    --pd-sem-color-primary-action-active: #6ee7b7; /* primary-300 */
+    --pd-sem-color-primary-action-disabled: #6ee7b7; /* primary-300 */
+    --pd-sem-color-primary-action-text: #0f172a; /* accent-900 */
+    --pd-sem-color-primary-action-focus: #6ee7b7;
+    --pd-sem-color-status-success-bg: #064e3b;
+    --pd-sem-color-status-success-text: #d1fae5;
+    --pd-sem-color-status-warning-bg: #78350f;
+    --pd-sem-color-status-warning-text: #fef3c7;
+    --pd-sem-color-status-danger-bg: #7f1d1d;
+    --pd-sem-color-status-danger-text: #fee2e2;
+    --pd-sem-color-status-info-bg: #1e3a8a;
+    --pd-sem-color-status-info-text: #dbeafe;
+    --pd-sem-color-status-neutral-bg: #374151;
+    --pd-sem-color-status-neutral-text: #f3f4f6;
+    --pd-sem-color-focus-ring: #6ee7b7;
     --pd-sem-color-danger: #f87171;
     --pd-sem-color-warning: #fbbf24;
     --pd-sem-color-success: #34d399;
@@ -109,19 +141,160 @@
     color: var(--pd-sem-color-text-muted);
 }
 
-/* Example button layering using aliases */
+.inventory-workflow label,
+.inventory-report label,
+.inventory-report td {
+    color: var(--pd-sem-color-text-body);
+}
+
+.inventory-page-header h2,
+.statistics-page-header h2 {
+    color: var(--pd-sem-color-text);
+}
+
+.inventory-page-header nav,
+.inventory-page-header nav ol,
+.inventory-page-header nav a,
+.inventory-page-header nav span,
+.statistics-page-header nav,
+.statistics-page-header nav ol,
+.statistics-page-header nav a,
+.statistics-page-header nav span,
+.inventory-workflow p[id$="label"] {
+    color: var(--pd-sem-color-text-body);
+}
+
+.statistics-dashboard .statistics-tabs {
+    background-color: var(--pd-sem-color-surface);
+}
+
+.inventory-report input,
+.inventory-report select,
+.inventory-workflow input[type="text"],
+.inventory-workflow input:not([type]),
+.inventory-workflow input[type="number"],
+.inventory-workflow input[type="date"],
+.inventory-workflow select,
+.inventory-workflow textarea {
+    color: var(--pd-sem-color-text);
+    background-color: var(--pd-sem-color-surface);
+    border-color: var(--pd-sem-color-text-subtle);
+}
+
+.inventory-workflow input::placeholder,
+.inventory-workflow textarea::placeholder {
+    color: var(--pd-sem-color-text-muted);
+}
+
+.inventory-workflow a:focus-visible,
+.inventory-report a:focus-visible {
+    outline: 3px solid var(--pd-sem-color-focus-ring);
+    outline-offset: 3px;
+}
+
+.inventory-workflow .text-gray-500,
+.inventory-workflow .text-gray-600,
+.inventory-workflow .text-gray-700,
+.inventory-report .text-gray-600,
+.inventory-report .text-primary-700 {
+    color: var(--pd-sem-color-text-muted);
+}
+
+.inventory-workflow .text-red-600,
+.inventory-workflow .text-red-700 {
+    color: var(--pd-sem-color-status-danger-text);
+}
+
+.inventory-workflow .bg-green-50 {
+    color: var(--pd-sem-color-status-success-text);
+    background-color: var(--pd-sem-color-status-success-bg);
+}
+
+.inventory-workflow .bg-red-50 {
+    color: var(--pd-sem-color-status-danger-text);
+    background-color: var(--pd-sem-color-status-danger-bg);
+}
+
+.inventory-workflow .text-green-900 {
+    color: var(--pd-sem-color-status-success-text);
+}
+
+.inventory-workflow .text-amber-800 {
+    color: var(--pd-sem-color-status-warning-text);
+}
+
+.inventory-report .text-primary-900 {
+    color: var(--pd-sem-color-text);
+}
+
+/* Status badges retain readable text when dark-theme surfaces are used. */
+.inventory-status-success {
+    color: var(--pd-sem-color-status-success-text);
+    background-color: var(--pd-sem-color-status-success-bg);
+}
+
+.inventory-status-warning {
+    color: var(--pd-sem-color-status-warning-text);
+    background-color: var(--pd-sem-color-status-warning-bg);
+}
+
+.inventory-status-danger {
+    color: var(--pd-sem-color-status-danger-text);
+    background-color: var(--pd-sem-color-status-danger-bg);
+}
+
+.inventory-status-info {
+    color: var(--pd-sem-color-status-info-text);
+    background-color: var(--pd-sem-color-status-info-bg);
+}
+
+.inventory-status-neutral {
+    color: var(--pd-sem-color-status-neutral-text);
+    background-color: var(--pd-sem-color-status-neutral-bg);
+}
+
+/* Primary actions use the documented light/dark LPMF contrast pairs. */
+.btn-primary,
 .btn-sem-primary {
-    color: #fff;
-    background-color: var(--pd-sem-color-primary);
+    color: var(--pd-sem-color-primary-action-text);
+    background-color: var(--pd-sem-color-primary-action);
+    border-color: var(--pd-sem-color-primary-action);
 }
 
+.btn.btn-primary,
+.btn.btn-sem-primary {
+    transition-property: none;
+}
+
+.btn-primary:hover,
 .btn-sem-primary:hover {
-    background-color: var(--pd-sem-color-primary-hover);
+    color: var(--pd-sem-color-primary-action-text);
+    background-color: var(--pd-sem-color-primary-action-hover);
+    border-color: var(--pd-sem-color-primary-action-hover);
 }
 
-.btn-sem-primary:focus {
-    outline: 2px solid var(--pd-sem-color-focus-ring);
-    outline-offset: 2px;
+.btn-primary:active,
+.btn-sem-primary:active {
+    color: var(--pd-sem-color-primary-action-text);
+    background-color: var(--pd-sem-color-primary-action-active);
+    border-color: var(--pd-sem-color-primary-action-active);
+}
+
+.btn-primary:disabled,
+.btn-primary[aria-disabled="true"],
+.btn-sem-primary:disabled,
+.btn-sem-primary[aria-disabled="true"] {
+    color: var(--pd-sem-color-primary-action-text);
+    background-color: var(--pd-sem-color-primary-action-disabled);
+    border-color: var(--pd-sem-color-primary-action-disabled);
+    border-style: dashed;
+    cursor: not-allowed;
+}
+
+.btn.btn-primary:focus-visible,
+.btn.btn-sem-primary:focus-visible {
+    outline: 3px solid var(--pd-sem-color-primary-action-focus);
+    outline-offset: 3px;
 }
 
 /* Density utilities */

@@ -85,6 +85,7 @@
     background-color: rgb(148 163 184 / 15%);
 }
 
+
 /* Scrollbar (webkit) */
 [data-theme="dark"] ::-webkit-scrollbar-track {
     background: #1e293b;

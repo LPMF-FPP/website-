@@ -10,7 +10,7 @@ class ChangelogPageTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_changelog_page_displays_the_latest_deploy_hardening_entry(): void
+    public function test_changelog_page_displays_the_latest_release_and_existing_history(): void
     {
         $user = User::factory()->create([
             'email_verified_at' => now(),
@@ -20,6 +20,10 @@ class ChangelogPageTest extends TestCase
 
         $response
             ->assertOk()
+            ->assertSee('v2.7.0')
+            ->assertSee('Inventori Desktop, Pemusnahan Sampel')
+            ->assertSee('v2.6.7')
+            ->assertSee('6d445d4')
             ->assertSee('v2.6.3')
             ->assertSee('Deploy Hardening')
             ->assertSee('Verifikasi Host SSH');

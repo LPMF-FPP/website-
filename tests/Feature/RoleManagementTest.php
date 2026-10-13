@@ -127,6 +127,10 @@ class RoleManagementTest extends TestCase
             'id' => $member->id,
             'role' => 'auditor_utama',
         ]);
+        $this->assertDatabaseHas('users', [
+            'id' => $admin->id,
+            'role' => 'admin',
+        ]);
 
         $this->assertDatabaseHas('role_permissions', [
             'role' => 'auditor_utama',

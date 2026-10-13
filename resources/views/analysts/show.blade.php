@@ -232,6 +232,9 @@
                     @method('PUT')
 
                     <div class="overflow-x-auto">
+                        @php
+                            $inventoryActionLabels['execute'] = 'Eksekusi Pemusnahan Sampel';
+                        @endphp
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
@@ -241,6 +244,9 @@
                                     <th class="px-4 py-3 text-center text-xs font-semibold uppercase text-gray-500 w-20">Edit</th>
                                     <th class="px-4 py-3 text-center text-xs font-semibold uppercase text-gray-500 w-20">Hapus</th>
                                     <th class="px-4 py-3 text-center text-xs font-semibold uppercase text-gray-500 w-20">Export</th>
+                                    @foreach($inventoryActionLabels as $action => $actionLabel)
+                                        <th class="min-w-32 px-4 py-3 text-center text-xs font-semibold uppercase text-gray-500" scope="col">{{ $actionLabel }}</th>
+                                    @endforeach
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-200 bg-white">
@@ -256,6 +262,7 @@
                                         'statistik' => 'Statistik',
                                         'monitoring' => 'Monitoring Suhu',
                                         'inventori' => 'Inventori',
+                                        'sample-disposal' => 'Pemusnahan Sampel',
                                         'changelogs' => 'Changelogs',
                                         'analysts' => 'Manajemen Staff',
                                         'settings' => 'Pengaturan Sistem',
@@ -293,6 +300,37 @@
                                                             <input type="checkbox"
                                                                 name="permissions[{{ $permId }}]"
                                                                 value="1"
+                                                                {{ $hasAccess ? 'checked' : '' }}
+                                                                {{ auth()->id() === $analyst->id ? 'disabled' : '' }}
+                                                                @change="markChanged()"
+                                                                class="h-5 w-5 rounded transition-colors
+                                                                    {{ $isCustom ? ($hasAccess ? 'text-emerald-600 border-emerald-600' : 'text-red-600 border-red-600') : 'text-gray-400 border-gray-300' }}
+                                                                    focus:ring-primary-500 focus:ring-offset-0
+                                                                    {{ auth()->id() === $analyst->id ? 'opacity-50 cursor-not-allowed' : '' }}">
+                                                        </label>
+                                                    @endif
+                                                @else
+                                                    <span class="text-gray-300">-</span>
+                                                @endif
+                                            </td>
+                                        @endforeach
+                                        @foreach($inventoryActionLabels as $action => $actionLabel)
+                                            <td class="px-4 py-3 text-center">
+                                                @if(in_array($moduleKey, ['inventori', 'sample-disposal'], true) && in_array($action, $availableActions, true) && $moduleData)
+                                                    @php
+                                                        $actionData = $moduleData['actions'][$action] ?? null;
+                                                        $hasAccess = $actionData['has_access'] ?? false;
+                                                        $isCustom = $actionData['is_custom'] ?? false;
+                                                        $permId = $actionData['id'] ?? null;
+                                                    @endphp
+                                                    @if($permId)
+                                                        <label class="inline-flex min-h-11 min-w-11 items-center justify-center cursor-pointer"
+                                                            @if(auth()->id() === $analyst->id) title="Tidak dapat mengubah permission sendiri" @endif>
+                                                            <input type="hidden" name="permissions[{{ $permId }}]" value="0">
+                                                            <input type="checkbox"
+                                                                name="permissions[{{ $permId }}]"
+                                                                value="1"
+                                                                aria-label="{{ $moduleName }}: {{ $actionLabel }}"
                                                                 {{ $hasAccess ? 'checked' : '' }}
                                                                 {{ auth()->id() === $analyst->id ? 'disabled' : '' }}
                                                                 @change="markChanged()"

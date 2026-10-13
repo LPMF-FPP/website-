@@ -3,9 +3,12 @@
 use App\Console\Commands\AutoCheckoutGuestVisits;
 use App\Console\Commands\GoogleDriveHealthCommand;
 use App\Console\Commands\GoogleDriveSmokeCommand;
+use App\Console\Commands\PreflightInventoryItemCodeMapping;
+use App\Console\Commands\PreflightInventoryLotIdentity;
 use App\Console\Commands\PurgeOldFiles;
 use App\Console\Commands\QmhRefreshActionItemOverdue;
 use App\Console\Commands\ReconcileGowaUpdates;
+use App\Console\Commands\RunInventoryIntegrityAudit;
 use App\Console\Commands\SyncGoogleDriveDocumentsCommand;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -21,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Global middleware additions
+        $middleware->trimStrings(except: ['lot_no', 'new_lot_no']);
         $middleware->prepend(\App\Http\Middleware\ApplyTimezone::class);
         $middleware->append(\App\Http\Middleware\ApplyLocaleFromSettings::class);
         $middleware->appendToGroup('web', \App\Http\Middleware\EnsureUserIsActive::class);
@@ -59,7 +63,10 @@ return Application::configure(basePath: dirname(__DIR__))
         GoogleDriveHealthCommand::class,
         GoogleDriveSmokeCommand::class,
         PurgeOldFiles::class,
+        PreflightInventoryItemCodeMapping::class,
+        PreflightInventoryLotIdentity::class,
         QmhRefreshActionItemOverdue::class,
+        RunInventoryIntegrityAudit::class,
         SyncGoogleDriveDocumentsCommand::class,
         ReconcileGowaUpdates::class,
     ])

@@ -31,6 +31,21 @@ class InventoryLocation extends Model
         return $this->hasMany(InventoryBalance::class, 'location_id');
     }
 
+    public function userAccess(): HasMany
+    {
+        return $this->hasMany(InventoryLocationAccess::class, 'location_id');
+    }
+
+    public function accessEvents(): HasMany
+    {
+        return $this->hasMany(InventoryLocationAccessEvent::class, 'location_id');
+    }
+
+    public function configurationEvents(): HasMany
+    {
+        return $this->hasMany(InventoryLocationConfigurationEvent::class, 'location_id');
+    }
+
     public function incomingMovements(): HasMany
     {
         return $this->hasMany(InventoryMovement::class, 'to_location_id');

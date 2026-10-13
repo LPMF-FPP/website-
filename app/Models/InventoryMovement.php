@@ -16,6 +16,7 @@ class InventoryMovement extends Model
         'reference_id',
         'item_id',
         'lot_id',
+        'lot_mode',
         'from_location_id',
         'to_location_id',
         'qty',
@@ -40,6 +41,12 @@ class InventoryMovement extends Model
         'ADJUST' => 'Penyesuaian',
         'DISPOSE' => 'Disposal',
         'RETURN' => 'Retur',
+    ];
+
+    public const RECEIPT_LOT_MODES = [
+        'tracked_existing' => 'Lot yang ada',
+        'tracked_new' => 'Lot baru',
+        'untracked' => 'Tanpa lot (untracked)',
     ];
 
     public const REFERENCE_TYPES = [
@@ -133,7 +140,7 @@ class InventoryMovement extends Model
         }
 
         // TRANSFER is neutral (one out, one in)
-        return $qty;
+        return 0.0;
     }
 
     /**

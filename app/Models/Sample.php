@@ -241,23 +241,12 @@ class Sample extends Model
      */
     public function scopeEligibleForDisposal(Builder $query): Builder
     {
-        $retentionDays = self::disposalRetentionDays();
+        return app(\App\Services\SampleDisposalEligibilityService::class)->scope($query);
+    }
 
-        return $query
-            ->whereNull('disposal_id')
-            ->whereNull('disposed_at')
-            ->where(function (Builder $builder): void {
-                $builder
-                    ->whereNull('disposal_status')
-                    ->orWhere('disposal_status', '!=', SampleDisposalStatus::DISPOSED->value);
-            })
-            ->whereHas('testProcesses', function (Builder $builder) use ($retentionDays): void {
-                $builder
-                    ->where('stage', 'interpretation')
-                    ->whereNotNull('completed_at')
-                    ->where('completed_at', '<=', now()->subDays($retentionDays))
-                    ->whereNotNull('metadata->lhu_number');
-            });
+    public function disposalInterpretations(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return app(\App\Services\SampleDisposalEligibilityService::class)->qualifying($this->testProcesses());
     }
 
     /**
@@ -309,16 +298,7 @@ class Sample extends Model
             return false;
         }
 
-        $retentionDays = self::disposalRetentionDays();
-
-        $interpretationProcess = $this->testProcesses()
-            ->where('stage', 'interpretation')
-            ->whereNotNull('completed_at')
-            ->where('completed_at', '<=', now()->subDays($retentionDays))
-            ->whereNotNull('metadata->lhu_number')
-            ->first();
-
-        return $interpretationProcess !== null;
+        return $this->disposalInterpretations()->exists();
     }
 
     public static function disposalRetentionDays(): int

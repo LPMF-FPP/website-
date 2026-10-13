@@ -1,27 +1,27 @@
 <div class="space-y-6">
     <!-- Header Controls -->
-    <div class="flex justify-between items-center bg-gray-50 p-4 rounded-lg border border-gray-200">
+    <div class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-sem bg-gray-50 p-4 dark:bg-slate-900">
         <div>
-            <h4 class="text-lg font-medium text-gray-900" x-text="previewData.period_label"></h4>
-            <p class="text-sm text-gray-500">Preview Laporan sebelum digenerate menjadi PDF.</p>
+            <h4 class="text-lg font-medium semantic-text" x-text="previewData.period_label"></h4>
+            <p class="text-sm semantic-text-muted">Tinjau laporan sebelum dibuat menjadi PDF.</p>
         </div>
         <div class="space-x-3">
-            <button @click="step = 'form'" class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                ← Kembali Edit
+            <button type="button" @click="step = 'form'" class="btn border-sem semantic-text min-h-11 px-4 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-slate-700">
+                Kembali mengubah laporan
             </button>
-            <button @click="generateReport()" :disabled="loading" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50">
+            <button type="button" @click="generateReport()" :disabled="loading" class="btn btn-primary min-h-11 px-4 text-sm font-semibold disabled:cursor-wait disabled:opacity-60">
                 <svg x-show="loading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <span x-text="loading ? 'Generating...' : '✅ Finalisasi & Generate PDF'"></span>
+                <span x-text="loading ? 'Membuat PDF...' : 'Finalisasi dan buat PDF'"></span>
             </button>
         </div>
     </div>
 
     <!-- Paper Preview Container -->
-    <div class="bg-gray-100 p-8 rounded-lg overflow-x-auto">
-        <div class="bg-white shadow-lg mx-auto max-w-[210mm] p-[8mm] text-black text-[10pt] leading-normal font-serif">
+    <div class="rounded-lg bg-gray-100 p-8 dark:bg-slate-900">
+            <div class="statistics-print-preview mx-auto max-w-[210mm] bg-white p-[8mm] text-[10pt] leading-normal text-black shadow-lg font-serif">
             
             <!-- KOP SURAT -->
             @php
@@ -60,7 +60,7 @@
 
             <!-- NARASI PEMBUKA -->
             <div class="mb-4">
-                <label class="block text-xs font-bold text-gray-400 uppercase mb-1 bg-gray-50 p-1 border border-dashed border-gray-300">Editable Area</label>
+                    <label class="block border border-dashed border-gray-300 bg-gray-50 p-1 text-xs font-bold uppercase text-gray-600">Bagian yang dapat disunting</label>
                 <textarea x-model="previewData.narratives.opening" rows="3" class="w-full border-gray-300 rounded shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-justify"></textarea>
             </div>
 
@@ -351,7 +351,7 @@
                         <h3 class="font-bold mb-1 text-sm uppercase tracking-wide text-slate-900">Lampiran Statistik Dashboard</h3>
                         <p class="text-xs text-slate-600">Visual ringkas dari chart dan angka dashboard statistik sesuai periode laporan.</p>
                     </div>
-                    <span class="rounded-full border border-slate-300 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">Appendix</span>
+                    <span class="rounded border border-slate-300 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-600">Lampiran</span>
                 </div>
 
                 <div class="grid grid-cols-4 gap-2 mb-4">
@@ -465,7 +465,7 @@
                                 <div class="mt-2 flex items-center justify-between gap-2 text-[10px] text-slate-600">
                                     <span><span class="inline-block h-2 w-4 rounded-sm bg-emerald-600"></span> Aktual</span>
                                     <span><span class="inline-block h-2 w-4 rounded-sm bg-red-600"></span> Target</span>
-                                    <span class="font-bold" x-text="chart.total + '/' + (chart.target?.yearly ?? 200) + ' sampel'"></span>
+                                    <span class="font-bold" x-text="chart.total + '/' + (chart.target?.yearly ?? @js(config('statistics.targets.annual_samples'))) + ' sampel'"></span>
                                 </div>
                             </div>
                         </template>
@@ -477,7 +477,7 @@
 
             <!-- NARASI PENUTUP -->
             <div class="mb-8">
-                <label class="block text-xs font-bold text-gray-400 uppercase mb-1 bg-gray-50 p-1 border border-dashed border-gray-300">Editable Area</label>
+                <label class="block border border-dashed border-gray-300 bg-gray-50 p-1 text-xs font-bold uppercase text-gray-600">Bagian yang dapat disunting</label>
                 <textarea x-model="previewData.narratives.closing" rows="3" class="w-full border-gray-300 rounded shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-justify"></textarea>
             </div>
 

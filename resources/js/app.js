@@ -10,6 +10,8 @@ import {
 
 import { createListFetcher } from "./utils/list-fetcher";
 import { initSearchPage } from "./pages/search";
+import { inventoryTransactionReview } from "./pages/inventory-review";
+import { sampleDisposalExecution, sampleDisposalSelection } from "./pages/sample-disposal";
 import { qmhCreatePage } from "./pages/quality-create";
 import { qmhAuditPage } from "./pages/quality-audit";
 import { qmhGovernancePage } from "./pages/quality-governance";
@@ -96,6 +98,9 @@ if (!window[APP_BOOT_KEY]) {
     document.addEventListener("alpine:init", () => {
         Alpine.store("toast", toastStore);
         Alpine.data("listFetcher", (targetRef) => createListFetcher(targetRef));
+        Alpine.data("inventoryTransactionReview", inventoryTransactionReview);
+        Alpine.data("sampleDisposalSelection", sampleDisposalSelection);
+        Alpine.data("sampleDisposalExecution", sampleDisposalExecution);
         Alpine.data("qmhCreatePage", (config = {}) => qmhCreatePage(config));
         Alpine.data("qmhAuditPage", () => qmhAuditPage());
         Alpine.data("qmhGovernancePage", () => qmhGovernancePage());

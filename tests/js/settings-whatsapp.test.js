@@ -19,8 +19,8 @@ class SettingsClientStub {
                         enabled: true,
                         base_url: "http://gowa.lpmf.local:3000",
                         device_id: "device-123",
-                        basic_user: "lpmf",
-                        basic_pass: "lpmfjaya1",
+                        basic_user: "fixture-user",
+                        basic_pass: "fixture-password",
                         enabled_milestones: ["REQUEST_RECEIVED"],
                         templates: {
                             REQUEST_RECEIVED: "Permintaan diterima {resi}.",
@@ -185,8 +185,8 @@ describe("SettingsClient WhatsApp Save", () => {
         assert.strictEqual(payload.enabled, true);
         assert.strictEqual(payload.base_url, "http://gowa.lpmf.local:3000");
         assert.strictEqual(payload.device_id, "device-123");
-        assert.strictEqual(payload.basic_user, "lpmf");
-        assert.strictEqual(payload.basic_pass, "lpmfjaya1");
+        assert.strictEqual(payload.basic_user, "fixture-user");
+        assert.strictEqual(payload.basic_pass, "fixture-password");
         assert.deepStrictEqual(payload.enabled_milestones, [
             "REQUEST_RECEIVED",
         ]);

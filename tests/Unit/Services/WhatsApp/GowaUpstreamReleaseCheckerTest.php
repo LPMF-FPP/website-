@@ -36,6 +36,7 @@ it('reports a newer GitHub release without approving it for execution', function
         'catalog_version_match' => false,
         'can_update' => false,
         'comparison_status' => 'compared',
+        'blocked_reason' => 'release_not_approved',
     ]);
 });
 
@@ -89,6 +90,7 @@ it('does not claim a current version when runtime evidence is stale or unknown',
         'current_version' => null,
         'update_available' => false,
         'comparison_status' => 'runtime_stale',
+        'blocked_reason' => 'runtime_stale',
     ]);
 });
 
@@ -125,6 +127,31 @@ it('caches the upstream response while reporting when it was fetched', function 
     Http::assertSentCount(1);
     expect($first['fetched_at'])->toBe($second['fetched_at'])
         ->and($first['checked_at'])->toBeString();
+});
+
+it('refreshes GitHub release data when an execution decision needs a fresh check', function (): void {
+    $requests = 0;
+    Http::fake(function () use (&$requests) {
+        $requests++;
+        $version = $requests === 1 ? 'v9.3.0' : 'v9.4.0';
+
+        return Http::response([
+            'tag_name' => $version,
+            'html_url' => 'https://github.com/aldinokemal/go-whatsapp-web-multidevice/releases/tag/'.$version,
+            'published_at' => '2026-08-29T16:01:08Z',
+            'draft' => false,
+            'prerelease' => false,
+        ]);
+    });
+
+    $checker = new GowaUpstreamReleaseChecker(gowaUpstreamCatalog(), gowaUpstreamProbe());
+    $first = $checker->check();
+    $fresh = $checker->check(true);
+
+    Http::assertSentCount(2);
+    expect($first['latest_version'])->toBe('v9.3.0')
+        ->and($fresh['latest_version'])->toBe('v9.4.0')
+        ->and($fresh['blocked_reason'])->toBe('release_not_approved');
 });
 
 it('rejects a non-GitHub endpoint before attaching a configured token', function (): void {

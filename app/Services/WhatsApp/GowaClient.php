@@ -31,7 +31,7 @@ class GowaClient
     public function __construct()
     {
         $this->baseUrl = settings('notifications.whatsapp.base_url') ?: env('WHATSAPP_API_URL', 'http://localhost:3000');
-        $this->basicUser = settings('notifications.whatsapp.basic_user') ?: env('WHATSAPP_BASIC_USER', 'lpmf');
+        $this->basicUser = settings('notifications.whatsapp.basic_user') ?: env('WHATSAPP_BASIC_USER');
         $this->deviceId = settings('notifications.whatsapp.device_id') ?: env('WHATSAPP_DEVICE_ID', '03663e24-efdb-48fe-961d-456436bfb219');
 
         $encPass = settings('notifications.whatsapp.basic_pass');
@@ -40,10 +40,10 @@ class GowaClient
             try {
                 $this->basicPass = decrypt($encPass);
             } catch (\Throwable $e) {
-                $this->basicPass = env('WHATSAPP_BASIC_PASS', 'lpmfjaya1');
+                $this->basicPass = env('WHATSAPP_BASIC_PASS');
             }
         } else {
-            $this->basicPass = env('WHATSAPP_BASIC_PASS', 'lpmfjaya1');
+            $this->basicPass = env('WHATSAPP_BASIC_PASS');
         }
     }
 

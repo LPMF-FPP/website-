@@ -2,8 +2,9 @@
     use Carbon\Carbon;
     Carbon::setLocale('id');
 
-    $executedAt = $disposal->executed_at;
-    $printedAt = now();
+    $executedAt = $disposal->recorded_executed_at;
+    $executionTimezone = $disposal->manifest_snapshot['timezone'] ?? 'WIB';
+    $printedAt = now()->setTimezone('Asia/Jakarta');
 
     $leftLogoPath = public_path('images/logo-tribrata-polri.png');
     $rightLogoPath = public_path('images/logo-pusdokkes-polri.png');
@@ -29,7 +30,7 @@
         ))
         ->values();
     $witnessSummary = $witnessSigners->map(fn (array $signer) => $signer['name'].' ('.$signer['identity'].')')->implode('; ');
-    $executorPerson = $disposal->executedBy;
+    $executorPerson = $disposal->manifest_snapshot ? null : $disposal->executedBy;
     $executorNumber = $executorPerson?->nrp ?: $executorPerson?->nip;
     $executorNumberLabel = $executorPerson?->nrp ? 'NRP.' : ($executorPerson?->nip ? 'NIP.' : null);
     $executorIdentityFallback = $disposal->executed_by_identity
@@ -38,7 +39,7 @@
         null,
         fallbackName: $disposal->executed_by_name ?: ($executorPerson?->name ?? '-'),
         fallbackIdentity: $executorIdentityFallback,
-        fallbackRole: $disposal->executed_by_role ?: ($executorPerson?->rank ?: 'ANALIS')
+        fallbackRole: $disposal->executed_by_role ?: ($executorPerson?->rank ?: ($disposal->manifest_snapshot ? '-' : 'ANALIS'))
     );
     $approverSigner = pdf_build_signer(
         null,
@@ -128,17 +129,17 @@
   <div class="subtitle">Nomor Batch: <b>{{ $disposal->batch_number }}</b></div>
 
   <p>
-    Pada hari ini, <b>{{ $executedAt->translatedFormat('l, d F Y') }}</b> pukul <b>{{ $executedAt->format('H:i') }} WIB</b>,
+    Pada hari ini, <b>{{ $executedAt->translatedFormat('l, d F Y') }}</b> pukul <b>{{ $executedAt->format('H:i') }} {{ $executionTimezone }}</b>,
     telah dilaksanakan pemusnahan sisa sampel uji di Laboratorium Pengujian Mutu Farmasi Kepolisian,
     Pusat Kedokteran dan Kesehatan Polri, dengan rincian sebagai berikut:
   </p>
 
   <table class="meta-table">
     <tr><td class="label">Nomor Batch Pemusnahan</td><td class="sep">:</td><td class="value nowrap"><strong>{{ $disposal->batch_number }}</strong></td></tr>
-    <tr><td class="label">Tanggal Pelaksanaan</td><td class="sep">:</td><td class="value">{{ $executedAt->translatedFormat('d F Y, H:i') }} WIB</td></tr>
+    <tr><td class="label">Tanggal Pelaksanaan</td><td class="sep">:</td><td class="value">{{ $executedAt->translatedFormat('d F Y, H:i') }} {{ $executionTimezone }}</td></tr>
     <tr><td class="label">Metode Pemusnahan</td><td class="sep">:</td><td class="value">{{ $disposal->method->label() }}</td></tr>
-    <tr><td class="label">Jumlah Sampel</td><td class="sep">:</td><td class="value"><strong>{{ $disposal->samples->count() }}</strong> sampel</td></tr>
-    <tr><td class="label">Pelaksana</td><td class="sep">:</td><td class="value">{{ $disposal->executed_by_name ?: ($disposal->executedBy?->display_name_with_title ?? $disposal->executedBy?->name ?? '-') }}</td></tr>
+    <tr><td class="label">Jumlah Sampel</td><td class="sep">:</td><td class="value"><strong>{{ count($disposal->manifest_rows) }}</strong> sampel</td></tr>
+    <tr><td class="label">Pelaksana</td><td class="sep">:</td><td class="value">{{ $disposal->executed_by_name ?: ($executorPerson?->display_name_with_title ?? $executorPerson?->name ?? '-') }}</td></tr>
     <tr><td class="label">Saksi</td><td class="sep">:</td><td class="value">{{ $witnessSummary !== '' ? $witnessSummary : '-' }}</td></tr>
     @if($disposal->notes)
     <tr><td class="label">Catatan</td><td class="sep">:</td><td class="value">{{ $disposal->notes }}</td></tr>
@@ -158,21 +159,18 @@
       </tr>
     </thead>
     <tbody>
-      @foreach($disposal->samples as $i => $sample)
+      @foreach($disposal->manifest_rows as $i => $row)
       @php
-          $lhuProcess = $sample->testProcesses->where('stage', 'interpretation')->whereNotNull('completed_at')->first();
-          $lhuNumber = $lhuProcess?->metadata['lhu_number'] ?? '-';
-          $testRequest = $sample->testRequest;
-          $investigator = $testRequest?->investigator;
-          $caseNumber = $testRequest?->case_number ?? '-';
-          $caseDate = $testRequest?->case_date ? Carbon::parse($testRequest->case_date)->format('d/m/Y') : '';
+          $lhuNumber = $row['lhu_number'] ?? '-';
+          $caseNumber = $row['case_number'] ?? '-';
+          $caseDate = !empty($row['case_date']) ? Carbon::parse($row['case_date'])->format('d/m/Y') : '';
       @endphp
       <tr>
         <td class="col-no">{{ $i + 1 }}</td>
         <td class="col-lhu">{{ $lhuNumber }}</td>
         <td class="col-lp">{{ $caseNumber }}@if($caseDate)<br><small>{{ $caseDate }}</small>@endif</td>
-        <td class="col-tersangka">{{ $testRequest?->suspect_name ?? '-' }}</td>
-        <td class="col-bukti">{{ $sample->short_description ?? $sample->sample_form }} ({{ $sample->sample_code }})</td>
+        <td class="col-tersangka">{{ $row['suspect_name'] ?? '-' }}</td>
+        <td class="col-bukti">{{ $row['description'] }} ({{ $row['sample_code'] }})</td>
         <td class="col-dok">{{ $documentationPhotos->isNotEmpty() ? 'Terlampir' : '-' }}</td>
       </tr>
       @endforeach

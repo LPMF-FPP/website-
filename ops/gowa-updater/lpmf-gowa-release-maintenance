@@ -334,15 +334,20 @@ repair_worker_privilege_boundary() {
   install -d -o root -g root -m 0700 "$backup"
   cp -a "$service" "$backup/"
    temporary="$(mktemp /etc/systemd/system/lpmf-gowa-maintenance.service.XXXXXX)"
-   sed \
-     -e 's/^NoNewPrivileges=no$/NoNewPrivileges=no/' \
-     -e 's/^RestrictSUIDSGID=no$/RestrictSUIDSGID=yes/' \
-     -e 's#^ReadWritePaths=.*#ReadWritePaths=/var/www/lis/storage /var/www/lis/bootstrap/cache /var/lib/lpmf/gowa-updater /run/lpmf/gowa-updater#' \
-     -e 's/^CapabilityBoundingSet=.*/CapabilityBoundingSet=/' \
-     "$service" > "$temporary"
-   grep -Fqx 'NoNewPrivileges=no' "$temporary" || die 'maintenance service repair failed'
-   grep -Fqx 'RestrictSUIDSGID=yes' "$temporary" || die 'maintenance service SUID repair failed'
-   grep -Fqx 'ReadWritePaths=/var/www/lis/storage /var/www/lis/bootstrap/cache /var/lib/lpmf/gowa-updater /run/lpmf/gowa-updater' "$temporary" || die 'maintenance service writable paths repair failed'
+    sed \
+      -e '/^RuntimeDirectory\(Mode\|Preserve\)\?=/d' \
+      -e 's/^NoNewPrivileges=no$/NoNewPrivileges=no/' \
+      -e 's/^RestrictSUIDSGID=no$/RestrictSUIDSGID=yes/' \
+      -e 's#^ReadWritePaths=.*#ReadWritePaths=/var/www/lis/storage /var/www/lis/bootstrap/cache /var/lib/lpmf/gowa-updater /run/lpmf/gowa-updater#' \
+      -e '/^WorkingDirectory=/a RuntimeDirectory=lpmf/gowa-updater\nRuntimeDirectoryMode=0750\nRuntimeDirectoryPreserve=yes' \
+      -e 's/^CapabilityBoundingSet=.*/CapabilityBoundingSet=/' \
+      "$service" > "$temporary"
+    grep -Fqx 'NoNewPrivileges=no' "$temporary" || die 'maintenance service repair failed'
+    grep -Fqx 'RestrictSUIDSGID=yes' "$temporary" || die 'maintenance service SUID repair failed'
+    grep -Fqx 'ReadWritePaths=/var/www/lis/storage /var/www/lis/bootstrap/cache /var/lib/lpmf/gowa-updater /run/lpmf/gowa-updater' "$temporary" || die 'maintenance service writable paths repair failed'
+    grep -Fqx 'RuntimeDirectory=lpmf/gowa-updater' "$temporary" || die 'maintenance service runtime directory repair failed'
+    grep -Fqx 'RuntimeDirectoryMode=0750' "$temporary" || die 'maintenance service runtime directory mode repair failed'
+    grep -Fqx 'RuntimeDirectoryPreserve=yes' "$temporary" || die 'maintenance service runtime directory preservation repair failed'
    grep -Fqx 'CapabilityBoundingSet=' "$temporary" || die 'maintenance service capability repair failed'
   install -o root -g root -m 0644 "$temporary" "$service"
   rm -f -- "$temporary"

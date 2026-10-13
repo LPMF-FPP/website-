@@ -10,6 +10,7 @@ Artisan::command('inspire', function () {
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::command('inventory:check-alerts')->dailyAt('08:00');
+Schedule::command('sample-disposal:reconcile-files --apply')->everyFifteenMinutes()->withoutOverlapping();
 Schedule::command('reminders:send')->everyMinute();
 Schedule::command('guest-book:auto-checkout')
     ->everyMinute()

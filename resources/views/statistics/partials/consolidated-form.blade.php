@@ -268,19 +268,19 @@
 }">
 
     <!-- STEP 1: FORM -->
-    <div x-show="step === 'form'" class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-medium text-gray-900 mb-6">Generate Laporan Baru</h3>
+    <div x-show="step === 'form'" class="rounded-lg border border-sem semantic-surface p-6">
+        <h3 class="mb-6 text-lg font-medium semantic-text">Buat laporan baru</h3>
 
         <!-- Error Alert -->
-        <div x-show="errorMessage" class="mb-4 bg-red-50 border-l-4 border-red-400 p-4">
+        <div x-show="errorMessage" role="alert" aria-live="assertive" class="inventory-status-danger mb-4 rounded-md p-4">
             <div class="flex">
                 <div class="flex-shrink-0">
-                    <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
                     </svg>
                 </div>
                 <div class="ml-3">
-                    <p class="text-sm text-red-700" x-text="errorMessage"></p>
+                    <p class="text-sm" x-text="errorMessage"></p>
                 </div>
             </div>
         </div>
@@ -288,9 +288,9 @@
         <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
             <!-- Period Type -->
             <div class="sm:col-span-3">
-                <label for="period_type" class="block text-sm font-medium text-gray-700">Jenis Periode</label>
-                <select id="period_type" x-model="periodType" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
-                    <option value="biweekly">Bi-weekly (2 Mingguan)</option>
+                <label for="period_type" class="block text-sm font-medium semantic-text">Jenis periode</label>
+                <select id="period_type" x-model="periodType" class="mt-1 block min-h-11 w-full rounded-md border-gray-300 bg-white pl-3 pr-10 text-base text-gray-900 focus:border-primary-700 focus:ring-primary-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-primary-300 dark:focus:ring-primary-300 sm:text-sm">
+                    <option value="biweekly">Dua mingguan</option>
                     <option value="monthly">Bulanan</option>
                     <option value="quarterly">Triwulan</option>
                 </select>
@@ -299,44 +299,44 @@
             <!-- Date Range -->
             <div class="sm:col-span-3 grid grid-cols-2 gap-4">
                 <div>
-                    <label for="start_date" class="block text-sm font-medium text-gray-700">Tanggal Awal</label>
-                    <input type="date" id="start_date" x-model="startDate" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    <label for="start_date" class="block text-sm font-medium semantic-text">Tanggal awal</label>
+                    <input type="date" id="start_date" x-model="startDate" class="mt-1 block min-h-11 w-full rounded-md border-gray-300 bg-white text-gray-900 shadow-sm focus:border-primary-700 focus:ring-primary-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-primary-300 dark:focus:ring-primary-300 sm:text-sm">
                 </div>
                 <div>
-                    <label for="end_date" class="block text-sm font-medium text-gray-700">Tanggal Akhir</label>
-                    <input type="date" id="end_date" x-model="endDate" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    <label for="end_date" class="block text-sm font-medium semantic-text">Tanggal akhir</label>
+                    <input type="date" id="end_date" x-model="endDate" class="mt-1 block min-h-11 w-full rounded-md border-gray-300 bg-white text-gray-900 shadow-sm focus:border-primary-700 focus:ring-primary-700 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-primary-300 dark:focus:ring-primary-300 sm:text-sm">
                 </div>
             </div>
 
             <div class="sm:col-span-6">
-                <div class="border-t border-gray-200 my-4"></div>
+                <div class="my-4 border-t border-sem"></div>
                 <div class="flex justify-between items-center mb-4">
-                    <h4 class="text-md font-medium text-gray-900">Penandatangan (Opsional)</h4>
+                    <h4 class="text-md font-medium semantic-text">Penandatangan (opsional)</h4>
                     <button 
                         @click="saveAsDefaults()" 
                         :disabled="savingDefaults"
                         type="button"
-                        class="inline-flex items-center px-3 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50">
-                        <svg x-show="savingDefaults" class="animate-spin -ml-0.5 mr-1.5 h-3 w-3 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        class="inline-flex min-h-11 items-center rounded-md border border-sem semantic-surface px-3 text-xs font-medium semantic-text hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-700 focus-visible:ring-offset-2 disabled:opacity-50 dark:hover:bg-slate-700 dark:focus-visible:ring-primary-300 dark:focus-visible:ring-offset-slate-900">
+                        <svg x-show="savingDefaults" aria-hidden="true" class="motion-reduce:animate-none animate-spin -ml-0.5 mr-1.5 h-3 w-3 text-gray-500 dark:text-slate-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        <svg x-show="!savingDefaults" class="-ml-0.5 mr-1.5 h-3 w-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg x-show="!savingDefaults" aria-hidden="true" class="-ml-0.5 mr-1.5 h-3 w-3 text-gray-500 dark:text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                         </svg>
                         <span x-text="savingDefaults ? 'Menyimpan...' : 'Simpan Sebagai Default'"></span>
                     </button>
                 </div>
                 <!-- Success message for defaults saved -->
-                <div x-show="defaultsSavedMessage" x-transition class="mb-4 bg-green-50 border-l-4 border-green-400 p-3">
+                <div x-show="defaultsSavedMessage" role="status" aria-live="polite" class="inventory-status-success mb-4 rounded-md p-3">
                     <div class="flex">
                         <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                            <svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
                             </svg>
                         </div>
                         <div class="ml-3">
-                            <p class="text-sm text-green-700" x-text="defaultsSavedMessage"></p>
+                            <p class="text-sm" x-text="defaultsSavedMessage"></p>
                         </div>
                     </div>
                 </div>
@@ -344,20 +344,20 @@
 
             <!-- Signers -->
             <template x-for="(signer, index) in signers" :key="index">
-                <div class="sm:col-span-2 bg-gray-50 p-4 rounded-lg">
-                    <div class="mb-2 font-medium text-gray-700" x-text="signer.role"></div>
+                <div class="sm:col-span-2 rounded-lg border border-sem bg-gray-50 p-4 dark:bg-slate-900">
+                    <div class="mb-2 font-medium semantic-text" x-text="signer.role"></div>
                     <div class="space-y-3">
                         <div>
-                            <label class="block text-xs text-gray-500">Nama</label>
-                            <input type="text" x-model="signer.name" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-xs">
+                            <label :for="`signer-name-${index}`" class="block text-xs font-medium semantic-text-muted">Nama</label>
+                            <input :id="`signer-name-${index}`" type="text" x-model="signer.name" class="mt-1 block min-h-11 w-full rounded-md border-gray-300 bg-white text-gray-900 shadow-sm focus:border-primary-700 focus:ring-primary-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-primary-300 dark:focus:ring-primary-300 sm:text-sm">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-500">Jabatan</label>
-                            <input type="text" x-model="signer.position" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-xs">
+                            <label :for="`signer-position-${index}`" class="block text-xs font-medium semantic-text-muted">Jabatan</label>
+                            <input :id="`signer-position-${index}`" type="text" x-model="signer.position" class="mt-1 block min-h-11 w-full rounded-md border-gray-300 bg-white text-gray-900 shadow-sm focus:border-primary-700 focus:ring-primary-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-primary-300 dark:focus:ring-primary-300 sm:text-sm">
                         </div>
                         <div>
-                            <label class="block text-xs text-gray-500">NIP / NRP</label>
-                            <input type="text" x-model="signer.nip" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-xs">
+                            <label :for="`signer-nip-${index}`" class="block text-xs font-medium semantic-text-muted">NIP / NRP</label>
+                            <input :id="`signer-nip-${index}`" type="text" x-model="signer.nip" class="mt-1 block min-h-11 w-full rounded-md border-gray-300 bg-white text-gray-900 shadow-sm focus:border-primary-700 focus:ring-primary-700 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:border-primary-300 dark:focus:ring-primary-300 sm:text-sm">
                         </div>
                     </div>
                 </div>
@@ -367,8 +367,8 @@
         <div class="mt-6 flex justify-end">
             <button @click="loadPreview()" 
                 :disabled="loading"
-                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50">
-                <svg x-show="loading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                class="btn btn-primary min-h-11 px-4 text-sm font-semibold disabled:cursor-wait disabled:opacity-60">
+                <svg x-show="loading" aria-hidden="true" class="motion-reduce:animate-none animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
@@ -379,37 +379,37 @@
 
     <!-- STEP 2: PREVIEW -->
     <template x-if="step === 'preview' && previewData">
-        <div class="bg-white rounded-lg shadow">
+        <div class="rounded-lg border border-sem semantic-surface">
             @include('statistics.partials.consolidated-preview')
         </div>
     </template>
 
     <!-- STEP 3: SUCCESS -->
-    <div x-show="step === 'success'" class="bg-white rounded-lg shadow p-10 text-center">
-        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-            <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <div x-show="step === 'success'" role="status" aria-live="polite" class="rounded-lg border border-sem semantic-surface p-10 text-center">
+        <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900">
+            <svg aria-hidden="true" class="h-6 w-6 text-green-700 dark:text-green-100" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
         </div>
-        <h3 class="mt-3 text-lg leading-6 font-medium text-gray-900">Laporan Berhasil Dibuat!</h3>
+        <h3 class="mt-3 text-lg leading-6 font-medium semantic-text">Laporan berhasil dibuat</h3>
         <div class="mt-2 px-7 py-3">
-            <p class="text-sm text-gray-500" x-text="successMessage"></p>
+            <p class="text-sm semantic-text-muted" x-text="successMessage"></p>
         </div>
         <div class="mt-5 sm:mt-6 space-x-3">
-            <a :href="downloadUrl" target="_blank" class="inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm">
-                ⬇️ Download PDF
+            <a :href="downloadUrl" target="_blank" class="btn btn-primary min-h-11 px-4 text-sm font-semibold">
+                Unduh PDF
             </a>
-            <button @click="step = 'form'; loadHistory && loadHistory()" class="inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:text-sm">
+            <button type="button" @click="step = 'form'; loadHistory && loadHistory()" class="btn border-sem semantic-text min-h-11 px-4 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-slate-700">
                 Buat Laporan Lain
             </button>
         </div>
     </div>
 
     <!-- HISTORY TABLE -->
-    <div class="mt-8 bg-white rounded-lg shadow overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
-            <h3 class="text-lg font-medium text-gray-900">Riwayat Laporan</h3>
-            <button @click="loadHistory()" class="text-sm text-indigo-600 hover:text-indigo-900">Refresh</button>
+    <div class="mt-8 overflow-hidden rounded-lg border border-sem semantic-surface">
+        <div class="flex items-center justify-between border-b border-sem bg-gray-50 px-5 py-4 dark:bg-slate-900">
+            <h3 class="text-lg font-medium semantic-text">Riwayat laporan</h3>
+            <button type="button" @click="loadHistory()" class="inline-flex min-h-11 items-center px-3 text-sm font-medium text-primary-800 underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-700 dark:text-primary-300 dark:focus-visible:ring-primary-300">Muat ulang</button>
         </div>
         @include('statistics.partials.consolidated-history')
     </div>

@@ -28,15 +28,22 @@ it('publishes an isolated maintenance worker and exact sudo contract', function 
     $sudoers = file_get_contents(getcwd().'/ops/gowa-updater/sudoers.example');
     $installer = file_get_contents(getcwd().'/ops/gowa-updater/install');
     $gateway = file_get_contents(getcwd().'/ops/gowa-updater/gateway.sql');
+    $maintenance = file_get_contents(getcwd().'/ops/gowa-updater/lpmf-gowa-release-maintenance');
 
     expect($worker)->toContain('User=lpmf-gowa-maintenance')
         ->and($worker)->toContain('Group=lpmf-gowa-maintenance')
         ->and($worker)->toContain('SupplementaryGroups=')
         ->and($worker)->toContain('--queue=gowa-maintenance --tries=1')
         ->and($worker)->toContain('NoNewPrivileges=no')
+        ->and($worker)->toContain('RuntimeDirectory=lpmf/gowa-updater')
+        ->and($worker)->toContain('RuntimeDirectoryMode=0750')
+        ->and($worker)->toContain('RuntimeDirectoryPreserve=yes')
         ->and($worker)->toContain('RestrictSUIDSGID=yes')
         ->and($worker)->toContain('/var/lib/lpmf/gowa-updater')
-        ->and($worker)->toContain('/etc/lpmf/gowa-updater')
+        ->and($worker)->toContain('/run/lpmf/gowa-updater')
+        ->and($installer)->toContain('RuntimeDirectory=lpmf/gowa-updater')
+        ->and($installer)->toContain('RuntimeDirectoryPreserve=yes')
+        ->and($maintenance)->toContain('RuntimeDirectory=lpmf/gowa-updater\\nRuntimeDirectoryMode=0750\\nRuntimeDirectoryPreserve=yes')
         ->and($worker)->toContain('CapabilityBoundingSet=')
         ->and($worker)->not->toContain('/var/run/docker.sock')
         ->and($updateService)->toContain('SupplementaryGroups=lpmf-admin')
@@ -81,6 +88,12 @@ it('keeps production readiness explicitly disabled in the shipped capability art
         'contract' => 'reconcile-first-v1',
         'capability_version' => '1',
     ]);
+});
+
+it('keeps direct GOWA installation disabled until automatic preparation exists', function (): void {
+    $config = file_get_contents(getcwd().'/config/gowa-updater.php');
+
+    expect($config)->toContain("'preparation_ready' => false,");
 });
 
 it('ships a signed runtime probe and periodic systemd timer', function (): void {

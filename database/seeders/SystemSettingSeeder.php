@@ -156,11 +156,11 @@ class SystemSettingSeeder extends Seeder
             ],
             [
                 'key' => 'notifications.whatsapp.basic_user',
-                'value' => env('WHATSAPP_BASIC_USER', 'lpmf'),
+                'value' => env('WHATSAPP_BASIC_USER'),
             ],
             [
                 'key' => 'notifications.whatsapp.basic_pass',
-                'value' => env('WHATSAPP_BASIC_PASS') ? encrypt(env('WHATSAPP_BASIC_PASS')) : (env('APP_ENV') === 'local' ? encrypt('lpmfjaya1') : null),
+                'value' => env('WHATSAPP_BASIC_PASS') ? encrypt(env('WHATSAPP_BASIC_PASS')) : null,
             ],
             [
                 'key' => 'notifications.whatsapp.device_id',

@@ -6,15 +6,17 @@ use App\Models\Permission;
 use App\Models\RolePermission;
 use App\Models\User;
 use App\Models\UserPermission;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class PermissionService
 {
     /**
      * Cache key prefix untuk permission.
      */
-    private const CACHE_PREFIX = 'user_permissions_';
+    private const CACHE_PREFIX = 'user_permissions_v2_';
 
     private const CACHE_TTL = 3600; // 1 hour
 
@@ -33,6 +35,71 @@ class PermissionService
         }
 
         return $permission['has_access'] === true;
+    }
+
+    /**
+     * Resolve a mutation permission from persisted state while the caller holds
+     * the actor lock and an active transaction.
+     */
+    public function userCanForMutation(User $user, string $permissionName): bool
+    {
+        return $this->userHasPermissionsForMutation($user, [$permissionName]);
+    }
+
+    /**
+     * Resolve all requested mutation permissions from persisted state under
+     * the AD-13 permission/role/override lock order.
+     *
+     * @param  list<string>  $permissionNames
+     */
+    public function userHasPermissionsForMutation(User $user, array $permissionNames): bool
+    {
+        $permissionNames = collect($permissionNames)->unique()->values();
+        if ($permissionNames->isEmpty()) {
+            return false;
+        }
+
+        $permissions = Permission::query()
+            ->whereIn('name', $permissionNames)
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get()
+            ->keyBy('name');
+
+        if ($permissions->count() !== $permissionNames->count()) {
+            return false;
+        }
+
+        $permissionIds = $permissions->pluck('id')->sort()->values();
+        $rolePermissionIds = RolePermission::query()
+            ->where('role', $user->role)
+            ->whereIn('permission_id', $permissionIds)
+            ->orderBy('permission_id')
+            ->lockForUpdate()
+            ->pluck('permission_id')
+            ->map(fn ($permissionId): int => (int) $permissionId)
+            ->all();
+
+        $userPermissions = UserPermission::query()
+            ->where('user_id', $user->id)
+            ->whereIn('permission_id', $permissionIds)
+            ->orderBy('permission_id')
+            ->lockForUpdate()
+            ->get()
+            ->keyBy('permission_id');
+
+        foreach ($permissions as $permission) {
+            $userPermission = $userPermissions->get($permission->id);
+            $hasAccess = $userPermission
+                ? (bool) $userPermission->granted
+                : in_array((int) $permission->id, $rolePermissionIds, true);
+
+            if (! $hasAccess) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -174,48 +241,154 @@ class PermissionService
      *
      * @param  array  $permissions  Array of ['permission_id' => bool granted]
      */
-    public function syncUserPermissions(User $user, array $permissions): void
+    public function syncUserPermissions(User $user, array $permissions, ?User $actor = null): void
     {
-        // Get role defaults untuk perbandingan
-        $roleDefaults = RolePermission::where('role', $user->role)
-            ->pluck('permission_id')
-            ->toArray();
-
         foreach ($permissions as $permissionId => $granted) {
-            $isRoleDefault = in_array($permissionId, $roleDefaults);
+            if (! ctype_digit((string) $permissionId) || (int) $permissionId < 1) {
+                throw new \InvalidArgumentException('Permission identifiers must be positive integer IDs.');
+            }
 
-            // Jika sama dengan role default, hapus custom (tidak perlu override)
-            if ($granted === $isRoleDefault) {
-                UserPermission::where('user_id', $user->id)
-                    ->where('permission_id', $permissionId)
-                    ->delete();
-            } else {
-                // Simpan sebagai custom override
-                UserPermission::updateOrCreate(
-                    [
-                        'user_id' => $user->id,
-                        'permission_id' => $permissionId,
-                    ],
-                    [
-                        'granted' => $granted,
-                    ]
-                );
+            if (! in_array($granted, [true, false, 1, 0, '1', '0'], true)) {
+                throw new \InvalidArgumentException('Permission grants must be boolean values.');
             }
         }
 
-        // Clear cache
+        $permissionIds = collect(array_keys($permissions))
+            ->map(fn ($permissionId): int => (int) $permissionId)
+            ->unique()
+            ->sort()
+            ->values();
+
+        DB::transaction(function () use ($user, $permissions, $actor, $permissionIds): void {
+            $userIds = collect([$actor?->id, $user->id])
+                ->filter()
+                ->map(fn ($userId): int => (int) $userId)
+                ->unique()
+                ->sort()
+                ->values();
+
+            $lockedUsers = User::query()
+                ->whereIn('id', $userIds)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            $target = $lockedUsers->get($user->id);
+            if (! $target) {
+                throw (new ModelNotFoundException)->setModel(User::class, [$user->id]);
+            }
+
+            $permissionRecords = Permission::query()
+                ->whereIn('id', $permissionIds)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            $roleDefaults = RolePermission::query()
+                ->where('role', $target->role)
+                ->whereIn('permission_id', $permissionRecords->keys())
+                ->orderBy('permission_id')
+                ->lockForUpdate()
+                ->pluck('permission_id')
+                ->map(fn ($permissionId): int => (int) $permissionId)
+                ->all();
+
+            $existingOverrides = UserPermission::query()
+                ->where('user_id', $target->id)
+                ->whereIn('permission_id', $permissionRecords->keys())
+                ->orderBy('permission_id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('permission_id');
+
+            foreach ($permissions as $permissionId => $granted) {
+                $permissionId = (int) $permissionId;
+                if (! $permissionRecords->has($permissionId)) {
+                    continue;
+                }
+
+                $isGranted = in_array($granted, [true, 1, '1'], true);
+                $isRoleDefault = in_array($permissionId, $roleDefaults, true);
+                $override = $existingOverrides->get($permissionId);
+
+                if ($isGranted === $isRoleDefault) {
+                    $override?->delete();
+
+                    continue;
+                }
+
+                if ($override) {
+                    $override->granted = $isGranted;
+                    $override->save();
+                } else {
+                    UserPermission::query()->create([
+                        'user_id' => $target->id,
+                        'permission_id' => $permissionId,
+                        'granted' => $isGranted,
+                    ]);
+                }
+            }
+        });
+
         $this->clearUserCache($user);
     }
 
     /**
      * Reset semua permission user ke default role.
      */
-    public function resetToRoleDefaults(User $user): void
+    public function resetToRoleDefaults(User $user, ?User $actor = null): void
     {
-        // Hapus semua custom permission
-        UserPermission::where('user_id', $user->id)->delete();
+        DB::transaction(function () use ($user, $actor): void {
+            $userIds = collect([$actor?->id, $user->id])
+                ->filter()
+                ->map(fn ($userId): int => (int) $userId)
+                ->unique()
+                ->sort()
+                ->values();
 
-        // Clear cache
+            $lockedUsers = User::query()
+                ->whereIn('id', $userIds)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            $target = $lockedUsers->get($user->id);
+            if (! $target) {
+                throw (new ModelNotFoundException)->setModel(User::class, [$user->id]);
+            }
+
+            $permissionIds = RolePermission::query()
+                ->where('role', $target->role)
+                ->pluck('permission_id')
+                ->merge(UserPermission::query()->where('user_id', $target->id)->pluck('permission_id'))
+                ->unique()
+                ->sort()
+                ->values();
+
+            $permissionIds = Permission::query()
+                ->whereIn('id', $permissionIds)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->pluck('id');
+
+            RolePermission::query()
+                ->where('role', $target->role)
+                ->whereIn('permission_id', $permissionIds)
+                ->orderBy('permission_id')
+                ->lockForUpdate()
+                ->get();
+
+            UserPermission::query()
+                ->where('user_id', $target->id)
+                ->whereIn('permission_id', $permissionIds)
+                ->orderBy('permission_id')
+                ->lockForUpdate()
+                ->delete();
+        });
+
         $this->clearUserCache($user);
     }
 
@@ -242,8 +415,25 @@ class PermissionService
             'pencarian' => ['view'],
             'statistik' => ['view', 'export'],
             'monitoring' => ['view'],
-            'inventori' => ['view', 'create', 'edit', 'delete'],
+            'inventori' => [
+                'view',
+                'create',
+                'edit',
+                'delete',
+                'receipt.create',
+                'issue.create',
+                'transfer.create',
+                'stocktake.submit',
+                'stocktake.approve',
+                'material-disposal.create',
+                'location-access.manage',
+                'mutation.activate',
+                'mutation.disable',
+                'readiness.inventory-admin.accept',
+                'readiness.system-owner.accept',
+            ],
             'guest-book' => ['view', 'create', 'edit', 'checkout', 'delete', 'export'],
+            'sample-disposal' => ['view', 'execute'],
             'changelogs' => ['view'],
             'analysts' => ['view', 'create', 'edit', 'delete'],
             'settings' => ['view', 'edit'],
@@ -258,6 +448,7 @@ class PermissionService
     {
         $names = [
             'view' => 'Lihat',
+            'execute' => 'Eksekusi Pemusnahan Sampel',
             'create' => 'Tambah',
             'edit' => 'Edit',
             'checkout' => 'Catat Keluar',
@@ -266,6 +457,17 @@ class PermissionService
             'report' => 'Laporan',
             'template-manage' => 'Kelola Template',
             'unlock-force' => 'Paksa Buka Kunci',
+            'receipt.create' => 'Catat Penerimaan',
+            'issue.create' => 'Catat Pengeluaran',
+            'transfer.create' => 'Catat Transfer',
+            'stocktake.submit' => 'Ajukan Stok Opname',
+            'stocktake.approve' => 'Setujui Selisih Stok Opname',
+            'material-disposal.create' => 'Catat Disposal Bahan',
+            'location-access.manage' => 'Kelola Akses Lokasi',
+            'mutation.activate' => 'Aktifkan Mutasi Inventori',
+            'mutation.disable' => 'Nonaktifkan Mutasi Inventori Darurat',
+            'readiness.inventory-admin.accept' => 'Terima Bukti Kesiapan sebagai Administrator Inventori',
+            'readiness.system-owner.accept' => 'Terima Bukti Kesiapan sebagai Pemilik Sistem',
         ];
 
         return $names[$action] ?? ucfirst($action);

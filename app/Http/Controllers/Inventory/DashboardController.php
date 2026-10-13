@@ -4,46 +4,53 @@ namespace App\Http\Controllers\Inventory;
 
 use App\Http\Controllers\Controller;
 use App\Models\InventoryItem;
-use App\Models\InventoryLocation;
 use App\Models\InventoryLot;
 use App\Models\InventoryMovement;
 use App\Models\Sample;
 use App\Models\SampleDisposal;
+use App\Services\InventoryDashboardQueryService;
+use App\Services\InventoryLocationAccessService;
+use App\Services\SampleDisposalEligibilityService;
 use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
-    public function __construct()
-    {
+    public function __construct(
+        private readonly InventoryLocationAccessService $locationAccess,
+        private readonly InventoryDashboardQueryService $alerts,
+        private readonly SampleDisposalEligibilityService $sampleEligibility,
+    ) {
         $this->middleware(['auth', 'verified']);
     }
 
-    public function index(): View
+    public function index(Request $request): View|Response
     {
-        $quickActionItems = InventoryItem::query()
-            ->active()
-            ->orderBy('name')
-            ->take(200)
-            ->get(['id', 'name', 'uom']);
+        try {
+            return $this->renderDashboard($request);
+        } catch (QueryException $exception) {
+            report($exception);
 
-        $locations = InventoryLocation::query()
-            ->orderBy('name')
-            ->get(['id', 'name']);
+            return response()->view('inventory.unavailable', [
+                'title' => 'Dashboard inventori belum tersedia',
+                'retryUrl' => route('inventory.dashboard', $request->only('tab')),
+            ], 503);
+        }
+    }
 
+    private function renderDashboard(Request $request): View
+    {
+        $validated = $request->validate(['tab' => ['nullable', 'in:low_stock,near_expiry,expired']]);
+        $user = request()->user();
+        $visibleLocationIds = $this->locationAccess->visibleLocationIds($user);
         // Low stock items
-        $lowStockItems = InventoryItem::query()
-            ->active()
-            ->belowMinStock()
-            ->with('balances')
-            ->withSum(['movements as monthly_usage' => function ($query) {
-                $query->where('movement_type', 'ISSUE')
-                    ->where('performed_at', '>=', now()->subDays(30));
-            }], 'qty')
-            ->take(10)
-            ->get();
+        $lowStockItemsQuery = $this->alerts->query('low_stock', $user);
+        $lowStockCount = (clone $lowStockItemsQuery)->count();
+        $lowStockItems = $lowStockItemsQuery->take(10)->get();
 
         // Calculate usage trend for low stock items
         foreach ($lowStockItems as $item) {
@@ -60,76 +67,78 @@ class DashboardController extends Controller
         }
 
         // Near expiry lots (30 days)
-        $nearExpiry30 = InventoryLot::query()
-            ->with(['item', 'balances.location'])
-            ->nearExpiry(30)
-            ->whereHas('balances', fn ($q) => $q->where('on_hand_qty', '>', 0))
+        $nearExpiry30Query = $this->alerts->query('near_expiry', $user);
+        $nearExpiry30Count = (clone $nearExpiry30Query)->count();
+        $nearExpiry30 = $nearExpiry30Query
+            ->with(['item', 'balances' => fn ($query) => $query->whereIn('location_id', $visibleLocationIds)->with('location')])
             ->orderBy('expiry_date')
             ->take(10)
             ->get();
 
         // Near expiry lots (60 days)
         $nearExpiry60 = InventoryLot::query()
-            ->with(['item', 'balances.location'])
+            ->with(['item', 'balances' => fn ($query) => $query->whereIn('location_id', $visibleLocationIds)->with('location')])
             ->whereNotNull('expiry_date')
             ->where('expiry_date', '>', Carbon::today()->addDays(30))
             ->where('expiry_date', '<=', Carbon::today()->addDays(60))
             ->where('status', '!=', 'DISPOSED')
-            ->whereHas('balances', fn ($q) => $q->where('on_hand_qty', '>', 0))
+            ->whereHas('balances', fn ($q) => $q->where('on_hand_qty', '>', 0)->whereIn('location_id', $visibleLocationIds))
             ->orderBy('expiry_date')
             ->take(10)
             ->get();
 
         // Expired lots with stock
-        $expiredLots = InventoryLot::query()
-            ->with(['item', 'balances.location'])
-            ->expired()
-            ->whereHas('balances', fn ($q) => $q->where('on_hand_qty', '>', 0))
+        $expiredLotsQuery = $this->alerts->query('expired', $user);
+        $expiredCount = (clone $expiredLotsQuery)->count();
+        $expiredLots = $expiredLotsQuery
+            ->with(['item', 'balances' => fn ($query) => $query->whereIn('location_id', $visibleLocationIds)->with('location')])
             ->orderBy('expiry_date')
             ->take(10)
             ->get();
 
         // Summary stats
-        $totalItems = InventoryItem::active()->count();
-        $totalLots = InventoryLot::where('status', 'ACTIVE')->count();
-        $lowStockCount = $lowStockItems->count();
-        $expiredCount = $expiredLots->count();
-        $eligibleSamplesCount = Sample::eligibleForDisposal()->count();
+        $totalItems = $this->locationAccess->itemsForView(InventoryItem::query(), $user)->active()->count();
+        $totalLots = InventoryLot::where('status', 'ACTIVE')->whereHas('balances', fn ($query) => $query->whereIn('location_id', $visibleLocationIds))->count();
+        $canViewDisposal = $request->user()->hasPermission('sample-disposal.view');
+        $eligibleSamplesCount = $canViewDisposal ? $this->sampleEligibility->query()->count() : null;
 
-        $finishedSamplesCount = Sample::query()
+        $finishedSamplesCount = $canViewDisposal ? Sample::query()
             ->whereNotNull('testing_completed_at')
             ->whereIn('disposal_status', ['pending', 'eligible'])
-            ->count();
+            ->count() : null;
 
-        $disposedThisMonthCount = Sample::query()
+        $disposedThisMonthCount = $canViewDisposal ? Sample::query()
             ->where('disposal_status', 'disposed')
             ->whereNotNull('disposed_at')
             ->where('disposed_at', '>=', now()->startOfMonth())
-            ->count();
+            ->count() : null;
 
-        $recentSampleDisposals = SampleDisposal::query()
+        $recentSampleDisposals = $canViewDisposal ? SampleDisposal::query()
             ->withCount('samples')
             ->latest('executed_at')
             ->take(5)
-            ->get();
+            ->get() : collect();
 
         $topMovers = InventoryMovement::query()
             ->where('movement_type', 'ISSUE')
             ->where('performed_at', '>=', now()->subDays(7))
+            ->whereIn('from_location_id', $visibleLocationIds)
             ->selectRaw('item_id, SUM(qty) as total_qty')
             ->groupBy('item_id')
             ->orderByDesc('total_qty')
-            ->with('item:id,name,uom')
+            ->with('item:id,item_code,name,uom')
             ->take(5)
             ->get();
 
         return view('inventory.dashboard', [
-            'quickActionItems' => $quickActionItems,
-            'locations' => $locations,
+            'initialAlertTab' => $validated['tab'] ?? 'low_stock',
             'lowStockItems' => $lowStockItems,
             'nearExpiry30' => $nearExpiry30,
             'nearExpiry60' => $nearExpiry60,
             'expiredLots' => $expiredLots,
+            'nearExpiry30Count' => $nearExpiry30Count,
+            'lowStockCount' => $lowStockCount,
+            'expiredCount' => $expiredCount,
             'stats' => [
                 'total_items' => $totalItems,
                 'total_lots' => $totalLots,
@@ -144,9 +153,43 @@ class DashboardController extends Controller
         ]);
     }
 
+    public function alerts(Request $request): View|Response
+    {
+        $validated = $request->validate([
+            'category' => ['nullable', 'in:low_stock,near_expiry,expired'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+        $category = $validated['category'] ?? 'low_stock';
+
+        try {
+            return view('inventory.alerts.index', [
+                'category' => $category,
+                'categories' => InventoryDashboardQueryService::CATEGORIES,
+                'records' => $this->alerts->query($category, $request->user())->paginate(20)->withQueryString(),
+            ]);
+        } catch (QueryException $exception) {
+            report($exception);
+
+            return response()->view('inventory.unavailable', [
+                'title' => 'Daftar peringatan belum tersedia',
+                'retryUrl' => route('inventory.alerts.index', ['category' => $category]),
+            ], 503);
+        }
+    }
+
     public function ajaxSearch(Request $request): JsonResponse
     {
         $q = trim((string) $request->query('q', ''));
+        $canIssue = $request->user()?->hasPermission('inventori.issue.create') ?? false;
+
+        $urlsFor = static function (int $itemId, ?int $lotId = null) use ($canIssue): array {
+            return [
+                'issue_url' => $canIssue
+                    ? route('inventory.transaction.issue', array_filter(['item_id' => $itemId, 'lot_id' => $lotId]))
+                    : null,
+                'view_url' => route('inventory.stock-card', array_filter(['item_id' => $itemId, 'lot_id' => $lotId])),
+            ];
+        };
 
         if ($q === '') {
             return response()->json([
@@ -160,6 +203,7 @@ class DashboardController extends Controller
 
         $exactLots = InventoryLot::query()
             ->with('item')
+            ->tap(fn ($lots) => $this->locationAccess->lotsForView($lots, $request->user()))
             ->whereRaw('LOWER(lot_no) = ?', [$qLower])
             ->where('status', '!=', 'DISPOSED')
             ->limit(2)
@@ -174,15 +218,19 @@ class DashboardController extends Controller
                 'id' => $lot->id,
                 'item_id' => $lot->item_id,
                 'lot_id' => $lot->id,
-                'label' => ($lot->item?->name ?? 'Item').' · '.$lot->lot_no,
-                'issue_url' => route('inventory.transaction.issue', ['item_id' => $lot->item_id, 'lot_id' => $lot->id]),
+                'label' => trim(($lot->item?->item_code ? $lot->item->item_code.' · ' : '').($lot->item?->name ?? 'Item').' · '.$lot->lot_no),
+                'meta' => $lot->item?->uom,
+                ...$urlsFor($lot->item_id, $lot->id),
             ];
         }
 
         if ($exactMatch === null) {
-            $exactItems = InventoryItem::query()
+            $exactItems = $this->locationAccess->itemsForView(InventoryItem::query(), $request->user())
                 ->active()
-                ->whereRaw('LOWER(name) = ?', [$qLower])
+                ->where(function ($items) use ($qLower): void {
+                    $items->whereRaw('LOWER(name) = ?', [$qLower])
+                        ->orWhereRaw('LOWER(item_code) = ?', [$qLower]);
+                })
                 ->limit(2)
                 ->get();
 
@@ -193,14 +241,16 @@ class DashboardController extends Controller
                     'id' => $item->id,
                     'item_id' => $item->id,
                     'lot_id' => null,
-                    'label' => $item->name,
-                    'issue_url' => route('inventory.transaction.issue', ['item_id' => $item->id]),
+                    'label' => trim(($item->item_code ? $item->item_code.' · ' : '').$item->name),
+                    'meta' => $item->uom,
+                    ...$urlsFor($item->id),
                 ];
             }
         }
 
         $lots = InventoryLot::query()
             ->with('item')
+            ->tap(fn ($lots) => $this->locationAccess->lotsForView($lots, $request->user()))
             ->whereRaw('LOWER(lot_no) LIKE ?', ['%'.$qLower.'%'])
             ->where('status', '!=', 'DISPOSED')
             ->orderBy('lot_no')
@@ -211,26 +261,29 @@ class DashboardController extends Controller
                 'id' => $lot->id,
                 'item_id' => $lot->item_id,
                 'lot_id' => $lot->id,
-                'label' => ($lot->item?->name ?? 'Item').' · '.$lot->lot_no,
-                'meta' => $lot->expiry_date ? 'exp '.$lot->expiry_date->format('Y-m-d') : null,
-                'issue_url' => route('inventory.transaction.issue', ['item_id' => $lot->item_id, 'lot_id' => $lot->id]),
+                'label' => trim(($lot->item?->item_code ? $lot->item->item_code.' · ' : '').($lot->item?->name ?? 'Item').' · '.$lot->lot_no),
+                'meta' => trim(collect([$lot->item?->uom, $lot->expiry_date ? 'exp '.$lot->expiry_date->format('Y-m-d') : null])->filter()->join(' · ')),
+                ...$urlsFor($lot->item_id, $lot->id),
             ])
             ->values();
 
-        $items = InventoryItem::query()
+        $items = $this->locationAccess->itemsForView(InventoryItem::query(), $request->user())
             ->active()
-            ->whereRaw('LOWER(name) LIKE ?', ['%'.$qLower.'%'])
+            ->where(function ($items) use ($qLower): void {
+                $items->whereRaw('LOWER(name) LIKE ?', ['%'.$qLower.'%'])
+                    ->orWhereRaw('LOWER(item_code) LIKE ?', ['%'.$qLower.'%']);
+            })
             ->orderBy('name')
             ->limit(10)
-            ->get(['id', 'name', 'uom'])
+            ->get(['id', 'item_code', 'name', 'uom'])
             ->map(fn ($item) => [
                 'type' => 'item',
                 'id' => $item->id,
                 'item_id' => $item->id,
                 'lot_id' => null,
-                'label' => $item->name,
+                'label' => trim(($item->item_code ? $item->item_code.' · ' : '').$item->name),
                 'meta' => $item->uom,
-                'issue_url' => route('inventory.transaction.issue', ['item_id' => $item->id]),
+                ...$urlsFor($item->id),
             ])
             ->values();
 
@@ -243,25 +296,31 @@ class DashboardController extends Controller
 
     public function ajaxOverview(Request $request): JsonResponse
     {
-        $query = InventoryItem::query()
+        $visibleLocationIds = $this->locationAccess->visibleLocationIds($request->user());
+        $query = $this->locationAccess->itemsForView(InventoryItem::query(), $request->user())
             ->active()
-            ->withSum('balances as total_stock', 'on_hand_qty')
-            ->with(['balances.location', 'lots' => function ($q) {
-                $q->active()->orderBy('expiry_date');
+            ->withSum(['balances as total_stock' => fn ($balances) => $balances->whereIn('location_id', $visibleLocationIds)], 'on_hand_qty')
+            ->with(['balances' => fn ($balances) => $balances->whereIn('location_id', $visibleLocationIds)->with('location'), 'lots' => function ($q) use ($request) {
+                $q->active()
+                    ->tap(fn ($lots) => $this->locationAccess->lotsForView($lots, $request->user()))
+                    ->orderBy('expiry_date');
             }]);
 
         if ($request->has('q') && $request->q !== '') {
             $q = strtolower($request->q);
-            $query->whereRaw('LOWER(name) LIKE ?', ['%'.$q.'%']);
+            $query->where(function ($items) use ($q): void {
+                $items->whereRaw('LOWER(name) LIKE ?', ['%'.$q.'%'])
+                    ->orWhereRaw('LOWER(item_code) LIKE ?', ['%'.$q.'%']);
+            });
         }
 
         // Sort by total stock descending by default so users see what they HAVE first
         // COALESCE is important because items with no balances return NULL for total_stock,
         // which sorts unexpectedly depending on DB driver. We want 0 at the bottom.
-        $query->orderByRaw('COALESCE((SELECT SUM(on_hand_qty) FROM inventory_balances WHERE item_id = inventory_items.id), 0) DESC')
+        $query->orderByRaw('COALESCE((SELECT SUM(on_hand_qty) FROM inventory_balances WHERE item_id = inventory_items.id AND location_id IN ('.(clone $visibleLocationIds)->toSql().')), 0) DESC', (clone $visibleLocationIds)->getBindings())
             ->orderBy('name');
 
-        $items = $query->paginate(10);
+        $items = $query->paginate(10)->appends($request->only('q'));
 
         // Append status field
         $items->getCollection()->transform(function ($item) {
@@ -271,7 +330,7 @@ class DashboardController extends Controller
 
             if ($totalStock <= 0) {
                 $item->status = 'empty';
-            } elseif ($totalStock <= $item->min_stock) {
+            } elseif ($totalStock < $item->min_stock) {
                 $item->status = 'critical';
             }
 
@@ -289,11 +348,19 @@ class DashboardController extends Controller
         $query = InventoryMovement::query()
             ->where('movement_type', 'ISSUE')
             ->where('performed_at', '>=', now()->subDays(30))
+            ->whereIn('from_location_id', $this->locationAccess->visibleLocationIds($request->user()))
             ->selectRaw('item_id, SUM(qty) as total_out')
             ->groupBy('item_id')
             ->orderByDesc('total_out')
-            ->with('item:id,name,uom');
+            ->with('item:id,item_code,name,item_type,uom');
 
-        return response()->json($query->paginate(10));
+        $items = $query->paginate(10);
+        $items->getCollection()->each(function ($movement): void {
+            if ($movement->item) {
+                $movement->item->category = $movement->item->item_type_label;
+            }
+        });
+
+        return response()->json($items);
     }
 }

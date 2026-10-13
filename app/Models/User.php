@@ -72,6 +72,16 @@ class User extends Authenticatable
         return $this->hasMany(UserPermission::class);
     }
 
+    public function inventoryLocationAccess(): HasMany
+    {
+        return $this->hasMany(InventoryLocationAccess::class);
+    }
+
+    public function inventoryLocationAccessEvents(): HasMany
+    {
+        return $this->hasMany(InventoryLocationAccessEvent::class, 'target_user_id');
+    }
+
     /**
      * Get permissions melalui pivot table.
      */
@@ -139,17 +149,9 @@ class User extends Authenticatable
             return;
         }
 
-        UserPermission::updateOrCreate(
-            [
-                'user_id' => $this->id,
-                'permission_id' => $permission->id,
-            ],
-            [
-                'granted' => true,
-            ]
-        );
-
-        $this->clearPermissionCache();
+        /** @var PermissionService $service */
+        $service = app(PermissionService::class);
+        $service->syncUserPermissions($this, [$permission->id => true], auth()->user());
     }
 
     /**
@@ -163,27 +165,19 @@ class User extends Authenticatable
             return;
         }
 
-        UserPermission::updateOrCreate(
-            [
-                'user_id' => $this->id,
-                'permission_id' => $permission->id,
-            ],
-            [
-                'granted' => false,
-            ]
-        );
-
-        $this->clearPermissionCache();
+        /** @var PermissionService $service */
+        $service = app(PermissionService::class);
+        $service->syncUserPermissions($this, [$permission->id => false], auth()->user());
     }
 
     /**
      * Reset semua permission ke default role.
      */
-    public function resetPermissionsToRole(): void
+    public function resetPermissionsToRole(?self $actor = null): void
     {
         /** @var PermissionService $service */
         $service = app(PermissionService::class);
-        $service->resetToRoleDefaults($this);
+        $service->resetToRoleDefaults($this, $actor);
     }
 
     /**
