@@ -778,13 +778,6 @@
                             inventory_alert_expiry_days: this.settingsForm.inventory_alert_expiry_days,
                         };
 
-                        if (this.activeSettingsTab !== 'gowa') {
-                            payload.ai_provider = this.settingsForm.ai_provider;
-                            payload.ai_base_url = this.settingsForm.ai_base_url;
-                            payload.ai_model = this.settingsForm.ai_model;
-                            payload.ai_api_key = this.settingsForm.ai_api_key;
-                        }
-
                         const res = await fetch('{{ route("whatsapp.settings.save") }}', {
                             method: 'POST',
                             headers: { 
@@ -799,52 +792,10 @@
                         
                         if (res.ok) {
                             alert('Settings saved successfully');
-                            this.settingsForm.ai_api_key = '';
-                            this.settingsForm.ai_api_key_configured = true;
                         } else {
                             alert('Failed to save settings: ' + (data.message || 'Unknown error'));
                         }
                     } catch(e) { console.error(e); alert('Error saving settings'); }
-                },
-
-                async sendAiTest() {
-                    if (!this.aiTest.prompt || this.aiTest.prompt.trim() === '') {
-                        this.aiTest.error = 'Prompt test wajib diisi.';
-                        this.aiTest.result = '';
-                        return;
-                    }
-
-                    this.sendingAiTest = true;
-                    this.aiTest.error = '';
-                    this.aiTest.result = '';
-
-                    try {
-                        const res = await fetch('{{ route("whatsapp.settings.test-ai") }}', {
-                            method: 'POST',
-                            headers: {
-                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                prompt: this.aiTest.prompt
-                            })
-                        });
-
-                        const data = await res.json();
-
-                        if (!res.ok || !data.success) {
-                            this.aiTest.error = data.message || data.error || 'AI test gagal dijalankan.';
-                            return;
-                        }
-
-                        this.aiTest.result = data.result || '(Respons kosong)';
-                    } catch (e) {
-                        console.error(e);
-                        this.aiTest.error = 'Error saat menjalankan AI test.';
-                    } finally {
-                        this.sendingAiTest = false;
-                    }
                 },
 
                 async fetchDevices() {

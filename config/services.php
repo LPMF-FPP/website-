@@ -72,6 +72,16 @@ return [
         'base_url' => env('AI_BASE_URL', 'https://api.openai.com/v1'),
         'key' => env('AI_API_KEY'),
         'model' => env('AI_MODEL', 'gpt-3.5-turbo'),
+        'base_url_configured' => env('AI_BASE_URL') !== null,
+        'model_configured' => env('AI_MODEL') !== null,
+        'approved_hosts' => ['api.openai.com', 'openrouter.ai', 'api.deepseek.com', 'magan-nontelic-vincenza.ngrok-free.dev'],
+        'timeout' => 30,
+        'connect_timeout' => 5,
+        'dns_timeout' => 3,
+        'max_response_bytes' => env('AI_MAX_RESPONSE_BYTES', 32768),
+        'rate_limit' => env('AI_RATE_LIMIT', 6),
+        'global_budget' => env('AI_GLOBAL_BUDGET', 60),
+        'lock_store' => env('AI_LOCK_STORE', 'database'),
     ],
 
 ];

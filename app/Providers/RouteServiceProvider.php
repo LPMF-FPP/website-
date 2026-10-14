@@ -11,6 +11,10 @@ class RouteServiceProvider extends ServiceProvider
 {
     public function boot(): void
     {
+        RateLimiter::for('whatsapp-ai', fn (Request $request) => Limit::perMinute(max(1, (int) config('services.ai.rate_limit', 6)))
+            ->by('ai:user:'.$request->user()?->getAuthIdentifier())
+            ->response(fn () => (new \App\Services\AI\AiFailure('AI_RATE_LIMIT', 'Terlalu banyak permintaan AI. Tunggu satu menit sebelum mencoba kembali.', 429))->response()));
+
         RateLimiter::for('search', function (Request $request) {
             $key = $request->user()?->getAuthIdentifier()
                 ? 'u:'.$request->user()->getAuthIdentifier()

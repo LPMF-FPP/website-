@@ -267,17 +267,17 @@
             </div>
 
             <!-- AI -->
-            <div x-show="activeSettingsTab === 'ai'" x-transition.opacity>
+            <div x-show="activeSettingsTab === 'ai'" x-data="whatsappAiSettings({ settingsUrl: @js(route('whatsapp.settings.index')), saveUrl: @js(route('whatsapp.settings.ai.save')), testUrl: @js(route('whatsapp.settings.test-ai')) })">
                 <div class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900/30 space-y-5">
                     <div>
-                        <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">AI Configuration</h4>
+                        <h4 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">Konfigurasi AI</h4>
                         <p class="text-xs text-gray-500 dark:text-gray-400">Atur provider/model AI untuk fitur compose pesan WhatsApp, lalu jalankan test respons.</p>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Provider</label>
-                            <select x-model="settingsForm.ai_provider" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                            <label for="ai-provider" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Provider</label>
+                            <select id="ai-provider" x-model="aiForm.ai_provider" x-bind:disabled="aiLoadingSettings" class="min-h-[44px] mt-1 block w-full rounded-md border-gray-500 dark:border-gray-400 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-700 focus:ring-primary-700 dark:focus:ring-primary-300 sm:text-sm disabled:opacity-60">
                                 <option value="openai">OpenAI</option>
                                 <option value="openrouter">OpenRouter</option>
                                 <option value="deepseek">DeepSeek</option>
@@ -285,56 +285,56 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Model</label>
-                            <input type="text" x-model="settingsForm.ai_model" list="ai-model-options" placeholder="gpt-5.3-codex-spark"
-                                   class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
-                            <datalist id="ai-model-options">
-                                <option value="gpt-5.3-codex-spark"></option>
-                                <option value="gpt-oss-120b-medium"></option>
-                                <option value="gpt-5.4-mini"></option>
-                                <option value="gpt-5.5"></option>
-                                <option value="gpt-5.4"></option>
-                                <option value="gpt-image-2"></option>
-                            </datalist>
-                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Bisa pilih dari list atau isi manual sesuai provider AI.</p>
+                            <label for="ai-model" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Model</label>
+                            <input id="ai-model" type="text" x-model="aiForm.ai_model" x-bind:disabled="aiLoadingSettings" maxlength="120"
+                                   class="min-h-[44px] mt-1 block w-full rounded-md border-gray-500 dark:border-gray-400 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-700 focus:ring-primary-700 dark:focus:ring-primary-300 sm:text-sm disabled:opacity-60">
+                            <p class="mt-1 text-xs text-gray-600 dark:text-gray-300">Isi identifier model teks yang didukung endpoint. Aplikasi tidak memverifikasi ketersediaan model melalui daftar statis.</p>
                         </div>
                         <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Base URL API</label>
-                            <input type="url" x-model="settingsForm.ai_base_url" placeholder="https://api.openai.com/v1"
-                                   class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
+                            <label for="ai-base-url" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Base URL API</label>
+                            <input id="ai-base-url" type="url" x-model="aiForm.ai_base_url" x-bind:disabled="aiLoadingSettings" placeholder="https://api.openai.com/v1"
+                                   class="min-h-[44px] mt-1 block w-full rounded-md border-gray-500 dark:border-gray-400 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-700 focus:ring-primary-700 dark:focus:ring-primary-300 sm:text-sm disabled:opacity-60">
+                            <p class="mt-1 text-xs text-gray-600 dark:text-gray-300">Mengubah provider tidak otomatis mengganti URL/model. Pastikan tujuan dan model di atas sesuai provider atau proxy yang dipakai.</p>
                         </div>
                         <div class="md:col-span-2">
-                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">API Key</label>
-                            <input type="password" x-model="settingsForm.ai_api_key" placeholder="Kosongkan jika tidak ingin mengubah"
-                                   class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm">
-                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400" x-show="settingsForm.ai_api_key_configured">API key sudah tersimpan. Isi field jika ingin ganti.</p>
+                            <label for="ai-api-key" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Kunci API</label>
+                            <input id="ai-api-key" type="password" x-model="aiForm.ai_api_key" x-bind:disabled="aiLoadingSettings" autocomplete="new-password" placeholder="Kosongkan jika tidak ingin mengubah"
+                                   class="min-h-[44px] mt-1 block w-full rounded-md border-gray-500 dark:border-gray-400 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-700 focus:ring-primary-700 dark:focus:ring-primary-300 sm:text-sm disabled:opacity-60">
+                            <p class="mt-1 text-xs text-gray-600 dark:text-gray-300" x-text="aiForm.ai_api_key_configured ? 'Kunci tersedia. Isian kosong mempertahankan kunci.' : 'Kunci belum tersedia atau tidak dapat dibuka. Simpan kunci baru.'"></p>
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-2">
-                        <x-button type="button" variant="primary" @click="saveSettings">Simpan Konfigurasi AI</x-button>
+                    <p class="text-sm break-words text-gray-700 dark:text-gray-200">Tujuan instruksi: <span x-text="aiForm.ai_base_url"></span>. Host yang disetujui: {{ implode(', ', config('services.ai.approved_hosts', [])) }}. Jangan masukkan data perkara.</p>
+                    <label class="flex gap-3 items-center min-h-[44px] text-sm text-gray-700 dark:text-gray-200"><input type="checkbox" x-model="aiForm.ai_confirm_destination" x-bind:disabled="aiLoadingSettings" class="rounded border-gray-500 focus:ring-primary-700 dark:focus:ring-primary-300">Saya mengonfirmasi provider dan tujuan pengiriman instruksi di atas.</label>
+                    <p x-show="aiLoadingSettings" role="status">Memuat konfigurasi AI...</p>
+                    <p x-show="aiFeedback" x-text="aiFeedback" role="status" class="text-sm text-gray-700 dark:text-gray-200"></p>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <x-button type="button" variant="primary" @click="saveAiSettings()" x-bind:disabled="aiSaving || aiLoadingSettings"><span x-text="aiSaving ? 'Menyimpan...' : 'Simpan Konfigurasi AI'"></span></x-button>
+                        <x-button type="button" variant="secondary" @click="saveAiSettings('reset')" x-bind:disabled="aiSaving || aiLoadingSettings">Reset URL/model</x-button>
+                        <x-button type="button" variant="secondary" @click="saveAiSettings('remove')" x-bind:disabled="aiSaving || aiLoadingSettings">Hapus kunci</x-button>
                     </div>
 
                     <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
                         <h5 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">AI Test</h5>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Rekomendasi: simpan dulu konfigurasi AI, lalu jalankan test.</p>
+                        <p class="text-xs text-gray-600 dark:text-gray-300 mb-3">Uji memakai konfigurasi tersimpan dan dapat menggunakan biaya provider. Jangan masukkan data perkara atau informasi pribadi. Status konfigurasi tidak menjamin DNS, tunnel, model, atau provider tersedia; koneksi diverifikasi saat uji. Tidak ada pengiriman WhatsApp.</p>
 
                         <div class="space-y-3">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Prompt Test</label>
-                                <textarea x-model="aiTest.prompt" rows="3" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"></textarea>
+                                <label for="ai-test-prompt" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Instruksi uji</label>
+                                <textarea id="ai-test-prompt" x-model="aiTest.prompt" x-bind:disabled="aiLoadingSettings" maxlength="1000" rows="3" class="mt-1 block w-full rounded-md border-gray-500 dark:border-gray-400 dark:bg-gray-700 dark:text-white shadow-sm focus:border-primary-700 focus:ring-primary-700 dark:focus:ring-primary-300 sm:text-sm disabled:opacity-60"></textarea>
                             </div>
 
-                            <x-button type="button" variant="success" @click="sendAiTest" x-bind:disabled="sendingAiTest" block>
+                            <x-button type="button" variant="primary" @click="sendAiTest" x-bind:disabled="sendingAiTest || aiLoadingSettings || aiSaving || aiDirty || !aiForm.ai_configured" block>
                                 <span x-show="!sendingAiTest">Jalankan AI Test</span>
                                 <span x-show="sendingAiTest">Menjalankan...</span>
                             </x-button>
 
-                            <div x-show="aiTest.error" class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" x-text="aiTest.error"></div>
+                            <p x-show="!aiTest.result && !aiTest.error && !sendingAiTest" class="text-sm text-gray-600 dark:text-gray-300">Belum ada hasil uji untuk konfigurasi ini.</p>
+                            <div x-show="aiTest.error" role="alert" class="rounded-md border border-red-200 bg-red-50 dark:bg-gray-800 px-3 py-2 text-sm text-red-700 dark:text-red-200" x-text="aiTest.error"></div>
 
-                            <div x-show="aiTest.result" class="rounded-md border border-green-200 bg-green-50 px-3 py-2">
-                                <p class="text-xs font-semibold text-green-700 mb-1">Hasil AI</p>
-                                <pre class="whitespace-pre-wrap text-sm text-green-900" x-text="aiTest.result"></pre>
+                            <div x-show="aiTest.result" class="rounded-md border border-green-200 bg-green-50 dark:bg-gray-800 px-3 py-2">
+                                <p class="text-xs font-semibold text-green-700 dark:text-green-200 mb-1">Hasil AI</p>
+                                <pre class="whitespace-pre-wrap break-words text-sm text-green-900 dark:text-green-100" x-text="aiTest.result"></pre>
                             </div>
                         </div>
                     </div>

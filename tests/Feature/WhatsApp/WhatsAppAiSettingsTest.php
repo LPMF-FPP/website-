@@ -6,10 +6,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Http;
 
-uses(RefreshDatabase::class);
+uses(RefreshDatabase::class, \Tests\Concerns\UsesApprovedAiVerificationDatabase::class);
 
 beforeEach(function () {
     Gate::define('manage-settings', fn () => true);
+    $this->partialMock(\App\Services\AI\AiEndpointPolicy::class)->shouldReceive('resolve')->andReturn(['8.8.8.8']);
 });
 
 it('saves ai configuration from whatsapp settings', function () {
@@ -17,16 +18,12 @@ it('saves ai configuration from whatsapp settings', function () {
     /** @var User $user */
     $user = User::factory()->create();
 
-    $response = $this->actingAs($user)->postJson('/whatsapp/settings', [
-        'base_url' => 'https://gowa.local',
-        'basic_user' => 'bot',
-        'basic_pass' => 'secret-pass',
-        'device_id' => 'device-123',
-        'inventory_alert_expiry_days' => 30,
+    $response = $this->actingAs($user)->postJson('/whatsapp/settings/ai', [
         'ai_provider' => 'openrouter',
         'ai_base_url' => 'https://openrouter.ai/api/v1/',
         'ai_model' => 'openrouter/auto',
         'ai_api_key' => 'or-secret-key',
+        'ai_confirm_destination' => true,
     ]);
 
     $response->assertOk();
@@ -99,6 +96,7 @@ it('tests ai from whatsapp settings endpoint', function () {
                     'message' => [
                         'content' => 'Respons AI test berhasil.',
                     ],
+                    'finish_reason' => 'stop',
                 ],
             ],
         ], 200),

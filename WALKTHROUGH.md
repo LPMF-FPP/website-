@@ -90,7 +90,27 @@ Pusat kontrol komunikasi berbasis GOWA API.
 - **Settings:**
     - **Quick Test:** Kirim pesan tes langsung dari dashboard.
     - **Template Editor:** Edit template pesan dengan placeholder `{nama}`, `{resi}`, `{status}`.
-    - **Magic Compose:** AI-assisted drafting untuk pesan broadcast.
+- **Magic Compose:** AI-assisted drafting untuk pesan broadcast.
+
+#### AI Compose/Test hardening, 14 Oktober 2026 (lokal, belum dirilis)
+
+- AI tetap menyusun pratinjau. Hanya tombol **Terapkan ke draf** yang mengganti teks; fitur ini tidak mengirim WhatsApp.
+- Instruksi selalu dikirim ke endpoint yang ditampilkan. Pengiriman draf memerlukan persetujuan checkbox, default tidak aktif. Jangan masukkan informasi perkara atau data pribadi ke instruksi maupun draf uji.
+- Konfigurasi AI disimpan terpisah di `POST /whatsapp/settings/ai`. GOWA tidak berubah. URL/model override dapat di-reset; kunci kosong, dihilangkan dari payload, atau masked mempertahankan kunci. **Hapus kunci** juga menonaktifkan fallback kunci environment. Pergantian provider memerlukan tindakan kunci eksplisit dan konfirmasi tujuan.
+- Kunci tersimpan harus dapat didekripsi. Respons dan audit hanya memuat status kunci, bukan plaintext/ciphertext. Ketersediaan konfigurasi tidak menjamin model tersedia atau tunnel online.
+- Host HTTPS disetujui secara exact di `services.ai.approved_hosts`. Resolusi memakai executable `getent ahosts` melalui Symfony Process dan memerlukan `proc_open`; semua jawaban DNS harus publik. Alamat koneksi dipin melalui cURL dengan verifikasi sertifikat tetap aktif. Redirect dan proxy transport tidak diikuti. Request memiliki connect timeout 5 detik dan timeout 30 detik, tanpa retry inference otomatis. Pastikan `getent` dan `proc_open` tersedia saat preflight deployment.
+- Batas Compose/Test bersama: `AI_RATE_LIMIT` per menit per pengguna (default 6), satu request aktif per pengguna, serta `AI_GLOBAL_BUDGET` per menit (default 60, nilai 0 memblokir inference). `AI_LOCK_STORE` default `database`; produksi memerlukan database/Redis bersama untuk lock, limiter, dan budget, bukan array/file cache. Semua worker harus menggunakan backend serta prefix yang sama. Tabel `cache`/`cache_locks` harus tersedia sebelum release.
+- Hasil wajib teks nonkosong, finish reason `stop`, maksimal 10.000 karakter dan respons transport default 32 KiB (batas maksimum 64 KiB), tanpa tool-call/refusal/HTML atau variabel yang tidak didukung konteks. Placeholder yang sudah ada pada draf dipertahankan lintas konteks; countdown mencakup alias `{motivation_message}`.
+- Perubahan rekaman, sesi editor, draf, instruksi, persetujuan, atau konfigurasi membatalkan/mengabaikan respons usang. Sebelum menerapkan pratinjau, editor membaca ulang revisi konfigurasi dari server. Lock konfigurasi menyelaraskan save dengan inferensi; AI Test diblokir saat formulir belum disimpan. Kunci baru yang diketik saat save berlangsung tidak ditimpa oleh respons save lama.
+- Tidak ada parameter batas token keluaran yang dikirim karena dukungan proxy/model belum diverifikasi dan spesifikasi melarang parameter spekulatif. Batas byte respons membatasi data yang diterima aplikasi, bukan biaya generasi provider; konfirmasi kontrak output-token tetap menjadi pekerjaan tertunda.
+
+**Operasi proxy development:** pertahankan `gpt-6-luna` dan `https://magan-nontelic-vincenza.ngrok-free.dev/v1` yang sudah dikonfigurasi. Tidak ada perubahan `.env`, model produksi, atau URL produksi dalam implementasi ini. Jika hostname tunnel berubah, jangan memakai wildcard ngrok atau mengganti URL secara diam-diam; minta persetujuan endpoint baru dan review allowlist. Kode `AI_TUNNEL_OFFLINE` menunjukkan tunnel offline; kegagalan model, timeout, dan keluaran tidak valid bukan bukti model tersedia. Setelah release disetujui, koordinasi menjalankan satu AI Test dengan salam netral, bukan data perkara dan bukan Quick Test WhatsApp.
+
+**Verifikasi lokal:** focused PHP AI suites menggunakan PostgreSQL `lpmf_release_20261013_verify`, fake HTTP dan DNS deterministik; Node consumer tests; Dusk tiga alur editor/settings memakai Axios mock dan server lokal dengan budget AI nol. Jalankan PHP dan Dusk berurutan karena keduanya memakai database isolasi yang sama. Dusk memulihkan setting fixture dan menghapus user uji. Tidak memakai `lis_db_test` atau database produksi.
+
+**Arah visual:** warna, font dan struktur operasional LPMF dipertahankan; kontrol AI memakai label Indonesia, dialog terperangkap fokus, target 44px dan feedback tekstual. ENERGY 1 / RHYTHM 1 / MOTION 1: tidak ada animasi dekoratif. Shadow hanya menunjukkan elevasi dialog/menu. Uji dialog light/desktop dan dark/mobile, consent, preview, apply, Escape, cancellation, record replacement, save/reset/remove dilakukan melalui Dusk. Browser juga menunjukkan error GOWA overview `reason`/`latest_version` dan koneksi GOWA lokal yang sudah ada; area di luar kontrol AI ini tidak diubah.
+
+**Release masih tertunda:** backup artefak produksi, commit/push yang disetujui, deploy exact commit, pemeriksaan route/cache/health/hash/queue, dan satu inference netral melalui proxy. Spec memetakan 34 temuan audit asli dalam urutan sumber. Jangan menganggap local test sebagai bukti live model support atau production release.
 
 ### 5. Inventory Management (`/referensi/inventori`)
 

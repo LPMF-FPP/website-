@@ -12,6 +12,7 @@ use Tests\TestCase;
 class AiControllerTest extends TestCase
 {
     use RefreshDatabase;
+    use \Tests\Concerns\UsesApprovedAiVerificationDatabase;
 
     protected function setUp(): void
     {
@@ -43,12 +44,12 @@ class AiControllerTest extends TestCase
             ->assertJson(['result' => 'Generated response']);
     }
 
-    public function test_compose_passes_variables_to_service()
+    public function test_compose_ignores_browser_variable_catalog()
     {
         $this->mock(AiCommsService::class, function (MockInterface $mock) {
             $mock->shouldReceive('generateMessage')
                 ->once()
-                ->with('Test prompt', null, 'general', ['nama', 'nomor surat'])
+                ->with('Test prompt', null, 'general', [])
                 ->andReturn('Generated response');
         });
 

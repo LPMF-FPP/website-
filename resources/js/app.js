@@ -23,6 +23,7 @@ import { qmhEditor } from "./components/qmh-editor";
 import { qmhFormBuilder } from "./components/qmh-form-builder";
 import { qmhPendukungPicker } from "./components/qmh-pendukung-picker";
 import toastStore from "./stores/toast";
+import { magicToolbar, whatsappAiSettings } from "./components/whatsapp-ai";
 
 const APP_BOOT_KEY = "__lpmfAppBootstrapped";
 
@@ -97,6 +98,8 @@ if (!window[APP_BOOT_KEY]) {
 
     document.addEventListener("alpine:init", () => {
         Alpine.store("toast", toastStore);
+        Alpine.data("magicToolbar", magicToolbar);
+        Alpine.data("whatsappAiSettings", whatsappAiSettings);
         Alpine.data("listFetcher", (targetRef) => createListFetcher(targetRef));
         Alpine.data("inventoryTransactionReview", inventoryTransactionReview);
         Alpine.data("sampleDisposalSelection", sampleDisposalSelection);

@@ -27,9 +27,9 @@ use App\Support\ActivityLogger;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
-use RuntimeException;
 
 class WhatsAppHubController extends Controller
 {
@@ -944,20 +944,12 @@ class WhatsAppHubController extends Controller
 
     public function getSettings(): JsonResponse
     {
-        $aiProvider = (string) settings('notifications.whatsapp.ai.provider', 'openai');
-        $aiBaseUrl = (string) settings('notifications.whatsapp.ai.base_url', config('services.ai.base_url', 'https://api.openai.com/v1'));
-        $aiModel = (string) settings('notifications.whatsapp.ai.model', config('services.ai.model', 'gpt-4o-mini'));
-        $hasAiApiKey = (bool) settings('notifications.whatsapp.ai.api_key') || ! empty((string) config('services.ai.key'));
-
         return response()->json([
             'base_url' => settings('notifications.whatsapp.base_url'),
             'basic_user' => settings('notifications.whatsapp.basic_user'),
             'device_id' => settings('notifications.whatsapp.device_id'),
             'inventory_alert_expiry_days' => (int) settings('inventory.alert_expiry_days', 30),
-            'ai_provider' => $aiProvider,
-            'ai_base_url' => $aiBaseUrl,
-            'ai_model' => $aiModel,
-            'ai_api_key_configured' => $hasAiApiKey,
+            ...app(\App\Services\AI\AiConfiguration::class)->status(),
             // Don't return password
         ]);
     }
@@ -1072,16 +1064,15 @@ class WhatsAppHubController extends Controller
 
     public function saveSettings(Request $request): JsonResponse
     {
+        if (collect(array_keys($request->all()))->contains(fn ($key) => str_starts_with($key, 'ai_'))) {
+            return response()->json(['message' => 'Simpan konfigurasi AI melalui panel AI, terpisah dari GOWA.'], 422);
+        }
         $validated = $request->validate([
             'base_url' => 'required|url',
             'basic_user' => 'nullable|string',
             'basic_pass' => 'nullable|string',
             'device_id' => 'required|string',
             'inventory_alert_expiry_days' => 'nullable|integer|min:1|max:365',
-            'ai_provider' => 'nullable|string|in:openai,openrouter,deepseek,custom',
-            'ai_base_url' => 'nullable|url',
-            'ai_model' => 'nullable|string|max:120',
-            'ai_api_key' => 'nullable|string|max:500',
         ]);
 
         SystemSetting::updateOrCreate(
@@ -1110,34 +1101,6 @@ class WhatsAppHubController extends Controller
             SystemSetting::updateOrCreate(
                 ['key' => 'inventory.alert_expiry_days'],
                 ['value' => (int) ($validated['inventory_alert_expiry_days'] ?? 30)]
-            );
-        }
-
-        if (array_key_exists('ai_provider', $validated) && ! empty($validated['ai_provider'])) {
-            SystemSetting::updateOrCreate(
-                ['key' => 'notifications.whatsapp.ai.provider'],
-                ['value' => $validated['ai_provider']]
-            );
-        }
-
-        if (array_key_exists('ai_base_url', $validated) && ! empty($validated['ai_base_url'])) {
-            SystemSetting::updateOrCreate(
-                ['key' => 'notifications.whatsapp.ai.base_url'],
-                ['value' => rtrim($validated['ai_base_url'], '/')]
-            );
-        }
-
-        if (array_key_exists('ai_model', $validated) && ! empty($validated['ai_model'])) {
-            SystemSetting::updateOrCreate(
-                ['key' => 'notifications.whatsapp.ai.model'],
-                ['value' => trim($validated['ai_model'])]
-            );
-        }
-
-        if (array_key_exists('ai_api_key', $validated) && ! empty($validated['ai_api_key']) && $validated['ai_api_key'] !== '••••••••') {
-            SystemSetting::updateOrCreate(
-                ['key' => 'notifications.whatsapp.ai.api_key'],
-                ['value' => encrypt($validated['ai_api_key'])]
             );
         }
 
@@ -1179,25 +1142,45 @@ class WhatsAppHubController extends Controller
     {
         $validated = $request->validate([
             'prompt' => 'required|string|max:1000',
+            'expected_revision' => 'sometimes|string|max:64',
         ]);
 
         try {
-            $result = $aiService->generateMessage($validated['prompt']);
+            if (isset($validated['expected_revision']) && $validated['expected_revision'] !== app(\App\Services\AI\AiConfiguration::class)->values()['revision']) {
+                throw new \App\Services\AI\AiFailure('AI_CONFIGURATION_CHANGED', 'Konfigurasi AI berubah. Muat ulang panel sebelum menguji.', 409);
+            }
+            $result = $aiService->generateMessage($validated['prompt'], expectedRevision: $validated['expected_revision'] ?? null);
 
             return response()->json([
                 'success' => true,
                 'result' => $result,
             ]);
-        } catch (RuntimeException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-            ], 503);
         } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal menjalankan AI test.',
-            ], 500);
+            $failure = $e instanceof \App\Services\AI\AiFailure ? $e : new \App\Services\AI\AiFailure('AI_SERVICE_UNAVAILABLE', 'Gagal menjalankan AI test. Periksa konfigurasi AI.');
+            $context = ['request_id' => $failure->requestId, 'code' => $failure->errorCode];
+            $diagnostic = $failure->getPrevious() ?? ($e instanceof \App\Services\AI\AiFailure ? null : $e);
+            if ($diagnostic !== null) {
+                $context['exception'] = $diagnostic::class;
+            }
+            Log::warning('AI test failed', $context);
+
+            return $failure->response();
+        }
+    }
+
+    public function saveAiSettings(\App\Http\Requests\SaveAiSettingsRequest $request, \App\Services\AI\AiSettingsService $service): JsonResponse
+    {
+        try {
+            return response()->json(['message' => 'Konfigurasi AI disimpan.', ...$service->save($request->validated(), $request->user())]);
+        } catch (\App\Services\AI\AiFailure $failure) {
+            return $failure->response();
+        } catch (\Illuminate\Validation\ValidationException $error) {
+            throw $error;
+        } catch (\Throwable $error) {
+            $failure = new \App\Services\AI\AiFailure('AI_SETTINGS_FAILED', 'Konfigurasi AI gagal disimpan. Masukan tetap tersedia; coba kembali.', 500);
+            Log::error('AI settings save failed', ['request_id' => $failure->requestId, 'code' => $failure->errorCode, 'exception' => $error::class]);
+
+            return $failure->response();
         }
     }
 

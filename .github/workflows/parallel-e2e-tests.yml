@@ -21,7 +21,7 @@ jobs:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_DB: lis_db_test
+          POSTGRES_DB: lpmf_release_20261013_verify
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
         ports:
@@ -52,7 +52,7 @@ jobs:
       - name: Prepare environment
         run: |
           cp .env.testing.example .env.testing
-          sed -i 's/^DB_DATABASE=.*/DB_DATABASE=lis_db_test/' .env.testing
+          sed -i 's/^DB_DATABASE=.*/DB_DATABASE=lpmf_release_20261013_verify/' .env.testing
           sed -i 's/^DB_USERNAME=.*/DB_USERNAME=postgres/' .env.testing
           sed -i 's/^DB_PASSWORD=.*/DB_PASSWORD=postgres/' .env.testing
           sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' .env.testing

@@ -61,6 +61,7 @@
                                 Deskripsi
                             </label>
                             <x-magic-toolbar 
+                                context-type="task"
                                 target="form.description" 
                                 textarea-id="task-description-field"
                                 :show-formatting="true"
@@ -139,6 +140,7 @@
         function taskForm() {
             return {
                 isOpen: false,
+                aiEditorSession: 0,
                 isEdit: false,
                 saving: false,
                 users: [],
@@ -153,6 +155,7 @@
                 },
 
                 open(detail) {
+                    this.aiEditorSession++;
                     this.isOpen = true;
                     this.users = detail.users || [];
                     
@@ -183,6 +186,7 @@
                 },
 
                 close() {
+                    this.aiEditorSession++;
                     this.isOpen = false;
                 },
 

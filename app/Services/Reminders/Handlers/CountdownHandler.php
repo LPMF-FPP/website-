@@ -7,6 +7,8 @@ use Carbon\Carbon;
 
 class CountdownHandler
 {
+    public const PLACEHOLDERS = ['target_date', 'days_remaining', 'event_name', 'event_emoji', 'milestone_message', 'motivation_message'];
+
     public function handle(Reminder $reminder): string
     {
         $metadata = is_array($reminder->metadata) ? $reminder->metadata : [];

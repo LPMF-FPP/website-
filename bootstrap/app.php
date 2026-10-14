@@ -74,6 +74,7 @@ return Application::configure(basePath: dirname(__DIR__))
         Schedule::command('lims:purge-old-files')->dailyAt('02:00');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        $exceptions->dontFlash(['ai_api_key']);
         $exceptions->reportable(function (Throwable $e) {
             if (app()->bound('sentry') && app()->environment('production')) {
                 app('sentry')->captureException($e);

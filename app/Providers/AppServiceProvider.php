@@ -35,6 +35,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(\App\Contracts\WhatsApp\GowaRuntimeProbe::class, \App\Services\WhatsApp\FileGowaRuntimeProbe::class);
         $this->app->bind(\App\Contracts\WhatsApp\GowaUpdateRunner::class, \App\Services\WhatsApp\SystemdGowaUpdateRunner::class);
 
+        if (class_exists(\Laravel\Telescope\Telescope::class)) {
+            \App\Services\AI\AiTelemetryPrivacy::register();
+        }
+
         if ($this->app->environment('local') && class_exists(\Laravel\Telescope\TelescopeServiceProvider::class)) {
             $this->app->register(\Laravel\Telescope\TelescopeServiceProvider::class);
             $this->app->register(TelescopeServiceProvider::class);
@@ -143,11 +147,12 @@ class AppServiceProvider extends ServiceProvider
 
         \Illuminate\Support\Facades\DB::listen(function ($query) {
             $threshold = config('database.slow_query_threshold_ms', 1000);
+            $sensitive = \App\Services\AI\AiTelemetryPrivacy::sensitiveQuery($query->sql, $query->bindings);
 
             if ($query->time > $threshold) {
                 \Illuminate\Support\Facades\Log::warning('Slow query detected', [
-                    'sql' => $query->sql,
-                    'bindings' => $query->bindings,
+                    'sql' => $sensitive ? '[sensitive settings query]' : $query->sql,
+                    'bindings' => $sensitive ? ['***REDACTED***'] : $query->bindings,
                     'time_ms' => $query->time,
                     'connection' => $query->connectionName,
                 ]);
@@ -155,7 +160,7 @@ class AppServiceProvider extends ServiceProvider
 
             if ($query->time > ($threshold * 3)) {
                 \Illuminate\Support\Facades\Log::error('Critical slow query', [
-                    'sql' => $query->sql,
+                    'sql' => $sensitive ? '[sensitive settings query]' : $query->sql,
                     'time_ms' => $query->time,
                     'connection' => $query->connectionName,
                 ]);

@@ -119,6 +119,7 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Message Template</label>
                         <x-magic-toolbar
+                            context-type="reminder"
                             target="form.message_template"
                             textarea-id="reminder-message-field"
                             :show-formatting="true"
@@ -195,6 +196,7 @@
         function reminderEditor() {
             return {
                 isOpen: false,
+                aiEditorSession: 0,
                 isEditMode: false,
                 saving: false,
                 groups: [],
@@ -324,6 +326,7 @@
                 },
 
                 openModal(reminder = null) {
+                    this.aiEditorSession++;
                     this.isOpen = true;
                     this.isEditMode = !!reminder;
 
@@ -359,6 +362,7 @@
                 },
 
                 closeModal() {
+                    this.aiEditorSession++;
                     this.isOpen = false;
                     this.saving = false;
                 },

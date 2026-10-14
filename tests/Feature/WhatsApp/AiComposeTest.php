@@ -11,6 +11,7 @@ use Tests\TestCase;
 class AiComposeTest extends TestCase
 {
     use RefreshDatabase;
+    use \Tests\Concerns\UsesApprovedAiVerificationDatabase;
 
     protected function setUp(): void
     {
@@ -20,6 +21,7 @@ class AiComposeTest extends TestCase
         Config::set('services.ai.base_url', 'https://api.openai.com/v1');
         Config::set('services.ai.key', 'test-key');
         Config::set('services.ai.model', 'gpt-3.5-turbo');
+        $this->partialMock(\App\Services\AI\AiEndpointPolicy::class)->shouldReceive('resolve')->andReturn(['8.8.8.8']);
     }
 
     /**
@@ -39,6 +41,7 @@ class AiComposeTest extends TestCase
                     'message' => [
                         'content' => 'This is a mocked AI response.',
                     ],
+                    'finish_reason' => 'stop',
                 ],
             ],
         ];

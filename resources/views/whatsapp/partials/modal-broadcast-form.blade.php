@@ -60,6 +60,7 @@
                                 <div>
                                     <label class="block text-sm font-medium text-gray-900 dark:text-gray-100">Message</label>
                                     <x-magic-toolbar 
+                                        context-type="broadcast"
                                         target="form.message" 
                                         textarea-id="broadcast-message-field"
                                         :show-formatting="true"
@@ -113,6 +114,7 @@
         function broadcastForm() {
             return {
                 isOpen: false,
+                aiEditorSession: 0,
                 isEdit: false,
                 saving: false,
                 estimatedRecipients: 0,
@@ -127,6 +129,7 @@
                 },
                 
                 open(broadcast = null) {
+                    this.aiEditorSession++;
                     this.isOpen = true;
                     if (broadcast) {
                         this.isEdit = true;
@@ -156,6 +159,7 @@
                 },
                 
                 close() {
+                    this.aiEditorSession++;
                     this.isOpen = false;
                 },
 

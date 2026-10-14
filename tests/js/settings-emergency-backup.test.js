@@ -31,6 +31,7 @@ globalThis.document = {
 };
 
 const { default: Alpine } = await import("alpinejs");
+window.Alpine = Alpine;
 const { registerSettingsComponent } = await import(
     "../../resources/js/pages/settings/alpine-component.js"
 );
