@@ -54,12 +54,40 @@ it('rejects every private or reserved DNS answer including mixed answers', funct
     Http::fake();
     $this->actingAs($this->actor)->postJson('/whatsapp/ai/compose', ['prompt' => 'Uji'])->assertStatus(422)->assertJsonPath('code', 'AI_DESTINATION_INVALID');
     Http::assertNothingSent();
-})->with([[[]], [['127.0.0.1']], [['10.0.0.1']], [['169.254.169.254']], [['100.64.0.1']], [['192.0.2.1']], [['::1']], [['::ffff:127.0.0.1']], [['2001:db8::1']], [['fc00::1']], [['8.8.8.8', '192.168.0.1']]]);
+})->with([[[]], [['127.0.0.1']], [['10.0.0.1']], [['169.254.169.254']], [['100.64.0.1']], [['192.0.2.1']], [['::1']], [['::ffff:127.0.0.1']], [['2001:db8::1']], [['fc00::1']], [['8.8.8.8', '192.168.0.1']], [['::1', '8.8.8.8']]]);
 
 it('pins validated addresses and forbids redirects proxies and insecure TLS', function () {
     $options = app(AiEndpointPolicy::class)->connectionOptions('https://api.openai.com/v1');
     expect($options)->toMatchArray(['allow_redirects' => false, 'verify' => true, 'proxy' => '']);
     expect($options['curl'][CURLOPT_RESOLVE])->toBe(['api.openai.com:443:8.8.8.8']);
+});
+
+it('pins validated IPv4 and IPv6 answers with IPv4 first', function () {
+    $this->instance(AiEndpointPolicy::class, new class extends AiEndpointPolicy
+    {
+        public function resolve(string $host): array
+        {
+            return ['2606:4700:4700::1111', '8.8.8.8'];
+        }
+    });
+
+    $options = app(AiEndpointPolicy::class)->connectionOptions('https://api.openai.com/v1');
+
+    expect($options['curl'][CURLOPT_RESOLVE])->toBe(['api.openai.com:443:8.8.8.8,[2606:4700:4700::1111]']);
+});
+
+it('keeps using validated IPv6 when DNS has no IPv4 answer', function () {
+    $this->instance(AiEndpointPolicy::class, new class extends AiEndpointPolicy
+    {
+        public function resolve(string $host): array
+        {
+            return ['2606:4700:4700::1111'];
+        }
+    });
+
+    $options = app(AiEndpointPolicy::class)->connectionOptions('https://api.openai.com/v1');
+
+    expect($options['curl'][CURLOPT_RESOLVE])->toBe(['api.openai.com:443:[2606:4700:4700::1111]']);
 });
 
 it('never transmits persisted ciphertext or falls back after decryption failure', function () {

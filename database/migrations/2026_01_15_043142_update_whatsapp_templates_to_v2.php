@@ -22,10 +22,10 @@ return new class extends Migration
             }
 
             $newTemplates = [
-                'REQUEST_RECEIVED' => '{greetings}, {pangkat} {nama} telah diterima dengan nomor surat {nomor surat} atas nama tersangka {tersangka} berikut {resi} anda. Salam Staff Laboratorium Farmapol Pusdokkes Polri, Salam Presisi',
-                'REQUEST_REJECTED' => '{greetings}, {pangkat} {nama} permintaan anda dengan nomor surat {nomor surat} atas nama tersangka {tersangka} ditolak, harap menghubungi kami kembali untuk informasi selanjutnya. Salam Staff Laboratorium Farmapol Pusdokkes Polri, Salam Presisi',
-                'READY_FOR_PICKUP' => '{greetings}, {pangkat} {nama} {resi} anda atas nama tersangka {tersangka} sudah dapat diambil. Salam Staff Laboratorium Farmapol Pusdokkes Polri, Salam Presisi',
-                'HANDOVER_COMPLETED' => '{greetings}, {pangkat} {nama} {resi} anda atas nama tersangka {tersangka} sudah selesai serah terima. Salam Staff Laboratorium Farmapol Pusdokkes Polri, Salam Presisi',
+                'REQUEST_RECEIVED' => '{greetings}, {pangkat} {nama} telah diterima dengan nomor surat {nomor surat} atas nama tersangka {tersangka} berikut {resi} anda. Salam Staff Laboratorium Farmapol Pusdokkes Polri, Polri Bersama Masyarakat',
+                'REQUEST_REJECTED' => '{greetings}, {pangkat} {nama} permintaan anda dengan nomor surat {nomor surat} atas nama tersangka {tersangka} ditolak, harap menghubungi kami kembali untuk informasi selanjutnya. Salam Staff Laboratorium Farmapol Pusdokkes Polri, Polri Bersama Masyarakat',
+                'READY_FOR_PICKUP' => '{greetings}, {pangkat} {nama} {resi} anda atas nama tersangka {tersangka} sudah dapat diambil. Salam Staff Laboratorium Farmapol Pusdokkes Polri, Polri Bersama Masyarakat',
+                'HANDOVER_COMPLETED' => '{greetings}, {pangkat} {nama} {resi} anda atas nama tersangka {tersangka} sudah selesai serah terima. Salam Staff Laboratorium Farmapol Pusdokkes Polri, Polri Bersama Masyarakat',
             ];
 
             $updatedValue = array_merge($value, $newTemplates);

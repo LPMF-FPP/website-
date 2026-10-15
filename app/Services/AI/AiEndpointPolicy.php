@@ -64,10 +64,22 @@ class AiEndpointPolicy
             }
         }
 
-        // Pin the validated address while retaining the original TLS hostname and certificate verification.
-        $ip = $addresses[0];
-        $pinned = str_contains($ip, ':') ? '['.$ip.']' : $ip;
+        $ipv4Addresses = [];
+        $ipv6Addresses = [];
+        foreach ($addresses as $address) {
+            if (filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false) {
+                $ipv4Addresses[] = $address;
+            } else {
+                $ipv6Addresses[] = $address;
+            }
+        }
 
-        return ['allow_redirects' => false, 'verify' => true, 'proxy' => '', 'curl' => [CURLOPT_RESOLVE => [$host.':443:'.$pinned], CURLOPT_PROXY => '']];
+        // Keep every validated address pinned and put IPv4 first; libcurl can fall back across the set.
+        $pinnedAddresses = array_map(
+            static fn (string $address): string => str_contains($address, ':') ? '['.$address.']' : $address,
+            [...$ipv4Addresses, ...$ipv6Addresses],
+        );
+
+        return ['allow_redirects' => false, 'verify' => true, 'proxy' => '', 'curl' => [CURLOPT_RESOLVE => [$host.':443:'.implode(',', $pinnedAddresses)], CURLOPT_PROXY => '']];
     }
 }

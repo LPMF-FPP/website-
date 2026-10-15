@@ -20,6 +20,8 @@ class ChangelogPageTest extends TestCase
 
         $response
             ->assertOk()
+            ->assertSee('v2.7.1')
+            ->assertSee('Ketahanan WhatsApp AI')
             ->assertSee('v2.7.0')
             ->assertSee('Inventori Desktop, Pemusnahan Sampel')
             ->assertSee('v2.6.7')

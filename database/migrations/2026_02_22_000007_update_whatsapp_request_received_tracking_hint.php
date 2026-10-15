@@ -7,7 +7,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $requestReceivedTemplate = "{greetings}, {pangkat} {nama}.\n\nKami informasikan bahwa permintaan Anda dengan:\n📄 Nomor Surat: {nomor surat}\n👤 Tersangka: {tersangka}\n🔖 Kode Resi: {resi}\n\ntelah kami terima dan segera kami tindak lanjuti. ✅\n\nApabila ingin melacak bisa mengetikan /resi {resi}\n\nTerima kasih atas kepercayaan Anda.\n\nSalam Presisi 🙏\nStaff Laboratorium Farmapol Pusdokkes Polri";
+        $requestReceivedTemplate = "{greetings}, {pangkat} {nama}.\n\nKami informasikan bahwa permintaan Anda dengan:\n📄 Nomor Surat: {nomor surat}\n👤 Tersangka: {tersangka}\n🔖 Kode Resi: {resi}\n\ntelah kami terima dan segera kami tindak lanjuti. ✅\n\nApabila ingin melacak bisa mengetikan /resi {resi}\n\nTerima kasih atas kepercayaan Anda.\n\nPolri Bersama Masyarakat 🙏\nStaff Laboratorium Farmapol Pusdokkes Polri";
 
         $setting = SystemSetting::query()
             ->where('key', 'notifications.whatsapp.templates')

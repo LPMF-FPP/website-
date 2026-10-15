@@ -169,6 +169,12 @@ WhatsApp service berjalan di container Docker terpisah.
 
 ## 📰 Recent Changes (v2.7.x / v2.6.x)
 
+### v2.7.1 (15 Oktober 2026) - Ketahanan WhatsApp AI & Pembaruan Template
+
+- **WhatsApp AI:** Permintaan kini dapat menggunakan seluruh alamat IPv4 dan IPv6 tervalidasi, dengan IPv4 diprioritaskan dan IPv6 tetap tersedia sebagai fallback.
+- **Tagline WhatsApp:** Pesan default dan template tersimpan menggunakan ejaan “Polri Bersama Masyarakat”. Migrasi hanya mengganti frasa lama pada template WhatsApp yang tersimpan.
+- **Keamanan AI:** Penguatan validasi tujuan, koneksi, dan pengaturan AI WhatsApp beserta cakupan tes regresi.
+
 ### v2.7.0 (13 Oktober 2026) - Inventori Desktop, Pemusnahan Sampel & Statistik
 
 - **Navigasi Inventori:** Tautan dikelompokkan menjadi Ikhtisar, Data, Transaksi, Pemeriksaan, dan Sampel sesuai izin pengguna, dengan dukungan keyboard serta tema terang dan gelap.

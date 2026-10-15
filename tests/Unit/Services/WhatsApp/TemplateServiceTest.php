@@ -91,6 +91,14 @@ class TemplateServiceTest extends TestCase
         $this->assertArrayHasKey('CONSOLIDATED_QUARTERLY', $labels['system']);
     }
 
+    public function test_request_received_default_uses_the_updated_tagline(): void
+    {
+        $template = $this->service->getDefault('milestone', 'REQUEST_RECEIVED');
+
+        $this->assertStringContainsString('Polri Bersama Masyarakat', $template);
+        $this->assertStringNotContainsString('Salam Presisi', $template);
+    }
+
     public function test_consolidated_template_placeholders_include_report_url(): void
     {
         $placeholders = $this->service->getPlaceholders('system', 'CONSOLIDATED_BIWEEKLY');
