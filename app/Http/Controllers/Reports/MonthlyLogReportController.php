@@ -156,13 +156,18 @@ class MonthlyLogReportController extends Controller
                 $reading->measured_at->format('Y-m-d'),
                 $reading->measured_at->format('H:i'),
                 $locationName,
-                $reading->temperature_c,
-                $reading->humidity_rh ?? '-',
+                $this->formatDecimalForCsv($reading->temperature_c),
+                $reading->humidity_rh !== null ? $this->formatDecimalForCsv($reading->humidity_rh) : '-',
                 $reading->enteredBy->name ?? 'System',
                 $reading->source->label(),
                 $reading->notes,
             ], ';');
         }
+    }
+
+    private function formatDecimalForCsv(?string $value): ?string
+    {
+        return $value === null ? null : str_replace('.', ',', $value);
     }
 
     public function exportInstrumentCsv(Request $request)
