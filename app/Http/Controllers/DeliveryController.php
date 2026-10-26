@@ -635,7 +635,7 @@ class DeliveryController extends Controller
             'request_type.in' => 'Jenis permintaan pengujian tidak valid.',
             'voluntary_statement.accepted' => 'Pernyataan wajib disetujui.',
             'answers.required' => 'Semua pertanyaan survei wajib diisi.',
-            'suggestion.required' => 'Saran/pesan/masukan wajib diisi.',
+            'suggestion.required' => 'Saran atau keluhan tentang layanan wajib diisi.',
         ], $answerMessages));
 
         // Calculate score_avg based on active questions only (mapped to max 4 scale normalization if needed,
@@ -657,8 +657,7 @@ class DeliveryController extends Controller
                 'voluntary_statement' => true,
                 'answers' => $validatedData['answers'],
                 'suggestion' => $validatedData['suggestion'],
-                'complaint' => $validatedData['complaint'] ?? null,
-                'follow_up' => $validatedData['follow_up'] ?? null,
+                ...array_intersect_key($validatedData, array_flip(['complaint', 'follow_up'])),
                 'score_avg' => $scoreAvg,
                 'submitted_at' => now(),
                 'submitted_by' => Auth::id(),
