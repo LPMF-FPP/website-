@@ -12,7 +12,7 @@
                 </template>
                 <div x-show="overviewData?.gowa_update" class="space-y-3 rounded-md bg-slate-800 px-4 py-3">
                     <p class="break-words text-sm text-slate-300">Versi terpasang: <span class="font-medium text-white" x-text="gowaUpdateCheck?.current_version || overviewData?.gowa_update?.runtime?.version || 'Belum terverifikasi'"></span></p>
-                    <p x-show="overviewData?.gowa_update && !overviewData.gowa_update.available" class="text-sm text-amber-200" role="status" x-text="gowaAvailabilityMessage(overviewData?.gowa_update?.reason)"></p>
+                    <p x-show="gowaShowAvailabilityWarning()" class="text-sm text-amber-200" role="status" x-text="gowaAvailabilityMessage(overviewData?.gowa_update?.reason)"></p>
                     <button type="button" @click="checkGowaUpdate()" :disabled="gowaUpdateChecking" class="min-h-11 w-full rounded-md border border-slate-500 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-300 disabled:cursor-not-allowed disabled:opacity-50">
                         <span x-text="gowaUpdateChecking ? 'Memeriksa rilis...' : 'Periksa pembaruan'"></span>
                     </button>
@@ -38,8 +38,8 @@
                         <template x-if="gowaUpdateCheck?.can_update && overviewData?.gowa_update?.available">
                             <p class="text-slate-200">Paket terverifikasi dan siap. Instalasi memerlukan konfirmasi terpisah dan dapat menghentikan layanan sementara.</p>
                         </template>
-                        <p x-show="overviewData?.gowa_update?.preparation?.state === 'failed'" class="text-amber-200">Persiapan gagal. Instalasi tetap dinonaktifkan. Minta operator memeriksa worker, kebijakan rilis, dan rollback sebelum mencoba lagi.</p>
-                        <p x-show="overviewData?.gowa_update?.preparation?.state === 'expired'" class="text-amber-200">Bukti persiapan sudah kedaluwarsa. Siapkan paket kembali sebelum instalasi.</p>
+                        <p x-show="gowaShowPreparationWarnings() && overviewData?.gowa_update?.preparation?.state === 'failed'" class="text-amber-200">Persiapan gagal. Instalasi tetap dinonaktifkan. Minta operator memeriksa worker, kebijakan rilis, dan rollback sebelum mencoba lagi.</p>
+                        <p x-show="gowaShowPreparationWarnings() && overviewData?.gowa_update?.preparation?.state === 'expired'" class="text-amber-200">Bukti persiapan sudah kedaluwarsa. Siapkan paket kembali sebelum instalasi.</p>
                         <p x-show="gowaUpdatePreparing || overviewData?.gowa_update?.preparation?.state === 'preparing'" class="text-slate-200" role="status">Menyiapkan paket. Layanan GOWA belum diganti. Status diperiksa otomatis.</p>
                         <template x-if="overviewData?.gowa_update?.can_request && gowaUpdateCheck?.update_available && (!overviewData?.gowa_update?.preparation_ready || overviewData.gowa_update.preparation?.version !== gowaUpdateCheck.latest_version)">
                             <div class="space-y-2">

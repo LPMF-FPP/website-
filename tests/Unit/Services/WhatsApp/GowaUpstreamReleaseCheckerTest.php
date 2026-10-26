@@ -65,6 +65,24 @@ it('marks the latest release executable only when the signed catalog approves it
     ]);
 });
 
+it('does not offer another installation when the current digest maps to the latest release', function (): void {
+    Http::fake(['api.github.com/*' => Http::response([
+        'tag_name' => 'v9.2.2',
+        'html_url' => 'https://github.com/aldinokemal/go-whatsapp-web-multidevice/releases/tag/v9.2.2',
+        'published_at' => '2026-08-29T16:01:08Z',
+        'draft' => false,
+        'prerelease' => false,
+    ])]);
+
+    expect((new GowaUpstreamReleaseChecker(gowaUpstreamCatalog(), gowaUpstreamProbe()))->check())->toMatchArray([
+        'current_version' => 'v9.2.2',
+        'latest_version' => 'v9.2.2',
+        'update_available' => false,
+        'can_update' => false,
+        'blocked_reason' => 'already_latest',
+    ]);
+});
+
 it('does not claim a current version when runtime evidence is stale or unknown', function (): void {
     Http::fake(['api.github.com/*' => Http::response([
         'tag_name' => 'v9.3.0',

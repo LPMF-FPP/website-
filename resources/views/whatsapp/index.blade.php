@@ -357,6 +357,17 @@
                     }[status] || 'Status tidak diketahui';
                 },
 
+                gowaShowPreparationWarnings() {
+                    return this.gowaUpdateCheck?.update_available === true
+                        && this.gowaUpdateCheck?.blocked_reason !== 'already_latest';
+                },
+
+                gowaShowAvailabilityWarning() {
+                    const status = this.overviewData?.gowa_update;
+                    return Boolean(status && !status.available
+                        && (status.reason !== 'preparation_not_ready' || this.gowaShowPreparationWarnings()));
+                },
+
                 gowaAvailabilityMessage(reason) {
                     return {
                         privileged_runner_unavailable: 'Worker pembaruan belum siap. Instalasi dinonaktifkan sampai pemeriksaan sistem lulus.',
@@ -379,6 +390,9 @@
                         const payload = await response.json();
                         if (!response.ok) throw new Error(payload.message || 'Pemeriksaan pembaruan gagal.');
                         this.gowaUpdateCheck = payload.data;
+                        if (payload.data?.blocked_reason === 'already_latest') {
+                            this.gowaUpdateMessage = '';
+                        }
                     } catch (error) {
                         this.gowaUpdateCheckError = error.message || 'Pemeriksaan pembaruan gagal.';
                     } finally {

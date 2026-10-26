@@ -51,14 +51,14 @@ test('Overview exposes a read-only upstream update check with explicit result st
     assert.match(overview, /blocked_reason === 'release_not_approved'/);
 });
 
-function interactiveHub({ confirm = true, post = async () => ({ data: { message: 'accepted', data: { id: 'operation' } } }), get } = {}) {
+function interactiveHub({ confirm = true, post = async () => ({ data: { message: 'accepted', data: { id: 'operation' } } }), get, check = { latest_version: 'v9.7.0' } } = {}) {
     const timers = [];
     const methods = hub.slice(hub.indexOf('gowaStatusLabel(status) {'), hub.indexOf('async retryGowaUpdate() {'))
         .replace(/\{\{ route\("whatsapp\.updates\.([a-z]+)"\) \}\}/g, '/updates/$1');
     const context = vm.createContext({
         window: { confirm: () => confirm, crypto: { randomUUID: () => 'fixed-action-uuid' }, axios: { post, get } },
         setTimeout: (fn) => { timers.push(fn); return timers.length; }, clearTimeout: () => {},
-        Date, fetch: async () => ({ ok: true, json: async () => ({ data: { latest_version: 'v9.7.0' } }) }),
+        Date, fetch: async () => ({ ok: true, json: async () => ({ data: check }) }),
     });
     const screen = new vm.Script(`({${methods}})`).runInContext(context);
     Object.assign(screen, {
@@ -129,4 +129,44 @@ test('polling ignores an earlier proof without relying on the browser clock', as
     await timers[0]();
     assert.equal(screen.gowaUpdatePreparing, true);
     assert.equal(timers.length, 2);
+});
+
+test('already-latest hides stale preparation warnings and clears old action messages', async () => {
+    const { screen } = interactiveHub({ check: {
+        current_version: 'v9.7.0', latest_version: 'v9.7.0',
+        update_available: false, can_update: false, blocked_reason: 'already_latest',
+    } });
+    screen.overviewData.gowa_update = { available: false, reason: 'preparation_not_ready', preparation: { state: 'expired' } };
+    screen.gowaUpdateMessage = 'Bukti persiapan sudah kedaluwarsa.';
+    await screen.checkGowaUpdate();
+    assert.equal(screen.gowaShowAvailabilityWarning(), false);
+    assert.equal(screen.gowaShowPreparationWarnings(), false);
+    assert.equal(screen.gowaUpdateMessage, '');
+    assert.equal(screen.gowaUpdateCheck.can_update, false);
+    assert.match(overview, /x-show="gowaShowAvailabilityWarning\(\)"/);
+    for (const state of ['expired', 'failed']) {
+        assert.ok(overview.includes(`x-show="gowaShowPreparationWarnings() && overviewData?.gowa_update?.preparation?.state === '${state}'"`));
+    }
+});
+
+test('preparation warnings require a known available update and remain visible for a newer release', () => {
+    const { screen } = interactiveHub();
+    screen.overviewData.gowa_update = { available: false, reason: 'preparation_not_ready', preparation: { state: 'expired' } };
+    screen.gowaUpdateCheck = null;
+    assert.equal(screen.gowaShowAvailabilityWarning(), false);
+    assert.equal(screen.gowaShowPreparationWarnings(), false);
+    screen.gowaUpdateCheck = { update_available: true, blocked_reason: 'release_not_approved' };
+    assert.equal(screen.gowaShowAvailabilityWarning(), true);
+    assert.equal(screen.gowaShowPreparationWarnings(), true);
+});
+
+test('operational runtime and runner warnings are not hidden by an already-latest response', () => {
+    const { screen } = interactiveHub();
+    screen.gowaUpdateCheck = { update_available: false, blocked_reason: 'already_latest' };
+    for (const reason of ['privileged_runner_unavailable', 'runtime_evidence_stale', 'catalog_unavailable', 'update_already_active']) {
+        screen.overviewData.gowa_update = { available: false, reason };
+        assert.equal(screen.gowaShowAvailabilityWarning(), true);
+    }
+    screen.overviewData.gowa_update = null;
+    assert.equal(screen.gowaShowAvailabilityWarning(), false);
 });
