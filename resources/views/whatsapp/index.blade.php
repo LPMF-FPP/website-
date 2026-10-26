@@ -218,6 +218,11 @@
                 gowaUpdateChecking: false,
                 gowaUpdateCheck: null,
                 gowaUpdateCheckError: '',
+                gowaUpdatePreparing: false,
+                gowaPreparationTimer: null,
+                gowaPreparationAttempts: 0,
+                gowaPreparationPreviousObservedAt: null,
+                gowaInstallAction: null,
                 gowaOperationPolling: null,
                 gowaOperationPollAttempts: 0,
                 tasksData: { tasks: { data: [] }, stats: {}, users: [] },
@@ -357,7 +362,8 @@
                         privileged_runner_unavailable: 'Worker pembaruan belum siap. Instalasi dinonaktifkan sampai pemeriksaan sistem lulus.',
                         runtime_evidence_stale: 'Bukti runtime sudah kedaluwarsa. Tunggu pemeriksaan runtime berikutnya.',
                         catalog_unavailable: 'Katalog rilis tidak dapat diverifikasi. Instalasi dinonaktifkan.',
-                        preparation_not_ready: 'Persiapan paket otomatis belum tersedia. Instalasi dinonaktifkan.',
+                        preparation_not_ready: 'Paket belum disiapkan atau buktinya tidak lagi cocok. Instalasi dinonaktifkan.',
+                        update_already_active: 'Operasi pembaruan sedang berjalan. Tunggu sampai hasilnya terverifikasi.',
                     }[reason] || 'Pemeriksaan operasional belum lulus. Instalasi dinonaktifkan.';
                 },
 
@@ -377,6 +383,79 @@
                         this.gowaUpdateCheckError = error.message || 'Pemeriksaan pembaruan gagal.';
                     } finally {
                         this.gowaUpdateChecking = false;
+                    }
+                },
+
+                async prepareGowaRelease() {
+                    const version = this.gowaUpdateCheck?.latest_version;
+                    if (!version || this.gowaUpdatePreparing || !this.overviewData?.gowa_update?.preparation_available || !this.overviewData.gowa_update.can_request) return;
+                    if (!window.confirm(`Siapkan paket ${version}? Image akan diunduh dan diverifikasi. Layanan belum akan diganti.`)) return;
+                    this.gowaUpdatePreparing = true;
+                    this.gowaPreparationPreviousObservedAt = this.overviewData.gowa_update.preparation?.observed_at || null;
+                    this.gowaUpdateMessage = '';
+                    try {
+                        const response = await window.axios.post('{{ route("whatsapp.updates.prepare") }}', { version, confirmation: true });
+                        this.gowaUpdateMessage = response.data.message;
+                        this.gowaPreparationAttempts = 0;
+                        this.pollGowaPreparation(version);
+                    } catch (error) {
+                        this.gowaUpdateMessage = error.response?.data?.message || 'Persiapan belum dapat diajukan. Periksa status sebelum mencoba lagi.';
+                        this.gowaUpdatePreparing = false;
+                    }
+                },
+
+                pollGowaPreparation(version) {
+                    if (this.gowaPreparationTimer !== null) clearTimeout(this.gowaPreparationTimer);
+                    const poll = async () => {
+                        this.gowaPreparationAttempts += 1;
+                        try {
+                            const response = await window.axios.get('{{ route("whatsapp.updates.status") }}');
+                            const status = response.data.data;
+                            this.overviewData.gowa_update = status;
+                            if (status.preparation?.version === version && ['ready', 'failed'].includes(status.preparation.state)
+                                && status.preparation.observed_at !== this.gowaPreparationPreviousObservedAt) {
+                                this.gowaUpdatePreparing = false;
+                                this.gowaPreparationTimer = null;
+                                this.gowaUpdateMessage = status.preparation_ready
+                                    ? 'Paket siap. Layanan belum diubah. Konfirmasikan instalasi untuk melanjutkan.'
+                                    : 'Persiapan belum lulus pemeriksaan. Instalasi tetap dinonaktifkan.';
+                                await this.checkGowaUpdate();
+                                return;
+                            }
+                        } catch (error) {
+                            this.gowaUpdateMessage = error.response?.data?.message || 'Status persiapan belum dapat dimuat.';
+                        }
+                        if (this.gowaPreparationAttempts >= 300) {
+                            this.gowaUpdatePreparing = false;
+                            this.gowaPreparationTimer = null;
+                            this.gowaUpdateMessage = 'Batas waktu pemantauan tercapai. Periksa pembaruan kembali atau minta operator memeriksa antrean.';
+                            return;
+                        }
+                        this.gowaPreparationTimer = setTimeout(poll, 3000);
+                    };
+                    this.gowaPreparationTimer = setTimeout(poll, 3000);
+                },
+
+                async requestGowaUpdate() {
+                    const releaseId = this.gowaUpdateCheck?.approved_release_id;
+                    if (!releaseId || this.gowaUpdateSubmitting || !this.overviewData?.gowa_update?.available || !this.overviewData.gowa_update.can_request) return;
+                    if (!window.confirm(`Instal ${this.gowaUpdateCheck.latest_version}? Layanan dapat terhenti sementara. Jika gagal, updater akan mencoba rollback.`)) return;
+                    this.gowaUpdateSubmitting = true;
+                    this.gowaUpdateMessage = '';
+                    try {
+                        if (this.gowaInstallAction?.releaseId !== releaseId) {
+                            this.gowaInstallAction = { releaseId, uuid: window.crypto.randomUUID() };
+                        }
+                        const response = await window.axios.post('{{ route("whatsapp.updates.request") }}', {
+                            release_id: releaseId, action_uuid: this.gowaInstallAction.uuid, confirmation: true,
+                        });
+                        this.gowaUpdateMessage = response.data.message;
+                        await this.loadTabData('overview');
+                        this.pollGowaOperation(response.data.data?.id);
+                    } catch (error) {
+                        this.gowaUpdateMessage = error.response?.data?.message || 'Instalasi belum dapat dikonfirmasi. Periksa status operasi sebelum mencoba lagi.';
+                    } finally {
+                        this.gowaUpdateSubmitting = false;
                     }
                 },
 

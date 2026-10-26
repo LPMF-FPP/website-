@@ -34,6 +34,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(\App\Contracts\WhatsApp\GowaReleaseCatalog::class, \App\Services\WhatsApp\FileGowaReleaseCatalog::class);
         $this->app->bind(\App\Contracts\WhatsApp\GowaRuntimeProbe::class, \App\Services\WhatsApp\FileGowaRuntimeProbe::class);
         $this->app->bind(\App\Contracts\WhatsApp\GowaUpdateRunner::class, \App\Services\WhatsApp\SystemdGowaUpdateRunner::class);
+        $this->app->bind(\App\Contracts\WhatsApp\GowaReleasePreparer::class, \App\Services\WhatsApp\SystemdGowaReleasePreparer::class);
 
         if (class_exists(\Laravel\Telescope\Telescope::class)) {
             \App\Services\AI\AiTelemetryPrivacy::register();

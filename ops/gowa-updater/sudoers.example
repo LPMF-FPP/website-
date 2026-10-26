@@ -3,3 +3,6 @@ Defaults:lpmf-gowa-maintenance env_reset, !setenv, env_keep -= *
 Defaults!LPMF_GOWA_SUBMIT secure_path="/usr/sbin:/usr/bin:/sbin:/bin"
 Cmnd_Alias LPMF_GOWA_SUBMIT = /usr/local/sbin/lpmf-gowa-submit [0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[1-5][0-9a-f][0-9a-f][0-9a-f]-[89ab][0-9a-f][0-9a-f][0-9a-f]-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]
 lpmf-gowa-maintenance ALL=(root) NOPASSWD: LPMF_GOWA_SUBMIT
+Cmnd_Alias LPMF_GOWA_PREPARE = /usr/local/sbin/lpmf-gowa-submit --prepare v[0-9]*.[0-9]*.[0-9]*
+Defaults!LPMF_GOWA_PREPARE secure_path="/usr/sbin:/usr/bin:/sbin:/bin"
+lpmf-gowa-maintenance ALL=(root) NOPASSWD: LPMF_GOWA_PREPARE

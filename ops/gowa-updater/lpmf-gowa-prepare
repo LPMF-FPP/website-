@@ -1,0 +1,311 @@
+#!/usr/bin/python3
+"""Prepare a stable upstream release; never stop or recreate the running service."""
+
+import base64
+import datetime
+import fcntl
+import grp
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+import sys
+import tempfile
+
+
+ROOT = Path('/etc/lpmf/gowa-updater')
+STATE = Path('/var/lib/lpmf/gowa-updater/preparation.json')
+REPOSITORY = 'docker.io/aldinokemal2104/go-whatsapp-web-multidevice'
+API = 'https://api.github.com/repos/aldinokemal/go-whatsapp-web-multidevice'
+RELEASE_URL = 'https://github.com/aldinokemal/go-whatsapp-web-multidevice/releases/tag/'
+CONTAINER = 'go-whatsapp-web-multidevice-whatsapp_go-1'
+DIGEST = r'sha256:[0-9a-f]{64}'
+VERSION = r'v(\d+)\.(\d+)\.(\d+)'
+
+
+class Rejected(Exception):
+    pass
+
+
+def require(condition):
+    if not condition:
+        raise Rejected('preparation_rejected')
+
+
+def version_parts(version):
+    match = re.fullmatch(r'v?(\d+)\.(\d+)\.(\d+)', version) if isinstance(version, str) else None
+    require(match is not None)
+    return tuple(map(int, match.groups()))
+
+
+def unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        require(key not in result)
+        result[key] = value
+    return result
+
+
+def decode(raw):
+    require(len(raw) <= 2_097_152)
+    return json.loads(raw, object_pairs_hook=unique_object)
+
+
+def canonical(value):
+    return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=True).encode()
+
+
+def run(*args, timeout=30, input=None):
+    result = subprocess.run(args, check=True, capture_output=True, timeout=timeout, input=input,
+                            env={'PATH': '/usr/bin:/bin', 'HOME': '/root', 'LC_ALL': 'C'})
+    return result.stdout
+
+
+def trusted(path, private=False):
+    path = Path(path)
+    require(path.is_file() and not path.is_symlink())
+    st = path.stat()
+    require(st.st_uid == 0 and st.st_mode & 0o022 == 0)
+    if private:
+        require(st.st_mode & 0o077 == 0)
+    return path
+
+
+def read(path):
+    return decode(trusted(path).read_bytes())
+
+
+def verify(payload, signature, key):
+    raw_key = base64.b64decode(trusted(key).read_bytes().strip(), validate=True)
+    sig = base64.b64decode(signature, validate=True)
+    require(len(raw_key) == 32 and len(sig) == 64)
+    with tempfile.TemporaryDirectory() as directory:
+        directory = Path(directory)
+        (directory / 'key').write_bytes(bytes.fromhex('302a300506032b6570032100') + raw_key)
+        (directory / 'payload').write_bytes(canonical(payload))
+        (directory / 'signature').write_bytes(sig)
+        run('/usr/bin/openssl', 'pkeyutl', '-verify', '-pubin', '-inkey', str(directory / 'key'),
+            '-rawin', '-in', str(directory / 'payload'), '-sigfile', str(directory / 'signature'))
+
+
+def sign(payload, key):
+    trusted(key, private=True)
+    with tempfile.TemporaryDirectory() as directory:
+        source = Path(directory) / 'payload'
+        source.write_bytes(canonical(payload))
+        return base64.b64encode(run('/usr/bin/openssl', 'pkeyutl', '-sign', '-rawin',
+                                   '-inkey', str(key), '-in', str(source))).decode()
+
+
+def atomic(path, value, mode=0o644, group=None):
+    path = Path(path)
+    require(path.parent.is_dir() and not path.parent.is_symlink())
+    require(not path.is_symlink())
+    fd, name = tempfile.mkstemp(prefix='.' + path.name + '.', dir=path.parent)
+    try:
+        with os.fdopen(fd, 'wb') as stream:
+            stream.write(canonical(value) + b'\n')
+            stream.flush()
+            os.fsync(stream.fileno())
+            os.fchmod(stream.fileno(), mode)
+            if group is not None:
+                os.fchown(stream.fileno(), -1, grp.getgrnam(group).gr_gid)
+        os.replace(name, path)
+    finally:
+        if os.path.exists(name):
+            os.unlink(name)
+
+
+def publish(state, version, **fields):
+    payload = dict(contract='gowa-preparation-v1', state=state, version=version,
+                   observed_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                   container_identity=fields.pop('container_identity', 'unknown'), **fields)
+    atomic(STATE, dict(schema_version=1, payload=payload,
+                       signature=sign(payload, ROOT / 'evidence.key')), 0o640, 'www-data')
+
+
+def upstream(path):
+    return decode(run('/usr/bin/curl', '--silent', '--show-error', '--fail', '--proto', '=https',
+                      '--max-time', '20', '--max-filesize', '2097152', '-H',
+                      'Accept: application/vnd.github+json', '-H',
+                      'User-Agent: LPMF-LIMS-GOWA-Updater', API + path))
+
+
+def stable_release(version):
+    release = upstream('/releases/latest')
+    require(release.get('tag_name') == version and release.get('draft') is False
+            and release.get('prerelease') is False and release.get('html_url') == RELEASE_URL + version)
+    reference = upstream('/git/ref/tags/' + version)
+    obj = reference.get('object', {})
+    if obj.get('type') == 'tag':
+        require(re.fullmatch('[a-f0-9]{40}', obj.get('sha', '')) is not None)
+        obj = upstream('/git/tags/' + obj['sha']).get('object', {})
+    require(obj.get('type') == 'commit' and re.fullmatch('[a-f0-9]{40}', obj.get('sha', '')) is not None)
+    return obj['sha']
+
+
+def immutable_target(version):
+    manifest = decode(run('/usr/bin/docker', 'manifest', 'inspect', REPOSITORY + ':' + version, timeout=60))
+    matches = [item['digest'] for item in manifest.get('manifests', [])
+               if item.get('platform', {}).get('os') == 'linux'
+               and item.get('platform', {}).get('architecture') == 'amd64']
+    require(len(matches) == 1 and re.fullmatch(DIGEST, matches[0]) is not None)
+    return matches[0]
+
+
+def image_info(image):
+    require(re.fullmatch(re.escape(REPOSITORY) + '@' + DIGEST, image) is not None)
+    result = decode(run('/usr/bin/docker', 'image', 'inspect', image))
+    require(len(result) == 1 and result[0].get('Os') == 'linux' and result[0].get('Architecture') == 'amd64')
+    require(image.removeprefix('docker.io/') in [value.removeprefix('docker.io/') for value in result[0].get('RepoDigests', [])])
+    return result[0]
+
+
+def assert_no_update():
+    database = trusted(ROOT / 'database-name').read_text().strip()
+    require(re.fullmatch('[A-Za-z_][A-Za-z0-9_-]*', database) is not None)
+    count = run('/usr/bin/psql', '--no-password', '--no-psqlrc', '--quiet', '--tuples-only',
+                '--no-align', '--dbname', database, '--username', 'lpmf_gowa_submit',
+                '-v', 'ON_ERROR_STOP=1', '-c',
+                'select updater_gateway.preparation_idle()')
+    require(count.strip() == b't')
+
+
+def baseline(envelope, rollback):
+    require(envelope['project'] == 'go-whatsapp-web-multidevice' and envelope['service'] == 'whatsapp_go'
+            and envelope['required_socket_absent'] is True and envelope['network_mode'] == 'host'
+            and envelope['restart_policy'] == 'unless-stopped' and len(envelope['compose_files']) == 1)
+    for field in ['project', 'service', 'working_directory', 'compose_files', 'image_override', 'network_mode', 'restart_policy']:
+        require(envelope[field] == rollback[field])
+    for path in [envelope['working_directory'], *envelope['compose_files'], envelope['image_override']]:
+        require(Path(path).is_absolute() and not Path(path).is_symlink())
+    require(trusted(envelope['image_override']).parent == ROOT)
+    resolved = decode(run('/usr/bin/docker', 'compose', '--project-name', envelope['project'],
+                          '-f', envelope['compose_files'][0], '-f', envelope['image_override'],
+                          'config', '--format', 'json'))
+    require('/var/run/docker.sock' not in json.dumps(resolved))
+    service = resolved['services']['whatsapp_go']
+    require(service.get('network_mode') == 'host' and service.get('restart') == 'unless-stopped')
+    del service['image']
+    # The installed runner hashes jq's compact JSON including its terminating newline.
+    config_hash = hashlib.sha256(run('/usr/bin/jq', '-S', '-c', '.', input=canonical(resolved))).hexdigest()
+    require(rollback['fixed_config_hash'] == config_hash)
+    items = decode(run('/usr/bin/docker', 'inspect', CONTAINER))
+    require(len(items) == 1)
+    item = items[0]
+    require(item['State']['Running'] is True and item['HostConfig']['NetworkMode'] == 'host'
+            and item['HostConfig']['RestartPolicy']['Name'] == 'unless-stopped')
+    labels = item['Config']['Labels']
+    require(labels['com.docker.compose.project'] == envelope['project']
+            and labels['com.docker.compose.service'] == envelope['service'])
+    mounts = lambda values: sorted([{key: value[key] for key in ['Type', 'Source', 'Destination', 'RW']}
+                                   for value in values], key=lambda value: value['Destination'])
+    require(mounts(item['Mounts']) == mounts(rollback['mounts']))
+    require(not any(mount['Destination'] == '/var/run/docker.sock' for mount in item['Mounts']))
+    previous = item['Config']['Image']
+    require(previous == rollback['previous_image'] and image_info(previous)['Id'] == item['Image'])
+    return previous, item['Id'] + ':' + item['Image']
+
+
+def verify_installation(version):
+    require(os.getuid() == 0 and re.fullmatch(VERSION, version) is not None)
+    require(ROOT.stat().st_uid == 0 and ROOT.stat().st_mode & 0o022 == 0 and not ROOT.is_symlink())
+    for marker in ['enabled', 'preflight.pass']:
+        trusted(ROOT / marker)
+    policy = read(ROOT / 'preparation-policy.json')
+    require(policy == dict(schema_version=1, allow_latest_stable=True, repository=REPOSITORY,
+                           platform='linux/amd64'))
+    capability = read(ROOT / 'capability.json')
+    require(capability.get('production_ready') is True and capability.get('fully_implemented') is True
+            and capability.get('preparation_contract') == 'gowa-preparation-v1'
+            and capability.get('preparer_sha256') == hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+            and capability.get('runner_sha256') == hashlib.sha256(trusted('/usr/local/libexec/lpmf-gowa-runner').read_bytes()).hexdigest()
+            and capability.get('submit_sha256') == hashlib.sha256(trusted('/usr/local/sbin/lpmf-gowa-submit').read_bytes()).hexdigest())
+
+
+def prepare(version):
+    verify_installation(version)
+    catalog = read(ROOT / 'catalog.json')
+    payload = {key: value for key, value in catalog.items() if key not in ['signature', 'signature_valid']}
+    verify(payload, catalog['signature']['value'], ROOT / 'catalog.pub')
+    require(catalog['approved_repository'] == REPOSITORY and catalog['approved_registry'] == 'docker.io'
+            and catalog['platform'] == 'linux/amd64' and catalog['schema_version'] == 1)
+    # Verify the existing private key matches the trusted public key before publishing anything.
+    verify(payload, sign(payload, ROOT / 'catalog.key'), ROOT / 'catalog.pub')
+    envelope = read(ROOT / 'compose-envelope.json')
+    rollback = read(ROOT / 'rollback-manifest.json')
+    snapshots = {ROOT / 'catalog.json': canonical(catalog), ROOT / 'compose-envelope.json': canonical(envelope),
+                 ROOT / 'rollback-manifest.json': canonical(rollback)}
+    assert_no_update()
+    previous, identity = baseline(envelope, rollback)
+    current = next((release for release in catalog['releases']
+                    if release.get('digest') == previous.split('@')[1]
+                    and release.get('approved') is True and release.get('revoked') is False), None)
+    require(current is not None)
+    require(version_parts(version) > version_parts(current.get('version')))
+    commit = stable_release(version)
+    digest = immutable_target(version)
+    image = REPOSITORY + '@' + digest
+    # Revocation is an operator decision; automatic preparation may never undo it.
+    require(not any(release.get('revoked') is True and (str(release.get('version')).removeprefix('v') == version[1:]
+                    or release.get('digest') == digest) for release in catalog['releases']))
+    matching = [release for release in catalog['releases'] if str(release.get('version')).removeprefix('v') == version[1:]]
+    require(all(release['digest'] == digest for release in matching))
+    publish('preparing', version, container_identity=identity)
+    run('/usr/bin/docker', 'pull', '--platform', 'linux/amd64', image, timeout=600)
+    info = image_info(image)
+    revision = (info.get('Config', {}).get('Labels') or {}).get('org.opencontainers.image.revision')
+    require(revision is None or revision == commit)
+    require(stable_release(version) == commit and immutable_target(version) == digest)
+    require(baseline(envelope, rollback) == (previous, identity))
+    assert_no_update()
+    for path, snapshot in snapshots.items():
+        require(canonical(read(path)) == snapshot)
+    release_id = matching[0]['release_id'] if matching else 'gowa-' + version.replace('.', '-')
+    generation = 'prepared-' + version + '-' + os.urandom(8).hex()
+    release = dict(release_id=release_id, version=version, image=image, digest=digest, approved=True,
+                   revoked=False, revocation_generation=catalog['revocation_generation'], upstream_tag=version,
+                   upstream_release_url=RELEASE_URL + version, upstream_commit_sha=commit)
+    catalog['releases'] = [item for item in catalog['releases'] if item['release_id'] != release_id] + [release]
+    catalog['generation'] = generation
+    payload = {key: value for key, value in catalog.items() if key not in ['signature', 'signature_valid']}
+    catalog['signature']['value'] = sign(payload, ROOT / 'catalog.key')
+    verify(payload, catalog['signature']['value'], ROOT / 'catalog.pub')
+    rollback['catalog_generation'] = generation
+    # All writes are under the shared update lock. Ready evidence is the commit marker;
+    # failures before it leave installation disabled even if some files were replaced.
+    atomic(envelope['image_override'], {'services': {'whatsapp_go': {'image': image}}}, 0o600)
+    atomic(ROOT / 'rollback-manifest.json', rollback, 0o600)
+    atomic(ROOT / 'catalog.json', catalog, 0o640, 'www-data')
+    publish('ready', version, release_id=release_id, digest=digest, previous_digest=previous.split('@')[1],
+            container_identity=identity, catalog_generation=generation)
+
+
+def main():
+    if len(sys.argv) != 2 or re.fullmatch(VERSION, sys.argv[1]) is None:
+        return 64
+    version = sys.argv[1]
+    # Use the same lock as installation, and refuse a symlink instead of following it as root.
+    fd = os.open('/run/lpmf/gowa-updater/update.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o640)
+    with os.fdopen(fd, 'w') as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return 75
+        try:
+            prepare(version)
+        except Exception:
+            try:
+                publish('failed', version)
+            except Exception:
+                pass
+            # Never print captured command output: Compose and registry errors may contain secrets.
+            print('GOWA preparation failed; installation remains disabled.', file=sys.stderr)
+            return 78
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

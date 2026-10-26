@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\WhatsApp;
 
 use App\Contracts\WhatsApp\GowaReleaseCatalog;
+use App\Contracts\WhatsApp\GowaReleasePreparer;
 use App\Contracts\WhatsApp\GowaRuntimeProbe;
 use App\Contracts\WhatsApp\GowaUpdateQuiescence;
 use App\Contracts\WhatsApp\GowaUpdateRunner;
@@ -26,6 +27,7 @@ final class GowaUpdateService
         private readonly GowaUpdateRunner $runner,
         private readonly GowaRuntimeProbe $probe,
         private readonly ?GowaUpstreamReleaseChecker $releaseChecker = null,
+        private readonly ?GowaReleasePreparer $preparer = null,
     ) {}
 
     public function status(): array
@@ -44,7 +46,9 @@ final class GowaUpdateService
         } catch (\Throwable) {
             $runnerAvailable = false;
         }
-        $preparationReady = (bool) config('gowa-updater.preparation_ready', false);
+        $preparer = $this->preparer ?? app(GowaReleasePreparer::class);
+        $preparation = $preparer->status();
+        $preparationReady = $this->preparationReady($preparation, $runtime);
 
         try {
             $latestOperation = GowaUpdateOperation::query()
@@ -67,16 +71,20 @@ final class GowaUpdateService
             }
         }
 
+        $updateActive = is_array($latestOperation) && in_array($latestOperation['status'] ?? null, GowaUpdateOperation::ACTIVE_STATUSES, true);
+
         return [
-            'available' => $runnerAvailable && $runtimeFresh && $catalogGeneration !== null && $preparationReady,
+            'available' => $runnerAvailable && $runtimeFresh && $catalogGeneration !== null && $preparationReady && ! $updateActive,
             'preparation_ready' => $preparationReady,
-            'reason' => ! $runnerAvailable
+            'preparation' => $preparation,
+            'preparation_available' => $runnerAvailable && $runtimeFresh && $catalogGeneration !== null && $preparer->available() && ! $updateActive,
+            'reason' => $updateActive ? 'update_already_active' : (! $runnerAvailable
                 ? 'privileged_runner_unavailable'
                 : (! $runtimeFresh
                     ? 'runtime_evidence_stale'
                     : ($catalogGeneration === null
                         ? 'catalog_unavailable'
-                        : (! $preparationReady ? 'preparation_not_ready' : null))),
+                         : (! $preparationReady ? 'preparation_not_ready' : null)))),
             'catalog_generation' => $catalogGeneration,
             'runtime' => $this->safeRuntime($runtime),
             'releases' => array_map(static fn (array $release): array => [
@@ -115,10 +123,6 @@ final class GowaUpdateService
     {
         $idempotencyKey = $userId.':'.$actionUuid;
 
-        if (! app()->environment('testing') && ! (bool) config('gowa-updater.preparation_ready', false)) {
-            throw new RuntimeException('preparation_not_ready');
-        }
-
         $existing = GowaUpdateOperation::query()->where('idempotency_key', $idempotencyKey)->first();
         if ($existing !== null) {
             if ($existing->release_id !== $releaseId) {
@@ -129,6 +133,7 @@ final class GowaUpdateService
         }
 
         $this->assertLatestApprovedRelease($releaseId);
+        $this->assertPrepared($releaseId);
 
         if (! $this->runner->available()) {
             throw new RuntimeException('privileged_runner_unavailable');
@@ -161,6 +166,8 @@ final class GowaUpdateService
                 if (! $this->runtimeReadyForUpdate()) {
                     throw new RuntimeException('runtime_evidence_unavailable');
                 }
+
+                $this->assertPrepared($release['release_id']);
 
                 $currentRelease = $this->catalog->find($release['release_id']);
                 if ($currentRelease === null
@@ -525,6 +532,34 @@ final class GowaUpdateService
     private function safeRuntime(array $runtime): array
     {
         return array_intersect_key($runtime, array_flip(['version', 'digest', 'container_identity', 'observed_at', 'health', 'fresh']));
+    }
+
+    private function assertPrepared(string $releaseId): void
+    {
+        $preparer = $this->preparer ?? app(GowaReleasePreparer::class);
+        $preparation = $preparer->status();
+        if (! $this->preparationReady($preparation, $this->probe->current())
+            || ($preparation['release_id'] ?? null) !== $releaseId) {
+            throw new RuntimeException('preparation_not_ready');
+        }
+    }
+
+    private function preparationReady(array $preparation, array $runtime): bool
+    {
+        $preparer = $this->preparer ?? app(GowaReleasePreparer::class);
+        $releaseId = $preparation['release_id'] ?? null;
+        $release = is_string($releaseId) ? $this->catalog->find($releaseId) : null;
+
+        return $preparer->available()
+            && ($preparation['state'] ?? null) === 'ready'
+            && $release !== null
+            && ($preparation['digest'] ?? null) === $release['digest']
+            && ($preparation['catalog_generation'] ?? null) === $this->catalog->generation()
+            && is_string($runtime['digest'] ?? null)
+            && ($preparation['previous_digest'] ?? null) === $runtime['digest']
+            && is_string($runtime['container_identity'] ?? null)
+            && ($preparation['container_identity'] ?? null) === $runtime['container_identity']
+            && $this->probe->isFresh($runtime);
     }
 
     private function runtimeReadyForUpdate(): bool

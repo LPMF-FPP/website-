@@ -16,6 +16,7 @@ uses(RefreshDatabase::class);
 
 function bindGowaLifecycleFakes(bool $available = true): void
 {
+    app()->instance(\App\Contracts\WhatsApp\GowaReleasePreparer::class, new \Tests\Support\FakeGowaReleasePreparer);
     app()->instance(GowaReleaseCatalog::class, new class implements GowaReleaseCatalog
     {
         public function find(string $releaseId): ?array

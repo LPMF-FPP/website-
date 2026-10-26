@@ -90,10 +90,12 @@ it('keeps production readiness explicitly disabled in the shipped capability art
     ]);
 });
 
-it('keeps direct GOWA installation disabled until automatic preparation exists', function (): void {
+it('requires opt in and signed preparation rather than a hardcoded readiness switch', function (): void {
     $config = file_get_contents(getcwd().'/config/gowa-updater.php');
 
-    expect($config)->toContain("'preparation_ready' => false,");
+    expect($config)->toContain("env('GOWA_UPDATER_PREPARATION_ENABLED', false)")
+        ->not->toContain("'preparation_ready' => true")
+        ->and(file_get_contents(getcwd().'/app/Services/WhatsApp/GowaUpdateService.php'))->toContain('$this->assertPrepared(');
 });
 
 it('ships a signed runtime probe and periodic systemd timer', function (): void {

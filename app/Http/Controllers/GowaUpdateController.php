@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers;
 
+use App\Contracts\WhatsApp\GowaReleasePreparer;
+use App\Http\Requests\WhatsApp\PrepareGowaRelease;
 use App\Http\Requests\WhatsApp\RequestGowaUpdate;
 use App\Http\Requests\WhatsApp\RetryGowaUpdate;
+use App\Jobs\PrepareGowaReleaseJob;
 use App\Models\GowaUpdateOperation;
 use App\Services\WhatsApp\GowaUpdateService;
 use App\Services\WhatsApp\GowaUpstreamReleaseChecker;
+use App\Support\ActivityLogger;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -63,6 +67,30 @@ final class GowaUpdateController extends Controller
             'can_retry' => $request->user()?->hasPermission('gowa-update.retry') === true,
             'can_detail' => true,
         ]), 'message' => 'Detail operasi tersedia.']);
+    }
+
+    public function prepare(PrepareGowaRelease $request, GowaReleasePreparer $preparer): JsonResponse
+    {
+        $status = $this->service->status();
+        if (GowaUpdateOperation::query()->where('scope', GowaUpdateOperation::SCOPE)->whereIn('status', GowaUpdateOperation::ACTIVE_STATUSES)->exists()) {
+            return response()->json(['message' => 'Tunggu operasi pembaruan yang sedang berjalan selesai.', 'code' => 'update_already_active'], 409);
+        }
+        if (! $status['preparation_available'] || ! $preparer->available()) {
+            return response()->json(['message' => 'Worker persiapan belum terpasang atau belum lulus pemeriksaan.', 'code' => 'preparation_unavailable'], 503);
+        }
+        try {
+            $check = $this->releaseChecker->check(true);
+        } catch (\Throwable) {
+            return response()->json(['message' => 'Rilis terbaru belum dapat diverifikasi. Coba lagi.', 'code' => 'upstream_release_unavailable'], 503);
+        }
+        $version = $request->string('version')->toString();
+        if (($check['latest_version'] ?? null) !== $version || ($check['update_available'] ?? false) !== true) {
+            return response()->json(['message' => 'Rilis atau runtime berubah. Periksa pembaruan kembali.', 'code' => 'release_not_latest'], 409);
+        }
+        PrepareGowaReleaseJob::dispatch($version, (int) $request->user()->id);
+        ActivityLogger::log('GOWA_PREPARATION_REQUESTED', (int) $request->user()->id, ['type' => 'gowa_release'], null, null, ['version' => $version]);
+
+        return response()->json(['message' => 'Persiapan masuk antrean. Layanan GOWA belum diubah.'], 202);
     }
 
     public function requestUpdate(RequestGowaUpdate $request): JsonResponse

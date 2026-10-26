@@ -3,7 +3,9 @@
 return [
     'enabled' => (bool) env('GOWA_UPDATER_ENABLED', false),
     'no_socket_gate' => (bool) env('GOWA_UPDATER_NO_SOCKET_GATE', false),
-    'preparation_ready' => false,
+    'preparation_enabled' => (bool) env('GOWA_UPDATER_PREPARATION_ENABLED', false),
+    'preparer_path' => '/usr/local/libexec/lpmf-gowa-prepare',
+    'preparation_evidence_path' => env('GOWA_UPDATER_PREPARATION_EVIDENCE_PATH', '/var/lib/lpmf/gowa-updater/preparation.json'),
     'catalog_path' => env('GOWA_UPDATER_CATALOG_PATH', '/etc/lpmf/gowa-updater/catalog.json'),
     'catalog_public_key_path' => env('GOWA_UPDATER_CATALOG_PUBLIC_KEY_PATH', '/etc/lpmf/gowa-updater/catalog.pub'),
     'submit_helper' => env('GOWA_UPDATER_SUBMIT_HELPER', '/usr/local/sbin/lpmf-gowa-submit'),

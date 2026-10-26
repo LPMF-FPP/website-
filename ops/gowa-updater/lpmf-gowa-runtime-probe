@@ -20,8 +20,9 @@ jq -e '.[0].Mounts | map(select(.Destination == "/var/run/docker.sock")) | lengt
 curl --silent --show-error --fail --max-time 10 "$health_url" >/dev/null || exit 75
 
 identity="$(jq -e -r '.[0].Id + ":" + .[0].Image' <<<"$inspect")"
-digest="$(jq -e -r '.[0].Image' <<<"$inspect")"
 version="$(jq -e -r '.[0].Config.Image' <<<"$inspect")"
+[[ "$version" =~ @sha256:[0-9a-f]{64}$ ]] || exit 78
+digest="${version##*@}"
 payload="$(jq -S -cn --arg observed_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg identity "$identity" --arg digest "$digest" --arg version "$version" '{observed_at:$observed_at,container_identity:$identity,digest:$digest,health:true,version:$version}')"
 
 payload_file="$(mktemp)"

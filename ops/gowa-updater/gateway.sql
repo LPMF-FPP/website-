@@ -197,3 +197,16 @@ BEGIN
 END
 $function$;
 REVOKE ALL ON FUNCTION updater_gateway.assert_installation(name, name, name) FROM PUBLIC;
+
+CREATE OR REPLACE FUNCTION updater_gateway.preparation_idle()
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = pg_catalog, updater_gateway
+AS $function$
+    SELECT NOT EXISTS (
+        SELECT 1 FROM public.gowa_update_operations
+        WHERE scope = 'gowa' AND status IN ('queued', 'preparing', 'updating', 'verifying', 'reconciling')
+    );
+$function$;
+REVOKE ALL ON FUNCTION updater_gateway.preparation_idle() FROM PUBLIC;

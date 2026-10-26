@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "allow_latest_stable": false,
+  "repository": "docker.io/aldinokemal2104/go-whatsapp-web-multidevice",
+  "platform": "linux/amd64"
+}
