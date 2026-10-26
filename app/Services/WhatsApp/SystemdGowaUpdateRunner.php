@@ -105,6 +105,8 @@ final class SystemdGowaUpdateRunner implements GowaUpdateQuiescence, GowaUpdateR
     {
         return match (true) {
             str_contains($error, 'no new privileges') => 'no_new_privileges',
+            str_contains($error, 'Read-only file system') => 'authority_filesystem_read_only',
+            str_contains($error, 'unable to change to root gid') => 'sudo_gid_transition_denied',
             str_contains($error, 'effective uid is not 0') => 'setuid_unavailable',
             str_contains($error, 'a password is required') => 'password_required',
             str_contains($error, 'not allowed to execute') => 'sudo_policy_rejected',

@@ -31,7 +31,8 @@ RestrictSUIDSGID=yes
 RestrictRealtime=yes
 LockPersonality=yes
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
-ReadWritePaths=/var/www/lis/storage /var/www/lis/bootstrap/cache /var/lib/lpmf/gowa-updater /run/lpmf/gowa-updater
+# The restricted root submit helper atomically publishes authority.json here.
+ReadWritePaths=/var/www/lis/storage /var/www/lis/bootstrap/cache /var/lib/lpmf/gowa-updater /run/lpmf/gowa-updater /etc/lpmf/gowa-updater
 
 [Install]
 WantedBy=multi-user.target

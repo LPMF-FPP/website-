@@ -41,6 +41,8 @@ it('publishes an isolated maintenance worker and exact sudo contract', function 
         ->and($worker)->toContain('RestrictSUIDSGID=yes')
         ->and($worker)->toContain('/var/lib/lpmf/gowa-updater')
         ->and($worker)->toContain('/run/lpmf/gowa-updater')
+        ->and($worker)->toContain('ReadWritePaths=/var/www/lis/storage /var/www/lis/bootstrap/cache /var/lib/lpmf/gowa-updater /run/lpmf/gowa-updater /etc/lpmf/gowa-updater')
+        ->and($worker)->not->toContain("ReadWritePaths=/etc\n")
         ->and($installer)->toContain('RuntimeDirectory=lpmf/gowa-updater')
         ->and($installer)->toContain('RuntimeDirectoryPreserve=yes')
         ->and($maintenance)->toContain('RuntimeDirectory=lpmf/gowa-updater\\nRuntimeDirectoryMode=0750\\nRuntimeDirectoryPreserve=yes')

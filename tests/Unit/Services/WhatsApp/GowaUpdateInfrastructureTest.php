@@ -190,6 +190,15 @@ it('rejects a catalog without signed immutable fields', function (): void {
     unlink($path);
 });
 
+it('classifies dispatch sandbox errors without returning raw stderr', function (string $error, string $reason): void {
+    $method = new ReflectionMethod(SystemdGowaUpdateRunner::class, 'submitFailureReason');
+    expect($method->invoke(new SystemdGowaUpdateRunner, $error))->toBe($reason);
+})->with([
+    ['authority.json.tmp: Read-only file system', 'authority_filesystem_read_only'],
+    ['sudo: unable to change to root gid: Operation not permitted', 'sudo_gid_transition_denied'],
+    ['unexpected output containing private details', 'submit_helper_failed'],
+]);
+
 it('marks missing or stale runtime evidence as not fresh', function (): void {
     $probe = new FileGowaRuntimeProbe('/path/that/is/not/installed');
 
