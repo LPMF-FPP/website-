@@ -44,7 +44,7 @@ final class SystemdGowaUpdateRunner implements GowaUpdateQuiescence, GowaUpdateR
         }
 
         $lock = false;
-        $lockPath = (string) config('gowa-updater.lock_path', '/run/lpmf/gowa-updater/update.lock');
+        $lockPath = (string) config('gowa-updater.lock_path', '/var/lib/lpmf/gowa-updater/update.lock');
         if ($lockPath !== '' && is_file($lockPath) && ! is_link($lockPath) && ($handle = fopen($lockPath, 'r')) !== false) {
             $lock = flock($handle, LOCK_EX | LOCK_NB);
             if ($lock) {

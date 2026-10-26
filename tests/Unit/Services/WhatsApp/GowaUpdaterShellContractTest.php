@@ -44,10 +44,12 @@ it('publishes an isolated maintenance worker and exact sudo contract', function 
         ->and($installer)->toContain('RuntimeDirectory=lpmf/gowa-updater')
         ->and($installer)->toContain('RuntimeDirectoryPreserve=yes')
         ->and($maintenance)->toContain('RuntimeDirectory=lpmf/gowa-updater\\nRuntimeDirectoryMode=0750\\nRuntimeDirectoryPreserve=yes')
-        ->and($worker)->toContain('CapabilityBoundingSet=')
+        ->and($worker)->toContain('CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_AUDIT_WRITE')
+        ->and($worker)->toContain('AmbientCapabilities=')
         ->and($worker)->not->toContain('/var/run/docker.sock')
         ->and($updateService)->toContain('SupplementaryGroups=lpmf-admin')
         ->and($updateService)->toContain('www-data')
+        ->and($updateService)->toContain('SupplementaryGroups=lpmf-admin www-data')
         ->and($updateService)->toContain('ProtectHome=read-only')
         ->and($updateService)->toContain('CapabilityBoundingSet=')
         ->and($updateService)->toContain('NoNewPrivileges=yes')
@@ -77,6 +79,13 @@ it('publishes an isolated maintenance worker and exact sudo contract', function 
         ->and($installer)->toContain('setpriv --reuid 0 --regid 0 --groups lpmf-admin --bounding-set=-all')
         ->and($installer)->toContain('id -u lpmf-gowa-maintenance')
         ->and($installer)->toContain('getent group lpmf-gowa-maintenance');
+});
+
+it('shares a persistent root-controlled lock between preparation execution and quiescence', function (): void {
+    $lock = '/var/lib/lpmf/gowa-updater/update.lock';
+    foreach (['ops/gowa-updater/lpmf-gowa-prepare', 'ops/gowa-updater/lpmf-gowa-runner', 'config/gowa-updater.php', 'app/Services/WhatsApp/SystemdGowaUpdateRunner.php'] as $path) {
+        expect(file_get_contents(getcwd().'/'.$path))->toContain($lock);
+    }
 });
 
 it('keeps production readiness explicitly disabled in the shipped capability artifact', function (): void {

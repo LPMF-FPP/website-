@@ -17,13 +17,15 @@ RuntimeDirectoryPreserve=yes
 Restart=always
 RestartSec=5s
 UMask=0077
-# The UUID-scoped sudo command is the only privileged dispatch boundary.
+# Only the UUID/version-scoped sudo helpers may cross the privileged dispatch boundary.
 NoNewPrivileges=no
 PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=read-only
 PrivateDevices=yes
-CapabilityBoundingSet=
+# sudo needs UID/GID transitions and audit writes, without ambient capabilities for PHP.
+CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_AUDIT_WRITE
+AmbientCapabilities=
 RestrictNamespaces=yes
 RestrictSUIDSGID=yes
 RestrictRealtime=yes

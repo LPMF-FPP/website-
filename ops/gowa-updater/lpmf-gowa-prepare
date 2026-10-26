@@ -288,7 +288,7 @@ def main():
         return 64
     version = sys.argv[1]
     # Use the same lock as installation, and refuse a symlink instead of following it as root.
-    fd = os.open('/run/lpmf/gowa-updater/update.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o640)
+    fd = os.open('/var/lib/lpmf/gowa-updater/update.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o640)
     with os.fdopen(fd, 'w') as lock:
         try:
             fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)

@@ -52,10 +52,11 @@ grep -Fqx 'RuntimeDirectoryPreserve=yes' "$worker_service" || exit 78
 grep -Fqx 'NoNewPrivileges=no' "$worker_service" || exit 78
 grep -Fqx 'RestrictSUIDSGID=yes' "$worker_service" || exit 78
 grep -Fqx 'ReadWritePaths=/var/www/lis/storage /var/www/lis/bootstrap/cache /var/lib/lpmf/gowa-updater /run/lpmf/gowa-updater' "$worker_service" || exit 78
-grep -Fqx 'CapabilityBoundingSet=' "$worker_service" || exit 78
+grep -Fqx 'CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_AUDIT_WRITE' "$worker_service" || exit 78
+grep -Fqx 'AmbientCapabilities=' "$worker_service" || exit 78
 grep -Fqx 'ConditionPathExists=/etc/lpmf/gowa-updater/enabled' "$update_service" || exit 78
 grep -Fqx 'ExecStart=/usr/local/libexec/lpmf-gowa-runner %i' "$update_service" || exit 78
-grep -Fqx 'SupplementaryGroups=lpmf-admin' "$update_service" || exit 78
+grep -Fqx 'SupplementaryGroups=lpmf-admin www-data' "$update_service" || exit 78
 grep -Fqx 'NoNewPrivileges=yes' "$update_service" || exit 78
 grep -Fq '/var/run/docker.sock' "$envelope" && exit 78
 grep -Fqx 'lpmf-gowa-maintenance ALL=(root) NOPASSWD: LPMF_GOWA_SUBMIT' "$sudoers" || exit 78
@@ -145,6 +146,13 @@ install -o root -g root -m 0755 "$submit_helper_source" /usr/local/sbin/lpmf-gow
 install -o root -g root -m 0755 "$runner_source" /usr/local/libexec/lpmf-gowa-runner
 install -o root -g root -m 0755 "$preparer_source" /usr/local/libexec/lpmf-gowa-prepare
 install -o root -g root -m 0755 "$runtime_probe_source" /usr/local/libexec/lpmf-gowa-runtime-probe
+state_root=/var/lib/lpmf/gowa-updater
+[[ ! -L "$state_root" ]] || exit 78
+install -d -o root -g root -m 0755 "$state_root"
+if [[ ! -e "$state_root/update.lock" && ! -L "$state_root/update.lock" ]]; then
+    install -o root -g www-data -m 0640 /dev/null "$state_root/update.lock"
+fi
+[[ -f "$state_root/update.lock" && ! -L "$state_root/update.lock" && "$(stat -c '%U:%G:%a' "$state_root/update.lock")" == root:www-data:640 ]] || { printf '%s\n' 'Shared update lock must be root-owned and readable by the application' >&2; exit 78; }
 systemd_root="${GOWA_UPDATER_SYSTEMD_PATH:-/etc/systemd/system}"
 sudoers_root="${GOWA_UPDATER_SUDOERS_PATH:-/etc/sudoers.d}"
 install -d -o root -g root -m 0755 "$systemd_root" "$sudoers_root"

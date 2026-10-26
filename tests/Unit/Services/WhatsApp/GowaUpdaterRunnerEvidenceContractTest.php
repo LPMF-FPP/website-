@@ -280,6 +280,20 @@ it('produces runner evidence that the Laravel importer accepts', function (): vo
     }
 });
 
+it('preserves permissions on an existing shared runtime directory', function (): void {
+    $fixture = gowaRunnerFixture();
+    chmod($fixture['root'], 0750);
+
+    try {
+        $result = runGowaRunner($fixture);
+        clearstatcache(true, $fixture['root']);
+        expect($result['status'])->toBe(0)
+            ->and(fileperms($fixture['root']) & 0777)->toBe(0750);
+    } finally {
+        removeGowaRunnerFixture($fixture);
+    }
+});
+
 it('reports a verified rollback through the same evidence contract', function (): void {
     $fixture = gowaRunnerFixture('forward-fail-rollback-success');
 
