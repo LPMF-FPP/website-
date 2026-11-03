@@ -431,8 +431,8 @@
         $summaryTable = array_values(array_filter(is_array($appendix['summary_table'] ?? null) ? $appendix['summary_table'] : [], 'is_array'));
         $appendixCharts = array_values(array_filter(is_array($appendix['charts'] ?? null) ? $appendix['charts'] : [], 'is_array'));
         $chartColors = ['#1d4ed8', '#dc2626', '#059669', '#d97706', '#7c3aed', '#db2777', '#0891b2', '#65a30d'];
-        $compactCharts = array_values(array_filter($appendixCharts, fn ($chart) => ! in_array($chart['title'] ?? '', ['Permintaan per Bulan', 'Sampel vs Target IKU'], true)));
-        $lineCharts = array_values(array_filter($appendixCharts, fn ($chart) => in_array($chart['title'] ?? '', ['Permintaan per Bulan', 'Sampel vs Target IKU'], true)));
+        $compactCharts = array_values(array_filter($appendixCharts, fn ($chart) => ! in_array($chart['type'] ?? '', ['line', 'mixed'], true)));
+        $lineCharts = array_values(array_filter($appendixCharts, fn ($chart) => in_array($chart['type'] ?? '', ['line', 'mixed'], true)));
         $topRows = fn ($rows, int $limit = 6): array => array_slice(array_values(array_filter(is_array($rows) ? $rows : [], 'is_array')), 0, $limit);
         $topRowsWithOther = function ($rows, int $limit = 5): array {
             $safeRows = array_values(array_filter(is_array($rows) ? $rows : [], 'is_array'));
@@ -472,7 +472,7 @@
 
             return rtrim(rtrim(number_format($number, 1, '.', ''), '0'), '.');
         };
-        $lineChartDataUri = function (array $rows, string $firstKey, string $secondKey, string $firstColor, string $secondColor, string $firstLabel, string $secondLabel) use ($formatChartValue, $maxValueForKeys): string {
+        $lineChartDataUri = function (array $rows, string $firstKey, ?string $secondKey, string $firstColor, string $secondColor, string $firstLabel, string $secondLabel) use ($formatChartValue, $maxValueForKeys): string {
             $safeRows = array_values(array_filter($rows, 'is_array'));
             $width = 720;
             $height = 220;
@@ -482,7 +482,7 @@
             $bottom = 44;
             $plotWidth = $width - $left - $right;
             $plotHeight = $height - $top - $bottom;
-            $max = $maxValueForKeys($safeRows, [$firstKey, $secondKey]);
+            $max = $maxValueForKeys($safeRows, array_filter([$firstKey, $secondKey]));
             $step = count($safeRows) > 1 ? $plotWidth / (count($safeRows) - 1) : $plotWidth;
             $escape = fn ($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 
@@ -500,7 +500,7 @@
             };
 
             $firstPoints = $pointsFor($firstKey);
-            $secondPoints = $pointsFor($secondKey);
+            $secondPoints = $secondKey !== null ? $pointsFor($secondKey) : [];
             $pointsAttribute = fn (array $points): string => collect($points)->map(fn ($point) => $point['x'].','.$point['y'])->implode(' ');
 
             $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="'.$width.'" height="'.$height.'" viewBox="0 0 '.$width.' '.$height.'">';
@@ -514,7 +514,9 @@
             }
 
             $svg .= '<polyline points="'.$pointsAttribute($firstPoints).'" fill="none" stroke="'.$firstColor.'" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>';
-            $svg .= '<polyline points="'.$pointsAttribute($secondPoints).'" fill="none" stroke="'.$secondColor.'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="8 6"/>';
+            if ($secondKey !== null) {
+                $svg .= '<polyline points="'.$pointsAttribute($secondPoints).'" fill="none" stroke="'.$secondColor.'" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="8 6"/>';
+            }
 
             foreach ($firstPoints as $index => $point) {
                 $svg .= '<circle cx="'.$point['x'].'" cy="'.$point['y'].'" r="4" fill="'.$firstColor.'"/>';
@@ -531,7 +533,9 @@
             }
 
             $svg .= '<rect x="'.$left.'" y="4" width="10" height="10" fill="'.$firstColor.'"/><text x="'.($left + 15).'" y="13" font-size="10" fill="#111827">'.$escape($firstLabel).'</text>';
-            $svg .= '<rect x="'.($left + 92).'" y="4" width="10" height="10" fill="'.$secondColor.'"/><text x="'.($left + 107).'" y="13" font-size="10" fill="#111827">'.$escape($secondLabel).'</text>';
+            if ($secondKey !== null) {
+                $svg .= '<rect x="'.($left + 112).'" y="4" width="10" height="10" fill="'.$secondColor.'"/><text x="'.($left + 127).'" y="13" font-size="10" fill="#111827">'.$escape($secondLabel).'</text>';
+            }
             $svg .= '</svg>';
 
             return 'data:image/svg+xml;base64,'.base64_encode($svg);
@@ -564,9 +568,18 @@
 
         @foreach($summaryTable as $row)
             <div class="summary-pill">
-                <strong>{{ $row['category'] ?? '-' }}</strong>: {{ $row['period_value'] ?? 0 }} periode ini,
-                {{ $row['year_value'] ?? 0 }} tahun berjalan, target {{ $row['target'] ?? '-' }}.
-                Status: <strong>{{ $row['status'] ?? '-' }}</strong>
+                <strong>{{ $row['category'] ?? '-' }}</strong>
+                @if(isset($row['period_label']))
+                    <div>{{ $row['period_label'] }}: {{ $row['period_value'] }} {{ $row['unit'] }}.</div>
+                    <div>{{ $row['year_label'] }}: {{ $row['year_value'] }} {{ $row['unit'] }}.</div>
+                    @if(!empty($row['target_description']))<div>{{ $row['target_description'] }}</div>@endif
+                    @if(!empty($row['status']))<div><strong>{{ $row['status'] }}</strong></div>@endif
+                    @if(!empty($row['note']))<div>{{ $row['note'] }}</div>@endif
+                @else
+                    <div>{{ $report->period_label }}: {{ $row['period_value'] ?? 0 }}.</div>
+                    <div>1 Januari sampai {{ $report->period_end->translatedFormat('j F Y') }}: {{ $row['year_value'] ?? 0 }}.</div>
+                    <div>Target tersimpan: {{ $row['target'] ?? '-' }}. Status: <strong>{{ $row['status'] ?? '-' }}</strong></div>
+                @endif
             </div>
         @endforeach
 
@@ -641,10 +654,22 @@
                         $secondColor = $chartTitle === 'Permintaan per Bulan' ? '#059669' : '#dc2626';
                         $firstLabel = $chartTitle === 'Permintaan per Bulan' ? 'Masuk' : 'Aktual';
                         $secondLabel = $chartTitle === 'Permintaan per Bulan' ? 'Selesai' : 'Target';
+                        if (($chart['metric'] ?? null) === 'tested_samples_ytd') {
+                            $firstLabel = 'Selesai diuji';
+                            $secondLabel = 'Target tahunan';
+                            if (($chart['target']['yearly'] ?? null) === null) {
+                                $secondKey = null;
+                            }
+                        }
                         $lineChartSrc = $lineChartDataUri($trendRows, $firstKey, $secondKey, $firstColor, $secondColor, $firstLabel, $secondLabel);
                     @endphp
                     <img class="line-chart-image" src="{{ $lineChartSrc }}" alt="Line chart {{ $chartTitle }}">
-                    <div class="legend-row"><span class="legend-dot" style="background: {{ $firstColor }};"></span>{{ $firstLabel }} <span class="legend-dot" style="background: {{ $secondColor }}; margin-left: 8px;"></span>{{ $secondLabel }} <strong style="float: right;">{{ $chart['total'] ?? 0 }} total</strong></div>
+                    <div class="legend-row"><span class="legend-dot" style="background: {{ $firstColor }};"></span>{{ $firstLabel }} @if($secondKey !== null)<span class="legend-dot" style="background: {{ $secondColor }}; margin-left: 8px;"></span>{{ $secondLabel }}@endif <strong style="float: right;">{{ $chart['total'] ?? 0 }} total</strong></div>
+                    @if(($chart['metric'] ?? null) === 'tested_samples_ytd')
+                        <p>{{ $chart['period_label'] }}: {{ $chart['total'] }} sampel selesai diuji.</p>
+                        <p>{{ $chart['target_message'] ?? ($chart['target']['yearly'] !== null ? 'Target tahunan: '.$chart['target']['yearly'].' sampel.' : 'Target tahunan belum dikonfigurasi.') }}</p>
+                        <p>{{ $chart['note'] }}</p>
+                    @endif
                 @endif
             </div>
         @endforeach

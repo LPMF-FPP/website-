@@ -159,11 +159,12 @@ class ConsolidatedReportControllerTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('success', true)
-            ->assertJsonPath('data.dashboard_appendix.summary_cards.0.label', 'Permintaan Periode Ini')
-            ->assertJsonPath('data.dashboard_appendix.summary_table.0.category', 'Permintaan Pengujian')
+            ->assertJsonPath('data.dashboard_appendix.summary_cards.0.label', 'Permintaan diterima')
+            ->assertJsonPath('data.dashboard_appendix.summary_table.0.category', 'Permintaan diterima')
             ->assertJsonCount(6, 'data.dashboard_appendix.charts')
             ->assertJsonPath('data.dashboard_appendix.charts.4.rows.11.requests', 1)
-            ->assertJsonPath('data.dashboard_appendix.charts.5.rows.11.samples', 1);
+            ->assertJsonPath('data.dashboard_appendix.charts.5.metric', 'tested_samples_ytd')
+            ->assertJsonPath('data.dashboard_appendix.charts.5.rows.0.samples', 1);
     }
 
     public function test_preview_counts_records_until_end_of_period_day(): void

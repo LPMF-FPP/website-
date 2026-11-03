@@ -685,10 +685,8 @@ class ConsolidatedReportService
         $gender = $this->getGenderBreakdown($start, $end);
         $ageRange = $this->getAgeRangeBreakdown($start, $end);
         $monthlyRequests = $this->getMonthlyRequestsAppendix($end);
-        $monthlySamples = $this->getMonthlySamplesAppendix($end);
+        $summary = $this->getOperationalSummaryForPeriod($start, $end);
         $activeSubstanceItems = $activeSubstances['items'] ?? [];
-        $requestsYearToDate = $this->countRequestsYearToDate($end);
-        $samplesYearToDate = $this->countSamplesYearToDate($end);
 
         return [
             'period' => [
@@ -696,15 +694,13 @@ class ConsolidatedReportService
                 'end' => $end->toDateString(),
             ],
             'summary_cards' => [
-                ['label' => 'Permintaan Periode Ini', 'value' => $statistics['total_requests_received'], 'note' => 'Berdasarkan tanggal permintaan masuk'],
-                ['label' => 'Sampel Periode Ini', 'value' => $statistics['total_samples_received'], 'note' => 'Berdasarkan tanggal sampel diterima'],
+                ['label' => 'Permintaan diterima', 'value' => $statistics['total_requests_received'], 'note' => $summary['rows'][0]['period_label']],
+                ['label' => 'Sampel diterima', 'value' => $statistics['total_samples_received'], 'note' => $summary['rows'][1]['period_label']],
                 ['label' => 'Zat Aktif Unik', 'value' => count($activeSubstanceItems), 'note' => 'Dihitung dari hasil sampel teruji pada periode ini'],
                 ['label' => 'Rata-rata Waktu Pengerjaan', 'value' => $statistics['avg_processing_days'].' hari', 'note' => 'Hari kerja sampai siap diserahkan'],
             ],
-            'summary_table' => [
-                ['category' => 'Permintaan Pengujian', 'period_value' => $statistics['total_requests_received'], 'year_value' => $requestsYearToDate, 'target' => '32/bulan', 'status' => $statistics['total_requests_received'] >= 32 ? 'Di Atas Target' : 'Normal'],
-                ['category' => 'Jumlah Sampel', 'period_value' => $statistics['total_samples_received'], 'year_value' => $samplesYearToDate, 'target' => '200/tahun (IKU)', 'status' => $samplesYearToDate >= 160 ? 'Mendekati Target' : 'Perlu Peningkatan'],
-            ],
+            'summary_version' => 2,
+            'summary_table' => $summary['rows'],
             'charts' => [
                 $this->makeChartSection('Asal User', 'pie', $jurisdiction['items'], $jurisdiction['total']),
                 $this->makeChartSection('Jenis Zat Aktif', 'doughnut', collect($activeSubstanceItems)->map(fn ($item) => [
@@ -720,16 +716,7 @@ class ConsolidatedReportService
                     'rows' => $monthlyRequests,
                     'total' => collect($monthlyRequests)->sum('requests'),
                 ],
-                [
-                    'title' => 'Sampel vs Target IKU',
-                    'type' => 'mixed',
-                    'rows' => $monthlySamples,
-                    'total' => collect($monthlySamples)->sum('samples'),
-                    'target' => [
-                        'yearly' => 200,
-                        'monthly_average' => round((int) config('statistics.targets.annual_samples', 200) / 12, 1),
-                    ],
-                ],
+                $summary['sample_chart'],
             ],
         ];
     }
@@ -772,28 +759,169 @@ class ConsolidatedReportService
         return $rows;
     }
 
-    /**
-     * @return array<int, array{label: string, samples: int, target: float}>
-     */
-    private function getMonthlySamplesAppendix(Carbon $end): array
+    public function getOperationalSummaryForPeriod(Carbon $start, Carbon $end): array
     {
-        $rows = [];
-        $monthlyTarget = round((int) config('statistics.targets.annual_samples', 200) / 12, 1);
+        $start = $start->copy()->startOfDay();
+        $end = $end->copy()->endOfDay();
+        $statistics = $this->getStatisticsForPeriod($start, $end);
+        $yearStart = $end->copy()->startOfYear();
+        $yearLabel = $yearStart->copy()->locale('id')->translatedFormat('j F').' sampai '.$end->copy()->locale('id')->translatedFormat('j F Y');
+        $fullMonth = $start->isSameMonth($end) && $start->day === 1 && $end->day === $end->daysInMonth;
+        $periodLabel = $fullMonth ? $start->copy()->locale('id')->translatedFormat('F Y')
+            : $start->copy()->locale('id')->translatedFormat('j F Y').' sampai '.$end->copy()->locale('id')->translatedFormat('j F Y');
+        $requestTarget = $this->positiveTarget(config('statistics.targets.monthly_requests'));
+        $iku = $this->ikuService->getConfig();
+        $targets = $iku['target_samples_by_year'] ?? [];
+        if (is_string($targets)) {
+            $targets = json_decode($targets, true);
+        }
+        $sourceMatches = ($iku['sources']['C'] ?? null) === 'samples_completed_count';
+        $sampleTarget = $sourceMatches && is_array($targets) ? $this->positiveTarget($targets[(string) $end->year] ?? null) : null;
+        $testedYear = $this->testedSamplesForPeriod($yearStart, $end)->count();
+        $base = ['period_label' => $periodLabel, 'year_label' => $yearLabel];
+        $rows = [
+            $base + [
+                'category' => 'Permintaan diterima', 'unit' => 'permintaan',
+                'period_value' => $statistics['total_requests_received'], 'year_value' => $this->countRequestsYearToDate($end),
+                'target' => $requestTarget,
+                'target_description' => $requestTarget ? "Target bulanan: {$requestTarget} permintaan." : 'Target bulanan belum dikonfigurasi.',
+                'status' => $fullMonth ? $this->targetStatus($statistics['total_requests_received'], $requestTarget, 'permintaan')
+                    : 'Perbandingan target bulanan hanya tersedia untuk satu bulan penuh.',
+            ],
+            $base + [
+                'category' => 'Sampel diterima', 'unit' => 'sampel',
+                'period_value' => $statistics['total_samples_received'], 'year_value' => $this->countSamplesYearToDate($end),
+                'target' => null, 'target_description' => null, 'status' => null,
+            ],
+            $base + [
+                'category' => 'Sampel selesai diuji', 'unit' => 'sampel',
+                'period_value' => $statistics['total_samples_tested'], 'year_value' => $testedYear,
+                'target' => $sampleTarget,
+                'target_description' => ! $sourceMatches ? 'Target tahunan tidak dibandingkan karena sumber indikator pemeriksaan IKU berbeda.'
+                    : ($sampleTarget ? "Target sampel selesai diuji tahun {$end->year}: {$sampleTarget} sampel."
+                        : "Target sampel selesai diuji tahun {$end->year} belum dikonfigurasi."),
+                'status' => $sourceMatches ? $this->targetStatus($testedYear, $sampleTarget, 'sampel')
+                    : 'Perbandingan belum tersedia: sumber indikator pemeriksaan IKU perlu diperiksa.',
+                'note' => 'Capaian target memakai jumlah sampel selesai diuji sejak 1 Januari, bukan jumlah sampel diterima.',
+                'target_source' => 'iku.target_samples_by_year.'.$end->year,
+            ],
+        ];
+        $chartRows = [];
 
-        for ($i = 11; $i >= 0; $i--) {
-            $date = $end->copy()->startOfMonth()->subMonths($i);
-            $monthStart = $date->copy()->startOfMonth();
+        for ($month = 1; $month <= $end->month; $month++) {
+            $date = $yearStart->copy()->addMonths($month - 1);
             $monthEnd = $date->copy()->endOfMonth()->min($end->copy()->endOfDay());
-
-            $rows[] = [
-                'label' => $date->format('M Y'),
-                'samples' => Sample::whereBetween('created_at', [$monthStart, $monthEnd])
-                    ->count(),
-                'target' => $monthlyTarget,
+            $chartRows[] = [
+                'label' => $date->locale('id')->translatedFormat('M Y'),
+                'samples' => $this->testedSamplesForPeriod($yearStart, $monthEnd)->count(),
+                'target' => $sampleTarget,
             ];
         }
 
-        return $rows;
+        return [
+            'rows' => $rows,
+            'period_counts' => array_intersect_key($statistics, array_flip(['total_requests_received', 'total_samples_received', 'total_samples_tested'])),
+            'sample_chart' => [
+                'metric' => 'tested_samples_ytd', 'title' => 'Sampel selesai diuji dan target tahunan',
+                'type' => 'mixed', 'rows' => $chartRows, 'total' => $testedYear,
+                'target' => ['yearly' => $sampleTarget], 'period_label' => $yearLabel,
+                'target_message' => ! $sourceMatches ? 'Garis target tidak ditampilkan karena sumber indikator pemeriksaan IKU berbeda.'
+                    : ($sampleTarget ? "Target tahunan: {$sampleTarget} sampel." : 'Target tahunan belum dikonfigurasi.'),
+                'note' => 'Jumlah selesai diuji dihitung kumulatif sejak 1 Januari. Target adalah target setahun penuh, bukan target bulanan.',
+            ],
+        ];
+    }
+
+    private function positiveTarget(mixed $value): ?int
+    {
+        if (! is_int($value) && ! is_string($value)) {
+            return null;
+        }
+        $number = filter_var($value, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+
+        return $number === false ? null : $number;
+    }
+
+    private function targetStatus(int $value, ?int $target, string $unit): string
+    {
+        return match (true) {
+            $target === null => 'Target belum dikonfigurasi.',
+            $value === $target => 'Target tercapai.',
+            $value < $target => 'Belum tercapai, kurang '.($target - $value)." {$unit}.",
+            default => 'Melebihi target sebanyak '.($value - $target)." {$unit}.",
+        };
+    }
+
+    public function reviseOperationalSummary(ConsolidatedReport $source, string $reason, ?int $userId = null): ConsolidatedReport
+    {
+        if (trim($reason) === '') {
+            throw ValidationException::withMessages(['reason' => 'Alasan revisi wajib diisi.']);
+        }
+        $revision = null;
+        try {
+            return DB::transaction(function () use ($source, $reason, $userId, &$revision): ConsolidatedReport {
+                $rootId = $source->revision_of_id ?? $source->id;
+                $root = ConsolidatedReport::query()->lockForUpdate()->findOrFail($rootId);
+                $source = ConsolidatedReport::where(fn ($query) => $query->whereKey($rootId)->orWhere('revision_of_id', $rootId))
+                    ->orderByDesc('revision_number')->orderByDesc('id')->firstOrFail();
+                if (($source->report_data['dashboard_appendix']['summary_version'] ?? null) === 2) {
+                    return $source;
+                }
+                $summary = $this->getOperationalSummaryForPeriod($source->period_start, $source->period_end);
+                foreach ($summary['period_counts'] as $key => $count) {
+                    if ($count !== ($source->report_data['statistics'][$key] ?? null)) {
+                        throw ValidationException::withMessages(['report' => 'Angka periode saat ini berbeda dari laporan tersimpan. Revisi ringkasan dibatalkan.']);
+                    }
+                }
+                $data = $source->report_data;
+                if (! is_array($data['dashboard_appendix'] ?? null)) {
+                    throw ValidationException::withMessages(['report' => 'Lampiran statistik tidak tersedia pada laporan sumber.']);
+                }
+                $data['dashboard_appendix']['summary_version'] = 2;
+                $data['dashboard_appendix']['summary_table'] = $summary['rows'];
+                foreach ($data['dashboard_appendix']['summary_cards'] ?? [] as $key => $card) {
+                    $index = match ($card['label'] ?? null) {
+                        'Permintaan Periode Ini', 'Permintaan diterima' => 0,
+                        'Sampel Periode Ini', 'Sampel diterima' => 1,
+                        default => null,
+                    };
+                    if ($index !== null) {
+                        $data['dashboard_appendix']['summary_cards'][$key]['label'] = $summary['rows'][$index]['category'];
+                        $data['dashboard_appendix']['summary_cards'][$key]['note'] = $summary['rows'][$index]['period_label'];
+                    }
+                }
+                $found = false;
+                foreach ($data['dashboard_appendix']['charts'] ?? [] as $key => $chart) {
+                    if (($chart['title'] ?? null) === 'Sampel vs Target IKU' || ($chart['metric'] ?? null) === 'tested_samples_ytd') {
+                        $data['dashboard_appendix']['charts'][$key] = $summary['sample_chart'];
+                        $found = true;
+                    }
+                }
+                if (! $found) {
+                    $data['dashboard_appendix']['charts'][] = $summary['sample_chart'];
+                }
+                $number = max((int) $root->revision_number, (int) ConsolidatedReport::withTrashed()->where('revision_of_id', $rootId)->max('revision_number')) + 1;
+                $revision = ConsolidatedReport::create([
+                    'period_type' => $source->period_type, 'period_start' => $source->period_start,
+                    'period_end' => $source->period_end, 'period_label' => $source->period_label,
+                    'report_data' => $data, 'comparison_data' => $source->comparison_data,
+                    'narrative_sections' => $source->narrative_sections, 'signers' => $source->signers,
+                    'generated_by' => $userId, 'generated_at' => now(), 'is_auto_generated' => false,
+                    'revision_of_id' => $rootId, 'revision_number' => $number, 'revision_reason' => trim($reason),
+                ]);
+                $this->generatePdf($revision);
+                ActivityLogger::log('CONSOLIDATED_REPORT_SUMMARY_REVISED', subject: $revision,
+                    before: ['report_id' => $source->id], after: ['report_id' => $revision->id],
+                    meta: ['root_report_id' => $rootId, 'reason' => trim($reason), 'summary_version' => 2, 'source' => 'console'], actorUserId: $userId);
+
+                return $revision;
+            });
+        } catch (\Throwable $exception) {
+            if ($revision?->pdf_path) {
+                Storage::delete($revision->pdf_path);
+            }
+            throw $exception;
+        }
     }
 
     private function countRequestsYearToDate(Carbon $end): int

@@ -256,6 +256,19 @@
             + `<text x='${x + (labelWidth / 2)}' y='${textY}' text-anchor='middle' font-size='8.5' font-weight='700' fill='${color}'>${value}</text>`;
     },
 
+    lineSvgMonthLabels(rows, width = 300, padX = 28) {
+        const safeRows = this.topRows(rows, 12);
+        const step = safeRows.length > 1 ? width / (safeRows.length - 1) : width;
+
+        return safeRows.map((row, index) => {
+            const escaped = document.createElement('span');
+            escaped.textContent = String(row.label || '').split(' ')[0];
+            const month = escaped.innerHTML;
+
+            return `<text x='${padX + index * step}' y='182' text-anchor='middle' font-size='8' fill='#334155'>${month}</text>`;
+        }).join('');
+    },
+
     labelY(point, offset = -10, min = 12, max = 178) {
         return Math.max(min, Math.min(max, point.y + offset));
     },
