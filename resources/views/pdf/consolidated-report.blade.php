@@ -139,6 +139,10 @@
     <div class="title">
         <h1>Laporan Gabungan Periodik</h1>
         <p>Periode: {{ $report->period_label }}</p>
+        @if($report->revision_of_id)
+            <p>Revisi {{ $report->revision_number }} dari laporan #{{ $report->revision_of_id }}</p>
+            <p>{{ $report->revision_reason }}</p>
+        @endif
     </div>
 
     <!-- Narasi Pembuka -->
@@ -235,7 +239,7 @@
                 @empty
                     <tr>
                         <td colspan="4" class="text-center" style="font-style: italic; color: #777;">
-                            Tidak ada zat aktif terdeteksi pada periode ini.
+                            {{ $report->report_data['active_substances']['message'] ?? 'Data rekap zat aktif belum tersedia pada laporan ini.' }}
                         </td>
                     </tr>
                 @endforelse
@@ -250,6 +254,14 @@
             </tfoot>
             @endif
         </table>
+
+        @if(isset($report->report_data['active_substances']['sample_total']))
+            <p>Sampel teruji: {{ $report->report_data['active_substances']['sample_total'] }}.
+                Hasil positif: {{ $report->report_data['active_substances']['positive_samples'] }}.
+                Hasil negatif: {{ $report->report_data['active_substances']['negative_samples'] }}.
+                Data belum lengkap: {{ $report->report_data['active_substances']['missing_result_samples'] }}.</p>
+            <p>Jumlah dan persentase dihitung dari temuan zat aktif. Satu sampel dapat mengandung lebih dari satu zat aktif.</p>
+        @endif
 
     </div>
 

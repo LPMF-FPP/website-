@@ -73,6 +73,8 @@ class ConsolidatedReportController extends Controller
                     'download_url' => $report->download_url,
                 ],
             ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
         } catch (\Exception $e) {
             \Log::error('Report generation failed: '.$e->getMessage());
 

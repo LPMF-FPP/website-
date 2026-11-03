@@ -70,7 +70,10 @@
 
                 <template x-for="report in historyData" :key="report.id">
                     <tr>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium semantic-text" x-text="report.period_label"></td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium semantic-text">
+                            <span x-text="report.period_label"></span>
+                            <span x-show="report.revision_of_id" class="block text-xs semantic-text-muted" x-text="`Revisi ${report.revision_number} dari laporan #${report.revision_of_id}`"></span>
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm semantic-text-muted" x-text="new Date(report.generated_at).toLocaleString('id-ID')"></td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm semantic-text-muted" x-text="report.generated_by?.name || 'Sistem'"></td>
                         <td class="px-6 py-4 whitespace-nowrap">

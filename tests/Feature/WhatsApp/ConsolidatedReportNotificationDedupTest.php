@@ -45,6 +45,9 @@ class ConsolidatedReportNotificationDedupTest extends TestCase
         ]);
 
         $duplicateReport = ConsolidatedReport::create([
+            'revision_of_id' => $report->id,
+            'revision_number' => 2,
+            'revision_reason' => 'Fixture revisi untuk menguji deduplikasi periode.',
             'period_type' => 'biweekly',
             'period_start' => '2026-02-01',
             'period_end' => '2026-02-15',

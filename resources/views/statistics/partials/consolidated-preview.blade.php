@@ -9,7 +9,7 @@
             <button type="button" @click="step = 'form'" class="btn border-sem semantic-text min-h-11 px-4 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-slate-700">
                 Kembali mengubah laporan
             </button>
-            <button type="button" @click="generateReport()" :disabled="loading" class="btn btn-primary min-h-11 px-4 text-sm font-semibold disabled:cursor-wait disabled:opacity-60">
+            <button type="button" @click="generateReport()" :disabled="loading || previewData.active_substances.is_complete === false || previewData.active_substances.sample_total !== previewData.statistics.total_samples_tested" class="btn btn-primary min-h-11 px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60">
                 <svg x-show="loading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -18,6 +18,9 @@
             </button>
         </div>
     </div>
+
+    <p x-show="previewData.active_substances.is_complete === false" role="alert" class="inventory-status-danger rounded-md p-3 text-sm" x-text="previewData.active_substances.message"></p>
+    <p x-show="previewData.active_substances.sample_total !== previewData.statistics.total_samples_tested" role="alert" class="inventory-status-danger rounded-md p-3 text-sm">Jumlah sampel pada rekap zat aktif tidak sesuai dengan statistik sampel teruji. Muat ulang pratinjau.</p>
 
     <!-- Paper Preview Container -->
     <div class="rounded-lg bg-gray-100 p-8 dark:bg-slate-900">
@@ -158,7 +161,7 @@
                             </template>
                             <template x-if="previewData.active_substances.items.length === 0">
                                 <tr>
-                                    <td colspan="4" class="border border-black p-4 text-center text-gray-500 italic">Tidak ada zat aktif terdeteksi pada periode ini.</td>
+                                    <td colspan="4" class="border border-black p-4 text-center text-gray-700 italic" x-text="previewData.active_substances.message || 'Data rekap zat aktif belum tersedia.'"></td>
                                 </tr>
                             </template>
                         </tbody>
@@ -171,6 +174,11 @@
                         </tfoot>
                     </table>
                 </div>
+                <p class="mt-2 text-xs">Sampel teruji: <span x-text="previewData.active_substances.sample_total"></span>.
+                    Hasil positif: <span x-text="previewData.active_substances.positive_samples"></span>.
+                    Hasil negatif: <span x-text="previewData.active_substances.negative_samples"></span>.
+                    Data belum lengkap: <span x-text="previewData.active_substances.missing_result_samples"></span>.</p>
+                <p class="mt-1 text-xs">Jumlah dan persentase dihitung dari temuan zat aktif. Satu sampel dapat mengandung lebih dari satu zat aktif.</p>
             </div>
 
             <!-- III. KECEPATAN PENGERJAAN & IV. KEPUASAN PENGGUNA -->

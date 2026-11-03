@@ -25,6 +25,9 @@ class ConsolidatedReport extends Model
         'is_auto_generated',
         'pdf_path',
         'pdf_size',
+        'revision_of_id',
+        'revision_number',
+        'revision_reason',
     ];
 
     protected $casts = [
@@ -36,6 +39,7 @@ class ConsolidatedReport extends Model
         'signers' => 'array',
         'generated_at' => 'datetime',
         'is_auto_generated' => 'boolean',
+        'revision_number' => 'integer',
     ];
 
     /**
