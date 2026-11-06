@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Jobs\ProcessWhatsAppWebhook;
 use App\Models\WhatsappCommandLog;
+use App\Services\WhatsApp\PrivateMessageNotification;
 use App\Support\PhoneNormalizer;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class WhatsappWebhookController extends Controller
@@ -46,20 +48,99 @@ class WhatsappWebhookController extends Controller
             $data = json_decode($rawContent, true) ?? [];
         }
 
+        $commandMessage = null;
+        if (isset($data['event'])) {
+            $incoming = $data['payload'] ?? null;
+            $chat = is_array($incoming) ? ($incoming['chat_id'] ?? null) : null;
+            $sender = is_array($incoming) ? ($incoming['from'] ?? null) : null;
+            if (is_string($sender) && preg_match('/^\d+@lid$/', $sender)
+                && is_string($chat) && preg_match('/^\d{7,15}@s\.whatsapp\.net$/', $chat)
+                && ($incoming['chat_lid'] ?? null) === $sender) {
+                $data['payload']['from'] = $chat;
+                $sender = $chat;
+            }
+            $unresolvedLid = is_string($sender) && preg_match('/^\d+@lid$/', $sender) && $chat === $sender;
+            if ($data['event'] !== 'message' || ! is_array($incoming)
+                || ($incoming['is_from_me'] ?? null) !== false
+                || ! is_string($chat) || (! str_ends_with($chat, '@s.whatsapp.net') && ! str_ends_with($chat, '@lid'))
+                || ! is_string($sender) || (! preg_match('/^\d{7,15}@s\.whatsapp\.net$/', $sender) && ! $unresolvedLid)
+                || (str_ends_with($chat, '@s.whatsapp.net') && $chat !== $sender)) {
+                if (($data['event'] ?? null) === 'message') {
+                    $reason = match (true) {
+                        ! is_array($incoming) => 'missing_payload',
+                        ($incoming['is_from_me'] ?? null) === true => 'self_message',
+                        ($incoming['is_from_me'] ?? null) !== false => 'missing_sender_direction',
+                        is_string($chat) && str_ends_with($chat, '@g.us') => 'group_message',
+                        ! is_string($chat) || (! str_ends_with($chat, '@s.whatsapp.net') && ! str_ends_with($chat, '@lid')) => 'unsupported_chat',
+                        ! is_string($sender) || ! preg_match('/^\d{7,15}@s\.whatsapp\.net$/', $sender) => 'unresolved_sender',
+                        default => 'sender_chat_mismatch',
+                    };
+                    Log::info('WhatsApp webhook message ignored', ['reason' => $reason]);
+                }
+
+                return response()->json(['status' => 'ignored', 'reason' => 'unsupported_event']);
+            }
+
+            foreach (['image' => 'Foto', 'document' => 'Dokumen', 'video' => 'Video', 'audio' => 'Audio', 'sticker' => 'Stiker'] as $field => $label) {
+                if (isset($incoming[$field])) {
+                    $caption = $incoming['body'] ?? '';
+                    if (! is_string($caption) || trim($caption) === '') {
+                        $caption = $incoming['caption'] ?? '';
+                    }
+                    $commandMessage = is_string($caption) ? $caption : '';
+                    $safeCaption = is_string($caption) ? $this->sanitizeMessageForStorage($caption) : '';
+                    $data['payload']['body'] = 'Lampiran: '.$label.($safeCaption !== '' ? "\n".$safeCaption : '');
+                    if (isset($data['payload']['caption'])) {
+                        $data['payload']['caption'] = $safeCaption;
+                    }
+                    break;
+                }
+            }
+        }
+
         $messagePayload = $this->extractMessagePayload($data);
         $fromRaw = $messagePayload['from'] ?? null;
         $messageRaw = $messagePayload['message'] ?? null;
         $providerMessageId = $this->extractProviderMessageId($data);
 
         if (! is_string($fromRaw) || ! is_string($messageRaw) || trim($fromRaw) === '' || trim($messageRaw) === '') {
+            Log::info('WhatsApp webhook message ignored', ['reason' => 'missing_data']);
+
             return response()->json(['status' => 'ignored', 'reason' => 'missing_data']);
+        }
+
+        if ($unresolvedLid ?? false) {
+            $safeMessage = $this->sanitizeMessageForStorage($messageRaw);
+            $fingerprint = $providerMessageId === null ? $this->buildEventFingerprint($data, $fromRaw, $safeMessage) : null;
+            try {
+                app(PrivateMessageNotification::class)->queue($data, $safeMessage, $providerMessageId, $fingerprint);
+            } catch (\Throwable $e) {
+                Log::error('Webhook dispatch error', ['exception' => $e::class]);
+
+                return response()->json(['status' => 'error'], 500);
+            }
+
+            Log::info('WhatsApp private message has no verified phone', ['reason' => 'unresolved_sender']);
+
+            return response()->json(['status' => 'ok']);
         }
 
         $fromPhone = PhoneNormalizer::toE164($fromRaw);
         $fromJid = PhoneNormalizer::toJid($fromPhone);
         $sanitizedMessage = $this->sanitizeMessageForStorage($messageRaw);
         $sanitizedPayload = $this->sanitizePayloadForStorage($data);
-        $messageFingerprint = $this->buildMessageFingerprint($fromJid, $sanitizedMessage);
+        if (isset($data['event']) && is_array($sanitizedPayload['payload'] ?? null)) {
+            foreach (['image', 'document', 'video', 'audio', 'sticker'] as $field) {
+                if (isset($sanitizedPayload['payload'][$field])) {
+                    $sanitizedPayload['payload'][$field] = true;
+                }
+            }
+        }
+        $messageFingerprint = $providerMessageId === null
+            ? (isset($data['event'])
+                ? $this->buildEventFingerprint($data, $fromJid, $sanitizedMessage)
+                : $this->buildMessageFingerprint($fromJid, $sanitizedMessage))
+            : null;
 
         if ($providerMessageId !== null) {
             $alreadyProcessedByProviderId = WhatsappCommandLog::query()
@@ -67,46 +148,50 @@ class WhatsappWebhookController extends Controller
                 ->exists();
 
             if ($alreadyProcessedByProviderId) {
+                Log::info('WhatsApp webhook message deduplicated', ['reason' => 'provider_message_id']);
+
                 return response()->json(['status' => 'ok', 'dedupe' => 'provider_message_id']);
             }
         }
 
-        $alreadyProcessedByFingerprint = WhatsappCommandLog::query()
+        if ($messageFingerprint !== null && WhatsappCommandLog::query()
             ->where('message_fingerprint', $messageFingerprint)
-            ->exists();
+            ->exists()) {
+            Log::info('WhatsApp webhook message deduplicated', ['reason' => 'message_fingerprint']);
 
-        if ($alreadyProcessedByFingerprint) {
             return response()->json(['status' => 'ok', 'dedupe' => 'message_fingerprint']);
         }
 
         try {
-            $log = WhatsappCommandLog::create([
-                'from_jid' => $fromJid,
-                'from_phone_e164' => $fromPhone,
-                'message_text' => $sanitizedMessage,
-                'provider_message_id' => $providerMessageId,
-                'message_fingerprint' => $messageFingerprint,
-                'params' => $sanitizedPayload,
-                'response_status' => 'received',
-            ]);
+            DB::transaction(function () use ($fromJid, $fromPhone, $sanitizedMessage, $providerMessageId, $messageFingerprint, $sanitizedPayload, $data, $messageRaw, $commandMessage): void {
+                $log = WhatsappCommandLog::create([
+                    'from_jid' => $fromJid,
+                    'from_phone_e164' => $fromPhone,
+                    'message_text' => $sanitizedMessage,
+                    'provider_message_id' => $providerMessageId,
+                    'message_fingerprint' => $messageFingerprint,
+                    'params' => $sanitizedPayload,
+                    'response_status' => 'received',
+                ]);
 
-            ProcessWhatsAppWebhook::dispatch($log->id, $fromJid, $messageRaw);
+                app(PrivateMessageNotification::class)->queue($data, $sanitizedMessage, $providerMessageId, $messageFingerprint);
+                ProcessWhatsAppWebhook::dispatch($log->id, $fromJid, $commandMessage ?? $messageRaw)->afterCommit();
+            });
 
             return response()->json(['status' => 'ok']);
         } catch (QueryException $e) {
-            if ($this->isDuplicateKeyViolation($e)) {
+            if ($this->isDuplicateKeyViolation($e) && (
+                ($providerMessageId !== null && WhatsappCommandLog::query()->where('provider_message_id', $providerMessageId)->exists())
+                || ($messageFingerprint !== null && WhatsappCommandLog::query()->where('message_fingerprint', $messageFingerprint)->exists())
+            )) {
                 return response()->json(['status' => 'ok', 'dedupe' => 'race']);
             }
 
-            Log::error('Webhook dispatch error', [
-                'error' => $e->getMessage(),
-            ]);
+            Log::error('Webhook dispatch error', ['exception' => $e::class]);
 
             return response()->json(['status' => 'error'], 500);
         } catch (\Throwable $e) {
-            Log::error('Webhook dispatch error', [
-                'error' => $e->getMessage(),
-            ]);
+            Log::error('Webhook dispatch error', ['exception' => $e::class]);
 
             return response()->json(['status' => 'error'], 500);
         }
@@ -190,19 +275,7 @@ class WhatsappWebhookController extends Controller
 
     private function sanitizeMessageForStorage(string $message): string
     {
-        $trimmed = trim($message);
-        if (! str_starts_with(strtolower($trimmed), '/qmh ')) {
-            return $trimmed;
-        }
-
-        $parts = preg_split('/\s+/', $trimmed);
-        if (! is_array($parts) || count($parts) < 4) {
-            return $trimmed;
-        }
-
-        $parts[3] = '[REDACTED]';
-
-        return implode(' ', $parts);
+        return preg_replace('/(\/qmh\s+\S+\s+\S+\s+)\S+/i', '$1[REDACTED]', trim($message)) ?? '';
     }
 
     /**
@@ -252,6 +325,18 @@ class WhatsappWebhookController extends Controller
         $timeBucket = (string) intdiv(now()->timestamp, 120);
 
         return hash('sha256', implode('|', [$canonicalSender, $canonicalMessage, $timeBucket]));
+    }
+
+    /** @param array<string, mixed> $data */
+    private function buildEventFingerprint(array $data, string $fromJid, string $message): string
+    {
+        return hash('sha256', json_encode([
+            'device' => data_get($data, 'device_id'),
+            'sender' => $fromJid,
+            'chat' => data_get($data, 'payload.chat_id'),
+            'timestamp' => data_get($data, 'payload.timestamp'),
+            'message' => $message,
+        ], JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE));
     }
 
     private function isDuplicateKeyViolation(QueryException $exception): bool

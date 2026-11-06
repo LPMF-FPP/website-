@@ -115,6 +115,24 @@ class WhatsappWebhookTest extends TestCase
         $this->assertDatabaseCount('whatsapp_command_logs', 1);
     }
 
+    public function test_distinct_provider_messages_with_identical_text_are_not_deduplicated(): void
+    {
+        foreach (['message-one', 'message-two'] as $messageId) {
+            $payload = json_encode([
+                'message_id' => $messageId,
+                'from' => '123456789',
+                'body' => 'same message',
+            ]);
+            $signature = 'sha256='.hash_hmac('sha256', $payload, 'test_secret_key');
+
+            $this->call('POST', '/api/whatsapp/webhook', [], [], [],
+                ['HTTP_X-Hub-Signature-256' => $signature], $payload
+            )->assertOk()->assertJsonMissingPath('dedupe');
+        }
+
+        $this->assertDatabaseCount('whatsapp_command_logs', 2);
+    }
+
     public function test_webhook_redacts_qmh_action_code_in_stored_log(): void
     {
         $data = [

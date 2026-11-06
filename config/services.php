@@ -39,6 +39,7 @@ return [
         'base_url' => env('WHATSAPP_API_URL'),
         'api_key' => env('WHATSAPP_API_KEY'),
         'webhook_secret' => env('WHATSAPP_WEBHOOK_SECRET'),
+        'incoming_group' => env('WHATSAPP_INCOMING_GROUP'),
         'restart_token' => env('WHATSAPP_RESTART_TOKEN'),
         'allow_restart_in_production' => env('WHATSAPP_ALLOW_RESTART_IN_PRODUCTION', false),
         'restart_ip_allowlist' => env('WHATSAPP_RESTART_IP_ALLOWLIST'),
