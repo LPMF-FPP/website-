@@ -169,6 +169,21 @@ WhatsApp service berjalan di container Docker terpisah.
 
 ## 📰 Recent Changes (v2.7.x / v2.6.x)
 
+### v2.7.3 (7 November 2026) - Notifikasi WhatsApp dan Pemulihan GOWA
+
+- **Notifikasi chat pribadi:** Pesan masuk dari percakapan pribadi diteruskan ke grup petugas, termasuk nomor pengirim dan isi pesan. Untuk lampiran, notifikasi memuat jenis dan keterangannya tanpa mengirim file asli. Kode tindakan QMH disamarkan.
+- **Identitas dan pesan berulang:** Pesan grup dan pesan dari akun sendiri tidak diteruskan. Pengirim yang hanya memiliki LID tetap diberitahukan tanpa menebak nomor telepon, sementara pesan tanpa ID provider menggunakan fingerprint untuk mengenali pengiriman ulang.
+- **Pemulihan pembaruan GOWA:** Waktu bukti UTC dan WIB dicatat dengan zona waktu yang benar. Bukti baru dapat ditambahkan tanpa menimpa riwayat, dan operasi hanya diselesaikan setelah bukti, kondisi layanan, serta digest terverifikasi.
+- **Verifikasi produksi:** Commit `3fbe5dd`, `8ffb386`, dan `3722297` telah dipasang. Operasi pembaruan GOWA yang sebelumnya tertahan berhasil direkonsiliasi tanpa instalasi ulang; migrasi tambahan membuat tabel riwayat bukti tanpa menghapus data.
+
+### v2.7.2 (27 Oktober 2026) - UI Survei Kepuasan & Perlindungan Data Lama
+
+- **Formulir lebih ringkas:** Tiga kotak masukan diganti menjadi satu kotak **Saran atau keluhan tentang layanan**, dengan petunjuk untuk menjelaskan kendala dan penyelesaian yang diharapkan.
+- **Data lama dipertahankan:** Pembaruan survei tidak mengosongkan kolom keluhan dan tindak lanjut yang tidak lagi dikirim formulir. Isian lama tetap ditampilkan pada ringkasan survei yang sudah selesai.
+- **Tampilan responsif:** Identitas responden, penilaian, masukan, dan persetujuan dikelompokkan dalam satu lembar formulir. Tema terang/gelap, navigasi keyboard, fokus kontrol, dan pembungkusan teks panjang diperbaiki.
+- **Perlindungan pengiriman:** Formulir tanpa pertanyaan aktif tidak dapat dikirim, pengiriman ganda dicegah, dan tombol pulih saat kembali ke halaman. Skala pertanyaan dinamis, pemulihan isian setelah validasi, persetujuan, serta perhitungan skor tetap dipertahankan.
+- **Verifikasi rilis:** Commit `4900398` sudah di-deploy tanpa migrasi atau penghapusan data. Sebelas test survei lulus; pemeriksaan sebelum/sesudah deploy memastikan 195 survei, termasuk 146 dengan data keluhan/tindak lanjut lama, tidak berubah.
+
 ### v2.7.1 (15 Oktober 2026) - Ketahanan WhatsApp AI & Pembaruan Template
 
 - **WhatsApp AI:** Permintaan kini dapat menggunakan seluruh alamat IPv4 dan IPv6 tervalidasi, dengan IPv4 diprioritaskan dan IPv6 tetap tersedia sebagai fallback.

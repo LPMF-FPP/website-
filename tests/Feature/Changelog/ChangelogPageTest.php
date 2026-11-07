@@ -20,6 +20,13 @@ class ChangelogPageTest extends TestCase
 
         $response
             ->assertOk()
+            ->assertSee('v2.7.3')
+            ->assertSee('Notifikasi WhatsApp dan Pemulihan GOWA')
+            ->assertSee('3722297')
+            ->assertSee('v2.7.2')
+            ->assertSee('UI Survei Kepuasan')
+            ->assertSee('Saran atau keluhan tentang layanan')
+            ->assertSee('4900398')
             ->assertSee('v2.7.1')
             ->assertSee('Ketahanan WhatsApp AI')
             ->assertSee('v2.7.0')
