@@ -11,6 +11,8 @@ class GowaUpdateEvent extends Model
 {
     public $timestamps = false;
 
+    protected $dateFormat = 'Y-m-d H:i:sP';
+
     protected $fillable = ['operation_id', 'runner_event_id', 'fencing_token', 'from_state', 'to_state', 'code', 'safe_meta', 'occurred_at'];
 
     protected $casts = ['safe_meta' => 'array', 'occurred_at' => 'datetime', 'fencing_token' => 'integer'];

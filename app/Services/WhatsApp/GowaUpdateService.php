@@ -451,8 +451,8 @@ final class GowaUpdateService
                 && $root->container_identity === $runtime->container_identity;
             if ($terminalStatus !== 'degraded') {
                 $valid = $valid
-                    && $root->observed_at?->greaterThanOrEqualTo(now()->subMinutes(5))
-                    && $runtime->observed_at?->greaterThanOrEqualTo(now()->subMinutes(5));
+                    && $this->isFreshAttestation($root)
+                    && $this->isFreshAttestation($runtime);
             }
             $valid = $valid && ($terminalStatus === 'degraded'
                 ? ! $root->passed && ! $runtime->passed
@@ -631,8 +631,17 @@ final class GowaUpdateService
             && $root->policy_version === $runtime->policy_version
             && $root->snapshot_hash === $runtime->snapshot_hash
             && $root->container_identity === $runtime->container_identity
-            && $root->observed_at?->greaterThanOrEqualTo(now()->subMinutes(5))
-            && $runtime->observed_at?->greaterThanOrEqualTo(now()->subMinutes(5));
+            && $this->isFreshAttestation($root)
+            && $this->isFreshAttestation($runtime);
+    }
+
+    private function isFreshAttestation(GowaUpdateAttestation $attestation): bool
+    {
+        $observedAt = $attestation->observed_at;
+
+        return $observedAt !== null
+            && $observedAt->greaterThanOrEqualTo(now()->subMinutes(5))
+            && $observedAt->lessThanOrEqualTo(now()->addSeconds(30));
     }
 
     private function evidenceTransitionAllowed(string $from, string $to): bool

@@ -11,6 +11,8 @@ final class GowaUpdateDispatchClaim extends Model
 {
     protected $table = 'gowa_update_dispatch_claims';
 
+    protected $dateFormat = 'Y-m-d H:i:sP';
+
     protected $fillable = [
         'operation_id',
         'scope',

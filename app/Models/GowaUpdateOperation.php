@@ -14,6 +14,8 @@ class GowaUpdateOperation extends Model
 
     protected $keyType = 'string';
 
+    protected $dateFormat = 'Y-m-d H:i:sP';
+
     public const ACTIVE_STATUSES = ['queued', 'preparing', 'updating', 'verifying', 'reconciling'];
 
     public const TERMINAL_STATUSES = ['succeeded', 'failed', 'rolled_back', 'degraded'];

@@ -11,6 +11,8 @@ class GowaUpdateAttestation extends Model
 {
     public $timestamps = false;
 
+    protected $dateFormat = 'Y-m-d H:i:sP';
+
     protected $fillable = ['operation_id', 'fencing_token', 'plane', 'policy_version', 'snapshot_hash', 'container_identity', 'passed', 'observed_at'];
 
     protected $casts = ['passed' => 'boolean', 'observed_at' => 'datetime', 'fencing_token' => 'integer'];

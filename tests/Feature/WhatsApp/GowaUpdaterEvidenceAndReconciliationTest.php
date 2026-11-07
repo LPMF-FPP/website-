@@ -8,6 +8,7 @@ use App\Models\GowaUpdateOperation;
 use App\Models\GowaUpdateScope;
 use App\Models\User;
 use App\Services\WhatsApp\GowaEvidenceImporter;
+use App\Services\WhatsApp\GowaUpdateReconciler;
 use App\Services\WhatsApp\GowaUpdateService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -114,6 +115,76 @@ it('keeps stale reconciliation fail-closed when no runtime outcome is available'
     $service->reconcileStale($operation);
 
     expect($operation->fresh()->status)->toBe('reconciling');
+});
+
+it('preserves the instant of UTC and WIB attestations when PostgreSQL uses UTC', function (): void {
+    $previousTimezone = date_default_timezone_get();
+    date_default_timezone_set('Asia/Jakarta');
+    \Carbon\Carbon::setTestNow(\Carbon\Carbon::parse('2026-11-07 12:00:00', 'Asia/Jakarta'));
+
+    try {
+        \Illuminate\Support\Facades\DB::statement("SET LOCAL TIME ZONE 'UTC'");
+        $operation = gowaContractOperation('verifying');
+        $service = gowaContractService();
+        $base = [
+            'operation_id' => $operation->id,
+            'fencing_token' => 1,
+            'policy_version' => '1',
+            'snapshot_hash' => str_repeat('a', 64),
+            'container_identity' => 'container-a',
+            'passed' => true,
+        ];
+        $root = $service->recordAttestation($base + ['plane' => 'root', 'observed_at' => '2026-11-07T05:00:00Z']);
+        $runtime = $service->recordAttestation($base + ['plane' => 'runtime', 'observed_at' => '2026-11-07T12:00:00+07:00']);
+
+        expect($root->fresh()->observed_at->timestamp)->toBe(now()->timestamp)
+            ->and($runtime->fresh()->observed_at->timestamp)->toBe(now()->timestamp);
+        $service->commitVerifiedOutcome($operation, 'succeeded');
+        expect($operation->fresh()->status)->toBe('succeeded');
+    } finally {
+        \Carbon\Carbon::setTestNow();
+        date_default_timezone_set($previousTimezone);
+    }
+});
+
+it('does not reconcile a live lease early when application time is WIB', function (): void {
+    $previousTimezone = date_default_timezone_get();
+    date_default_timezone_set('Asia/Jakarta');
+    \Carbon\Carbon::setTestNow(\Carbon\Carbon::parse('2026-11-07 12:00:00', 'Asia/Jakarta'));
+
+    try {
+        \Illuminate\Support\Facades\DB::statement("SET LOCAL TIME ZONE 'UTC'");
+        config(['gowa-updater.request_root' => '', 'gowa-updater.evidence_root' => '']);
+        $operation = gowaContractOperation('updating');
+        $operation->update(['lease_expires_at' => now()->addMinutes(10)]);
+        $reconciler = new GowaUpdateReconciler(gowaContractService(), new GowaEvidenceImporter);
+
+        expect($reconciler->reconcile())->toBe(0)
+            ->and($operation->fresh()->status)->toBe('updating')
+            ->and($operation->fresh()->lease_expires_at->timestamp)->toBe(now()->addMinutes(10)->timestamp);
+    } finally {
+        \Carbon\Carbon::setTestNow();
+        date_default_timezone_set($previousTimezone);
+    }
+});
+
+it('does not verify a successful update with future-dated attestation', function (): void {
+    $operation = gowaContractOperation('verifying');
+    $service = gowaContractService();
+    $base = [
+        'operation_id' => $operation->id,
+        'fencing_token' => 1,
+        'policy_version' => '1',
+        'snapshot_hash' => str_repeat('a', 64),
+        'container_identity' => 'container-a',
+        'passed' => true,
+    ];
+    $service->recordAttestation($base + ['plane' => 'root', 'observed_at' => now()->addMinutes(10)->toIso8601String()]);
+    $service->recordAttestation($base + ['plane' => 'runtime', 'observed_at' => now()->toIso8601String()]);
+
+    expect(fn () => $service->commitVerifiedOutcome($operation, 'succeeded'))
+        ->toThrow(RuntimeException::class, 'attestation_mismatch')
+        ->and($operation->fresh()->status)->toBe('verifying');
 });
 
 it('keeps stale replacement attempts reconciling when quiescence is unproven', function (): void {

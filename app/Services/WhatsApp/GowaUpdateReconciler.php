@@ -20,7 +20,7 @@ final class GowaUpdateReconciler
         $this->cleanupOrphanedRequests();
         $count = 0;
         GowaUpdateOperation::query()->whereIn('status', GowaUpdateOperation::ACTIVE_STATUSES)
-            ->where('lease_expires_at', '<', now())->each(function (GowaUpdateOperation $operation) use (&$count): void {
+            ->where('lease_expires_at', '<', now()->format('Y-m-d H:i:sP'))->each(function (GowaUpdateOperation $operation) use (&$count): void {
                 $this->service->reconcileStale($operation);
                 $count++;
             });
