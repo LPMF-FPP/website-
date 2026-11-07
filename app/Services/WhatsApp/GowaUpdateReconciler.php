@@ -64,6 +64,7 @@ final class GowaUpdateReconciler
         sort($paths);
         $paths = array_slice(array_unique($paths), 0, (int) config('gowa-updater.max_evidence_files', 256));
         $totalBytes = 0;
+        $outcomes = [];
         foreach ($paths as $path) {
             $pathRealPath = realpath($path);
             if ($pathRealPath === false || ! str_starts_with($pathRealPath, $rootRealPath.'/')) {
@@ -85,13 +86,34 @@ final class GowaUpdateReconciler
                 }
                 if (($payload['code'] ?? null) === 'rollback_degraded' && isset($payload['attestation']) && is_array($payload['attestation'])) {
                     $this->service->recordRuntimeAttestation($payload);
-                    $this->service->commitVerifiedOutcome($this->operation($payload['operation_id']), 'degraded');
                 }
                 if (in_array($payload['code'] ?? null, ['mutation_observed', 'rollback_observed'], true)) {
                     $this->service->recordRuntimeAttestation($payload);
-                    $this->service->commitVerifiedOutcome($this->operation($payload['operation_id']), $payload['code'] === 'rollback_observed' ? 'rolled_back' : 'succeeded');
                 }
-                @unlink($path);
+                $archive = $path.'.imported';
+                if (file_exists($archive) || is_link($archive) || ! @rename($path, $archive)) {
+                    continue;
+                }
+                if (in_array($payload['code'] ?? null, ['mutation_observed', 'rollback_observed', 'rollback_degraded'], true)) {
+                    $outcomes[$payload['operation_id']] = true;
+                }
+            } catch (RuntimeException) {
+                continue;
+            }
+        }
+
+        foreach (array_keys($outcomes) as $operationId) {
+            try {
+                $operation = $this->operation($operationId);
+                $outcome = match (data_get($operation->feature_snapshot, 'last_evidence_code')) {
+                    'mutation_observed' => 'succeeded',
+                    'rollback_observed' => 'rolled_back',
+                    'rollback_degraded' => 'degraded',
+                    default => null,
+                };
+                if ($outcome !== null) {
+                    $this->service->commitIfQuiescent($operation, $outcome);
+                }
             } catch (RuntimeException) {
                 continue;
             }

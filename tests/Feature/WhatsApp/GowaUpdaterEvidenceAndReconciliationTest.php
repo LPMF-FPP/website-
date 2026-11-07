@@ -187,6 +187,232 @@ it('does not verify a successful update with future-dated attestation', function
         ->and($operation->fresh()->status)->toBe('verifying');
 });
 
+it('preserves old attestations and accepts renewed matching evidence for reconciliation', function (): void {
+    $operation = gowaContractOperation('reconciling');
+    $service = gowaContractService();
+    $base = [
+        'operation_id' => $operation->id,
+        'fencing_token' => 1,
+        'policy_version' => '1',
+        'snapshot_hash' => str_repeat('a', 64),
+        'container_identity' => 'container-a',
+        'passed' => true,
+    ];
+    $renewedAt = now()->toIso8601String();
+    foreach (['root', 'runtime'] as $plane) {
+        $service->recordAttestation($base + ['plane' => $plane, 'observed_at' => now()->subMinutes(20)->toIso8601String()]);
+        $service->recordAttestation($base + ['plane' => $plane, 'observed_at' => $renewedAt]);
+        $service->recordAttestation($base + ['plane' => $plane, 'observed_at' => $renewedAt]);
+    }
+
+    $service->commitVerifiedOutcome($operation, 'succeeded');
+
+    expect($operation->fresh()->status)->toBe('succeeded')
+        ->and($operation->attestations()->count())->toBe(2)
+        ->and(\Illuminate\Support\Facades\DB::table('gowa_update_attestation_renewals')->count())->toBe(2);
+});
+
+it('does not refresh an attestation with conflicting or future evidence', function (): void {
+    $operation = gowaContractOperation('reconciling');
+    $service = gowaContractService();
+    $base = [
+        'operation_id' => $operation->id, 'fencing_token' => 1, 'policy_version' => '1',
+        'snapshot_hash' => str_repeat('a', 64), 'container_identity' => 'container-a', 'passed' => true,
+    ];
+    $service->recordAttestation($base + ['plane' => 'root', 'observed_at' => now()->subMinutes(20)->toIso8601String()]);
+    $service->recordAttestation($base + ['plane' => 'root', 'observed_at' => now()->addMinutes(10)->toIso8601String()]);
+    expect(\Illuminate\Support\Facades\DB::table('gowa_update_attestation_renewals')->count())->toBe(0);
+
+    $different = array_merge($base, ['snapshot_hash' => str_repeat('b', 64)]);
+    expect(fn () => $service->recordAttestation($different + ['plane' => 'root', 'observed_at' => now()->toIso8601String()]))
+        ->toThrow(RuntimeException::class, 'attestation_conflict');
+});
+
+it('does not complete an operation without a quiescence proof', function (): void {
+    $operation = gowaContractOperation('reconciling');
+    $service = gowaContractService();
+    $base = [
+        'operation_id' => $operation->id, 'fencing_token' => 1, 'policy_version' => '1',
+        'snapshot_hash' => str_repeat('a', 64), 'container_identity' => 'container-a',
+        'passed' => true, 'observed_at' => now()->toIso8601String(),
+    ];
+    $service->recordAttestation($base + ['plane' => 'root']);
+    $service->recordAttestation($base + ['plane' => 'runtime']);
+
+    expect($service->commitIfQuiescent($operation, 'succeeded'))->toBeFalse()
+        ->and($operation->fresh()->status)->toBe('reconciling');
+});
+
+it('does not complete a quiescent operation when the running digest does not match', function (): void {
+    $operation = gowaContractOperation('reconciling');
+    $catalog = new class implements GowaReleaseCatalog
+    {
+        public function generation(): ?string
+        {
+            return 'generation-1';
+        }
+
+        public function approved(): array
+        {
+            return [];
+        }
+
+        public function find(string $releaseId): ?array
+        {
+            return null;
+        }
+    };
+    $runner = new class implements GowaUpdateQuiescence, GowaUpdateRunner
+    {
+        public function available(): bool
+        {
+            return true;
+        }
+
+        public function dispatch(array $claim): bool
+        {
+            return true;
+        }
+
+        public function quiescence(string $operationId): array
+        {
+            return ['quiescent' => true, 'systemd' => true, 'lock' => true, 'request' => true, 'evidence' => true];
+        }
+    };
+    $probe = new class implements GowaRuntimeProbe
+    {
+        public function current(): array
+        {
+            return ['container_identity' => 'container-a', 'digest' => 'sha256:'.str_repeat('b', 64), 'health' => 'healthy'];
+        }
+
+        public function isFresh(array $runtime): bool
+        {
+            return true;
+        }
+    };
+    $service = new GowaUpdateService($catalog, $runner, $probe);
+    $base = [
+        'operation_id' => $operation->id, 'fencing_token' => 1, 'policy_version' => '1',
+        'snapshot_hash' => str_repeat('a', 64), 'container_identity' => 'container-a',
+        'passed' => true, 'observed_at' => now()->toIso8601String(),
+    ];
+    $service->recordAttestation($base + ['plane' => 'root']);
+    $service->recordAttestation($base + ['plane' => 'runtime']);
+
+    expect($service->commitIfQuiescent($operation, 'succeeded'))->toBeFalse()
+        ->and($operation->fresh()->status)->toBe('reconciling');
+});
+
+it('consumes signed renewed evidence before committing a quiescent recovery', function (): void {
+    $operation = gowaContractOperation('reconciling');
+    $directory = sys_get_temp_dir().'/gowa-renewal-'.bin2hex(random_bytes(8));
+    $evidenceDir = $directory.'/'.$operation->id.'/1';
+    mkdir($evidenceDir, 0700, true);
+    $evidencePath = $evidenceDir.'/1-mutation_observed.json';
+    $publicKeyPath = $directory.'/evidence.pub';
+    $keypair = sodium_crypto_sign_keypair();
+    file_put_contents($publicKeyPath, base64_encode(sodium_crypto_sign_publickey($keypair)));
+    chmod($publicKeyPath, 0600);
+    $importer = new GowaEvidenceImporter($publicKeyPath, false);
+    $runner = new class($evidencePath) implements GowaUpdateQuiescence, GowaUpdateRunner
+    {
+        public function __construct(private string $evidencePath) {}
+
+        public function available(): bool
+        {
+            return true;
+        }
+
+        public function dispatch(array $claim): bool
+        {
+            return true;
+        }
+
+        public function quiescence(string $operationId): array
+        {
+            $noEvidence = ! is_file($this->evidencePath);
+
+            return ['quiescent' => $noEvidence, 'systemd' => true, 'lock' => true, 'request' => true, 'evidence' => $noEvidence];
+        }
+    };
+    $probe = new class implements GowaRuntimeProbe
+    {
+        public function current(): array
+        {
+            return ['container_identity' => 'container-a', 'digest' => 'sha256:'.str_repeat('a', 64), 'health' => 'healthy'];
+        }
+
+        public function isFresh(array $runtime): bool
+        {
+            return true;
+        }
+    };
+    $catalog = new class implements GowaReleaseCatalog
+    {
+        public function generation(): ?string
+        {
+            return 'generation-1';
+        }
+
+        public function approved(): array
+        {
+            return [];
+        }
+
+        public function find(string $releaseId): ?array
+        {
+            return null;
+        }
+    };
+    $service = new GowaUpdateService($catalog, $runner, $probe);
+    $base = [
+        'operation_id' => $operation->id, 'fencing_token' => 1, 'policy_version' => '1',
+        'snapshot_hash' => str_repeat('a', 64), 'container_identity' => 'container-a', 'passed' => true,
+    ];
+    foreach (['root', 'runtime'] as $plane) {
+        $service->recordAttestation($base + ['plane' => $plane, 'observed_at' => now()->subMinutes(20)->toIso8601String()]);
+    }
+    $proof = [
+        'contract' => 'gowa-evidence-v1', 'operation_id' => $operation->id, 'fencing_token' => 1,
+        'sequence' => 1, 'plane' => 'root', 'code' => 'mutation_observed',
+        'occurred_at' => now()->toIso8601String(), 'snapshot_hash' => $base['snapshot_hash'],
+        'container_identity' => $base['container_identity'],
+        'attestation' => $base + ['plane' => 'root', 'observed_at' => now()->toIso8601String()],
+    ];
+    $signature = sodium_crypto_sign_detached($importer->canonicalJson($proof), sodium_crypto_sign_secretkey($keypair));
+    file_put_contents($evidencePath, json_encode(['schema_version' => 1, 'payload' => $proof, 'signature' => base64_encode($signature)], JSON_THROW_ON_ERROR));
+    chmod($evidencePath, 0600);
+    config(['gowa-updater.evidence_root' => $directory, 'gowa-updater.request_root' => '']);
+
+    try {
+        file_put_contents($evidencePath.'.imported', 'existing archive');
+        (new GowaUpdateReconciler($service, $importer))->reconcile();
+        expect($operation->fresh()->status)->not->toBe('succeeded')
+            ->and(is_file($evidencePath))->toBeTrue()
+            ->and(file_get_contents($evidencePath.'.imported'))->toBe('existing archive');
+        unlink($evidencePath.'.imported');
+
+        (new GowaUpdateReconciler($service, $importer))->reconcile();
+        expect($operation->fresh()->status)->toBe('succeeded')
+            ->and(is_file($evidencePath))->toBeFalse()
+            ->and(is_file($evidencePath.'.imported'))->toBeTrue()
+            ->and($operation->attestations()->count())->toBe(2)
+            ->and(\Illuminate\Support\Facades\DB::table('gowa_update_attestation_renewals')->count())->toBe(2);
+    } finally {
+        if (is_file($evidencePath)) {
+            unlink($evidencePath);
+        }
+        if (is_file($evidencePath.'.imported')) {
+            unlink($evidencePath.'.imported');
+        }
+        unlink($publicKeyPath);
+        rmdir($evidenceDir);
+        rmdir(dirname($evidenceDir));
+        rmdir($directory);
+    }
+});
+
 it('keeps stale replacement attempts reconciling when quiescence is unproven', function (): void {
     $service = gowaContractService();
     $operation = gowaContractOperation('updating', 'mutation_observed');
@@ -342,6 +568,39 @@ it('does not accept forged evidence through the importer contract', function ():
     }
 });
 
+it('leaves forged recovery evidence untouched and does not complete the operation', function (): void {
+    $operation = gowaContractOperation('reconciling');
+    $operation->update(['lease_expires_at' => now()->addMinutes(10)]);
+    $directory = sys_get_temp_dir().'/gowa-forged-'.bin2hex(random_bytes(8));
+    $evidenceDir = $directory.'/'.$operation->id.'/1';
+    mkdir($evidenceDir, 0700, true);
+    $evidencePath = $evidenceDir.'/1-mutation_observed.json';
+    $publicKeyPath = $directory.'/evidence.pub';
+    $keypair = sodium_crypto_sign_keypair();
+    file_put_contents($publicKeyPath, base64_encode(sodium_crypto_sign_publickey($keypair)));
+    chmod($publicKeyPath, 0600);
+    file_put_contents($evidencePath, json_encode([
+        'schema_version' => 1,
+        'payload' => ['contract' => 'gowa-evidence-v1'],
+        'signature' => base64_encode(random_bytes(64)),
+    ], JSON_THROW_ON_ERROR));
+    chmod($evidencePath, 0600);
+    config(['gowa-updater.evidence_root' => $directory, 'gowa-updater.request_root' => '']);
+
+    try {
+        (new GowaUpdateReconciler(gowaContractService(), new GowaEvidenceImporter($publicKeyPath, false)))->reconcile();
+        expect($operation->fresh()->status)->toBe('reconciling')
+            ->and(is_file($evidencePath))->toBeTrue()
+            ->and(\Illuminate\Support\Facades\DB::table('gowa_update_attestation_renewals')->count())->toBe(0);
+    } finally {
+        unlink($evidencePath);
+        unlink($publicKeyPath);
+        rmdir($evidenceDir);
+        rmdir(dirname($evidenceDir));
+        rmdir($directory);
+    }
+});
+
 it('lets a fresh successful evidence stream finish a stale operation without stranding it', function (): void {
     $catalog = new class implements GowaReleaseCatalog
     {
@@ -381,7 +640,7 @@ it('lets a fresh successful evidence stream finish a stale operation without str
     {
         public function current(): array
         {
-            return ['container_identity' => 'container-a'];
+            return ['container_identity' => 'container-a', 'digest' => 'sha256:'.str_repeat('a', 64), 'health' => 'healthy'];
         }
 
         public function isFresh(array $runtime): bool

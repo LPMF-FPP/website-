@@ -11,6 +11,7 @@ use App\Contracts\WhatsApp\GowaUpdateQuiescence;
 use App\Contracts\WhatsApp\GowaUpdateRunner;
 use App\Jobs\DispatchGowaUpdateJob;
 use App\Models\GowaUpdateAttestation;
+use App\Models\GowaUpdateAttestationRenewal;
 use App\Models\GowaUpdateEvent;
 use App\Models\GowaUpdateOperation;
 use App\Models\GowaUpdateScope;
@@ -253,10 +254,10 @@ final class GowaUpdateService
 
     public function reconcileStale(GowaUpdateOperation $operation): void
     {
-        DB::transaction(function () use ($operation): void {
+        $marked = DB::transaction(function () use ($operation): bool {
             $locked = GowaUpdateOperation::query()->lockForUpdate()->find($operation->id);
             if ($locked === null || $locked->isTerminal() || $locked->lease_expires_at?->isFuture()) {
-                return;
+                return false;
             }
 
             $from = $locked->status;
@@ -270,12 +271,19 @@ final class GowaUpdateService
             ]);
             $this->event($locked, $from, 'reconciling', 'execution_lease_expired');
 
-            if ($this->canCommitOutcome($locked, 'succeeded')) {
-                $this->commitVerifiedOutcome($locked, 'succeeded');
-            } elseif ($this->canCommitOutcome($locked, 'degraded')) {
-                $this->commitVerifiedOutcome($locked, 'degraded');
-            }
+            return true;
         });
+
+        if (! $marked) {
+            return;
+        }
+
+        $current = $operation->fresh();
+        if ($current !== null && ! $current->isTerminal()) {
+            if (! $this->commitIfQuiescent($current, 'succeeded')) {
+                $this->commitIfQuiescent($current, 'degraded');
+            }
+        }
     }
 
     public function retry(GowaUpdateOperation $previous, int $userId): GowaUpdateOperation
@@ -384,8 +392,13 @@ final class GowaUpdateService
             || $attestation['container_identity'] === '') {
             throw new RuntimeException('attestation_rejected');
         }
+        $observedAt = $attestation['observed_at'] ?? null;
+        if (! $observedAt instanceof \DateTimeInterface
+            && (! is_string($observedAt) || ! preg_match('/(?:Z|[+-]\d{2}:\d{2})$/i', $observedAt))) {
+            throw new RuntimeException('attestation_rejected');
+        }
         try {
-            new \DateTimeImmutable((string) ($attestation['observed_at'] ?? ''));
+            new \DateTimeImmutable((string) $observedAt);
         } catch (\Throwable) {
             throw new RuntimeException('attestation_rejected');
         }
@@ -412,6 +425,30 @@ final class GowaUpdateService
                     || $existing->container_identity !== $attestation['container_identity']
                     || $existing->passed !== (bool) $attestation['passed']) {
                     throw new RuntimeException('attestation_conflict');
+                }
+
+                $renewal = new GowaUpdateAttestationRenewal([
+                    'operation_id' => $operation->id,
+                    'fencing_token' => $operation->fencing_token,
+                    'plane' => $attestation['plane'],
+                    'policy_version' => $attestation['policy_version'],
+                    'snapshot_hash' => $attestation['snapshot_hash'],
+                    'container_identity' => $attestation['container_identity'],
+                    'passed' => (bool) ($attestation['passed'] ?? false),
+                    'observed_at' => $attestation['observed_at'],
+                ]);
+                if ($this->isFreshAttestation($renewal) && ! $existing->observed_at->equalTo($renewal->observed_at)) {
+                    GowaUpdateAttestationRenewal::query()->firstOrCreate([
+                        'operation_id' => $operation->id,
+                        'fencing_token' => $operation->fencing_token,
+                        'plane' => $attestation['plane'],
+                        'observed_at' => $renewal->observed_at->format('Y-m-d H:i:sP'),
+                    ], [
+                        'policy_version' => $attestation['policy_version'],
+                        'snapshot_hash' => $attestation['snapshot_hash'],
+                        'container_identity' => $attestation['container_identity'],
+                        'passed' => (bool) ($attestation['passed'] ?? false),
+                    ]);
                 }
 
                 return $existing;
@@ -445,6 +482,10 @@ final class GowaUpdateService
             $attestations = $locked->attestations()->where('fencing_token', $locked->fencing_token)->get();
             $root = $attestations->firstWhere('plane', 'root');
             $runtime = $attestations->firstWhere('plane', 'runtime');
+            if ($terminalStatus !== 'degraded') {
+                $root = $this->freshAttestationOrOriginal($locked, $root);
+                $runtime = $this->freshAttestationOrOriginal($locked, $runtime);
+            }
             $valid = $root !== null && $runtime !== null
                 && $root->policy_version === $runtime->policy_version
                 && $root->snapshot_hash === $runtime->snapshot_hash
@@ -477,6 +518,31 @@ final class GowaUpdateService
             GowaUpdateScope::query()->whereKey($locked->scope)->update(['active_operation_id' => null]);
             $this->event($locked, $from, $terminalStatus, 'verified_terminal_outcome');
         });
+    }
+
+    public function commitIfQuiescent(GowaUpdateOperation $operation, string $terminalStatus): bool
+    {
+        if (! in_array($terminalStatus, ['succeeded', 'rolled_back', 'degraded'], true)
+            || ! $this->canCommitOutcome($operation, $terminalStatus)) {
+            return false;
+        }
+
+        if ($terminalStatus !== 'degraded') {
+            $expectedDigest = $terminalStatus === 'succeeded' ? $operation->requested_digest : $operation->previous_digest;
+            $root = $operation->attestations()->where('fencing_token', $operation->fencing_token)->where('plane', 'root')->first();
+            $runtime = $this->probe->current();
+            if (! is_string($expectedDigest) || $expectedDigest === '' || $root === null
+                || ! $this->probe->isFresh($runtime)
+                || ($runtime['digest'] ?? null) !== $expectedDigest
+                || ($runtime['container_identity'] ?? null) !== $root->container_identity
+                || ! in_array($runtime['health'] ?? null, [true, 'healthy', 200, '200'], true)) {
+                return false;
+            }
+        }
+
+        $this->commitVerifiedOutcome($operation, $terminalStatus);
+
+        return true;
     }
 
     /** @param array<string, mixed> $evidence */
@@ -625,6 +691,8 @@ final class GowaUpdateService
         $attestations = $operation->attestations()->where('fencing_token', $operation->fencing_token)->get();
         $root = $attestations->firstWhere('plane', 'root');
         $runtime = $attestations->firstWhere('plane', 'runtime');
+        $root = $this->freshAttestationOrOriginal($operation, $root);
+        $runtime = $this->freshAttestationOrOriginal($operation, $runtime);
 
         return $root !== null && $runtime !== null
             && (! $requirePassed || ($root->passed && $runtime->passed))
@@ -635,7 +703,27 @@ final class GowaUpdateService
             && $this->isFreshAttestation($runtime);
     }
 
-    private function isFreshAttestation(GowaUpdateAttestation $attestation): bool
+    private function freshAttestationOrOriginal(GowaUpdateOperation $operation, ?GowaUpdateAttestation $original): GowaUpdateAttestation|GowaUpdateAttestationRenewal|null
+    {
+        if ($original === null || $this->isFreshAttestation($original)) {
+            return $original;
+        }
+
+        return GowaUpdateAttestationRenewal::query()
+            ->where('operation_id', $operation->id)
+            ->where('fencing_token', $operation->fencing_token)
+            ->where('plane', $original->plane)
+            ->where('policy_version', $original->policy_version)
+            ->where('snapshot_hash', $original->snapshot_hash)
+            ->where('container_identity', $original->container_identity)
+            ->where('passed', $original->passed)
+            ->where('observed_at', '>=', now()->subMinutes(5)->format('Y-m-d H:i:sP'))
+            ->where('observed_at', '<=', now()->addSeconds(30)->format('Y-m-d H:i:sP'))
+            ->orderByDesc('observed_at')
+            ->first() ?? $original;
+    }
+
+    private function isFreshAttestation(GowaUpdateAttestation|GowaUpdateAttestationRenewal $attestation): bool
     {
         $observedAt = $attestation->observed_at;
 
